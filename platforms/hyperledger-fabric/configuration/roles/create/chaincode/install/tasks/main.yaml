@@ -1,0 +1,24 @@
+---
+#############################################################################################
+# This role creates value file for the deployment of chaincode install
+#############################################################################################
+
+############################################################################################
+# Create value file for chaincode installation
+- name: "Create value file for chaincode installation"
+  include_tasks: valuefile.yaml
+  vars:      
+    name: "{{ item.name | lower}}"
+    namespace: "{{ item.name | lower}}-net"
+    component_type: "{{ item.type | lower}}"
+    component_peers: "{{ item.services.peers }}"
+    vault: "{{ item.vault }}"
+    kubernetes: "{{ item.k8s }}"
+    git_url: "{{ item.gitops.git_ssh }}"
+    git_branch: "{{ item.gitops.branch }}"
+    charts_dir: "{{ item.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+  loop: "{{ component_peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.chaincode is defined

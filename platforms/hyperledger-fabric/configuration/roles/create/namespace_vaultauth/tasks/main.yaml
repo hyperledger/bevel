@@ -1,0 +1,76 @@
+#############################################################################################
+# This role creates value files for namespaces of organizations and ordererers
+#############################################################################################
+
+# Check if namespace created
+- name: Check namespace is created
+  k8s_facts:
+    kind: Namespace
+    name: "{{ component_name }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_namespace
+
+############################################################################################
+# This task creates the value file of Namespace for Organizations
+- name: Create namespaces
+  include_role:
+    name: k8_component
+  vars:    
+    component_type: "namespace"    
+  when: get_namespace.resources|length == 0
+
+#############################################################################################
+# This role creates value file for vault reviewer service account of orderers and organizations
+#############################################################################################
+
+
+############################################################################################
+# Create vault reviewer service account value file for Organizations
+- name: Create vault reviewer service account for Organizations
+  include_role:
+    name: k8_component
+  vars:
+    component_type: "vault-reviewer"
+  when: get_namespace.resources|length == 0
+
+#############################################################################################
+# This role creates value file for vault auth service account of orderers and organizations
+#############################################################################################
+
+
+############################################################################################
+# Create vault auth service account value file for Organizations
+- name: Create vault auth service account for Organizations
+  include_role:
+    name: k8_component
+  vars:
+    component_type: "vaultAuth"
+  when: get_namespace.resources|length == 0
+
+#############################################################################################
+# This role creates value file for clusterrolebinding for orderers and organizations 
+#############################################################################################
+
+
+############################################################################################
+# Create clusterrolebinding value file for Orderers
+- name: Create clusterrolebinding for Ordrers
+  include_role:
+    name: k8_component
+  vars:
+    component_type: "reviewer_rbac"
+  when: get_namespace.resources|length == 0
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ item.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_PASSWORD: "{{ item.gitops.password }}"
+    GIT_BRANCH: "{{ item.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "Pushing deployment files for namespace, service accounts and clusterrolebinding"

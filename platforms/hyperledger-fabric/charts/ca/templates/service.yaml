@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.server.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  {{ if $.Values.ambassador.annotations }}
+  annotations:
+    getambassador.io/config: |
+    {{ $.Values.ambassador.annotations  | nindent 6 }}
+  {{ end }}
+  labels:
+    run: {{ $.Values.server.name }}
+    app.kubernetes.io/name: {{ $.Values.server.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  type: {{ $.Values.service.servicetype }}
+  selector:
+    name: {{ $.Values.server.name }}
+  ports:
+  - name: tcp
+    protocol: TCP
+    targetPort: 7054
+    port: {{ $.Values.service.ports.tcp.clusteripport }}
+    {{- if $.Values.service.ports.tcp.nodeport }}
+    nodePort: {{ $.Values.service.ports.tcp.nodeport }}
+    {{- end }}

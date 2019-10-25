@@ -1,0 +1,117 @@
+# This playbook is a supporting playbook
+######################################################################################
+# DO NOT RUN THIS IF YOU HAVE NOT RUN deploy-network.yaml and generated crypto-config
+######################################################################################
+# Please use the same network.yaml to run this playbook as used for deploy-network.yaml
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+    # create build directory
+    - name: Check build directory exists
+      file:
+        path: "./build"
+        state: directory
+    # Create generate_crypto script for each organization
+    - include_role:
+        name: "create/crypto_script"
+      vars:
+        component_type: "{{ item.type | lower}}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric'
+    # Create Orderer crypto materials
+    - include_role:
+        name: "create/crypto/orderer"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name }}"
+        services: "{{ item.services }}"
+        subject: "{{ item.subject }}"
+        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.type == 'orderer'
+    
+    # Create Organization crypto materials
+    - include_role:
+        name: "create/crypto/peer"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name }}"
+        services: "{{ item.services }}"
+        subject: "{{ item.subject }}"
+        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.type == 'peer'
+
+    #Creating channel artifacts and putting them in vault
+    # This role creates configtx.yaml file as the requirements mentioned in network.yaml
+    # which is then consumed by configtxgen tool
+    - include_role:
+        name: "create/configtx"
+      vars:
+        config_file: "./build/configtx.yaml"
+      when: network.type == 'fabric'
+
+    # This role generate genesis block and channel
+    - include_role:
+        name: "create/channel_artifacts"
+      vars:
+        build_path: "./build"
+        genesis: "{{ item.genesis }}"
+        channel_name: "{{ item.channel_name | lower}}"
+        profile_name: "{{ item.channel_name }}"
+      loop: "{{ network['channels'] }}"
+      when: network.type == 'fabric'
+   
+    # This role creates value file for zkKafka and orderer
+    - include_role:
+        name: "create/orderers"
+      vars:
+        build_path: "./build"        
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_ssh }}"
+        git_branch: "{{ item.gitops.branch }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.type == 'orderer'
+
+    # This role creates the value file for peers of organisations and write couch db credentials
+    # to the vault.
+    - include_role:
+        name: "create/peers"
+      vars:
+        build_path: "./build"        
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_ssh }}"
+        git_branch: "{{ item.gitops.branch }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.type == 'peer'
+    
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "/bin"            #Default to /bin install directory for binaries
+

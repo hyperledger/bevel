@@ -1,0 +1,133 @@
+#############################################################################################
+# This role setups communication between the vault and kubernetes cluster and install 
+# neccessary configurations.
+#############################################################################################
+
+# Check if namespace created
+- name: Check namespace is created
+  k8s_facts:
+    kind: Namespace
+    name: "{{ component_name }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_namespace
+  until: get_namespace.resources|length > 0
+  retries: 10
+  delay: 35
+
+############################################################################################
+# This task creates the build temp direcotry
+- name: Ensures build dir exists
+  file:
+    path: "./build"
+    recurse: yes
+    state: directory
+
+# This task checks if the vault path already exists
+- name: Check if Kubernetes-auth already created for Organization
+  shell: |
+    vault auth list
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: auth_list
+
+############################################################################################
+# This task enables the path for the organizations and orderers on vault
+# This task runs only when {{auth_path}} is not already created
+- name: Enable and configure Kubernetes-auth for Organization
+  shell: |
+    vault auth enable --path="{{ auth_path }}" kubernetes
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: auth_list.stdout.find(auth_path) == -1  # Only when auth_path is NOT in the output of auth_list
+  ignore_errors: yes
+
+############################################################################################
+# This task get the certificate for the cluster mentioned in k8 secret
+# This task runs only when {{auth_path}} is not already created
+- name: Get Kubernetes cert files for organizations
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 --decode > "./build/{{ component_name }}.ca.cert"
+  when: auth_list.stdout.find(auth_path) == -1
+
+#####################################################################################################################
+# This task writes the Service Account token to the vault for Organisations
+# This task runs only when {{auth_path}} is not already created
+- name: Write reviewer token for Organisations
+  shell: |
+    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_name }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_name }} -o  jsonpath={.data.token} | base64 --decode)
+    vault write auth/{{ auth_path }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_name }}.ca.cert"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: auth_list.stdout.find(auth_path) == -1 
+
+# This task checks if the vault-ro polict already exists
+- name: Check if policy exists
+  shell: |
+    vault policy read vault-crypto-{{ component_type }}-{{ component_name }}-ro
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_policy_result
+  ignore_errors: yes
+
+#####################################################################################################################
+# This task creates the access policy for orderers
+- name: Create policy for Orderer Access Control
+  template:
+    src: "orderer-ro.tpl"
+    dest: "./build/vault-crypto-{{ component_name | lower }}-ro.hcl"
+  vars:
+    component_name: "{{ component_name }}"
+  when: component_type == 'orderer' and vault_policy_result.failed == True  # Run if policy check failed
+
+
+############################################################################################
+# These tasks creates the access policy for Organizations
+- name: Create policy for Organisations Access Control
+  template:
+    src: "peer-ro.tpl"
+    dest: "./build/vault-crypto-{{ component_name | lower }}-ro.hcl"
+  vars:
+    component_name: "{{ component_name }}"
+  when: component_type == 'peer' and vault_policy_result.failed == True   # Run if policy check failed
+
+
+############################################################################################
+# This task writes the policies to the vault
+- name: Write Policy to Vault
+  shell: |
+    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@./build/vault-crypto-{{ component_name | lower }}-ro.hcl"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_policy_result.failed == True    # Run if policy check failed
+
+# This task creates the vault auth
+- name: Create Vault auth role
+  shell: |
+    vault write auth/{{ auth_path }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_name }} policies="vault-crypto-{{ component_type }}-{{ component_name }}-ro" ttl=120s
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: auth_list.stdout.find(auth_path) == -1     # Run when auth_path is not found
+
+# Check if Docker credentials exist already
+- name: Check docker cred exists
+  k8s_facts:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: "regcred"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_regcred
+
+#####################################################################################################################
+# This task creates the docker pull credentials for image registry
+- name: Create the docker pull credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_name }} docker-registry regcred --docker-server={{ network.docker.url }} --docker-username={{ network.docker.username }} --docker-password={{ network.docker.password }} --docker-email="test@abc.mail"
+  when: get_regcred.resources|length == 0
