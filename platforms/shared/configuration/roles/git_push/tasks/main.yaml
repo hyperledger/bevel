@@ -1,0 +1,40 @@
+---
+# This is a generic role to check-in files to git repository
+- name: "Check if directory: {{ GIT_DIR }} exists"
+  file:
+    path: "{{ GIT_DIR }}"
+    recurse: yes
+    state: directory
+
+# Git push the new files, reset config files
+- name: "Execute git push via shell task"
+  shell: |
+    cd "{{ GIT_DIR }}"
+    echo "---------------SHOW CONTENT OF DIR---------------"
+    ls -a
+    echo "---------------GIT PUSH---------------"
+    git config --global user.email "baf@accenture.com"
+    git config --global user.name {{ GIT_USERNAME }}
+    git --git-dir={{ GIT_DIR }}/.git add .
+    
+    # To ignore a directory add it add reset path
+    reset_path={{ GIT_RESET_PATH if GIT_RESET_PATH is defined else '' | default('') }}
+    if [ -n "$reset_path" ]; then
+        git --git-dir={{ GIT_DIR }}/.git reset "{{ GIT_RESET_PATH }}"
+    fi  
+    
+    git --git-dir={{ GIT_DIR }}/.git commit -m "{{ msg }}" || true
+    git --git-dir={{ GIT_DIR }}/.git push https://{{ GIT_USERNAME }}:{{ GIT_PASSWORD }}@{{ GIT_REPO }} HEAD:{{ GIT_BRANCH }}
+  
+  register: GIT_OUTPUT
+  ignore_errors: yes
+
+# Display output of shell excution
+- name: "Output for gitpush"
+  debug:
+    var: GIT_OUTPUT.stdout
+
+# Display error of shell task
+- name: "Error for git_push"
+  debug:
+    var: GIT_OUTPUT.stderr
