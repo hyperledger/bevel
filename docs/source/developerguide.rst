@@ -12,14 +12,14 @@ Sphinx tool
 ~~~~~~~~~~~
 
 Sphinx is a tool that makes it easy to create intelligent and beautiful documentation. 
-This tool is needed to build the Blockchain Automation Framework documentation from ``docs`` folder.
+This tool is needed to build The Blockchain Automation Framework documentation from ``docs`` folder.
 
 * Sphinx version used 2.1.1
 
 **Sphinx installation:**
 Follow the `link <http://www.sphinx-doc.org/en/master/usage/installation.html>`_ to install sphinx documentation tool.
 
-All the Blockchain Automation Framework documentation and Sphinx Configuration files (``conf.py``) are located in `docs/source <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/docs/source>`_ folder.
+All The Blockchain Automation Framework documentation and Sphinx Configuration files (``conf.py``) are located in `docs/source <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/docs/source>`_ folder.
 To build the documentation, execute the following command from `docs` directory:
 
 .. code:: bash
