@@ -22,7 +22,7 @@ The configurations are grouped in the following sections for better understandin
 `frontend` is a flag which defines if frontend is enabled for nodes or not.
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
-(Note: Please use the [NMS Jenkins file](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks)
+(Note: Please use the [NMS Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks)
 
 | Field      | Description                                 |
 |------------|---------------------------------------------|
@@ -63,7 +63,7 @@ The configurations are grouped in the following sections for better understandin
 | gitops.branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | gitops.release_dir                          | Relative path where flux should sync files                                                                       |
 | gitops.chart_source                         | Relative path where the helm charts are stored                                                                   |
-| gitops.git_push_url                         | Gitops https URL for git push like "innersource.accenture.com/scm/blockofz/blockchain-automation-framework.git"                 |
+| gitops.git_push_url                         | Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"                 |
 | gitops.username                             | Username which has access rights to read/write on repository                                                     |
 | gitops.password                             | Password of the user which has access rights to read/write on repository                                          |
 | services.doorman.name                       | Doorman name                                                                                      |

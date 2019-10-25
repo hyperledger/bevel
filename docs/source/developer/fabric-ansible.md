@@ -52,7 +52,7 @@ Below is the single playbook that you need to execute to setup complete corda ne
 * Create CA server values for Organisations
 * Git Push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/ca_server/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/ca_server/Readme.md) for detailed information.
 
 ## **create/ca_tools**
 
@@ -60,7 +60,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create CA-tools Values file
 * Git Push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/ca_tools/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/ca_tools/Readme.md) for detailed information.
 
 ## **create/chaincode/install**
 
@@ -70,7 +70,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create value file for chaincode installation - nested
 * Git Push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/chaincode/install/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/chaincode/install/Readme.md) for detailed information.
 
 ## **create/chaincode/instantiate**
 
@@ -79,7 +79,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create value file for chaincode instantiation
 * Git Push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/chaincode/instantiate/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/chaincode/instantiate/Readme.md) for detailed information.
 
 ## **create/channel_artifacts**
 
@@ -94,7 +94,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Remove old channel block
 * Creating channels 
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/channel_artifacts/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/channel_artifacts/Readme.md) for detailed information.
 
 ## **create/channels**
 
@@ -102,7 +102,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create channel value file
 * Git Push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/channels/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/channels/Readme.md) for detailed information.
 
 ## **create/channels_join**
 
@@ -110,7 +110,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create join channel value file for orderer
 * Git Push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/channels_join/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/channels_join/Readme.md) for detailed information.
 
 ## **create/configtx**
 
@@ -121,7 +121,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Adding orderer patch to configtx.yaml
 * Adding profile patch to configtx.yaml
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/configtx/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/configtx/Readme.md) for detailed information.
 
 ## **create/crypto**
 
@@ -145,14 +145,14 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Copy organization level certificates for orderers
 * Copy organization level certificates for orgs
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/crypto/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/crypto/Readme.md) for detailed information.
 
 ## **create/crypto_script**
 
 * Create generate_crypto script file for orderers
 * Create generate_crypto script file for organizations
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/crypto_script/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/crypto_script/Readme.md) for detailed information.
 
 ## **create/namespace_vaultauth**
 
@@ -163,7 +163,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create clusterrolebinding for Orderers
 * Git Push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/namespace_vaultauth/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/namespace_vaultauth/Readme.md) for detailed information.
 
 ## **create/orderers**
 
@@ -171,7 +171,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * create orderers
 * Git push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/orderers/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/orderers/Readme.md) for detailed information.
 
 ## **create/peers**
 
@@ -179,7 +179,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create Value files for Organization Peers
 * Git Push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/peers/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/peers/Readme.md) for detailed information.
 
 ## **create/storageclass**
 
@@ -189,7 +189,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create Storage class for Organizations
 * Git push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/create/storageclass/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/storageclass/Readme.md) for detailed information.
 
 ## **delete/flux_releases**
 
@@ -202,14 +202,14 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Uninstall Flux
 * Uninstall Namespaces
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/delete/flux_releases/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/delete/flux_releases/Readme.md) for detailed information.
 
 ## **delete/gitops_files**
 
 * Delete release files
 * Git push
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/delete/gitops_files/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/delete/gitops_files/Readme.md) for detailed information.
 
 ## **delete/vault_secrets**
 
@@ -218,7 +218,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Delete Crypto for orderers
 * Delete Crypto for peers
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/delete/vault_secrets/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/delete/vault_secrets/Readme.md) for detailed information.
 
 ## **helm_component**
 
@@ -226,14 +226,14 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create value file
 * Helm lint
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/helm_component/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/helm_component/Readme.md) for detailed information.
 
 ## **k8_component**
 
 * Ensures value directory exist
 * Create value file
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/roles/k8_component/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/k8_component/Readme.md) for detailed information.
 
 ## **setup/get_crypto**
 
@@ -244,7 +244,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Ensure tlscacerts directory exists
 * Save tlscacerts
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/setup/get_crypto/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/setup/get_crypto/Readme.md) for detailed information.
 
 ## **setup/vault_kuberntes**
 
@@ -260,4 +260,4 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Write policy for vault
 * Create Vault auth role
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/hyperledger-fabric/configuration/setup/vault_kubernetes/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/setup/vault_kubernetes/Readme.md) for detailed information.

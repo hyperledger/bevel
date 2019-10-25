@@ -6,9 +6,9 @@ pipeline {
     environment {
         //Define common variables
         //GIT repo links
-        GITOPS_REPO="innersource.accenture.com/scm/blockofz/blockchain-automation-framework.git"
+        GITOPS_REPO="github.com/hyperledger-labs/blockchain-automation-framework.git"
         //SSH version is also needed
-        GITOPS_SSH="ssh://git@innersource.accenture.com/blockofz/blockchain-automation-framework.git"
+        GITOPS_SSH="ssh://git@github.com:hyperledger-labs/blockchain-automation-framework.git"
         //Release path for Corda
         REL_PATH_CORDA="platforms/r3-corda/releases/dev"
         //Release path for Fabric

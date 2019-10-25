@@ -3,7 +3,7 @@
 
 Pre-requisites: R3 Corda network deployed and network.yaml configuration file already set.
 
-The playbook mentioned [here](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/deploy-cordapps.yaml) is used to deploy cordapps over the existing R3 Corda network.
+The playbook mentioned [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/deploy-cordapps.yaml) is used to deploy cordapps over the existing R3 Corda network.
 This can be done manually using the following command
 
 ```
