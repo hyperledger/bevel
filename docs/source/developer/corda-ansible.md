@@ -51,7 +51,7 @@ This is the main ansible playbook which call all the roles in below sequence to 
 * Deploy nodes
 
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/README.md) for detailed information.
 
 Below are the roles that deploy_network playbook calls to complete the setup process.
 ## **setup/nms**
@@ -60,18 +60,18 @@ Below are the roles that deploy_network playbook calls to complete the setup pro
 * Create nms helm value files
 * Check-in to git repo
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/setup/nms/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/setup/nms/README.md) for detailed information.
 ## **setup/doorman**
 
 * Perform all the prerequisites (namespace, Vault auth, rbac, imagepullsecret)
 * Create doorman and mongodb helm value files
 * Check-in to git repo
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/setup/doorman/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/setup/doorman/README.md) for detailed information.
 ## **create/certificates**
 * Generate root certificates for doorman and nms
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/create/certificates/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/create/certificates/README.md) for detailed information.
 ## **setup_notary**
 * Perform all the prerequisites (namespace, Vault auth, rbac, imagepullsecret)
 * Get crypto from doorman/nms, store in Vault
@@ -80,7 +80,7 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create notary value files
 * Check-in to git repo
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/README.md) for detailed information.
 ## **setup_node**
 * Perform all the prerequisites (namespace, Vault auth, rbac, imagepullsecret)
 * Get crypto from doorman/nms, store in Vault
@@ -89,16 +89,16 @@ Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockc
 * Create node value files
 * Check-in to git repo
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/README.md) for detailed information.
 
 ## **deploy_cordapps**
 
 * Deploy cordapps into each node and notary
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/README.md) for detailed information.
 
 ## **setup_springboot_services**
 * Create springboot webserver helm value files for each node
 * Check-in to git repo
 
-Follow [Readme](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/README.md) for detailed information.

@@ -19,9 +19,9 @@ Jenkins in The Blockchain Automation Framework is used to spin up R3 corda netwo
 ## Environment variable
 Environment variable are defined in Jenkins file. These variables are passed to the ansible playbook.
 1. **GITOPS_REPO**: Path of the git repository.
-    eg GITOPS_REPO="innersource.accenture.com/scm/blockofz/blockchain-automation-framework.git"
+    eg GITOPS_REPO="github.com/hyperledger-labs/blockchain-automation-framework.git"
 2. **GITOPS_SSH**: SSH path for git repo
-    eg GITOPS_SSH="ssh://git@innersource.accenture.com/blockofz/blockchain-automation-framework.git"
+    eg GITOPS_SSH="ssh://git@github.com:hyperledger-labs/blockchain-automation-framework.git"
 3. **REL_PATH**: Relative path in the repo where files would pushed by GitOps
     eg REL_PATH="platforms/corda/releases/dev"
 4. **CHART_PATH**: Path for the Helm Charts
