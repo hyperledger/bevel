@@ -1,0 +1,37 @@
+---
+#######################################
+# Playbook to setup the Kubernetes environment for running The Blockchain Automation Framework on the cluste
+#  - Installs Flux for GitOps
+#  - Installs Ambassador
+#######################################
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+  - include_role:
+      name:  setup/flux
+    vars:
+      kubeconfig_path: "{{ item.k8s.config_file }}"
+      kubecontext: "{{ item.k8s.context }}"
+      git_url: "{{ item.gitops.git_ssh }}"
+      git_branch: "{{ item.gitops.branch }}"
+      git_path: "{{ item.gitops.release_dir }}"
+      git_host: "{{ item.gitops.git_push_url.split('/')[0] | lower }}" # extract the hostname from the git_push_url
+    with_items: "{{ network.organizations }}"
+  - include_role:
+      name: setup/ambassador
+    vars:
+      kubeconfig_path: "{{ item.k8s.config_file }}"
+      kubecontext: "{{ item.k8s.context }}"
+      ambassador:
+        version: "2.1.0"
+        targetPort: "443"
+        port: "8443"
+        image: quay.io/datawire/ambassador
+        tag: "0.53.1"
+    with_items: "{{ network.organizations }}"
+    when: item.cloud_provider != 'minikube'
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "/bin"            #Default to /bin install directory for binaries
