@@ -1,0 +1,85 @@
+FROM ubuntu:16.04
+
+USER root
+
+ARG ROCKS_DB_VERSION=5.8.8
+ARG LIBINDY_CRYPTO_VERSION=0.4.5
+ARG INDY_NODE_VERSION=v1.9.2
+
+ENV VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3 \
+    WORKON_HOME=$HOME/.virtualenvs \
+    ENABLE_STDOUT_LOG=True \
+    LOG_ROTATION_BACKUP_COUNT=10 \
+    LEDGER_DIR='/var/lib/indy/data' \
+    LOG_DIR='/var/log/indy' \
+    KEYS_DIR='/var/lib/indy/keys-ktb-demo-client' \
+    GENESIS_DIR='/var/lib/indy/genesis-ktb-demo-client' \
+    BACKUP_DIR='/var/lib/indy/backup' \
+    PLUGINS_DIR='/var/lib/indy/plugins' \
+    NODE_INFO_DIR='/var/lib/indy/data' \
+    NETWORK_NAME='udisp' \
+    INDY_HOME=/opt/indy/ \
+    INDY_CONFIG_DIR=/etc/indy/ \
+    NODES_COUNT=4 \
+    NODE_NAMES="node1,node2,node3,node4" \
+    IPS="node1,node2,node3,node4" \
+    NODE_PORTS="9701,9702,9703,9704" \
+    CLIENT_PORTS="9705,9706,9707,9708"
+
+# Installing python and pip
+RUN apt-get update && \
+    apt-get install -y software-properties-common python-software-properties && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.5 python3-pip python3.5-dev
+
+# Installing virtualenvwrapper
+RUN pip3 install virtualenvwrapper
+
+# Setting up https for apt
+RUN apt-get update && \
+    apt-get install -y apt-transport-https ca-certificates
+
+RUN add-apt-repository "deb http://us.archive.ubuntu.com/ubuntu xenial main universe" && \
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CE7709D068DB5E88 && \
+    add-apt-repository "deb https://repo.sovrin.org/deb xenial master" && \
+    add-apt-repository "deb https://repo.sovrin.org/sdk/deb xenial stable" && \
+    apt-get update
+
+# Installing libsodium
+RUN apt-get install -y libsodium18
+
+# Installing RocksDB
+RUN apt-get install -y libbz2-dev \
+    zlib1g-dev \
+    liblz4-dev \
+    libsnappy-dev \
+    rocksdb=${ROCKS_DB_VERSION}
+
+# Installing Libindy and Libindy Crypto
+RUN apt-get install -y libindy libindy-crypto=${LIBINDY_CRYPTO_VERSION}
+
+# Installing indy node and plenum
+RUN mkdir -p ${INDY_HOME}
+WORKDIR ${INDY_HOME}
+RUN apt-get update && \
+    apt-get install -y git && \
+    git clone https://github.com/hyperledger/indy-plenum.git && \
+    git clone https://github.com/hyperledger/indy-node.git
+RUN cd ${INDY_HOME}/indy-node && \
+    git checkout ${INDY_NODE_VERSION} && \
+    cd ${INDY_HOME}/indy-plenum && \
+    git checkout ${INDY_NODE_VERSION}
+WORKDIR ${INDY_HOME}
+COPY config/indy_config.py ${INDY_CONFIG_DIR}
+RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv -p python3.5 ${NETWORK_NAME}; workon ${NETWORK_NAME}; pushd indy-node; pip3 install -e .[tests]; popd"  && \
+    /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; pushd indy-plenum; pip3 uninstall -y indy-plenum; pip3 install -e .[tests]; popd"
+
+COPY src/generate_real_indy_pool_transactions /.virtualenvs/${NETWORK_NAME}/bin/generate_real_indy_pool_transactions
+COPY src/real_network_setup.py /.virtualenvs/${NETWORK_NAME}/lib/python3.5/site-packages/plenum/common/real_network_setup.py
+RUN chmod +x /.virtualenvs/udisp/bin/generate_real_indy_pool_transactions
+
+RUN echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc && \
+    echo 'workon ${NETWORK_NAME}' >> ~/.bashrc
+
+CMD /bin/bash
