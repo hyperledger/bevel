@@ -1,0 +1,33 @@
+############################################################################################
+# Create express-api value file for the peer nodes
+- name: "Create express-api values file for peer organizations"
+  include_role:
+    name: helm_component
+  vars:
+    type: "expressapi-fabric"
+    name: "{{ organization_data.name | lower }}"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    expressapi_image: "supplychain_fabric/express_app:latest"
+    url: "http://{{ organization_data.name | lower }}-restserver.{{ component_ns }}"
+    peer_name: "{{ peer_data.name }}"
+    peer_expressapi_port: "{{ peer_data.expressapi.port }}"
+    peer_expressapi_targetport: "{{ peer_data.expressapi.targetPort }}"
+    peer_restserver_port: "{{ peer_data.restserver.port }}"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: component_type == 'peer' and peer_data.expressapi is defined
+
+# Push the express-api deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ component_gitops.git_push_url }}"
+    GIT_USERNAME: "{{ component_gitops.username }}"
+    GIT_PASSWORD: "{{ component_gitops.password }}"
+    GIT_BRANCH: "{{ component_gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "Pushing deployment files for fabric expressapi"
+  when: component_type == 'peer'
