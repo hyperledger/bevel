@@ -8,9 +8,9 @@ pipeline {
     environment {
         //Define common variables
         //GIT repo links
-        GITOPS_REPO="innersource.accenture.com/scm/blockofz/blockchain-automation-framework.git"
+        GITOPS_REPO="github.com/hyperledger-labs/blockchain-automation-framework.git"
         //SSH version is also needed
-        GITOPS_SSH="ssh://git@innersource.accenture.com/blockofz/blockchain-automation-framework.git"
+        GITOPS_SSH="ssh://git@github.com:hyperledger-labs/blockchain-automation-framework.git"
         //Release path for Fabric
         REL_PATH="platforms/hyperledger-fabric/releases/dev"
         //Path for charts that will be deployed
@@ -36,7 +36,7 @@ pipeline {
     parameters {
         string(defaultValue: "http://aa6305c6592c511e9aaab02f438592f4-1279856826.eu-west-2.elb.amazonaws.com:8200", description: 'Vault Server address?', name: 'VAULT_ADDR')
         password(defaultValue: "", description: 'Vault root token?', name: 'VAULT_TOKEN')
-        string(defaultValue: "feature/BLOCKOFZ-590-Testing-of-Helm-Charts-for-Corda-using-Helm-Unit-Test", description: 'GitOps Release Branch', name: 'RELEASE_BRANCH')
+        string(defaultValue: "release/corda0200", description: 'GitOps Release Branch', name: 'RELEASE_BRANCH')
         string(defaultValue: 'deploy-infra-aws-org3', description: 'Which job to get Kubeconfig from?', name: 'KUBE_PROJECT')
         string(defaultValue: 'kube_user.yaml', description: 'Which Kubeconfig filename to use?', name: 'KUBE_FILE')
         string(defaultValue: 'fabric-org3-cluster', description: 'Kluster name?', name: 'CLUSTER_CONTEXT')

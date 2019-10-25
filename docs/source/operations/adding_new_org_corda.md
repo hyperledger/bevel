@@ -79,11 +79,11 @@ network:
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_password
       gitops:
-        git_ssh: "gitops_ssh_url"         # Gitops ssh url for flux value files like "ssh://git@innersource.accenture.com/blockofz/blockchain-automation-framework.git"
+        git_ssh: "gitops_ssh_url"         # Gitops ssh url for flux value files like "ssh://git@github.com:hyperledger-labs/blockchain-automation-framework.git"
         branch: "gitops_branch"           # Git branch where release is being made
         release_dir: "gitops_release_dir" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "innersource.accenture.com/scm/blockofz/blockchain-automation-framework.git"
+        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
 
@@ -121,7 +121,7 @@ network:
 <a name = "run_network"></a>
 ## Run playbook to add the new organization to the existing R3 Corda network
 
-[This](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/configuration/deploy-network.yaml) playbook (deploy_network.yaml) is used to deploy the network. Same playbook is used to add a new organization to the existing network. This can be done manually using the following command
+[This](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/deploy-network.yaml) playbook (deploy_network.yaml) is used to deploy the network. Same playbook is used to add a new organization to the existing network. This can be done manually using the following command
 
 ```
     ansible-playbook platforms/r3-corda/configuration/deploy-network.yaml --extra-vars "@path-to-network.yaml"
