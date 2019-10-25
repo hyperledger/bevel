@@ -1,0 +1,204 @@
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+    # Create Namespaces and Vault-rbac kubernetes-value files
+    - include_role:
+        name: "create/namespace_vaultauth"
+      vars:
+        component_name: "{{ item.name | lower }}-net"
+        component_type_name: "{{ item.type | lower }}"
+        kubernetes: "{{ item.k8s }}"
+        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric'
+    
+    #Setup Vault-Kubernetes accesses and Regcred for docker registry
+    - include_role: 
+        name: "setup/vault_kubernetes"
+      vars:
+        component_name: "{{ item.name | lower }}-net"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        component_type: "{{ item.type | lower }}"
+        auth_path: "{{ item.name | lower }}-net-auth"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric'
+
+    # Create Storageclass 
+    - include_role:
+        name: "create/storageclass"
+      vars:
+        sc_name: "{{ item.name | lower}}sc"
+        component_type: "{{ item.type | lower}}"
+        kubernetes: "{{ item.k8s }}"
+        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric'
+        
+    # Create CA Server helm-value files and check-in
+    - include_role:
+        name: "create/ca-server"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.services.ca is defined
+        
+    # Create CA Tools helm-value files and check-in
+    - include_role:
+        name: "create/ca-tools"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' 
+
+    # Create generate_crypto script for each organization
+    - include_role:
+        name: "create/crypto_script"
+      vars:
+        component_type: "{{ item.type | lower}}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' 
+
+    #Creating a pause so that the client certificates are valid
+    # You can continue if the CA-server pods are running for more than 5 minutes
+    - pause:
+        prompt: "Sleeping... so that the client certificates are valid"
+        minutes: 6
+
+    # Create Orderer crypto materials
+    - include_role:
+        name: "create/crypto/orderer"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name }}"
+        services: "{{ item.services }}"
+        subject: "{{ item.subject }}"
+        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.type == 'orderer'
+    
+    # Create Organization crypto materials
+    - include_role:
+        name: "create/crypto/peer"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name }}"
+        services: "{{ item.services }}"
+        subject: "{{ item.subject }}"
+        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.type == 'peer'
+
+    #Creating channel artifacts and putting them in vault
+    # This role creates configtx.yaml file as the requirements mentioned in network.yaml
+    # which is then consumed by configtxgen tool
+    - include_role:
+        name: "create/configtx"
+      vars:
+        config_file: "./build/configtx.yaml"
+      when: network.type == 'fabric'
+
+    # This role generate genesis block and channeltx
+    - include_role:
+        name: "create/channel_artifacts"
+      vars:
+        build_path: "./build"
+        genesis: "{{ item.genesis }}"
+        channel_name: "{{ item.channel_name | lower}}"
+        profile_name: "{{ item.channel_name }}"
+      loop: "{{ network['channels'] }}"
+      when: network.type == 'fabric'
+    
+    # This role creates value file for zkKafka and orderer
+    - include_role:
+        name: "create/orderers"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_ssh }}"
+        git_branch: "{{ item.gitops.branch }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.type == 'orderer'
+
+    # This role creates the value file for peers of organisations and write couch db credentials
+    # to the vault.
+    - include_role:
+        name: "create/peers"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_ssh }}"
+        git_branch: "{{ item.gitops.branch }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'fabric' and item.type == 'peer'
+
+    # This role creates the value file for creating channel from creator organization
+    # to the vault.
+    - include_role:
+        name: "create/channels"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+      loop: "{{ network['channels'] }}"
+
+    # This role creates the value file for joining channel from each participating peer
+    # to the vault.
+    - include_role:
+        name: "create/channels_join"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+      loop: "{{ network['channels'] }}"
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "/bin"            #Default to /bin install directory for binaries

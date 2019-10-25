@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: ambassador-admin
+  name: ambassador-admin
+spec:
+  type: ClusterIP
+  ports:
+  - name: ambassador-admin
+    port: 80
+    targetPort: 8877
+  selector:
+    service: ambassador
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ambassador
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  ports:
+   - port: {{ .Values.ambassador.port }}
+     name: webhttps
+     targetPort: {{ .Values.ambassador.targetPort }}
+{{- if .Values.ambassador.otherPorts }}
+{{- range .Values.ambassador.otherPorts }}
+   - port: {{ . }}
+     name: port-{{- . }}
+     targetPort: {{ . }}
+{{- end }}
+{{- end }}
+  selector:
+    service: ambassador

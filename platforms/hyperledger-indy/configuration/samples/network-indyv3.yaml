@@ -1,0 +1,166 @@
+---
+network:
+  type: indy
+  version: 1.9.2
+
+  docker:
+    url: "docker_url"
+    username: "docker_username"
+    password: "docker_password"
+
+  name: baf
+
+  genesis:
+    state: absent
+    pool: genesis/pool_transactions_genesis
+    domain: domain/domain_transactions_genesis
+
+  organizations:
+    - organization:
+      name: authority
+      type: peer
+      cloud_provider: aws
+      aws:
+        access_key: "aws_access_key"
+        secret_key: "aws_secret_key"
+      k8s:
+        provider: "BARE_METAL"
+        config_file: "cluster_config"
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+      gitops:
+        git_ssh: "gitops_ssh_url"
+        branch: "gitops_branch"
+        release_dir: "gitops_release_dir"
+        chart_source: "gitops_charts"
+        git_push_url: "gitops_push_url"
+        username: "git_username"
+        password: "git_password"
+      infrastructure:
+        target_state: "present"
+        refresh_inventory: yes
+      services:
+        trustee:
+          name: authority-trustee
+          genesis: true
+    - organization:
+      name: provider
+      type: peer
+      cloud_provider: aws
+      aws:
+        access_key: "aws_access_key"
+        secret_key: "aws_secret_key"
+      k8s:
+        provider: "BARE_METAL"
+        config_file: "cluster_config"
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+      gitops:
+        git_ssh: "gitops_ssh_url"
+        branch: "gitops_branch"
+        release_dir: "gitops_release_dir"
+        chart_source: "gitops_charts"
+        git_push_url: "gitops_push_url"
+        username: "git_username"
+        password: "git_password"
+      infrastructure:
+        target_state: "present"
+        refresh_inventory: yes
+      services:
+        trustee:
+          name: provider-trustee
+          genesis: true
+        stewards:
+        - steward:
+          name: provider-steward-1
+          type: VALIDATOR
+          genesis: true
+          publicIp: 3.221.78.194
+          node:
+            port: 9711
+            targetPort: 9711
+            ambassador: 9711
+          client:
+            port: 9712
+            targetPort: 9712
+            ambassador: 9712
+        - steward:
+          name: provider-steward-2
+          type: VALIDATOR
+          genesis: true
+          publicIp: 3.221.78.194
+          node:
+            port: 9721
+            targetPort: 9721
+            ambassador: 9721
+          client:
+            port: 9722
+            targetPort: 9722
+            ambassador: 9722
+        endorser:
+          name: provider-endorser
+          full_name: Some Decentralized Identity Mobile Services Provider
+          avatar: https://provider.com/avatar.png
+          public_endpoint: https://provider.com/public
+    - organization:
+      name: partner
+      type: peer
+      cloud_provider: aws
+      aws:
+        access_key: "aws_access_key"
+        secret_key: "aws_secret_key"
+      k8s:
+        provider: "BARE_METAL"
+        config_file: "cluster_config"
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+      gitops:
+        git_ssh: "gitops_ssh_url"
+        branch: "gitops_branch"
+        release_dir: "gitops_release_dir"
+        chart_source: "gitops_charts"
+        git_push_url: "gitops_push_url"
+        username: "git_username"
+        password: "git_password"
+      infrastructure:
+        target_state: "present"
+        refresh_inventory: yes
+      services:
+        trustee:
+          name: partner-trustee
+          genesis: true
+        stewards:
+        - steward:
+          name: partner-steward-1
+          type: VALIDATOR
+          genesis: true
+          publicIp: 3.221.78.194
+          node:
+            port: 9731
+            targetPort: 9731
+            ambassador: 9731
+          client:
+            port: 9732
+            targetPort: 9732
+            ambassador: 9732
+        - steward:
+          name: partner-steward-2
+          type: VALIDATOR
+          genesis: true
+          publicIp: 3.221.78.194
+          node:
+            port: 9741
+            targetPort: 9741
+            ambassador: 9741
+          client:
+            port: 9742
+            targetPort: 9742
+            ambassador: 9742
+        endorser:
+          name: partner-endorser
+          full_name: Some Decentralized Identity Mobile Services Partner
+          avatar: https://partner.com/avatar.png
+          public_endpoint: https://partner.com/public

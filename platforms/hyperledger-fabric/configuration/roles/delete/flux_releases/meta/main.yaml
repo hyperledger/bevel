@@ -1,0 +1,23 @@
+---
+dependencies:
+  - role: "{{playbook_dir}}/../../shared/configuration/roles/setup/helm"
+    vars:
+      helm:
+        version: "v2.14.1"
+        os: "{{ install_os }}"
+        arch: "{{ install_arch }}"
+        bin_directory: "{{ bin_install_dir }}"
+        checksum: ""
+
+  - role: "{{playbook_dir}}/../../shared/configuration/roles/setup/aws-auth"
+    vars:
+      aws_authenticator:
+        version: "1.10.3"
+        release_date:  "2018-07-26"
+        os: "{{ install_os }}"
+        arch: "{{ install_arch }}"
+        bin_directory: "{{ bin_install_dir }}"
+        checksum: ""
+      kubeconfig_path: "{{ item.k8s.config_file }}"
+      kubecontext: "{{ item.k8s.context }}"
+    when: "item.cloud_provider == 'aws'"

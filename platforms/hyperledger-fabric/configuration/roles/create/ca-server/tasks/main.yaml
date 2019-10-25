@@ -1,0 +1,126 @@
+#############################################################################################
+# This role generate initial CA certs and push them to vault
+# Also, creates the value file for Certificate Authority (CA)
+#############################################################################################
+
+- name: Check if ca certs already created
+  shell: |
+    vault kv get -field=ca.{{ component_name }}-cert.pem secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ca
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_ca_result
+  ignore_errors: yes
+
+############################################################################################
+# This task creates the folder to store crypto material
+- name: Ensures crypto dir exists
+  file:
+    path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
+    recurse: yes
+    state: directory
+
+- name: Get ca certs and key
+  shell: |
+    vault kv get -field=ca.{{ component_name }}-cert.pem secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
+    mv ca.{{ component_name }}-cert.pem ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/
+    vault kv get -field={{ component_name }}-CA.key secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ca > {{ component_name }}-CA.key
+    mv {{ component_name }}-CA.key ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_ca_result.failed == False
+
+############################################################################################
+# This task generates initial CA certificates
+- name: Generate the CA certificate
+  shell: |
+    cd "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
+    openssl ecparam -name prime256v1 -genkey -noout -out {{ component_name }}-CA.key
+    openssl req -x509 -config "{{playbook_dir}}/openssl.conf" -new -nodes -key {{ component_name }}-CA.key -days 1024 -out ca.{{ component_name }}-cert.pem -extensions v3_req -subj "{{ ca.subject }}"
+  when: vault_ca_result.failed == True
+
+############################################################################################
+# This task copy the CA certificates generated above, to the Vault
+- name: Copy the crypto material to Vault
+  shell: |
+    vault write secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ca ca.{{ component_name }}-cert.pem="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem")" {{ component_name }}-CA.key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key")"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_ca_result.failed == True
+
+- name: Check if ca admin credentials already created
+  shell: |
+    vault kv get secret/credentials/{{ component_name }}/ca/{{ component }}
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_caadmin_result
+  ignore_errors: yes
+
+############################################################################################
+# This task write the CA server admin credentials to Vault
+- name: Write the ca server admin credentials to Vault
+  shell: |
+    vault write secret/credentials/{{ component_name }}/ca/{{ component }} user="{{ component }}-adminpw"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_caadmin_result.failed == True  # run only when vault_caadmin_result failed
+
+# Check if Ambassador credentials exist already
+- name: Check Ambassador cred exists
+  k8s_facts:
+    kind: Secret
+    namespace: default
+    name: ca-{{ component_name }}-ambassador-certs
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_secret
+
+#####################################################################################################################
+# This task creates the Ambassador TLS credentials
+- name: Create the Ambassador credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls ca-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem --key=./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key -n default
+  when: get_secret.resources|length == 0
+
+############################################################################################
+# This task creates the CA value file for Orderer
+- name: "Create CA server values for Orderer"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ ca.name }}"
+    type: "ca-orderer"
+    git_url: "{{ gitops.git_ssh }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+  when: component_type == 'orderer'
+
+############################################################################################
+# This task creates the CA value file for Organizations
+- name: "Create CA server values organizations"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ ca.name }}"
+    type: "ca-peer"
+    git_url: "{{ gitops.git_ssh }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+  when: component_type == 'peer'
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ item.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_PASSWORD: "{{ item.gitops.password }}"
+    GIT_BRANCH: "{{ item.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "Pushing CA server files"

@@ -1,0 +1,48 @@
+#############################################################################################
+# This role creates value file for zkKafka and orderer
+#############################################################################################
+
+
+############################################################################################
+# This task creates the value file for kafka for orderes as per requirements mentioned in
+# network.yaml
+- name: "create kafka clusters"
+  include_role:
+    name: helm_component
+  vars:
+    name: "orderer"
+    org_name: "{{ item.name | lower }}"
+    component_name: "zkkafka"
+    type: "zkkafka"
+    consensus: "{{component_services.consensus}}"
+  when: component_services.orderer.consensus == 'kafka' and component_services.consensus is defined
+
+############################################################################################
+# This task creates the value file for the Orderers as per requirements mentioned in 
+# network.yaml
+- name: "create orderers"
+  include_role:
+    name: helm_component
+  vars:
+    name: "orderer"
+    org_name: "{{ item.name | lower }}"
+    component_name: "orderer-{{ org_name }}"
+    type: "orderers"
+    consensus: "{{component_services.consensus}}"
+    orderer: "{{component_services.orderer}}"
+    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"
+  when: component_services.orderer is defined and component_services.consensus is defined
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ item.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_PASSWORD: "{{ item.gitops.password }}"
+    GIT_BRANCH: "{{ item.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "Pushing Orderer files"
+ 

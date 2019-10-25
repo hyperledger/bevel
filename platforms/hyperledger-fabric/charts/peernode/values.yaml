@@ -1,0 +1,159 @@
+metadata:
+  #Provide the namespace for organization's peer
+  #Eg. namespace: org1-example-com
+  namespace: default
+  images:
+    #Provide the valid image name and version for fabric couchdb
+    #Eg. couchdb: hyperledger/fabric-couchdb:0.4.14
+    couchdb: hyperledger/fabric-couchdb:0.4.14
+    #Provide the valid image name and version for fabric peer
+    #Eg. hyperledger/fabric-peer:1.4.0
+    peer: hyperledger/fabric-peer:1.4.0
+    #Provide the valid image name and version to read certificates from vault server 
+    #Eg. alpineutils: adopfrablockchain.azurecr.io/alpine-utils:1.0
+    alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+  #Provide the custom labels  
+  #NOTE: Provide labels other than name, release name , release service, chart version , chart name, run
+  #These lables will not be applied to VolumeClaimTemplate of StatefulSet as labels are automatically picked up by Kubernetes
+  #Eg. labels:
+  #      role: peer
+  labels:
+
+peer:
+  #Provide the name of the peer as per deployment yaml.
+  #Eg. name: peer0
+  name:
+  #Provide the url of gossipping peer and port to be mentioned is grpc cluster IP port
+  #Eg. gossippeeraddress: peer1.org1-example-com.svc.cluster.local:7051
+  gossippeeraddress:
+  #Provide the url of gossip external endpoint and  port to be mentioned is ambassador https service port
+  #Eg. gossipexternalendpoint: peer1-ext.org1-example-com:8443
+  gossipexternalendpoint:  
+  #Provide the localmspid for organization
+  #Eg. localmspid: Org1MSP
+  localmspid:
+  #Provide the loglevel for organization's peer
+  #Eg. loglevel: info
+  loglevel:
+  #Provide the value for tlsstatus to be true or false for organization's peer
+  #Eg. tlsstatus: true
+  tlsstatus:
+  couchdb:
+    #Provide the username for couchdb login
+    #If couchdb username is provided, it is mandatory to provide password for the same
+    #Eg. username: org1-user
+    username:
+  mspconfig:
+    #Provide the members of the MSP in organizational unit identifiers
+    #Eg.organizationalunitidentifiers:
+    #     - client
+    #     - peer
+    organizationalunitidentifiers:
+    nodeOUs:
+      clientOUidentifier:
+        #Provide OU which will be used to identify node as client
+        #Eg.organizationalunitidentifier: client
+        organizationalunitidentifier: client
+      peerOUidentifier:
+        #Provide OU which will be used to identify node as peer
+        #Eg.organizationalunitidentifier: peer
+        organizationalunitidentifier: peer
+
+storage:
+  peer:
+    #Provide the storageclassname for peer
+    #Eg. storageclassname: aws-storage
+    storageclassname:
+    #Provide the storagesize for storage class
+    #Eg. storagesize: 1Gi
+    storagesize:
+  couchdb:
+    #Provide the storageclassname for couchdb
+    #Eg. storageclassname: aws-storage
+    storageclassname:
+    #Provide the storagesize for storage class
+    #Eg. storagesize: 1Gi
+    storagesize:
+
+
+
+vault:
+  #Provide the vaultrole for an organization
+  #Eg. vaultrole: org1-vault-role
+  role:
+  #Provide the vault server address
+  #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+  address:
+  #Provide the kubernetes auth backed configured in vault for an organization
+  #Eg. authpath: fra-demo-hlkube-cluster-org1
+  authpath:
+  #Provide the value for vault secretprefix
+  #Eg. secretprefix: secret/...
+  secretprefix:
+  #Provide the serviceaccountname for vault
+  #Eg. serviceaccountname: vault-auth
+  serviceaccountname:
+  #Provide the imagesecretname for vault
+  #Eg. imagesecretname: regcred
+  imagesecretname:
+  #Provide the vault path for secret couchdb password
+  #Eg. secretcouchdbpass: secret/credentials/org1-example-com/couchdb/org1?user
+  secretcouchdbpass:
+  #Kuberenetes secret for vault ca.cert
+  #Enable or disable TLS for vault communication if value present or not
+  #Eg. tls: vaultca
+  tls:
+
+
+service:
+  #Provide the servicetype for a peer
+  #Eg. servicetype: NodePort
+  servicetype: ClusterIP 
+  loadBalancerType: ""
+  ports:
+    grpc:
+      #Provide a nodeport for grpc service in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30001
+      nodeport:
+      #Provide a cluster IP port for grpc service to be exposed
+      #Eg. clusteripport: 7051
+      clusteripport: 7051
+    events:
+      #Provide a nodeport for event service in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30002
+      nodeport:
+      #Provide a cluster IP port for event service to be exposed
+      #Eg. clusteripport: 7053
+      clusteripport: 7053
+    couchdb:
+      #Provide a nodeport for couchdb service in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30003
+      nodeport:
+      #Provide a cluster IP port for couchdb service to be exposed
+      #Eg. clusteripport: 5984
+      clusteripport: 5984
+
+ambassador:
+  #Provide annotations for ambassador service configuration
+  #Only use HTTPS as HTTP and HTTPS don't work together ( https://github.com/datawire/ambassador/issues/1000 )
+  #Eg.   annotations: |-
+  #          ---
+  #          apiVersion: ambassador/v1
+  #          kind: TLSContext
+  #          name: tls_context_peer0_org1_example_com
+  #          hosts:
+  #          - peer0-ext.org1-example-com
+  #          secret: peer0-org2-example-com-ambassador-certs
+  #          alpn_protocols: h2
+  #          ---
+  #          apiVersion: ambassador/v1
+  #          kind: Mapping
+  #          tls: tls_context_peer0_org1_example_com
+  #          grpc: True
+  #          name: peer0_org1_example_com_mapping
+  #          headers:
+  #            :authority: peer0-ext.org1-example-com:8443
+  #          prefix: /
+  #          rewrite: /
+  #          service: https://peer0-0.peer0.org1-example-com.svc.cluster.local:7051
+  annotations:
