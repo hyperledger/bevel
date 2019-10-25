@@ -2,14 +2,14 @@
 
 This file is the official list of maintainers for the Blockchain Automation Framework project.
 Changes to this list should be submitted by submitting a pull request that changes this file, and requesting reviews on that pull request from all of the current maintainers.
-This is the list of maintainers, including their email address for direct communications:
+This is the list of maintainers, including their github profiles for direct communications:
 
-|          Name          |     GitHub Id            |               email                |         Area of expertise       |
-|------------------------|--------------------------|------------------------------------|---------------------------------|
-| Jonathan M Hamilton    | @jonathan-m-hamilton     | jonathan.m.hamilton@accenture.com  | Product vision                  |
-| Nikolai Iushkevich     | @tkuhrt                  | tracy.a.kuhrt@accenture.com        | Architecture                    |
-| Sownak Roy             | @sownak                  | sownak.roy@accenture.com           | Architecture, Development       |
-| Juraj Durech           | @juraj-durech            | juraj.durech@accenture.com         | Architecture, Development       |
+|          Name          |     GitHub Id            |       Area of expertise       |
+|------------------------|--------------------------|-------------------------------|
+| Jonathan M Hamilton    | @jonathan-m-hamilton     | Product vision                |
+| Nikolai Iushkevich     | @tkuhrt                  | Architecture                  |
+| Sownak Roy             | @sownak                  | Architecture, Development     |
+| Juraj Durech           | @juraj-durech            | Architecture, Development     |
 
 
 ## License <a name="license"></a>
