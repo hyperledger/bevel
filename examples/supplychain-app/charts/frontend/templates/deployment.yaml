@@ -1,0 +1,41 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{  .Values.nodeName  }}
+{{- if .Values.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 8 }}
+{{- end }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+  app.kubernetes.io/name: {{ .Values.nodeName }}
+  helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+  app.kubernetes.io/managed-by: {{ .Release.Service }}
+  app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{  .Values.replicaCount  }}
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.nodeName }}
+        app.kubernetes.io/name: {{ .Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      hostname: {{ .Values.nodeName }}
+      imagePullSecrets:
+        - name: {{ .Values.frontend.pullSecrets | default "regcred" }}
+      containers:
+      - name: frontend
+        image: {{  .Values.frontend.image  }}
+        imagePullPolicy: {{ .Values.frontend.pullPolicy }}
+        env:
+        - name: REACT_APP_API_ENDPOINT
+          value: "{{  .Values.frontend.env.webserver  }}"
+        - name: REACT_APP_GMAPS_KEY
+          value: "{{  .Values.frontend.env.googlemapskey }}"
+        ports:
+        - containerPort: {{ .Values.frontend.nodePorts.targetPort }}
+          name: tcp
