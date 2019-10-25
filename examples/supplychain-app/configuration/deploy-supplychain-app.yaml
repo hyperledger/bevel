@@ -1,0 +1,84 @@
+# This playbook deploys the supplychain apis and frontend to an existing DLT network
+# The DLT network should already be created using the same configuration file as that
+#   used for running this playbook.
+---
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+  ############################################################################################
+  # Create restserver value file for the peer nodes
+  - include_role:
+      name: "create/fabric/restserver"
+    vars:
+      component_name: "restserver"
+      component_ns: "{{ organization_data.name | lower }}-net"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'fabric'
+
+  ############################################################################################
+  # Create express API value file for the peer nodes
+  - include_role:
+      name: "create/fabric/expressapi"
+    vars:
+      component_name: "expressapi"
+      component_ns: "{{ organization_data.name | lower }}-net"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'fabric'
+  ############################################################################################
+  # Create webserver value file for the corda nodes
+  - include_role:
+      name: "create/corda/webserver"
+    vars:
+      component_name: "webserver"
+      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'corda'
+  ############################################################################################
+  # Create expressapi value file for the corda nodes
+  - include_role:
+      name: "create/corda/expressapi"
+    vars:
+      component_name: "expressapi"
+      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'corda'
+
+  ############################################################################################
+  # Create frontend value file for the corda nodes
+  - include_role:
+      name: "create/frontend"
+    vars:
+      component_name: "frontend"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['frontend'] == 'enabled'

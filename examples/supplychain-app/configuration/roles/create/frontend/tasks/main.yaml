@@ -1,0 +1,55 @@
+############################################################################################
+# Create frontend value file
+- name: "Create frontend values file"
+  include_role:
+    name: helm_component
+  vars:
+    type: "frontend"
+    name: "{{ peer_data.name }}"
+    component_ns: "{{ organization_data.name | lower }}-ns"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    peer_name: "{{ peer_data.name }}"
+    peer_frontend_port: "{{ peer_data.frontend.port }}"
+    peer_expressapi_port: "{{ peer_data.expressapi.port }}"
+    peer_frontend_targetport: "{{ peer_data.frontend.targetPort }}"
+    ambassador_secret: "{{ peer_data.name }}-ambassador-certs"
+    react_app_gmaps_key: "{{ organization_data.app.google_maps_api }}"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: component_type == 'node' and network['type'] == 'corda'
+
+############################################################################################
+# Create frontend value file
+- name: "Create frontend values file"
+  include_role:
+    name: helm_component
+  vars:
+    type: "frontend"
+    name: "{{ organization_data.name | lower }}"
+    component_ns: "{{ organization_data.name | lower }}-net"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    peer_name: "{{ organization_data.name | lower }}"
+    peer_frontend_port: "{{ peer_data.frontend.port }}"
+    peer_expressapi_port: "{{ peer_data.expressapi.port }}"
+    peer_frontend_targetport: "{{ peer_data.frontend.targetPort }}"
+    ambassador_secret: "{{ peer_data.name }}-{{ organization_data.name | lower }}-net-ambassador-certs"
+    react_app_gmaps_key: "{{ organization_data.app.google_maps_api }}"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: component_type == 'peer' and network['type'] == 'fabric'
+
+# Push the frontend deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ component_gitops.git_push_url }}"
+    GIT_USERNAME: "{{ component_gitops.username }}"
+    GIT_PASSWORD: "{{ component_gitops.password }}"
+    GIT_BRANCH: "{{ component_gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda/configuration"
+    msg: "Pushing deployment files for supplychain frontend"
+  when: component_type == 'peer' or component_type == 'node'
