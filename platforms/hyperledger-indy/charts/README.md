@@ -1,0 +1,1 @@
+# Charts for Indy components

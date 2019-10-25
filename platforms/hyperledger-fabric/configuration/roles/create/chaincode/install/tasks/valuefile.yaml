@@ -1,0 +1,72 @@
+# Check if the joinchannel job is completed successfully or wait for it
+# This task will try for a maximum of 10 times with an interval of
+# 35 seconds between each try
+- name: 'Check/Wait for joinchannel job'
+  k8s_facts:
+    kind: "Job"
+    name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - app = joinchannel-{{ peer.name }}-{{ channel_name }}
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  vars:
+    channel_name: "{{ channel.channel_name | lower }}"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+  register: component_data
+  retries: 10
+  delay: 35
+  until: component_data.resources|length > 0
+
+# Check if install-chaincode is already run
+- name: 'Check for install-chaincode job'
+  k8s_facts:
+    kind: "Job"
+    name: installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: install_chaincode
+
+# This task write the git credentials to Vault
+- name: Write the git credentials to Vault
+  shell: |
+    vault write secret/credentials/{{ namespace }}/git git_password="{{ peer.chaincode.repository.password }}"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: install_chaincode.resources|length == 0
+
+# Nested task for chanincode installation
+- name: "Create value file for chaincode installation - nested"
+  include_role:
+    name: helm_component
+  vars:
+    orderer_address: "{{ orderer.uri }}"
+    type: "install_chaincode_job"
+    peer_name: "{{ peer.name }}"
+    peer_address: "{{ peer.gossippeeraddress }}"
+    component_name: "chaincode-install-{{ name }}-{{ peer.name }}-{{ peer.chaincode.version | replace('.','-')}}"
+    component_chaincode: "{{ peer.chaincode }}"
+  loop: "{{ network['orderers'] }}"
+  loop_control:
+    loop_var: orderer
+  when: install_chaincode.resources|length == 0
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ item.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_PASSWORD: "{{ item.gitops.password }}"
+    GIT_BRANCH: "{{ item.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "Pushing chaincode installation files"
+  when: install_chaincode.resources|length == 0

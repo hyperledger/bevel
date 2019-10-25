@@ -1,0 +1,38 @@
+#############################################################################################
+# This role creates the generate_crypto.sh script for orderers and organizations.
+#############################################################################################
+
+
+############################################################################################
+# This task creates the generate_crypto.sh file for orderers
+- name: Create generate_crypto script file for orderers
+  template:
+    src: "orderer_script.tpl"
+    dest: "./build/generate-crypto-{{ component_name }}.sh"
+  vars:
+    component_name: "{{ item.name | lower }}"
+    component_ns: "{{ item.name | lower }}-net"
+    component_country: "{{ item.country }}"
+    component_subject: "{{ item.subject }}"
+    component_state: "{{ item.state }}"
+    component_location: "{{ item.location }}"
+    ca_url: "{{ item.ca_data.url }}"
+    peer_name: "{{ item.services.orderer.name }}"
+  when: component_type == 'orderer'
+
+############################################################################################
+# This task creates the generate_crypto.sh file for organizations
+- name: Create generate_crypto script file for organisations
+  template:
+    src: "organisation_script.tpl"
+    dest: "./build/generate-crypto-{{ component_name }}.sh"
+  vars:
+    component_name: "{{ item.name | lower }}"
+    component_ns: "{{ item.name | lower }}-net"
+    component_subject: "{{ item.subject }}"
+    component_country: "{{ item.country }}"
+    component_state: "{{ item.state }}"
+    component_location: "{{ item.location }}"
+    ca_url: "{{ item.ca_data.url }}"
+    peer_count: "{{ item.services.peers | length }}"
+  when: component_type == 'peer'

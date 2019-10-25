@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.orderer.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  {{ if $.Values.ambassador.annotations }}
+  annotations:
+    getambassador.io/config: | 
+    {{ $.Values.ambassador.annotations  | nindent 6 }}
+  {{ end }}
+  labels:
+    run: {{ $.Values.orderer.name }}
+    app.kubernetes.io/name: {{ $.Values.orderer.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  type: {{ $.Values.service.servicetype }}
+  selector:
+    app: {{ $.Values.orderer.name }}
+  ports:
+  - protocol: TCP
+    targetPort: 7050
+    port: {{ $.Values.service.ports.grpc.clusteripport }}
+    {{ if  (ne $.Values.service.servicetype "ClusterIP") }}
+    nodePort: {{ $.Values.service.ports.grpc.nodeport }}
+    {{- end }}
+    name: grpc
+  {{ if (eq $.Values.service.servicetype "ClusterIP") }}
+  clusterIP: None
+  {{ end }}

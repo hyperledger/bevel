@@ -1,0 +1,27 @@
+{{- $root := . -}}
+{{range $i, $e := until (atoi (printf "%d" (int64 $.Values.kafka.replicas))) }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: datadir-{{ $.Values.kafka.name }}-{{$i}}
+  namespace: {{ $.Values.metadata.namespace }}
+  {{- if $.Values.deployment.annotations }}
+    annotations:
+{{ toYaml $.Values.deployment.annotations | nindent 8 }}
+    {{- end }}
+  labels:
+    app.kubernetes.io/name: datadir-{{ $.Values.kafka.name }}-{{$i}}
+    helm.sh/chart: {{ $root.Chart.Name }}-{{ $root.Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ $root.Release.Service }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }} 
+    {{- include "labels.custom" $ | nindent 2 }}   
+spec:
+  storageClassName: {{ $.Values.storage.storageclassname }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ $.Values.storage.storagesize }}
+{{end}}
+

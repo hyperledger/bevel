@@ -1,0 +1,97 @@
+##############################################################################################
+# This role creates the value file for doorman
+##############################################################################################
+
+- name: "Wait for namespace creation for {{ organisation }}"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+
+- name: "Wait for vault-auth creation for {{ organisation }}"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-auth"
+
+- name: "Wait for vault-reviewer creation for {{ organisation }}"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-reviewer"
+
+- name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ component_ns }}-role-tokenreview-binding"
+
+# ----------------------------------------------------------------------  
+# create vault access policies
+- name: "Setup vault for doorman"
+  include_role: 
+    name: setup/vault_kubernetes
+  vars:
+    component_name: "{{ services.doorman.name | lower }}"
+    component_path: "{{ services.doorman.name | lower }}/"
+    component_auth: "corda{{ services.doorman.name | lower }}"
+
+# ----------------------------------------------------------------------  
+# create image pull secrets
+- name: "Create image pull secret for doorman" 
+  include_role: 
+    name: create/imagepullsecret
+
+# generate Doorman certificates
+- name: "Create certificates for doorman" 
+  include_role: 
+    name: create/certificates/doorman
+  vars:
+    root_subject: "{{ item.subject }}"
+    cert_subject: "{{ item.subject | regex_replace(',', '/') }}"
+    doorman_subject: "{{ services.doorman.subject }}"
+    doorman_cert_subject: "{{ services.doorman.subject | regex_replace(',', '/') }}"
+
+# Create deployment file for doorman mongodb node
+- name: "create mongodb for doorman"
+  include_role:
+    name: create/k8_component
+  vars:
+    component_name: "doormanmongodb"
+    component_type: "mongodb"
+    helm_lint: "true"
+    nodename: "{{ services.doorman.name }}"
+    charts_dir: "{{ gitops.chart_source}}"
+    component_auth: "corda{{ services.doorman.name | lower }}"
+    org: "{{ item }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+
+# create deployment file for doorman node
+- name: "create doorman"
+  include_role:
+    name: create/k8_component
+  vars:
+    component_name: "{{ services.doorman.name }}"
+    component_type: "doorman"
+    helm_lint: "true"
+    charts_dir: "{{ gitops.chart_source }}"
+    component_auth: "corda{{ services.doorman.name | lower }}"
+    org: "{{ item }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+
+# Push the doorman deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda/configuration"
+    msg: "Pushing deployment files for doorman node and doorman mongodb node"

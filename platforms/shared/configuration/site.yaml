@@ -1,0 +1,14 @@
+---
+#######################################
+# Master Playbook for the setting up The Blockchain Automation Framework DLT network
+#######################################
+  - hosts: all
+    gather_facts: no
+  - import_playbook: environment-setup.yaml   # First setup environment for each organization
+  - import_playbook: kubernetes-env-setup.yaml         # Then deploy Flux for each organization
+  - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/deploy-network.yaml"
+    when: network.type == 'fabric' 
+  - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/chaincode-install-instantiate.yaml"
+    when: network.type == 'fabric' 
+  - import_playbook: "{{ playbook_dir }}/../../r3-corda/configuration/deploy-network.yaml"
+    when: network.type == 'corda'
