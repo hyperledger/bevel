@@ -5,9 +5,7 @@ This project contains the hyperledger fabric-network files and smart contracts (
 
 ## But first, what is the Supply Chain Application?
 
-To be able to understand this application's usage you may visit (if you have access): https://alm.accenture.com/wiki/display/BLOCKOFZ/Supply+Chain+App
-
-But if you don't have access to above link, below is the high-level description of the application instead: 
+Here is a high-level description of the Supply Chain application:
 
 *This application applies to any business area in which participants are going to move products amongst each other. It allows for the packaging of several products into one trackable object and then the transferring of ownership/custodianship of said goods.*
 
