@@ -1,0 +1,41 @@
+#############################################################################################
+# This role creates the value file for peers of organisations and write couch db credentials
+# to the vault.
+#############################################################################################
+
+###########################################################################################
+# This task writes the couchdb credentials for each organization to the vault
+- name: Write the couchdb credentials to Vault
+  shell: |
+    vault write secret/credentials/{{ namespace }}/couchdb/{{ item.name | lower}} user="admin123"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+
+############################################################################################
+# This task is the nested task for main.yaml which helps to iterate over all peers
+- name: Create Value files for Organization Peers
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ item.name | lower }}"
+    type: "value_peer"
+    component_name: values-{{ peer.name }}
+    peer_name: "{{ peer.name }}"
+    peer_ns: "{{ namespace }}"
+  loop: "{{ component_services.peers }}"
+  loop_control:
+    loop_var: peer 
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ item.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_PASSWORD: "{{ item.gitops.password }}"
+    GIT_BRANCH: "{{ item.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "Pushing Peer files"

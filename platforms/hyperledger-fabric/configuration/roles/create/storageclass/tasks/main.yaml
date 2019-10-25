@@ -1,0 +1,58 @@
+#############################################################################################
+# This role creates value files for storage class
+#############################################################################################
+
+# Check if storageclass created
+
+- name: Check storageclass is created
+  k8s_facts:
+    kind: StorageClass
+    name: "{{ sc_name }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_sc
+
+- name: Ensures {{ component_type }} dir exists
+  file:
+    path: "{{ release_dir }}/{{ component_type }}"
+    recurse: yes
+    state: directory
+  when: get_sc.resources|length == 0
+
+#############################################################################################
+# This task creates the value file for creating the storage class for Orderer
+- name: Create Storage Class value file for orderers
+  template:
+    src: "{{ sc_templates[type] | default('sc.tpl') }}"
+    dest: "{{ values_file }}"
+  vars:
+    type: "{{item.cloud_provider}}-orderer"
+    values_file: "{{ release_dir }}/{{ component_type }}/{{ sc_name }}.yaml"
+  when: component_type == 'orderer' and get_sc.resources|length == 0
+
+
+#############################################################################################
+# This task creates the value file for creating the storage class for Organizations
+- name: Create Storage Class value file for Organizations
+  template:
+    src: "{{ sc_templates[type] | default('sc.tpl') }}"
+    dest: "{{ values_file }}"
+  vars:
+    type: "{{item.cloud_provider}}-peer"
+    values_file: "{{ release_dir }}/{{ component_type }}/{{ sc_name }}.yaml"
+  when: component_type == 'peer' and get_sc.resources|length == 0
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ item.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_PASSWORD: "{{ item.gitops.password }}"
+    GIT_BRANCH: "{{ item.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "Pushing Storageclass files"
+  when: get_sc.resources|length == 0
+

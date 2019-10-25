@@ -1,0 +1,146 @@
+#############################################################################################
+# This role generates crypto material for organisations.
+#############################################################################################
+
+# Check if CA-tools pod is running
+- name: Check if CA-tools is running
+  k8s_facts:
+    kind: Pod
+    namespace: "{{ component_name }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    label_selectors:
+      - name = ca-tools
+    field_selectors:
+      - status.phase=Running    
+  register: ca_tools
+  until: ca_tools.resources|length > 0
+  retries: 10
+  delay: 40
+
+# Ensure ca directory is present in build
+- name: Ensure ca directory exists
+  file:
+    path: "./build/crypto-config/peerOrganizations/{{ component_name }}/ca"
+    recurse: yes
+    state: directory
+
+# Check if CA certs exists in vault, if not this should fail. If yes, get the certificate
+- name: Check if ca certs already created
+  shell: |
+    vault kv get -field=ca.{{ component_name }}-cert.pem secret/crypto/peerOrganizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
+    mv ca.{{ component_name }}-cert.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/ca/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+
+# Check if CA key exists in vault, if not this should fail. If yes, get the certificate
+- name: Check if ca key already created
+  shell: |
+    vault kv get -field={{ component_name }}-CA.key secret/crypto/peerOrganizations/{{ component_name }}/ca > {{ component_name }}-CA.key
+    mv {{ component_name }}-CA.key ./build/crypto-config/peerOrganizations/{{ component_name }}/ca/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+
+- name: Call peer.yaml for each peer
+  include_tasks: peer.yaml
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+
+############################################################################################
+# This task creates the MSP config.yaml file for organizations
+- name: Create the MSP config.yaml file for orgs
+  shell: |
+    cd ./build/crypto-config/peerOrganizations/{{ component_name }}/msp
+    cat <<EOF > config.yaml
+    NodeOUs:
+      Enable: true
+      ClientOUIdentifier:
+        Certificate: cacerts/ca-{{ component_name }}-7054.pem
+        OrganizationalUnitIdentifier: client
+      PeerOUIdentifier:
+        Certificate: cacerts/ca-{{ component_name }}-7054.pem
+        OrganizationalUnitIdentifier: peer
+    EOF
+
+# Ensure orderer-tls directory is present in build
+- name: Ensure ca directory exists
+  file:
+    path: "./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls"
+    recurse: yes
+    state: directory
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+
+# Check if Orderer certs exists in vault. If yes, get the certificate
+- name: Check if Orderer certs already created
+  shell: |
+    vault kv get -field=ca.crt secret/crypto/peerOrganizations/{{ component_name }}/orderer/tls
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  register: orderer_certs_result
+  ignore_errors: yes
+
+- name: Save Orderer certs if already created
+  local_action: copy content="{{ orderer_certs_result.results[0].stdout }}" dest="./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls/ca.crt"
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: orderer_certs_result.results[0].failed == False
+
+- name: Copy organization level certificates for orderers
+  shell: |
+    {% for orderer in orderers %}
+    vault write secret/crypto/peerOrganizations/{{ component_name }}/orderer/tls ca.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls/ca.crt)" 
+    {% endfor %}
+  vars:
+    orderers: "{{ network.orderers }}"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: orderer_certs_result.results[0].failed == True
+
+# Check admin msp already created
+- name: Check if admin msp already created
+  shell: |
+    vault kv get -field=admincerts secret/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_admin_result
+  ignore_errors: yes
+
+- name: Copy organization level certificates for orgs
+  shell: |
+    vault write secret/crypto/peerOrganizations/{{ component_name }}/users/admin/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.key)"
+    vault write secret/crypto/peerOrganizations/{{ component_name }}/users/admin/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/admincerts/Admin@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/signcerts/cert.pem)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_admin_result.failed == True
+
+# Check user msp already created
+- name: Check if user msp already created
+  shell: |
+    vault kv get -field=admincerts secret/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_user_result
+  ignore_errors: yes
+
+- name: Copy user certificates for orgs
+  shell: |
+    vault write secret/crypto/peerOrganizations/{{ component_name }}/users/user1/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.key)"
+    vault write secret/crypto/peerOrganizations/{{ component_name }}/users/user1/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/admincerts/User1@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_user_result.failed == True

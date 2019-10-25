@@ -1,0 +1,60 @@
+--- 
+############################################################################################
+# This task is the nested task for main.yaml which helps to create the channels_join files
+
+# Check or wait for the Creator peer
+- name: "Check creator peer pod is up"
+  k8s_facts:
+    kind: Service
+    name: "{{ peer_name }}"
+    namespace: "{{ org.name | lower }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    peer_name: "{{ peer | json_query('peers[?type==`validating`].name') | first }}"
+  loop: "{{ network | json_query(org_query) }}"
+  loop_control:
+    loop_var: org
+  register: get_peer
+  until: get_peer.resources|length > 0
+  retries: 10
+  delay: 40
+
+# This task creates the value file for creator Organization
+- name: "Create Create_Channel value file"
+  include_role:
+    name: helm_component
+  loop: "{{ network | json_query(org_query) }}"
+  loop_control:
+    loop_var: org
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    name: "{{ org.name | lower }}"
+    type: "create_channel_job"
+    component_name: "{{item.channel_name|lower}}"
+    component_ns: "{{ peer.name | lower}}-net"
+    peer_name: "{{ peer | json_query('peers[?type==`validating`].name') | first }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    channeltx: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{item.channel_name|lower}}.tx.base64') }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  loop: "{{ network | json_query(org_query) }}"
+  loop_control:
+    loop_var: org
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "Pushing channel-create files"
