@@ -1,0 +1,150 @@
+##############################################################################################
+# This role creates the deployment files for node and pushes them to repository
+##############################################################################################
+
+- name: "Wait for namespace creation for notary"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+
+- name: "Wait for vault-auth creation for notary"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-auth"
+
+- name: "Wait for vault-reviewer creation for notary"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-reviewer"
+
+- name: "Wait for ClusterRoleBinding creation for notary"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ component_ns }}-role-tokenreview-binding"
+
+# ----------------------------------------------------------------------  
+# create vault access policies
+- name: "Setup vault for notaries"
+  include_role: 
+    name: setup/vault_kubernetes
+  vars:
+    component_name: "{{ node.name | lower }}"
+    component_path: "{{ node.name | lower }}/"
+    component_auth: "corda{{ node.name | lower }}"
+
+# ----------------------------------------------------------------------  
+# create image pull secrets
+- name: "Create image pull secret for notary" 
+  include_role: 
+    name: create/imagepullsecret
+
+- name: Generate crypto for notary
+  include_role:
+    name: create/certificates/notary
+  vars:
+    nms_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    nms_cert_file: "{{ network | json_query('orderers[?type==`networkmap`].certificate') | first }}"
+    doorman_cert_file: "{{ network | json_query('orderers[?type==`doorman`].certificate') | first }}"
+    component_name: "{{ node.name | lower }}"
+    cert_subject: "{{ item.subject | regex_replace(',', '/') }}"  #Use org level subject for certificate generation
+
+# ----------------------------------------------------------------------  
+# create deployment files for h2 for notaries
+- name: 'Create notary db deployment file'
+  include_role:
+    name: create/node_component
+  vars:    
+    node_type: "notary"
+    component_type: "db"
+    component_name: "{{ node.name }}"
+    corda_version: "corda-{{ network.version }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+
+# ----------------------------------------------------------------------  
+# create deployment files for job for notaries
+- name: 'Create notary initial-registration job file'
+  include_role:
+    name: create/node_component
+  vars:    
+    node_type: "notary"
+    component_type: "job"
+    component_name: "{{ node.name }}"
+    nms_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    nms_domain: "{{ nms_url.split(':')[1] }}"
+    doorman_url: "" #setting doorman to empty for registation. TODO to be fixed
+    doorman_domain: ""
+    corda_version: "corda-{{ network.version }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda/configuration"
+    msg: "Pushing db and job deployment files for {{ node.name }}"
+
+- name: "Wait for notary db pod creation"
+  include_role:
+    name: check/node_component
+  vars:
+    component_type: "Pod"
+    component_name: "{{ node.name }}db"
+
+- name: "Wait for notary job completion"
+  include_role:
+    name: check/node_component
+  vars:
+    component_type: "Job"
+    component_name: "{{ node.name }}-registration"
+
+#----------------------------------------------------------------------  
+# create deployment file for notary node
+- name: 'Create notary node deployment file'
+  include_role: 
+    name: create/node_component
+  vars:    
+    node_type: "notary"
+    component_type: "node"
+    component_name: "{{ node.name }}"
+    nms_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    nms_domain: "{{ nms_url.split(':')[1] }}"
+    doorman_url: "{{ network | json_query('orderers[?type==`doorman`].uri') | first }}"
+    doorman_domain: "{{ doorman_url.split(':')[1] }}"
+    corda_version: "corda-{{ network.version }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+
+# ----------------------------------------------------------------------  
+# Push the deployment files for h2, job and node of notary
+- name: 'Push notary deployment files'
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_RESET_PATH: "platforms/r3-corda/configuration"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    msg: "Creating node deployment file for {{ node.name }}"
+
+# ----------------------------------------------------------------------  
+# Wait for flux to deploy all notaries pods
+- name: "Wait for notary pod creation"
+  include_role:
+    name: check/node_component
+  vars:
+    component_type: "Pod"
+    component_name: "{{ node.name }}"

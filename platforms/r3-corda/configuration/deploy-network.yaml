@@ -1,0 +1,110 @@
+#########################
+# Playbook to create deployment files for namespaces, service account and clusterrolebinding
+# Playbook arguments: complete network.yaml
+#########################
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:    
+  # ----------------------------------------------------------------------
+  # Create Storageclass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      git_dir: "{{ item.gitops.release_dir }}"
+      org: "{{ item }}"
+      kubernetes: "{{ item.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    when: network['type'] == 'corda'
+
+  # create namespace, service account and clusterrolebinding
+  - name: "Create namespace and vault auth"
+    include_role: 
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ item.name | lower }}-ns"
+      organisation: "{{ item.name | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      gitops: "{{ item.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    when: network['type'] == 'corda'
+
+  # ----------------------------------------------------------------------  
+  # Deploy NMS node
+  - name: Deploy Networkmap service node
+    include_role:
+      name: setup/nms      
+    vars:
+     services: "{{ item.services }}"
+     organisation: "{{ item.name | lower }}"
+     component_ns: "{{ item.name | lower }}-ns"
+     kubernetes: "{{ item.k8s }}"
+     vault: "{{ item.vault }}"
+     gitops: "{{ item.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    when: network['type'] == 'corda' and item.type.find('nms') != -1
+
+  # ----------------------------------------------------------------------  
+  # Deploy Doorman node
+  - name: Deploy Doorman service node
+    include_role:
+      name: setup/doorman
+    vars:
+     services: "{{ item.services }}"
+     organisation: "{{ item.name | lower }}"
+     component_ns: "{{ item.name | lower }}-ns"
+     kubernetes: "{{ item.k8s }}"
+     vault: "{{ item.vault }}"
+     gitops: "{{ item.gitops }}"     
+    loop: "{{ network['organizations'] }}"
+    when: network['type'] == 'corda' and item.type.find('doorman') != -1
+  
+  # ----------------------------------------------------------------------  
+  # Wait for orderer services to respond  
+  - name: Check that orderer uri are reachable
+    uri:
+      url: "{{ item.uri }}"
+      validate_certs: no
+    register: this
+    until: this.status == 200 or this.status == 401
+    loop: "{{ network['orderers'] }}"
+    retries: 10
+    delay: 50
+    ignore_errors: yes
+
+  # ----------------------------------------------------------------------  
+  # Deploy notaries
+  - name: 'Deploy notary'
+    include_role:
+      name: setup/notary
+    vars:
+      node: "{{ item.services.notary }}"
+      organisation: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-ns"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+      gitops: "{{ item.gitops }}" 
+    loop: "{{ network['organizations'] }}"
+    when: network['type'] == 'corda' and item.type.find('notary') != -1
+
+  # ----------------------------------------------------------------------  
+  # Deploy all other nodes
+  - name: 'Deploy nodes'
+    include_role:
+      name: setup/node
+    vars:
+      organisation: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-ns"
+      services: "{{ item.services }}"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+      gitops: "{{ item.gitops }}" 
+    loop: "{{ network['organizations'] }}"  
+    when: network['type'] == 'corda' and item.type == 'node'
+
+  # delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
