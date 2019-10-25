@@ -9,7 +9,7 @@
 <a name = "Ansible_Inventory"></a>
 ## Ansible Inventory file
 
-In The Blockchain Automation Framework, we connect to Kubernetes cluster through the machine that run our Ansible playbooks and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/shared/inventory/ansible_provisoners). 
+In The Blockchain Automation Framework, we connect to Kubernetes cluster through the machine that run our Ansible playbooks and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). 
 
 Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
 
@@ -28,7 +28,7 @@ The Blockchain Automation Framework uses some custom-built docker images which a
 
 Alpine-utils docker image is a light-weight utility image used in The Blockchain Automation Framework. It is mainly used as init-containers in The Blockchain Automation Framework Kubernetes deployments to connect to Hashicorp Vault to download certificates.
 
-* To build the image, execute the following command from [platforms/shared/images](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/shared/images) folder. 
+* To build the image, execute the following command from [platforms/shared/images](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/images) folder. 
 ```
 sudo docker build -t alpine-utils:1.0 -f alpine-utils.Dockerfile .
 ```
@@ -38,16 +38,16 @@ sudo docker tag alpine-utils:1.0 adopblockchaincloud0502.azurecr.io/alpine-utils
 sudo docker push adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
 ```
 ### LinuxKit Base
-Build the LinuxKit Base image from **platforms/r3-corda/images/linuxkit-base** by following [these instructions](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/images/linuxkit-base/Readme.md).
+Build the LinuxKit Base image from **platforms/r3-corda/images/linuxkit-base** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/linuxkit-base/Readme.md).
 
 ### Corda Doorman
-Build the Corda Doorman image from **platforms/r3-corda/images/doorman** by following [these instructions](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/images/doorman/Readme.md).
+Build the Corda Doorman image from **platforms/r3-corda/images/doorman** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/doorman/Readme.md).
 
 ### Corda Networkmap
-Build the Corda Networkmap image from **platforms/r3-corda/images/networkmap** by following [these instructions](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/images/networkmap/Readme.md).
+Build the Corda Networkmap image from **platforms/r3-corda/images/networkmap** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/networkmap/Readme.md).
 
 ### Corda Node
-Build the Corda node image from **platforms/r3-corda/images** by following [these instructions](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/r3-corda/images/README.md).
+Build the Corda node image from **platforms/r3-corda/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/README.md).
 
 <a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 

@@ -10,7 +10,7 @@ The Blockchain Automation Framework supports an environment of multi-clusters fo
 Setting up a DLT network does not depend on a managed K8s services, which means non-managed K8s clusters can be used to make a DLT network set-up happen.
 
 ## **One touch/command deployment**
-A single Ansible playbook called [**site.yaml**](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework.git/browse/platforms/shared/configuration) can spin up an entire DLT network and a substantial amount of time can be reduced which is involved in configuring and managing the network components of a Corda or Fabric DLT network.
+A single Ansible playbook called [**site.yaml**](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration) can spin up an entire DLT network and a substantial amount of time can be reduced which is involved in configuring and managing the network components of a Corda or Fabric DLT network.
 
 ## **Security through Vault**
 HashiCorp Vault is used to provide identity-based security. When it comes to managing secrets with machines in a multi-cloud environment, the dynamic nature of HashiCorp Vault becomes very useful. Vault enables The Blockchain Automation Framework to securely store and tightly control access to tokens, passwords, certificates, and encryption keys for protecting machines, applications, and sensitive data.
