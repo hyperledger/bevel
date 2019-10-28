@@ -1,6 +1,6 @@
 # Contributing
 
-We welcome contributions to the The Blockchain Automation Framework Project in many forms, and
+We welcome contributions to the Blockchain Automation Framework Project in many forms, and
 there's always plenty to do!
 
 Please visit the
