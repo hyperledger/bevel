@@ -6,13 +6,13 @@ you have all the [prerequisites](prerequisites) installed on the platform(s)
 on which you'll be deploying blockchain networks from and/or operating
 The Blockchain Automation Framework.
 
-Once you have the prerequisites installed, you are ready to fork this repository and start using The Blockchain Automation Framework. 
+Once you have the prerequisites installed, you are ready to fork this repository and start using the Blockchain Automation Framework. 
 
 ## Configure Prerequisites
-After installation of the [prerequisites](./prerequisites.md), some of them will need to be configured as per The Blockchain Automation Framework. Follow [these instructions](./operations/configure_prerequisites.md) to configure the pre-requistes and setting up of your environment.
+After installation of the [prerequisites](./prerequisites.md), some of them will need to be configured as per the Blockchain Automation Framework. Follow [these instructions](./operations/configure_prerequisites.md) to configure the pre-requistes and setting up of your environment.
 
 ## Update Configuration File
-Once all the prerequisites have been configured, it is time to update the The Blockchain Automation Framework configuration file. Depending on your platform of choice, there can be some differences in the configuration file. Please follow platform specific links below to learn more on updating the configuration file.
+Once all the prerequisites have been configured, it is time to update the Blockchain Automation Framework configuration file. Depending on your platform of choice, there can be some differences in the configuration file. Please follow platform specific links below to learn more on updating the configuration file.
 * [R3 Corda Configuration File](./operations/corda_networkyaml.md)
 
 * [Hyperledger Fabric Configuration File](./operations/fabric_networkyaml.md)

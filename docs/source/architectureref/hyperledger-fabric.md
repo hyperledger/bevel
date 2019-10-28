@@ -50,7 +50,7 @@ The following diagram shows how Hyperledger Fabric orderer will be deployed on y
 
 ### Docker Images
 
-The Blockchain Automation Framework uses the officially published Hyperledger Fabric Docker images from [hub.docker.com](https://hub.docker.com/search?q=hyperledger%2Ffabric&type=image). The following Hyperledger Fabric Docker Images are used by The Blockchain Automation Framework.
+The Blockchain Automation Framework uses the officially published Hyperledger Fabric Docker images from [hub.docker.com](https://hub.docker.com/search?q=hyperledger%2Ffabric&type=image). The following Hyperledger Fabric Docker Images are used by the Blockchain Automation Framework.
 
 *  [fabric-ca](https://hub.docker.com/r/hyperledger/fabric-ca) - Hyperledger Fabric Certificate Authority
 

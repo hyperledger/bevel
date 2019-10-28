@@ -1,5 +1,5 @@
 <a name = "configuring-prerequisites"></a>
-# Configuring pre-requisites for The Blockchain Automation Framework
+# Configuring pre-requisites for the Blockchain Automation Framework
 
 - [Ansible Inventory file](#Ansible_Inventory)
 - [Docker Images](#docker)
@@ -9,7 +9,7 @@
 <a name = "Ansible_Inventory"></a>
 ## Ansible Inventory file
 
-In The Blockchain Automation Framework, we connect to Kubernetes cluster through the machine that run our Ansible playbooks and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). 
+In the Blockchain Automation Framework, we connect to Kubernetes cluster through the machine that run our Ansible playbooks and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). 
 
 Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
 
@@ -26,7 +26,7 @@ The Blockchain Automation Framework uses some custom-built docker images which a
 ---
 ### Alpine Utils ###
 
-Alpine-utils docker image is a light-weight utility image used in The Blockchain Automation Framework. It is mainly used as init-containers in The Blockchain Automation Framework Kubernetes deployments to connect to Hashicorp Vault to download certificates.
+Alpine-utils docker image is a light-weight utility image used in the Blockchain Automation Framework. It is mainly used as init-containers in the Blockchain Automation Framework Kubernetes deployments to connect to Hashicorp Vault to download certificates.
 
 * To build the image, execute the following command from [platforms/shared/images](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/images) folder. 
 ```
@@ -52,7 +52,7 @@ Build the Corda node image from **platforms/r3-corda/images** by following [thes
 <a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 
 
-Hashicorp Vault is one of the pre-requisites for The Blockchain Automation Framework. If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
+Hashicorp Vault is one of the pre-requisites for the Blockchain Automation Framework. If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
 
 * Install Vault client. Follow the instructions on [Install Vault](https://www.vaultproject.io/docs/install/).
 
@@ -70,7 +70,7 @@ Unseal Key 1: << unseal key>>
 
 Initial Root Token: << root token>>
 ```
-Save the root token  and unseal key in a secure location. This root token is to be updated in the The Blockchain Automation Framework's network.yaml file before running the Ansible playbook(s) to deploy the DLT network.
+Save the root token  and unseal key in a secure location. This root token is to be updated in the Blockchain Automation Framework's network.yaml file before running the Ansible playbook(s) to deploy the DLT network.
 
 * Unseal with the following command:
 ```
@@ -86,7 +86,7 @@ You may generate multiple root tokens at the time of initialising the Vault, and
 <a name = "ambassador"></a>
 ## Ambassador
 
-The Blockchain Automation Framework uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) for inter-cluster communication. To enable The Blockchain Automation Framework Kubernetes services from one Kubernetes cluster to talk to services in another cluster, Ambassador needs to be configured as per the following steps:
+The Blockchain Automation Framework uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) for inter-cluster communication. To enable the Blockchain Automation Framework Kubernetes services from one Kubernetes cluster to talk to services in another cluster, Ambassador needs to be configured as per the following steps:
 
 * After Ambassador is deployed on the cluster (manually or using `platforms/shared/configuration/kubernetes-env-setup.yaml` playbook), get the external IP address of the Ambassador service.
 ```
