@@ -13,6 +13,11 @@ Blockchain Automation Framework makes use of Ansible, Helm, and Kubernetes to de
 
 Blockchain Automation Framework initially supports Hyperledger Fabric and Corda. It is the intention to add support for Hyperledger Sawtooth, Hyperledger Indy and Quorum. Other DLT platforms can easily be added.
 
+## Documentation
+Detailed operator and developer documentation is available at [our ReadTheDocs site](https://blockchain-automation-framework.readthedocs.io/en/latest/index.html).
+
+The documentation can also be built locally be following instructions in the `docs` folder.
+
 ## Hyperledger Fabric
 For Hyperledger Fabric, we use the official Docker containers provided by that project. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
 
