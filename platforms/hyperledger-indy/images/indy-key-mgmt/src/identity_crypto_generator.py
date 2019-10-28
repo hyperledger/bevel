@@ -111,8 +111,14 @@ class Identity:
     def to_dict(self):
         value = {
             self.name: {
-                'did': self.did,
-                'seed': self.seed,
+                'identity': {
+                    'private': {
+                        'seed': self.seed
+                    },
+                    'public': {
+                        'did': self.did
+                    }
+                },
                 'node': self.node.to_dict(),
                 'client': self.client.to_dict()
             }
@@ -140,7 +146,7 @@ class Crypto:
                  verif_key, verif_key_file,
                  bls_keys, is_client=False):
         self.name = name
-        self.is_cient = is_client
+        self.is_client = is_client
         self.public_keys = Keys(key=public_key, file=public_key_file)
         self.private_keys = Keys(key=secret_key, file=secret_key_file)
         self.bls_keys = bls_keys
@@ -149,41 +155,47 @@ class Crypto:
 
     def to_dict(self):
         json_file = {
-            'public_keys': {
-                'public_key': self.public_keys.key,
-                self.bootstrap_key_format(): self.public_keys.file
+            'private': {
+                'private_keys': {
+                    self.secret_key_format(): self.private_keys.file
+                },
+                'sig_keys': {
+                    self.secret_key_format(): self.sig_keys.file
+                }
             },
-            'private_keys': {
-                self.secret_key_format(): self.private_keys.file
-            },
-            'sig_keys': {
-                self.secret_key_format(): self.sig_keys.file
-            },
-            'verif_keys': {
-                'verification-key': self.verif_keys.key,
-                self.bootstrap_key_format(): self.verif_keys.file
+            'public': {
+                'public_keys': {
+                    'public_key': self.public_keys.key,
+                    self.bootstrap_key_format(): self.public_keys.file
+                },
+                'verif_keys': {
+                    'verification-key': self.verif_keys.key,
+                    self.bootstrap_key_format(): self.verif_keys.file
+                }
             }
         }
 
-        if self.is_cient:
+        if self.is_client:
             return json_file
         else:
-            json_file['bls_keys'] = {
+            json_file['public']['bls_keys'] = {
                 'bls_pk': self.bls_keys.pk,
-                'bls_sk': self.bls_keys.sk,
                 'bls-public-key': self.bls_keys.pk,
                 'bls-key-pop': self.bls_keys.key_pop
+            }
+            json_file['private']['bls_keys'] = {
+                'bls_sk': self.bls_keys.sk
             }
             return json_file
 
     def bootstrap_key_format(self):
-        if self.is_cient:
+        if self.is_client:
             return '{}C.key.bootstrap'.format(self.name)
         else:
             return '{}.key.bootstrap'.format(self.name)
 
     def secret_key_format(self):
-        if self.is_cient:
+        if self.is_client:
             return '{}C.key_secret'.format(self.name)
         else:
             return '{}.key_secret'.format(self.name)
