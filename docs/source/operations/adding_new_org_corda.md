@@ -1,19 +1,19 @@
 <a name = "adding-new-org-to-existing-network-in-corda"></a>
 # Adding new organization to existing network in R3 Corda
 
-- [Modifying configuration file](#create_config_file)
+- [Create configuration file](#create_config_file)
 - [Running playbook to deploy R3 Corda network](#run_network)
 
 <a name = "create_config_file"></a>
 ## Create Configuration File
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information about the networkmap service and doorman.
+The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information about the networkmap and doorman service.
 
 ---
-**NOTE**: Make sure the doorman and networkmap service certificates are in plain text and not encoded in base64 or any other encoding scheme, along with correct paths to them mentioned in network.yaml)
+**NOTE**: Make sure the doorman and networkmap service certificates are in plain text and not encoded in base64 or any other encoding scheme, along with correct paths to them mentioned in network.yaml.
 
 ---
-For reference, sample `network.yaml` file looks like:
+For reference, sample `network.yaml` file looks like below (but always check the latest at `platforms/r3-corda/configuration/samples`):
 
 ```
 network:
@@ -65,7 +65,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -86,6 +85,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       services:
         peers:
@@ -121,13 +121,12 @@ network:
 <a name = "run_network"></a>
 ## Run playbook to add the new organization to the existing R3 Corda network
 
-[This](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/deploy-network.yaml) playbook (deploy_network.yaml) is used to deploy the network. Same playbook is used to add a new organization to the existing network. This can be done manually using the following command
+The [deploy_network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/deploy-network.yaml) playbook is used to deploy the network. Same playbook is used to add a new organization to the existing network. This can be done manually using the following command
 
 ```
-    ansible-playbook platforms/r3-corda/configuration/deploy-network.yaml --extra-vars "@path-to-network.yaml"
+ansible-playbook platforms/r3-corda/configuration/deploy-network.yaml --extra-vars "@path-to-network.yaml"
 ```
 
 ---
 **NOTE:** If you have additional applications, please deploy them as well.
 
----

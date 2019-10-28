@@ -71,7 +71,7 @@ pipeline {
                     docker.withRegistry("https://${DOCKER_REGISTRY_AZURE}", "${DOCKER_CREDS}") {
                         def image = docker.build("${DOCKER_REGISTRY_AZURE}/${DOCKER_NMS_IMAGE_PREFIX}", "platforms/r3-corda/images/networkmap/")
                         image.push("${env.BUILD_NUMBER}")
-                        image.push("latest")
+                        image.push("networkmap-linuxkit")
                 }
             }
         }
