@@ -1,1 +1,1 @@
-##The Blockchain Automation Framework Indy Docker images
+##Blockchain Automation Framework Indy Docker images

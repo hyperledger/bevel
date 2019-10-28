@@ -2,18 +2,19 @@ package com.supplychain.bcc
 
 import com.supplychain.bcc.contractstates.ContainerState
 import com.supplychain.bcc.contractstates.ProductState
-import org.testng.annotations.Listeners
-import org.testng.annotations.Test
+import com.supplychain.baf.CreateContainerRequest
+import com.supplychain.baf.CreateProductRequest
+import org.junit.Test
 import java.util.*
 import kotlin.test.assertEquals
 
-@Listeners(AgentListener::class)
+
 
 class PackageProductTests : SupplyChainTests() {
 
     @Test
     fun `Create a Container`() {
-        val result = createContainer(a, CreateContainerRequest("Health",mapOf(), UUID.randomUUID(), listOf("BB")))
+        val result = createContainer(a, CreateContainerRequest("Health", mapOf(), UUID.randomUUID(), listOf("BB")))
 
         //vaultCheck
         assertEquals(result, a.transaction{ a.services.vaultService.queryBy(ContainerState::class.java).states.first().state.data.trackingID })
@@ -28,7 +29,7 @@ class PackageProductTests : SupplyChainTests() {
         val containerTrackID = UUID.randomUUID()
 
         //create product and container
-        createProduct(a, CreateProductRequest("Product Name","Health",mapOf(), productTrackID, listOf("BB")))
+        createProduct(a, CreateProductRequest("Product Name", "Health", mapOf(), productTrackID, listOf("BB")))
          createContainer(a, CreateContainerRequest("Health", mapOf(), containerTrackID, listOf("BB")))
 
         packageProduct(a, productTrackID, containerTrackID)
