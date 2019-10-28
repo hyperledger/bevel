@@ -1,8 +1,8 @@
 # Fabric Pipelines
 Jenkins is a self-contained, open source automation server which can be used to automate all sorts of tasks related to building, testing, and delivering or deploying software.
 
-## Jenkins in The Blockchain Automation Framework
-Jenkins in The Blockchain Automation Framework is used to spin up Hyperledger Fabric network on a given cloud environment. Jenkins file "Fabric.JenkinsFile" is used for the  deployment of Fabric network.Jenkins file internally runs the Ansible playbooks which in-turn setup the following network components:
+## Jenkins in the Blockchain Automation Framework
+Jenkins in the Blockchain Automation Framework is used to spin up Hyperledger Fabric network on a given cloud environment. Jenkins file "Fabric.JenkinsFile" is used for the  deployment of Fabric network.Jenkins file internally runs the Ansible playbooks which in-turn setup the following network components:
 1. Namespaces, Service accounts and Clusterrolebindings
 2. Certificate authority
 3. CA Tools
