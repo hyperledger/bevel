@@ -44,7 +44,7 @@ spec:
 
           KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
 
-          curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "ro"}' $VAULT_ADDR/v1/auth/kubernetes/NODE_ID/login | jq -j '.auth.client_token' > token;
+          curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "ro"}' $VAULT_ADDR/v1/auth/kubernetes/${NODE_ID}/login | jq -j '.auth.client_token' > token;
           X_VAULT_TOKEN=$(cat token);
           validateVaultResponse 'vault login token' "${X_VAULT_TOKEN}";
 
@@ -129,7 +129,7 @@ spec:
             - name: indyClientPort
               value: "{{ $.Values.node.indyClientPort }}"
             - name: INDY_NETWORK_NAME
-              value: "{{ $.Values.node.INDY_NETWORK_NAME }}"
+              value: "{{ $.Values.network.name }}"
           volumeMounts:
             - name: ebs-indy-node-data
               mountPath: /var/lib/indy/data

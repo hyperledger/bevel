@@ -27,7 +27,7 @@ spec:
       p2p:
         url: {{ component_name }}.{{ component_ns }}
         port: {{ node.p2p.port|e }}
-      ambassadorAddress: {{ component_name|e }}.{{ item.external_url_suffix }}:8443
+      ambassadorAddress: {{ component_name|e }}.{{ item.external_url_suffix }}:{{ node.p2p.ambassador | default('10002') }}
       rpcSettings:
         useSsl: false
         standAloneBroker: false

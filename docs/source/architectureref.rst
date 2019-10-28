@@ -2,9 +2,9 @@ Architecture Reference
 ======================
 
 .. figure:: _static/physical-architecture.png
-   :alt: Figure: The Blockchain Automation Framework Physical Architecture
+   :alt: Figure: Blockchain Automation Framework Physical Architecture
 
-   Figure: The Blockchain Automation Framework Physical Architecture
+   Figure: Blockchain Automation Framework Physical Architecture
 
 Security Services
 -----------------
@@ -15,8 +15,8 @@ Policy Management
 
 Policy management is the process of creating, communicating, and maintaining policies and procedures within an organization. Policy Management is a key feature used in development as well as operational phase of any product as it dictates who has what control in the dev/test/prod environment(s).
 
-In The Blockchain Automation Framework, Policy Management is provided by the Git repository. The Blockchain Automation Framework uses :doc:`keyConcepts/gitops` for deployment and operations, hence all policies are defined in the Git repository.
-Git branches with appropriate rights to users is maintained for releases in each environment. Read/write access, admin access to git repository, access to add access keys in repository, pull request based merge in main branch are some of the key features that is used in The Blockchain Automation Framework.
+In the Blockchain Automation Framework (BAF), Policy Management is provided by the Git repository. BAF uses :doc:`keyConcepts/gitops` for deployment and operations, hence all policies are defined in the Git repository.
+Git branches with appropriate rights to users is maintained for releases in each environment. Read/write access, admin access to git repository, access to add access keys in repository, pull request based merge in main branch are some of the key features that is used in BAF.
 
 Key Management
 ~~~~~~~~~~~~~~
@@ -37,16 +37,16 @@ Certificate Authority (CA)
 
 A Certificate Authority dispenses certificates to different actors. These certificates are digitally signed by the CA and bind together the actor with the actor’s public key (and optionally with a comprehensive list of properties). As a result, if one trusts the CA (and knows its public key), it can trust that the specific actor is bound to the public key included in the certificate, and owns the included attributes, by validating the CA’s signature on the actor’s certificate.
 
-For test and dev environments, The Blockchain Automation Framework generates certificates and keys and also provides CA servers (Fabric only). 
+For test and dev environments, the Blockchain Automation Framework generates certificates and keys and also provides CA servers (Fabric only). 
 
-For production use, generation of certificates, keys and CA servers via The Blockchain Automation Framework is not recommended. The existing certificates and keys can be placed in Vault in the paths described in :doc:`architectureref/certificates_path_list_corda` and :doc:`architectureref/certificates_path_list_fabric`
+For production use, generation of certificates, keys and CA servers via the Blockchain Automation Framework is not recommended. The existing certificates and keys can be placed in Vault in the paths described in :doc:`architectureref/certificates_path_list_corda` and :doc:`architectureref/certificates_path_list_fabric`
 
 Policies/Operations
 ~~~~~~~~~~~~~~~~~~~
 
 Policies/Operations refers to the actual security policies that an organization may/should have governing their business processes, operations and management.
 
-This part of the reference architecture is out of scope for The Blockchain Automation Framework.
+This part of the reference architecture is out of scope for the Blockchain Automation Framework.
 
 DevOps Services
 ---------------
@@ -79,21 +79,21 @@ Infrastructure as Code
 Infrastructure as Code (IaC) is the process of managing and provisioning cloud hardware through machine-readable definition files, rather than physical hardware configuration or interactive configuration tools.
 IaC can be versioned and hence, maintained easily and can be used to deploy cloud environments idempotently.
 
-This part of the reference architecture is out of scope for The Blockchain Automation Framework.
+This part of the reference architecture is out of scope for the Blockchain Automation Framework.
 
 Build, Test, and Artifact Management
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Build, Test, and Artifact Management capabilities enable continuous delivery management by ensuring automation of the build and deployment of artefacts.
 
-The Blockchain Automation Framework uses Jenkins Pipelines for easy modification of configuration file and deployment/reset of DLT network, building and storing of Docker images.
-The Blockchain Automation Framework uses Nexus for static code analysis of the business logic (smart contracts).
+The Blockchain Automation Framework (BAF) uses Jenkins Pipelines for easy modification of configuration file and deployment/reset of DLT network, building and storing of Docker images.
+BAF uses Nexus for static code analysis of the business logic (smart contracts).
 
 Delivery Management
 ~~~~~~~~~~~~~~~~~~~
 Delivery Management is the process where all software, artifacts and data from disparate tools used to move a product or feature from initial idea to max adoption are integrated into a unified common data layer, with the key information connected and easily accessible, giving each individual and team an unprecedented level of insight into bottlenecks and inefficiencies  dramatically improving the speed at which better software gets to users safely.
 
-In its full implementation, The Blockchain Automation Framework integrates the tools: Jira and Confluence for Delivery Management.
+In its full implementation, the Blockchain Automation Framework integrates the tools: Jira and Confluence for Delivery Management.
 Jira is the tool used to report and track new features, bugs/issues and releases.
 Confluence is the tool for sharing documentation, plans and meeting notes.
 
@@ -102,7 +102,7 @@ Presentation Services
 
 The presentation services specify how the application will be provided to the end-user. It also defines the on-ledger and off-ledger services and capabilities via different channels.
 
-This part of the reference architecture is out of scope for The Blockchain Automation Framework and will be determined by the application using The Blockchain Automation Framework.
+This part of the reference architecture is out of scope for Blockchain Automation Framework (BAF) and will be determined by the application using BAF.
 
 Integration Services
 --------------------
@@ -121,20 +121,20 @@ Application Integration
 
 Application Integration refers to how the application will talk to different components of the same application.
 
-This part of the reference architecture is out of scope for The Blockchain Automation Framework and will be determined by the application using The Blockchain Automation Framework.
+This part of the reference architecture is out of scope for the Blockchain Automation Framework (BAF) and will be determined by the application using BAF.
 
 External Integration
 ~~~~~~~~~~~~~~~~~~~~
 
 External integration is required when the blockchain application interfaces with systems outside of the application or DLT platform.
 
-This part of the reference architecture is out of scope for The Blockchain Automation Framework and will be determined by the application using The Blockchain Automation Framework.
+This part of the reference architecture is out of scope for the Blockchain Automation Framework (BAF) and will be determined by the application using BAF.
 
 Distributed Data Platforms
 --------------------------
 
-Distributed Data Platforms form the core of any distributed architecture solution. The Blockchain Automation Framework aims to support both Distributed Ledgers and Distributed Databases. 
-The Blockchain Automation Framework currently supports DLT Platforms: `Corda`_ and `Hyperledger Fabric`_.
+Distributed Data Platforms form the core of any distributed architecture solution. The Blockchain Automation Framework (BAF) aims to support both Distributed Ledgers and Distributed Databases. 
+BAF currently supports DLT Platforms: `Corda`_ and `Hyperledger Fabric`_.
 
 Infrastructure Services
 -----------------------
@@ -152,7 +152,7 @@ Container Services
 
 Container services allows users to deploy and manage containers using container based virtualization. Containers allow a developer to package up an application with all of the parts it needs, such as libraries and other dependencies, and ship it all out as one package.
 
-The Blockchain Automation Framework uses 2 containerization technologies: Docker and Kubernetes.
+The Blockchain Automation Framework (BAF) uses 2 containerization technologies: Docker and Kubernetes.
 Kubernetes (K8s) is an open-source system for automating deployment, scaling, and management of containerized applications.
 Docker is a tool designed to make it easier to create, deploy, and run applications by using containers.
 
@@ -161,14 +161,14 @@ Backup/Restore
 
 Disaster recovery involves a set of policies, tools and procedures to enable the recovery of vital technology infrastructure and systems following a natural or human-induced disaster. Even though blockchain applications are self replicating, complete auto recovery is not always possible. Therefore it is  important to have guidelines around backing up the data in a distributed store and restoring it using a conventional restoring mechanism. Backup is the process of copying and archiving data. Restore is the process of returning data that has been lost, stolen or damaged from secondary storage.
 
-This part of the reference architecture is out of scope for The Blockchain Automation Framework.
+This part of the reference architecture is out of scope for the Blockchain Automation Framework.
 
 Other Data Services
 -------------------
 
 Data services are related to on-ledger storage and data processing.
 
-This part of the reference architecture is out of scope for The Blockchain Automation Framework.
+This part of the reference architecture is out of scope for the Blockchain Automation Framework.
 
 Platform-Specific Reference Guides
 ----------------------------------

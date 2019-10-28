@@ -1,5 +1,5 @@
 # Setting up a DLT network
-Ansible playbooks are used to set up a DLT network. For this, [Ansible host and controller](https://docs.ansible.com/ansible/latest/network/getting_started/basic_concepts.html) is first configured with the pre-requisites like kubectl, helm, vault, aws cli and auth (where k8s.provider is aws) and then the DLT network is setup as per the specifications mentioned in the [network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml), [network yaml details for R3-Corda](./corda_networkyaml.md) and [network yaml details for Hyperledger-Fabric](./fabric_networkyaml.md)
+Ansible playbooks are used to set up a DLT network. For this, [Ansible host and controller](https://docs.ansible.com/ansible/latest/network/getting_started/basic_concepts.html) is first configured with the pre-requisites like kubectl, helm, vault, aws-cli and aws-auth (when cloud_provider is aws) and then the DLT network is setup as per the specifications mentioned in the [network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml), [network yaml details for R3-Corda](./corda_networkyaml.md) and [network yaml details for Hyperledger-Fabric](./fabric_networkyaml.md)
 
 The ansible playbook [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/README.md)) runs 4 roles, first being the setting up an environment, second being Gitops integraton for each organization cloud infrastructure and third role chosen based on the DLT platform specified in [network.yaml for Hyperledger-Fabric](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) or [network.yaml for R3-Corda](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/samples/network-cordav2.yaml). Based on the DLT platform selected, either of [deploy-network.yaml for Fabric](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/deploy-network.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/README.md)) or [deploy-network.yaml for Corda](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/deploy-network.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/README.md)) will execute. These roles consume the network.yaml file with the specified configurations to set up the network. 
 
@@ -8,13 +8,6 @@ The above mentioned playbook [site.yaml](https://github.com/hyperledger-labs/blo
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
 ```
-
-### Add SSH Key to Git
-While running the above command, The Blockchain Automation Framework configures Flux for each cluster, this generates an SSH key for each cluster which has to be added in the Git repo with read-write access.
-The Ansible logs/output will show the public ssh key (start with **ssh-rsa**) as highlighted in the image shown below:
-![flux ssh public key](../_static/flux_ssh_public_key.png)
-
-A user has to manually copy and paste this public ssh key to this Git repo to make sure flux can access this repo properly.
 
 ## Verify successful configuration of DLT network
 To verify if the network is successfully configured or not check if all the kubernetes pods are up and running or not.
