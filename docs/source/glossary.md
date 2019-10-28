@@ -2,7 +2,7 @@ Glossary
 ========
 ## General
 
-This sections lists the general terms that are used in The Blockchain Automation Framework.
+This sections lists the general terms that are used in the Blockchain Automation Framework.
 
 ### Ansible
 Ansible is an open-source software provisioning, configuration management, and application-deployment tool. It runs on many Unix-like systems, and can configure both Unix-like systems as well as Microsoft Windows. It includes its own declarative language to describe system configuration.
