@@ -16,11 +16,11 @@ A cluster of containers is grouped by one or more running containers serving dif
 ## **Ambassador**
 [Ambassador](https://www.getambassador.io/about/why-ambassador/) is an open-source microservices API gateway designed for K8s.
 
-The Blockchain Automation Framework uses Ambassador to route traffic amongst multiple K8s clusters. For each K8s cluster, an Ambassador will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map a public IP to a DNS name for the Ambassdor in each cluster, since this feature is not provisioned by The Blockchain Automation Framework. The reason is that feature like this should be provisioned in the infrastructure layer, where The Blockchain Automation Framework mainly focuses on the DLT platform layer sitting on the top.
+The Blockchain Automation Framework uses Ambassador to route traffic amongst multiple K8s clusters. For each K8s cluster, an Ambassador will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map a public IP to a DNS name for the Ambassdor in each cluster, since this feature is not provisioned by the Blockchain Automation Framework. The reason is that feature like this should be provisioned in the infrastructure layer, where the Blockchain Automation Framework mainly focuses on the DLT platform layer sitting on the top.
 
 Here simply explains how Ambassador works. If a pod in Cluster1 wants to reach a target pod in Cluster2, it will try to find the specific Ambassdor (via its DNS name or IP) in Cluster2 and then that Ambassador will route the traffic to the target pod in Cluster2. So, one might notice that the Ambassdor in Cluster1 does not get involved in this case.
 
-Note, if only one cluster is used in a DLT network, Ambassador may not be needed, but it will still be instaled as a tool by using The Blockchain Automation Framework.
+Note, if only one cluster is used in a DLT network, Ambassador may not be needed, but it will still be instaled as a tool by using the Blockchain Automation Framework.
 
 <br>
 

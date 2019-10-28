@@ -10,7 +10,7 @@ ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to
 ```
 
 ### Add SSH Key to Git
-While running the above command, The Blockchain Automation Framework configures Flux for each cluster, this generates an SSH key for each cluster which has to be added in the Git repo with read-write access.
+While running the above command, the Blockchain Automation Framework configures Flux for each cluster, this generates an SSH key for each cluster which has to be added in the Git repo with read-write access.
 The Ansible logs/output will show the public ssh key (start with **ssh-rsa**) as highlighted in the image shown below:
 ![flux ssh public key](../_static/flux_ssh_public_key.png)
 
