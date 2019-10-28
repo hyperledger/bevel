@@ -81,10 +81,10 @@ No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a use
 No, a user should be able to run the Ansible command on any machine as long as Ansible command CLI is installed.
 
 ### Is there an example ansible_hosts file?
-Yes, you can find an example ansible_hosts file [here](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework/browse/platforms/shared/inventory/ansible_provisoners). The configuration in this file means that all Ansible commands will be run in the same machine that works as both an Ansible client and server machine.
+Yes, you can find an example ansible_hosts file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). The configuration in this file means that all Ansible commands will be run in the same machine that works as both an Ansible client and server machine.
 
 ### Can I specify the tools versions such as kubectl, helm in this project?
-Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [environment-setup.yaml](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework/browse/platforms/shared/configuration/environment-setup.yaml).
+Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [environment-setup.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/environment-setup.yaml).
 
 ### How would system react if we plan to update tools versions (e.g. kubectl, helm)?
 Honest speaking, we don't know. Currently the Blockchain Automation Framework has been tested on specific versions of these tools, see below:
@@ -96,7 +96,7 @@ Honest speaking, we don't know. Currently the Blockchain Automation Framework ha
 It is assumed that newer versions of these tools would be backward compatible, which is beyond our control. One can raise a new ticket to the Blockchain Automation Framework GitHub repository, if any major updates would break the system down.
 
 ### Why does the Flux K8s pod get a permission denied for this Blockchain Automation Framework GitHub repository?
-There is a SSH key displayed as the last role of the Flux Ansible playbook, this key should be added as an authentication method for the repository user. Details can be found in this [readme file](https://innersource.accenture.com/projects/BLOCKOFZ/repos/blockchain-automation-framework/browse/platforms/shared/configuration/README.md).
+There is a SSH key displayed as the last role of the Flux Ansible playbook, this key should be added as an authentication method for the repository user. Details can be found in this [readme file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/README.md).
 
 ### Why does the flux-helm-operator keep on reporting "Failed to list *v1beta1.HelmRelease: the server could not find the requested resource (get helmreleases.flux.weave.works)"?
 The HelmRelease CustomResourceDefinition (CRD) was missing from the cluster, according to https://github.com/fluxcd/flux, the following command has to be used to deploy it:
