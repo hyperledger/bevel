@@ -2,13 +2,13 @@ package com.supplychain.bcc
 
 import com.supplychain.bcc.contractstates.ContainerState
 import com.supplychain.bcc.contractstates.ProductState
+import com.supplychain.baf.CreateContainerRequest
+import com.supplychain.baf.CreateProductRequest
 import net.corda.core.identity.CordaX500Name
-import org.testng.annotations.Listeners
-import org.testng.annotations.Test
+import org.junit.Test
 import java.util.*
 import kotlin.test.assertEquals
 
-@Listeners(AgentListener::class)
 
 class ClaimContainerTests : SupplyChainTests() {
 
@@ -37,7 +37,7 @@ class ClaimContainerTests : SupplyChainTests() {
         val productTrackingID = UUID.randomUUID()
 
         createContainer(a, CreateContainerRequest("Health", mapOf(), containerTrackingID, listOf("BB")))
-        createProduct(a, CreateProductRequest("Product Name", "Health",mapOf(), productTrackingID, listOf("BB")))
+        createProduct(a, CreateProductRequest("Product Name", "Health", mapOf(), productTrackingID, listOf("BB")))
 
         packageProduct(a, productTrackingID, containerTrackingID)
 

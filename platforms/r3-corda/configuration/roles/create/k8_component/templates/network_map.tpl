@@ -17,28 +17,34 @@ spec:
       namespace: {{ component_ns }}
     image:
       authusername: sa
-      containerName: {{ network.docker.url }}/nms:0.3.11-network-map-service
+      containerName: {{ network.docker.url }}/networkmap-linuxkit:latest
       env:
-      -   name: rootcaname
-          value: {{ services.nms.subject }}
-      -   name: tlscertpath
-          value: /opt/cordite/db/certs
-      -   name: tlskeypath
-          value: /opt/cordite/db/certs/network-map/keys.jks
-      -   name: tls
-          value: false
-      -   name: doorman
-          value: true
-      -   name: certman
-          value: true
-      -   name: database
-          value: /opt/cordite/db
-      -   name: dataSourceUrl
-          value: embed
+      - name: NETWORKMAP_PORT
+        value: 8080
+      - name: NETWORKMAP_ROOT_CA_NAME
+        value: {{ services.nms.subject }}
+      - name: NETWORKMAP_TLS
+        value: false
+      - name: NETWORKMAP_DB
+        value: /opt/networkmap/db
+      - name: DB_USERNAME
+        value: networkmap
+      - name: NETWORKMAP_AUTH_USERNAME
+        value: sa
+      - name: DB_URL
+        value: mongodb-networkmap
+      - name: DB_PORT
+        value: 27017
+      - name: DATABASE
+        value: admin
+      - name: NETWORKMAP_CACHE_TIMEOUT
+        value: 60S
+      - name: NETWORKMAP_MONGOD_DATABASE
+        value: networkmap
       imagePullSecret: regcred
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
-          basePath: /opt/cordite
+          basePath: /opt/networkmap
     storage:
       memory: 1Gi
       mountPath: "/opt/h2-data"

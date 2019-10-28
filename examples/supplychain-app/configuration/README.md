@@ -8,7 +8,7 @@ These playbooks enables creation of value files and facilitate deployment of Cor
 
 To run the playbooks and deploy the APIs, following are the pre-requisites
 1. Ansible and Git are required to be setup on the machine.
-2. The DLT network setup should be complete using The Blockchain Automation Framework, which includes the GitOps setup.
+2. The DLT network setup should be complete using the Blockchain Automation Framework, which includes the GitOps setup.
 3. A complete input configuration file: *network.yaml* as described in **Step 1**.
 
 ## Playbook Description 
@@ -36,6 +36,7 @@ network:
     chart_source: "platforms/r3-corda/charts"
     username: "git_username"
     password: "git_password"
+    private_key: "path_to_private_key"
   ...
   organizations:
   - organization:

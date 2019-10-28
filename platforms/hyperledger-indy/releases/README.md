@@ -1,5 +1,5 @@
 # Platform Releases
-The Blockchain Automation Framework follows utilizes a [Gitops](https://www.weave.works/technologies/gitops/) approach for deploying and maintaining environment specific platform configurations. For each environment in which the components are deployed, you will maintain a separate sub-directory under this directory in the format...
+The Blockchain Automation Framework follows a [Gitops](https://www.weave.works/technologies/gitops/) approach for deploying and maintaining environment specific platform configurations. For each environment in which the components are deployed, you will maintain a separate sub-directory under this directory in the format...
 ```
 └── releases
     ├── dev

@@ -1,6 +1,6 @@
 # Fabric Charts
 
-The structure below represents the Chart structure for Hyperledger fabric components in The Blockchain Automation Framework 
+The structure below represents the Chart structure for Hyperledger fabric components in the Blockchain Automation Framework 
 implementation.
 
 ```

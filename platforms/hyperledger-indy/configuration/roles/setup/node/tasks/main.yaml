@@ -1,0 +1,58 @@
+##############################################################################################
+# This role creates the deployment files for stewards and pushes them to repository
+##############################################################################################
+- name: "Wait for namespace creation for stewards"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+
+- name: "Wait for vault-auth creation for stewards"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "{{ component_name }}-vault-auth"
+
+# - name: "Wait for ClusterRoleBinding creation for stewards"
+#   include_role:
+#     name: check/k8_component
+#   vars:
+#     component_type: "ClusterRoleBinding"
+#     component_name: "{{ component_ns }}-role-tokenreview-binding"
+
+# ----------------------------------------------------------------------  
+# create image pull secrets
+- name: "Create image pull secret for stewards" 
+  include_role: 
+    name: create/imagepullsecret
+
+#----------------------------------------------------------------------  
+# create deployment file for node steward
+- name: 'Create steward deployment file'
+  include_role: 
+    name: create/node_component
+  vars:    
+    component_type: "node"
+    component_name: "{{ stewardItem.name }}"
+    indy_version: "indy-{{ network.version }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "Pushing deployment files for {{ stewardItem.name }}"
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
