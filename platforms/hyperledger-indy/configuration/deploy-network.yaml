@@ -1,0 +1,31 @@
+#########################
+# Playbook to create deployment files for namespaces, service account and clusterrolebinding
+# Playbook arguments: complete network.yaml
+#########################
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+  # ----------------------------------------------------------------------
+  # Deploy all other nodes
+  - name: 'Deploy nodes'
+    include_role:
+      name: setup/node
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      services: "{{ organizationItem.services }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      gitops: "{{ organizationItem.gitops }}"
+      domainGenesis: "{{ domainGenesis }}"
+      poolGenesis: "{{ poolGenesis }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+    loop_var: organizationItem
+    when: network['type'] == 'indy' and organizationItem.type == 'peer'
+
+  # delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
