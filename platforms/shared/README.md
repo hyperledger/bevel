@@ -1,5 +1,5 @@
 ## About
-This folder contains the common files as prerequisites used for the deployment of a R3 Corda or Hyperledger Fabric network. Deployment of a real R3 Corda or Hyperledger Fabric network should use files within either the path: platforms/r3-corda or platforms/hyperledger-fabric
+This folder contains the common files as prerequisites used for the deployment of a R3 Corda or Hyperledger Fabric network. Deployment of a real R3 Corda or Hyperledger Fabric network should use files within either the path: ./platforms/r3-corda or ./platforms/hyperledger-fabric
 
 ## Folder structure
 ```

@@ -1,6 +1,6 @@
 FROM amazonlinux:2
-LABEL VENDOR="Accenture" \
-MAINTAINER="Accenture"
+LABEL VENDOR="Hyperledger" \
+MAINTAINER="Hyperledger"
 EXPOSE 8080
 #ENV NMS_TLS=false
 #ENV NMS_DOORMAN=true

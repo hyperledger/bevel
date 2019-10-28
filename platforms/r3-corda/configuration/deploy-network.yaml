@@ -28,22 +28,7 @@
       kubernetes: "{{ item.k8s }}"
       gitops: "{{ item.gitops }}"
     loop: "{{ network['organizations'] }}"
-    when: network['type'] == 'corda'
-
-  # ----------------------------------------------------------------------  
-  # Deploy NMS node
-  - name: Deploy Networkmap service node
-    include_role:
-      name: setup/nms      
-    vars:
-     services: "{{ item.services }}"
-     organisation: "{{ item.name | lower }}"
-     component_ns: "{{ item.name | lower }}-ns"
-     kubernetes: "{{ item.k8s }}"
-     vault: "{{ item.vault }}"
-     gitops: "{{ item.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    when: network['type'] == 'corda' and item.type.find('nms') != -1
+    when: network['type'] == 'corda'  
 
   # ----------------------------------------------------------------------  
   # Deploy Doorman node
@@ -59,6 +44,21 @@
      gitops: "{{ item.gitops }}"     
     loop: "{{ network['organizations'] }}"
     when: network['type'] == 'corda' and item.type.find('doorman') != -1
+
+    # ----------------------------------------------------------------------  
+  # Deploy NMS node
+  - name: Deploy Networkmap service node
+    include_role:
+      name: setup/nms      
+    vars:
+     services: "{{ item.services }}"
+     organisation: "{{ item.name | lower }}"
+     component_ns: "{{ item.name | lower }}-ns"
+     kubernetes: "{{ item.k8s }}"
+     vault: "{{ item.vault }}"
+     gitops: "{{ item.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    when: network['type'] == 'corda' and item.type.find('nms') != -1
   
   # ----------------------------------------------------------------------  
   # Wait for orderer services to respond  
