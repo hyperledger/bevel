@@ -34,7 +34,7 @@ The configurations are grouped in the following sections for better understandin
 
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
-
+(Note: Please use the [NMS Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks)
 
 | Field      | Description                                 |
 |------------|---------------------------------------------|
