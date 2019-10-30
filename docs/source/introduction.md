@@ -14,7 +14,7 @@ Setting up a new DLT network or maintaining an existing DLT network in a product
 
 Having an awareness of the potential difficulty and complexity of getting a productin-scale DLT network ready, cloud vendors such as AWS and Azure have provisioned their own managed Blockchain services (aka Blockchain as a Service or BaaS) to help alleviate various painpoints during the process. However, limitations can still be identified in their BasS solutions, e.g. limited network size, locked to all nodes on a single cloud provider, or limited choice of DLT platform, etc.
 
-## **The Blockchain Automation Framework Automated Platform**
+## **Blockchain Automation Framework**
 The objective of the Blockchain Automation Framework is to provide a consistent means by which developers can deploy production-ready distributed networks across public and private cloud providers. This enables developers to focus on building business applications quickly, knowing the framework upon which they are building can be adopted by an enterprise IT production operations organization. The Blockchain Automation Framework is not intended soley to quickly provision development environments which can be done more efficently with other projects/scripts. Likewise, the Blockchain Automation Framework is not intended to replace BaaS offerings in the market, but instead, the Blockchain Automation Framework is an alternative when existing BaaS offerings do not support a consoritum's current set of requirements. 
 
 ![](_static/hl-platform-overview.png)
