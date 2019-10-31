@@ -61,6 +61,9 @@ spec:
         keyPath: /keys/{{ network.name }}/keys/{{ component_name }}
         nodeId: {{ component_name }}
       storage:
+        data:
+          storagesize: 1Gi
+          storageClassName: {{ organizationItem.cloud_provider }}storageclass
         keys:
           storagesize: 1Gi
           storageClassName: {{ organizationItem.cloud_provider }}storageclass
