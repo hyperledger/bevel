@@ -20,10 +20,10 @@ spec:
       containerName: {{ network.docker.url }}/h2:2018
       imagePullSecret: regcred
     resources:
-      limits: "1Gi"
-      requests: "1Gi"
+      limits: "512Mi"
+      requests: "512Mi"
     storage:
-      memory: 1Gi
+      memory: 512Mi
       mountPath: "/opt/h2-data"
       name: {{ item.cloud_provider }}storageclass
     service:
