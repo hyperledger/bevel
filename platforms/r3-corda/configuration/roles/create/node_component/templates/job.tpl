@@ -87,8 +87,8 @@ spec:
     volume:
       baseDir: /base/corda
     resources:
-      limits: "2Gi"
-      requests: "1Gi"
+      limits: "512Mi"
+      requests: "512Mi"
     
     service:
       type: ClusterIP
