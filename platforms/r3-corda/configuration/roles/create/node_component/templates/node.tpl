@@ -87,12 +87,12 @@ spec:
     volume:
       baseDir: /base/corda
     resources:
-      limits: "2Gi"
+      limits: "1Gi"
       requests: "1Gi" 
     pvc:
       name: {{ component_name|e }}-pvc
       annotations: {}
-      memory: 1Gi
+      memory: 512Mi
       storageClassName: {{ item.cloud_provider }}storageclass
 
     service:
