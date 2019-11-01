@@ -1,0 +1,44 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: chaincode-install-carrier-peer0-1
+  namespace: carrier-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: chaincode-install-carrier-peer0-1
+  chart:
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+    path: platforms/hyperledger-fabric/charts/install_chaincode
+  values:
+    metadata:
+      namespace: carrier-net
+    peer:
+      name: peer0
+      address: peer0.carrier-net.demo.fabric.blockchaincloudpoc.com:8443
+      localmspid: carrierMSP
+      loglevel: debug
+      tlsstatus: true
+    vault:
+      role: vault-role
+      address: http://a2f30bbf3fa6b11e9b7a50a059b1d738-111223046.eu-west-2.elb.amazonaws.com:9000
+      authpath: carrier-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/carrier-net/users/admin 
+      orderersecretprefix: secret/crypto/peerOrganizations/carrier-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      secretgitprivatekey: secret/credentials/carrier-net/git?git_password
+      tls: false
+    orderer:
+      address: orderer.demo.fabric.blockchaincloudpoc.com:8443
+    chaincode:
+      name: supplychain
+      version: 1
+      maindirectory: cmd
+      repository:
+        hostname: "innersource.accenture.com"
+        git_username: "A07853DIRNfulcrumuse"
+        url: innersource.accenture.com/scm/sow11/blockchain-automation-framework.git
+        branch: develop
+        path: examples/supplychain-app/fabric/chaincode_rest_server/chaincode/
