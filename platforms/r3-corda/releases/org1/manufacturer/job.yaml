@@ -1,0 +1,107 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: manufacturer-initial-registration
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: manufacturer-ns
+spec:
+  releaseName: manufacturer-initial-registration
+  chart:
+    path: platforms/r3-corda/charts/node-initial-registration
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+  values:
+    nodeName: manufacturer
+    replicas: 1
+    metadata:
+      namespace: manufacturer-ns  
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/corda:4.0-linuxkit
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+      doormanCertAlias: doorman.demo.corda.blockchaincloudpoc.com
+      networkmapCertAlias: networkmap.demo.corda.blockchaincloudpoc.com
+    nodeConf:
+      p2p:
+        url: manufacturer.manufacturer-ns
+        port: 10002
+      ambassadorAddress: manufacturer.demo.corda.blockchaincloudpoc.com:15010
+      rpcSettings:
+        useSsl: false
+        standAloneBroker: false
+        address: "0.0.0.0:10003"
+        adminAddress: "0.0.0.0:10005"
+        ssl:
+          certificatesDirectory: na-ssl-false
+          sslKeystorePath: na-ssl-false
+          trustStoreFilePath: na-ssl-false
+      legalName: O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH #use peer-node level subject for legalName
+      messagingServerAddress:
+      jvmArgs:
+      systemProperties:
+      sshd:
+        port:
+      exportJMXTo:
+      transactionCacheSizeMegaBytes: 8
+      attachmentContentCacheSizeMegaBytes: 10
+      attachmentCacheBound: 1024
+       
+      detectPublicIp: false
+      database:
+        transactionIsolationLevel: READ_COMMITTED
+        exportHibernateJMXStatistics: false
+      dbUrl: manufacturerdb
+      dbPort: 9101
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      dataSourceUrl: "jdbc:h2:tcp://manufacturerdb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+      jarPath: "/data/corda-workspace/h2/bin"
+      networkMapURL: https://networkmap.demo.corda.blockchaincloudpoc.com:8443
+      doormanURL: https://doorman.demo.corda.blockchaincloudpoc.com:8443
+      compatibilityZoneURL:
+      jarVersion: "4.0"
+      devMode: false
+      env:
+        - name: JAVA_OPTIONS
+          value: -Xmx512m
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: BASE_DIR
+          value: /base/corda
+    credentials:
+      dataSourceUser: sa
+      rpcUser:
+        - name: manufactureroperations
+          permissions: [ALL]
+
+    volume:
+      baseDir: /base/corda
+    resources:
+      limits: "512Mi"
+      requests: "512Mi"
+    
+    service:
+      type: ClusterIP
+      p2p:
+        port: 10002
+        targetPort: 10002
+      rpc:
+        port: 10003
+      rpcadmin:
+        port: 10005
+
+    vault:
+      address: http://a2f30bbf3fa6b11e9b7a50a059b1d738-111223046.eu-west-2.elb.amazonaws.com:9000
+      role: vault-role
+      authpath: cordamanufacturer
+      serviceaccountname: vault-auth
+      dbsecretprefix: manufacturer/credentials/database
+      rpcusersecretprefix: manufacturer/credentials/rpcusers
+      tokensecretprefix: manufacturer/credentials/vaultroottoken
+      keystoresecretprefix: manufacturer/credentials/keystore
+      certsecretprefix: manufacturer/certs
+        
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
