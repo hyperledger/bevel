@@ -1,0 +1,87 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: warehouse-peer0
+  namespace: warehouse-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: warehouse-peer0
+  chart:
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+    path: platforms/hyperledger-fabric/charts/peernode    
+  values:
+    metadata:
+      namespace: warehouse-net
+        
+    peer:
+      name: peer0
+      gossippeeraddress: peer0.warehouse-net.demo.fabric.blockchaincloudpoc.com:8443
+      gossipexternalendpoint: peer0.warehouse-net.demo.fabric.blockchaincloudpoc.com:8443
+      localmspid: warehouseMSP
+      loglevel: info
+      tlsstatus: true
+      couchdb:
+        username: warehouse-user
+
+    storage:
+      peer:
+        storageclassname: warehousesc
+        storagesize: 512Mi
+      couchdb:
+        storageclassname: warehousesc
+        storagesize: 1Gi
+
+    vault:
+      role: vault-role
+      address: http://a2f30bbf3fa6b11e9b7a50a059b1d738-111223046.eu-west-2.elb.amazonaws.com:9000
+      authpath: warehouse-net-auth
+      secretprefix: secret/crypto/peerOrganizations/warehouse-net/peers/peer0.warehouse-net
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      secretcouchdbpass: secret/credentials/warehouse-net/couchdb/warehouse?user
+
+    service:
+      servicetype: ClusterIP
+      ports:
+        grpc:
+          clusteripport: 7051
+        events:
+          clusteripport: 7053
+        couchdb:
+          clusteripport: 5984
+          
+    ambassador:
+      annotations: |- 
+          ---
+          apiVersion: ambassador/v1
+          kind: TLSContext
+          name: tls_context_peer0_warehouse-net
+          hosts:
+          - peer0.warehouse-net.demo.fabric.blockchaincloudpoc.com
+          secret: peer0-warehouse-net-ambassador-certs
+          alpn_protocols: h2
+          ---
+          apiVersion: ambassador/v1
+          kind: Mapping
+          tls: tls_context_peer0_warehouse-net
+          grpc: True
+          name: peer0_warehouse-net_mapping
+          headers:
+            :authority: peer0.warehouse-net.demo.fabric.blockchaincloudpoc.com:8443
+          prefix: /
+          rewrite: /
+          service: https://peer0.warehouse-net:7051
+          ---
+          apiVersion: ambassador/v1
+          kind: Mapping
+          tls: tls_context_peer0_warehouse-net
+          grpc: True
+          name: peer0_warehouse-net_mapping_rest
+          headers:
+            :authority: peer0.warehouse-net.demo.fabric.blockchaincloudpoc.com
+          prefix: /
+          rewrite: /
+          service: https://peer0.warehouse-net:7051
+
