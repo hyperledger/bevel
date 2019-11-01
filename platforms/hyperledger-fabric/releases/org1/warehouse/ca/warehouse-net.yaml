@@ -1,0 +1,57 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: warehouse-net-ca
+  namespace: warehouse-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: warehouse-net-ca
+  chart:
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+    path: platforms/hyperledger-fabric/charts/ca    
+  values:
+    metadata:
+      namespace: warehouse-net
+    server:
+      name: ca
+      tlsstatus: true
+      admin: warehouse-admin
+    storage:
+      storageclassname: warehousesc
+      storagesize: 512Mi
+    vault:
+      role: vault-role
+      address: http://a2f30bbf3fa6b11e9b7a50a059b1d738-111223046.eu-west-2.elb.amazonaws.com:9000
+      authpath: warehouse-net-auth
+      secretcert: secret/crypto/peerOrganizations/warehouse-net/ca?ca.warehouse-net-cert.pem
+      secretkey: secret/crypto/peerOrganizations/warehouse-net/ca?warehouse-net-CA.key
+      secretadminpass: secret/credentials/warehouse-net/ca/warehouse?user
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    service:
+      servicetype: ClusterIP
+      ports:
+        tcp:
+          port: 7054
+    ambassador:
+    #Provide annotations for ambassador service configuration
+    #Only use HTTPS as HTTP and HTTPS don't work together ( https://github.com/datawire/ambassador/issues/1000 )
+      annotations: |- 
+        ---
+        apiVersion: ambassador/v1
+        kind:  Mapping
+        name:  ca_warehouse-net_mapping
+        prefix: /
+        host: ca.warehouse-net:7054
+        service: ca.warehouse-net:7054
+        tls: ca_warehouse-net_tls
+        ---
+        apiVersion: ambassador/v1
+        kind: TLSContext
+        name: ca_warehouse-net_tls
+        hosts:
+        - ca.warehouse-net
+        secret: ca-warehouse-net-ambassador-certs
+    
