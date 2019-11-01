@@ -1,0 +1,77 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: store-springboot
+  namespace: store-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: store-springboot
+  chart:
+    path: examples/supplychain-app/charts/springbootwebserver
+    git: "ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git"
+    ref: "feature/bafdemo"
+  values:
+    nodeName: store-springboot
+    replicas: 1
+    metadata:
+      namespace: store-ns
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/supplychain_corda/springboot_server:latest
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+    smartContract:
+      JAVA_OPTIONS : -Xmx512m
+    volume:
+      mountPath: /opt/corda
+    nodeConf:
+      node: store
+      nodeRpcPort: 10003
+      nodeRpcAdminPort: 10005
+      controllerName: Controller
+      trustStorePath: /opt/corda/certificates/sslkeystore.jks
+      trustStoreProvider: jks
+      legalName: O=Store,OU=Store,L=New York,C=US
+      devMode: false
+      useHTTPS: true
+      useSSL: false
+      tlsAlias: cordaclienttls
+      ssl:
+        certificatesDirectory: na-ssl-false
+        sslKeystoreFileName: na-ssl-false
+        ssltruststore: na-ssl-false
+    credentials:
+      rpcUser: storeoperations
+    resources:
+      limits: "512Mi"
+      requests: "512Mi"
+    storage:
+      provisioner: kubernetes.io/aws-ebs
+      memory: 512Mi
+      name: awsstorageclass
+      parameters:
+        type: gp2
+        encrypted: "true"
+      annotations: {}
+    web:
+      targetPort: 20001
+      port: 20001
+    service:
+      type: NodePort
+      annotations: {}
+    vault:
+      address: "http://a2f30bbf3fa6b11e9b7a50a059b1d738-111223046.eu-west-2.elb.amazonaws.com:9000"
+      role: vault-role
+      authpath: cordastore
+      serviceaccountname: vault-auth
+      rpcusersecretprefix: store/credentials/rpcusers
+      keystoresecretprefix: store/credentials/keystore
+      certsecretprefix: store/certs
+    node:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
