@@ -1,0 +1,46 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: carrier-expressapi
+  namespace: carrier-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  chart:
+    path: examples/supplychain-app/charts/expressapp
+    git: "ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git"
+    ref: "feature/bafdemo"
+  releaseName: carrier-expressapi
+  values:
+    nodeName: carrier-expressapi
+    metadata:
+      namespace: carrier-ns
+    replicaCount: 1
+    expressapp:
+      serviceType: ClusterIP
+      image: adopblockchaincloud0502.azurecr.io/supplychain_corda/express_app:latest
+      pullPolicy: Always
+      pullSecrets: regcred
+      nodePorts:
+        port: 3000
+        targetPort: 3000
+        name: tcp
+      env:
+        apiUrl: https://carrier-springboot.carrier-ns:20001/api/v1
+    ambassador:
+      annotations: |-
+        ---
+        apiVersion: ambassador/v1
+        kind: TLSContext
+        name: carrier_api_context
+        hosts:
+        - carrierapi.demo.corda.blockchaincloudpoc.com
+        secret: carrier-ambassador-certs
+        ---
+        apiVersion: ambassador/v1
+        kind: Mapping
+        name: carrier_api_p2p_mapping
+        prefix: /
+        host: carrierapi.demo.corda.blockchaincloudpoc.com:8443
+        service: carrier-expressapi.carrier-ns:3000
+        tls: false 
