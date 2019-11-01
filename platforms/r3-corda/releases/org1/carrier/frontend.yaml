@@ -1,0 +1,48 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: carrier-frontend
+  namespace: carrier-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  chart:
+    path: examples/supplychain-app/charts/frontend
+    git: "ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git"
+    ref: "feature/bafdemo"
+  releaseName: carrier-frontend
+  values:
+    nodeName: carrier-frontend
+    metadata:
+      namespace: carrier-ns
+    replicaCount: 1
+    frontend:
+      serviceType: ClusterIP
+      nodePorts:
+        port: 8080
+        targetPort: 80
+      image: adopblockchaincloud0502.azurecr.io/supplychain_frontend:latest
+      pullPolicy: Always
+      pullSecrets: regcred
+      env:
+        webserver: https://carrierapi.demo.corda.blockchaincloudpoc.com:8443
+        googlemapskey: AIzaSyCFFb6O4AlyuzA7Q6FkjRStq8luv-X4hDM
+    deployment:
+      annotations: {}
+    ambassador:
+      annotations: |-
+        ---
+        apiVersion: ambassador/v1
+        kind: TLSContext
+        name: carrier_web_context
+        hosts:
+        - carrierweb.demo.corda.blockchaincloudpoc.com
+        secret: carrier-ambassador-certs
+        ---
+        apiVersion: ambassador/v1
+        kind: Mapping
+        name: carrier_web_p2p_mapping
+        prefix: /
+        host: carrierweb.demo.corda.blockchaincloudpoc.com:8443
+        service: carrier-frontend.carrier-ns:8080
+        tls: false 
