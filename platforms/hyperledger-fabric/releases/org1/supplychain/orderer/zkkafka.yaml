@@ -1,0 +1,29 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: zkkafka-supplychain-orderer
+  namespace: supplychain-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: zkkafka-supplychain-orderer
+  chart:
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+    path: platforms/hyperledger-fabric/charts/zkkafka    
+  values:
+    metadata: 
+      namespace: supplychain-net
+    storage: 
+      storageclassname: supplychainsc
+      storagesize: 512Mi
+    kafka: 
+      brokerservicename: broker
+      name: kafka
+      replicas: 2    
+    zookeeper: 
+      name: zookeeper
+      peerservicename: zoo
+      readinesscheckinterval: 10
+      readinessthreshold: 10
+      replicas: 3
