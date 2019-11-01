@@ -1,0 +1,90 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: networkmap
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: supplychain-ns
+spec:
+  releaseName: networkmap
+  chart:
+    path: platforms/r3-corda/charts/nms
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+  values:
+    nodeName: networkmap
+    metadata:
+      namespace: supplychain-ns
+    image:
+      authusername: sa
+      containerName: adopblockchaincloud0502.azurecr.io/networkmap-linuxkit:latest
+      env:
+      - name: NETWORKMAP_PORT
+        value: 8080
+      - name: NETWORKMAP_ROOT_CA_NAME
+        value: CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE
+      - name: NETWORKMAP_TLS
+        value: false
+      - name: NETWORKMAP_DB
+        value: /opt/networkmap/db
+      - name: DB_USERNAME
+        value: networkmap
+      - name: NETWORKMAP_AUTH_USERNAME
+        value: sa
+      - name: DB_URL
+        value: mongodb-networkmap
+      - name: DB_PORT
+        value: 27017
+      - name: DATABASE
+        value: admin
+      - name: NETWORKMAP_CACHE_TIMEOUT
+        value: 60S
+      - name: NETWORKMAP_MONGOD_DATABASE
+        value: networkmap
+      imagePullSecret: regcred
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      mountPath:
+          basePath: /opt/networkmap
+    storage:
+      memory: 512Mi
+      mountPath: "/opt/h2-data"
+      name: awsstorageclass
+    vault:
+      address: http://a2f30bbf3fa6b11e9b7a50a059b1d738-111223046.eu-west-2.elb.amazonaws.com:9000
+      role: vault-role
+      authpath: cordanetworkmap
+      serviceaccountname: vault-auth
+      secretprefix: networkmap
+      certsecretprefix: networkmap/certs
+      dbcredsecretprefix: networkmap/credentials/mongodb
+      secretnetworkmappass: networkmap/credentials/userpassword
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
+      dburl: mongodb-networkmap:27017
+    service:
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+      annotations: {}
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
+    ambassador:
+      annotations: |- 
+        ---
+        apiVersion: ambassador/v1
+        kind: Mapping
+        name: networkmap_mapping
+        prefix: /
+        service: networkmap.supplychain-ns:8080
+        host: networkmap.demo.corda.blockchaincloudpoc.com:8443
+        tls: false
+        ---
+        apiVersion: ambassador/v1
+        kind: TLSContext
+        name: networkmap_mapping_tlscontext
+        hosts:
+        - networkmap.demo.corda.blockchaincloudpoc.com
+        secret: networkmap-ambassador-certs 
