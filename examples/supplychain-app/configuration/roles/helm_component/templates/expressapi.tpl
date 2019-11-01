@@ -43,4 +43,5 @@ spec:
         prefix: /
         host: {{ peer_name }}api.{{ organization_data.external_url_suffix }}:8443
         service: {{ peer_name }}-expressapi.{{ component_ns }}:{{ peer_expressapi_port }}
+        timeout_ms: 20000
         tls: false 
