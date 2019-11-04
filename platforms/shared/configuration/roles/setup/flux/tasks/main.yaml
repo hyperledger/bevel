@@ -31,7 +31,7 @@
   shell: |
     KUBECONFIG={{ kubeconfig_path }} kubectl create secret generic git-auth-{{ network.env.type }} --from-file=identity={{ git_key }} --namespace default
     KUBECONFIG={{ kubeconfig_path }} kubectl apply -f {{ playbook_dir }}/../../../platforms/shared/charts/flux-helm-release-crd.yaml --context="{{ kubecontext }}"
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --set rbac.create=true --set helmOperator.create=true --set git.timeout=200s --set git.pollInterval=3m --set git.url='{{ git_url }}' --set git.secretName=git-auth-{{ network.env.type }} --set git.branch={{ git_branch }} --set git.label='sync-{{ network.env.type }}' --set git.path="{{ git_path }}" --set-file ssh.known_hosts=flux_known_hosts --namespace default flux-{{ network.env.type }} fluxcd/flux --kube-context="{{ kubecontext }}"
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --set rbac.create=true --set helmOperator.create=true --set git.timeout=200s --set git.pollInterval=3m --set git.url='{{ git_url }}' --set git.secretName=git-auth-{{ network.env.type }} --set git.branch={{ git_branch }} --set git.label='sync-{{ network.env.type }}' --set git.path="{{ git_path }}" --set-file ssh.known_hosts=flux_known_hosts --set registry.insecureHosts="{{ network.docker.url }}" --namespace default flux-{{ network.env.type }} fluxcd/flux --kube-context="{{ kubecontext }}"
   when: flux_service.resources|length == 0
   tags:
     - flux
