@@ -26,7 +26,7 @@ spec:
         repository: alpine:3.9.4
       indyNode:
         name: {{ component_name }}
-        repository: {{ network.docker.url }}
+        repository: {{ network.docker.url }}/indy-node:0.3.0.0
       node:
         name: {{ component_name }}
         INDY_NODE_IP: {{ organizationItem.stewardItem.node.port }}

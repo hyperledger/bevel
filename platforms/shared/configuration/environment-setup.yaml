@@ -45,7 +45,7 @@
         aws_access_key: "{{ item.aws.access_key }}"
         aws_secret_key: "{{ item.aws.secret_key }}"
       with_items: "{{ network.organizations }}"
-      when: "item.cloud_provider == 'aws'"
+      when: "item.cloud_provider == 'aws' or item.cloud.provider == 'aws-baremetal'"
     - include_role:
         name: setup/aws-auth
       vars:
@@ -59,7 +59,7 @@
         kubeconfig_path: "{{ item.k8s.config_file }}"
         kubecontext: "{{ item.k8s.context }}"
       with_items: "{{ network.organizations }}"
-      when: "item.cloud_provider == 'aws' and item.k8s.provider == 'EKS'"
+      when: "item.cloud_provider == 'aws'"
     - include_role:
         name: setup/tiller
       vars:
