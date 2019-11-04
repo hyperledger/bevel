@@ -24,7 +24,7 @@ spec:
 
     storage:
       storageclassname: {{ org_name }}sc
-      storagesize: 1Gi  
+      storagesize: 512Mi  
 
     service:
       servicetype: ClusterIP

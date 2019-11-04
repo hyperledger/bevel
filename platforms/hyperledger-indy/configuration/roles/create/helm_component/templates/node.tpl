@@ -17,6 +17,8 @@ spec:
       namespace: {{ component_ns }}
     network: 
       name: {{ network.name }}
+    organization:
+      name: {{ organizationItem.organization }}
     image:
       imagePullSecret: regcred
       initContainer:
@@ -59,8 +61,10 @@ spec:
         keyPath: /keys/{{ network.name }}/keys/{{ component_name }}
         nodeId: {{ component_name }}
       storage:
-        keys:
-          storagesize: 1Gi
-          storageClassName: {{ organizationItem.cloud_provider }}storageclass
         data:
-          storagesize: 1Gi
+          storagesize: 512Mi
+          storageClassName: {{ organizationItem.cloud_provider }}storageclass
+        keys:
+          storagesize: 512Mi
+          storageClassName: {{ organizationItem.cloud_provider }}storageclass
+        

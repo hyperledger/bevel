@@ -46,7 +46,7 @@ spec:
       mountPath:
           basePath: /opt/networkmap
     storage:
-      memory: 1Gi
+      memory: 512Mi
       mountPath: "/opt/h2-data"
       name: {{ org.cloud_provider }}storageclass
     vault:
