@@ -71,7 +71,7 @@ stage('Docker build and push'){
             docker.withRegistry("https://${DOCKER_REGISTRY_AZURE}", "${DOCKER_CREDS}") {
                 def image = docker.build("${DOCKER_REGISTRY_AZURE}/${DOCKER_DOORMAN_IMAGE_NAME}", "CodeBaseForDoormanAndNetworkMap/doorman/")
                 image.push("${env.BUILD_NUMBER}")
-                image.push("doorman-linuxkit")
+                image.push("latest")
             }
         }
     }
