@@ -82,7 +82,7 @@ pipeline {
                     docker.withRegistry("https://${DOCKER_REGISTRY_AZURE}", "${DOCKER_CREDS}") {
                         def image = docker.build("${DOCKER_REGISTRY_AZURE}/${DOCKER_DOORMAN_IMAGE_NAME}", "platforms/r3-corda/images/doorman/")
                         image.push("${env.BUILD_NUMBER}")
-                        image.push("latest")
+                        image.push("doorman-linuxkit")
                     }
                 }
             }
