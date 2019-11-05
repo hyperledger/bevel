@@ -26,9 +26,35 @@
 # This is done by calling the helm_lint role and passing the value file parameter
 # When a new k8_component is added, changes should be made in helm_lint role as well
 - name: Helm lint
-  include_role: 
+  include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
   vars:
     helmtemplate_type: "{{ component_type }}"
     chart_path: "{{ gitops.chart_source }}"
     value_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+
+##############################################################################################
+# Generate Indy Crypto for trustee
+- name: Trustee crypto generating
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+  vars:
+    identity_name: "{{ services.trustee.name }}"
+    vault_path: "{{ organization }}.trustee"
+    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    chart: "trustee-crypto-generating"
+
+##############################################################################################
+# Generate Indy Crypto for stewards
+- name: Stewards crypto generating
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+  vars:
+    identity_name: "{{ stewardItem.name }}"
+    vault_path: "{{ organization }}.stewards"
+    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    chart: "stewards-crypto-generating"
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined

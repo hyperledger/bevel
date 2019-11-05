@@ -23,8 +23,8 @@ spec:
       pullSecret: regcred
     vault:
       address: {{ vault.url }}
-      keyPath: {{ organizationItem.organization }}.{{ organizationItem.node }}
-      identity: {{ organizationItem.itentityName }}
+      keyPath: {{ vault_path }}
+      identity: {{ identity_name }}
     account:
       service: {{ component_name }}-vault-auth
       role: {{ roleName }}
