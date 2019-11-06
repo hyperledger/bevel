@@ -27,4 +27,4 @@ spec:
       identity: {{ identity_name }}
     account:
       service: {{ component_name }}-vault-auth
-      role: {{ roleName }}
+      role: "ro"
