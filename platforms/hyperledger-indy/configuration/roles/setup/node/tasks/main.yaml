@@ -30,7 +30,7 @@
 
 #----------------------------------------------------------------------  
 # create deployment file for node steward
-- name: 'Create steward deployment file'
+- name: "Create steward deployment file"
   include_role:
     name: create/helm_component
   vars:
@@ -42,8 +42,9 @@
   loop_control:
     loop_var: stewardItem
 
+# ---------------------------------------------------------------------
 # generate indy crypto
-- name: 'Create crypto of stewards and trustee'
+- name: "Create crypto of stewards and trustee"
   include_role:
     name: create/helm_component
   vars:
@@ -51,6 +52,8 @@
     component_name: "{{ organization }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
+# ---------------------------------------------------------------------
+# push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -65,3 +68,9 @@
   loop: "{{ services.stewards }}"
   loop_control:
     loop_var: stewardItem
+
+# ---------------------------------------------------------------------
+# check indy crypto in Vault
+- name: "Check crypto in Vault"
+  include_role:
+    name: check/crytpto
