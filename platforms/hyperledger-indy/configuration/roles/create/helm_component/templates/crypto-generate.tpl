@@ -6,7 +6,6 @@ metadata:
     flux.weave.works/automated: "false"
   namespace: {{ component_ns }}
 spec:
-  releaseName: {{ component_name }}-{{ identity_name }}
   chart:
     path: {{ gitops.chart_source }}/{{ chart }}
     git: {{ gitops.git_ssh }}
