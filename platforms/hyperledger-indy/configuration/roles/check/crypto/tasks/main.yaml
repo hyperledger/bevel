@@ -13,16 +13,17 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
     label_selectors:
-      - name = "{{ component_name }}-{{ identity_name }}"
+      - app={{ component_name }}-{{ identity_name }}
     field_selectors:
-      - status.phase=Completed
-  register: indy-key-mgmt-tool
-  until: indy-key-mgmt-tool.resources|length > 0
+      - status.phase=Succeeded
+  register: result
+  until: result.resources|length > 0
   retries: 10
   delay: 40
   loop: "{{ services.trustees }}"
-    loop_control:
-      loop_var: trusteeItem
+  loop_control:
+    loop_var: trusteeItem
+  when: services.trustees is defined
 
 ##############################################################################################
 # Check if Indy Key management pod for stewards is completed
@@ -35,16 +36,17 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
     label_selectors:
-      - name = "{{ component_name }}-{{ identity_name }}"
+      - app={{ component_name }}-{{ identity_name }}
     field_selectors:
-      - status.phase=Completed
-  register: indy-key-mgmt-tool
-  until: indy-key-mgmt-tool.resources|length > 0
+      - status.phase=Succeeded
+  register: result
+  until: result.resources|length > 0
   retries: 10
   delay: 40
   loop: "{{ services.stewards }}"
-    loop_control:
-      loop_var: stewardItem
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined
 
 ##############################################################################################
 # Check trustee in vault
@@ -52,11 +54,13 @@
   environment:
     VAULT_TOKEN: "{{ vault.root_token }}"
     VAULT_ADDR: "{{ vault.url }}"
-    shell: |
-      vault kv get -field=did {{ organization }}/trustee/{{ trusteeItem.name }}
-    loop: "{{ services.trustees }}"
-    loop_control:
-      loop_var: trusteeItem
+  shell: vault kv get -field=did {{ organization }}/trustee/{{ trusteeItem.name }}
+  register: result
+  failed_when: result.stdout == ""
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trusteeItem
+  when: services.trustees is defined
 
 ##############################################################################################
 # Check stewards in vault
@@ -64,8 +68,10 @@
   environment:
     VAULT_TOKEN: "{{ vault.root_token }}"
     VAULT_ADDR: "{{ vault.url }}"
-    shell: |
-      vault kv get -field=did {{ organization }}/stewards/{{ stewardItem.name }}
-    loop: "{{ services.stewards }}"
-    loop_control:
-      loop_var: stewardItem
+  shell: vault kv get -field=did {{ organization }}/stewards/{{ stewardItem.name }}
+  register: result
+  failed_when: result.stdout == ""
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined
