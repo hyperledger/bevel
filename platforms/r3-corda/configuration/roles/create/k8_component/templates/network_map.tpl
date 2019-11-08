@@ -88,3 +88,4 @@ spec:
         hosts:
         - {{ component_name }}.{{ item.external_url_suffix }}
         secret: {{ component_name }}-ambassador-certs 
+        
