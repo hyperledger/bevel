@@ -2,36 +2,14 @@
 # This role creates the job value file for stewards
 ##############################################################################################
 
-##############################################################################################
-# This tasks ensures the directory existance, if not exits it creates a new one
 ---
-- name: Ensures {{ release_dir }}/{{ component_name }} dir exists
+##############################################################################################
+# This tasks ensures the directory of crypto existance, if not exits it creates a new one
+- name: Ensures {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
   file:
-    path: "{{ release_dir  }}/{{ component_name }}"
+    path: "{{ release_dir  }}/{{ component_type }}/{{ component_name }}"
     recurse: yes
     state: directory
-
-##############################################################################################
-# This task creates deployment file for stewards.
-- name: "create value file for {{ component_name }} {{ component_type }}"
-  template:
-    src: "{{ dlt_templates[component_type] }}"
-    dest: "{{ values_file }}"
-  vars:
-    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
-    chart: "steward"
-
-################################################################################################
-# This task tests the value file for syntax errors/ missing values
-# This is done by calling the helm_lint role and passing the value file parameter
-# When a new k8_component is added, changes should be made in helm_lint role as well
-- name: Helm lint
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
-  vars:
-    helmtemplate_type: "{{ component_type }}"
-    chart_path: "{{ gitops.chart_source }}"
-    value_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
 
 ##############################################################################################
 # Generate Indy Crypto for trustee
@@ -42,8 +20,8 @@
   vars:
     identity_name: "{{ trusteeItem.name }}"
     vault_path: "{{ organization }}.trustee"
-    values_file: "{{ release_dir }}/{{ component_type }}/{{ identity_name }}.yaml"
-    chart: "indy-key-mgmt"
+    values_file: "{{ release_dir }}/{{ component_type }}/{{ component_name }}/{{ identity_name }}.yaml"
+    chart: "{{ chartName }}"
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trusteeItem
@@ -58,8 +36,8 @@
   vars:
     identity_name: "{{ stewardItem.name }}"
     vault_path: "{{ organization }}.stewards"
-    values_file: "{{ release_dir }}/{{ component_type }}/{{ identity_name }}.yaml"
-    chart: "indy-key-mgmt"
+    values_file: "{{ release_dir }}/{{ component_type }}/{{ component_name }}/{{ identity_name }}.yaml"
+    chart: "{{ chartName }}"
   loop: "{{ services.stewards }}"
   loop_control:
     loop_var: stewardItem
@@ -74,8 +52,8 @@
   vars:
     identity_name: "{{ endorserItem.name }}"
     vault_path: "{{ organization }}.endorser"
-    values_file: "{{ release_dir }}/{{ component_type }}/{{ identity_name }}.yaml"
-    chart: "indy-key-mgmt"
+    values_file: "{{ release_dir }}/{{ component_type }}/{{ component_name }}/{{ identity_name }}.yaml"
+    chart: "{{ chartName }}"
   loop: "{{ services.endorsers }}"
   loop_control:
     loop_var: endorserItem

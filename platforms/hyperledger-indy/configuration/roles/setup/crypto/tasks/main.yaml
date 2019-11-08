@@ -1,6 +1,6 @@
-##############################################################################################
-# This role creates the deployment files for stewards and pushes them to repository
-##############################################################################################
+###################################################################################################
+# This role creates the deployment files for indy crypto generate job and pushes them to repository
+###################################################################################################
 - name: "Wait for namespace creation for stewards"
   include_role:
     name: check/k8_component
@@ -15,41 +15,21 @@
     component_type: "ServiceAccount"
     component_name: "{{ component_name }}-vault-auth"
 
-# - name: "Wait for ClusterRoleBinding creation for stewards"
-#   include_role:
-#     name: check/k8_component
-#   vars:
-#     component_type: "ClusterRoleBinding"
-#     component_name: "{{ component_ns }}-role-tokenreview-binding"
-
 # ----------------------------------------------------------------------  
 # create image pull secrets
 - name: "Create image pull secret for stewards"
   include_role:
     name: create/imagepullsecret
 
-#----------------------------------------------------------------------  
-# create deployment file for node steward
-- name: "Create steward deployment file"
-  include_role:
-    name: create/helm_component
-  vars:
-    component_type: "node"
-    component_name: "{{ stewardItem.name }}"
-    indy_version: "indy-{{ network.version }}"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-  loop: "{{ services.stewards }}"
-  loop_control:
-    loop_var: stewardItem
-
 # ---------------------------------------------------------------------
 # generate indy crypto
-- name: "Create crypto of stewards and trustee"
+- name: "Create crypto of stewards, trustee and endorser"
   include_role:
-    name: create/helm_component/node
+    name: create/helm_component/crypto
   vars:
     component_type: "crypto"
     component_name: "{{ organization }}"
+    chartName: "indy-key-mgmt"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
 # ---------------------------------------------------------------------
@@ -68,3 +48,9 @@
   loop: "{{ services.stewards }}"
   loop_control:
     loop_var: stewardItem
+
+# ---------------------------------------------------------------------
+# check Vault for correct inserted indy crypto
+- name: "Check Vault for Indy crypto"
+  include_role:
+    name: check/crypto
