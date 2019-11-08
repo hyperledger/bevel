@@ -5,8 +5,8 @@
   - [Documentation](#documentation)
   - [Hyperledger Fabric](#hyperledger-fabric)
   - [Corda](#corda)
-- [Contact] (#contact)
-- [Contributing] (#contributing)
+- [Contact](#contact)
+- [Contributing](#contributing)
 - [Initial Committers](#initial-committers)
 - [Sponsor](#sponsor)
 
@@ -48,8 +48,9 @@ First things first, please review the [Hyperledger Code of Conduct](https://wiki
 There are many ways to contibute to BAF, both as a user and as a developer.
 
 As a user, this can inlcude:
-* [Making Feature/Enhancement Proposals]()
-* Reporting bugs.
+* [Making Feature/Enhancement Proposals](https://github.com/hyperledger-labs/blockchain-automation-framework/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=)
+* [Reporting bugs](https://github.com/hyperledger-labs/blockchain-automation-framework/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+
 As a developer:
 * if you only have a little time, consider picking up a [“help-wanted”](https://github.com/hyperledger-labs/blockchain-automation-framework/labels/help%20wanted) or ["good-first-issue"](https://github.com/hyperledger-labs/blockchain-automation-framework/labels/good%20first%20issue) task
 * If you can commit to full-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework) to work through logistics
