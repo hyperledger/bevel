@@ -44,3 +44,18 @@
     file:
       path: "./build"
       state: absent
+
+  # Check Vault for Indy Crypto
+  - name: 'Check Indy Crypto'
+    include_role:
+      name: check/crypto
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}"
+      services: "{{ organizationItem.services }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem

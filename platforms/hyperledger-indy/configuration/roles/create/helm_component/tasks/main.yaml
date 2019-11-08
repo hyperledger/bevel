@@ -64,3 +64,19 @@
   loop_control:
     loop_var: stewardItem
   when: services.stewards is defined
+
+##############################################################################################
+# Generate Indy Crypto for endorser
+- name: Endorser crypto generating
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    identity_name: "{{ endorserItem.name }}"
+    vault_path: "{{ organization }}.endorser"
+    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}-{{ identity_name }}.yaml"
+    chart: "endorser-crypto-generating"
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorserItem
+  when: services.endorsers is defined

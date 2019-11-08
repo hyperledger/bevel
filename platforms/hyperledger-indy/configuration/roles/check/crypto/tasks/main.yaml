@@ -47,6 +47,28 @@
   when: services.stewards is defined
 
 ##############################################################################################
+# Check if Indy Key management pod for endorser is completed
+- name: Check if Indy Key management pod for endorser is completed
+  vars:
+    identity_name: "{{ endorserItem.name }}"
+  k8s_facts:
+    kind: Pod
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    label_selectors:
+      - app={{ component_name }}-{{ identity_name }}
+    field_selectors:
+      - status.phase=Succeeded
+  register: result
+  until: result.resources|length > 0
+  retries: 10
+  delay: 40
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorserItem
+  when: services.endorsers is defined
+
+##############################################################################################
 # Check trustee in vault
 - name: "Check trustee in vault"
   environment:
@@ -73,3 +95,17 @@
   loop_control:
     loop_var: stewardItem
   when: services.stewards is defined
+
+##############################################################################################
+# Check endorser in vault
+- name: "Check endorser in vault"
+  environment:
+    VAULT_TOKEN: "{{ vault.root_token }}"
+    VAULT_ADDR: "{{ vault.url }}"
+  shell: vault kv get -field=did {{ organization }}/endorser/{{ endorserItem.name }}
+  register: result
+  failed_when: result.stdout == ""
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorserItem
+  when: services.endorsers is defined
