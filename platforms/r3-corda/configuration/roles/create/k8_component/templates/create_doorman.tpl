@@ -84,3 +84,4 @@ spec:
         hosts:
         - {{ services.doorman.name }}.{{ item.external_url_suffix }}
         secret: {{ services.doorman.name }}-ambassador-certs
+        
