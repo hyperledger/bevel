@@ -117,19 +117,19 @@ spec:
           image: "{{ $.Values.image.indyNode.repository }}"
           imagePullPolicy: Always
           ports:
-            - containerPort: {{ $.Values.node.indyNodePort }}
-            - containerPort: {{ $.Values.node.indyClientPort }}
+            - containerPort: {{ $.Values.node.ports.indyNodePort }}
+            - containerPort: {{ $.Values.node.ports.indyClientPort }}
           env:
             - name: name
               value: "{{ $.Values.node.name }}"
             - name: INDY_NODE_IP
               value: "{{ $.Values.node.INDY_NODE_IP }}"
             - name: indyNodePort
-              value: "{{ $.Values.node.indyNodePort }}"
+              value: "{{ $.Values.node.ports.indyNodePort }}"
             - name: INDY_CLIENT_IP
               value: "{{ $.Values.node.INDY_CLIENT_IP }}"
             - name: indyClientPort
-              value: "{{ $.Values.node.indyClientPort }}"
+              value: "{{ $.Values.node.ports.indyClientPort }}"
             - name: INDY_NETWORK_NAME
               value: "{{ $.Values.network.name }}"
           volumeMounts:
@@ -137,7 +137,7 @@ spec:
               mountPath: /var/lib/indy/data
             - name: ebs-indy-node-keys
               mountPath: /var/lib/indy/keys
-            - name: indy-node-config
+            - name: {{ $.Values.node.name }}-config
               mountPath: /etc/indy/indy_config.py
               subPath: indy_config.py
             - name: "{{ $.Values.configmap.domainGenesis }}"
