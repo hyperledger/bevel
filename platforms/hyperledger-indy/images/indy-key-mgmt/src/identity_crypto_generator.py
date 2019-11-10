@@ -4,6 +4,7 @@ import random
 import requests
 import string
 import ujson as json
+import base58
 
 from crypto.bls.bls_crypto import BlsGroupParamsLoader
 from crypto.bls.bls_factory import BlsFactoryCrypto
@@ -34,15 +35,13 @@ class IdentityCryptoGenerator:
         verif_key, sig_key = crypto_sign_seed_keypair(self.seed)
         public_key, secret_key = ep2c(verif_key), es2c(sig_key)
 
-        verif_key = z85.encode(verif_key).decode('utf-8')
-        sig_key = z85.encode(sig_key[:32]).decode('utf-8')
-        public_key = z85.encode(public_key).decode('utf-8')
-        secret_key = z85.encode(secret_key).decode('utf-8')
+        public_key_file = self.cert_file_from_key(public_key=z85.encode(public_key).decode("utf-8"), private_key=None)
+        private_key_file = self.cert_file_from_key(public_key=z85.encode(public_key).decode("utf-8"), private_key=z85.encode(secret_key).decode("utf-8"))
+        verif_key_file = self.cert_file_from_key(public_key=z85.encode(verif_key).decode("utf-8"), private_key=None)
+        sig_key_file = self.cert_file_from_key(public_key=z85.encode(verif_key).decode("utf-8"), private_key=z85.encode(sig_key[:32]).decode("utf-8"))
 
-        public_key_file = self.cert_file_from_key(public_key=public_key, private_key=None)
-        private_key_file = self.cert_file_from_key(public_key=public_key, private_key=secret_key)
-        verif_key_file = self.cert_file_from_key(public_key=verif_key, private_key=None)
-        sig_key_file = self.cert_file_from_key(public_key=verif_key, private_key=sig_key)
+        public_key = base58.b58encode(public_key).decode("utf-8")
+        verif_key = base58.b58encode(verif_key).decode("utf-8")
 
         sk, pk, key_proof = self.bls_generator.generate()
         bls = Bls(pk=pk, sk=sk, key_pop=key_proof)
