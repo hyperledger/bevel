@@ -24,16 +24,16 @@
 
 # ----------------------------------------------------------------------  
 # create image pull secrets
-- name: "Create image pull secret for stewards" 
-  include_role: 
+- name: "Create image pull secret for stewards"
+  include_role:
     name: create/imagepullsecret
 
 #----------------------------------------------------------------------  
 # create deployment file for node steward
-- name: 'Create steward deployment file'
-  include_role: 
+- name: "Create steward deployment file"
+  include_role:
     name: create/helm_component
-  vars:    
+  vars:
     component_type: "node"
     component_name: "{{ stewardItem.name }}"
     indy_version: "indy-{{ network.version }}"
@@ -42,8 +42,10 @@
   loop_control:
     loop_var: stewardItem
 
+# ---------------------------------------------------------------------
+# push the created deployment files to repository
 - name: "Push the created deployment files to repository"
-  include_role: 
+  include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
