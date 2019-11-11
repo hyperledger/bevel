@@ -62,9 +62,9 @@ spec:
       nodeId: {{ component_name }}
     storage:
       data:
-        storagesize: 512Mi
+        storagesize: 1Gi
         storageClassName: {{ organizationItem.cloud_provider }}storageclass
       keys:
-        storagesize: 512Mi
+        storagesize: 1Gi
         storageClassName: {{ organizationItem.cloud_provider }}storageclass
         
