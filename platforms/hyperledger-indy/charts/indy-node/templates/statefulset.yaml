@@ -50,6 +50,12 @@ spec:
           X_VAULT_TOKEN=$(cat token);
           validateVaultResponse 'vault login token' "${X_VAULT_TOKEN}";
 
+          mkdir -p ${KEY_PATH}/bls_keys
+          mkdir -p ${KEY_PATH}/private_keys
+          mkdir -p ${KEY_PATH}/public_keys
+          mkdir -p ${KEY_PATH}/sig_keys
+          mkdir -p ${KEY_PATH}/verif_keys
+
           LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/kv/"${ORGANIZATION_NAME}"/stewards/${NODE_ID}/node/public/bls_keys | jq -r 'if .errors then . else . end');
           validateVaultResponse "secret (kv/${NODE_ID}/bls_keys)" "${LOOKUP_SECRET_RESPONSE}"
           echo "${LOOKUP_SECRET_RESPONSE}";
