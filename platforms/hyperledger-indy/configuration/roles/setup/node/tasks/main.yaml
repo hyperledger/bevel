@@ -8,12 +8,12 @@
     component_type: "Namespace"
     component_name: "{{ component_ns }}"
 
-- name: "Wait for vault-auth creation for stewards"
-  include_role:
-    name: check/k8_component
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "{{ component_name }}-vault-auth"
+# - name: "Wait for vault-auth creation for stewards"
+#   include_role:
+#     name: check/k8_component
+#   vars:
+#     component_type: "ServiceAccount"
+#     component_name: "{{ component_name }}-vault-auth"
 
 # - name: "Wait for ClusterRoleBinding creation for stewards"
 #   include_role:
@@ -39,6 +39,7 @@
     indy_version: "indy-{{ network.version }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
   loop: "{{ services.stewards }}"
+  when: services.stewards is defined
   loop_control:
     loop_var: stewardItem
 
@@ -56,5 +57,6 @@
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
     msg: "Pushing deployment files for {{ stewardItem.name }}"
   loop: "{{ services.stewards }}"
+  when: services.stewards is defined
   loop_control:
     loop_var: stewardItem
