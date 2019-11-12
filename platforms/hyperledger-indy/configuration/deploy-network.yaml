@@ -7,6 +7,21 @@
   tasks:
   # ----------------------------------------------------------------------
 
+  # Create StorageClass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      organization: "{{ organizationItem }}"
+      provider: "{{ organization.cloud_provider }}"
+      storageclass_name: "{{ provider }}storageclass"
+      git_dir: "{{ organization.gitops.release_dir }}"
+      kubernetes: "{{ organization.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
   # Create namespaces for organizations
   - name: 'Create namespace'
     include_role:
@@ -37,6 +52,7 @@
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: organizationItem
+      when: network['type'] == 'indy'
 
   # Deploy all other nodes
   - name: 'Deploy nodes'
