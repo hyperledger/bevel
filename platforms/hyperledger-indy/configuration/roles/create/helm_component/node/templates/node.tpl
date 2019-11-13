@@ -41,8 +41,8 @@ spec:
         clientPort: {{ stewardItem.client.port }}
         clientTargetPort:: {{ stewardItem.node.targetPort }}
     configmap:
-      domainGenesis: {{ domainGenesis }}
-      poolGenesis: {{ poolGenesis }}
+      domainGenesis: {{ organizationItem.name }}-domain-transactions-genesis
+      poolGenesis: poolGenesis-cm
       indyConfig: |- 
         NETWORK_NAME = {{ network.name }}
         # Enable stdout logging
