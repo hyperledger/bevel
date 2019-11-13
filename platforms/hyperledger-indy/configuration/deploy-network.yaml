@@ -21,22 +21,35 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
-    # Generate indy crypto and insert into Vault
-    - name: 'Generate indy crypto and insert into Vault'
-      include_role:
-        name: setup/crypto
-      vars:
-        organization: "{{ organizationItem.name | lower }}"
-        component_ns: "{{ organizationItem.name | lower }}-ns"
-        component_name: "{{ organization }}"
-        services: "{{ organizationItem.services }}"
-        kubernetes: "{{ organizationItem.k8s }}"
-        vault: "{{ organizationItem.vault }}"
-        gitops: "{{ organizationItem.gitops }}"
-        vault_ac_token: "{{ organizationItem.vault.root_token }}"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: organizationItem
+  # Create service accounts
+  - name: 'Create service accounts'
+    include_role:
+      name: create/serviceaccount
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      organization: "{{ organizationItem.name | lower }}"
+      services: "{{ organizationItem.services }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
+  # Generate indy crypto and insert into Vault
+  - name: 'Generate indy crypto and insert into Vault'
+    include_role:
+      name: setup/crypto
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}"
+      services: "{{ organizationItem.services }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      gitops: "{{ organizationItem.gitops }}"
+      vault_ac_token: "{{ organizationItem.vault.root_token }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
 
   # Deploy all other nodes
   - name: 'Deploy nodes'
