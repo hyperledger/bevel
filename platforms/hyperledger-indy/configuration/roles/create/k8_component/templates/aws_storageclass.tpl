@@ -7,12 +7,12 @@ reclaimPolicy: Delete
 volumeBindingMode: Immediate
 parameters:
   encrypted: "true"
-  {% if encryption_key %}
-  kmsKeyId: {{ encryption_key }}
+  {% if aws.encryption_key %}
+  kmsKeyId: {{ aws.encryption_key }}
   {% endif %}
-{% if zone %}
+{% if aws.zone %}
 allowedTopologies:
   - matchLabelExpressions:
     - key: failure-domain.beta.kubernetes.io/zone
-      values: {{ zone }}
+      values: {{ aws.zone }}
 {% endif %}
