@@ -7,6 +7,20 @@
   tasks:
   # ----------------------------------------------------------------------
 
+  # Create namespaces for organizations
+  - name: 'Create namespace'
+    include_role:
+      name: create/namespace
+    vars:
+      component_name: "{{ organizationItem.name | lower }}-ns"
+      component_type_name: "{{ organizationItem.type | lower }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      release_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
   # Create StorageClass
   - name: Create Storage Class
     include_role:
@@ -20,20 +34,6 @@
       component_name: "{{ organization_name }}-{{ storageclass_name }}"
       git_dir: "{{ organization.gitops.release_dir }}"
       kubernetes: "{{ organization.k8s }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: organizationItem
-    when: network['type'] == 'indy'
-
-  # Create namespaces for organizations
-  - name: 'Create namespace'
-    include_role:
-      name: create/namespace
-    vars:
-      component_name: "{{ organizationItem.name | lower }}-ns"
-      component_type_name: "{{ organizationItem.type | lower }}"
-      kubernetes: "{{ organizationItem.k8s }}"
-      release_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
