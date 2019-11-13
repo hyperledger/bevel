@@ -9,8 +9,10 @@ parameters:
   encrypted: "true"
   {% if encryption_key %}
   kmsKeyId: {{ encryption_key }}
+  {% endif %}
 {% if zone %}
 allowedTopologies:
   - matchLabelExpressions:
     - key: failure-domain.beta.kubernetes.io/zone
       values: {{ zone }}
+{% endif %}
