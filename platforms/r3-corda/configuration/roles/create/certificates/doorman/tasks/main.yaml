@@ -18,7 +18,7 @@
 # Checks if certificates for doorman are already created and stored in vault or not
 - name: Check if root certs already created
   shell: |
-    vault kv get -format=yaml doorman/certs
+    vault kv get -format=yaml {{ component_name }}/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -56,7 +56,7 @@
 
 - name: Check if doorman certs already created
   shell: |
-    vault kv get -field=doorman.jks doorman/certs > {{ doormanca }}/keys.jks
+    vault kv get -field=doorman.jks {{ component_name }}/certs > {{ doormanca }}/keys.jks
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -80,7 +80,7 @@
 
 - name: Putting certs to vault for root
   shell: |
-    vault kv put doorman/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -88,9 +88,9 @@
 
 - name: Putting certs and credential to vault for doorman
   shell: |
-    vault kv put doorman/credentials/userpassword  sa="{{ userpassword_sa }}"
-    vault kv put doorman/credentials/mongodb  mongodbPassword="{{ mongodbPassword }}"
-    vault kv put doorman/certs doorman.jks="$(cat {{ doormanca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put {{ component_name }}/credentials/userpassword  sa="{{ userpassword_sa }}"
+    vault kv put {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword }}"
+    vault kv put {{ component_name }}/certs doorman.jks="$(cat {{ doormanca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -99,5 +99,4 @@
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"
-  vars:
-    component_name: "doorman"
+    
