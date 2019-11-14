@@ -3,18 +3,19 @@
 #############################################################################################
 
 # Check service account exists already
-- name: Check if service account for {{ identity }} exists
+- name: Check if service account for {{ component_name }} exists
   k8s_facts:
     kind: ServiceAccount
     name: "{{ component_name }}"
     namespace: "{{ component_namespace }}"
     kubeconfig: "{{ kubernetes.config_file }}"
-  register: storageclass_state
+  register: serviceaccount_state
 
 # Create vault auth service account
-- name: Create vault auth service account for {{ identity }}
+- name: Create vault auth service account for {{ component_name }}
   include_role:
     name: create/k8_component
   vars:
-    component_type: "{{ component_name }}"
+    component_type: "service-account"
+    component_type_name: "{{ component_name }}"
   when: storageclass_state.resources|length == 0
