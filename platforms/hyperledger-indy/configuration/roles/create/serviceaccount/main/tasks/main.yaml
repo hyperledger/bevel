@@ -2,8 +2,8 @@
 # This role creates value files for service account for vault
 #############################################################################################
 
-# Create vault auth service account per identity of trustees
-- name: Create service account for trustees
+# Create service account per identity of trustees
+- name: Create service account for trustees [{{ organization }}]
   include_role:
     name: create/serviceaccount/by_identities
   vars:
@@ -15,8 +15,8 @@
     loop_var: trusteeItem
   when: services.trustees is defined
 
-# Create vault auth service account per identity of stewards
-- name: Create service account for stewards
+# Create service account per identity of stewards
+- name: Create service account for stewards [{{ organization }}]
   include_role:
     name: create/serviceaccount/by_identities
   vars:
@@ -28,8 +28,8 @@
     loop_var: stewardItem
   when: services.stewards is defined
 
-# Create vault auth service account per identity of endorsers
-- name: Create service account for endorsers
+# Create service account per identity of endorsers
+- name: Create service account for endorsers [{{ organization }}]
   include_role:
     name: create/serviceaccount/by_identities
   vars:
@@ -41,13 +41,22 @@
     loop_var: endorserItem
   when: services.endorsers is defined
 
-# Create vault auth service account per organizations
-- name: Create vault auth service account for {{ organization }}
+# Create service account per organizations
+- name: Create service account for organization [{{ organization }}]
   include_role:
     name: create/serviceaccount/by_identities
   vars:
     component_namespace: "{{ component_ns }}"
     component_name: "{{ organization }}-admin-vault-auth"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+
+# Create service account for read only public crypto per organizations
+- name: Create service account for read only public crypto [{{ organization }}]
+  include_role:
+    name: create/serviceaccount/by_identities
+  vars:
+    component_namespace: "{{ component_ns }}"
+    component_name: "{{ organization }}-baf-ac-vault-auth"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
 
 # Push the deployment files to repository
@@ -105,4 +114,12 @@
   vars:
     component_type: "ServiceAccount"
     component_name: "{{ organization }}-admin-vault-auth"
+    kubeconfig: "{{ kubernetes.config_file }}"
+
+- name: "Wait for creation for read only public crypto service account"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "{{ organization }}-baf-ac-vault-auth"
     kubeconfig: "{{ kubernetes.config_file }}"
