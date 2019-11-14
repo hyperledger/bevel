@@ -1,0 +1,20 @@
+#############################################################################################
+# This role creates value files for service account
+#############################################################################################
+
+# Check service account exists already
+- name: Check if service account for {{ identity }} exists
+  k8s_facts:
+    kind: ServiceAccount
+    name: "{{ component_name }}"
+    namespace: "{{ component_namespace }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: storageclass_state
+
+# Create vault auth service account
+- name: Create vault auth service account for {{ identity }}
+  include_role:
+    name: create/k8_component
+  vars:
+    component_type: "{{ component_name }}"
+  when: storageclass_state.resources|length == 0
