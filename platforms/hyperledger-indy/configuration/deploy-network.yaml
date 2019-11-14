@@ -34,6 +34,24 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
+  # Create StorageClass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      provider: "{{ organizationItem.cloud_provider }}"
+      storageclass_name: "{{ provider }}-storageclass"
+      component_name: "{{ organization }}-{{ storageclass_name }}"
+      gitops: "{{ organizationItem.gitops }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      aws: "{{ organizationItem.aws }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
   # Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
     include_role:
@@ -50,6 +68,7 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
+    when: network['type'] == 'indy'
 
   # Deploy all other nodes
   - name: 'Deploy nodes'
