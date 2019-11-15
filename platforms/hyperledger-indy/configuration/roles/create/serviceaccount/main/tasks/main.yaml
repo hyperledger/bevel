@@ -84,12 +84,36 @@
     loop_var: trusteeItem
   when: services.trustees is defined
 
+- name: "Wait for creation for trustees accounts role binding"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ trusteeItem.name }}-vault-auth-role-binding"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trusteeItem
+  when: services.trustees is defined
+
 - name: "Wait for creation for stewards accounts"
   include_role:
     name: check/k8_component
   vars:
     component_type: "ServiceAccount"
     component_name: "{{ stewardItem.name }}-vault-auth"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined
+
+- name: "Wait for creation for stewards accounts role binding"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ stewardItem.name }}-vault-auth-role-binding"
     kubeconfig: "{{ kubernetes.config_file }}"
   loop: "{{ services.stewards }}"
   loop_control:
@@ -108,6 +132,18 @@
     loop_var: endorserItem
   when: services.endorsers is defined
 
+- name: "Wait for creation for endorsers accounts role binding"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ endorserItem.name }}-vault-auth-role-binding"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorserItem
+  when: services.endorsers is defined
+
 - name: "Wait for creation for organization service account"
   include_role:
     name: check/k8_component
@@ -116,10 +152,26 @@
     component_name: "{{ organization }}-admin-vault-auth"
     kubeconfig: "{{ kubernetes.config_file }}"
 
+- name: "Wait for creation for organization service account role binding"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ organization }}-admin-vault-auth-role-binding"
+    kubeconfig: "{{ kubernetes.config_file }}"
+
 - name: "Wait for creation for read only public crypto service account"
   include_role:
     name: check/k8_component
   vars:
     component_type: "ServiceAccount"
     component_name: "{{ organization }}-baf-ac-vault-auth"
+    kubeconfig: "{{ kubernetes.config_file }}"
+
+- name: "Wait for creation for read only public crypto service account role binding"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ organization }}-baf-ac-vault-auth-role-binding"
     kubeconfig: "{{ kubernetes.config_file }}"

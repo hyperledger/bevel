@@ -11,11 +11,29 @@
     kubeconfig: "{{ kubernetes.config_file }}"
   register: serviceaccount_state
 
-# Create vault auth service account
-- name: Create vault auth service account for {{ component_name }}
+# Create service account
+- name: Create service account for {{ component_name }}
   include_role:
     name: create/k8_component
   vars:
     component_type: "service-account"
     component_type_name: "{{ component_name }}"
   when: serviceaccount_state.resources|length == 0
+
+# Check cluster role binding
+- name : Check cluster role binding for {{ component_name }}
+  k8s_facts:
+    kind: ClusterRoleBinding
+    name: "{{ component_name }}"
+    namespace: "{{ component_namespace }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: clusterrolebinding_state
+
+# Create cluster role binding
+- name: Create cluster role binding for {{ component_name }}
+  include_role:
+    name: create/k8s_component
+  vars:
+    component_type: "cluster-role-binding"
+    component_type_name: "{{ component_name }}"
+  when: clusterrolebinding_state.resources|length == 0
