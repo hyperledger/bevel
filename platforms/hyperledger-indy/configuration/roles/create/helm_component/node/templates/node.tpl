@@ -15,7 +15,7 @@ spec:
     metadata:
       name: {{ component_name }}
       namespace: {{ component_ns }}
-    network: 
+    network:
       name: {{ network.name }}
     organization:
       name: {{ organizationItem.name }}
@@ -42,8 +42,8 @@ spec:
         clientTargetPort:: {{ stewardItem.node.targetPort }}
     configmap:
       domainGenesis: {{ organizationItem.name }}-domain-transactions-genesis
-      poolGenesis: poolGenesis-cm
-      indyConfig: |- 
+      poolGenesis: {{ organizationItem.name }}-pool-transactions-genesis
+      indyConfig: |-
         NETWORK_NAME = {{ network.name }}
         # Enable stdout logging
         enableStdOutLogging = True
@@ -86,4 +86,3 @@ spec:
       keys:
         storagesize: 1Gi
         storageClassName: {{ organizationItem.cloud_provider }}storageclass
-        
