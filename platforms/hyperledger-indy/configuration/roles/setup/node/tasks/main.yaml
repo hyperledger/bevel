@@ -32,7 +32,7 @@
 # create deployment file for node steward
 - name: "Create steward deployment file"
   include_role:
-    name: create/helm_component
+    name: create/helm_component/node
   vars:
     component_type: "node"
     component_name: "{{ stewardItem.name }}"
@@ -56,6 +56,19 @@
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
     msg: "Pushing deployment files for {{ stewardItem.name }}"
+  loop: "{{ services.stewards }}"
+  when: services.stewards is defined
+  loop_control:
+    loop_var: stewardItem
+
+# ---------------------------------------------------------------------
+# wait until steward pods are running
+- name: "Wait until steward pods are running"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "Pod"
+    component_name: "{{ stewardItem.name }}"
   loop: "{{ services.stewards }}"
   when: services.stewards is defined
   loop_control:

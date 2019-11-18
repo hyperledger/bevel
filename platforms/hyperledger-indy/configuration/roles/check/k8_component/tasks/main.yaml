@@ -30,3 +30,23 @@
   delay: 35
   until: component_data.resources|length > 0
   when: component_type == "ServiceAccount"
+
+
+# Task to check if Pod is running
+# This task will try for a maximum of 10 times with an interval of
+# 35 seconds between each try
+- name: Wait for {{ component_type }} {{ component_name }}
+  k8s_facts:
+    kind: "{{ component_type }}"
+    namespace: "{{ component_ns }}"
+    label_selectors:
+    - app={{ component_name }}
+    field_selectors:
+    - status.phase=Running
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: result
+  until: result.resources|length > 0
+  retries: 10
+  delay: 40
+  when: component_type == "Pod"
