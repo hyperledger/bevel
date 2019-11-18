@@ -28,8 +28,8 @@ For Corda, we build Docker containers from the Corda source. A number of differe
 
 ![Blockchain Automation Framework - Corda](./docs/images/blockchain-automation-framework-corda.png "Blockchain Automation Framework for Corda")
 
-## Build
-If you are not using the provided Jeknins automation scripts, you can run the provisioning scripts within a docker runtime idependent from your target Kubernetes cluster. 
+# Build
+If you are not using the provided Jeknins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster. 
 ```
 # Build provisioning image
 docker build . -t baf-build
