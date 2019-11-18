@@ -1,6 +1,6 @@
 # USAGE: 
 # docker build . -t baf-build
-# docker run --volume=$(pwd)/network-cordav2.yaml:/home/build/network.yaml baf-build
+# docker run --volume=$(pwd)/network-local.yaml:/home/build/network.yaml baf-build
 
 FROM ubuntu:16.04
 
