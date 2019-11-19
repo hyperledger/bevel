@@ -55,6 +55,20 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
+  # Get K8S service accoount
+  - name: Get K8S service accoount
+    include_role:
+      name: check/K8_component
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}-ac-vault-auth"
+      component_type: "ServiceAccount"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
   # Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
     include_role:
