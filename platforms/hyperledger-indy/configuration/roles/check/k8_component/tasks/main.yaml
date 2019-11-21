@@ -55,9 +55,12 @@
 - name: Get a ServiceAccount token for {{ component_name }}
   vars:
     service_account: "{{ component_name }}"
+    role: "{{ organization }}-baf-ac-ro"
   shell: |
     secret=$(kubectl get serviceaccount {{ service_account }} -n {{ component_ns }} -o=jsonpath={.secrets[0].name})
-    token=$(kubectl get secret ${secret} -n {{ component_ns }} -o=jsonpath={.data.token})
-    echo ${token}
+    kube_token=$(kubectl get secret ${secret} -n {{ component_ns }} -o=jsonpath={.data.token})
+    curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/kubernetes/login | jq -j '.auth.client_token' > token
+    vault_token=$(cat token)
+    echo ${vault_token}
   register: token
   when: component_type == "GetServiceAccount"
