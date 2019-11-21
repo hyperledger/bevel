@@ -52,10 +52,12 @@
   when: component_type == "Pod"
 
 # Get a service account token
-- name: Get a {{ component_type }} token for {{ component_name }}
-  k8s_facts:
-    kind: "ServiceAccount"
-    namespace: "{{ component_ns }}"
-    name: {{ component_name }}
-  register: kubernetes_token
-  when: component_type == "ServiceAccount"
+- name: Get a ServiceAccount token for {{ component_name }}
+  vars:
+    service_account: "{{ component_name }}"
+  shell: |
+    secret=$(kubectl get serviceaccount {{ service_account }} -n {{ component_ns }} -o=jsonpath={.secrets[0].name})
+    token=$(kubectl get secret ${secret} -n {{ component_ns }} -o=jsonpath={.data.token})
+    echo ${token}
+  register: token
+  when: component_type == "GetServiceAccount"
