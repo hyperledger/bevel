@@ -45,14 +45,16 @@ spec:
           }
 
           KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
-
-          curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "ro"}' $VAULT_ADDR/v1/auth/kubernetes/${NODE_ID}/login | jq -j '.auth.client_token' > token;
-          X_VAULT_TOKEN=$(cat token);
+          
           response=$(curl -s -o /dev/null -w "%{http_code}" $VAULT_ADDR/v1/sys/health)
           if [ $response -ne 200 ]
           then
             exit 1
           fi
+          
+          curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "ro"}' $VAULT_ADDR/v1/auth/kubernetes/${NODE_ID}/login | jq -j '.auth.client_token' > token;
+          X_VAULT_TOKEN=$(cat token);
+
 
           mkdir -p ${KEY_PATH}/bls_keys
           mkdir -p ${KEY_PATH}/private_keys
