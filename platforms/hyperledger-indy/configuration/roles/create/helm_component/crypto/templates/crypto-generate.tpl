@@ -27,4 +27,4 @@ spec:
       identity: {{ identity_name }}
     account:
       service: {{ organization }}-admin-vault-auth
-      role: {{ organization }}-admin-rw
+      role: rw
