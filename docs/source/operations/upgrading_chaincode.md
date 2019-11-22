@@ -31,6 +31,7 @@ network:
   env:
     type: "env_type"          #Must be unique per single-cluster
     ambassadorPorts: 10010,10020    #Any additional Ambassador ports can be given here, must be comma-separated without spaces
+    retry_count: 100 #Retry count for the checks
   
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry. 
