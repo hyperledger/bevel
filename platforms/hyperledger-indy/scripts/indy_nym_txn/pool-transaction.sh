@@ -9,7 +9,7 @@ sudo apt-get install -y libindy
 
 sudo apt-get install -y indy-cli
 
-indy-cli generate_txn.txt >> result.txt
+indy-cli generate_txn.txt > result.txt
 
 if grep -q 'Following NYM has been received' 'result.txt'
 then
