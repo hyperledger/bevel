@@ -55,7 +55,7 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
-  # Generate indy crypto and insert into Vault
+  Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
     include_role:
       name: setup/crypto
@@ -68,6 +68,25 @@
       vault: "{{ organizationItem.vault }}"
       gitops: "{{ organizationItem.gitops }}"
       vault_ac_token: "{{ organizationItem.vault.root_token }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
+  # Create and deploy domain genesis
+  - name: 'Create domain genesis'
+    include_role:
+      name: setup/domain_genesis
+    vars:
+      vault: "{{ organizationItem.vault }}"
+      vault_token: "{{ token.stdout }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      organization: "{{ organizationItem.name | lower }}"
+      component_name: "{{ organizationItem.name }}-domain-transactions-genesis"
+      services: "{{ organizationItem.services }}"
+      gitops: "{{ organizationItem.gitops }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      component_type: "domain_genesis"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem

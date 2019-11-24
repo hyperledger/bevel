@@ -1,0 +1,75 @@
+##############################################################################################
+# This role creates the domain genesis file for organization
+##############################################################################################
+---
+##############################################################################################
+# This tasks ensures the directory of crypto existance, if not exits it creates a new one
+- name: Ensures {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
+  file:
+    path: "{{ release_dir  }}/{{ component_name }}/"
+    recurse: yes
+    state: directory
+
+################################################################################################
+# This tasks gets data from vault
+- name: Generate domain genesis for organization
+  shell: |
+    domain_genesis=""
+    trustee_did=""
+    trustee_verkey=""
+    first_trustee_did=""
+    seqNo=0
+    
+
+    {% if services.trustees is defined %}
+      {% for trustee in services.trustees %}
+          trustee_did=$(curl --header "X-Vault-Token:{{ vault_token }}" http://localhost:8200/v1/{{ organization }}/trustees/{{trustee.name}}/identity/public | jq -r 'if .errors then . else .data.did end');
+          trustee_verkey=$(curl --header "X-Vault-Token: {{ vault_token }}" http://localhost:8200/v1/{{ organization }}/trustees/{{trustee.name}}/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
+          
+          if [ -z "$first_trustee_did" ]
+            then
+              first_trustee_did="${trustee_did}"
+          fi
+          
+          JSON_STRING=$( jq -n -c \
+                --arg trustee_did "${trustee_did}" \
+                --arg trustee_verkey "${trustee_verkey}" \
+                --arg seqNo $seqNo \
+                '{"reqSignature":{},"txn":{"data":{"alias":"","dest":$trustee_did,"role":"0","verkey":$trustee_verkey},"metadata":{},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
+          ((seqNo++))
+          domain_genesis+="${JSON_STRING}"
+          domain_genesis+="\n"
+      {% endfor %}
+    {% endif %}
+
+
+    {% if services.stewards is defined %}
+      {% for steward in services.stewards %}
+        steward_did=$(curl --header "X-Vault-Token: {{ vault_token }}" http://localhost:8200/v1/{{ organization }}/stewards/{{steward.name}}/identity/public | jq -r 'if .errors then . else .data.did end');  
+        steward_verkey=$(curl --header "X-Vault-Token: {{ vault_token }}" http://localhost:8200/v1/{{ organization }}/stewards/{{steward.name}}/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
+  
+        JSON_STRING=$( jq -n -c \
+                    --arg steward_did "${steward_did}" \
+                    --arg first_trustee_did "${first_trustee_did}" \
+                    --arg steward_verkey "${steward_verkey}" \
+                    --arg seqNo $seqNo \
+                    '{"reqSignature":{},"txn":{"data":{"alias":"","dest":$steward_did,"role":"2","verkey":$steward_verkey},"metadata":{"from":$first_trustee_did},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
+        ((seqNo++))
+        domain_genesis+="${JSON_STRING}"
+        domain_genesis+="\n"
+      {% endfor %}
+    {% endif %}
+
+    echo "${domain_genesis}"
+  register: domain_genesis
+
+################################################################################################
+# This task creates vaules file for domain genesis config map.
+- name: "create value file for {{ component_name }} {{ component_type }}"
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    domain_genesis_values: "{{ domain_genesis.stdout }}"
+    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    chart: "indy-domain-genesis" 
