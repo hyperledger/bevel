@@ -62,5 +62,10 @@
     curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/kubernetes/login | jq -j '.auth.client_token' > token
     vault_token=$(cat token)
     echo ${vault_token}
-  register: token
+  register: token_output
   when: component_type == "GetServiceAccount"
+
+  - name: "Store token"
+    set_fact:
+      ac_vault_tokens: "{{ ac_vault_tokens | default({}) | combine( {organization: token_output.stdout} ) }}"
+    when: component_type == "GetServiceAccount"
