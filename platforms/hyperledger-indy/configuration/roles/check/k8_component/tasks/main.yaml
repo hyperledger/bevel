@@ -50,3 +50,22 @@
   retries: 10
   delay: 40
   when: component_type == "Pod"
+
+# Get a service account token
+- name: "Get a ServiceAccount token for {{ component_name }}"
+  vars:
+    service_account: "{{ component_name }}"
+    role: "ro"
+  shell: |
+    secret="$(kubectl get serviceaccount {{ service_account }} -n {{ component_ns }} -o go-template='{{ (index .secrets 0).name }}')"
+    kube_token="$(kubectl get secret ${secret} -n {{ component_ns }} -o go-template='{{ .data.token }}' | base64 --decode)"
+    curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/kubernetes/login | jq -j '.auth.client_token' > token
+    vault_token=$(cat token)
+    echo ${vault_token}
+  register: token_output
+  when: component_type == "GetServiceAccount"
+
+- name: "Store token"
+  set_fact:
+    ac_vault_tokens: "{{ ac_vault_tokens | default({}) | combine( {organization: token_output.stdout} ) }}"
+  when: component_type == "GetServiceAccount"

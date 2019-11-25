@@ -6,6 +6,7 @@ metadata:
     flux.weave.works/automated: "false"
   namespace: {{ component_ns }}
 spec:
+  releaseName: {{ component_name }}-{{ identity_name }}
   chart:
     path: {{ gitops.chart_source }}/{{ chart }}
     git: {{ gitops.git_ssh }}
@@ -25,5 +26,5 @@ spec:
       keyPath: {{ vault_path }}
       identity: {{ identity_name }}
     account:
-      service: {{ component_name }}-vault-auth
-      role: "ro"
+      service: {{ organization }}-admin-vault-auth
+      role: rw
