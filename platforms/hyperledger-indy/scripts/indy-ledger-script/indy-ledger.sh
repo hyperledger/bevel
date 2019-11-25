@@ -15,7 +15,7 @@ pool_genesis_path=$8
 [ -z "$admin_name" ] && { echo "Script Failed: Admin Name Missing"; exit 1;} || echo "Admin Name Received";
 [ -z "$identity_path" ] && { echo "Script Failed: Identity DID Path Missing"; exit 1;} || echo "Identity DID Received";
 [ -z "$identity_name" ] && { echo "Script Failed: Identity DID Name Missing"; exit 1;} || echo "Identity Name Received";
-[ -z "$identity_role" ] && { echo "Script Failed: Identity DID Name Missing"; exit 1;} || echo "Identity Role Received";
+[ -z "$identity_role" ] && { echo "Script Failed: Identity Role Missing"; exit 1;} || echo "Identity Role Received";
 [ -z "$pool_genesis_path" ] && { echo "Script Failed: Genesis Pool File Path Missing"; exit 1;} || echo "Genesis Pool File Path Received";
 
 export VAULT_ADDR=$vault_addr
@@ -109,6 +109,8 @@ then
 	echo "Script Failed at line: $no"
 	echo $(sed "${no}q;d" 'indy_txn.txt')
 	echo "REASON: $(sed -n '/Batch execution failed at line/{x;p;d;}; x' txn_result.txt)"
+	exit 1
 else
 	echo "Transaction Failed"
+	exit 1
 fi
