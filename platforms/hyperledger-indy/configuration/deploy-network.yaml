@@ -55,6 +55,21 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
+  # Get Vault AC Token via Service Account
+  - name: Get Vault AC Token via Service Account
+    include_role:
+      name: check/k8_component
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}-baf-ac-vault-auth"
+      component_type: "GetServiceAccount"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
   # Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
     include_role:
@@ -67,7 +82,7 @@
       kubernetes: "{{ organizationItem.k8s }}"
       vault: "{{ organizationItem.vault }}"
       gitops: "{{ organizationItem.gitops }}"
-      vault_ac_token: "{{ organizationItem.vault.root_token }}"
+      vault_ac_token: "{{ ac_vault_tokens[organization] }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
