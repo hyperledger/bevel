@@ -14,3 +14,4 @@ RUN apt-get install -y indy-cli
 
 COPY indy-ledger.sh /home/
 COPY genesis_pool_config /home/
+COPY vault-setup.sh /home/

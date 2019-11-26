@@ -1,6 +1,7 @@
 ### Hyperledger Indy CLI Dockerfile
 
 Add the file to the respective directory. Go to that directory.
+To run the ledger transactions on the Docker Container
 ###### Steps to run
 1. Build the file
                     
@@ -15,12 +16,14 @@ Add the file to the respective directory. Go to that directory.
 	    
         cd /home
 		chmod +x ledger-script.sh
+		chmod +x vault-setup.sh
+		./vault-setup.sh
 		./ledger-script.sh vault_addr vault_token admin_path admin_name identity_path identity_name identity_role pool_genesis_path
 
 NOTE: 
 * Docker Pool Container should be already be running.
 * This script can also run in any ubuntu system, provided that indy-cli is setup and docker pool is running.
-* For complete setup RUN: indy-env-txn, it setup docker indy pool and performs txn.
+* For complete setup RUN: indy-env-txn, it setup docker indy pool, setups Vault and performs transactions.
 * JUST REPLACE THE SCRIPT VARIABLES WITH ACTUAL VALUES.
     `vault_addr` = Vault Address 
 	`vault_token` = Vault Token 
