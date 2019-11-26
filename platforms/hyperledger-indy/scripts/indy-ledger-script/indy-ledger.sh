@@ -21,14 +21,16 @@ pool_genesis_path=$8
 export VAULT_ADDR=$vault_addr
 export VAULT_TOKEN=$vault_token
 
-admin_did=$(vault kv get -field=did $admin_path/$admin_name)
+vault login $vault_token
+
+admin_did=$(vault kv get -field=did $admin_path/$admin_name/identity/public/did)
 
 [ -z "$admin_did" ] && { echo "Script Failed"; exit 1;} || echo "Admin DID Acquired";
 admin_seed=$(vault kv get -field=seed $admin_path/$admin_name)
 [ -z "$admin_seed" ] && { echo "Script Failed"; exit 1;} || echo "Admin Seed Acquired";
-identity_did=$(vault kv get -field=did $identity_path/$identity_name)
+identity_did=$(vault kv get -field=did $identity_path/$identity_name/identity/public/did)
 [ -z "$identity_did" ] && { echo "Script Failed"; exit 1;} || echo "DID Acquired";
-identity_seed=$(vault kv get -field=seed $identity_path/$identity_name)
+identity_seed=$(vault kv get -field=seed $identity_path/$identity_name/identity/private/seed)
 [ -z "$identity_seed" ] && { echo "Script Failed"; exit 1;} || echo "Seed Acquired";
 
 # Creating did files
@@ -57,23 +59,16 @@ did list
 exit" > indy_txn.txt
 
 indy-cli indy_txn.txt > txn_result.txt
-if grep -q 'Batch execution failed' 'txn_result.txt'
+if grep -q 'Following NYM has been received' 'txn_result.txt'
 then
-	no=$(grep -oP "#\w" 'txn_result.txt' | tail -c 2)
-	echo "Script Failed at line: $no"
-	echo $(sed "${no}q;d" 'indy_txn.txt')
-	echo "REASON: $(sed -n '/Batch execution failed at line/{x;p;d;}; x' txn_result.txt)"
-	exit 1
-elif grep -q 'Error during reading file No such file or directory' 'txn_result.txt'
-then
-	echo "Script Failed at: $(sed -n '/Error during reading file No such file or directory/{x;p;d;}; x' txn_result.txt)"
-	echo "REASON: Error during reading file No such file or directory"
+	echo "Transaction Successful, NYM has been received"
+else
+	echo "Transaction Failed"
 	exit 1
 fi
 
-identity_verkey=$(grep -oP "Did \"${identity_did}\" has been created with \"[A-Za-z0-9]+" 'txn_result.txt' | tail -c 45)
+identity_verkey=$(vault kv get -field=verkey $identity_path/$identity_name/client/public/verif_keys/verification-keys)
 
-vault kv put $identity_path/$identity_name did=$identity_did seed=$identity_seed verkey=$identity_verkey
 
 echo "wallet open myIndyWallet key=12345
 did use $admin_did
@@ -83,12 +78,11 @@ pool list
 exit" > indy_txn.txt
 
 indy-cli indy_txn.txt > txn_result.txt
-if grep -q 'Batch execution failed' 'txn_result.txt'
+if grep -q 'Following NYM has been received' 'txn_result.txt'
 then
-	no=$(grep -oP "#\w" 'txn_result.txt' | tail -c 2)
-	echo "Script Failed at line: $no"
-	echo $(sed "${no}q;d" 'indy_txn.txt')
-	echo "REASON: $(sed -n '/Batch execution failed at line/{x;p;d;}; x' txn_result.txt)"
+	echo "Transaction Successful, NYM has been received"
+else
+	echo "Transaction Failed"
 	exit 1
 fi
 
@@ -103,13 +97,6 @@ indy-cli indy_txn.txt > txn_result.txt
 if grep -q 'Following NYM has been received' 'txn_result.txt'
 then
 	echo "Transaction Successful, NYM has been received"
-elif grep -q 'Batch execution failed' 'txn_result.txt'
-then
-	no=$(grep -oP "#\w" 'txn_result.txt' | tail -c 2)
-	echo "Script Failed at line: $no"
-	echo $(sed "${no}q;d" 'indy_txn.txt')
-	echo "REASON: $(sed -n '/Batch execution failed at line/{x;p;d;}; x' txn_result.txt)"
-	exit 1
 else
 	echo "Transaction Failed"
 	exit 1
