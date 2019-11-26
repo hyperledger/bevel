@@ -7,28 +7,37 @@
   include_role:
     name: create/helm_component/domain_genesis
   vars:
+    component_type: "domain_genesis"
     chartName: "domain_genesis"
-    vault_token: ac_vault_tokens[{{ organization }}].token
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
-# ---------------------------------------------------------------------
-# push the created deployment files to repository
+#---------------------------------------------------------------------
+#push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
+    gitops: "{{ organizationItem.gitops }}"
     GIT_DIR: "{{ playbook_dir }}/../../../"
     GIT_REPO: "{{ gitops.git_push_url }}"
     GIT_USERNAME: "{{ gitops.username }}"
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
-    msg: "Pushing configmap files for {{ organization }}"
+    msg: "Pushing configmap files for {{ organizationItem.name }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem
 
-# ---------------------------------------------------------------------
-# Wait until domain genesis configmap are created
+#---------------------------------------------------------------------
+#Wait until domain genesis configmap are created
 - name: "Wait until domain genesis configmap are created"
   include_role:
     name: check/k8_component
   vars:
     component_type: "ConfigMap"
+    kubernetes: "{{ organizationItem.k8s }}"
+    component_name: "{{ organizationItem.name }}-domain-transactions-genesis"
+    component_ns: "{{ organizationItem.name | lower }}-ns"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem
