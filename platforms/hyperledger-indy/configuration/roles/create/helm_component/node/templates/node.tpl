@@ -41,7 +41,6 @@ spec:
         clientPort: {{ stewardItem.client.port }}
         clientTargetPort:: {{ stewardItem.node.targetPort }}
     configmap:
-      domainGenesis: {{ organizationItem.name }}-domain-transactions-genesis
       poolGenesis: {{ organizationItem.name }}-pool-transactions-genesis
       indyConfig: |-
         NETWORK_NAME = {{ network.name }}
