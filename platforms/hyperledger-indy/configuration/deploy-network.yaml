@@ -88,6 +88,12 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
+  # Create and deploy domain genesis
+  - name: 'Create domain genesis'
+    include_role:
+      name: setup/domain_genesis
+    when: network['type'] == 'indy'
+
   # Deploy all other nodes
   - name: 'Deploy nodes'
     include_role:
@@ -99,7 +105,6 @@
       kubernetes: "{{ organizationItem.k8s }}"
       vault: "{{ organizationItem.vault }}"
       gitops: "{{ organizationItem.gitops }}"
-      domainGenesis: "{{ domainGenesis }}"
       poolGenesis: "{{ poolGenesis }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
