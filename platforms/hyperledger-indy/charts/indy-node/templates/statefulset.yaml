@@ -45,10 +45,26 @@ spec:
           }
 
           KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
-
+          
+          response=$(curl -s -o /dev/null -w "%{http_code}" $VAULT_ADDR/v1/sys/health)
+          if [ $response -ne 200 ]
+          then
+            exit 1
+          fi
+          
           curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "ro"}' $VAULT_ADDR/v1/auth/kubernetes/${NODE_ID}/login | jq -j '.auth.client_token' > token;
           X_VAULT_TOKEN=$(cat token);
-          validateVaultResponse 'vault login token' "${X_VAULT_TOKEN}";
+
+
+          mkdir -p ${KEY_PATH}/bls_keys
+          mkdir -p ${KEY_PATH}/private_keys
+          mkdir -p ${KEY_PATH}/public_keys
+          mkdir -p ${KEY_PATH}/sig_keys
+          mkdir -p ${KEY_PATH}/verif_keys
+          mkdir -p ${KEY_PATH}C/private_keys
+          mkdir -p ${KEY_PATH}C/public_keys
+          mkdir -p ${KEY_PATH}C/sig_keys
+          mkdir -p ${KEY_PATH}C/verif_keys
 
           LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/kv/"${ORGANIZATION_NAME}"/stewards/${NODE_ID}/node/public/bls_keys | jq -r 'if .errors then . else . end');
           validateVaultResponse "secret (kv/${NODE_ID}/bls_keys)" "${LOOKUP_SECRET_RESPONSE}"
@@ -117,19 +133,19 @@ spec:
           image: "{{ $.Values.image.indyNode.repository }}"
           imagePullPolicy: Always
           ports:
-            - containerPort: {{ $.Values.node.indyNodePort }}
-            - containerPort: {{ $.Values.node.indyClientPort }}
+            - containerPort: {{ $.Values.node.ports.indyNodePort }}
+            - containerPort: {{ $.Values.node.ports.indyClientPort }}
           env:
             - name: name
               value: "{{ $.Values.node.name }}"
             - name: INDY_NODE_IP
               value: "{{ $.Values.node.INDY_NODE_IP }}"
             - name: indyNodePort
-              value: "{{ $.Values.node.indyNodePort }}"
+              value: "{{ $.Values.node.ports.indyNodePort }}"
             - name: INDY_CLIENT_IP
               value: "{{ $.Values.node.INDY_CLIENT_IP }}"
             - name: indyClientPort
-              value: "{{ $.Values.node.indyClientPort }}"
+              value: "{{ $.Values.node.ports.indyClientPort }}"
             - name: INDY_NETWORK_NAME
               value: "{{ $.Values.network.name }}"
           volumeMounts:
@@ -137,13 +153,13 @@ spec:
               mountPath: /var/lib/indy/data
             - name: ebs-indy-node-keys
               mountPath: /var/lib/indy/keys
-            - name: indy-node-config
+            - name: {{ $.Values.node.name }}-config
               mountPath: /etc/indy/indy_config.py
               subPath: indy_config.py
-            - name: "{{ $.Values.configmap.domainGenesis }}"
+            - name: {{ $.Values.organization.name }}-domain-transactions-genesis
               mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/domain_transactions_genesis
               subPath: domain_transactions_genesis
-            - name: "{{ $.Values.configmap.poolGenesis }}"
+            - name: {{ $.Values.organization.name }}-pool-transactions-genesis
               mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
               subPath: pool_transactions_genesis
       imagePullSecrets:
@@ -152,12 +168,12 @@ spec:
         - name: {{ $.Values.node.name }}-config
           configMap:
             name: {{ $.Values.node.name }}-config
-        - name:  "{{ $.Values.configmap.domainGenesis }}"
+        - name:  {{ $.Values.organization.name }}-domain-transactions-genesis
           configMap:
-            name: "{{ $.Values.configmap.domainGenesis }}"
-        - name: "{{ $.Values.configmap.poolGenesis }}"
+            name: {{ $.Values.organization.name }}-domain-transactions-genesis
+        - name: {{ $.Values.organization.name }}-pool-transactions-genesis
           configMap:
-            name: "{{ $.Values.configmap.poolGenesis }}"
+            name: {{ $.Values.organization.name }}-pool-transactions-genesis
   volumeClaimTemplates:
     - metadata:
         name: ebs-indy-node-data
