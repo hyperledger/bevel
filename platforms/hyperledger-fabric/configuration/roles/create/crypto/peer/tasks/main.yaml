@@ -10,12 +10,10 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
     label_selectors:
-      - name = ca-tools
-    field_selectors:
-      - status.phase=Running    
+      - name = ca-tools  
   register: ca_tools
-  until: ca_tools.resources|length > 0
-  retries: 10
+  until: ("Running" in get_ca|json_query('resources[*].status.phase'))
+  retries: "{{ network.env.retry_count}}"
   delay: 40
 
 # Ensure ca directory is present in build
@@ -42,6 +40,15 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
+
+- name: Call peer.yaml for each peer
+  include_tasks: peercheck.yaml
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+
+- name: Call peer.yaml for each peer
+  include_tasks: common.yaml
 
 - name: Call peer.yaml for each peer
   include_tasks: peer.yaml
