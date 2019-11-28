@@ -33,6 +33,7 @@ The configurations are grouped in the following sections for better understandin
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`.      |
+| retry_count       | Retry count for the checks.|
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
 

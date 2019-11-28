@@ -26,11 +26,11 @@ spec:
       - name: DOORMAN_TLS
         value: false
       - name: DOORMAN_DB
-        value: /opt/{{ services.doorman.name }}/db
+        value: /opt/doorman/db
       - name: DOORMAN_AUTH_USERNAME
         value: sa
       - name: DB_URL
-        value: mongodb-doorman
+        value: mongodb-{{ services.doorman.name }}
       - name: DB_PORT
         value: 27017
       - name: DATABASE
@@ -45,19 +45,19 @@ spec:
       memory: 512Mi
       name: {{ org.cloud_provider }}storageclass
     mountPath:
-      basePath: /opt/doorman  
+      basePath: /opt/doorman
     vault:
       address: {{ vault.url }}
       role: vault-role
       authpath: {{ component_auth }}
       serviceaccountname: vault-auth
-      certsecretprefix: doorman/certs
-      dbcredsecretprefix: doorman/credentials/mongodb
-      secretdoormanpass: doorman/credentials/userpassword
+      certsecretprefix: {{ services.doorman.name }}/certs
+      dbcredsecretprefix: {{ services.doorman.name }}/credentials/mongodb
+      secretdoormanpass: {{ services.doorman.name }}/credentials/userpassword
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
-      dburl: mongodb-doorman:27017
+      dburl: mongodb-{{ services.doorman.name }}:27017
     service:
       port: {{ services.doorman.ports.servicePort }}
       targetPort: {{ services.doorman.ports.targetPort }}
@@ -72,15 +72,16 @@ spec:
         ---
         apiVersion: ambassador/v1
         kind: Mapping
-        name: doorman_mapping
+        name: {{ services.doorman.name }}_mapping
         prefix: /
         service: {{ services.doorman.name }}.{{ component_ns }}:{{ services.doorman.ports.servicePort }}
-        host: doorman.{{ item.external_url_suffix }}:8443
+        host: {{ services.doorman.name }}.{{ item.external_url_suffix }}:8443
         tls: false
         ---
         apiVersion: ambassador/v1
         kind: TLSContext
-        name: doorman_mapping_tlscontext
+        name: {{ services.doorman.name }}_mapping_tlscontext
         hosts:
-        - doorman.{{ item.external_url_suffix }}
-        secret: doorman-ambassador-certs
+        - {{ services.doorman.name }}.{{ item.external_url_suffix }}
+        secret: {{ services.doorman.name }}-ambassador-certs
+        
