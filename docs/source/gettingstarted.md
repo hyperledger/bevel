@@ -4,7 +4,7 @@ Getting Started
 Before we begin, if you haven't already done so, you may wish to check that
 you have all the [prerequisites](prerequisites) installed on the platform(s)
 on which you'll be deploying blockchain networks from and/or operating
-The Blockchain Automation Framework.
+the Blockchain Automation Framework.
 
 Once you have the prerequisites installed, you are ready to fork this repository and start using the Blockchain Automation Framework. 
 

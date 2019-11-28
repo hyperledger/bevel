@@ -115,7 +115,7 @@ class NetworkMapService(
           .withAuthSchema(AuthSchema.Token)
           .withSwaggerPath(swaggerRoot)
           .withApiPath("$root/") // a little different because we need to mount the network map on '/network-map'
-          .withContact(Contact().url("https://www.accenture.com/us-en").name("Accenture"))
+          .withContact(Contact().url("https://www.company.com/").name("Company, Inc."))
           .withDescription("""|<h4><a href="/">Networkmap Service</a></h4>
             |<b>Please note:</b> The protected parts of this API require JWT authentication.
             |To activate, execute the <code>login</code> method.

@@ -1,6 +1,6 @@
 ---
 #######################################
-# Playbook to setup the environment for running the The Blockchain Automation Framework configurations
+# Playbook to setup the environment for running the Blockchain Automation Framework configurations
 #  - checks and installs kubectl, helm and vault clients
 #  - If cloud platform is AWS, checks and installs aws-cli and aws-authenticator
 #######################################
@@ -36,7 +36,7 @@
           arch: "{{ install_arch }}"
           bin_directory: "{{ bin_install_dir }}"
           checksum: ""
-        with_items: "{{ network.organizations }}"   
+        with_items: "{{ network.organizations }}"
     - include_role:
         name: setup/aws-cli
       vars:
@@ -45,7 +45,7 @@
         aws_access_key: "{{ item.aws.access_key }}"
         aws_secret_key: "{{ item.aws.secret_key }}"
       with_items: "{{ network.organizations }}"
-      when: "item.cloud_provider == 'aws'"
+      when: "item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal'"
     - include_role:
         name: setup/aws-auth
       vars:
@@ -72,5 +72,5 @@
         privilege_escalate: false           #Default to NOT escalate to root privledges
         install_os: "linux"                 #Default to linux OS
         install_arch:  "amd64"              #Default to amd64 architecture
-        bin_install_dir:  "/bin"            #Default to /bin install directory for binaries
+        bin_install_dir:  "~/bin"            #Default to ~/bin install directory for binaries
 

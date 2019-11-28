@@ -6,28 +6,24 @@
 
 - name: Deletes the doorman helmreleases
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge doorman mongodb-doorman
     KUBECONFIG={{ kubernetes.config_file }} kubectl delete helmrelease -n "{{ component_name }}" doorman mongodb-doorman
   when: component_type.find('doorman') != -1
   ignore_errors: yes
 
 - name: Deletes the networkmap helmrelease
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge networkmap mongodb-networkmap
     KUBECONFIG={{ kubernetes.config_file }} kubectl delete helmrelease -n "{{ component_name }}" networkmap mongodb-networkmap
   when: component_type.find('nms') != -1
   ignore_errors: yes
 
 - name: Deletes the notary helmreleases
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge notarydb notary-initial-registration notary
     KUBECONFIG={{ kubernetes.config_file }} kubectl delete helmrelease -n "{{ component_name }}" notarydb notary-initial-registration notary
   when: component_type.find('notary') != -1
   ignore_errors: yes
 
 - name: Deletes the node helmreleases
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge  {{ node.name }}db {{ node.name }}-initial-registration {{ node.name }}
     KUBECONFIG={{ kubernetes.config_file }} kubectl delete helmrelease -n "{{ component_name }}" {{ node.name }}db {{ node.name }}-initial-registration {{ node.name }}
   loop: "{{ component_services.peers }}"
   loop_control:
