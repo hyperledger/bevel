@@ -21,16 +21,23 @@ pool_genesis_path=$8
 export VAULT_ADDR=$vault_addr
 export VAULT_TOKEN=$vault_token
 
-vault login $vault_token
+sudo apt-get install jq
 
-admin_did=$(vault kv get -field=did $admin_path/$admin_name/identity/public/did)
 
+QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$admin_path/$admin_name/identity/public | jq -r 'if .errors then . else . end')
+admin_did=$(echo ${QUERY_RES} | jq -r ".data[\"did\"]")
 [ -z "$admin_did" ] && { echo "Script Failed"; exit 1;} || echo "Admin DID Acquired";
-admin_seed=$(vault kv get -field=seed $admin_path/$admin_name)
+
+QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$admin_path/$admin_name/identity/private | jq -r 'if .errors then . else . end')
+admin_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]")
 [ -z "$admin_seed" ] && { echo "Script Failed"; exit 1;} || echo "Admin Seed Acquired";
-identity_did=$(vault kv get -field=did $identity_path/$identity_name/identity/public/did)
+
+QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$identity_path/$identity_name/identity/private | jq -r 'if .errors then . else . end')
+identity_did=$(echo ${QUERY_RES} | jq -r ".data[\"did\"]")
 [ -z "$identity_did" ] && { echo "Script Failed"; exit 1;} || echo "DID Acquired";
-identity_seed=$(vault kv get -field=seed $identity_path/$identity_name/identity/private/seed)
+
+QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$identity_path/$identity_name/identity/private | jq -r 'if .errors then . else . end')
+identity_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]")
 [ -z "$identity_seed" ] && { echo "Script Failed"; exit 1;} || echo "Seed Acquired";
 
 # Creating did files
@@ -53,22 +60,44 @@ echo "{
 echo "wallet create myIndyWallet key=12345
 wallet open myIndyWallet key=12345
 wallet list
-did import ./admindid.txt
-did import ./identitydid.txt
-did list
 exit" > indy_txn.txt
 
 indy-cli indy_txn.txt > txn_result.txt
-if grep -q 'Following NYM has been received' 'txn_result.txt'
+if grep -q 'Wallet "myIndyWallet" has been opened' 'txn_result.txt'
 then
-	echo "Transaction Successful, NYM has been received"
+	echo "Indy Wallet has been successfully opened."
 else
-	echo "Transaction Failed"
+	echo "ERROR: Cannot open Wallet..."
 	exit 1
 fi
 
-identity_verkey=$(vault kv get -field=verkey $identity_path/$identity_name/client/public/verif_keys/verification-keys)
+echo "wallet open myIndyWallet key=12345
+did import ./admindid.txt
+did import ./identitydid.txt
+exit" > indy_txn.txt
 
+indy-cli indy_txn.txt > txn_result.txt
+if grep -q 'DIDs import finished' 'txn_result.txt'
+then
+	echo "DID imported successfully."
+else
+	echo "Cannot Import DID..."
+	exit 1
+fi
+
+echo "wallet open myIndyWallet key=12345
+did list
+did use $admin_did
+exit" > indy_txn.txt
+
+indy-cli indy_txn.txt > txn_result.txt
+if grep -q 'Did \"$admin_did\" has been set as active' 'txn_result.txt'
+then
+	echo "DID set active."
+else
+	echo "ERROR: Cannot use DID..."
+	exit 1
+fi
 
 echo "wallet open myIndyWallet key=12345
 did use $admin_did
@@ -78,13 +107,17 @@ pool list
 exit" > indy_txn.txt
 
 indy-cli indy_txn.txt > txn_result.txt
-if grep -q 'Following NYM has been received' 'txn_result.txt'
+if grep -q 'Pool "sandboxpool" has been connected' 'txn_result.txt'
 then
-	echo "Transaction Successful, NYM has been received"
+	echo "Pool successfully Connected"
 else
-	echo "Transaction Failed"
+	echo "Pool Connection failed..."
 	exit 1
 fi
+
+QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$identity_path/$identity_name/client/public/verif_keys | jq -r 'if .errors then . else . end')
+identity_verkey=$(echo ${QUERY_RES} | jq -r ".data[\"verification-key\"]")
+[ -z "$identity_verkey" ] && { echo "Script Failed"; exit 1;} || echo "Verkey Acquired";
 
 echo "wallet open myIndyWallet key=12345
 did use $admin_did
@@ -97,6 +130,7 @@ indy-cli indy_txn.txt > txn_result.txt
 if grep -q 'Following NYM has been received' 'txn_result.txt'
 then
 	echo "Transaction Successful, NYM has been received"
+	exit 0
 else
 	echo "Transaction Failed"
 	exit 1
