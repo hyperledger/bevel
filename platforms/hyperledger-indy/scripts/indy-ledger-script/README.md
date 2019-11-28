@@ -16,8 +16,6 @@ To run the ledger transactions on the Docker Container
 	    
         cd /home
 		chmod +x ledger-script.sh
-		chmod +x vault-setup.sh
-		./vault-setup.sh
 		./ledger-script.sh vault_addr vault_token admin_path admin_name identity_path identity_name identity_role pool_genesis_path
 
 NOTE: 
