@@ -27,7 +27,7 @@ spec:
       p2p:
         url: {{ component_name }}.{{ component_ns }}
         port: {{ node.p2p.port|e }}
-      ambassadorAddress: {{ component_name|e }}.{{ item.external_url_suffix }}:{{ node.p2p.ambassador | default('10002') }}
+      ambassadorAddress: {{ component_name|e }}.{{ item.external_url_suffix }}:8443
       rpcSettings:
         useSsl: false
         standAloneBroker: false
@@ -87,8 +87,8 @@ spec:
     volume:
       baseDir: /base/corda
     resources:
-      limits: "512Mi"
-      requests: "512Mi"
+      limits: "2Gi"
+      requests: "1Gi"
     
     service:
       type: ClusterIP

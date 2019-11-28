@@ -87,12 +87,12 @@ spec:
     volume:
       baseDir: /base/corda
     resources:
-      limits: "1Gi"
+      limits: "2Gi"
       requests: "1Gi" 
     pvc:
       name: {{ component_name|e }}-pvc
       annotations: {}
-      memory: 512Mi
+      memory: 1Gi
       storageClassName: {{ item.cloud_provider }}storageclass
 
     service:
@@ -122,7 +122,6 @@ spec:
         kind: TCPMapping
         name: {{ component_name|e }}_p2p_mapping
         port: {{ node.p2p.ambassador | default('10002') }}
-        host: {{ component_name|e }}.{{ item.external_url_suffix }}
         service: {{ component_name|e }}.{{ component_ns }}:{{ node.p2p.port|e }}
         
     deployment:

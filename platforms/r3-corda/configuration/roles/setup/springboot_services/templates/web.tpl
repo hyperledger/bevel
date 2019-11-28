@@ -29,10 +29,10 @@ spec:
     credentials:
       {{  config['spec']['values'].credentials | to_nice_yaml | indent(6) }}
     resources:
-      limits: "512Mi"
-      requests: "512Mi"
+      limits: "1Gi"
+      requests: "1Gi"
     storage:
-      memory: 512Mi
+      memory: 1Gi
       mountPath: "/opt/h2-data"
       name: {{ dlt['corda']['storageclass']['sc']['config']['name'] }}
     vault:

@@ -81,15 +81,6 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/chaincode/instantiate/Readme.md) for detailed information.
 
-## **create/chaincode/upgrade**
-
-* Check/Wait for install-chaincode job
-* Check for instantiate-chaincode job
-* Create value file for chaincode upgradation
-* Git Push
-
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/chaincode/upgrade/Readme.md) for detailed information.
-
 ## **create/channel_artifacts**
 
 * Check configtxgen

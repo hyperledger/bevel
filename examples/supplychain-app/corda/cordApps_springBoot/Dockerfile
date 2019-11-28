@@ -1,7 +1,7 @@
 FROM phusion/baseimage:0.11
 
 LABEL net.corda.version = "4.0" \
-      maintainer = "Hyperledger" \
+      maintainer = "Accenture" \
       vendor = "R3"
 
 RUN apt-get update && \

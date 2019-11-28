@@ -1,1 +1,1 @@
-# Blockchain Automation Framework Indy indy-cli Helm chart
+# The Blockchain Automation Framework Indy indy-cli Helm chart

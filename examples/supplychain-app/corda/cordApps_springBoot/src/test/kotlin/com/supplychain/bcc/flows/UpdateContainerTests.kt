@@ -2,20 +2,20 @@ package com.supplychain.bcc
 
 import com.supplychain.bcc.contractstates.ContainerState
 import com.supplychain.bcc.contractstates.ProductState
-import com.supplychain.baf.CreateContainerRequest
-import com.supplychain.baf.CreateProductRequest
-import org.junit.Test
+import org.testng.annotations.Listeners
+import org.testng.annotations.Test
 import java.util.*
 import kotlin.test.assertEquals
 
+@Listeners(AgentListener::class)
 
 class UpdateContainerTests : SupplyChainTests() {
 
     @Test
     fun `Update a Container`() {
         val trackingID = UUID.randomUUID()
-        val updateRequest = CreateContainerRequest("UnHealth", mapOf(), trackingID, listOf("BB"))
-        createContainer(a, CreateContainerRequest("Health", mapOf(), trackingID, listOf("BB")))
+        val updateRequest = CreateContainerRequest("UnHealth",mapOf(), trackingID, listOf("BB"))
+        createContainer(a, CreateContainerRequest("Health",mapOf(), trackingID, listOf("BB")))
 
         updateContainer(a, trackingID, updateRequest)
 
@@ -32,9 +32,9 @@ class UpdateContainerTests : SupplyChainTests() {
         val containerTrackingID = UUID.randomUUID()
         val productTrackingID = UUID.randomUUID()
 
-        val updateRequest = CreateContainerRequest("UnHealth", mapOf(), containerTrackingID, listOf("BB"))
+        val updateRequest = CreateContainerRequest("UnHealth",mapOf(), containerTrackingID, listOf("BB"))
         createContainer(a, CreateContainerRequest("Health", mapOf(), containerTrackingID, listOf("BB")))
-        createProduct(a, CreateProductRequest("Product Name", "Health", mapOf(), productTrackingID, listOf("BB")))
+        createProduct(a, CreateProductRequest("Product Name", "Health",mapOf(), productTrackingID, listOf("BB")))
 
         packageProduct(a, productTrackingID, containerTrackingID)
 
@@ -57,7 +57,7 @@ class UpdateContainerTests : SupplyChainTests() {
         val containerTrackingID = UUID.randomUUID()
         val containerContentsTrackingID = UUID.randomUUID()
 
-        val updateRequest = CreateContainerRequest("UnHealth", mapOf(), containerTrackingID, listOf("BB"))
+        val updateRequest = CreateContainerRequest("UnHealth",mapOf(), containerTrackingID, listOf("BB"))
         createContainer(a, CreateContainerRequest("Health", mapOf(), containerTrackingID, listOf("BB")))
         createContainer(a, CreateContainerRequest("Health", mapOf(), containerContentsTrackingID, listOf("BB")))
 
