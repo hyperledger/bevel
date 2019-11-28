@@ -1,12 +1,19 @@
 ---
-# This is a sample configuration file for SupplyChain App on Single K8s Cluster.
-# For multiple K8s clusters, there should be multiple configuration files.
+# This is a sample configuration file for SupplyChain App which has 5 nodes.
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: fabric
   version: 1.4.0
   
+  frontend: enabled #Flag for frontend to enabled for nodes/peers
+
+  #Environment section to help run multiple applications on same cluster
+  env:
+    type: "env_type"          #Must be unique per single-cluster
+    ambassadorPorts: 10010,10020    #Any additional Ambassador ports can be given here, must be comma-separated without spaces
+    retry_count: 100  #Retry count for the checks
+
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry. 
   # Do not check-in docker_password.
@@ -15,14 +22,14 @@ network:
     username: "docker_username"
     password: "docker_password"
   
-  # Remote connection information for orderer (will be blank or removed for hosting organization)
+  # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
   orderers:
     - orderer:
       type: orderer
       name: orderer
-      org_name: supplychain
-      uri: orderer.org1ambassador.blockchaincloudpoc.com:8443
-      certificate: directory/file1.cert
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: directory/file1.cert                         # This has not been implemented in 0.2.0.0
   
   # The channels defined for a network with participating peers in each channel
   channels:
@@ -34,16 +41,16 @@ network:
     participants:
     - organization:
       name: carrier
-      type: creator
+      type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
       peers:
       - peer:
         name: peer0
         type: validating
-        gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
+        gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
+      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
     - organization:      
       name: store
-      type: joiner
+      type: joiner        # joiner organization will only join the channel and install chaincode
       peers:
       - peer:
         name: peer0
@@ -87,7 +94,7 @@ network:
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
       ca_data:
         url: ca.supplychain-net:7054
-        certificate: file/server.crt 
+        certificate: file/server.crt        # This has not been implemented in 0.2.0.0
   
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -97,7 +104,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -118,6 +124,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
       infrastructure:
@@ -171,7 +178,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -192,6 +198,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
       infrastructure:
@@ -258,7 +265,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -279,6 +285,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
       infrastructure:
@@ -342,7 +349,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -363,6 +369,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
       infrastructure:
@@ -427,7 +434,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -448,6 +454,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
       infrastructure:

@@ -22,7 +22,7 @@ spec:
       imagePullSecret: regcred
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
     storage:
-      memory: 1Gi
+      memory: 512Mi
       name: {{ org.cloud_provider }}storageclass
       mountPath: /data/db
       volname: hostvol

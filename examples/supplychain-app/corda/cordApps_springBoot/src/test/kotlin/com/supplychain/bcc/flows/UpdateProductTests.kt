@@ -1,12 +1,12 @@
 package com.supplychain.bcc
 
 import com.supplychain.bcc.contractstates.ProductState
-import org.testng.annotations.Listeners
-import org.testng.annotations.Test
+import com.supplychain.baf.CreateProductRequest
+import org.junit.Test
 import java.util.*
 import kotlin.test.assertEquals
 
-@Listeners(AgentListener::class)
+
 
 class UpdateProductTests : SupplyChainTests() {
 

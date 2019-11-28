@@ -52,6 +52,7 @@ router.get('/:trackingID?', function (req, res) {
 
 //POST for new product
 router.post('/',upload.array(),function(req,res) {
+  res.setTimeout(15000);
   let newBody = {
     "productName": req.body.productName,
     "health": " ", //fabric has health field that needs to be filled.. will be fixing to not need it
@@ -71,6 +72,7 @@ router.post('/',upload.array(),function(req,res) {
 
 //PUT for changing custodian
 router.put('/:trackingID/custodian', function(req,res) {
+  res.setTimeout(15000);
   receiveProduct(req.params.trackingID)
   .then( response => {
     res.send(response)
