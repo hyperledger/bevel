@@ -15,6 +15,9 @@ spec:
     nodeName: {{ component_name }}
     metadata:
       namespace: {{ component_ns }}
+      component_name: {{ component_name }}
+      external_url_suffix: {{item.external_url_suffix}}
+      servicePort: {{services.doorman.ports.servicePort}}
     image:
       authusername: sa
       containerName: {{ network.docker.url }}/networkmap-linuxkit:latest
@@ -71,21 +74,5 @@ spec:
       annotations: {}
     pvc:
       annotations: {}
-    ambassador:
-      annotations: |- 
-        ---
-        apiVersion: ambassador/v1
-        kind: Mapping
-        name: {{ component_name }}_mapping
-        prefix: /
-        service: {{ component_name }}.{{ component_ns }}:{{ services.nms.ports.servicePort }}
-        host: {{ component_name }}.{{ item.external_url_suffix }}:8443
-        tls: false
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: {{ component_name }}_mapping_tlscontext
-        hosts:
-        - {{ component_name }}.{{ item.external_url_suffix }}
-        secret: {{ component_name }}-ambassador-certs 
+    
         

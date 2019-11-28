@@ -2,11 +2,22 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.service.name }}
-  {{ if $.Values.ambassador.annotations }}
   annotations:
     getambassador.io/config: | 
-    {{ $.Values.ambassador.annotations  | nindent 6 }}
-  {{ end }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      name: {{ .Values.metadata.component_name }}_context
+      hosts:
+      - {{ .Values.metadata.component_name }}.{{ .Values.metadata.external_url_suffix }}
+      secret: {{ .Values.metadata.component_name }}-ambassador-certs
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.metadata.component_name }}_p2p_mapping
+      port: {{ .Values.metadata.p2p_ambassador }}
+      host: {{ .Values.metadata.component_name }}.{{ .Values.metadata.external_url_suffix }}
+      service: {{ .Values.metadata.component_name }}.{{ .Values.metadata.namespace }}:{{ .Values.metadata.port }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
     run: {{ .Values.service.name }}

@@ -15,6 +15,9 @@ spec:
     nodeName: {{ services.doorman.name }}
     metadata:
       namespace: {{component_ns }}
+      component_name: {{ services.doorman.name }}
+      external_url_suffix: {{item.external_url_suffix}}
+      servicePort: {{services.doorman.ports.servicePort}}
     image:
       authusername: sa
       containerName: {{ network.docker.url }}/doorman:latest
@@ -67,21 +70,5 @@ spec:
       annotations: {}
     pvc:
       annotations: {}
-    ambassador:
-      annotations: |- 
-        ---
-        apiVersion: ambassador/v1
-        kind: Mapping
-        name: {{ services.doorman.name }}_mapping
-        prefix: /
-        service: {{ services.doorman.name }}.{{ component_ns }}:{{ services.doorman.ports.servicePort }}
-        host: {{ services.doorman.name }}.{{ item.external_url_suffix }}:8443
-        tls: false
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: {{ services.doorman.name }}_mapping_tlscontext
-        hosts:
-        - {{ services.doorman.name }}.{{ item.external_url_suffix }}
-        secret: {{ services.doorman.name }}-ambassador-certs
+    
         
