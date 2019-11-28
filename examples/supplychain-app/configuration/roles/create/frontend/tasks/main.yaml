@@ -1,20 +1,4 @@
 ############################################################################################
-# Create secret for gmaps key
-- name: "Check for Gmaps_key secret for {{ organisation }}"
-  k8s_facts:
-    kind: "Secret"
-    namespace: "{{ component_ns }}"
-    name: "gmaps-key"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"  
-  register: secret_present
-
-- name: Create the gmaps key secret for {{ component_ns }}
-  shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_ns }} generic gmaps-key --from-literal=gmapskeyvalue='{{ organization_data.app.google_maps_api }}'
-  when: secret_present.resources|length == 0 and component_type == 'node'
-
-############################################################################################
 # Create frontend value file
 - name: "Create frontend values file"
   include_role:
@@ -29,6 +13,7 @@
     peer_expressapi_port: "{{ peer_data.expressapi.port }}"
     peer_frontend_targetport: "{{ peer_data.frontend.targetPort }}"
     ambassador_secret: "{{ peer_data.name }}-ambassador-certs"
+    react_app_gmaps_key: "{{ organization_data.app.google_maps_api }}"
   loop: "{{ organization_data.services.peers }}"
   loop_control:
     loop_var: peer_data

@@ -17,22 +17,21 @@ ENV VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3 \
     BACKUP_DIR='/var/lib/indy/backup' \
     PLUGINS_DIR='/var/lib/indy/plugins' \
     NODE_INFO_DIR='/var/lib/indy/data' \
-    NETWORK_NAME='baf' \
+    NETWORK_NAME='udisp' \
     INDY_HOME=/opt/indy/ \
     INDY_CONFIG_DIR=/etc/indy/ \
     NODES_COUNT=4 \
     NODE_NAMES="node1,node2,node3,node4" \
     IPS="node1,node2,node3,node4" \
     NODE_PORTS="9701,9702,9703,9704" \
-    CLIENT_PORTS="9705,9706,9707,9708" \
-    VAULT_TOKEN=""
+    CLIENT_PORTS="9705,9706,9707,9708"
 
 # Installing python and pip
 RUN apt-get update && \
     apt-get install -y software-properties-common python-software-properties && \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y python3.5 python3-pip python3.5-dev jq
+    apt-get install -y python3.5 python3-pip python3.5-dev
 
 # Installing virtualenvwrapper
 RUN pip3 install virtualenvwrapper
@@ -74,14 +73,11 @@ RUN cd ${INDY_HOME}/indy-node && \
 WORKDIR ${INDY_HOME}
 COPY config/indy_config.py ${INDY_CONFIG_DIR}
 RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv -p python3.5 ${NETWORK_NAME}; workon ${NETWORK_NAME}; pushd indy-node; pip3 install -e .[tests]; popd"  && \
-    /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; pushd indy-plenum; pip3 uninstall -y indy-plenum; pip3 install -e .[tests]; popd" && \
-    /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install requests"
+    /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; pushd indy-plenum; pip3 uninstall -y indy-plenum; pip3 install -e .[tests]; popd"
 
-COPY src/identity_crypto_generator.py /.virtualenvs/${NETWORK_NAME}/lib/python3.5/site-packages/plenum/common/identity_crypto_generator.py
-COPY src/generate_identity /.virtualenvs/${NETWORK_NAME}/bin/generate_identity
-COPY src/generate_identity.sh /usr/bin/generate_identity
-RUN chmod +x /.virtualenvs/${NETWORK_NAME}/bin/generate_identity && \
-    chmod +x /usr/bin/generate_identity
+COPY src/generate_real_indy_pool_transactions /.virtualenvs/${NETWORK_NAME}/bin/generate_real_indy_pool_transactions
+COPY src/real_network_setup.py /.virtualenvs/${NETWORK_NAME}/lib/python3.5/site-packages/plenum/common/real_network_setup.py
+RUN chmod +x /.virtualenvs/udisp/bin/generate_real_indy_pool_transactions
 
 RUN echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc && \
     echo 'workon ${NETWORK_NAME}' >> ~/.bashrc

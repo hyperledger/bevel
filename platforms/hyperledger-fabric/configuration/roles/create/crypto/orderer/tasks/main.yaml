@@ -10,10 +10,12 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
     label_selectors:
-      - name = ca-tools   
+      - name = ca-tools
+    field_selectors:
+      - status.phase=Running    
   register: ca_tools
-  until: ("Running" in ca_tools|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
+  until: ca_tools.resources|length > 0
+  retries: 10
   delay: 40
 
 # Ensure ca directory is present in build

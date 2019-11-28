@@ -26,6 +26,7 @@ spec:
       pullSecrets: regcred
       env:
         webserver: https://{{ peer_name }}api.{{ organization_data.external_url_suffix }}:8443
+        googlemapskey: {{ react_app_gmaps_key }}
     deployment:
       annotations: {}
     ambassador:

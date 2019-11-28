@@ -32,7 +32,6 @@ router.get('/:trackingID?', function (req, res) {
 
 //POST for new container
 router.post('/',upload.array(),function(req,res) {
-  res.setTimeout(15000);
   let newBody = {
    "misc": req.body.misc,
    "trackingID": req.body.trackingID,
@@ -50,7 +49,6 @@ router.post('/',upload.array(),function(req,res) {
 
 //PUT for changing custodian
 router.put('/:trackingID/custodian', function(req,res) {
-  res.setTimeout(15000);
   receiveContainer(req.params.trackingID)
   .then( response => {
     res.send(response)
@@ -63,7 +61,6 @@ router.put('/:trackingID/custodian', function(req,res) {
 
 //PUT for updatating contents
 router.put('/:trackingID/package',upload.array(),function(req,res) {
-  res.setTimeout(15000);
   packageGood(req.params.trackingID,req.body)
   .then( response => {
     res.send(response)
@@ -77,7 +74,6 @@ router.put('/:trackingID/package',upload.array(),function(req,res) {
 
 //PUT for removing contents
 router.put('/:trackingID/unpackage',upload.array(),function(req,res) {
-  res.setTimeout(15000);
   unPackageGood(req.params.trackingID,req.body)
   .then( response => {
     res.send(response)

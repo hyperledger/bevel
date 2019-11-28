@@ -2,33 +2,14 @@
 ############################################################################################
 # This task is the nested task for main.yaml which helps to create the channels_join files
 
-# Check or wait for the Orderer pod
-- name: "Check orderer pod is up"
-  k8s_facts:
-    kind: Pod
-    namespace: "{{ orderer.name | lower }}-net"
-    kubeconfig: "{{ orderer.k8s.config_file }}"
-    context: "{{ orderer.k8s.context }}"
-    label_selectors:
-      - app = orderer
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: orderer
-  when: orderer.type =='orderer'
-  register: get_orderer
-  until: ("Running" in get_orderer|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
-
 # Check or wait for the Creator peer
 - name: "Check creator peer pod is up"
   k8s_facts:
-    kind: Pod
+    kind: Service
+    name: "{{ peer_name }}"
     namespace: "{{ org.name | lower }}-net"
     kubeconfig: "{{ org.k8s.config_file }}"
     context: "{{ org.k8s.context }}"
-    label_selectors:
-      - app = {{ peer_name }}
   vars:
     org_query: "organizations[?name=='{{peer.name}}']"
     peer_name: "{{ peer | json_query('peers[?type==`validating`].name') | first }}"
@@ -36,8 +17,8 @@
   loop_control:
     loop_var: org
   register: get_peer
-  until: ("Running" in get_peer|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
+  until: get_peer.resources|length > 0
+  retries: 10
   delay: 40
 
 # This task creates the value file for creator Organization

@@ -24,5 +24,5 @@ spec:
 
     storage:
       storageclassname: {{ component | lower }}sc
-      storagesize: 512Mi
+      storagesize: 1Gi
 
