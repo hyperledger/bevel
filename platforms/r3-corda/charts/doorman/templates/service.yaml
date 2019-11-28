@@ -3,11 +3,23 @@ kind: Service
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{ if $.Values.ambassador.annotations }}
   annotations:
     getambassador.io/config: | 
-    {{ $.Values.ambassador.annotations  | nindent 6 }}
-  {{ end }}
+      ---
+      apiVersion: ambassador/v1
+      kind: Mapping
+      name: {{ .Values.metadata.component_name }}_mapping
+      prefix: /
+      service: {{ .Values.metadata.component_name }}.{{ .Values.metadata.namespace }}:{{ .Values.metadata.servicePort }}
+      host: {{ .Values.metadata.component_name }}.{{ .Values.metadata.external_url_suffix }}:8443
+      tls: false
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      name: {{ .Values.metadata.component_name }}_mapping_tlscontext
+      hosts:
+      - {{ .Values.metadata.component_name }}.{{ .Values.metadata.external_url_suffix }}
+      secret: {{ .Values.metadata.component_name }}-ambassador-certs
   labels:
     run: {{ .Values.nodeName }}
     app.kubernetes.io/name: {{ .Values.nodeName }}
