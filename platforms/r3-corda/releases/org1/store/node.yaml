@@ -1,0 +1,136 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: store
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: store-ns
+spec:
+  releaseName: store
+  chart:
+    path: platforms/r3-corda/charts/node
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+  values:
+    nodeName: store
+    replicas: 1
+    metadata:
+      namespace: store-ns  
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/corda:4.0-linuxkit
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+      doormanCertAlias: doorman.demo.corda.blockchaincloudpoc.com
+      networkmapCertAlias: networkmap.demo.corda.blockchaincloudpoc.com
+    nodeConf:
+      p2p:
+        url: store.store-ns
+        port: 10002
+      ambassadorAddress: store.demo.corda.blockchaincloudpoc.com:15010
+      rpcSettings:
+        useSsl: false
+        standAloneBroker: false
+        address: "0.0.0.0:10003"
+        adminAddress: "0.0.0.0:10005"
+        ssl:
+          certificatesDirectory: na-ssl-false
+          sslKeystorePath: na-ssl-false
+          trustStoreFilePath: na-ssl-false
+      legalName: O=Store,OU=Store,L=40.73/-74/New York,C=US #use peer-node level subject for legalName
+      messagingServerAddress:
+      jvmArgs:
+      systemProperties:
+      sshd:
+        port:
+      exportJMXTo:
+      transactionCacheSizeMegaBytes: 8
+      attachmentContentCacheSizeMegaBytes: 10
+      attachmentCacheBound: 1024
+       
+      detectPublicIp: false
+      database:
+        transactionIsolationLevel: READ_COMMITTED
+        exportHibernateJMXStatistics: false
+      dbUrl: storedb
+      dbPort: 9101
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      dataSourceUrl: "jdbc:h2:tcp://storedb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+      jarPath: "/data/corda-workspace/h2/bin"
+      networkMapURL: https://networkmap.demo.corda.blockchaincloudpoc.com:8443
+      doormanURL: https://doorman.demo.corda.blockchaincloudpoc.com:8443
+      compatibilityZoneURL:
+      jarVersion: "4.0"
+      devMode: false
+      env:
+        - name: JAVA_OPTIONS
+          value: -Xmx512m
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: BASE_DIR
+          value: /base/corda
+    credentials:
+      dataSourceUser: sa
+      rpcUser:
+        - name: storeoperations
+          permissions: [ALL]
+
+    volume:
+      baseDir: /base/corda
+    resources:
+      limits: "1Gi"
+      requests: "1Gi" 
+    pvc:
+      name: store-pvc
+      annotations: {}
+      memory: 512Mi
+      storageClassName: awsstorageclass
+
+    service:
+      name: store
+      type: ClusterIP
+      p2p:
+        port: 10002
+        targetPort: 10002
+      rpc:
+        port: 10003
+        targetPort: 10003 
+      rpcadmin:
+        port: 10005
+        targetPort: 10005
+ 
+    ambassador:
+      annotations: |-
+        ---
+        apiVersion: ambassador/v1
+        kind: TLSContext
+        name: store_context
+        hosts:
+        - store.demo.corda.blockchaincloudpoc.com
+        secret: store-ambassador-certs
+        ---
+        apiVersion: ambassador/v1
+        kind: TCPMapping
+        name: store_p2p_mapping
+        port: 15010
+        host: store.demo.corda.blockchaincloudpoc.com
+        service: store.store-ns:10002
+        
+    deployment:
+      annotations: {}
+    vault:
+      address: http://a6b1eee14120111eabb36e61b3a46c3b-1570053847.eu-west-1.elb.amazonaws.com:9000
+      role: vault-role
+      authpath: cordastore
+      serviceaccountname: vault-auth
+      dbsecretprefix: store/credentials/database
+      rpcusersecretprefix: store/credentials/rpcusers
+      tokensecretprefix: store/credentials/vaultroottoken
+      keystoresecretprefix: store/credentials/keystore
+      certsecretprefix: store/certs
+      networkmapsecretprefix: store/credentials/networkmappassword
+
+          
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
