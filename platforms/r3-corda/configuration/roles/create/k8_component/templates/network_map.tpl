@@ -15,7 +15,6 @@ spec:
     nodeName: {{ component_name }}
     metadata:
       namespace: {{ component_ns }}
-      component_name: {{ component_name }}
       external_url_suffix: {{item.external_url_suffix}}
       servicePort: {{services.doorman.ports.servicePort}}
     image:
