@@ -21,7 +21,6 @@ pool_genesis_path=$8
 export VAULT_ADDR=$vault_addr
 export VAULT_TOKEN=$vault_token
 
-sudo apt-get install jq
 
 
 QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$admin_path/$admin_name/identity/public | jq -r 'if .errors then . else . end')
