@@ -111,24 +111,7 @@ spec:
       rpcadmin:
         port: {{ node.rpcadmin.port|e }}
         targetPort: {{ node.rpcadmin.targetPort|e }}
- 
-    ambassador:
-      annotations: |-
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: {{ component_name|e }}_context
-        hosts:
-        - {{ component_name|e }}.{{ item.external_url_suffix }}
-        secret: {{ component_name|e }}-ambassador-certs
-        ---
-        apiVersion: ambassador/v1
-        kind: TCPMapping
-        name: {{ component_name|e }}_p2p_mapping
-        port: {{ node.p2p.ambassador | default('10002') }}
-        host: {{ component_name|e }}.{{ item.external_url_suffix }}
-        service: {{ component_name|e }}.{{ component_ns }}:{{ node.p2p.port|e }}
-        
+         
     deployment:
       annotations: {}
     vault:
