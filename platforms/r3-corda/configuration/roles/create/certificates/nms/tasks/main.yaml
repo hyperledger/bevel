@@ -114,19 +114,11 @@
   shell: |
     vault kv put  {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
     vault kv put  {{ component_name }}/credentials/userpassword  sa="{{ userpassword_networkmap }}"
-    vault kv put  {{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put  {{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)" mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongCA.crt | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: networkmap_certs.failed == True
-
-
-- name: Putting mongodb certificates for networkmap in vault.
-  shell: |
-    vault kv put {{ component_name }}/certs mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongCA.crt | base64)"
-  environment:
-    VAULT_ADDR: "{{ vault.url}}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
 
 
 - name: Create Ambassador certificates
