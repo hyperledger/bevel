@@ -3,10 +3,28 @@ apiVersion: v1
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{ if $.Values.ambassador.annotations }}
+  {{ if $.Values.ambassador }}
   annotations:
     getambassador.io/config: | 
-    {{ $.Values.ambassador.annotations  | nindent 6 }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      name: {{ .Values.ambassador.name }}_api_context
+      hosts:
+      - {{ .Values.ambassador.name }}api.{{ .Values.ambassador.external_url_suffix }}
+      {{ if eq .Values.ambassador.type "fabric" }}
+      secret: {{ .Values.ambassador.peer_name }}-{{ .Values.metadata.namespace }}-ambassador-certs
+      {{ else }}
+      secret: {{ .Values.ambassador.peer_name }}-ambassador-certs
+      {{ end }}
+      ---
+      apiVersion: ambassador/v1
+      kind: Mapping
+      name: {{ .Values.ambassador.name }}_api_p2p_mapping
+      prefix: /
+      host: {{ .Values.ambassador.name }}api.{{ .Values.ambassador.external_url_suffix }}:8443
+      service: {{ .Values.ambassador.name }}-expressapi.{{ .Values.metadata.namespace }}:{{ .Values.expressapp.nodePorts.port }}
+      tls: false
   {{ end }}
   labels:
     run: {{ .Values.nodeName }}
