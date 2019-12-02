@@ -1,20 +1,19 @@
 ############################################################################################
 # This task initiates the nested join channel role to internally join the peers in various permutations
 
-# Check or wait for the peer
-- name: "Check peer pod is up"
+# Check or wait for the create channel job to complete
+- name: "Check create channel job is done"
   k8s_facts:
-    kind: Service
-    name: "{{ peer.name }}"
+    kind: Job
     namespace: "{{ participant.name | lower}}-net"
     kubeconfig: "{{ org.k8s.config_file }}"
     context: "{{ org.k8s.context }}"
-  loop: "{{ participant.peers }}"
-  loop_control:
-    loop_var: peer
+    label_selectors:
+      - app = createchannel-{{ channel_name }}
+  when: participant.type == 'creator'
   register: get_peer
-  until: get_peer.resources|length > 0
-  retries: 10
+  until: (1 in get_peer|json_query('resources[*].status.succeeded'))
+  retries: "{{ network.env.retry_count}}"
   delay: 40
 
 # Creeate the join channel value file for each participating peer
