@@ -1,7 +1,7 @@
 apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
-  name: {{ peer_name }}-expressapi
+  name: {{ name }}-expressapi
   namespace: {{ component_ns }}
   annotations:
     flux.weave.works/automated: "false"
@@ -10,9 +10,9 @@ spec:
     path: {{ component_gitops.chart_source }}/expressapp
     git: "{{ component_gitops.git_ssh }}"
     ref: "{{ component_gitops.branch }}"
-  releaseName: {{ peer_name }}-expressapi
+  releaseName: {{ name }}-expressapi
   values:
-    nodeName: {{ peer_name }}-expressapi
+    nodeName: {{ name }}-expressapi
     metadata:
       namespace: {{ component_ns }}
     replicaCount: 1
@@ -29,6 +29,6 @@ spec:
         apiUrl: {{ url }}:{{ peer_restserver_port }}/api/v1
     ambassador:
       name: {{ name }}
-      type: corda
+      type: fabric
       external_url_suffix: {{ organization_data.external_url_suffix }}
       peer_name: {{ peer_name }}
