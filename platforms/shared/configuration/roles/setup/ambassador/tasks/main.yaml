@@ -6,7 +6,7 @@
     json=$(echo "{{ stewards }}" | tr -d ' ' | sed "s/'/\"/g" | sed "s/u\"/\"/g" | sed "s/None/\"None\"/g" | sed "s/True/\"True\"/g" | sed "s/False/\"False\"/g")
     length=$(echo "${json}" | jq '.[] | length')
     index=0
-    port=""
+    ports=""
     while [[ ${index} < ${length} ]]
     do
       steward=$( echo ${json} | jq ".[${index}]")
@@ -15,15 +15,15 @@
       client_port=$(echo ${steward} | jq '.client.ambassador' | tr -d '"')
       if [[ ${name} != null ]]
       then
-        if [[ ${port} != "" ]]
+        if [[ ${ports} != "" ]]
         then
-          port+=,
+          ports+=,
         fi
-        port+=${node_port},${client_port}
+        ports+=${node_port},${client_port}
       fi
       index=$(( ${index} + 1 ))
     done
-    echo ${port}
+    echo ${ports}
   register: terminal
   when: network['type'] == 'indy'
 
