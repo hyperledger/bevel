@@ -3,10 +3,39 @@ kind: Service
 metadata:
   name: {{ $.Values.orderer.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{ if $.Values.ambassador.annotations }}
+  {{ if $.Values.ambassador }}
   annotations:
     getambassador.io/config: | 
-    {{ $.Values.ambassador.annotations  | nindent 6 }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      name: tls_context_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
+      hosts:
+      - {{ $.Values.orderer.name }}.{{ $.Values.ambassador.external_url_suffix }}
+      secret: {{ $.Values.orderer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
+      alpn_protocols: h2
+      ---
+      apiVersion: ambassador/v1
+      kind: Mapping
+      tls: tls_context_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
+      grpc: True
+      name: orderer_mapping_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
+      headers:
+        :authority: {{ $.Values.orderer.name }}.{{ $.Values.ambassador.external_url_suffix }}:8443
+      prefix: /
+      rewrite: /
+      service: https://{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:7050
+      ---
+      apiVersion: ambassador/v1
+      kind: Mapping
+      tls: tls_context_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
+      grpc: True
+      name: orderer_mapping_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}_rest
+      headers:
+        :authority: {{ $.Values.orderer.name }}.{{ $.Values.ambassador.external_url_suffix }}
+      prefix: /
+      rewrite: /
+      service: https://{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:7050
   {{ end }}
   labels:
     run: {{ $.Values.orderer.name }}
