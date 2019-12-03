@@ -28,20 +28,7 @@ spec:
       env:
         apiUrl: {{ url }}:{{ peer_restserver_port }}/api/v1
     ambassador:
-      annotations: |-
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: {{ peer_name }}_api_context
-        hosts:
-        - {{ peer_name }}api.{{ organization_data.external_url_suffix }}
-        secret: {{ peer_name }}-ambassador-certs
-        ---
-        apiVersion: ambassador/v1
-        kind: Mapping
-        name: {{ peer_name }}_api_p2p_mapping
-        prefix: /
-        host: {{ peer_name }}api.{{ organization_data.external_url_suffix }}:8443
-        service: {{ peer_name }}-expressapi.{{ component_ns }}:{{ peer_expressapi_port }}
-        timeout_ms: 20000
-        tls: false 
+      name: {{ name }}
+      type: corda
+      external_url_suffix: {{ organization_data.external_url_suffix }}
+      peer_name: {{ peer_name }}

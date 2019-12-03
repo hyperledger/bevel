@@ -62,35 +62,5 @@ spec:
 {% endif %}
           
     ambassador:
-      annotations: |- 
-          ---
-          apiVersion: ambassador/v1
-          kind: TLSContext
-          name: tls_context_{{ peer_name }}_{{ peer_ns }}
-          hosts:
-          - {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}
-          secret: {{ peer_name }}-{{ peer_ns }}-ambassador-certs
-          alpn_protocols: h2
-          ---
-          apiVersion: ambassador/v1
-          kind: Mapping
-          tls: tls_context_{{ peer_name }}_{{ peer_ns }}
-          grpc: True
-          name: {{ peer_name }}_{{ peer_ns }}_mapping
-          headers:
-            :authority: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:8443
-          prefix: /
-          rewrite: /
-          service: https://{{ peer_name }}.{{ peer_ns }}:7051
-          ---
-          apiVersion: ambassador/v1
-          kind: Mapping
-          tls: tls_context_{{ peer_name }}_{{ peer_ns }}
-          grpc: True
-          name: {{ peer_name }}_{{ peer_ns }}_mapping_rest
-          headers:
-            :authority: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}
-          prefix: /
-          rewrite: /
-          service: https://{{ peer_name }}.{{ peer_ns }}:7051
+      external_url_suffix: {{ item.external_url_suffix }}
 
