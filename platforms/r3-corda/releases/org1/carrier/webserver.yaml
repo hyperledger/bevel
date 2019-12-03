@@ -1,0 +1,77 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: carrier-springboot
+  namespace: carrier-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: carrier-springboot
+  chart:
+    path: examples/supplychain-app/charts/springbootwebserver
+    git: "ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git"
+    ref: "feature/bafdemo"
+  values:
+    nodeName: carrier-springboot
+    replicas: 1
+    metadata:
+      namespace: carrier-ns
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/supplychain_corda/springboot_server:latest
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+    smartContract:
+      JAVA_OPTIONS : -Xmx512m
+    volume:
+      mountPath: /opt/corda
+    nodeConf:
+      node: carrier
+      nodeRpcPort: 10003
+      nodeRpcAdminPort: 10005
+      controllerName: Controller
+      trustStorePath: /opt/corda/certificates/sslkeystore.jks
+      trustStoreProvider: jks
+      legalName: O=Carrier,OU=Carrier,L=London,C=GB
+      devMode: false
+      useHTTPS: true
+      useSSL: false
+      tlsAlias: cordaclienttls
+      ssl:
+        certificatesDirectory: na-ssl-false
+        sslKeystoreFileName: na-ssl-false
+        ssltruststore: na-ssl-false
+    credentials:
+      rpcUser: carrieroperations
+    resources:
+      limits: "512Mi"
+      requests: "512Mi"
+    storage:
+      provisioner: kubernetes.io/aws-ebs
+      memory: 512Mi
+      name: awsstorageclass
+      parameters:
+        type: gp2
+        encrypted: "true"
+      annotations: {}
+    web:
+      targetPort: 20001
+      port: 20001
+    service:
+      type: NodePort
+      annotations: {}
+    vault:
+      address: "http://a6b1eee14120111eabb36e61b3a46c3b-1570053847.eu-west-1.elb.amazonaws.com:9000"
+      role: vault-role
+      authpath: cordacarrier
+      serviceaccountname: vault-auth
+      rpcusersecretprefix: carrier/credentials/rpcusers
+      keystoresecretprefix: carrier/credentials/keystore
+      certsecretprefix: carrier/certs
+    node:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
