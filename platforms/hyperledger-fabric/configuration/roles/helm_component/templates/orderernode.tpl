@@ -53,37 +53,7 @@ spec:
 {% endif %}
 
     ambassador:
-      annotations: |- 
-          ---
-          apiVersion: ambassador/v1
-          kind: TLSContext
-          name: tls_context_{{ orderer.name }}_{{ namespace }}
-          hosts:
-          - {{ orderer.name }}.{{item.external_url_suffix}}
-          secret: {{ orderer.name }}-{{ namespace }}-ambassador-certs
-          alpn_protocols: h2
-          ---
-          apiVersion: ambassador/v1
-          kind: Mapping
-          tls: tls_context_{{ orderer.name }}_{{ namespace }}
-          grpc: True
-          name: orderer_mapping_{{ orderer.name }}_{{ namespace }}
-          headers:
-            :authority: {{ orderer.name }}.{{item.external_url_suffix}}:8443
-          prefix: /
-          rewrite: /
-          service: https://{{ orderer.name }}.{{ namespace }}:7050
-          ---
-          apiVersion: ambassador/v1
-          kind: Mapping
-          tls: tls_context_{{ orderer.name }}_{{ namespace }}
-          grpc: True
-          name: orderer_mapping_{{ orderer.name }}_{{ namespace }}_rest
-          headers:
-            :authority: {{ orderer.name }}.{{item.external_url_suffix}}
-          prefix: /
-          rewrite: /
-          service: https://{{ orderer.name }}.{{ namespace }}:7050
+      external_url_suffix: {{ item.external_url_suffix }}
 
     genesis: |-
 {{ genesis | indent(width=6, indentfirst=True) }}
