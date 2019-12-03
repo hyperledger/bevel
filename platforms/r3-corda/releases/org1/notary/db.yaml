@@ -1,0 +1,47 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: notarydb
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: supplychain-ns
+spec:
+  releaseName: notarydb
+  chart:
+    path: platforms/r3-corda/charts/h2
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+  values:
+    replicaCount: 1
+    nodeName: notary
+    metadata:
+      namespace: supplychain-ns
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/h2:2018
+      imagePullSecret: regcred
+    resources:
+      limits: "512Mi"
+      requests: "512Mi"
+    storage:
+      memory: 512Mi
+      mountPath: "/opt/h2-data"
+      name: awsstorageclass
+    service:
+      type: NodePort
+      p2p:
+        port: 10002
+      rpc:
+        port: 10003
+      rpcadmin:
+        port: 10005
+      tcp:
+        port: 9101
+        targetPort: 1521
+      web:
+        targetPort: 81
+        port: 8080
+      annotations: {}
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
