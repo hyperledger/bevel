@@ -18,6 +18,15 @@
       git_path: "{{ item.gitops.release_dir }}"
       git_host: "{{ item.gitops.git_push_url.split('/')[0] | lower }}" # extract the hostname from the git_push_url
     with_items: "{{ network.organizations }}"
+  - name: Prepare nodes and clients ports for ambassador
+    vars:
+      name: "{{ organizationItem.name }}"
+    set_fact:
+      stewards: "{{ stewards | default([]) + organizationItem.services.stewards | list }}"
+    loop: "{{ network.organizations }}"
+    loop_control:
+      loop_var: organizationItem
+    when: organizationItem.services.stewards is defined and network['type'] == 'indy'
   - include_role:
       name: setup/ambassador
     vars:
