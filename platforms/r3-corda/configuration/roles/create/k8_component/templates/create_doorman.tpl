@@ -15,8 +15,6 @@ spec:
     nodeName: {{ services.doorman.name }}
     metadata:
       namespace: {{component_ns }}
-      external_url_suffix: {{item.external_url_suffix}}
-      servicePort: {{services.doorman.ports.servicePort}}
     image:
       authusername: sa
       containerName: {{ network.docker.url }}/doorman:latest
@@ -69,5 +67,8 @@ spec:
       annotations: {}
     pvc:
       annotations: {}
+    ambassador:
+      external_url_suffix: {{item.external_url_suffix}}
+      
     
         

@@ -15,11 +15,7 @@ spec:
     nodeName: {{ component_name }}
     replicas: 1
     metadata:
-      namespace: {{ component_ns }}  
-      component_name: {{ component_name | e }}
-      external_url_suffix: {{ item.external_url_suffix }}
-      p2p_ambassador: {{ node.p2p.ambassador | default('10002') }}
-      port: {{node.p2p.port|e}}
+      namespace: {{ component_ns }}
     image:
       containerName: {{ network.docker.url }}/{{ docker_image }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
@@ -130,3 +126,8 @@ spec:
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
+    ambassador:
+      component_name: {{ component_name | e }}
+      external_url_suffix: {{ item.external_url_suffix }}
+      p2p_ambassador: {{ node.p2p.ambassador | default('10002') }}
+      
