@@ -16,6 +16,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ambassador
+  namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -30,12 +31,16 @@ subjects:
   name: ambassador
   namespace: default
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ambassador
+  namespace: default
 spec:
   replicas: 3
+  selector:
+    matchLabels:
+      name: ambassador
   template:
     metadata:
       annotations:
@@ -43,8 +48,8 @@ spec:
         "consul.hashicorp.com/connect-inject": "false"
       labels:
         service: ambassador
-        app.kubernetes.io/name: ambassador
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        name: ambassador
+        instance: {{ .Release.Name }}
     spec:
       affinity:
         podAntiAffinity:
