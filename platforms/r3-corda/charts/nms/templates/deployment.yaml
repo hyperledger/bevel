@@ -143,6 +143,7 @@ spec:
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
           VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+          echo "VAULT TOKEN IS : ${VAULT_TOKEN}"
           validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
 
           OUTPUT_PATH=${MOUNT_PATH}
@@ -298,3 +299,4 @@ spec:
         - name: tls-certs
           emptyDir:
           medium: Memory
+
