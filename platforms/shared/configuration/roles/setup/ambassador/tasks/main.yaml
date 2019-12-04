@@ -6,26 +6,28 @@
     json=$(echo "{{ stewards }}" | tr -d ' ' | sed "s/'/\"/g" | sed "s/u\"/\"/g" | sed "s/None/\"None\"/g" | sed "s/True/\"True\"/g" | sed "s/False/\"False\"/g")
     length=$(echo "${json}" | jq '.[] | length')
     index=0
-    ports=""
+    declare -A ports
     while [[ ${index} < ${length} ]]
     do
       steward=$( echo ${json} | jq ".[${index}]")
       name=$(echo ${steward} | jq '.name' | tr -d '"')
+      ip=$(echo ${steward} | jq '.publicIp' | sed 's/\./_/g' | sed 's/"/ip/g')
       node_port=$(echo ${steward} | jq '.node.ambassador' | tr -d '"')
       client_port=$(echo ${steward} | jq '.client.ambassador' | tr -d '"')
       if [[ ${name} != null ]]
       then
-        if [[ ${ports} != "" ]]
+        if [[ ${ports["${ip}"]} != "" ]]
         then
-          ports+=,
+          ports+=( ["${ip}"]+=, )
         fi
-        ports+=${node_port},${client_port}
+        ports+=( ["${ip}"]+=${node_port},${client_port} )
       fi
       index=$(( ${index} + 1 ))
     done
-    echo ${ports}
+    key=ip$(echo {{ item.services.stewards[0].publicIp }} | sed 's/\./_/g')ip
+    echo ${ports["${key}"]}
   register: terminal
-  when: network['type'] == 'indy'
+  when: network['type'] == 'indy' and item.services.stewards is defined
 
 - name: Get Elastic IP
   environment:
