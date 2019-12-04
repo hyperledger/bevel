@@ -40,9 +40,12 @@ spec:
           {{- range $.Values.image.env }}
           export {{ .name }}="{{ .value }}"
           {{- end }}
+          export NETWORKMAP_TLS_CERT_PATH="{{ .Values.image.mountPath.basePath }}-tls/certs/networkmap.crt"
+          export NETWORKMAP_TLS_KEY_PATH="{{ .Values.image.mountPath.basePath }}-tls/certs/networkmap.key"
           export DB_PASSWORD=`cat /opt/creds/db_root_password`
-          export NETWORKMAP_MONGO_CONNECTION_STRING="mongodb://${DB_USERNAME}:${DB_PASSWORD}@${DB_URL}:${DB_PORT}/${DATABASE}"
+          export NETWORKMAP_MONGO_CONNECTION_STRING="mongodb://${DB_USERNAME}:${DB_PASSWORD}@${DB_URL}:${DB_PORT}/${DATABASE}?ssl=true&sslInvalidHostNameAllowed=true&streamType=netty"
           export NETWORKMAP_AUTH_PASSWORD=`cat /opt/creds/user_cred`
+          yes | keytool -importcert -file {{ .Values.image.mountPath.basePath }}-tls/certs/mongoCA.crt -storepass changeit -alias mongoca -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts
           java -jar {{ .Values.image.mountPath.basePath }}/network-map-service.jar 2>&1
         ports:
           - containerPort: {{ .Values.service.targetPort }}
@@ -56,6 +59,9 @@ spec:
           - name: creds
             mountPath: "/opt/creds"
             readOnly: false
+          - name: tls-certs
+            mountPath: "{{ .Values.image.mountPath.basePath }}-tls/certs/"
+            readOnly: false   
       initContainers:
       - name: init-certificates
         image: {{ .Values.image.initContainerName }}
@@ -107,6 +113,62 @@ spec:
         volumeMounts:
         - name: certs
           mountPath: "{{ .Values.image.mountPath.basePath }}/db/certs/"
+          readOnly: false
+      - name: init-certificates-tls
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: {{ .Values.image.mountPath.basePath }}-tls/certs/
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          validateVaultResponse () {
+            if echo ${2} | grep "errors"; then
+               echo "ERROR: unable to retrieve ${1}: ${2}"
+               exit 1
+            fi
+          }
+          
+          # setting up env to get secrets from vault   
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+          validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+          OUTPUT_PATH=${MOUNT_PATH}
+          
+          if [ "{{ .Values.image.tlsCertificate }}" == true ]
+          then                
+             # get networkmap tls cert and key from vault
+             LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.tlscertsecretprefix }} | jq -r 'if .errors then . else . end')            
+             validateVaultResponse "secret (${{ .Values.vault.tlscertsecretprefix }})" "${LOOKUP_SECRET_RESPONSE}"           
+             NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.crt"]')
+             NETWORKMAP_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.key"]')
+             echo "${NETWORKMAP_CRT}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/networkmap.crt 
+             echo "${NETWORKMAP_KEY}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/networkmap.key 
+          fi    
+          
+          # get mongo tls cert from vault
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.dbcertsecretprefix }} | jq -r 'if .errors then . else . end')         
+          validateVaultResponse "secret {{ .Values.vault.dbcertsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}"
+          CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["mongoCA.crt"]')
+          echo "${CA_CERT}" | base64 -d > ${OUTPUT_PATH}/mongoCA.crt   
+
+          # add permissions to dir
+          chmod 777 -R {{ .Values.image.mountPath.basePath }}-tls/certs/             
+        volumeMounts:
+        - name: tls-certs
+          mountPath: "{{ .Values.image.mountPath.basePath }}-tls/certs/"
           readOnly: false
       - name: init-certificates-cred
         image: {{ .Values.image.initContainerName }}
@@ -231,5 +293,8 @@ spec:
           emptyDir:
           medium: Memory
         - name: creds
+          emptyDir:
+          medium: Memory
+        - name: tls-certs
           emptyDir:
           medium: Memory
