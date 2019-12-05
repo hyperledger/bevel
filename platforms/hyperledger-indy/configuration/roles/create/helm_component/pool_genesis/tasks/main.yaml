@@ -19,7 +19,7 @@
 
 ################################################################################################
 # This tasks gets data from vault
-- name: Generate domain genesis for organization
+- name: Generate pool genesis for organization
   shell: |
     pool_genesis=""
     seqNo=1
@@ -31,7 +31,7 @@
             bls_key_pop="$(curl --header "X-Vault-Token:{{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/stewards/"{{ steward.name }}"/node/public/bls_keys | jq -r 'if .errors then . else .data."bls-key-pop" end')"
             ver_key="$(curl --header "X-Vault-Token:{{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/stewards/"{{ steward.name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end')"
             did="$(curl --header "X-Vault-Token:{{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/stewards/"{{ steward.name }}"/identity/public | jq -r 'if .errors then . else .data.did end')"
-            txn_id=$(echo ${alias} | sha256sum | awk '{print $1})
+            txn_id=$(echo ${alias}-${seqNo} | sha256sum | awk '{print $1}')
             json=$( jq -n -c \
                 --arg alias "{{ organization.name }}-{{ steward.name }}" \
                 --arg blskey "${bls_key}" \
