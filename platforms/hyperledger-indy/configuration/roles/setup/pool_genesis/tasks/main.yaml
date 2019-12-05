@@ -1,0 +1,43 @@
+###################################################################################################
+# This role creates the values files for organizations domain genesis and pushes them to repository
+###################################################################################################
+
+# Create  pool genesis variable
+- name: 'Create pool genesis'
+  include_role:
+    name: create/helm_component/pool_genesis
+  vars:
+    component_type: "pool_genesis"
+    chartName: "pool_genesis"
+
+#---------------------------------------------------------------------
+#push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    gitops: "{{ organizationItem.gitops }}"
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "Pushing configmap files for {{ organizationItem.name }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem
+
+#---------------------------------------------------------------------
+#Wait until domain genesis configmap are created
+- name: "Wait until domain genesis configmap are created"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ConfigMap"
+    kubernetes: "{{ organizationItem.k8s }}"
+    component_name: "{{ organizationItem.name }}-pool-transactions-genesis"
+    component_ns: "{{ organizationItem.name | lower }}-ns"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem
