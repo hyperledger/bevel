@@ -18,5 +18,5 @@ spec:
     organization:
       name: {{ organizationItem.name }}
     configmap:
-      domain_transactions_genesis: |-
+      domainGenesis: |-
         {{ domain_genesis_values }}
