@@ -81,7 +81,7 @@ spec:
     storage:
       data:
         storagesize: 1Gi
-        storageClassName: {{ organizationItem.cloud_provider }}storageclass
+        storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
       keys:
         storagesize: 1Gi
-        storageClassName: {{ organizationItem.cloud_provider }}storageclass
+        storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
