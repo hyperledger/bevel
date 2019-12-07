@@ -40,6 +40,7 @@ spec:
       role: vault-role
       authpath: {{ namespace }}-auth
       secretprefix: secret/crypto/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
+      secretambassador: secret/crypto/ordererOrganizations/{{ namespace }}/ambassador
       imagesecretname: regcred
       serviceaccountname: vault-auth
 {% if orderer.consensus == 'kafka' %}
