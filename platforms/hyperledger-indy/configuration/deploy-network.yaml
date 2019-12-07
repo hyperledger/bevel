@@ -70,6 +70,23 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
+  # Admin K8S auth
+  - name: Admin K8S auth
+    include_role:
+      name: setup/vault_kubernetes
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}-baf-ac-vault-auth"
+      component_type: "GetServiceAccount"
+      vault: "{{ organizationItem.vault }}"
+      auth_path: "{{ organization }}-net-auth"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy' and {{ organizationItem.vault.root_token }} is defined
+
   # Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
     include_role:
