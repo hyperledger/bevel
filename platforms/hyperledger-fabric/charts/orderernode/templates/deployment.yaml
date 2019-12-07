@@ -102,6 +102,8 @@ spec:
           value: {{ $.Values.vault.address }}
         - name: VAULT_SECRET_PREFIX
           value: "{{ $.Values.vault.secretprefix }}"
+        - name: AMBASSADOR_SECRETS
+          value: "{{ $.Values.vault.secretambassador }}"
         - name: KUBERNETES_AUTH_PATH
           value: {{ $.Values.vault.authpath }}
         - name: VAULT_APP_ROLE
@@ -145,6 +147,18 @@ spec:
           echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
           echo "${TLS_SERVER_CERT}" >> ${OUTPUT_PATH}/server.crt
           echo "${TLS_SERVER_KEY}" >> ${OUTPUT_PATH}/server.key
+          
+          vault_secret_key="${AMBASSADOR_SECRETS}"
+          echo "Getting Ambassador certificates from Vault using key $vault_secret_key"
+
+          OUTPUT_PATH="${MOUNT_PATH}/ambassador"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+          TLS_CLIENT_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["certificate"]')
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CLIENT_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/msp"
           echo "Getting MSP certificates from Vault using key $vault_secret_key"
