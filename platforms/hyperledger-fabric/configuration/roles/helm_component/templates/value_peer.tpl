@@ -38,6 +38,7 @@ spec:
       address: {{ vault.url }}
       authpath: {{ namespace }}-auth
       secretprefix: secret/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
+      secretambassador: secret/crypto/peerOrganizations/{{ namespace }}/ambassador
       serviceaccountname: vault-auth
       imagesecretname: regcred
       secretcouchdbpass: secret/credentials/{{ namespace }}/couchdb/{{ name }}?user
