@@ -31,7 +31,7 @@ spec:
 
               KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
 
-              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.account.role }}"}' {{ $.Values.vault.address }}/v1/auth/kubernetes/login | jq -j '.auth.client_token' > token;
+              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.account.role }}"}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
               VAULT_TOKEN=$(cat token);
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}";
 
