@@ -1,0 +1,34 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: warehouse-frontend
+  namespace: warehouse-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  chart:
+    path: examples/supplychain-app/charts/frontend
+    git: "ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git"
+    ref: "feature/bafdemo"
+  releaseName: warehouse-frontend
+  values:
+    nodeName: warehouse-frontend
+    metadata:
+      namespace: warehouse-net
+    replicaCount: 1
+    frontend:
+      serviceType: ClusterIP
+      nodePorts:
+        port: 8080
+        targetPort: 80
+      image: adopblockchaincloud0502.azurecr.io/supplychain_frontend:latest
+      pullPolicy: Always
+      pullSecrets: regcred
+      env:
+        webserver: https://warehouseapi.fabric.demo.blockchaincloudpoc.com:8443
+    deployment:
+      annotations: {}
+    ambassador:
+      peer_name: warehouse
+      external_url_suffix: fabric.demo.blockchaincloudpoc.com
+      ambassador_secret: peer0-warehouse-net-ambassador-certs
