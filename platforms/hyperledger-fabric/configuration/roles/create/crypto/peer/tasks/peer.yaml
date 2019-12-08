@@ -41,9 +41,11 @@
 - name: Generate the peer certificate
   shell: |
     cd "./build/crypto-config/peerOrganizations/{{ component_name }}"
-    openssl ecparam -name prime256v1 -genkey -noout -out {{ peer.name }}-{{ component_name }}.key
-    openssl req -config "{{ playbook_dir }}/openssl.conf" -new -nodes -key {{ peer.name }}-{{ component_name }}.key -days 1000 -out {{ peer.name }}-{{ component_name }}.csr -extensions v3_req -subj "/{{ cert_subject }}/CN={{ peer.name }}.{{ component_name }}.{{item.external_url_suffix}}"
-    openssl x509 -extfile "{{ playbook_dir }}/openssl.conf" -req -days 1000 -in {{ peer.name }}-{{ component_name }}.csr -CA ./ca/ca.{{ component_name }}-cert.pem -CAkey ./ca/{{ component_name }}-CA.key -out {{ peer.name }}-{{ component_name }}.pem -set_serial 01 -extensions v3_req
+    cp ./peers/{{ peer.name }}.{{ component_name }}/tls/server.key {{ peer.name }}-{{ component_name }}.key
+    cp ./peers/{{ peer.name }}.{{ component_name }}/tls/server.crt {{ peer.name }}-{{ component_name }}.pem
+    #openssl ecparam -name prime256v1 -genkey -noout -out {{ peer.name }}-{{ component_name }}.key
+    #openssl req -config "{{ playbook_dir }}/openssl.conf" -new -nodes -key {{ peer.name }}-{{ component_name }}.key -days 1000 -out {{ peer.name }}-{{ component_name }}.csr -extensions v3_req -subj "/{{ cert_subject }}/CN={{ peer.name }}.{{ component_name }}.{{item.external_url_suffix}}"
+    #openssl x509 -extfile "{{ playbook_dir }}/openssl.conf" -req -days 1000 -in {{ peer.name }}-{{ component_name }}.csr -CA ./ca/ca.{{ component_name }}-cert.pem -CAkey ./ca/{{ component_name }}-CA.key -out {{ peer.name }}-{{ component_name }}.pem -set_serial 01 -extensions v3_req
     cat {{ peer.name }}-{{ component_name }}.pem > {{ peer.name }}-{{ component_name }}-certchain.pem
     cat ./ca/ca.{{ component_name }}-cert.pem >> {{ peer.name }}-{{ component_name }}-certchain.pem
   when:  get_peer_secret.resources|length == 0 and vault_peer_ambassador.failed == True
@@ -57,7 +59,7 @@
  # This task copy the orderer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault write secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador certificate="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem")" key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key")"
+    vault write secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador clientcert="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.pem")" certificate="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem")" key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key")"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

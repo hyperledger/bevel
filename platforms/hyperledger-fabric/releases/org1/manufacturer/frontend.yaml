@@ -1,0 +1,34 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: manufacturer-frontend
+  namespace: manufacturer-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  chart:
+    path: examples/supplychain-app/charts/frontend
+    git: "ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git"
+    ref: "feature/bafdemo"
+  releaseName: manufacturer-frontend
+  values:
+    nodeName: manufacturer-frontend
+    metadata:
+      namespace: manufacturer-net
+    replicaCount: 1
+    frontend:
+      serviceType: ClusterIP
+      nodePorts:
+        port: 8080
+        targetPort: 80
+      image: adopblockchaincloud0502.azurecr.io/supplychain_frontend:latest
+      pullPolicy: Always
+      pullSecrets: regcred
+      env:
+        webserver: https://manufacturerapi.fabric.demo.blockchaincloudpoc.com:8443
+    deployment:
+      annotations: {}
+    ambassador:
+      peer_name: manufacturer
+      external_url_suffix: fabric.demo.blockchaincloudpoc.com
+      ambassador_secret: peer0-manufacturer-net-ambassador-certs
