@@ -4,7 +4,7 @@ set -x
 
 CURRENT_DIR=${PWD}
 FULLY_QUALIFIED_ORG_NAME="{{ component_ns }}"
-ALTERNATIVE_ORG_NAMES=("{{ component_ns }}.svc.cluster.local" "{{ component_name }}.net")
+ALTERNATIVE_ORG_NAMES=("{{ component_ns }}.svc.cluster.local" "{{ component_name }}.net" "{{ component_ns }}.{{ item.external_url_suffix }}")
 ORG_NAME="{{ component_name }}"
 AFFILIATION="{{ component_name }}"
 SUBJECT="C={{ component_country }},ST={{ component_state }},L={{ component_location }},O={{ component_name }}"
