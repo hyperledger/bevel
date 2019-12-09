@@ -29,10 +29,10 @@ spec:
         repository: {{ network.docker.url }}/indy-node:0.3.0.0
     node:
       name: {{ component_name }}
-      ip: {{ stewardItem.publicIp }}
+      ip: 0.0.0.0
       port: {{ stewardItem.node.port }}
     client:
-      ip: {{ stewardItem.publicIp }}
+      ip: 0.0.0.0
       port: {{ stewardItem.client.port }}
     service:
       ports:
