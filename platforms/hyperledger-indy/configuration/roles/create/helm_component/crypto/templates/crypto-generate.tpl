@@ -25,6 +25,7 @@ spec:
       address: {{ vault.url }}
       keyPath: {{ vault_path }}
       identity: {{ identity_name }}
+      auth_path: kubernetes-{{ organization }}-admin-auth
     account:
       service: {{ organization }}-admin-vault-auth
       role: rw
