@@ -12,25 +12,23 @@ metadata:
       apiVersion: ambassador/v1
       kind: TLSContext
       name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
-      hosts:
-      - {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
       secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
       alpn_protocols: h2
       ---
       apiVersion: ambassador/v1
       kind: Mapping
-      tls: true
+      tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
       grpc: True
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
       headers:
         :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}:8443
       prefix: /
       rewrite: /
-      service: https://{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:7051
+      service: https://{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
       ---
       apiVersion: ambassador/v1
       kind: Mapping
-      tls: true
+      tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
       grpc: True
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping_rest
       headers:
