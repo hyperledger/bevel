@@ -10,46 +10,47 @@ metadata:
     getambassador.io/config: |
       ---
       apiVersion: ambassador/v1
-      kind:  Module
-      name:  tls
-      config:
-        server:
-          enabled: true
-          alpn_protocols: h2
-        client:
-          enabled: false
-        upstream:
-          alpn_protocols: h2
-      ---
-      apiVersion: ambassador/v1
       kind: TLSContext
-      name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
-      hosts:
-      - {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
+      name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_context
       secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
-      alpn_protocols: h2
       ---
       apiVersion: ambassador/v1
-      kind: Mapping
-      tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
-      grpc: True
+      kind: TCPMapping
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
-      headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}:8443
-      prefix: /
-      rewrite: /
-      service: https://{{ $.Values.peer.name }}-0.{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
-      ---
-      apiVersion: ambassador/v1
-      kind: Mapping
-      tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
-      grpc: True
-      name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping_rest
-      headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
-      prefix: /
-      rewrite: /
-      service: https://{{ $.Values.peer.name }}-0.{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
+      port: 8443
+      host: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
+      tls: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_context
+      service: {{ $.Values.peer.name }}-0.{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
+      #---
+      #apiVersion: ambassador/v1
+      #kind: TLSContext
+      #name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
+      #hosts:
+      #- {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
+      #secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
+      #alpn_protocols: h2
+      #---
+      #apiVersion: ambassador/v1
+      #kind: Mapping
+      #tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
+      #grpc: True
+      #name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
+      #headers:
+      #  :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}:8443
+      #prefix: /
+      #rewrite: /
+      #service: https://{{ $.Values.peer.name }}-0.{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
+      #---
+      #apiVersion: ambassador/v1
+      #kind: Mapping
+      #tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
+      #grpc: True
+      #name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping_rest
+      #headers:
+      #  :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
+      #prefix: /
+      #rewrite: /
+      #service: https://{{ $.Values.peer.name }}-0.{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
   {{ end }}
   {{ if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
     cloud.google.com/load-balancer-type: "Internal"
