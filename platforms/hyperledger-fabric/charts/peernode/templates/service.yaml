@@ -18,8 +18,16 @@ metadata:
       alpn_protocols: h2
       ---
       apiVersion: ambassador/v1
+      kind: TLSContext
+      name: client_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
+      hosts:
+      - {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
+      secret: admin-{{ $.Values.metadata.namespace }}-ambassador-certs
+      alpn_protocols: h2
+      ---
+      apiVersion: ambassador/v1
       kind: Mapping
-      tls: true #tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
+      tls: client_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
       grpc: True
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
       headers:
