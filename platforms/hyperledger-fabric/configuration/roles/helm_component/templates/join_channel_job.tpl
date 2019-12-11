@@ -17,7 +17,7 @@ spec:
 
     peer:
       name: {{ peer_name }}
-      address: {{ peer_name }}.{{ component_ns }}:7051
+      address: {{ peer.gossipAddress }}
       localmspid: {{ org.name | lower}}MSP
       loglevel: debug
       tlsstatus: true
