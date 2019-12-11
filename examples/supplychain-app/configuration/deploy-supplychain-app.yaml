@@ -71,7 +71,7 @@
   ############################################################################################
   # Create frontend value file for the corda nodes
   - include_role:
-      name: "create/frontend"
+      name: "create/corda/frontend"
     vars:
       component_name: "frontend"
       component_ns: "{{ organization_data.name | lower }}-ns"
@@ -83,4 +83,21 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organization_data
-    when: network['frontend'] == 'enabled' and (component_type == 'peer' or component_type == 'node')
+    when: network['type'] == 'corda' and network['frontend'] == 'enabled' and component_type == 'node' 
+
+  ############################################################################################
+  # Create frontend value file for the corda nodes
+  - include_role:
+      name: "create/fabric/frontend"
+    vars:
+      component_name: "frontend"
+      component_ns: "{{ organization_data.name | lower }}-net"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      kubernetes: "{{ organization_data.k8s }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'fabric' and network['frontend'] == 'enabled' and component_type == 'peer' 
