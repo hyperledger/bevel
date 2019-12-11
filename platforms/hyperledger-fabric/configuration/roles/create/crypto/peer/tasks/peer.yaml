@@ -56,11 +56,11 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ peer.name }}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem --key=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key -n default
   when: get_peer_secret.resources|length == 0
 
- # This task copy the orderer certificates generated above, to the Vault
+ # This task copy the peer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
   shell: |
     vault write secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador clientcert="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.pem")" certificate="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem")" key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key")"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_orderer_ambassador.failed == True 
+  when: vault_peer_ambassador.failed == True 
