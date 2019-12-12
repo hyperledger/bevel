@@ -54,6 +54,7 @@ spec:
 
     ambassador:
       external_url_suffix: {{ item.external_url_suffix }}
+      ambassador_id: ambassador-{{ org_name }}
 
     genesis: |-
 {{ genesis | indent(width=6, indentfirst=True) }}
