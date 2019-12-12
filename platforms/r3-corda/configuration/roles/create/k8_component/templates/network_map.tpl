@@ -42,6 +42,7 @@ spec:
       - name: NETWORKMAP_MONGOD_DATABASE
         value: networkmap
       imagePullSecret: regcred
+      tlsCertificate: true
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
           basePath: /opt/networkmap
@@ -59,6 +60,7 @@ spec:
       dbcredsecretprefix: {{ component_name }}/credentials/mongodb
       secretnetworkmappass: {{ component_name }}/credentials/userpassword
       tlscertsecretprefix: {{ component_name }}/certs
+      dbcertsecretprefix: {{ component_name }}/certs
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
