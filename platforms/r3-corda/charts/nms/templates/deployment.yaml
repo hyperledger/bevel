@@ -155,13 +155,16 @@ spec:
              validateVaultResponse "secret (${{ .Values.vault.tlscertsecretprefix }})" "${LOOKUP_SECRET_RESPONSE}"           
              NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.crt"]')
              NETWORKMAP_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.key"]')
+             echo "check-1"
              echo "${NETWORKMAP_CRT}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/networkmap.crt 
              echo "${NETWORKMAP_KEY}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/networkmap.key 
           fi    
           
           # get mongo tls cert from vault
           LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.dbcertsecretprefix }} | jq -r 'if .errors then . else . end')         
+          echo "check-2"
           validateVaultResponse "secret {{ .Values.vault.dbcertsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}"
+          echo "check-3"
           CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["mongoCA.crt"]')
           echo "${CA_CERT}" | base64 -d > ${OUTPUT_PATH}/mongoCA.crt   
 
