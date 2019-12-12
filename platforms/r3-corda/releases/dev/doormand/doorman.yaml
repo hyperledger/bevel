@@ -1,0 +1,87 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: doormand
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: supplychaind-ns
+spec:
+  releaseName: doormand
+  chart:
+    path: platforms/r3-corda/charts/doorman
+    git: git@github.com:deepakkumardbd/blockchain-automation-framework.git
+    ref: nms-changes-to-implement-latest-chart-test
+  values:
+    nodeName: doormand
+    metadata:
+      namespace: supplychaind-ns
+    image:
+      authusername: sa
+      containerName: adopblockchaincloud0502.azurecr.io/doorman:latest
+      env:
+      - name: DOORMAN_PORT
+        value: 8080
+      - name: DOORMAN_ROOT_CA_NAME
+        value: CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE
+      - name: DOORMAN_TLS
+        value: false
+      - name: DOORMAN_DB
+        value: /opt/doorman/db
+      - name: DOORMAN_AUTH_USERNAME
+        value: sa
+      - name: DB_URL
+        value: mongodb-doormand
+      - name: DB_PORT
+        value: 27017
+      - name: DATABASE
+        value: admin
+      - name: DB_USERNAME
+        value: doormand
+      imagePullSecret: regcred
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      mountPath:
+        basePath: /opt/doorman
+    storage:
+      memory: 512Mi
+      name: awsstorageclass
+    mountPath:
+      basePath: /opt/doorman
+    vault:
+      address: http://vault.internal.development.aws.blockchaincloudpoc-develop.com:8200
+      role: vault-role
+      authpath: cordadoormand
+      serviceaccountname: vault-auth
+      certsecretprefix: doormand/certs
+      dbcredsecretprefix: doormand/credentials/mongodb
+      secretdoormanpass: doormand/credentials/userpassword
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
+      dburl: mongodb-doormand:27017
+    service:
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+      annotations: {}
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
+    ambassador:
+      annotations: |- 
+        ---
+        apiVersion: ambassador/v1
+        kind: Mapping
+        name: doormand_mapping
+        prefix: /
+        service: doormand.supplychaind-ns:8080
+        host: doormand.development.aws.blockchaincloudpoc-develop.com:8443
+        tls: false
+        ---
+        apiVersion: ambassador/v1
+        kind: TLSContext
+        name: doormand_mapping_tlscontext
+        hosts:
+        - doormand.development.aws.blockchaincloudpoc-develop.com
+        secret: doormand-ambassador-certs
+        
