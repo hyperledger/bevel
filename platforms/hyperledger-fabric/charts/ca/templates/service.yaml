@@ -10,30 +10,32 @@ metadata:
       ---
       apiVersion: ambassador/v1
       kind:  Mapping
-      {{ if eq (default $.Values.ambassador.type "test") "orderer" }}
-      name:  ca_orderer_{{ $.Values.ambassador.component_name }}_mapping
+      ambassador_id: {{ $.Values.ambassador.ambassador_id }}
+      {{ if eq $.Values.ambassador.type "orderer" }}
+      name:  ca_orderer_{{ $.Values.metadata.namespace }}_mapping
       {{ else }}
-      name:  ca_{{ $.Values.ambassador.component_name }}_mapping
+      name:  ca_{{ $.Values.metadata.namespace }}_mapping
       {{ end }}
       prefix: /
-      host: ca.{{ $.Values.ambassador.component_name }}:7054
-      service: ca.{{ $.Values.ambassador.component_name }}:7054
-      {{ if eq (default $.Values.ambassador.type "test") "orderer" }}
-      tls: ca_orderer_{{ $.Values.ambassador.component_name }}_tls
+      host: ca.{{ $.Values.metadata.namespace }}:7054
+      service: ca.{{ $.Values.metadata.namespace }}:7054
+      {{ if eq $.Values.ambassador.type "orderer" }}
+      tls: ca_orderer_{{ $.Values.metadata.namespace }}_tls
       {{ else }}
-      tls: ca_{{ $.Values.ambassador.component_name }}_tls
+      tls: ca_{{ $.Values.metadata.namespace }}_tls
       {{ end }}
       ---
       apiVersion: ambassador/v1
       kind: TLSContext
-      {{ if eq (default $.Values.ambassador.type "test") "orderer" }}
-      name: ca_orderer_{{ $.Values.ambassador.component_name }}_tls
+      ambassador_id: {{ $.Values.ambassador.ambassador_id }}
+      {{ if eq $.Values.ambassador.type "orderer" }}
+      name: ca_orderer_{{ $.Values.metadata.namespace }}_tls
       {{ else }}
-      name: ca_{{ $.Values.ambassador.component_name }}_tls
+      name: ca_{{ $.Values.metadata.namespace }}_tls
       {{ end }}
       hosts:
-      - ca.{{ $.Values.ambassador.component_name }}
-      secret: ca-{{ $.Values.ambassador.component_name }}-ambassador-certs
+      - ca.{{ $.Values.metadata.namespace }}
+      secret: ca-{{ $.Values.metadata.namespace }}-ambassador-certs
   {{ end }}
   labels:
     run: {{ $.Values.server.name }}
