@@ -44,7 +44,8 @@ spec:
       secretcouchdbpass: secret/credentials/{{ namespace }}/couchdb/{{ name }}?user
 
     service:
-      servicetype: ClusterIP
+      servicetype: LoadBalancer
+      loadBalancerType: "nlb"
       ports:
         grpc:
           clusteripport: {{ peer.grpc.port }}
