@@ -6,53 +6,8 @@ metadata:
   {{ if or $.Values.ambassador (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
   annotations:
   {{ end }}
-  {{ if $.Values.ambassador }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v1
-      kind: TLSContext
-      ambassador_id: {{ $.Values.ambassador.ambassador_id }}
-      name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
-      hosts:
-      - "*"
-      #- {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
-      secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
-      #client-{{ $.Values.metadata.namespace }}-ambassador-certs
-      #ca_secret: client-cacert-{{ $.Values.metadata.namespace }}
-      alpn_protocols: h2
-      #---
-      #apiVersion: ambassador/v1
-      #kind: TLSContext
-      #ambassador_id: {{ $.Values.ambassador.ambassador_id }}
-      #name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
-      #secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
-      #ca_secret: client-cacert-{{ $.Values.metadata.namespace }}
-      #alpn_protocols: h2
-      ---
-      apiVersion: ambassador/v1
-      kind: Mapping
-      ambassador_id: {{ $.Values.ambassador.ambassador_id }}
-      #tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
-      grpc: True
-      name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
-      headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}:{{ $.Values.ambassador.port }}
-      prefix: /
-      rewrite: /
-      service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
-      ---
-      apiVersion: ambassador/v1
-      kind: Mapping
-      ambassador_id: {{ $.Values.ambassador.ambassador_id }}
-      #tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
-      grpc: True
-      name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping_rest
-      headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
-      prefix: /
-      rewrite: /
-      service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
-  {{ end }}
+    service.beta.kubernetes.io/aws-load-balancer-type: {{ $.Values.service.loadBalancerType }}
+    external-dns.alpha.kubernetes.io/hostname: "{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}."
   {{ if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
     cloud.google.com/load-balancer-type: "Internal"
   {{ end }}
