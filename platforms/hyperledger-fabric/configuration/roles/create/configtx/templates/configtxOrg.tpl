@@ -8,5 +8,5 @@
       # for cross org gossip communication.  Note, this value is only
       # encoded in the genesis block in the Application section context
       - Host: peer0.{{ component_ns }}.{{ item.external_url_suffix }}
-        Port: 8443
+        Port: 7051
     {% endif %} 
