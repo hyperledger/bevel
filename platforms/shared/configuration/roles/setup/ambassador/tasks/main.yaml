@@ -48,7 +48,7 @@
 - name: Install Ambassador without EIP
   shell: |
     {% if network.type == 'fabric' %}
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --set replicaCount=1 --set env.AMBASSADOR_ID=ambassador-{{ item.name }} --set service.https.targetPort={{ ambassador.targetPort }} --set securityContext='' --version {{ ambassador.version }} --set service.annotations='' --set service.https.port={{ ambassador.port }} --set image.tag={{ ambassador.tag }} --set image.repository={{ ambassador.image }} --set service.http.enabled=false ambassador-{{ item.name }} stable/ambassador
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install -f {{ playbook_dir }}/../../../platforms/shared/charts/ambassador/grpc-config.yaml --set replicaCount=1 --set env.AMBASSADOR_ID=ambassador-{{ item.name }} --set service.https.targetPort={{ ambassador.targetPort }} --set securityContext='' --version {{ ambassador.version }} --set service.annotations='' --set service.https.port={{ ambassador.port }} --set image.tag={{ ambassador.tag }} --set image.repository={{ ambassador.image }} --set service.http.enabled=false ambassador-{{ item.name }} stable/ambassador
     {% else %}
     KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
     {% endif %}
