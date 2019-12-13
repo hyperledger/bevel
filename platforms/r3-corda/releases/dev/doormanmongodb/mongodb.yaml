@@ -1,0 +1,46 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: mongodb-doormankd
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: supplychainkd-ns
+spec:
+  replicaCount: 1
+  replicas: 1
+  releaseName: mongodb-doormankd
+  chart:
+    path: platforms/r3-corda/charts/mongodb
+    git: git@github.com:deepakkumardbd/blockchain-automation-framework.git
+    ref: nms-changes-to-implement-latest-chart-test
+  values:
+    nodeName: mongodb-doormankd
+    metadata:
+      namespace: supplychainkd-ns
+    image:
+      containerName: mongo:3.6.6
+      imagePullSecret: regcred
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+    storage:
+      memory: 512Mi
+      name: awsstorageclass
+      mountPath: /data/db
+      volname: hostvol
+    vault:
+      address: http://vault.internal.development.aws.blockchaincloudpoc-develop.com:8200
+      role: vault-role
+      authpath: cordadoormankd
+      secretprefix: doormankd/credentials/mongodb
+      serviceaccountname: vault-auth
+    service:
+      tcp:
+          port: 27017
+          targetPort: 27017
+      type: NodePort
+      annotations: {}
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
+    mongodb:
+      username: doormankd
