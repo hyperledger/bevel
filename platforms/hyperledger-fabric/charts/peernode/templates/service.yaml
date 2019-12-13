@@ -15,14 +15,14 @@ metadata:
       name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}
       hosts:
       - {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
-      secret: client-{{ $.Values.metadata.namespace }}-ambassador-certs
+      secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
       alpn_protocols: h2
       ---
       apiVersion: ambassador/v1
       kind: TLSContext
       ambassador_id: {{ $.Values.ambassador.ambassador_id }}
       name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
-      secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
+      secret: client-{{ $.Values.metadata.namespace }}-ambassador-certs
       alpn_protocols: h2
       ---
       apiVersion: ambassador/v1
@@ -31,6 +31,8 @@ metadata:
       tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       grpc: True
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
+      headers:
+        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}:{{ $.Values.ambassador.port }}
       prefix: /
       rewrite: /
       service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
@@ -41,6 +43,8 @@ metadata:
       tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       grpc: True
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping_rest
+      headers:
+        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
       prefix: /
       rewrite: /
       service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
