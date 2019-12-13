@@ -55,21 +55,6 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
-  # Get Vault AC Token via Service Account
-  - name: Get Vault AC Token via Service Account
-    include_role:
-      name: check/k8_component
-    vars:
-      organization: "{{ organizationItem.name | lower }}"
-      component_ns: "{{ organizationItem.name | lower }}-ns"
-      component_name: "{{ organization }}-baf-ac-vault-auth"
-      component_type: "GetServiceAccount"
-      vault: "{{ organizationItem.vault }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: organizationItem
-    when: network['type'] == 'indy'
-
   # Admin K8S auth
   - name: Admin K8S auth
     include_role:
@@ -87,6 +72,38 @@
       loop_var: organizationItem
     when: network['type'] == 'indy' and {{ organizationItem.vault.root_token }} is defined
 
+  # Generate auth job
+  - name: 'Generate auth job'
+    include_role:
+      name: setup/auth_job
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}"
+      services: "{{ organizationItem.services }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      gitops: "{{ organizationItem.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
+  # Get Vault AC Token via Service Account
+  - name: Get Vault AC Token via Service Account
+    include_role:
+      name: check/k8_component
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}-baf-ac-vault-auth"
+      component_type: "GetServiceAccount"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+    
   # Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
     include_role:

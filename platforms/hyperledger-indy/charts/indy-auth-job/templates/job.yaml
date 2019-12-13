@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
+spec:
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}"
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+        - name: "{{ $.Values.image.pullSecret }}"
+      serviceAccountName: {{ $.Values.account.service }}
+      containers:
+        - name:  "{{ $.Values.image.name }}"
+          image: "{{ $.Values.image.repository }}"
+          imagePullPolicy: Always
+          command:
+            - "sh"
+            - "-c"
+            - >
+              echo "this job will be updated";
