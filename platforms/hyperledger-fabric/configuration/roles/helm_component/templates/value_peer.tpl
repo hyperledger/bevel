@@ -18,7 +18,7 @@ spec:
     peer:
       name: {{ peer_name }}
       gossippeeraddress: {{ peer.gossippeeraddress }}
-      gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:8443
+      gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:7051
       localmspid: {{ name }}MSP
       loglevel: info
       tlsstatus: true
