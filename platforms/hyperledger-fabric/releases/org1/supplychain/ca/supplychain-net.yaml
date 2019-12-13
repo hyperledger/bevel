@@ -1,0 +1,40 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: supplychain-net-ca
+  namespace: supplychain-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: supplychain-net-ca
+  chart:
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+    path: platforms/hyperledger-fabric/charts/ca    
+  values:
+    metadata:
+      namespace: supplychain-net
+    server:
+      name: ca
+      tlsstatus: true
+      admin: supplychain-admin
+    storage:
+      storageclassname: supplychainsc
+      storagesize: 512Mi 
+    vault:
+      role: vault-role
+      address: http://a7138542f18e311ea802e062682cead8-2102258106.eu-west-1.elb.amazonaws.com:9000
+      authpath: supplychain-net-auth
+      secretcert: secret/crypto/ordererOrganizations/supplychain-net/ca?ca.supplychain-net-cert.pem
+      secretkey: secret/crypto/ordererOrganizations/supplychain-net/ca?supplychain-net-CA.key
+      secretadminpass: secret/credentials/supplychain-net/ca/supplychain?user
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    service:
+      servicetype: ClusterIP
+      ports:
+        tcp:
+          port: 7054
+    ambassador:
+      type: orderer
+      ambassador_id: ambassador-supplychain
