@@ -15,7 +15,7 @@
   when: component_type == "Namespace" or component_type == "ClusterRoleBinding" or component_type == "StorageClass"
 
 
-# Task to check if ServiceAccount is created
+# Task to check if ServiceAccount or configmap is created
 # This task will try for a maximum of 10 times with an interval of
 # 35 seconds between each try
 - name: Wait for {{ component_type }} {{ component_name }}
@@ -29,7 +29,7 @@
   retries: 10
   delay: 35
   until: component_data.resources|length > 0
-  when: component_type == "ServiceAccount"
+  when: component_type == "ServiceAccount" or component_type == "ConfigMap"
 
 
 # Task to check if Pod is running
@@ -50,3 +50,22 @@
   retries: 10
   delay: 40
   when: component_type == "Pod"
+
+# Get a service account token
+- name: "Get a ServiceAccount token for {{ component_name }}"
+  vars:
+    service_account: "{{ component_name }}"
+    role: "ro"
+  shell: |
+    secret="$(kubectl get serviceaccount {{ service_account }} -n {{ component_ns }} -o go-template='{{ (index .secrets 0).name }}')"
+    kube_token="$(kubectl get secret ${secret} -n {{ component_ns }} -o go-template='{{ .data.token }}' | base64 --decode)"
+    curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/kubernetes/login | jq -j '.auth.client_token' > token
+    vault_token=$(cat token)
+    echo ${vault_token}
+  register: token_output
+  when: component_type == "GetServiceAccount"
+
+- name: "Store token"
+  set_fact:
+    ac_vault_tokens: "{{ ac_vault_tokens | default({}) | combine( {organization: token_output.stdout} ) }}"
+  when: component_type == "GetServiceAccount"

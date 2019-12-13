@@ -23,16 +23,17 @@ spec:
             - >
               apt-get install curl -y;
               validateVaultResponse () {
-              if echo ${2} | grep "errors"; then
-               echo "ERROR: unable to retrieve ${1}: ${2}"
+              if [ ${1} != 200 ]; then
+               echo "ERROR: Unable to retrieve. Http status: ${1}"
                exit 1
                fi
               }
 
               KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
 
-              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.account.role }}"}' {{ $.Values.vault.address }}/v1/auth/kubernetes/login | jq -j '.auth.client_token' > token;
+              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.account.role }}"}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
               VAULT_TOKEN=$(cat token);
-              validateVaultResponse 'vault login token' "${VAULT_TOKEN}";
+              response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/auth/token/lookup-self)
+              validateVaultResponse ${response_status};
 
               generate_identity {{ $.Values.vault.identity }} {{ $.Values.vault.keyPath }} vault {{ $.Values.vault.address }}
