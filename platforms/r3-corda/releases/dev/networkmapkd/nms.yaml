@@ -1,0 +1,94 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: networkmapkd
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: supplychainkd-ns
+spec:
+  releaseName: networkmapkd
+  chart:
+    path: platforms/r3-corda/charts/nms
+    git: git@github.com:deepakkumardbd/blockchain-automation-framework.git
+    ref: nms-changes-to-implement-latest-chart-test
+  values:
+    nodeName: networkmapkd
+    metadata:
+      namespace: supplychainkd-ns
+    image:
+      authusername: sa
+      containerName: adopblockchaincloud0502.azurecr.io/networkmap-linuxkit:latest
+      env:
+      - name: NETWORKMAP_PORT
+        value: 8080
+      - name: NETWORKMAP_ROOT_CA_NAME
+        value: CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE
+      - name: NETWORKMAP_TLS
+        value: false
+      - name: NETWORKMAP_DB
+        value: /opt/networkmap/db
+      - name: DB_USERNAME
+        value: networkmapkd
+      - name: NETWORKMAP_AUTH_USERNAME
+        value: sa
+      - name: DB_URL
+        value: mongodb-networkmapkd
+      - name: DB_PORT
+        value: 27017
+      - name: DATABASE
+        value: admin
+      - name: NETWORKMAP_CACHE_TIMEOUT
+        value: 60S
+      - name: NETWORKMAP_MONGOD_DATABASE
+        value: networkmap
+      imagePullSecret: regcred
+      tlsCertificate: true
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      mountPath:
+          basePath: /opt/networkmap
+    storage:
+      memory: 512Mi
+      mountPath: "/opt/h2-data"
+      name: awsstorageclass
+    vault:
+      address: http://af1f7c40f1b3e11ea999d06c5016d614-117149837.eu-west-1.elb.amazonaws.com:9000
+      role: vault-role
+      authpath: cordanetworkmapkd
+      serviceaccountname: vault-auth
+      secretprefix: networkmapkd
+      certsecretprefix: networkmapkd/certs
+      dbcredsecretprefix: networkmapkd/credentials/mongodb
+      secretnetworkmappass: networkmapkd/credentials/userpassword
+      tlscertsecretprefix: networkmapkd/certs
+      dbcertsecretprefix: networkmapkd/certs
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
+      dburl: mongodb-networkmapkd:27017
+    service:
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+      annotations: {}
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
+    ambassador:
+      annotations: |- 
+        ---
+        apiVersion: ambassador/v1
+        kind: Mapping
+        name: networkmapkd_mapping
+        prefix: /
+        service: networkmapkd.supplychainkd-ns:8080
+        host: networkmapkd.development.aws.blockchaincloudpoc-develop.com:8443
+        tls: false
+        ---
+        apiVersion: ambassador/v1
+        kind: TLSContext
+        name: networkmapkd_mapping_tlscontext
+        hosts:
+        - networkmapkd.development.aws.blockchaincloudpoc-develop.com
+        secret: networkmapkd-ambassador-certs 
+        
