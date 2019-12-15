@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ $.Values.peer.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{ if or $.Values.ambassador (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
+  {{- if or $.Values.ambassador (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
   ##### TODO: Enable ambassador instead of AWS NLB
   # This can be fixed only when https://jira.hyperledger.org/browse/FAB-8131 issue is fixed
   # After the issue is fixed, changes similar to the commented code has to be done by using correct secrets.
@@ -12,7 +12,7 @@ metadata:
   annotations:
     #service.beta.kubernetes.io/aws-load-balancer-type: {{ $.Values.service.loadBalancerType }}
     #external-dns.alpha.kubernetes.io/hostname: "*.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}."
-  {{ if eq $.Values.ambassador.enabled "true" }}
+  {{- if eq $.Values.ambassador.enabled "true" }}
     getambassador.io/config: |
       ---
       apiVersion: ambassador/v1
@@ -44,11 +44,11 @@ metadata:
       prefix: /
       rewrite: /
       service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
-  {{ end }} # end if Values.ambassador  
-  {{ if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
+  {{- end }} # end if Values.ambassador  
+  {{- if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
     cloud.google.com/load-balancer-type: "Internal"
-  {{ end }}
-  {{ end }}
+  {{- end }}
+  {{- end }}
   labels:
     run: {{ $.Values.peer.name }}
     app.kubernetes.io/name: {{ $.Values.peer.name }}
@@ -81,14 +81,15 @@ spec:
     port: {{ $.Values.service.ports.couchdb.clusteripport }}
     {{- if $.Values.service.ports.couchdb.nodeport }}
     nodePort: {{ $.Values.service.ports.couchdb.nodeport }}
-    {{ end }}
-  {{ if (eq $.Values.service.servicetype "ClusterIP") }}
+    {{- end }}
+  {{- if (eq $.Values.service.servicetype "ClusterIP") }}
   clusterIP: None
-  {{ end }}
-  {{ if $.Values.service.loadBalancerIP }}
+  {{- end }}
+  {{- if $.Values.service.loadBalancerIP }}
   loadBalancerIP: {{ $.Values.service.loadBalancerIP }}
-  {{ end }}
-{{ if eq $.Values.haproxy.enabled "true" }}
+  {{- end }}
+
+{{- if eq $.Values.haproxy.enabled "true" }}
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -104,7 +105,7 @@ spec:
     http:
       paths:
       - path: /
-          backend:
-              serviceName: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
-              servicePort: {{ $.Values.service.ports.grpc.clusteripport }}
-{{ end }} # end if Values.haproxy  
+        backend:
+          serviceName: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+          servicePort: {{ $.Values.service.ports.grpc.clusteripport }}
+{{- end }}
