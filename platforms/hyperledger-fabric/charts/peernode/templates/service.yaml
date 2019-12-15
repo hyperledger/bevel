@@ -4,14 +4,12 @@ metadata:
   name: {{ $.Values.peer.name }}
   namespace: {{ $.Values.metadata.namespace }}
   {{- if or $.Values.ambassador (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
-  ##### TODO: Enable ambassador instead of AWS NLB
+  ##### TODO: Enable ambassador for Fabric
   # This can be fixed only when https://jira.hyperledger.org/browse/FAB-8131 issue is fixed
   # After the issue is fixed, changes similar to the commented code has to be done by using correct secrets.
   # Otherwise as ambassador is not able to passthrough TLS connection, grpc over ambassador is not going to work
-  # hence we have created a NLB and exposed the grpc ports directly.  
+  # hence we have used a HAProxy ingress whoich does ssl-passthrough.  
   annotations:
-    #service.beta.kubernetes.io/aws-load-balancer-type: {{ $.Values.service.loadBalancerType }}
-    #external-dns.alpha.kubernetes.io/hostname: "*.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}."
   {{- if eq $.Values.ambassador.enabled "true" }}
     getambassador.io/config: |
       ---
