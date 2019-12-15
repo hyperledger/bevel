@@ -12,7 +12,7 @@ metadata:
   annotations:
     #service.beta.kubernetes.io/aws-load-balancer-type: {{ $.Values.service.loadBalancerType }}
     #external-dns.alpha.kubernetes.io/hostname: "*.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}."
-  {{ if $.Values.ambassador }}
+  {{ if eq $.Values.ambassador.enabled "true" }}
     getambassador.io/config: |
       ---
       apiVersion: ambassador/v1
@@ -29,7 +29,7 @@ metadata:
       grpc: True
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
       headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}:8443
+        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}:{{ $.Values.ambassador.port }}
       prefix: /
       rewrite: /
       service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
@@ -88,3 +88,23 @@ spec:
   {{ if $.Values.service.loadBalancerIP }}
   loadBalancerIP: {{ $.Values.service.loadBalancerIP }}
   {{ end }}
+{{ if eq $.Values.haproxy.enabled "true" }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $.Values.peer.name }}
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+    ingress.kubernetes.io/ssl-passthrough: "true"  
+spec:
+  rules:
+  - host: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.haproxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+          backend:
+              serviceName: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+              servicePort: {{ $.Values.service.ports.grpc.clusteripport }}
+{{ end }} # end if Values.haproxy  
