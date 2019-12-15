@@ -18,4 +18,5 @@ spec:
     organization:
       name: {{ organizationItem.name }}
     configmap:
-      domainGenesis: {{ organizationItem.name }}-pool-transactions-genesis
+      poolGenesis: |
+        {{ pool_genesis_values }}
