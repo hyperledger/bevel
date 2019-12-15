@@ -40,4 +40,3 @@ spec:
 {% endif %}
     ambassador:
       type: peer
-      ambassador_id: ambassador-{{ component }}
