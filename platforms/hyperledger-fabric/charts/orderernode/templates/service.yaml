@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ $.Values.orderer.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{ if $.Values.ambassador }}
+  {{ if eq $.Values.ambassador.enabled "true" }}
   annotations:
     getambassador.io/config: | 
       ---
@@ -59,3 +59,23 @@ spec:
   {{ if (eq $.Values.service.servicetype "ClusterIP") }}
   clusterIP: None
   {{ end }}
+{{ if eq $.Values.haproxy.enabled "true" }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $.Values.orderer.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+    ingress.kubernetes.io/ssl-passthrough: "true"  
+spec:
+  rules:
+  - host: {{ $.Values.orderer.name }}.{{ $.Values.haproxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+          backend:
+              serviceName: {{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}
+              servicePort: {{ $.Values.service.ports.grpc.clusteripport }}
+{{ end }} # end if Values.haproxy  

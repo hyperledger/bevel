@@ -62,5 +62,6 @@ spec:
           nodeport: {{ peer.couchdb.nodePort }}
 {% endif %}
           
-    ambassador:
+    haproxy:
+      enabled: "true"
       external_url_suffix: {{ item.external_url_suffix }}
