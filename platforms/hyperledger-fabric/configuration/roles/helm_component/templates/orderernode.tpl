@@ -52,7 +52,8 @@ spec:
 {% endfor %}
 {% endif %}
 
-    ambassador:
+    haproxy:
+      enabled: "true"
       external_url_suffix: {{ item.external_url_suffix }}
 
     genesis: |-
