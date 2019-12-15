@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ $.Values.orderer.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{ if eq $.Values.ambassador.enabled "true" }}
+  {{- if eq $.Values.ambassador.enabled "true" }}
   annotations:
     getambassador.io/config: | 
       ---
@@ -36,7 +36,7 @@ metadata:
       prefix: /
       rewrite: /
       service: https://{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:7050
-  {{ end }}
+  {{- end }}
   labels:
     run: {{ $.Values.orderer.name }}
     app.kubernetes.io/name: {{ $.Values.orderer.name }}
@@ -52,13 +52,14 @@ spec:
   - protocol: TCP
     targetPort: 7050
     port: {{ $.Values.service.ports.grpc.clusteripport }}
-    {{ if  (ne $.Values.service.servicetype "ClusterIP") }}
+    {{- if  (ne $.Values.service.servicetype "ClusterIP") }}
     nodePort: {{ $.Values.service.ports.grpc.nodeport }}
     {{- end }}
     name: grpc
-  {{ if (eq $.Values.service.servicetype "ClusterIP") }}
+  {{- if (eq $.Values.service.servicetype "ClusterIP") }}
   clusterIP: None
-  {{ end }}
+  {{- end }}
+  
 {{ if eq $.Values.haproxy.enabled "true" }}
 ---
 apiVersion: extensions/v1beta1
@@ -75,7 +76,7 @@ spec:
     http:
       paths:
       - path: /
-          backend:
-              serviceName: {{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}
-              servicePort: {{ $.Values.service.ports.grpc.clusteripport }}
-{{ end }} # end if Values.haproxy  
+        backend:
+          serviceName: {{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}
+          servicePort: {{ $.Values.service.ports.grpc.clusteripport }}
+{{ end }}
