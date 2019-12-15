@@ -4,7 +4,7 @@ set -x
 
 CURRENT_DIR=${PWD}
 FULLY_QUALIFIED_ORG_NAME="{{ component_ns }}"
-ALTERNATIVE_ORG_NAMES=()
+ALTERNATIVE_ORG_NAMES=("{{ item.external_url_suffix }}")
 ORG_NAME="{{ component_name }}"
 SUBJECT="C={{ component_country }},ST={{ component_state }},L={{ component_location }},O={{ component_name }}"
 SUBJECT_PEER="{{ component_subject }}"

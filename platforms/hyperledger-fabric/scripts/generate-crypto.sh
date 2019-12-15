@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ $# -lt 6 ]; then
-	echo "Usage : . generate-crypto.sh orderer|peer <namespace> <nodename> <no of peers: min 1> <affiliation> <subject>"
+	echo "Usage : . generate-crypto.sh orderer|peer <namespace> <nodename> <no of peers: min 1> <affiliation> <subject> <external-url>"
 	exit
 fi
 set -x
@@ -13,9 +13,9 @@ NO_OF_PEERS=$4
 AFFILIATION=$5
 SUBJECT=$6
 if [ "$1" = "orderer" ]; then
-	ALTERNATIVE_ORG_NAMES=()
+	ALTERNATIVE_ORG_NAMES=($2 "demo.fabric.blockchaincloudpoc.com")
 else
-	ALTERNATIVE_ORG_NAMES=($2".svc.cluster.local" $3".net")
+	ALTERNATIVE_ORG_NAMES=($2 $2".demo.fabric.blockchaincloudpoc.com")
 fi
 CA="ca.${FULLY_QUALIFIED_ORG_NAME}:7054"
 CA_ADMIN_USER="${FULLY_QUALIFIED_ORG_NAME}-admin"
