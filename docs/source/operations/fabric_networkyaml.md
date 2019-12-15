@@ -32,8 +32,10 @@ The configurations are grouped in the following sections for better understandin
 | Field      | Description                                 |
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
-| ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`.      |
+| proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' or 'haproxy' |
+| ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`     |
 | retry_count       | Retry count for the checks.|
+|external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
 
