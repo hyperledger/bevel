@@ -18,7 +18,7 @@ spec:
     peer:
       name: {{ peer_name }}
       gossippeeraddress: {{ peer.gossippeeraddress }}
-      gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:7051
+      gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:15010
       localmspid: {{ name }}MSP
       loglevel: info
       tlsstatus: true
@@ -44,8 +44,7 @@ spec:
       secretcouchdbpass: secret/credentials/{{ namespace }}/couchdb/{{ name }}?user
 
     service:
-      servicetype: LoadBalancer
-      loadBalancerType: "nlb"
+      servicetype: ClusterIP
       ports:
         grpc:
           clusteripport: {{ peer.grpc.port }}
@@ -65,5 +64,3 @@ spec:
           
     ambassador:
       external_url_suffix: {{ item.external_url_suffix }}
-      ambassador_id: ambassador-{{ name }}
-
