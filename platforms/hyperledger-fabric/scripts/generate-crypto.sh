@@ -12,7 +12,7 @@ TYPE_FOLDER=$1s
 NO_OF_PEERS=$4
 AFFILIATION=$5
 SUBJECT=$6
-if [ "$1" != "peer" ]; then
+if [ "$1" = "orderer" ]; then
 	ALTERNATIVE_ORG_NAMES=($2 "demo.fabric.blockchaincloudpoc.com")
 else
 	ALTERNATIVE_ORG_NAMES=($2 $2".demo.fabric.blockchaincloudpoc.com")
