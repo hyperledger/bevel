@@ -156,6 +156,17 @@
     context: "{{ kubernetes.context }}"
   register: get_orderer_secret
 
+# Check if Ambassador credentials exist already
+- name: Check Ambassador cred exists
+  k8s_facts:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: orderer-{{ component_name }}-ambassador-certs
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_orderer_secret_haproxy
+  when: network.env.proxy == 'haproxy'
+
  #Check the existence of Orderer ambassador certs secret in the vault 
 - name: Check if orderer ambassador secrets already created
   shell: |
@@ -202,6 +213,13 @@
     orderer: "{{ services.orderer }}"
   when: get_orderer_secret.resources|length == 0
 
+# This task creates the Ambassador TLS credentials for orderer
+- name: Create the Ambassador credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{orderer.name}}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/ordererOrganizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}-certchain.pem --key=./build/crypto-config/ordererOrganizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}.key -n {{ component_name }}
+  vars:
+    orderer: "{{ services.orderer }}"
+  when: get_orderer_secret_haproxy.resources|length == 0 and network.env.proxy == 'haproxy'
 
  # This task copy the orderer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
