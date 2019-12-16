@@ -40,4 +40,3 @@ spec:
 {% endif %}
     ambassador:
       type: orderer
-      component_name: {{ component_name }}
