@@ -4,7 +4,7 @@ set -x
 
 CURRENT_DIR=${PWD}
 FULLY_QUALIFIED_ORG_NAME="{{ component_ns }}"
-ALTERNATIVE_ORG_NAMES=()
+ALTERNATIVE_ORG_NAMES=("{{ item.external_url_suffix }}")
 ORG_NAME="{{ component_name }}"
 SUBJECT="C={{ component_country }},ST={{ component_state }},L={{ component_location }},O={{ component_name }}"
 SUBJECT_PEER="{{ component_subject }}"
@@ -59,7 +59,7 @@ PEER="{{ peer_name }}.${FULLY_QUALIFIED_ORG_NAME}"
 CSR_HOSTS=${PEER}
 for i in "${ALTERNATIVE_ORG_NAMES[@]}"
 do
-	CSR_HOSTS="${CSR_HOSTS},orderer.${i}"
+	CSR_HOSTS="${CSR_HOSTS},{{ peer_name }}.${i}"
 done
 echo "Registering and enrolling $PEER with csr hosts ${CSR_HOSTS}"
 
