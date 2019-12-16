@@ -12,16 +12,28 @@
         exit 1
       fi
     }
+    validateDeletion () {
+      if [ ${1} != 404 ]; then
+        echo "ERROR: Secret is not deleted. Http status: ${1}"
+        exit 1
+      fi
+    }
     # Get root token from Vault via K8S service account
-    secret_name="$(kubectl get serviceaccount vault-auth -o go-template='{{ (index .secrets 0).name }}')"
-    kube_token="$(kubectl get secret ${secret_name} -o go-template='{{ .data.token }}' | base64 --decode)"
-    curl --request POST --data '{"jwt": "'"kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
+    secret_name=$(kubectl get serviceaccount {{ acount }} -n {{ organization_ns }} -o jsonpath="{ .secrets[0].name }")
+    kube_token=$(kubectl get secret ${secret_name} -n {{ organization_ns }} -o jsonpath="{ .data.token }" | base64 --decode)
+    curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/{{ auth_path }}/login | jq -j '.auth.client_token' > token;
+    vault_token=$(cat token);
 
     # Check if Vault token is valid
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${token}" {{ vault.url }}/v1/auth/token/lookup-self)
+    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" {{ vault.url }}/v1/auth/token/lookup-self)
     validateVaultResponse ${response_status}
 
-    # Remove organization's secret from Vault and check if is removed
-    curl --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/{{ organization }}
-    response_status=$(curl --header "X-Vault-Token: ${vault_token}" --request LIST {{ vault.url }}/v1/{{ organization }})
+    # Remove organization secret from Vault and check if is removed
+    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request LIST {{ vault.url }}/v1/{{ organization }})
     validateVaultResponse ${response_status}
+
+    curl --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/mounts/{{ organization }}
+    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request LIST {{ vault.url }}/v1/{{ organization }})
+    validateDeletion ${response_status}
+
+    echo ${response_status}
