@@ -18,6 +18,16 @@
     context: "{{ kubernetes.context }}"
   register: get_peer_secret
 
+- name: Check Ambassador cred exists
+  k8s_facts:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: "{{ peer.name }}-{{ component_name }}-ambassador-certs"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_peer_secret_haproxy
+  when: network.env.proxy == 'haproxy'
+
  #Check the existence of Peer ambassador certs secret in the vault 
 - name: Check if peer ambassador secrets certs created
   shell: |
@@ -53,6 +63,11 @@
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ peer.name }}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem --key=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key -n default
   when: get_peer_secret.resources|length == 0
+
+- name: Create the Ambassador credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ peer.name }}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem --key=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key -n {{ component_name }}
+  when: get_peer_secret_haproxy.resources|length == 0 and network.env.proxy == 'haproxy'
 
  # This task copy the peer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
