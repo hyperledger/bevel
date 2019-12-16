@@ -67,3 +67,21 @@
   loop_control:
     loop_var: endorserItem
   when: services.endorsers is defined
+
+##############################################################################################
+# Check if Indy  auth job pod for baf-ac is completed
+- name: Check if Indy  auth job pod for baf-ac is completed
+  vars:
+    identity_name: "baf-ac"
+  k8s_facts:
+    kind: Pod
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    label_selectors:
+      - app={{ component_name }}-{{ identity_name }}-auth-job
+    field_selectors:
+      - status.phase=Succeeded
+  register: result
+  until: result.resources|length > 0
+  retries: 10
+  delay: 40

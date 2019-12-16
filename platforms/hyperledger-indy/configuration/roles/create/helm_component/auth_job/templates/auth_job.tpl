@@ -24,7 +24,11 @@ spec:
       address: {{ vault.url }}
       keyPath: {{ vault_path }}
       identity: {{ identity_name }}
-      auth_path: kubernetes-{{ organization }}-admin-auth
+      admin_auth_path: kubernetes-{{ organization }}-admin-auth
+      policy: {{ organization }}-{{ identity_name }}-ro
+      auth_path: kubernetes-{{ organization }}-{{ identity_name }}-auth
     account:
-      service: {{ organization }}-admin-vault-auth
-      role: rw
+      admin_service: {{ organization }}-admin-vault-auth
+      admin_role: rw
+      service: {{ organization }}-{{ identity_name }}-vault-auth
+      role: ro
