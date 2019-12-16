@@ -34,6 +34,21 @@ metadata:
         use_proxy_proto: true
         use_remote_address: false
   {{- end }}
+  {{- if .Values.ambassador.grpc }}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind:  Module
+      name:  ambassador
+      config:
+        enable_grpc_http11_bridge: true
+        enable_grpc_web: true
+        use_remote_address: false
+        x_forwarded_proto_redirect: true
+  {{- end }}
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local
