@@ -6,6 +6,8 @@
 - [Docker Images](#docker)
 - [Vault Initialization and unseal](#vaultunseal)
 - [Ambassador](#ambassador)
+- [External DNS](#externaldns)
+- [HAProxy Ingress](#haproxy)
 
 <a name = "Ansible_Inventory"></a>
 ## Ansible Inventory file
@@ -54,6 +56,11 @@ sudo docker build -t alpine-utils:1.0 -f alpine-utils.Dockerfile .
 sudo docker tag alpine-utils:1.0 adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
 sudo docker push adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
 ```
+
+---
+**NOTE:** In the above sample command, please replace the docker image/tag name according to your registry and have your own docker repository for push.
+
+---
 ### LinuxKit Base
 Build the LinuxKit Base image from **platforms/r3-corda/images/linuxkit-base** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/linuxkit-base/Readme.md).
 
@@ -121,4 +128,32 @@ The output of the above command will look like this:
 * Configure your subdomain configuration to redirect the external DNS name to this external IP. For example, if you want to configure the external domain suffix as **test.corda.blockchaincloudpoc.com**, then update the DNS mapping to redirect all requests to ***.test.corda.blockchaincloudpoc.com** towards **EXTERNAL-IP** from above as an ALIAS.
 In AWS Route53, the settings look like below (in Hosted Zones).
 ![Ambassador DNS Configuration](../_static/ambassador-dns.png)
+
+<a name = "externaldns"></a>
+## External DNS
+
+In case you do not want to manually update the route configurations every time you change DNS name, you can use [External DNS](https://github.com/kubernetes-sigs/external-dns) for automatic updation of DNS routes. 
+Follow the steps as per your cloud provider, and then use `external_dns: enabled` in the `env` section of the BAF configuration file (network.yaml).
+
+---
+**NOTE:** Detailed configuration for External DNS setup is not provided here, please refer the link above.
+
+---
+
+<a name = "haproxy"></a>
+## HAProxy Ingress
+
+From Release 0.3.0.0 onwards, Blockchain Automation Framework (BAF) uses [HAProxy Ingress Controller](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) for inter-cluster communication for Fabric network. To enable Fabric GRPC services from one Kubernetes cluster to talk to GRPC services in another cluster, HAProxy needs to be configured as per the following steps:
+
+* Use `proxy: haproxy` in the `env` section of the BAF configuration file (network.yaml).
+
+* Execute `platforms/shared/configuration/kubernetes-env-setup.yaml` playbook using the BAF configuration file, and then get the external IP address of the HAProxy controller service.
+```
+kubectl get services --all-namespaces -o wide
+```
+
+* Copy the **EXTERNAL-IP** for **haproxy-ingress** service in namespace **ingress-controller** from the output.
+
+* Configure your subdomain configuration to redirect the external DNS name to this external IP. For example, if you want to configure the external domain suffix as **test.corda.blockchaincloudpoc.com**, then update the DNS mapping to redirect all requests to ***.test.corda.blockchaincloudpoc.com** towards **EXTERNAL-IP** from above as an ALIAS.
+* Or, you can use [External DNS](#externaldns) above to configure the routes automatically.
 
