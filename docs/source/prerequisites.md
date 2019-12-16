@@ -66,7 +66,7 @@ The Operator should have full access to the Git Repository.
 And it is essential to install the [git client](https://git-scm.com/download) on the Ansible Controller.
 
 ## Internet Domain
-As you may have read in the [Kubernetes key concepts](keyConcepts/kubernetes), the Blockchain Automation Framework uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) for inter-cluster communication. So, for the Kubernetes services to be available outside the specific cluster, at least one DNS Domain is required. This domain name can then be sub-divided across multiple clusters and the domain-resolution configured for each.
+As you may have read in the [Kubernetes key concepts](keyConcepts/kubernetes), the Blockchain Automation Framework uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) or [HAProxy Ingress Controller](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) for inter-cluster communication. So, for the Kubernetes services to be available outside the specific cluster, at least one DNS Domain is required. This domain name can then be sub-divided across multiple clusters and the domain-resolution configured for each.
 Although for production implementations, each organization (and thereby each cluster), must have one domain name.
 
 ---
