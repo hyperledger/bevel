@@ -3,10 +3,24 @@ apiVersion: v1
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{ if $.Values.ambassador.annotations }}
+  {{ if $.Values.ambassador }}
   annotations:
     getambassador.io/config: | 
-    {{ $.Values.ambassador.annotations  | nindent 6 }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      name: {{ .Values.ambassador.peer_name }}_web_context
+      hosts:
+      - {{ .Values.ambassador.peer_name }}web.{{ .Values.ambassador.external_url_suffix }}
+      secret: {{ .Values.ambassador.ambassador_secret }}
+      ---
+      apiVersion: ambassador/v1
+      kind: Mapping
+      name: {{ .Values.ambassador.peer_name }}_web_p2p_mapping
+      prefix: /
+      host: {{ .Values.ambassador.peer_name }}web.{{ .Values.ambassador.external_url_suffix }}:8443
+      service: {{ .Values.ambassador.peer_name }}-frontend.{{ .Values.metadata.namespace }}:{{ .Values.frontend.nodePorts.port }}
+      tls: false
   {{ end }}
   labels:
     run: {{ .Values.nodeName }}

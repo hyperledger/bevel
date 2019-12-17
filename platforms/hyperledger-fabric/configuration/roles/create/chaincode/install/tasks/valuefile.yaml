@@ -4,7 +4,6 @@
 - name: 'Check/Wait for joinchannel job'
   k8s_facts:
     kind: "Job"
-    name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
     namespace: "{{ namespace }}"
     label_selectors:
       - app = joinchannel-{{ peer.name }}-{{ channel_name }}
@@ -16,9 +15,9 @@
   loop_control:
     loop_var: channel
   register: component_data
-  retries: 10
-  delay: 35
-  until: component_data.resources|length > 0
+  retries: "{{ network.env.retry_count}}"
+  delay: 40
+  until: (1 in component_data|json_query('resources[*].status.succeeded'))
 
 # Check if install-chaincode is already run
 - name: 'Check for install-chaincode job'

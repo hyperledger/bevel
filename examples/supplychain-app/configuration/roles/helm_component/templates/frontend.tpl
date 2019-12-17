@@ -26,23 +26,9 @@ spec:
       pullSecrets: regcred
       env:
         webserver: https://{{ peer_name }}api.{{ organization_data.external_url_suffix }}:8443
-        googlemapskey: {{ react_app_gmaps_key }}
     deployment:
       annotations: {}
     ambassador:
-      annotations: |-
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: {{ peer_name }}_web_context
-        hosts:
-        - {{ peer_name }}web.{{ organization_data.external_url_suffix }}
-        secret: {{ ambassador_secret }}
-        ---
-        apiVersion: ambassador/v1
-        kind: Mapping
-        name: {{ peer_name }}_web_p2p_mapping
-        prefix: /
-        host: {{ peer_name }}web.{{ organization_data.external_url_suffix }}:8443
-        service: {{ peer_name }}-frontend.{{ component_ns }}:{{ peer_frontend_port }}
-        tls: false 
+      peer_name: {{ peer_name }}
+      external_url_suffix: {{ organization_data.external_url_suffix }}
+      ambassador_secret: {{ ambassador_secret }}

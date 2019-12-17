@@ -13,18 +13,34 @@ A cluster of containers is grouped by one or more running containers serving dif
 ## **Kubernetes**
 [Kubernetes](https://kubernetes.io) (K8s) is an open-source system for automating deployment, scaling and maintaining containerized applications. Kubernetes provisions more advanced configurations and features to set up a cluster compared to Docker Swarm, which make it a very strong candidate in any production-scale environments.
 
-## **Ambassador**
-[Ambassador](https://www.getambassador.io/about/why-ambassador/) is an open-source microservices API gateway designed for K8s.
-
-The Blockchain Automation Framework uses Ambassador to route traffic amongst multiple K8s clusters. For each K8s cluster, an Ambassador will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map a public IP to a DNS name for the Ambassdor in each cluster, since this feature is not provisioned by the Blockchain Automation Framework. The reason is that feature like this should be provisioned in the infrastructure layer, where the Blockchain Automation Framework mainly focuses on the DLT platform layer sitting on the top.
-
-Here simply explains how Ambassador works. If a pod in Cluster1 wants to reach a target pod in Cluster2, it will try to find the specific Ambassdor (via its DNS name or IP) in Cluster2 and then that Ambassador will route the traffic to the target pod in Cluster2. So, one might notice that the Ambassdor in Cluster1 does not get involved in this case.
-
-Note, if only one cluster is used in a DLT network, Ambassador may not be needed, but it will still be installed as a tool by using the Blockchain Automation Framework.
-
-<br>
-
 ## **Managed Kubernetes Services**
 The open-source K8s services requires technicians to set up an underlying infrastructure and all initial K8s clusters, but the setting-up process is normally time-consuming and error-prone. This is why K8s is well known for its deep learning curves. To alleviate this complex process for users, many Cloud service providers such as [AWS](https://aws.amazon.com/eks/), [Azure](https://azure.microsoft.com/en-gb/services/kubernetes-service/) and [GCP](https://cloud.google.com/kubernetes-engine/) have provisioned their own Managed K8s Services.
 
 The Blockchain Automation Framework leverages Kubernetes's various features for deploying a DLT network along with other required services in one or more K8s clusters. All the current functions have been tested on Amazon K8s Services (AKS) as a managed K8s service, but in theory they should work on a non-managed K8s service as well.
+
+<br>
+
+## **Ambassador**
+[Ambassador](https://www.getambassador.io/about/why-ambassador/) is an open-source microservices API gateway designed for K8s.
+
+The Blockchain Automation Framework uses Ambassador to route traffic amongst multiple K8s clusters. For each K8s cluster, an Ambassador Loadbalancer Service will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map the public IP of the Ambassador Service to a DNS name for each cluster. 
+Optionally, you can configure [External-DNS](https://github.com/kubernetes-sigs/external-dns) on the cluster and map the routes automatically. Automatic updation of routes via External DNS is supported from BAF 0.3.0.0 onwards. 
+
+A simplistic view of how Ambassador works is as follows:
+If a pod in Cluster1 wants to reach a target pod in Cluster2, it will just use the Domain address or IP in Cluster2 and then Cluster2 Ambassador will route the traffic to the target pod in Cluster2.
+
+---
+**NOTE:** If only one cluster is used in a DLT network, Ambassador may not be needed, but it will still be installed (if chosen).
+
+---
+
+<br>
+
+## **HAProxy Ingress**
+[HAProxy Ingress](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) is another way of routing traffic from outside your cluster to services within the cluster. This is implemented in BAF Fabric from Release 0.3.0.0 onwards as we were unable to configure Ambassador to do ssl-passthrough for GRPC.
+
+in BAF, HAProxy Ingress does the same thing as Ambassador does i.e. it routes traffic amongst multiple K8s clusters. For each K8s cluster, an HAProxy Ingress Loadbalancer Service will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map the public IP of the HAProxy Service to a DNS name for each cluster. 
+Optionally, you can configure [External-DNS](https://github.com/kubernetes-sigs/external-dns) on the cluster and map the routes automatically. Automatic updation of routes via External DNS is supported from BAF 0.3.0.0 onwards. 
+
+---
+**NOTE:** If only one cluster is used in a DLT network, HAProxy may not be needed, but it will still be installed (if chosen).

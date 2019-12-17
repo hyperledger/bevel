@@ -1,8 +1,9 @@
 ---
 #######################################
-# Playbook to setup the Kubernetes environment for running Blockchain Automation Framework on the cluste
+# Playbook to setup the Kubernetes environment for running Blockchain Automation Framework on the cluster
 #  - Installs Flux for GitOps
-#  - Installs Ambassador
+#  - Installs Ambassador (if chosen)
+#  - Install HAproxy-ingress (if chosen)
 #######################################
 - hosts: ansible_provisioners
   gather_facts: no
@@ -18,11 +19,21 @@
       git_path: "{{ item.gitops.release_dir }}"
       git_host: "{{ item.gitops.git_push_url.split('/')[0] | lower }}" # extract the hostname from the git_push_url
     with_items: "{{ network.organizations }}"
+  - name: Prepare nodes and clients ports for ambassador
+    vars:
+      name: "{{ organizationItem.name }}"
+    set_fact:
+      stewards: "{{ stewards | default([]) + organizationItem.services.stewards | list }}"
+    loop: "{{ network.organizations }}"
+    loop_control:
+      loop_var: organizationItem
+    when: organizationItem.services.stewards is defined and network['type'] == 'indy'
   - include_role:
       name: setup/ambassador
     vars:
       kubeconfig_path: "{{ item.k8s.config_file }}"
       kubecontext: "{{ item.k8s.context }}"
+      aws: "{{ item.aws }}"
       ambassador:
         version: "2.1.0"
         targetPort: "443"
@@ -30,7 +41,15 @@
         image: quay.io/datawire/ambassador
         tag: "0.53.1"
     with_items: "{{ network.organizations }}"
-    when: item.cloud_provider != 'minikube'
+    when: item.cloud_provider != 'minikube' and network.env.proxy == 'ambassador'
+  - include_role:
+      name: setup/haproxy-ingress
+    vars:
+      kubeconfig_path: "{{ item.k8s.config_file }}"
+      kubecontext: "{{ item.k8s.context }}"
+      aws: "{{ item.aws }}"
+    with_items: "{{ network.organizations }}"
+    when: item.cloud_provider != 'minikube' and network.env.proxy == 'haproxy'
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
