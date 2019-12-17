@@ -12,7 +12,7 @@ RUN apt-get update
 
 RUN apt-get install -y indy-cli
 
-RUN apt-get install jq
+RUN apt-get install -y jq
 
 COPY indy-ledger.sh /home/
 
