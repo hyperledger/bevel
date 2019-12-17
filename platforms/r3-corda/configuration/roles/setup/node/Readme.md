@@ -61,6 +61,20 @@ This tasks creates deployment files for h2 database for node by calling create/n
     *component_name:  specifies the name of resource
     *release_dir: path to the folder where generated value are getting pushed
 
+#### 9a. Check if the initial-registration files are already created
+This task checks if the nodekeystore already created for node by checking in the Vault.
+##### Input Variables
+
+    *node.name:  Name of the component which is also tha Vault secret path
+    *VAULT_ADDR: url of Vault server
+    *VAULT_TOKEN: Token with read access to the Vault server
+##### Output Variables
+
+    nodekeystore_result: Result of the call.
+    
+ignore_errors is true because when first setting up of network, this call will fail.    
+    
+
 #### 9. create deployment files for job for node
 This tasks creates deployment files for job for node by calling create/node_component role.
 ##### Input Variables
@@ -71,6 +85,8 @@ This tasks creates deployment files for job for node by calling create/node_comp
     *nms_url: url of nms, fetched from network.yaml
     *doorman_url: url of doorman, fetched from network.yaml
     *release_dir: path to the folder where generated value are getting pushed
+
+This task is called only when nodekeystore_result is failed i.e. only when first time set-up of network.
 
 #### 10. Push the node deployment files to repository
 This tasks push the created value files into repository by calling git_push role from shared.
@@ -97,6 +113,8 @@ This tasks checks and creates job for node by calling check/node_component role.
 
     component_type: Contains hardcoded value 'Job' for resource type
     *component_name: Contains component name fetched network.yaml
+
+This task is called only when nodekeystore_result is failed i.e. only when first time set-up of network.
 
 #### 13. create deployment file for node
 This tasks create deployment file for node by calling create/node_component role.

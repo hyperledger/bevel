@@ -20,11 +20,11 @@ The Blockchain Automation Framework uses Ambassador to route traffic amongst mul
 
 Here simply explains how Ambassador works. If a pod in Cluster1 wants to reach a target pod in Cluster2, it will try to find the specific Ambassdor (via its DNS name or IP) in Cluster2 and then that Ambassador will route the traffic to the target pod in Cluster2. So, one might notice that the Ambassdor in Cluster1 does not get involved in this case.
 
-Note, if only one cluster is used in a DLT network, Ambassador may not be needed, but it will still be instaled as a tool by using the Blockchain Automation Framework.
+Note, if only one cluster is used in a DLT network, Ambassador may not be needed, but it will still be installed as a tool by using the Blockchain Automation Framework.
 
 <br>
 
 ## **Managed Kubernetes Services**
 The open-source K8s services requires technicians to set up an underlying infrastructure and all initial K8s clusters, but the setting-up process is normally time-consuming and error-prone. This is why K8s is well known for its deep learning curves. To alleviate this complex process for users, many Cloud service providers such as [AWS](https://aws.amazon.com/eks/), [Azure](https://azure.microsoft.com/en-gb/services/kubernetes-service/) and [GCP](https://cloud.google.com/kubernetes-engine/) have provisioned their own Managed K8s Services.
 
-The Blockchain Automation Framework leverages K8s's various features for deploying a DLT network along with other required services in one or more K8s clusters. All the current functions have been tested on Amazon K8s Services (AKS) as a managed K8s service, but in theory they should work on a non-managed K8s service as well.
+The Blockchain Automation Framework leverages Kubernetes's various features for deploying a DLT network along with other required services in one or more K8s clusters. All the current functions have been tested on Amazon K8s Services (AKS) as a managed K8s service, but in theory they should work on a non-managed K8s service as well.

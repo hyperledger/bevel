@@ -2,6 +2,7 @@
 # Configuring pre-requisites for the Blockchain Automation Framework
 
 - [Ansible Inventory file](#Ansible_Inventory)
+- [Private Key for GitOps](#privatekey)
 - [Docker Images](#docker)
 - [Vault Initialization and unseal](#vaultunseal)
 - [Ambassador](#ambassador)
@@ -15,6 +16,22 @@ Add the contents of this file in your Ansible host configuration file (typically
 
 Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html)
 
+<a name = "privatekey"></a>
+## Private Key for GitOps
+For synchronizing the Git repo with the cluster, the Blockchain Automation Framework configures Flux for each cluster. The authentication is via SSH key, so this key should be generated before you run the playbooks. 
+Run the following command to generate a private-public key pair named **gitops**.
+
+```
+ssh-keygen -q -N "" -f ./gitops
+```
+
+The above command generates an SSH key-pair: **gitops** (private key) and **gitops.pub** (public key).
+
+Use the path to the private key (**gitops**) in the `gitops.private_key` section of the [configuration file](./corda_networkyaml.md).
+
+And add the public key contents (starts with **ssh-rsa**) as an Access Key (with read-write permissions) in your Github repository by following [this guide](https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account).
+
+
 <a name = "docker"></a>
 ## Docker Images
 
@@ -26,7 +43,7 @@ The Blockchain Automation Framework uses some custom-built docker images which a
 ---
 ### Alpine Utils ###
 
-Alpine-utils docker image is a light-weight utility image used in the Blockchain Automation Framework. It is mainly used as init-containers in the Blockchain Automation Framework Kubernetes deployments to connect to Hashicorp Vault to download certificates.
+Alpine-utils docker image is a light-weight utility image used in the Blockchain Automation Framework (BAF). It is mainly used as init-containers in the BAF Kubernetes deployments to connect to Hashicorp Vault to download certificates.
 
 * To build the image, execute the following command from [platforms/shared/images](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/images) folder. 
 ```
@@ -86,7 +103,7 @@ You may generate multiple root tokens at the time of initialising the Vault, and
 <a name = "ambassador"></a>
 ## Ambassador
 
-The Blockchain Automation Framework uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) for inter-cluster communication. To enable the Blockchain Automation Framework Kubernetes services from one Kubernetes cluster to talk to services in another cluster, Ambassador needs to be configured as per the following steps:
+The Blockchain Automation Framework (BAF) uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) for inter-cluster communication. To enable BAF Kubernetes services from one Kubernetes cluster to talk to services in another cluster, Ambassador needs to be configured as per the following steps:
 
 * After Ambassador is deployed on the cluster (manually or using `platforms/shared/configuration/kubernetes-env-setup.yaml` playbook), get the external IP address of the Ambassador service.
 ```

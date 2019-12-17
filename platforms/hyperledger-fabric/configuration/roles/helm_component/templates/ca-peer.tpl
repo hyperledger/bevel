@@ -20,7 +20,7 @@ spec:
       admin: {{ component }}-admin
     storage:
       storageclassname: {{ component | lower }}sc
-      storagesize: 1Gi
+      storagesize: 512Mi
     vault:
       role: vault-role
       address: {{ vault.url }}

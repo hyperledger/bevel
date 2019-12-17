@@ -6,8 +6,13 @@ network:
   # to join an existing network.
   type: corda
   version: 4.0
-  #enabled flag is frontend is enabled for nodes
-  frontend: enabled
+
+  frontend: enabled   #Flag for frontend to enabled for nodes/peers
+
+  #Environment section to help run multiple applications on same cluster
+  env:
+    type: "env_type"          #Must be unique per single-cluster
+    ambassadorPorts: 10010,10020    #Any additional Ambassador ports can be given here, must be comma-separated without spaces
   
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry. 
@@ -50,7 +55,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -71,6 +75,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has doorman, nms and notary on one cluster but different namespaces
@@ -129,7 +134,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -150,13 +154,14 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       # The participating nodes are named as peers 
       services:
         peers:
         - peer:
           name: manufacturer
-          subject: "O=Manufacturer,OU=Manufacturer,L=Zurich,C=CH"
+          subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: node
           p2p:
             port: 10002
@@ -198,7 +203,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -219,12 +223,13 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
       
       services:
         peers:
         - peer:
           name: carrier
-          subject: "O=Carrier,OU=Carrier,L=London,C=GB"
+          subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
           type: node
           p2p:
             port: 10002
@@ -266,7 +271,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -287,12 +291,13 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       services:
         peers:
         - peer:
           name: store
-          subject: "O=Store,OU=Store,L=New York,C=US"
+          subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: node
           p2p:
             port: 10002
@@ -334,7 +339,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        provider: "EKS"
         region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
@@ -355,12 +359,13 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       services:
         peers:
         - peer:
           name: warehouse
-          subject: "O=Warehouse,OU=Warehouse,L=Boston,C=US"
+          subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: node
           p2p:
             port: 10002

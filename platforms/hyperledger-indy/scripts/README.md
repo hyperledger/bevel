@@ -1,1 +1,1 @@
-# The Blockchain Automation Framework Indy scripts
+# Blockchain Automation Framework Indy scripts

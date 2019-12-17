@@ -1,32 +1,9 @@
 ---
-- name: Check if Ambassador is running
-  k8s_facts:
-    kind: Pod
-    namespace: default
-    kubeconfig: "{{ kubeconfig_path }}"
-    context: "{{ kubecontext }}"
-    label_selectors:
-      - app.kubernetes.io/name = ambassador
-    field_selectors:
-      - status.phase=Running    
-  register: ambassador_service
-  tags:
-    - ambassador
-
-- name: Install Ambassador for others
+# We have enabled additional ports on Ambassador for TCP. By default 8443 is exposed.
+# The extra ports are pass as parameter --set ambassador.otherPorts={10010,10020} is taken from network.env.ambassadorPorts
+- name: Install Ambassador
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm install --set service.https.targetPort={{ ambassador.targetPort }} --set securityContext=''  --version {{ ambassador.version }} --set service.annotations='' --set service.https.port={{ ambassador.port }} --set image.tag={{ ambassador.tag }} --set image.repository={{ ambassador.image }} --set service.http.enabled=false stable/ambassador --name ambassador --kube-context="{{ kubecontext }}"
-  when: ambassador_service.resources|length == 0 and network.type != 'corda'
-  tags:
-    - ambassador
-
-# Corda needed a different type of install because we have to expose TCP Ports for each Corda P2P Port
-# This means ambassador service has to expose more ports in addition to 8443
-# The extra ports are pass as parameter --set ambassador.otherPorts={10010,10020} #no-spaces
-- name: Install Ambassador for Corda
-  shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm install --set ambassador.otherPorts="{10010,10020,10030,10040,10050}" --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} {{ playbook_dir }}/../../../platforms/shared/charts/ambassador --name ambassador --kube-context="{{ kubecontext }}"
-  when: ambassador_service.resources|length == 0 and network.type == 'corda'
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   tags:
     - ambassador
 
@@ -43,7 +20,6 @@
       - status.phase=Running    
   register: kubectl_get_pods
   until: kubectl_get_pods.resources|length > 0
-  when: ambassador_service.resources|length == 0
   retries: 5
   delay: 15
 
