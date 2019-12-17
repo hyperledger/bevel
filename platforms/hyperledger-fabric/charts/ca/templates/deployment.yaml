@@ -62,16 +62,14 @@ spec:
           }
 
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "token ${KUBE_SA_TOKEN}"
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
           # Login to Vault and so I can get an approle token
           VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
             -H "Content-Type: application/json" \
             -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
             jq -r 'if .errors then . else .auth.client_token end')
-          echo "VAULT_CLIENT_TOKEN ${VAULT_CLIENT_TOKEN}"
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-          
+
           SECRET_CERT={{ $.Values.vault.secretcert }}
           vault_secret_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $1}')
           vault_data_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $2}')
@@ -79,7 +77,6 @@ spec:
               --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
               jq -r 'if .errors then . else . end')
-          echo "LOOKUP_SECRET_RESPONSE ${LOOKUP_SECRET_RESPONSE}"
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
           VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.crt
@@ -94,7 +91,7 @@ spec:
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
           VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.key
-          echo "LOOKUP_SECRET_RESPONSE ${LOOKUP_SECRET_RESPONSE}"
+
 
           SECRET_ADMIN_PASS={{ $.Values.vault.secretadminpass }}
           vault_secret_key=$(echo ${SECRET_ADMIN_PASS} |awk -F "?" '{print $1}')
@@ -105,7 +102,8 @@ spec:
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
           VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/user_cred
-          echo "LOOKUP_SECRET_RESPONSE ${LOOKUP_SECRET_RESPONSE}"
+
+
         volumeMounts:
         - name: certificates
           mountPath: /secret
