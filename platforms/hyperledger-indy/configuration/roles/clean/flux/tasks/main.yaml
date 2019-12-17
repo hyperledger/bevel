@@ -1,0 +1,18 @@
+---
+- name: Delete Helm release
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }} -n default
+    KUBECONFIG={{ kubernetes.config_file }} helm delete flux-{{ network.env.type }} --purge
+  ignore_errors: yes
+
+- name: Wait for deleting of Helm release flux-{{ network.env.type }}
+  k8s_facts:
+    kind: "Pod"
+    label_selectors:
+    - release=flux-{{ network.env.type }}
+    namespace: "default"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: result
+  until: result.resources|length == 0
+  retries: 10
+  delay: 40

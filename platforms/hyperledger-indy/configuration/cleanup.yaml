@@ -23,11 +23,20 @@
       loop_var: organizationItem
     when: network['type'] == 'indy'
 
+  # Delete the Flux Helm release from all organizations's K8S clusters (including the Git secret)
+  - name: Delete Flux
+    include_role:
+      name: clean/flux
+    vars:
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
+
   # Cleanup Flux release folder in Git for all organizations
 
   # Delete all organizations' namespaces with all K8S resources (including PVCs and PVs)
-
-  # Delete the Flux Helm release from all organizations's K8S clusters (including the Git secret)
 
   # Delete Tiller from all organizations' K8S clusters
 
