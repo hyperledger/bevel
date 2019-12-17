@@ -1,12 +1,12 @@
 apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
-  name: {{ org_name }}-orderer
+  name: {{ org_name }}-{{ orderer.name }}
   namespace: {{ namespace }}
   annotations:
     flux.weave.works/automated: "false"
 spec:
-  releaseName: {{ org_name }}-orderer
+  releaseName: {{ org_name }}-{{ orderer.name }}
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
