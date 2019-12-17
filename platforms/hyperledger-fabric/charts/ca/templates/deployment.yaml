@@ -69,8 +69,9 @@ spec:
             -H "Content-Type: application/json" \
             -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
             jq -r 'if .errors then . else .auth.client_token end')
+          echo "VAULT_CLIENT_TOKEN ${VAULT_CLIENT_TOKEN}"
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-
+          tail -f ${MOUNT_PATH}
           SECRET_CERT={{ $.Values.vault.secretcert }}
           vault_secret_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $1}')
           vault_data_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $2}')
