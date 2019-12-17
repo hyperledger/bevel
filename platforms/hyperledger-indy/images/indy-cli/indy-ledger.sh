@@ -23,6 +23,7 @@ export VAULT_TOKEN=$vault_token;
 
 
 
+
 QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$admin_path/$admin_name/identity/public | jq -r 'if .errors then . else . end')
 admin_did=$(echo ${QUERY_RES} | jq -r ".data[\"did\"]")
 [ -z "$admin_did" ] && { echo "Script Failed"; exit 1;} || echo "Admin DID Acquired";
@@ -30,6 +31,7 @@ admin_did=$(echo ${QUERY_RES} | jq -r ".data[\"did\"]")
 QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$admin_path/$admin_name/identity/private | jq -r 'if .errors then . else . end')
 admin_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]")
 [ -z "$admin_seed" ] && { echo "Script Failed"; exit 1;} || echo "Admin Seed Acquired";
+
 
 QUERY_RES=$(curl -sS --header "X-Vault-Token: $vault_token" $vault_addr/$identity_path/$identity_name/identity/public | jq -r 'if .errors then . else . end')
 identity_did=$(echo ${QUERY_RES} | jq -r ".data[\"did\"]")
@@ -46,6 +48,7 @@ echo "{
 \"did\": \"$admin_did\", 
 \"seed\": \"$admin_seed\"
 }]
+
 }" > admindid.txt;
 
 echo "{
@@ -55,6 +58,7 @@ echo "{
 \"seed\": \"$identity_seed\"
 }]
 }" > identitydid.txt;
+
 
 echo "wallet create myIndyWallet key=12345
 wallet open myIndyWallet key=12345

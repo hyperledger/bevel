@@ -4,10 +4,36 @@ kind: Service
 metadata:
   name: {{ $.Values.server.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{ if $.Values.ambassador.annotations }}
+  {{ if $.Values.ambassador }}
   annotations:
     getambassador.io/config: |
-    {{ $.Values.ambassador.annotations  | nindent 6 }}
+      ---
+      apiVersion: ambassador/v1
+      kind:  Mapping
+      {{ if eq $.Values.ambassador.type "orderer" }}
+      name:  ca_orderer_{{ $.Values.metadata.namespace }}_mapping
+      {{ else }}
+      name:  ca_{{ $.Values.metadata.namespace }}_mapping
+      {{ end }}
+      prefix: /
+      host: ca.{{ $.Values.metadata.namespace }}:7054
+      service: ca.{{ $.Values.metadata.namespace }}:7054
+      {{ if eq $.Values.ambassador.type "orderer" }}
+      tls: ca_orderer_{{ $.Values.metadata.namespace }}_tls
+      {{ else }}
+      tls: ca_{{ $.Values.metadata.namespace }}_tls
+      {{ end }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      {{ if eq $.Values.ambassador.type "orderer" }}
+      name: ca_orderer_{{ $.Values.metadata.namespace }}_tls
+      {{ else }}
+      name: ca_{{ $.Values.metadata.namespace }}_tls
+      {{ end }}
+      hosts:
+      - ca.{{ $.Values.metadata.namespace }}
+      secret: ca-{{ $.Values.metadata.namespace }}-ambassador-certs
   {{ end }}
   labels:
     run: {{ $.Values.server.name }}

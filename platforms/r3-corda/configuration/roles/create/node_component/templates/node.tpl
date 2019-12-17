@@ -15,7 +15,7 @@ spec:
     nodeName: {{ component_name }}
     replicas: 1
     metadata:
-      namespace: {{ component_ns }}  
+      namespace: {{ component_ns }}
     image:
       containerName: {{ network.docker.url }}/{{ docker_image }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
@@ -107,24 +107,7 @@ spec:
       rpcadmin:
         port: {{ node.rpcadmin.port|e }}
         targetPort: {{ node.rpcadmin.targetPort|e }}
- 
-    ambassador:
-      annotations: |-
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: {{ component_name|e }}_context
-        hosts:
-        - {{ component_name|e }}.{{ item.external_url_suffix }}
-        secret: {{ component_name|e }}-ambassador-certs
-        ---
-        apiVersion: ambassador/v1
-        kind: TCPMapping
-        name: {{ component_name|e }}_p2p_mapping
-        port: {{ node.p2p.ambassador | default('10002') }}
-        host: {{ component_name|e }}.{{ item.external_url_suffix }}
-        service: {{ component_name|e }}.{{ component_ns }}:{{ node.p2p.port|e }}
-        
+         
     deployment:
       annotations: {}
     vault:
@@ -143,3 +126,8 @@ spec:
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
+    ambassador:
+      component_name: {{ component_name | e }}
+      external_url_suffix: {{ item.external_url_suffix }}
+      p2p_ambassador: {{ node.p2p.ambassador | default('10002') }}
+      
