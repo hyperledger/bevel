@@ -83,9 +83,10 @@
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/ca
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
-    vault delete secret/crypto/ordererOrganizations/{{ component_name }}/ambassador
-  vars:
-    orderer: "{{ services.orderer }}"
+    vault delete secret/crypto/ordererOrganizations/{{ component_name }}/ambassador/{{orderer.name}}
+  loop: "{{ services.orderers }}"
+  loop_control:
+    loop_var: orderer
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"

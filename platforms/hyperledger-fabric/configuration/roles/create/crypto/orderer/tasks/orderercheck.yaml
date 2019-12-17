@@ -1,0 +1,38 @@
+# Check if CA-tools pod is running
+- name: Check if CA-tools is running
+  k8s_facts:
+    kind: Pod
+    namespace: "{{ component_name }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    label_selectors:
+      - name = ca-tools   
+  register: ca_tools
+  until: ("Running" in ca_tools|json_query('resources[*].status.phase'))
+  retries: "{{ network.env.retry_count}}"
+  delay: 40
+
+# Ensure ca directory is present in build
+- name: Ensure ca directory exists
+  file:
+    path: "./build/crypto-config/ordererOrganizations/{{ component_name }}/ca"
+    recurse: yes
+    state: directory
+
+# Check if CA certs exists in vault, if not this should fail. If yes, get the certificate
+- name: Check if ca certs already created
+  shell: |
+    vault kv get -field=ca.{{ component_name }}-cert.pem secret/crypto/ordererOrganizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
+    mv ca.{{ component_name }}-cert.pem ./build/crypto-config/ordererOrganizations/{{ component_name }}/ca/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+
+# Check if CA key exists in vault, if not this should fail. If yes, get the certificate
+- name: Check if ca key already created
+  shell: |
+    vault kv get -field={{ component_name }}-CA.key secret/crypto/ordererOrganizations/{{ component_name }}/ca > {{ component_name }}-CA.key
+    mv {{ component_name }}-CA.key ./build/crypto-config/ordererOrganizations/{{ component_name }}/ca/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
