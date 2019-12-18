@@ -22,12 +22,8 @@ Here is a high-level description of the Supply Chain application:
 ### High-Level details regarding the folders this project contains
 
 ```
-(1) /ansible - this folder holds the yaml files used for kubernetes.
-(2) /chaincode - this folder contains all files related to the application's smart contracts. See below "Current Chaincodes this project contains" for further high-level details regarding each of the files inside this folder.
-(3) /chartvalues - this folder contains the yaml files used by the fabric-network's ca, catools, channel, orderer and peers.
-(4) /fabric-network - This holds the .sh files used to generate channel artifacts.
-(5) /k8-files - This holds files needed for the kubernetes setup. See /k8-files/minikube-readme.md and /k8-files/README.md for further details.
-(6) /rest-server - This holds the Rest Server for Fabric Supply Chain App.
+(1) /chaincode - this folder contains all files related to the application's smart contracts. See below "Current Chaincodes this project contains" for further high-level details regarding each of the files inside this folder.
+(2) /rest-server - This holds the Rest Server for Fabric Supply Chain App.
 ```
 
 
@@ -43,16 +39,16 @@ Here is a high-level description of the Supply Chain application:
 Go requries your sourcecode be within the \$GOPATH environment variable. This causes issues when you try to have your chaincode also with a shared repository. The following commands will symlink your chaincode directory into the GOPATH satifying both requirements.
 
 ```
-mkdir -p $GOPATH/src/supplychain-fabric/
-ln -s $(pwd)/chaincode $GOPATH/src/supplychain-fabric/
+export GOPATH=/opt/gopath
+mkdir -p $GOPATH/src/github.com
+ln -s $(pwd)/chaincode $GOPATH/src/github.com
 ```
-
 
 ## Developing Chaincode
 
 ### Installing dependencies
 
-Run `dep ensure` to install from within \$GOPATH/src/supplychain-fabric/ to install the required dependencies.
+Run `dep ensure` to install from within \$GOPATH/src/github.com/chaincode to install the required dependencies.
 
 
 ### Current Chaincodes this project contains
@@ -134,7 +130,7 @@ This holds data used by /chaincode/supplychain/*_test.go chaincodes. This includ
 ### Testing
 #### Test using symlink
 
-Run `go test` or `go test -v` from within \$GOPATH/src/supplychain-fabric/ to run the chaincode unit tests.
+Run `go test` or `go test -v` from within \$GOPATH/src/github.com/chaincode to run the chaincode unit tests.
 
 #### Test not using symlink
 
@@ -148,58 +144,25 @@ NOTE: $GOPATH is normally $HOME/go
 NOTE: the test details will be cached so you could use `go clean` if you will be doing another round of test or another test with other chaincodes. This is to ensure that your are reading the correct test details when using `go test`.
 ```
 
-
-### Fabric Network
-
-Connect to a kubernetes cluster running the fabric network or deploy to a local cluster by following the instructions in k8s-files/minikube-readme.md
-
-
 ### Update Chaincode deployed
 
-To update chaincode running on a cluster:
+To update chaincode running on a clusters, use the `platforms/hyperledger-fabric/configuration/chaincode-upgrade.yaml` playbook. 
+The input network.yaml should be updated with a new version of chaincode. Please do not use dot(.) in chaincode versions.
+
+
+## Deploying REST-Server and API-Server
+
+The Supplychain Restserver and ExpressAPI server is deployed using the `examples/supplychain-app/configuration/deploy-supplychain-app.yaml` playbook. 
+The input network.yaml should be updated correctly with the Chart path `examples/supplychain-app/charts`. Also, please do not use dot(.) in chaincode versions.
+
+
+### Updating the Fabric REST-Server deployed
+
+To update running Fabric rest-servers, ensure you are logged in to the Azure Docker Registry. Then:
 
 ```bash
-k8s-files/bin/installChaincode.sh store-net <version>
-k8s-files/bin/installChaincode.sh warehouse-net <version>
-k8s-files/bin/installChaincode.sh manufacturer-net <version>
-k8s-files/bin/installChaincode.sh carrier-net <version>
-
-export CLI=$(kubectl get pods -n manufacturer-net | grep 'cli' | awk '{print $1}')
-kubectl exec -n manufacturer-net $CLI -- bash -c 'peer chaincode upgrade -o $ORDERER_URL --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA -C allchannel -n supplychain -v <version>  -c "{\"Args\":[\"init\"]}"'
+docker build -t adopblockchaincloud0502.azurecr.io/supplychain_fabric/rest_server rest-server
+docker push adopblockchaincloud0502.azurecr.io/supplychain_fabric/rest_server:latest
 ```
 
-Where <version> is the new version number of the chaincode, e.g., 1.1 or 2.0.
-
-
-## Developing the API Server
-### Local Access
-
-To access api-servers running on a local kubernetes cluster add the following lines to your `/etc/hosts` file:
-
-```
-127.0.0.1       store.fabric.supplychain.blockchaincloudpoc.com
-127.0.0.1       carrier.fabric.supplychain.blockchaincloudpoc.com
-127.0.0.1       warehouse.fabric.supplychain.blockchaincloudpoc.com
-127.0.0.1       manufacturer.fabric.supplychain.blockchaincloudpoc.com
-```
-
-Remove or comment the lines to re-enable cloud access.
-
-
-### Updating the API Server deployed
-
-To update running api servers, ensure you are logged in to the Azure Docker Registry. Then:
-
-```bash
-docker build -t adopblockchaincloud0502.azurecr.io/supply_chain_fabric/rest-server rest-server
-docker push  adopblockchaincloud0502.azurecr.io/supply_chain_fabric/rest-server:latest
-```
-
-Once the push is complete terminate the current pods so they recreate with the new image:
-
-```bash
-kubectl del pod -n store-net api-server-xxxxxxxxxx-yyyyy
-kubectl del pod -n warehouse-net api-server-xxxxxxxxxx-yyyyy
-kubectl del pod -n carrier-net api-server-xxxxxxxxxx-yyyyy
-kubectl del pod -n manufacturer-net api-server-xxxxxxxxxx-yyyyy
-```
+Once the push is complete, Flux-helmoperator should redeploy the restserver pods
