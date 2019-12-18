@@ -27,11 +27,14 @@ network:
   
   frontend: enabled #Flag for frontend to enabled for nodes/peers
 
-  #Environment section to help run multiple applications on same cluster
+  #Environment section for Kubernetes setup
   env:
-    type: "env_type"          #Must be unique per single-cluster
-    ambassadorPorts: 10010,10020    #Any additional Ambassador ports can be given here, must be comma-separated without spaces
-    retry_count: 100 #Retry count for the checks
+    type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
+    proxy: haproxy                  # values can be 'haproxy' or 'ambassador'
+    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    retry_count: 20                 # Retry count for the checks
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+
   
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry. 
