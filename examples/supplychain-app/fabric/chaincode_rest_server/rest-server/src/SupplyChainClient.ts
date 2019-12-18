@@ -17,7 +17,7 @@ export class SupplyChainClient extends Gateway {
     const connectionOptions = {
       identity: this.user.identityLabel,
       wallet: this.user.wallet,
-      discovery: { enabled: false, asLocalhost: false },
+      discovery: { enabled: true, asLocalhost: false },
       clientTlsIdentity: this.user.identityLabel
     };
     const connection = await super.connect(
