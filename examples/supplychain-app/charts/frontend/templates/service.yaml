@@ -3,23 +3,23 @@ apiVersion: v1
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{ if $.Values.ambassador }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
     getambassador.io/config: | 
       ---
       apiVersion: ambassador/v1
       kind: TLSContext
-      name: {{ .Values.ambassador.peer_name }}_web_context
+      name: {{ .Values.proxy.peer_name }}_web_context
       hosts:
-      - {{ .Values.ambassador.peer_name }}web.{{ .Values.ambassador.external_url_suffix }}
-      secret: {{ .Values.ambassador.ambassador_secret }}
+      - {{ .Values.proxy.peer_name }}web.{{ .Values.proxy.external_url_suffix }}
+      secret: {{ .Values.proxy.ambassador_secret }}
       ---
       apiVersion: ambassador/v1
       kind: Mapping
-      name: {{ .Values.ambassador.peer_name }}_web_p2p_mapping
+      name: {{ .Values.proxy.peer_name }}_web_p2p_mapping
       prefix: /
-      host: {{ .Values.ambassador.peer_name }}web.{{ .Values.ambassador.external_url_suffix }}:8443
-      service: {{ .Values.ambassador.peer_name }}-frontend.{{ .Values.metadata.namespace }}:{{ .Values.frontend.nodePorts.port }}
+      host: {{ .Values.proxy.peer_name }}web.{{ .Values.proxy.external_url_suffix }}:8443
+      service: {{ .Values.proxy.peer_name }}-frontend.{{ .Values.metadata.namespace }}:{{ .Values.frontend.nodePorts.port }}
       tls: false
   {{ end }}
   labels:
@@ -36,3 +36,27 @@ spec:
   - port: {{ .Values.frontend.nodePorts.port }}
     targetPort: {{ .Values.frontend.nodePorts.targetPort }}
     protocol: TCP
+        
+{{- if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+spec:
+  tls:
+  - hosts:
+    - {{ .Values.proxy.peer_name }}web.{{ .Values.proxy.external_url_suffix }}
+    secretName: {{ .Values.proxy.ambassador_secret }}
+  rules:
+  - host: {{ .Values.proxy.peer_name }}web.{{ .Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ .Values.proxy.peer_name }}-frontend
+          servicePort: {{ .Values.frontend.nodePorts.port }}
+{{- end }}

@@ -33,7 +33,8 @@ spec:
 {% endif %}
     deployment:
       annotations: {}
-    ambassador:
+    proxy:
+      provider: {{ network.env.proxy }}
       peer_name: {{ peer_name }}
       external_url_suffix: {{ organization_data.external_url_suffix }}
       ambassador_secret: {{ ambassador_secret }}
