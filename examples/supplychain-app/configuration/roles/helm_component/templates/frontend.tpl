@@ -28,7 +28,8 @@ spec:
         webserver: https://{{ peer_name }}api.{{ organization_data.external_url_suffix }}:8443
     deployment:
       annotations: {}
-    ambassador:
+    proxy:
+      provider: {{ network.env.proxy }}
       peer_name: {{ peer_name }}
       external_url_suffix: {{ organization_data.external_url_suffix }}
       ambassador_secret: {{ ambassador_secret }}
