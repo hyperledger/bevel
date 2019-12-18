@@ -4,21 +4,15 @@
 
 # Check or wait for the Orderer pod
 - name: "Check orderer pod is up"
-  k8s_facts:
-    kind: Pod
-    namespace: "{{ orderer.name | lower }}-net"
-    kubeconfig: "{{ orderer.k8s.config_file }}"
-    context: "{{ orderer.k8s.context }}"
-    label_selectors:
-      - app = orderer
+  include_tasks: orderercheck.yaml
+  vars:
+    orderer_namespace: "{{ ordererorg.name | lower }}-net"
+    orderer_kubeconfig: "{{ ordererorg.k8s.config_file }}"
+    orderer_context: "{{ ordererorg.k8s.context }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
-    loop_var: orderer
-  when: orderer.type =='orderer'
-  register: get_orderer
-  until: ("Running" in get_orderer|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
+    loop_var: ordererorg
+  when: ordererorg.type == 'orderer'
 
 # Check or wait for the Creator peer
 - name: "Check creator peer pod is up"

@@ -46,4 +46,4 @@ This will create a file called *minimal-linuxkit-os-base.docker*
 ```
 You can delete the **temp** directory after pushing the docker image.
 
-**NOTE:** Please change the docker image name according to your registry.
+**NOTE:** Please change the docker image/tag name according to your registry and have your own docker repository for push.
