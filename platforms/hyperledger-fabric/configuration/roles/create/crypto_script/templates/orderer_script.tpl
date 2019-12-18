@@ -59,7 +59,7 @@ PEER="{{ peer_name }}.${FULLY_QUALIFIED_ORG_NAME}"
 CSR_HOSTS=${PEER}
 for i in "${ALTERNATIVE_ORG_NAMES[@]}"
 do
-	CSR_HOSTS="${CSR_HOSTS},orderer.${i}"
+	CSR_HOSTS="${CSR_HOSTS},{{ peer_name }}.${i}"
 done
 echo "Registering and enrolling $PEER with csr hosts ${CSR_HOSTS}"
 
