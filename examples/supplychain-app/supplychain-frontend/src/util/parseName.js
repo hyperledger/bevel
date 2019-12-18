@@ -17,7 +17,13 @@ function getCountry (name) {
   return(name.split('C=')[1].split(',')[0]);
 };
 function getOrganizationUnit(name){
-  return(name.split('OU=')[1].split(',')[0]);
+  if (name.includes("+OU=")) {  //Fabric adds additional OU, hence +OU check
+    const lower = name.split('+OU=')[1].split(',')[0];
+    const upper = lower.charAt(0).toUpperCase() + lower.substring(1);
+    return upper;
+  } else {
+    return(name.split('OU=')[1].split(',')[0]);
+  }  
 }
 
 export default {
