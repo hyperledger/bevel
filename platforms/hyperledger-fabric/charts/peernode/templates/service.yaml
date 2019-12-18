@@ -3,21 +3,21 @@ kind: Service
 metadata:
   name: {{ $.Values.peer.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{- if or $.Values.ambassador (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
+  {{- if or $.Values.proxy (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
   ##### TODO: Enable ambassador for Fabric
   # This can be fixed only when https://jira.hyperledger.org/browse/FAB-8131 issue is fixed
   # After the issue is fixed, changes similar to the commented code has to be done by using correct secrets.
   # Otherwise as ambassador is not able to passthrough TLS connection, grpc over ambassador is not going to work
   # hence we have used a HAProxy ingress whoich does ssl-passthrough.  
   annotations:
-  {{- if eq $.Values.ambassador.enabled "true" }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
     getambassador.io/config: |
       ---
       apiVersion: ambassador/v1
       kind: TLSContext
       name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       hosts:
-      - {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
+      - {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
       secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
       alpn_protocols: h2
       ---
@@ -27,7 +27,7 @@ metadata:
       grpc: True
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
       headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}:{{ $.Values.ambassador.port }}
+        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}:{{ $.Values.proxy.port }}
       prefix: /
       rewrite: /
       service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
@@ -38,11 +38,11 @@ metadata:
       grpc: True
       name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping_rest
       headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.ambassador.external_url_suffix }}
+        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
       prefix: /
       rewrite: /
       service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
-  {{- end }} # end if Values.ambassador  
+  {{- end }} # end if Values.proxy  
   {{- if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
     cloud.google.com/load-balancer-type: "Internal"
   {{- end }}
@@ -87,7 +87,7 @@ spec:
   loadBalancerIP: {{ $.Values.service.loadBalancerIP }}
   {{- end }}
 
-{{- if eq $.Values.haproxy.enabled "true" }}
+{{- if eq $.Values.proxy.provider "haproxy" }}
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -99,7 +99,7 @@ metadata:
     ingress.kubernetes.io/ssl-passthrough: "true"  
 spec:
   rules:
-  - host: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.haproxy.external_url_suffix }}
+  - host: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
     http:
       paths:
       - path: /

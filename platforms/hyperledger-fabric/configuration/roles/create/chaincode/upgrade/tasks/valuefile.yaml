@@ -22,33 +22,11 @@
   register: component_data
   retries: "{{ network.env.retry_count}}"
   delay: 50
-  until: component_data.resources|length > 0  
-  when: peer.chaincode is defined
-
-#Check if instantate-chaincode is run
-- name: 'Check for instantiate-chaincode job'
-  k8s_facts:
-    kind: "Job"
-    name: "instantiatechaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app = instantiatechaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  vars:
-    namespace: "{{ org.name |lower }}-net"
-    kubernetes: "{{ org.k8s }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  register: instantiate_chaincode
-  retries: "{{ network.env.retry_count}}"
-  delay: 50
-  until: component_data.resources|length > 0  
+  until: (1 in component_data|json_query('resources[*].status.succeeded'))
   when: peer.chaincode is defined
 
 # Nested task for chanincode upgradation
-- name: "Create value file for chaincode instantiaiton"
+- name: "Create value file for chaincode upgrade"
   include_role:
     name: helm_component
   vars:    
