@@ -62,6 +62,6 @@ spec:
           nodeport: {{ peer.couchdb.nodePort }}
 {% endif %}
           
-    haproxy:
-      enabled: "true"
+    proxy:
+      provider: {{ network.env.proxy }}
       external_url_suffix: {{ item.external_url_suffix }}
