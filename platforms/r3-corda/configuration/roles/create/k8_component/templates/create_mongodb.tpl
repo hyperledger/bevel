@@ -32,6 +32,7 @@ spec:
       authpath: {{ component_auth }}
       secretprefix: {{ nodename }}/credentials/mongodb
       serviceaccountname: vault-auth
+      certsecretprefix: {{nodename}}/certs
     service:
       tcp:
           port: 27017
@@ -44,3 +45,5 @@ spec:
       annotations: {}
     mongodb:
       username: {{ nodename }}
+    cluster:
+      enabled: false

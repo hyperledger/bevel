@@ -31,6 +31,55 @@ spec:
             value: /run/secrets/db_root_username
           - name: MONGO_INITDB_ROOT_PASSWORD_FILE
             value: /run/secrets/db_root_password
+        command:
+        - /bin/sh
+        - -c
+        - >
+          if [ -f /data/db/admin-user.lock ]; then
+          #file /data/db/admin-user.lock created and checked to ensure mongod is fully up for adding new db user in postStart hook.
+            echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon"
+            # ensure wiredTigerCacheSize is set within the size of the containers memory limit, Setting up with tag --sslAllowConnectionsWithoutCertificates only client validates the server to ensure that it receives data from the intended server. 
+            {{range $i, $e := until (atoi (printf "%d" (int64 $.Values.replicas))) }}
+              if [ "$HOSTNAME" = "{{ $.Values.nodeName }}-{{$i}}" ]; then
+                {{ if $.Values.cluster.enabled }}
+                  #chmod to change file permissions to provide read permissions.
+                  chmod 600 /etc/ssl/{{ $.Values.nodeName }}-keyfile;
+                  #for Mongodb server with replication.
+                  mongod --wiredTigerCacheSizeGB 0.25 --replSet rs0 --bind_ip 0.0.0.0 --smallfiles --noprealloc --clusterAuthMode keyFile --keyFile /etc/ssl/{{ $.Values.nodeName }}-keyfile --setParameter authenticationMechanisms=SCRAM-SHA-1 --sslMode requireSSL --sslPEMKeyFile /etc/ssl/{{ $.Values.nodeName }}-{{$i}}.pem --sslCAFile /etc/ssl/mongoCA.crt --sslAllowConnectionsWithoutCertificates --sslAllowInvalidHostnames;
+                {{ else }}
+                  #for Mongodb single server.
+                  mongod --wiredTigerCacheSizeGB 0.25 --bind_ip 0.0.0.0 --sslMode requireSSL --sslPEMKeyFile /etc/ssl/{{ $.Values.nodeName }}-0.pem --sslCAFile /etc/ssl/mongoCA.crt --sslAllowConnectionsWithoutCertificates --sslAllowInvalidHostnames --auth;
+                {{end}}
+              fi;
+            {{end}}
+          else
+            echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon with setup setting (authMode)"
+            mongod --auth;
+          fi;
+        lifecycle:
+            postStart:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - >
+                  if [ ! -f /data/db/admin-user.lock ]; then
+                    echo "KUBERNETES LOG $HOSTNAME- no Admin-user.lock file found yet"
+                    # user name and password for creation of new db user.
+                    DB_PASSWORD=`cat /run/secrets/db_root_password`
+                    DB_USERNAME=`cat /run/secrets/db_root_username`
+                    # sleep 20 to 'ensure' mongod is accepting connections for creating db user.
+                    sleep 20;
+                    touch /data/db/admin-user.lock
+                    # Adding database user with password in admin database, checking for host name to create new db user.
+                    if [ "$HOSTNAME" = "{{ .Values.nodeName }}-0" ]; then
+                      echo "KUBERNETES LOG $HOSTNAME- creating admin user doorman"
+                      # Adding database user in admin db using mongo shell command.
+                      mongo --eval "db = db.getSiblingDB('admin'); db.createUser({ user: '${DB_USERNAME}', pwd: '${DB_PASSWORD}', roles: [{ role: 'root', db: 'admin' }]});" >> /data/db/config.log
+                    fi;
+                    echo "KUBERNETES LOG $HOSTNAME-shutting mongod down for final restart"
+                    mongod --shutdown;
+                  fi;
         ports:
         - containerPort: {{ .Values.service.tcp.targetPort }}
         volumeMounts:
@@ -39,6 +88,28 @@ spec:
         - name: creds
           mountPath: "/run/secrets"
           readOnly: false
+        - name: certs
+          mountPath: "/etc/ssl"
+          readonly: false 
+      {{- if .Values.cluster.enabled }}
+      - name: mongo-sidecar
+        image: cvallance/mongo-k8s-sidecar
+        command:
+        - /bin/sh
+        - -c
+        - >
+          export MONGO_SIDECAR_POD_LABELS="appdb={{ .Values.nodeName }}";
+          export MONGODB_USERNAME=`cat /run/secrets/db_root_username`;
+          export MONGODB_PASSWORD=`cat /run/secrets/db_root_password`;
+          export MONGODB_DATABASE="admin";
+          export MONGO_SSL_ENABLED="true";
+          export MONGO_SSL_ALLOW_INVALID_HOSTNAMES="true";
+          npm start;
+        volumeMounts:
+        - name: creds
+          mountPath: "/run/secrets"
+          readOnly: false
+      {{- end }} 
       initContainers:
       - name: init-credential
         image : {{ .Values.image.initContainerName }}
@@ -54,6 +125,8 @@ spec:
             value: /run/secrets
           - name: SECRET_PREFIX
             value: {{.Values.vault.secretprefix}}
+          - name: CERT_SECRET_PREFIX
+            value: {{.Values.vault.certsecretprefix}}
           - name: MONGODB_USERNAME
             value: {{.Values.mongodb.username}}
         command: ["/bin/sh","-c"]
@@ -78,10 +151,34 @@ spec:
             
             echo "${MONGODB_PASSWORD}" >> ${MOUNT_PATH}/db_root_password
             echo "${MONGODB_USERNAME}" >> ${MOUNT_PATH}/db_root_username
+
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERT_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+            
+            # Validating vault response for mongodb certificates. 
+            validateVaultResponse "secret ${CERT_SECRET_PREFIX}" "${LOOKUP_SECRET_RESPONSE}"
+            
+            # Getting certificates of server from vault and storing into /etc/ssl.
+            {{range $i, $e := until (atoi (printf "%d" (int64 $.Values.replicas))) }}
+               SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ $.Values.nodeName }}-{{$i}}.pem"]')
+               echo "${SERVER_CERT}" | base64 -d > /etc/ssl/{{ $.Values.nodeName }}-{{$i}}.pem                
+            {{end}}
+            
+            # keyfile used to authenticate between replicaset members
+            {{- if .Values.cluster.enabled }}
+            CLUSTER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.nodeName }}-keyfile"]')
+            echo "${CLUSTER_CERT}" | base64 -d > /etc/ssl/{{ .Values.nodeName }}-keyfile
+            {{- end }}
+            
+            # Getting certificate authority cert from vault which is required for client validation and storing into /etc/ssl.
+            CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["mongoCA.crt"]')
+            echo "${CA_CERT}" | base64 -d > /etc/ssl/mongoCA.crt
            
         volumeMounts:
           - name: creds
             mountPath: "/run/secrets"
+            readOnly: false
+          - name: certs
+            mountPath: "/etc/ssl"
             readOnly: false
       imagePullSecrets:
         - name: {{ .Values.image.imagePullSecret }}      
@@ -90,5 +187,8 @@ spec:
         persistentVolumeClaim:
           claimName: {{ .Values.nodeName }}-pvc
       - name: creds
+        emptyDir:
+          medium: Memory
+      - name: certs
         emptyDir:
           medium: Memory
