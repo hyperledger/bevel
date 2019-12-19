@@ -36,6 +36,16 @@
     when: network['type'] == 'indy'
 
   # Cleanup Flux release folder in Git for all organizations
+  - name: Delete releease folder
+    include_role:
+      name: clean/gitops
+    vars:
+      release_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+      gitops: "{{ organizationItem.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
 
   # Delete all organizations' namespaces with all K8S resources (including PVCs and PVs)
 
