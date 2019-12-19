@@ -43,7 +43,14 @@ Here is the snap shot of the same from the sample network.yaml
 | external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
 The snap shot of the `env` section with example values is below
-![](./../_static/NetworkYamlCorda2.png)
+```yaml
+  env:
+    type: "env_type"                # tag for the environment. Important to run multiple flux on single cluster
+    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
+    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    retry_count: 20                 # Retry count for the checks
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+```
 
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
@@ -70,17 +77,27 @@ The snap shot of the `env` section with example values is below
 | certificate | Directory path of custom certificates for Doorman and Networkmap. |
 
 The snap shot of the `orderers` section with example values is below
-![](./../_static/NetworkYamlCordaOrderer3.png)
+```yaml
+  # Remote connection information for doorman and networkmap (will be blank or removed for hosting organization)
+  orderers:
+    - orderer:
+      type: doorman
+      uri: https://doorman.test.corda.blockchaincloudpoc.com:8443
+      certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
+    - orderer:
+      type: networkmap
+      uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
+      certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
+```
 
 
-`organizations` section contains the specifications of each organization.
-The snap shot of the same is below
+`organizations` section contains the specifications of each organization. The snap shot of the same is below, the example here has 5 organisation
 ![](./../_static/NetworkYamlCordaOrg.png)
 
-The `organizations` setion allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. doorman, membership service, etc), then these services should be listed in this section as well.
+The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. doorman, membership service, etc), then these services should be listed in this section as well.
 In the sample example the 1st Organisation is hosting the root of the network, so the services doorman, nms and notary are listed under the 1st organizations service.
 
-Each organization under the `organizations` setion has the following fields 
+Each organization under the `organizations` section has the following fields. 
 
 | Field                                    | Description                                 |
 |------------------------------------------|-----------------------------------------------------|
@@ -128,7 +145,18 @@ The gitops field under each organization contains
 | gitops.private_key                          | Path to the private key file which has write-access to the git repo                                              |
 
 The snap shot of the sample network.yaml with the example values for the gitops field are shown
-![](./../_static/NetworkYamlCordaGitOps.png)
+```yaml
+      # Git Repo details which will be used by GitOps/Flux.
+      gitops:
+        git_ssh: "git@github.com:<username>/blockchain-automation-framework.git" # Gitops ssh url for flux value files
+        branch: "<branch_name>"                                                  # Git branch where release is being made
+        release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/r3-corda/charts"      # Relative Path where the Helm charts are stored in Git repo
+        git_push_url: "github.com/<username>/blockchain-automation-framework.git"
+        username: "<username>"          # Git Service user who has rights to check-in in all branches
+        password: "<password>"          # Git Server user password/personal token
+        private_key: "<path to gitops private key>"
+```
 
 The services field for each organization under `organizations` section of Corda contains list of services which could be doorman/nms/notary/peers
 
@@ -143,7 +171,16 @@ For doorman service the fields under it are
 | services.doorman.ports.targetPort           | HTTP target port number of the doorman docker-container                                       |
 
 The snap shot of the same with example values is below
-![](./../_static/NetworkYamlCordaDoorman.png)
+```yaml
+      services:
+        doorman:
+          name: doormanskar
+          subject: "CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE"
+          type: doorman
+          ports:
+            servicePort: 8080
+            targetPort: 8080
+```
 
 For nms service the fields under it are 
 
@@ -156,7 +193,15 @@ For nms service the fields under it are
 | services.nms.ports.targetPort          | HTTP target port number of the NetworkMap docker-container                                  |
 
 The snap shot of the same with example values is below
-![](./../_static/NetworkYamlCordaNMS.png)
+```yaml
+        nms:
+          name: networkmapskar
+          subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
+          type: networkmap
+          ports:
+            servicePort: 8080
+            targetPort: 8080
+```
 
 For notary service the fields under it are 
 
@@ -177,7 +222,29 @@ For notary service the fields under it are
 | services.notary.dbweb.targetPort          | Corda Notary dbweb target port. Port where the dbweb services are running                                  |
 
 The snap shot of the same with example values is below
-![](./../_static/NetworkYamlCordaNotary.png)
+```yaml
+        # Currently only supporting a single notary cluster, but may want to expand in the future
+        notary:
+          name: notaryskar
+          subject: "O=Notary,OU=Notary,L=London,C=GB"
+          type: notary          
+          p2p:
+            port: 10002
+            targetPort: 10002
+            ambassador: 10010       #Port for ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 10003
+            targetPort: 10003
+          rpcadmin:
+            port: 10005
+            targetPort: 10005
+          dbtcp:
+            port: 9101
+            targetPort: 1521
+          dbweb:             
+            port: 8080
+            targetPort: 81
+```
 
 For peer service the fields under it are 
 
@@ -200,4 +267,34 @@ For peer service the fields under it are
 | services.peer.expressapi.targetPort         | Expressapi target port. Port where the expressapi services are running                                        |
 
 The snap shot of the same with example values is below
-![](./../_static/NetworkYamlCordaPeer.png)
+```yaml
+      # The participating nodes are named as peers 
+      services:
+        peers:
+        - peer:
+          name: manufacturerskar
+          subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
+          type: node
+          p2p:
+            port: 10002
+            targetPort: 10002
+            ambassador: 10020       #Port for ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 10003
+            targetPort: 10003
+          rpcadmin:
+            port: 10005
+            targetPort: 10005
+          dbtcp:
+            port: 9101
+            targetPort: 1521
+          dbweb:             
+            port: 8080
+            targetPort: 81
+          springboot:             # This is for the springboot server
+            targetPort: 20001
+            port: 20001 
+          expressapi:             # This is for the express api server
+            targetPort: 3000
+            port: 3000
+```
