@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "0c4380bf-ba22-406b-8bd3-e5e0b13b899c",
-		"name": "SupplyChainFabricTest",
+		"_postman_id": "71276df3-530e-4b7e-8e31-2561fae4ac62",
+		"name": "SupplyChainTest",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -206,7 +206,7 @@
 							"raw": "{\n \"health\": \"String\",\n \"contents\": [],\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"Manufacturer\"]\n}"
 						},
 						"url": {
-							"raw": "https://{{manufacturer-host}}/api/v1/853254c0-5395-4069-971b-fff77dc9c73e/scan",
+							"raw": "https://{{manufacturer-host}}/api/v1/{{containerID}}/scan",
 							"protocol": "https",
 							"host": [
 								"{{manufacturer-host}}"
@@ -214,7 +214,7 @@
 							"path": [
 								"api",
 								"v1",
-								"853254c0-5395-4069-971b-fff77dc9c73e",
+								"{{containerID}}",
 								"scan"
 							]
 						},
@@ -252,7 +252,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"misc\": {\n        \"name\": \"Medicine Container\"\n    },\n    \"trackingID\": \"853254c0-5395-4069-971b-fff77dc9c73e\",\n    \"counterparties\": [\n    \t\"{{carrierID}}\",\n    \t\"{{warehouseID}}\"\n    ]\n}",
+					"raw": "{\n    \"misc\": {\n        \"name\": \"Medicine Container\"\n    },\n    \"trackingID\": \"{{containerID}}\",\n    \"counterparties\": [\n    \t\"{{carrierID}}\",\n    \t\"{{warehouseID}}\"\n    ]\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -338,8 +338,9 @@
 							"    pm.response.to.have.status(200);",
 							"});",
 							"var jsonData = pm.response.json();",
+							"const container = pm.environment.get(\"containerID\");",
 							"pm.test(\"Check correct container is fetched\", function () {",
-							"    pm.expect(jsonData.trackingID).to.eql(\"853254c0-5395-4069-971b-fff77dc9c73e\");",
+							"    pm.expect(jsonData.trackingID).to.eql(container);",
 							"});",
 							"const manufacturer = pm.environment.get(\"manufacturerID\");",
 							"pm.test(\"Check Custodian\", function () {",
@@ -377,7 +378,7 @@
 					}
 				},
 				"url": {
-					"raw": "https://{{manufacturer-host}}/api/v1/container/853254c0-5395-4069-971b-fff77dc9c73e",
+					"raw": "https://{{manufacturer-host}}/api/v1/container/{{containerID}}",
 					"protocol": "https",
 					"host": [
 						"{{manufacturer-host}}"
@@ -386,7 +387,7 @@
 						"api",
 						"v1",
 						"container",
-						"853254c0-5395-4069-971b-fff77dc9c73e"
+						"{{containerID}}"
 					]
 				},
 				"description": "Get container states"
@@ -466,7 +467,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"productName\": \"Dextrose\",\n    \"misc\": {\n        \"name\": \"Expensive Dextrose\"\n    },\n    \"trackingID\": \"0d15d7b8-caaa-468d-8b83-aae049b40f49\",\n    \"counterparties\": [\n    \t\"{{carrierID}}\",\n    \t\"{{warehouseID}}\"\n    ]\n}"
+					"raw": "{\n    \"productName\": \"Dextrose\",\n    \"misc\": {\n        \"name\": \"Expensive Dextrose\"\n    },\n    \"trackingID\": \"{{productID}}\",\n    \"counterparties\": [\n    \t\"{{carrierID}}\",\n    \t\"{{warehouseID}}\"\n    ]\n}"
 				},
 				"url": {
 					"raw": "https://{{manufacturer-host}}/api/v1/product",
@@ -546,9 +547,10 @@
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
 							"});",
+							"const product = pm.environment.get(\"productID\");",
 							"var jsonData = pm.response.json();",
 							"pm.test(\"Check correct product is fetched\", function () {",
-							"    pm.expect(jsonData.trackingID).to.eql(\"0d15d7b8-caaa-468d-8b83-aae049b40f49\");",
+							"    pm.expect(jsonData.trackingID).to.eql(product);",
 							"});",
 							"const manufacturer = pm.environment.get(\"manufacturerID\");",
 							"pm.test(\"Check Custodian\", function () {",
@@ -581,7 +583,7 @@
 					"raw": "{\n \"productName\":\"Product\",\n \"health\": \"String\",\n \"sold\":false,\n \"recalled\":false,\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"PartyB\"]\n}"
 				},
 				"url": {
-					"raw": "https://{{manufacturer-host}}/api/v1/product/0d15d7b8-caaa-468d-8b83-aae049b40f49",
+					"raw": "https://{{manufacturer-host}}/api/v1/product/{{productID}}",
 					"protocol": "https",
 					"host": [
 						"{{manufacturer-host}}"
@@ -590,7 +592,7 @@
 						"api",
 						"v1",
 						"product",
-						"0d15d7b8-caaa-468d-8b83-aae049b40f49"
+						"{{productID}}"
 					]
 				},
 				"description": "Get all product states from vault"
@@ -673,10 +675,10 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"contents\":\"0d15d7b8-caaa-468d-8b83-aae049b40f49\"\n}"
+					"raw": "{\n\t\"contents\":\"{{productID}}\"\n}"
 				},
 				"url": {
-					"raw": "https://{{manufacturer-host}}/api/v1/container/853254c0-5395-4069-971b-fff77dc9c73e/package",
+					"raw": "https://{{manufacturer-host}}/api/v1/container/{{containerID}}/package",
 					"protocol": "https",
 					"host": [
 						"{{manufacturer-host}}"
@@ -685,7 +687,7 @@
 						"api",
 						"v1",
 						"container",
-						"853254c0-5395-4069-971b-fff77dc9c73e",
+						"{{containerID}}",
 						"package"
 					]
 				},
@@ -757,9 +759,10 @@
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
 							"});",
+							"var product = pm.environment.get(\"productID\");",
 							"var jsonData = pm.response.json();",
 							"pm.test(\"Check correct product is fetched\", function () {",
-							"    pm.expect(jsonData.trackingID).to.eql(\"0d15d7b8-caaa-468d-8b83-aae049b40f49\");",
+							"    pm.expect(jsonData.trackingID).to.eql(product);",
 							"});",
 							"const manufacturer = pm.environment.get(\"manufacturerID\");",
 							"pm.test(\"Check Custodian\", function () {",
@@ -769,8 +772,9 @@
 							"    var parties = jsonData.participants;",
 							"    pm.expect(parties.length).to.eql(3);",
 							"});",
+							"var container = pm.environment.get(\"containerID\");",
 							"pm.test(\"Check product is in correct container\", function () {",
-							"    pm.expect(jsonData.containerID).to.eql(\"853254c0-5395-4069-971b-fff77dc9c73e\");",
+							"    pm.expect(jsonData.containerID).to.eql(container);",
 							"});",
 							""
 						],
@@ -796,7 +800,7 @@
 					"raw": "{\n \"productName\":\"Product\",\n \"health\": \"String\",\n \"sold\":false,\n \"recalled\":false,\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"PartyB\"]\n}"
 				},
 				"url": {
-					"raw": "https://{{manufacturer-host}}/api/v1/product/0d15d7b8-caaa-468d-8b83-aae049b40f49",
+					"raw": "https://{{manufacturer-host}}/api/v1/product/{{productID}}",
 					"protocol": "https",
 					"host": [
 						"{{manufacturer-host}}"
@@ -805,7 +809,7 @@
 						"api",
 						"v1",
 						"product",
-						"0d15d7b8-caaa-468d-8b83-aae049b40f49"
+						"{{productID}}"
 					]
 				},
 				"description": "Get all product states from vault"
@@ -891,7 +895,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "https://{{carrier-host}}/api/v1/container/853254c0-5395-4069-971b-fff77dc9c73e/custodian",
+					"raw": "https://{{carrier-host}}/api/v1/container/{{containerID}}/custodian",
 					"protocol": "https",
 					"host": [
 						"{{carrier-host}}"
@@ -900,7 +904,7 @@
 						"api",
 						"v1",
 						"container",
-						"853254c0-5395-4069-971b-fff77dc9c73e",
+						"{{containerID}}",
 						"custodian"
 					]
 				},
@@ -946,7 +950,7 @@
 					"raw": "{\n \"health\": \"String\",\n \"contents\": [],\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"Manufacturer\"]\n}"
 				},
 				"url": {
-					"raw": "https://{{manufacturer-host}}/api/v1/853254c0-5395-4069-971b-fff77dc9c73e/scan",
+					"raw": "https://{{manufacturer-host}}/api/v1/{{containerID}}/scan",
 					"protocol": "https",
 					"host": [
 						"{{manufacturer-host}}"
@@ -954,7 +958,7 @@
 					"path": [
 						"api",
 						"v1",
-						"853254c0-5395-4069-971b-fff77dc9c73e",
+						"{{containerID}}",
 						"scan"
 					]
 				},
@@ -993,7 +997,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "https://{{warehouse-host}}/api/v1/container/853254c0-5395-4069-971b-fff77dc9c73e/custodian",
+					"raw": "https://{{warehouse-host}}/api/v1/container/{{containerID}}/custodian",
 					"protocol": "https",
 					"host": [
 						"{{warehouse-host}}"
@@ -1002,7 +1006,7 @@
 						"api",
 						"v1",
 						"container",
-						"853254c0-5395-4069-971b-fff77dc9c73e",
+						"{{containerID}}",
 						"custodian"
 					]
 				},
@@ -1048,7 +1052,7 @@
 					"raw": "{\n \"health\": \"String\",\n \"contents\": [],\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"Manufacturer\"]\n}"
 				},
 				"url": {
-					"raw": "https://{{carrier-host}}/api/v1/853254c0-5395-4069-971b-fff77dc9c73e/scan",
+					"raw": "https://{{carrier-host}}/api/v1/{{containerID}}/scan",
 					"protocol": "https",
 					"host": [
 						"{{carrier-host}}"
@@ -1056,7 +1060,7 @@
 					"path": [
 						"api",
 						"v1",
-						"853254c0-5395-4069-971b-fff77dc9c73e",
+						"{{containerID}}",
 						"scan"
 					]
 				},
@@ -1102,7 +1106,7 @@
 					"raw": "{\n \"health\": \"String\",\n \"contents\": [],\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"Manufacturer\"]\n}"
 				},
 				"url": {
-					"raw": "https://{{warehouse-host}}/api/v1/0d15d7b8-caaa-468d-8b83-aae049b40f49/scan",
+					"raw": "https://{{warehouse-host}}/api/v1/{{productID}}/scan",
 					"protocol": "https",
 					"host": [
 						"{{warehouse-host}}"
@@ -1110,7 +1114,7 @@
 					"path": [
 						"api",
 						"v1",
-						"0d15d7b8-caaa-468d-8b83-aae049b40f49",
+						"{{productID}}",
 						"scan"
 					]
 				},
@@ -1135,14 +1139,15 @@
 							"pm.test(\"Check there are 3 timestamps\", function () {",
 							"    pm.expect(array.length).to.eql(3);",
 							"});",
-							"pm.test(\"Check first participant is Manufacturer\", function () {",
-							"    pm.expect(array[0].party).to.eql(pm.environment.get(\"manufacturerID\"));",
+							"",
+							"pm.test(\"Check for Manufacturer\", function () {",
+							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"manufacturerID\"));",
 							"});",
-							"pm.test(\"Check second participant is Carrier\", function () {",
-							"    pm.expect(array[1].party).to.eql(pm.environment.get(\"carrierID\"));",
+							"pm.test(\"Check for Carrier\", function () {",
+							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"carrierID\"));",
 							"});",
-							"pm.test(\"Check third participant is Warehouse\", function () {",
-							"    pm.expect(array[2].party).to.eql(pm.environment.get(\"warehouseID\"));",
+							"pm.test(\"Check for Warehouse\", function () {",
+							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"warehouseID\"));",
 							"});"
 						],
 						"type": "text/javascript"
@@ -1153,7 +1158,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "https://{{manufacturer-host}}/api/v1/853254c0-5395-4069-971b-fff77dc9c73e/history",
+					"raw": "https://{{manufacturer-host}}/api/v1/{{containerID}}/history",
 					"protocol": "https",
 					"host": [
 						"{{manufacturer-host}}"
@@ -1161,7 +1166,7 @@
 					"path": [
 						"api",
 						"v1",
-						"853254c0-5395-4069-971b-fff77dc9c73e",
+						"{{containerID}}",
 						"history"
 					]
 				},
