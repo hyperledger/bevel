@@ -26,6 +26,7 @@ spec:
       identity: {{ identity_name }}
       admin_auth_path: kubernetes-{{ organization }}-admin-auth
       policy: {{ organization }}-{{ identity_name }}-ro
+      policy_content: {{ policy_path }} { {{ policy_capabilities }} }
       auth_path: kubernetes-{{ organization }}-{{ identity_name }}-auth
     account:
       admin_service: {{ organization }}-admin-vault-auth
