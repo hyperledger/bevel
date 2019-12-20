@@ -34,6 +34,17 @@
     context: "{{ kubernetes.context }}"
     state: absent
   ignore_errors: yes
+
+- name: Delete Ambassador creds
+  k8s_raw:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: orderer-{{ component_name }}-ambassador-certs
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    state: absent
+  when: network.env.proxy == 'haproxy'
+  ignore_errors: yes
   
 - name: Delete Ambassador creds
   k8s_raw:
@@ -43,6 +54,17 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
     state: absent
+  ignore_errors: yes
+
+- name: Delete Ambassador creds
+  k8s_raw:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: peer0-{{ component_name }}-ambassador-certs
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    state: absent
+  when: network.env.proxy == 'haproxy'
   ignore_errors: yes
 
 ############################################################################################
