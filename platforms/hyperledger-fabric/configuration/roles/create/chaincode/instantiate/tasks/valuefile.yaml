@@ -6,7 +6,6 @@
 - name: 'Check/Wait for install-chaincode job'
   k8s_facts:
     kind: "Job"
-    name: installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
     namespace: "{{ namespace }}"
     label_selectors:
       - "app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
@@ -28,10 +27,9 @@
 - name: 'Check for instantiate-chaincode job'
   k8s_facts:
     kind: "Job"
-    name: "instantiatechaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
     namespace: "{{ namespace }}"
     label_selectors:
-      - "app = instantiatechaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
+      - "app = instantiatechaincode-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   vars:
@@ -50,7 +48,7 @@
   vars:    
     name: "{{ org.name | lower }}"
     type: "instantiate_chaincode_job"
-    component_name: "instantiate-{{ org.name | lower }}-{{ peer.name }}-{{item.channel_name|lower}}-{{peer.chaincode.name}}{{peer.chaincode.version}}"
+    component_name: "instantiate-{{ org.name | lower }}-{{item.channel_name|lower}}-{{peer.chaincode.name}}{{peer.chaincode.version}}"
     namespace: "{{ org.name |lower }}-net"
     peer_name: "{{ peer.name }}"
     peer_address: "{{ peer.gossippeeraddress }}"    
