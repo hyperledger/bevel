@@ -1,0 +1,12 @@
+###########################################################################################
+# This task calls valuefile to generate the anchorpeer files
+############################################################################################
+- name: Call nested_anchorpeer for each organization
+  include_tasks: nested_anchorpeer.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
