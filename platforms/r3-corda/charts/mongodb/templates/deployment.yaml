@@ -38,20 +38,13 @@ spec:
           if [ -f /data/db/admin-user.lock ]; then
           #file /data/db/admin-user.lock created and checked to ensure mongod is fully up for adding new db user in postStart hook.
             echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon"
+
             # ensure wiredTigerCacheSize is set within the size of the containers memory limit, Setting up with tag --sslAllowConnectionsWithoutCertificates only client validates the server to ensure that it receives data from the intended server. 
-            {{range $i, $e := until (atoi (printf "%d" (int64 $.Values.replicas))) }}
-              if [ "$HOSTNAME" = "{{ $.Values.nodeName }}-{{$i}}" ]; then
-                {{ if $.Values.cluster.enabled }}
-                  #chmod to change file permissions to provide read permissions.
-                  chmod 600 /etc/ssl/{{ $.Values.nodeName }}-keyfile;
-                  #for Mongodb server with replication.
-                  mongod --wiredTigerCacheSizeGB 0.25 --replSet rs0 --bind_ip 0.0.0.0 --smallfiles --noprealloc --clusterAuthMode keyFile --keyFile /etc/ssl/{{ $.Values.nodeName }}-keyfile --setParameter authenticationMechanisms=SCRAM-SHA-1 --sslMode requireSSL --sslPEMKeyFile /etc/ssl/{{ $.Values.nodeName }}-{{$i}}.pem --sslCAFile /etc/ssl/mongoCA.crt --sslAllowConnectionsWithoutCertificates --sslAllowInvalidHostnames;
-                {{ else }}
-                  #for Mongodb single server.
-                  mongod --wiredTigerCacheSizeGB 0.25 --bind_ip 0.0.0.0 --sslMode requireSSL --sslPEMKeyFile /etc/ssl/{{ $.Values.nodeName }}-0.pem --sslCAFile /etc/ssl/mongoCA.crt --sslAllowConnectionsWithoutCertificates --sslAllowInvalidHostnames --auth;
-                {{end}}
+              if [ "$HOSTNAME" = "{{ $.Values.nodeName }}" ]; then
+                #for Mongodb single server.
+                echo "check 1"
+                mongod --wiredTigerCacheSizeGB 0.25 --bind_ip 0.0.0.0 --sslMode requireSSL --sslPEMKeyFile /etc/ssl/{{ $.Values.nodeName }}.pem --sslCAFile /etc/ssl/mongoCA.crt --sslAllowConnectionsWithoutCertificates --sslAllowInvalidHostnames --auth;
               fi;
-            {{end}}
           else
             echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon with setup setting (authMode)"
             mongod --auth;
@@ -72,7 +65,7 @@ spec:
                     sleep 20;
                     touch /data/db/admin-user.lock
                     # Adding database user with password in admin database, checking for host name to create new db user.
-                    if [ "$HOSTNAME" = "{{ .Values.nodeName }}-0" ]; then
+                    if [ "$HOSTNAME" = "{{ .Values.nodeName }}" ]; then
                       echo "KUBERNETES LOG $HOSTNAME- creating admin user doorman"
                       # Adding database user in admin db using mongo shell command.
                       mongo --eval "db = db.getSiblingDB('admin'); db.createUser({ user: '${DB_USERNAME}', pwd: '${DB_PASSWORD}', roles: [{ role: 'root', db: 'admin' }]});" >> /data/db/config.log
@@ -90,26 +83,7 @@ spec:
           readOnly: false
         - name: certs
           mountPath: "/etc/ssl"
-          readonly: false 
-      {{- if .Values.cluster.enabled }}
-      - name: mongo-sidecar
-        image: cvallance/mongo-k8s-sidecar
-        command:
-        - /bin/sh
-        - -c
-        - >
-          export MONGO_SIDECAR_POD_LABELS="appdb={{ .Values.nodeName }}";
-          export MONGODB_USERNAME=`cat /run/secrets/db_root_username`;
-          export MONGODB_PASSWORD=`cat /run/secrets/db_root_password`;
-          export MONGODB_DATABASE="admin";
-          export MONGO_SSL_ENABLED="true";
-          export MONGO_SSL_ALLOW_INVALID_HOSTNAMES="true";
-          npm start;
-        volumeMounts:
-        - name: creds
-          mountPath: "/run/secrets"
-          readOnly: false
-      {{- end }} 
+          readonly: false  
       initContainers:
       - name: init-credential
         image : {{ .Values.image.initContainerName }}
@@ -158,17 +132,9 @@ spec:
             validateVaultResponse "secret ${CERT_SECRET_PREFIX}" "${LOOKUP_SECRET_RESPONSE}"
             
             # Getting certificates of server from vault and storing into /etc/ssl.
-            {{range $i, $e := until (atoi (printf "%d" (int64 $.Values.replicas))) }}
-               SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ $.Values.nodeName }}-{{$i}}.pem"]')
-               echo "${SERVER_CERT}" | base64 -d > /etc/ssl/{{ $.Values.nodeName }}-{{$i}}.pem                
-            {{end}}
-            
-            # keyfile used to authenticate between replicaset members
-            {{- if .Values.cluster.enabled }}
-            CLUSTER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.nodeName }}-keyfile"]')
-            echo "${CLUSTER_CERT}" | base64 -d > /etc/ssl/{{ .Values.nodeName }}-keyfile
-            {{- end }}
-            
+            SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ $.Values.nodeName }}.pem"]')
+            echo "${SERVER_CERT}" | base64 -d > /etc/ssl/{{ $.Values.nodeName }}.pem
+                        
             # Getting certificate authority cert from vault which is required for client validation and storing into /etc/ssl.
             CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["mongoCA.crt"]')
             echo "${CA_CERT}" | base64 -d > /etc/ssl/mongoCA.crt
