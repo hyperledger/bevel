@@ -27,7 +27,8 @@ spec:
         name: tcp
       env:
         apiUrl: {{ url }}:{{ peer_restserver_port }}/api/v1
-    ambassador:
+    proxy:
+      provider: {{ network.env.proxy }}
       name: {{ name }}
       type: corda
       external_url_suffix: {{ organization_data.external_url_suffix }}
