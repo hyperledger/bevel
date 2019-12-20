@@ -35,4 +35,4 @@ spec:
       name: {{channel_name}}      
     orderer:
       address: {{ participant.ordererAddress }}
- 
+
