@@ -82,7 +82,7 @@ pool connect sandboxpool
 pool list
 exit" > indy_txn.txt;
 
-indy-cli indy_txn.txt > txn_result.txt
+indy-cli indy_txn.txt > txn_result.txt;
 if grep -q 'Pool "sandboxpool" has been connected' 'txn_result.txt'
 then
 	echo "Pool successfully Connected";

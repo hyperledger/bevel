@@ -4,13 +4,13 @@ kind: Service
 metadata:
   name: {{ $.Values.server.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{ if $.Values.ambassador }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
     getambassador.io/config: |
       ---
       apiVersion: ambassador/v1
       kind:  Mapping
-      {{ if eq $.Values.ambassador.type "orderer" }}
+      {{ if eq $.Values.proxy.type "orderer" }}
       name:  ca_orderer_{{ $.Values.metadata.namespace }}_mapping
       {{ else }}
       name:  ca_{{ $.Values.metadata.namespace }}_mapping
@@ -18,7 +18,7 @@ metadata:
       prefix: /
       host: ca.{{ $.Values.metadata.namespace }}:7054
       service: ca.{{ $.Values.metadata.namespace }}:7054
-      {{ if eq $.Values.ambassador.type "orderer" }}
+      {{ if eq $.Values.proxy.type "orderer" }}
       tls: ca_orderer_{{ $.Values.metadata.namespace }}_tls
       {{ else }}
       tls: ca_{{ $.Values.metadata.namespace }}_tls
@@ -26,7 +26,7 @@ metadata:
       ---
       apiVersion: ambassador/v1
       kind: TLSContext
-      {{ if eq $.Values.ambassador.type "orderer" }}
+      {{ if eq $.Values.proxy.type "orderer" }}
       name: ca_orderer_{{ $.Values.metadata.namespace }}_tls
       {{ else }}
       name: ca_{{ $.Values.metadata.namespace }}_tls

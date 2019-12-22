@@ -28,9 +28,15 @@ network:
   orderers:
     - orderer:
       type: orderer
-      name: orderer
+      name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: directory/file1.cert                         # This has not been implemented in 0.2.0.0
+    - orderer:
+      type: orderer
+      name: orderer2
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
       certificate: directory/file1.cert                         # This has not been implemented in 0.2.0.0
   
   # The channels defined for a network with participating peers in each channel
@@ -49,7 +55,7 @@ network:
         name: peer0
         type: validating
         gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
     - organization:      
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
@@ -58,7 +64,7 @@ network:
         name: peer0
         type: validating
         gossipAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: warehouse
       type: joiner
@@ -67,7 +73,7 @@ network:
         name: peer0
         type: validating
         gossipAddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: manufacturer
       type: joiner
@@ -76,7 +82,7 @@ network:
         name: peer0
         type: validating
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     genesis:
       name: OrdererGenesis  
 
@@ -145,12 +151,21 @@ network:
           grpc:
             port: 9092
                 
-        orderer:
-          name: orderer
-          type: orderer          
+        orderers:
+        # This sample has multiple orderers as an example.
+        # You can use a single orderer for most production implementations.
+        - orderer:
+          name: orderer1
+          type: orderer
           consensus: kafka
           grpc:
-            port: 7050       
+            port: 7050
+        - orderer:
+          name: orderer2
+          type: orderer
+          consensus: kafka
+          grpc:
+            port: 7050      
         
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
