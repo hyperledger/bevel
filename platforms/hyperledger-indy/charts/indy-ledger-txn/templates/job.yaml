@@ -44,7 +44,6 @@ spec:
           }
 
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-
           echo $KUBE_SA_TOKEN;
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
           # Login to Vault to get an approle token
@@ -53,13 +52,11 @@ spec:
             -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-
           QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$ADMIN_PATH/$ADMIN_NAME/identity/private | jq -r 'if .errors then . else . end')
           validateVaultResponse 'Admin Seed' "${QUERY_RES}"
           admin_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]");
           mkdir -p /data/seed;
           echo "${admin_seed}" > /data/seed/adminseed.txt;
-
           QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$IDENTITY_PATH/$IDENTITY_NAME/identity/private | jq -r 'if .errors then . else . end')
           validateVaultResponse 'Identity Seed' "${QUERY_RES}"
           identity_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]")
