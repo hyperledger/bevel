@@ -18,17 +18,15 @@ spec:
     network:
       name: {{ network.name }}
     image:
-      name: {{ component_name }}
-      repository: {{ network.docker.url }}/indy-ledger:latest
+	  cli:
+        name: {{ component_name }}
+        repository: {{ network.docker.url }}/indy-ledger-txn:latest
       pullSecret: regcred
     vault:
       address: {{ vault.url }}
-      keyPath: {{ vault_path }}
-      identity: {{ identity_name }}
-      auth_path: kubernetes-{{ organization }}-admin-auth
-    account:
-      service: {{ organization }}-admin-vault-auth
       role: {{ vault.role }}
+      serviceAccountName: {{ vault.serviceAccountName }}
+      authpath: {{ auth_path }}
     organization:
       name: 
         adminIdentity:
@@ -38,5 +36,7 @@ spec:
           name: {{ newIdentity_name }}
           path: {{ newIdentity_path }}
           role: {{ newIdentity_role }}
+		  did: {{ newIdentity_did }}
+		  verkey: {{ newIdentity_verkey }}
     node:
       name: {{ component_name }}
