@@ -2,6 +2,18 @@
 ############################################################################################
 # This task is the nested task for main.yaml which helps to create the channels_join files
 
+# Check or wait for the Orderer pod
+- name: "Check orderer pod is up"
+  include_tasks: orderercheck.yaml
+  vars:
+    orderer_namespace: "{{ ordererorg.name | lower }}-net"
+    orderer_kubeconfig: "{{ ordererorg.k8s.config_file }}"
+    orderer_context: "{{ ordererorg.k8s.context }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: ordererorg
+  when: ordererorg.type == 'orderer'
+
 # Check or wait for the Creator peer
 - name: "Check creator peer pod is up"
   k8s_facts:
