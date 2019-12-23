@@ -1,23 +1,22 @@
 package com.supplychain.bcc
 
-import com.supplychain.baf.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.testing.node.MockNetwork
 import net.corda.testing.node.StartedMockNode
-import org.junit.Before
-import org.junit.After
+import org.testng.annotations.AfterMethod
+import org.testng.annotations.BeforeMethod
 import java.util.*
 
 abstract class SupplyChainTests {
     lateinit var mockNetwork: MockNetwork
-     lateinit  var a: StartedMockNode
+    lateinit var a: StartedMockNode
     lateinit var b: StartedMockNode
     lateinit var c: StartedMockNode
 
-    @Before
+    @BeforeMethod
     fun setup() {
-        mockNetwork = MockNetwork(listOf("com.supplychain.baf"), threadPerNode = true, networkSendManuallyPumped = false)
+        mockNetwork = MockNetwork(listOf("com.supplychain.bcc"), threadPerNode = true, networkSendManuallyPumped = false)
 
         a = mockNetwork.createPartyNode(CordaX500Name("AA", "Manufacturer", "AA",  "Locality",null,"US"))
         b = mockNetwork.createPartyNode(CordaX500Name("BB", "Warehouse", "AA",  "Locality",null,"US"))
@@ -28,7 +27,7 @@ abstract class SupplyChainTests {
         //c.registerInitiatedFlow(ClaimOwnershipResponder::class.java)
     }
 
-    @After
+    @AfterMethod
     fun tearDown() {
         mockNetwork.stopNodes()
     }

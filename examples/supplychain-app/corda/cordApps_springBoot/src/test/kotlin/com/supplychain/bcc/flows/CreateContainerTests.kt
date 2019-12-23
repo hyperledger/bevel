@@ -1,18 +1,19 @@
 package com.supplychain.bcc
 
 import com.supplychain.bcc.contractstates.ContainerState
-import com.supplychain.baf.CreateContainerRequest
-import org.junit.Test
+import org.testng.annotations.Listeners
+import org.testng.annotations.Test
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
+@Listeners(AgentListener::class)
 
 class CreateContainerTests : SupplyChainTests() {
 
     @Test
     fun `Create a Container`() {
-        val result = createContainer(a, CreateContainerRequest("Health", mapOf(), UUID.randomUUID(), listOf("BB")))
+        val result = createContainer(a, CreateContainerRequest("Health",mapOf(), UUID.randomUUID(), listOf("BB")))
 
         //vaultCheck
         assertEquals(result, a.transaction{ a.services.vaultService.queryBy(ContainerState::class.java).states.first().state.data.trackingID })
@@ -25,10 +26,10 @@ class CreateContainerTests : SupplyChainTests() {
     fun `Create a Container with a duplicate trackingID`() {
         try {
             val trackingID = UUID.randomUUID()
-            createContainer(a, CreateContainerRequest("Health", mapOf(), trackingID, listOf("BB")))
+            createContainer(a, CreateContainerRequest("Health",mapOf(), trackingID, listOf("BB")))
 
             //this should fail
-            createContainer(b, CreateContainerRequest("Health ", mapOf(), trackingID, listOf("AA")))
+            createContainer(b, CreateContainerRequest("Health ",mapOf(), trackingID, listOf("AA")))
 
             fail()
         }catch(e: IllegalArgumentException){

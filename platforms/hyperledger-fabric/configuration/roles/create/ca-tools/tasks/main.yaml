@@ -2,19 +2,18 @@
 # This role creates value file for the deployment of CA Tools CLI
 #############################################################################################
 
-# Check if CA server is available
+# Check if CA server is available created
 - name: Check CA-server is available
   k8s_facts:
-    kind: Pod
+    kind: Service
+    name: "{{ ca.name }}"
     namespace: "{{ component_name }}"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
-    label_selectors:
-      - name = {{ component_services.ca.name }}
   register: get_ca
-  until: ("Running" in get_ca|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 30
+  until: get_ca.resources|length > 0
+  retries: 20
+  delay: 40
 
 ############################################################################################
 # This task creates the CA-tools value files
@@ -40,4 +39,3 @@
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "Pushing CA-tools files"
-

@@ -6,14 +6,14 @@ These playbooks enables creation of value files and felicitate deployment of the
 
 ## Prerequisites for Running Playbooks
 - Ansible is required to be setup on the machine.
-- In the Blockchain Automation Framework we only connect to kubernetes cluster through our ansible and do not modify or connect to any other machine directly hence we have everything running on ansible controller . Hence the ansible host file has localhost setting. Check configuration [sample](../../shared/inventory/ansible_provisioners) inventory settings.
+- In The Blockchain Automation Framework we only connect to kubernetes cluster through our ansible and do not modify or connect to any other machine directly hence we have everything running on ansible controller . Hence the ansible host file has localhost setting. Check configuration [sample](../../shared/inventory/ansible_provisioners) inventory settings.
 
 - A **network.yaml** file must be presented. This file is platform specific so far.
 1. For Hyperledger Fabric, this file is in the below path. Click on the below link to go to this file.<br>
 [platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml](../../hyperledger-fabric/configuration/samples/network-fabricv2.yaml)
 
 2. For R3 Corda, this file is in the below path. Click on the below link to go to this file.<br>
-[platforms/r3-corda/configuration/samples/network-cordav2.yaml](../../r3-corda/configuration/samples/network-cordav2.yaml)<br>
+[platforms/r3-corda/configuration/samples/network-cordav2.yaml](../../platforms/r3-corda/configuration/samples/network-cordav2.yaml)<br>
 
 To run the playbooks, following are the pre-requisites.
 1. Ansible 2.8.2 with jmespath installed (sample docker image can be made from this [Dockerfile](../../shared/images/ansibleSlave.Dockerfile)).
@@ -25,20 +25,6 @@ To run the playbooks, following are the pre-requisites.
 
 ### Vault setup
 Refer to the [Getting Started](https://learn.hashicorp.com/vault/getting-started/install) guide to install Vault. Make sure that your Vault server has been [initialized and unsealed](https://learn.hashicorp.com/vault/getting-started/deploy). Make a note of vault address and initialization token.     
-
-### Private Key for GitOps
-For synchronizing the Git repo with the cluster, the Blockchain Automation Framework configures Flux for each cluster. The authentication is via SSH key, so this key should be generated before you run the playbooks. 
-Run the following command to generate a private-public key pair named **gitops**.
-
-```
-ssh-keygen -q -N "" -f ./gitops
-```
-
-The above command generates an SSH key-pair: **gitops** (private key) and **gitops.pub** (public key).
-
-Use the path to the private key (**gitops**) in the `gitops.private_key` section of the **network.yaml**.
-
-And add the public key contents (starts with **ssh-rsa**) as an Access Key (with read-write permissions) in your Github repository by following [this guide](https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account).
 
 ## Execution 
 
@@ -54,12 +40,16 @@ ansible-playbook platforms/shared/configuration/site.yaml -e "@./platforms/hyper
 ```
 The [site.yaml](./site.yaml) is the master playbook which does basic environment setup, kubernetes environment setup and the calls platform specific deployment playbooks.
 
+Ensure that you have added the **Flux SSH Key** with read-write permission to your git repository. The Flux SSH Key is produced when [kubernetes-env-setup.yaml](./kubernetes-env-setup.yaml) is executed.
+Running this ansible playbook command will generate a public ssh key (start with **ssh-rsa**) as highlighted in the image shown below:
+![flux ssh public key](../../../docs/source/_static/flux_ssh_public_key.png)
+
+A user has to manually copy and paste this public ssh key to this github repo to make sure flux can access this repo properly.
+
 ## Miscellenous
 #### Playbook description
 `environment-setup.yaml` : This playbook takes a properly formatted network.yaml as the input. This playbook will set up the ansible machine with all the pre-requisites as needed by the subsequent playbooks. It will also install specific tools for Cloud Provider like AWS-cli in case AWS-EKS Cluster is used. 
-
 `kubernetes-env-setup.yaml` : This playbook takes a properly formatted network.yaml as the input. This playbook will set up the Kubernetes cluster pre-requisites like Flux and Ambassador on the provided Kubernetes clusters.
-
 `site.yaml` : This playbook is the all encompassing playbook. This playbook takes a properly formatted network.yaml as the input. This playbook does the environment, kuebernetes setup and then calls respective DLT Platform deploy-network.yaml depending on the choice of platform to deploy the complete network.
 
 To execute all the playbooks sequentially, run the following command after editing the correct network.yaml in the same folder as the playbook site.yaml
