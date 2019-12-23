@@ -3,7 +3,7 @@ The release notes provide more details for users moving to the new release, alon
 with a link to the full release change log.  
 
 ### The Blockchain Automation Framework v0.3.0.0 release notes
- #### v0.3.0.0 Release notes - Devember 23, 2019
+ #### v0.3.0.0 Release notes - December 23, 2019
 
  - Fabric
    - Implemented HAProxy in place of Ambassador
