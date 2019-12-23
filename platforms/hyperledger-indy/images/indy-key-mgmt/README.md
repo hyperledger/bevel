@@ -1,20 +1,40 @@
-# The Blockchain Automation Framework Indy indy-key-mgmt Docker image
+# Blockchain Automation Framework Indy indy-key-mgmt Docker image
 
 Docker image for indy key management, which allows using commands in bash.
 
 ## How to use
-By default is set CMD for `/bin/bash` with set up Python environment.
 
-For running docker image with specify indy commands from shell script or etc, use with set up Python environments:
+In this Docker image is shell script generate_identity. The script can generate indy crypto and print it on console or put into Vault.
 
+## generate_itentity script:
+### Parameters:
+| Parameter number | Default Value | Required | Description |
+| --------- | ------------- | -------- | ----------- |
+| 1 | | Yes | Name of identity. |
+| 2 | | Yes | Vault path, where it will be saved in Vault and root structure in json output. |
+| 3 | console | No | Target of generated crypto. Can by as "vault" or "console" |
+| 4 | | No | Address of vault server. |
+
+### Example:
 ```bash
-docker run -it --rm indy-key-mng bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon <network_name>; init_indy_keys --name Alpha"
+docker run -it --rm -e VAULT_TOKEN=<your_token> indy-key-mgmt generate_identity <your_identity_name> <your_vault_path> <your_target> http://<your_vault_address>:8200
 ```
-> If is using command above, then do not use environment variable as <network_name>.
+
+Insert to vault:
+```bash
+docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" indy-key-mgmt generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
+```
+
+Print on console:
+```bash
+docker run -it --rm indy-key-mgmt bash -c "generate_identity my-identity provider.stewards | jq"
+```
+> You could use `| jq` for smooth printing of JSON
 
 ## Environment variables
 | Variable | Default Value | Description |
 | -------- | ------------- | ----------- |
+| VAULT_TOKEN | Empty string | Token for access to Vault |
 | VIRTUALENVWRAPPER_PYTHON |/usr/bin/python3 | Executable python binary path. |
 | WORKON_HOME | $HOME/.virtualenvs | Directory for Python virtual environments. |
 | ENABLE_STDOUT_LOG | True | Enables standard output. Use Python syntax of Boolean value. |
