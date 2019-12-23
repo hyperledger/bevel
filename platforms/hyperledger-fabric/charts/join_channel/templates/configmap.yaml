@@ -20,18 +20,3 @@ data:
   ORDERER_CA: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
   ORDERER_URL: {{ $.Values.orderer.address }}
   CORE_PEER_MSPCONFIGPATH: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: joinchannel-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-artifacts
-  namespace: {{ $.Values.metadata.namespace }}
-  labels:
-    app.kubernetes.io/name: joinchannel-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-artifacts
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }} 
-    {{- include "labels.custom" . | nindent 2 }}
-data:
-  anchors.tx.base64: {{ .Values.anchorstx | quote }}

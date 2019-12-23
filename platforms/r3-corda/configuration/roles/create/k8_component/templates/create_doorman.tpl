@@ -68,19 +68,7 @@ spec:
     pvc:
       annotations: {}
     ambassador:
-      annotations: |- 
-        ---
-        apiVersion: ambassador/v1
-        kind: Mapping
-        name: doorman_mapping
-        prefix: /
-        service: {{ services.doorman.name }}.{{ component_ns }}:{{ services.doorman.ports.servicePort }}
-        host: doorman.{{ item.external_url_suffix }}:8443
-        tls: false
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: doorman_mapping_tlscontext
-        hosts:
-        - doorman.{{ item.external_url_suffix }}
-        secret: doorman-ambassador-certs
+      external_url_suffix: {{item.external_url_suffix}}
+      
+    
+        
