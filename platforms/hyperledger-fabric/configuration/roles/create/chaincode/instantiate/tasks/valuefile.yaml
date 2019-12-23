@@ -6,7 +6,6 @@
 - name: 'Check/Wait for install-chaincode job'
   k8s_facts:
     kind: "Job"
-    name: installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
     namespace: "{{ namespace }}"
     label_selectors:
       - "app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
@@ -21,17 +20,16 @@
   register: component_data
   retries: "{{ network.env.retry_count}}"
   delay: 50
-  until: component_data.resources|length > 0  
+  until: (1 in component_data|json_query('resources[*].status.succeeded'))
   when: peer.chaincode is defined
 
 # Check if instantate-chaincode is already run
 - name: 'Check for instantiate-chaincode job'
   k8s_facts:
     kind: "Job"
-    name: "instantiatechaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
     namespace: "{{ namespace }}"
     label_selectors:
-      - "app = instantiatechaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
+      - "app = instantiatechaincode-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   vars:
@@ -50,7 +48,7 @@
   vars:    
     name: "{{ org.name | lower }}"
     type: "instantiate_chaincode_job"
-    component_name: "instantiate-{{ org.name | lower }}-{{ peer.name }}-{{item.channel_name|lower}}-{{peer.chaincode.name}}{{peer.chaincode.version}}"
+    component_name: "instantiate-{{ org.name | lower }}-{{item.channel_name|lower}}-{{peer.chaincode.name}}{{peer.chaincode.version}}"
     namespace: "{{ org.name |lower }}-net"
     peer_name: "{{ peer.name }}"
     peer_address: "{{ peer.gossippeeraddress }}"    
