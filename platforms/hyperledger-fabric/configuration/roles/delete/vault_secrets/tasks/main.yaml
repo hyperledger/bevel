@@ -34,6 +34,17 @@
     context: "{{ kubernetes.context }}"
     state: absent
   ignore_errors: yes
+
+- name: Delete Ambassador creds
+  k8s_raw:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: orderer-{{ component_name }}-ambassador-certs
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    state: absent
+  when: network.env.proxy == 'haproxy'
+  ignore_errors: yes
   
 - name: Delete Ambassador creds
   k8s_raw:
@@ -43,6 +54,17 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
     state: absent
+  ignore_errors: yes
+
+- name: Delete Ambassador creds
+  k8s_raw:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: peer0-{{ component_name }}-ambassador-certs
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    state: absent
+  when: network.env.proxy == 'haproxy'
   ignore_errors: yes
 
 ############################################################################################
@@ -61,9 +83,10 @@
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/ca
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
-    vault delete secret/crypto/ordererOrganizations/{{ component_name }}/ambassador
-  vars:
-    orderer: "{{ services.orderer }}"
+    vault delete secret/crypto/ordererOrganizations/{{ component_name }}/ambassador/{{orderer.name}}
+  loop: "{{ services.orderers }}"
+  loop_control:
+    loop_var: orderer
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
