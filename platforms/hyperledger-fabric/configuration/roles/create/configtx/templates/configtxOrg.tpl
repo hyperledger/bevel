@@ -7,6 +7,8 @@
       # AnchorPeers defines the location of peers which can be used
       # for cross org gossip communication.  Note, this value is only
       # encoded in the genesis block in the Application section context
-      - Host: peer0.{{ component_ns }}.{{ item.external_url_suffix }}
+{% for peer in  item.services.peers %}
+      - Host: {{ peer.name }}.{{ component_ns }}.{{ item.external_url_suffix }}
         Port: 8443
+{% endfor %}
     {% endif %} 
