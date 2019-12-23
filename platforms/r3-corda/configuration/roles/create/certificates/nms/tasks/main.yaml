@@ -16,7 +16,7 @@
 
 - name: Check if root certs already created
   shell: |
-    vault kv get -format=yaml networkmap/certs
+    vault kv get -format=yaml {{ component_name }}/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -52,7 +52,7 @@
 
 - name: Check if networkmap certs already created
   shell: |
-    vault kv get -field=networkmap.jks networkmap/certs > {{ nmsca }}/keys.jks
+    vault kv get -field=networkmap.jks  {{ component_name }}/certs > {{ nmsca }}/keys.jks
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -76,7 +76,7 @@
 
 - name: Putting certs to vault for root
   shell: |
-    vault kv put networkmap/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put  {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -84,9 +84,9 @@
 
 - name: Putting certs and credential to vault for networkmap
   shell: |
-    vault kv put networkmap/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
-    vault kv put networkmap/credentials/userpassword  sa="{{ userpassword_networkmap }}"
-    vault kv put networkmap/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put  {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
+    vault kv put  {{ component_name }}/credentials/userpassword  sa="{{ userpassword_networkmap }}"
+    vault kv put  {{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -95,5 +95,4 @@
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"
-  vars:
-    component_name: "networkmap"
+    
