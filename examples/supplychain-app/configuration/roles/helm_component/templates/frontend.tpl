@@ -24,25 +24,17 @@ spec:
       image: {{ network.docker.url }}/supplychain_frontend:latest
       pullPolicy: Always
       pullSecrets: regcred
+{% if network.env.proxy == 'ambassador' %}
       env:
         webserver: https://{{ peer_name }}api.{{ organization_data.external_url_suffix }}:8443
-        googlemapskey: {{ react_app_gmaps_key }}
+{% else %}
+      env:
+        webserver: https://{{ peer_name }}api.{{ organization_data.external_url_suffix }}
+{% endif %}
     deployment:
       annotations: {}
-    ambassador:
-      annotations: |-
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: {{ peer_name }}_web_context
-        hosts:
-        - {{ peer_name }}web.{{ organization_data.external_url_suffix }}
-        secret: {{ ambassador_secret }}
-        ---
-        apiVersion: ambassador/v1
-        kind: Mapping
-        name: {{ peer_name }}_web_p2p_mapping
-        prefix: /
-        host: {{ peer_name }}web.{{ organization_data.external_url_suffix }}:8443
-        service: {{ peer_name }}-frontend.{{ component_ns }}:{{ peer_frontend_port }}
-        tls: false 
+    proxy:
+      provider: {{ network.env.proxy }}
+      peer_name: {{ peer_name }}
+      external_url_suffix: {{ organization_data.external_url_suffix }}
+      ambassador_secret: {{ ambassador_secret }}
