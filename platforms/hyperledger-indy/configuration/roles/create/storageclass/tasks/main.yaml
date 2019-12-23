@@ -1,0 +1,43 @@
+#############################################################################################
+# This role creates value files for storage class
+#############################################################################################
+
+# Check StorageClass exists already
+- name: Check if storageclass exists
+  k8s_facts:
+    kind: StorageClass
+    name: "{{ storageclass_name }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: storageclass_state
+
+# Create StorageClass
+- name: Create storageclass
+  include_role:
+    name: create/k8_component
+  vars:
+    component_type: "{{ storageclass_name }}"
+    component_type_name: "{{ organization }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+  when: storageclass_state.resources|length == 0
+
+
+# Push the deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "Pushing deployment file for storageclass"
+
+- name: "Wait for Storageclass creation for {{ component_name }}"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "StorageClass"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  when: storageclass_state.resources|length == 0
