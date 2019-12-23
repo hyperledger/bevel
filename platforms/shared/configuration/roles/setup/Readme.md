@@ -4,12 +4,15 @@ It contains following roles.
 ### Ambassador
 This roles setups Ambassador.
 #### Tasks Included
-##### 1. Install Ambassador
+##### 1. Check if Ambassador is running
 
-This task deploys the ambassador helmchart from ```platforms/shared/charts/ambassador``` directory. Additional Ambassador ports can be opened by providing comma-separated `network.env.ambassadorPorts` value in network.yaml.
+This tasks checks if the Ambassador is running or not and stores the output in output variable *ambassador_service*
+##### 2. Install Ambassador
 
-##### 2. wait for pods to come up
-This checks for the Ambassador Pods to come up.
+If the Ambassador is not installed i.e. *ambassador_service.resources* is empty/0. It executes a shell command to install Ambassador
+
+##### 3. wait for pods to come up
+This checks for the Ambassador Pods to come up. It runs when *ambassador_services.resources* is not there i.e. ambassador not is found, until kubectl_get_pods gives a positive result.
 
 ------
 ### aws_auth
@@ -61,7 +64,7 @@ This task configures aws cli with *access_id* and *secret_key*.
 #### Task Included
 
 #### 1.  Check if Flux is running
-This task checks whether the flux is running for the environment (network.env.type) . stores the result in *flux_service*
+This task checks whether the flux is running. stores the result in *flux_service*
 
 #### 2. Get ssh known hosts
 It get the ssh hosts, runs only when flux service is not found.
@@ -70,7 +73,7 @@ It get the ssh hosts, runs only when flux service is not found.
 It initializes the helm repo and adds flux, runs only when flux service is not found.
 
 #### 4. Install flux
-This task first creates the HelmRelease Custom resource, and then deploys Flux helmchart, runs only when flux service is not found.
+This tasks installs flux, runs only when flux service is not found.
 
 #### 5. wait for pods to come up
 This checks for the flux Pods to come up. It runs when *flux_service.resources* is not there i.e. flux is not found, until kubectl_get_pods gives a positive result.

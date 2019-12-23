@@ -1,1 +1,1 @@
-# Blockchain Automation Framework Indy indy-key-mgmt Helm chart
+# The Blockchain Automation Framework Indy indy-key-mgmt Helm chart
