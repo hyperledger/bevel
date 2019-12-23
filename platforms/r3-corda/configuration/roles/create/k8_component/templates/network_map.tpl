@@ -17,30 +17,36 @@ spec:
       namespace: {{ component_ns }}
     image:
       authusername: sa
-      containerName: {{ network.docker.url }}/nms:0.3.11-network-map-service
+      containerName: {{ network.docker.url }}/networkmap-linuxkit:latest
       env:
-      -   name: rootcaname
-          value: {{ services.nms.subject }}
-      -   name: tlscertpath
-          value: /opt/cordite/db/certs
-      -   name: tlskeypath
-          value: /opt/cordite/db/certs/network-map/keys.jks
-      -   name: tls
-          value: false
-      -   name: doorman
-          value: true
-      -   name: certman
-          value: true
-      -   name: database
-          value: /opt/cordite/db
-      -   name: dataSourceUrl
-          value: embed
+      - name: NETWORKMAP_PORT
+        value: 8080
+      - name: NETWORKMAP_ROOT_CA_NAME
+        value: {{ services.nms.subject }}
+      - name: NETWORKMAP_TLS
+        value: false
+      - name: NETWORKMAP_DB
+        value: /opt/networkmap/db
+      - name: DB_USERNAME
+        value: {{ component_name }}
+      - name: NETWORKMAP_AUTH_USERNAME
+        value: sa
+      - name: DB_URL
+        value: mongodb-{{ component_name }}
+      - name: DB_PORT
+        value: 27017
+      - name: DATABASE
+        value: admin
+      - name: NETWORKMAP_CACHE_TIMEOUT
+        value: 60S
+      - name: NETWORKMAP_MONGOD_DATABASE
+        value: networkmap
       imagePullSecret: regcred
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
-          basePath: /opt/cordite
+          basePath: /opt/networkmap
     storage:
-      memory: 1Gi
+      memory: 512Mi
       mountPath: "/opt/h2-data"
       name: {{ org.cloud_provider }}storageclass
     vault:
@@ -48,14 +54,14 @@ spec:
       role: vault-role
       authpath: {{ component_auth }}
       serviceaccountname: vault-auth
-      secretprefix: networkmap
-      certsecretprefix: networkmap/certs
-      dbcredsecretprefix: networkmap/credentials/mongodb
-      secretnetworkmappass: networkmap/credentials/userpassword
+      secretprefix: {{ component_name }}
+      certsecretprefix: {{ component_name }}/certs
+      dbcredsecretprefix: {{ component_name }}/credentials/mongodb
+      secretnetworkmappass: {{ component_name }}/credentials/userpassword
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
-      dburl: mongodb-networkmap:27017
+      dburl: mongodb-{{ component_name }}:27017
     service:
       port: {{ services.nms.ports.servicePort }}
       targetPort: {{ services.nms.ports.targetPort }}
