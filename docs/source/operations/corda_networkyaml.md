@@ -19,7 +19,19 @@ The configurations are grouped in the following sections for better understandin
 
 `type` defines the platform information viz corda/fabric.
 `version` defines the version of platform being used.
-`frontend` is a flag which defines if frontend is enabled for nodes or not.
+
+`frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
+
+`env` section contains the environment type and additional (other than 8443) Ambassador port configuration.
+
+| Field      | Description                                 |
+|------------|---------------------------------------------|
+| type       | Environment type. Can be like dev/test/prod.|
+| proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' or 'haproxy' |
+| ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`     |
+| retry_count       | Retry count for the checks.|
+| external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
+
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
 (Note: Please use the [NMS Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks)
