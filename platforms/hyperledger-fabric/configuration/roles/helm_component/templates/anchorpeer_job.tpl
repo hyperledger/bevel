@@ -10,7 +10,7 @@ spec:
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/join_channel
+    path: {{ charts_dir }}/anchorpeer
   values:
     metadata:
       namespace: {{ component_ns }}
@@ -35,4 +35,6 @@ spec:
       name: {{channel_name}}      
     orderer:
       address: {{ participant.ordererAddress }}
+    anchorstx: |-
+{{ anchorstx | indent(width=6, indentfirst=True) }}
 
