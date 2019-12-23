@@ -106,6 +106,19 @@ The `orderers` section contains a list of doorman/networkmap which is exposed to
 The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. doorman, membership service, etc), then these services should be listed in this section as well.
 In the sample example the 1st Organisation is hosting the root of the network, so the services doorman, nms and notary are listed under the 1st organization's service.
 
+The snapshot of an organization field with sample values is below
+```yaml
+    - organization:
+      name: manufacturer
+      country: CH
+      state: Zurich
+      location: Zurich
+      subject: "O=Manufacturer,OU=Manufacturer,L=Zurich,C=CH"
+      type: node
+      external_url_suffix: test.corda.blockchaincloudpoc.com
+      cloud_provider: aws # Options: aws, azure, gcp
+```
+
 Each organization under the `organizations` section has the following fields. 
 
 | Field                                    | Description                                 |
@@ -125,9 +138,8 @@ Each organization under the `organizations` section has the following fields.
 | services                                    | Contains list of services which could be peers/doorman/nms/notary | 
 
 
-For the aws and k8s field the snapshot from sample configuration file is below
+For the aws and k8s field the snapshot with sample values is below
 ```yaml
-      cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "<aws_access_key>"    # AWS Access key, only used when cloud_provider=aws
         secret_key: "<aws_secret>"        # AWS Secret key, only used when cloud_provider=aws
