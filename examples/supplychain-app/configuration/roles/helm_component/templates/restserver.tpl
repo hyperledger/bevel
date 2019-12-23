@@ -24,7 +24,7 @@ spec:
       key_path: "/secret/tls/admin.pem"
     storage:
       storageclassname: {{ name }}sc
-      storagesize: 1Gi
+      storagesize: 512Mi
     vault:
       address: {{ component_vault.url }}
       role: vault-role

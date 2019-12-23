@@ -44,11 +44,11 @@ spec:
     credentials:
       rpcUser: {{ node.name|e }}operations
     resources:
-      limits: "1Gi"
-      requests: "1Gi"
+      limits: "512Mi"
+      requests: "512Mi"
     storage:
       provisioner: kubernetes.io/aws-ebs
-      memory: 2Gi
+      memory: 512Mi
       name: {{organization_data.cloud_provider}}storageclass
       parameters:
         type: gp2
