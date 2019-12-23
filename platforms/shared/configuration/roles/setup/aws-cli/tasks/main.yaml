@@ -39,21 +39,12 @@
     tags:
       - aws_cli
 
-  - name: create bin directory
-    file:
-      path: "{{ aws_cli.bin_directory }}"
-      state: directory
-      recurse: yes
-    when: aws_cli_stat_result.stat.exists == False
-    tags:
-      - aws_cli
-
   - name: install aws cli
     become: "{{ privilege_escalate }}"
     become_user: root
     shell: |
       cd "{{ tmp_directory.path }}"
-      ./awscli-bundle/install -b {{ aws_cli.bin_directory }}/aws
+      ./awscli-bundle/install -i /usr/local/aws -b {{ aws_cli.bin_directory }}/aws
     when: aws_cli_stat_result.stat.exists == False
     tags:
       - aws_cli

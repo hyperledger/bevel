@@ -22,7 +22,7 @@ pipeline {
     }
 
     parameters {
-        //Choice of platform, add new when new platforms get introduced in the Blockchain Automation Framework
+        //Choice of platform, add new when new platforms get introduced in The Blockchain Automation Framework
         choice(choices: 'R3-Corda\nHyperledger-Fabric', description: 'What is the DLT Platform?', name: 'DLT_PLATFORM')
     }
     

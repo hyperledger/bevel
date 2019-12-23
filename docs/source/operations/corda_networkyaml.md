@@ -14,8 +14,6 @@ The configurations are grouped in the following sections for better understandin
 
 * frontend
 
-* env
-
 * docker
 
 * orderers
@@ -31,6 +29,7 @@ The sections in the sample configuration file are
 `type` defines the platform choice like corda/fabric, here in example its Corda
 
 `version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 is also supported and should be used.
+
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -103,6 +102,7 @@ The `orderers` section contains a list of doorman/networkmap which is exposed to
 | certificate | Directory path of custom certificates for Doorman and Networkmap. |
 
 
+
 The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. doorman, membership service, etc), then these services should be listed in this section as well.
 In the sample example the 1st Organisation is hosting the root of the network, so the services doorman, nms and notary are listed under the 1st organization's service.
 
@@ -121,8 +121,8 @@ The snapshot of an organization field with sample values is below
 
 Each organization under the `organizations` section has the following fields. 
 
-| Field                                    | Description                                 |
-|------------------------------------------|-----------------------------------------------------|
+| Field                                       | Description                                                                                                      |
+|---------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | name                                        | Name of the organization                                                                                         |
 | country                                     | Country of the organization                                                                                      |
 | state                                       | State of the organization                                                                                        |

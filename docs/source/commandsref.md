@@ -34,7 +34,7 @@ Below are various debugging commands that can be used
 * To check logs of pod
     ```
     kubectl logs POD_NAME -n NAMESPACE
-    Ex. kubectl logs flux-dev-123r45 -n default
+    Ex. kubectl logs flux-123r45 -n default
     ```
 * To check logs of container within a pod
     ```

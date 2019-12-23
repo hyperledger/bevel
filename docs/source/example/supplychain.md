@@ -89,31 +89,3 @@ Jenkinsfiles have also been provided to automate the execution of these playbook
 
 The jenkins pipelines can automate the execution of the ansible playbooks as well as pass in any values that are not to be hardcoded in the network.yaml file
 
-### Generating QR code
-Products and containers are identified by their QR code. These codes need to be generated for interacting with products and contianers. A module for generating QR is provided along with this sample. The QR generating module can be found on the location:
-```
-smaple-home/generate/qr
-```
-Module for generating QR code is divided into two sections. The first section is generating QR code for the product. Codes from the first section are meant to be generated about a product and are used to interact with the product.
-
-Following are the required fields in the QR Code generation form for the products along with the format:
-
-| Field       | Format        | Description        |
-|-------------|-------------|-------------|
-| Product Name | string | Name of the Product|
-| Tracking ID | string | A predefined unique ID for product|
-| Type | string | Must match asset in /public , for misc argument |
-| Product Details | JSON key:value format | Used for misc argument, eg {"name":"Expensive Dextrose"} |
-| Counter Parties |  CSV, no spaces | Counter parties should be of the format that the DLT<br/>  network can identify. E.g. For Corda, these are the Node OUs, and<br/> for Fabric, these are the subjects of Anchor Peers. |
-
-
-The second section is provided for generating the QR code for the containers. Codes from this section are meant to be generated about a container and used to interact with a container. 
-
-Following are the required fields in the QR Code generation form for the containers along with the format:
-
-| Field       | Format        | Description        |
-|-------------|-------------| -------------|
-| Name | string | Name of the Container |
-| Tracking ID | String | A predefined unique ID for container|
-| Type | string | Must match asset in /public , for misc argument |
-| Counter Parties |  CSV, no spaces | Counter parties should be of the format that the DLT<br/>  network can identify. E.g. For Corda, these are the Node OUs, and<br/> for Fabric, these are the subjects of Anchor Peers. |
