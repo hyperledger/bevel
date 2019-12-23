@@ -38,6 +38,7 @@ spec:
       address: {{ vault.url }}
       authpath: {{ namespace }}-auth
       secretprefix: secret/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
+      secretambassador: secret/crypto/peerOrganizations/{{ namespace }}/ambassador
       serviceaccountname: vault-auth
       imagesecretname: regcred
       secretcouchdbpass: secret/credentials/{{ namespace }}/couchdb/{{ name }}?user
@@ -61,6 +62,6 @@ spec:
           nodeport: {{ peer.couchdb.nodePort }}
 {% endif %}
           
-    ambassador:
+    proxy:
+      provider: {{ network.env.proxy }}
       external_url_suffix: {{ item.external_url_suffix }}
-
