@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ $.Values.orderer.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{ if $.Values.ambassador }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
     getambassador.io/config: | 
       ---
@@ -11,7 +11,7 @@ metadata:
       kind: TLSContext
       name: tls_context_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
       hosts:
-      - {{ $.Values.orderer.name }}.{{ $.Values.ambassador.external_url_suffix }}
+      - {{ $.Values.orderer.name }}.{{ $.Values.proxy.external_url_suffix }}
       secret: {{ $.Values.orderer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
       alpn_protocols: h2
       ---
@@ -21,7 +21,7 @@ metadata:
       grpc: True
       name: orderer_mapping_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
       headers:
-        :authority: {{ $.Values.orderer.name }}.{{ $.Values.ambassador.external_url_suffix }}:8443
+        :authority: {{ $.Values.orderer.name }}.{{ $.Values.proxy.external_url_suffix }}:8443
       prefix: /
       rewrite: /
       service: https://{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:7050
@@ -32,11 +32,11 @@ metadata:
       grpc: True
       name: orderer_mapping_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}_rest
       headers:
-        :authority: {{ $.Values.orderer.name }}.{{ $.Values.ambassador.external_url_suffix }}
+        :authority: {{ $.Values.orderer.name }}.{{ $.Values.proxy.external_url_suffix }}
       prefix: /
       rewrite: /
       service: https://{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:7050
-  {{ end }}
+  {{- end }}
   labels:
     run: {{ $.Values.orderer.name }}
     app.kubernetes.io/name: {{ $.Values.orderer.name }}
@@ -52,10 +52,31 @@ spec:
   - protocol: TCP
     targetPort: 7050
     port: {{ $.Values.service.ports.grpc.clusteripport }}
-    {{ if  (ne $.Values.service.servicetype "ClusterIP") }}
+    {{- if  (ne $.Values.service.servicetype "ClusterIP") }}
     nodePort: {{ $.Values.service.ports.grpc.nodeport }}
     {{- end }}
     name: grpc
-  {{ if (eq $.Values.service.servicetype "ClusterIP") }}
+  {{- if (eq $.Values.service.servicetype "ClusterIP") }}
   clusterIP: None
-  {{ end }}
+  {{- end }}
+  
+{{ if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $.Values.orderer.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+    ingress.kubernetes.io/ssl-passthrough: "true"  
+spec:
+  rules:
+  - host: {{ $.Values.orderer.name }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ $.Values.orderer.name }}
+          servicePort: {{ $.Values.service.ports.grpc.clusteripport }}
+{{ end }}

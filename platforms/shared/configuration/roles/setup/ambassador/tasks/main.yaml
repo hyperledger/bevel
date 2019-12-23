@@ -36,18 +36,35 @@
   shell: |
     aws ec2 describe-addresses --public-ips {{ item.services.stewards[0].publicIp }} --region {{ aws.region }} --output json | jq '.Addresses[0].AllocationId'
   register: allocation_ip
-  when: network.type == 'indy' and item.services.stewards is defined
+  when: network.type == 'indy' and item.services.stewards is defined and item.cloud_provider == 'aws' #As this shell code is specific to AWS, cloud provider check has been added
 
-- name: Install Ambassador
+- name: Install Ambassador with EIP for Indy
   shell: |
-    {% if network.type == 'indy' %}
     KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ terminal.stdout }}"} --set ambassador.eip={{ allocation_ip.stdout }} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
-    {% else %}
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
-    {% endif %}
   tags:
     - ambassador
-  when: (network.type == 'indy' and allocation_ip.stdout is defined) or network.type != 'indy'
+  when: network.type == 'indy' and allocation_ip.stdout is defined
+
+- name: Install Ambassador for Corda
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+  tags:
+    - ambassador
+  when: network.type == 'corda'
+
+- name: Install Ambassador for Fabric
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.grpc=enabled --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+  tags:
+    - ambassador
+  when: network.type == 'fabric'
+
+- name: Enable external DNS
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "external-dns.alpha.kubernetes.io/hostname=*.{{ item.external_url_suffix }}."
+  tags:
+    - ambassador
+  when: network.env.external_dns is defined and network.env.external_dns == 'enabled'
 
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up
@@ -57,7 +74,7 @@
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kubecontext }}"
     label_selectors:
-      - name = ambassador
+      - service = ambassador
     field_selectors:
       - status.phase=Running
   register: kubectl_get_pods

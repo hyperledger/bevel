@@ -5,17 +5,19 @@ network:
   # to join an existing network.
   type: fabric
   version: 1.4.0
-  
+
   frontend: enabled #Flag for frontend to enabled for nodes/peers
 
-  #Environment section to help run multiple applications on same cluster
+  #Environment section for Kubernetes setup
   env:
-    type: "env_type"          #Must be unique per single-cluster
-    ambassadorPorts: 10010,10020    #Any additional Ambassador ports can be given here, must be comma-separated without spaces
-    retry_count: 100  #Retry count for the checks
+    type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
+    proxy: haproxy                  # values can be 'haproxy' or 'ambassador'
+    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    retry_count: 20                 # Retry count for the checks
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
 
   # Docker registry details where images are stored. This will be used to create k8s secrets
-  # Please ensure all required images are built and stored in this registry. 
+  # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
     url: "docker_url"
@@ -26,9 +28,15 @@ network:
   orderers:
     - orderer:
       type: orderer
-      name: orderer
+      name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: directory/file1.cert                         # This has not been implemented in 0.2.0.0
+    - orderer:
+      type: orderer
+      name: orderer2
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
       certificate: directory/file1.cert                         # This has not been implemented in 0.2.0.0
   
   # The channels defined for a network with participating peers in each channel
@@ -47,7 +55,7 @@ network:
         name: peer0
         type: validating
         gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
     - organization:      
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
@@ -56,7 +64,7 @@ network:
         name: peer0
         type: validating
         gossipAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: warehouse
       type: joiner
@@ -65,7 +73,7 @@ network:
         name: peer0
         type: validating
         gossipAddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: manufacturer
       type: joiner
@@ -74,7 +82,7 @@ network:
         name: peer0
         type: validating
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
-      ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     genesis:
       name: OrdererGenesis  
 
@@ -125,13 +133,7 @@ network:
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
-
-      #Optional for infrastructure configuration files.
-      infrastructure:
-        target_state: "present"  # Options: present, absent, planned            
-        refresh_inventory: yes  
-
-        
+     
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample is an orderer service and includes a zk-kafka consensus
       services:
@@ -149,12 +151,21 @@ network:
           grpc:
             port: 9092
                 
-        orderer:
-          name: orderer
-          type: orderer          
+        orderers:
+        # This sample has multiple orderers as an example.
+        # You can use a single orderer for most production implementations.
+        - orderer:
+          name: orderer1
+          type: orderer
           consensus: kafka
           grpc:
-            port: 7050       
+            port: 7050
+        - orderer:
+          name: orderer2
+          type: orderer
+          consensus: kafka
+          grpc:
+            port: 7050      
         
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
@@ -200,14 +211,8 @@ network:
         password: "git_password"          # Git Server user password
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
-      #Optional for infrastructure configuration files.
-      infrastructure:
-        target_state: "present"  # Options: present, absent, planned            
-        refresh_inventory: yes  
-
-        
       # The participating nodes are peers
-      # This organization hosts it's own CA server 
+      # This organization hosts it's own CA server
       services:
         ca:
           name: ca
@@ -219,7 +224,7 @@ network:
         - peer:
           name: peer0          
           type: peer          
-          gossippeeraddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443          
+          gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051         
           events:
@@ -287,12 +292,6 @@ network:
         password: "git_password"          # Git Server user password
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
-      #Optional for infrastructure configuration files.
-      infrastructure:
-        target_state: "present"  # Options: present, absent, planned            
-        refresh_inventory: yes  
-
-              
       services:
         ca:
           name: ca
@@ -304,7 +303,7 @@ network:
         - peer:
           name: peer0          
           type: peer
-          gossippeeraddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443          
+          gossippeeraddress: peer0.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051         
           events:
@@ -388,7 +387,7 @@ network:
         - peer:
           name: peer0          
           type: peer
-          gossippeeraddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443          
+          gossippeeraddress: peer0.store-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051
           events:
@@ -456,12 +455,6 @@ network:
         password: "git_password"          # Git Server user password
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
-      #Optional for infrastructure configuration files.
-      infrastructure:
-        target_state: "present"  # Options: present, absent, planned            
-        refresh_inventory: yes  
-
-        
       services:
         ca:
           name: ca
@@ -473,7 +466,7 @@ network:
         - peer:
           name: peer0          
           type: peer
-          gossippeeraddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443          
+          gossippeeraddress: peer0.warehouse-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051       
           events:

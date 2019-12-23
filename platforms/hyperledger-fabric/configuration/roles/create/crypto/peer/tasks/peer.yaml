@@ -18,6 +18,16 @@
     context: "{{ kubernetes.context }}"
   register: get_peer_secret
 
+- name: Check Ambassador cred exists
+  k8s_facts:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: "{{ peer.name }}-{{ component_name }}-ambassador-certs"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_peer_secret_haproxy
+  when: network.env.proxy == 'haproxy'
+
  #Check the existence of Peer ambassador certs secret in the vault 
 - name: Check if peer ambassador secrets certs created
   shell: |
@@ -37,13 +47,34 @@
     peer_ambassador_path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}"
   when: vault_peer_ambassador.failed == False
 
+  # Generates the openssl file for domain
+- name: Generate openssl conf file
+  shell: |
+    cd "./build/crypto-config/peerOrganizations/{{ component_name }}"
+    cat <<EOF >openssl.conf
+    [req]
+    req_extensions = v3_req
+    distinguished_name = dn
+
+    [dn]
+
+    [v3_req]
+    basicConstraints = critical, CA:TRUE
+    keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
+    subjectKeyIdentifier = hash
+    subjectAltName = DNS:*.{{ item.external_url_suffix }}
+    EOF
+  vars:
+    domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
+  when: vault_peer_ambassador.failed == True
+
 # This task generates peer certificates
 - name: Generate the peer certificate
   shell: |
     cd "./build/crypto-config/peerOrganizations/{{ component_name }}"
     openssl ecparam -name prime256v1 -genkey -noout -out {{ peer.name }}-{{ component_name }}.key
-    openssl req -config "{{ playbook_dir }}/openssl.conf" -new -nodes -key {{ peer.name }}-{{ component_name }}.key -days 1000 -out {{ peer.name }}-{{ component_name }}.csr -extensions v3_req -subj "/{{ cert_subject }}/CN={{ peer.name }}.{{ component_name }}.{{item.external_url_suffix}}"
-    openssl x509 -extfile "{{ playbook_dir }}/openssl.conf" -req -days 1000 -in {{ peer.name }}-{{ component_name }}.csr -CA ./ca/ca.{{ component_name }}-cert.pem -CAkey ./ca/{{ component_name }}-CA.key -out {{ peer.name }}-{{ component_name }}.pem -set_serial 01 -extensions v3_req
+    openssl req -config ./openssl.conf -new -nodes -key {{ peer.name }}-{{ component_name }}.key -days 1000 -out {{ peer.name }}-{{ component_name }}.csr -extensions v3_req -subj "/{{ cert_subject }}/CN={{ peer.name }}.{{ component_name }}.{{item.external_url_suffix}}"
+    openssl x509 -extfile ./openssl.conf -req -days 1000 -in {{ peer.name }}-{{ component_name }}.csr -CA ./ca/ca.{{ component_name }}-cert.pem -CAkey ./ca/{{ component_name }}-CA.key -out {{ peer.name }}-{{ component_name }}.pem -set_serial 01 -extensions v3_req
     cat {{ peer.name }}-{{ component_name }}.pem > {{ peer.name }}-{{ component_name }}-certchain.pem
     cat ./ca/ca.{{ component_name }}-cert.pem >> {{ peer.name }}-{{ component_name }}-certchain.pem
   when:  get_peer_secret.resources|length == 0 and vault_peer_ambassador.failed == True
@@ -54,11 +85,16 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ peer.name }}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem --key=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key -n default
   when: get_peer_secret.resources|length == 0
 
- # This task copy the orderer certificates generated above, to the Vault
+- name: Create the Ambassador credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ peer.name }}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem --key=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key -n {{ component_name }}
+  when: get_peer_secret_haproxy.resources|length == 0 and network.env.proxy == 'haproxy'
+
+ # This task copy the peer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault write secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador certificate="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem")" key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key")"
+    vault write secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador clientcert="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.pem")" certificate="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem")" key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key")"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_orderer_ambassador.failed == True 
+  when: vault_peer_ambassador.failed == True 
