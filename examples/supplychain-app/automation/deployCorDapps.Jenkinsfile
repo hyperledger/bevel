@@ -35,8 +35,9 @@ pipeline {
 
                         echo 'Cleaning up any previous builds (if not using one shot slave) ...'
                         ./gradlew clean
-                        ./gradlew build
-                        
+                        ./gradlew cordapp-contract-states:build
+                        ./gradlew cordapp-supply-chain:build
+
                         echo 'Moving the build files to common location'
                         mv cordapp-contracts-states/build/libs/*.jar build/
                         mv cordapp-supply-chain/build/libs/*.jar build/

@@ -13,4 +13,3 @@ This section defines the pre-requisites installation and steps for setup of a DL
     operations/setting_dlt
     operations/adding_new_org_corda
     operations/adding_cordapps
-    operations/upgrading_chaincode.md

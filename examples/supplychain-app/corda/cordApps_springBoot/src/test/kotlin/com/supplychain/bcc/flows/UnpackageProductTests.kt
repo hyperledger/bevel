@@ -2,13 +2,13 @@ package com.supplychain.bcc
 
 import com.supplychain.bcc.contractstates.ContainerState
 import com.supplychain.bcc.contractstates.ProductState
-import com.supplychain.baf.CreateContainerRequest
-import com.supplychain.baf.CreateProductRequest
-import org.junit.Test
+import org.testng.annotations.Listeners
+import org.testng.annotations.Test
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
+@Listeners(AgentListener::class)
 
 class UnpackageProductTests : SupplyChainTests() {
 
