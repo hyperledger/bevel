@@ -47,7 +47,7 @@ func (id *Identity) CanInvoke(function string) bool {
 
 func (id *Identity) isManufacturer() bool {
 	for _, org := range id.Cert.Subject.OrganizationalUnit {
-		if org == "Manufacturer" {
+		if org == "Manufacturer" || org == "manufacturer" {
 			return true
 		}
 	}

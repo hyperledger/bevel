@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
+spec:
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}"
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+        - name: "{{ $.Values.image.pullSecret }}"
+      serviceAccountName: {{ $.Values.account.service }}
+      containers:
+        - name:  "{{ $.Values.image.name }}"
+          image: "{{ $.Values.image.repository }}"
+          imagePullPolicy: Always
+          command:
+            - "/bin/bash"
+            - "-c"
+            - >
+              apt-get install curl -y;
+              validateVaultResponse () {
+              if [ ${1} != 200 ]; then
+               echo "ERROR: Unable to retrieve. Http status: ${1}"
+               exit 1
+               fi
+              }
+
+              KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
+
+              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.account.role }}"}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
+              VAULT_TOKEN=$(cat token);
+              response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/auth/token/lookup-self)
+              validateVaultResponse ${response_status};
+
+              generate_identity {{ $.Values.vault.identity }} {{ $.Values.vault.keyPath }} vault {{ $.Values.vault.address }}

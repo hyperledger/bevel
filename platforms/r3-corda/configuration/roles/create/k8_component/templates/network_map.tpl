@@ -66,19 +66,7 @@ spec:
     pvc:
       annotations: {}
     ambassador:
-      annotations: |- 
-        ---
-        apiVersion: ambassador/v1
-        kind: Mapping
-        name: networkmap_mapping
-        prefix: /
-        service: {{ component_name }}.{{ component_ns }}:{{ services.nms.ports.servicePort }}
-        host: networkmap.{{ item.external_url_suffix }}:8443
-        tls: false
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: networkmap_mapping_tlscontext
-        hosts:
-        - networkmap.{{ item.external_url_suffix }}
-        secret: networkmap-ambassador-certs 
+      external_url_suffix: {{item.external_url_suffix}}
+      
+    
+        

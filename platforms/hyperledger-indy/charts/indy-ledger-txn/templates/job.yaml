@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
+  labels:
+    app: "{{ $.Values.metadata.name }}"
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+spec:
+  serviceName: "{{ $.Values.metadata.name }}"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+        - name: "{{ $.Values.image.pullSecret }}"
+      volumes:
+        - name: {{ $.Values.metadata.name }}-pool-transactions-genesis
+          configMap:
+            name: {{ $.Values.metadata.name }}-pool-transactions-genesis
+      serviceAccountName: "{{ $.Values.vault.serviceAccountName }}"
+      containers:
+        - name:  "{{ $.Values.image.cli.name }}"
+          image: "{{ $.Values.image.cli.repository }}"
+          imagePullPolicy: Always
+          env:
+           - name: VAULT_ADDR
+             value: "{{ $.Values.vault.address }}"
+           - name: ADMIN_PATH
+             value: "{{ $.Values.organization.name.adminIdentity.path }}"
+           - name: ADMIN_NAME
+             value: "{{ $.Values.organization.name.adminIdentity.name }}"
+           - name: IDENTITY_NAME
+             value:  "{{ $.Values.organization.name.newIdentity.name }}"
+           - name: IDENTITY_PATH
+             value: "{{ $.Values.organization.name.newIdentity.path }}"
+           - name: IDENTITY_ROLE
+             value: "{{ $.Values.organization.name.newIdentity.role }}"
+           - name: POOL_GENESIS_PATH
+             value: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
+          volumeMounts:
+            - name: {{ $.Values.metadata.name }}-pool-transactions-genesis
+              mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/
+              subPath: pool_transactions_genesis
+          command:
+            - "/bin/bash"
+            - "-c"
+            - >
+              
+              validateVaultResponse () {
+              if [ ${1} != 200 ]; then
+               echo "ERROR: Unable to retrieve. Http status: ${1}"
+               exit 1
+               fi
+              }
+              
+              KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
+              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.vault.role }}"}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
+              VAULT_TOKEN=$(cat token);
+              
+              response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/auth/token/lookup-self)
+              validateVaultResponse ${response_status};
+              
+              echo "Running ledger Transacion Script...";
+              ./home/indy-ledger.sh $VAULT_ADDR $VAULT_TOKEN $ADMIN_PATH $ADMIN_NAME $IDENTITY_PATH $IDENTITY_NAME $IDENTITY_ROLE $POOL_GENESIS_PATH;
