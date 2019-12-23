@@ -3,6 +3,9 @@ A network.yaml file is the base configuration file for setting up a Corda DLT ne
 ![](./../_static/TopLevelClass.png)
 
 Before setting up a Corda DLT network, this file needs to be updated with the required specifications.
+A sample configuration file is provide in the repo path:  
+`platforms/r3-corda/configuration/samples/network-cordav2.yaml`  
+
 The configurations are grouped in the following sections for better understanding.
 
 * type
@@ -19,13 +22,30 @@ The configurations are grouped in the following sections for better understandin
 
 * organizations
 
-`type` defines the platform choice like corda/fabric.
+Here is the snapshot from the sample configuration file
 
-`version` defines the version of platform being used.
+![](./../_static/NetworkYamlCorda1.png)
+
+The sections in the sample configuration file are  
+
+`type` defines the platform choice like corda/fabric, here in example its Corda
+
+`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 is also supported and should be used.
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
-`env` section contains the environment type and additional (other than 8443) Ambassador port configuration.
+`env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Value for proxy field under this section has to be 'ambassador' as 'haproxy' has not been implemented for Corda.
+
+The snapshot of the `env` section with example values is below
+```yaml
+  env:
+    type: "env_type"                # tag for the environment. Important to run multiple flux on single cluster
+    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
+    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    retry_count: 20                 # Retry count for the checks
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+```
+The fields under `env` section are 
 
 | Field      | Description                                 |
 |------------|---------------------------------------------|
@@ -39,6 +59,17 @@ The configurations are grouped in the following sections for better understandin
 `docker` section contains the credentials of the repository where all the required images are built and stored.
 (Note: Please use the [NMS Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks)
 
+The snapshot of the `docker` section with example values is below
+```yaml
+  # Docker registry details where images are stored. This will be used to create k8s secrets
+  # Please ensure all required images are built and stored in this registry. 
+  docker:
+    url: "<url>"
+    username: "<username>"
+    password: "<password>"
+```
+The fields under `docker` section are
+
 | Field      | Description                                 |
 |------------|---------------------------------------------|
 | url        | Docker registry url                         | 
@@ -50,18 +81,45 @@ The configurations are grouped in the following sections for better understandin
 
 ---
 
-
-`orderers` section contains a list of doorman/networkmap which is exposed to the network.
+The snapshot of the `orderers` section with example values is below
+```yaml
+  # Remote connection information for doorman and networkmap (will be blank or removed for hosting organization)
+  orderers:
+    - orderer:
+      type: doorman
+      uri: https://doorman.test.corda.blockchaincloudpoc.com:8443
+      certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
+    - orderer:
+      type: networkmap
+      uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
+      certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
+```
+The `orderers` section contains a list of doorman/networkmap which is exposed to the network.
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| name        | Name of the orderer                                      |
 | type        | For Corda, `networkmap` and `doorman` are the only valid type of orderers.   |
 | uri         | Doorman/Networkmap external URL. This should be reachable from all nodes.| 
 | certificate | Directory path of custom certificates for Doorman and Networkmap. |
 
 
-`organizations` section contains the specifications of each organization.
+The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. doorman, membership service, etc), then these services should be listed in this section as well.
+In the sample example the 1st Organisation is hosting the root of the network, so the services doorman, nms and notary are listed under the 1st organization's service.
+
+The snapshot of an organization field with sample values is below
+```yaml
+    - organization:
+      name: manufacturer
+      country: CH
+      state: Zurich
+      location: Zurich
+      subject: "O=Manufacturer,OU=Manufacturer,L=Zurich,C=CH"
+      type: node
+      external_url_suffix: test.corda.blockchaincloudpoc.com
+      cloud_provider: aws # Options: aws, azure, gcp
+```
+
+Each organization under the `organizations` section has the following fields. 
 
 | Field                                    | Description                                 |
 |------------------------------------------|-----------------------------------------------------|
@@ -70,35 +128,146 @@ The configurations are grouped in the following sections for better understandin
 | state                                       | State of the organization                                                                                        |
 | location                                    |  Location of the organization                                                                                    |
 | subject                                     | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
-| type                                        | This field can be doorman/nms/notary/peer               |
+| type                                        | This field can be doorman-nms-notary/node              |
 | external_url_suffix                         | Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider.|
-| cloud_provider                              | Clod provider of the Kubernetes cluster for this organization. This field can be aws, azure or gcp |
-| aws.access_key                              | AWS Access key; when the organization cluster is on AWS                                                        |
-| aws.secret_key                              | AWS Secret key; when the organization cluster is on AWS                                                      |
-| k8s.region                              | Region where the Kubernetes cluster is deployed        |
-| k8s.context                                 | Context/Name of the cluster where the organization entities should be deployed                                        |
+| cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure or gcp |
+| aws                                         | When the organization cluster is on AWS |
+| k8s                                         | Kubernetes cluster deployment variables.|
+| vault                                       | Contains Hashicorp Vault server address and root-token in the example |
+| gitops                                      | Git Repo details which will be used by GitOps/Flux. |
+| services                                    | Contains list of services which could be peers/doorman/nms/notary | 
+
+
+For the aws and k8s field the snapshot with sample values is below
+```yaml
+      aws:
+        access_key: "<aws_access_key>"    # AWS Access key, only used when cloud_provider=aws
+        secret_key: "<aws_secret>"        # AWS Secret key, only used when cloud_provider=aws
+  
+      # Kubernetes cluster deployment variables.
+      k8s:        
+        region: "<k8s_region>"
+        context: "<cluster_context>"
+        config_file: "<path_to_k8s_config_file>"
+```
+
+The aws field under each organisation contains
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| aws.access_key                              | AWS Access key  |
+| aws.secret_key                              | AWS Secret key  |
+
+The k8s field under each organisation contains
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| k8s.region                                  | Region where the Kubernetes cluster is deployed, e.g : eu-west-1        |
+| k8s.context                                 | Context/Name of the cluster where the organization entities should be deployed                                   |
 | k8s.config_file                             | Path to the kubernetes cluster configuration file                                                                |
-| vault.url                                   | Unsealed Hashicorp Vault URL                                                                                     |
-| vault.root_token                            | Hashicorp Vault root token for the above Vault                                                                           |
+
+For gitops fields the snapshot from the sample configuration file with the example values is below
+```yaml
+      # Git Repo details which will be used by GitOps/Flux.
+      gitops:
+        git_ssh: "git@github.com:<username>/blockchain-automation-framework.git" # Gitops ssh url for flux value files
+        branch: "<branch_name>"                                                  # Git branch where release is being made
+        release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/r3-corda/charts"      # Relative Path where the Helm charts are stored in Git repo
+        git_push_url: "github.com/<username>/blockchain-automation-framework.git"
+        username: "<username>"          # Git Service user who has rights to check-in in all branches
+        password: "<password>"          # Git Server user password/personal token
+        private_key: "<path to gitops private key>"
+```
+
+The gitops field under each organization contains
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
 | gitops.git_ssh                              | SSH url of the repository where flux should be synced                                                            |
 | gitops.branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | gitops.release_dir                          | Relative path where flux should sync files                                                                       |
 | gitops.chart_source                         | Relative path where the helm charts are stored                                                                   |
-| gitops.git_push_url                         | Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"                 |
+| gitops.git_push_url                         | Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
 | gitops.username                             | Username which has access rights to read/write on repository                                                     |
-| gitops.password                             | Password of the user which has access rights to read/write on repository                                          |
-| gitops.private_key | Path to the private key file which has write-access to the git repo|
+| gitops.password                             | Password of the user which has access rights to read/write on repository                                         |
+| gitops.private_key                          | Path to the private key file which has write-access to the git repo                                              |
+
+
+The services field for each organization under `organizations` section of Corda contains list of services which could be doorman/nms/notary/peers
+
+The snapshot of doorman service with example values is below
+```yaml
+      services:
+        doorman:
+          name: doormanskar
+          subject: "CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE"
+          type: doorman
+          ports:
+            servicePort: 8080
+            targetPort: 8080
+```
+
+The fields under doorman service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
 | services.doorman. name            | Name for the Doorman service                                                                                 |
 | services.doorman.subject                    | Certificate Subject for Doorman service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | services.doorman.type                       | Service type must be `doorman`                                                                             |
 | services.doorman.ports.servicePort          | HTTP port number where doorman service is accessible                                       |
-| services.doorman.ports.targetPort          | HTTP target port number of the doorman docker-container                                       |
+| services.doorman.ports.targetPort           | HTTP target port number of the doorman docker-container                                       |
+
+The snapshot of nms service example values is below
+```yaml
+        nms:
+          name: networkmapskar
+          subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
+          type: networkmap
+          ports:
+            servicePort: 8080
+            targetPort: 8080
+```
+The fields under nms service are
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
 | services.nms. name                | Name of the NetworkMap service                     |
 | services.nms.subject      | Certificate Subject for NetworkMap service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | services.nms.type                    | Service type must be `networkmap`    |
 | services.nms.ports.servicePort       | HTTP port number where NetworkMap service is accessible                                       |
 | services.nms.ports.targetPort          | HTTP target port number of the NetworkMap docker-container                                  |
-| services.notary. name                      | Name of the notary service   |
+
+
+The snapshot of notary service with example values is below
+```yaml
+        # Currently only supporting a single notary cluster, but may want to expand in the future
+        notary:
+          name: notaryskar
+          subject: "O=Notary,OU=Notary,L=London,C=GB"
+          type: notary          
+          p2p:
+            port: 10002
+            targetPort: 10002
+            ambassador: 10010       #Port for ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 10003
+            targetPort: 10003
+          rpcadmin:
+            port: 10005
+            targetPort: 10005
+          dbtcp:
+            port: 9101
+            targetPort: 1521
+          dbweb:             
+            port: 8080
+            targetPort: 81
+```
+The fields under notary service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| services.notary. name                     | Name of the notary service   |
 | services.notary.subject                   | Certificate Subject for notary service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | services.notary.type                      | Service type must be `notary`  |
 | services.notary.p2p.port                  | Corda Notary P2P port. Used for communication between the notary and nodes of same network|
@@ -107,11 +276,48 @@ The configurations are grouped in the following sections for better understandin
 | services.notary.rpc.port                  | Corda Notary RPC port. Used for communication between the notary and nodes of same network|
 | services.notary.rpc.targetport            | RPC Port where notary services is running.|
 | services.notary.rpcadmin.port             | Corda Notary Rpcadmin port. Used for RPC admin binding|
-| services.notary.dbtcp.port                | Corda Notary DbTcp port. Used to expose database to other services                                           |
+| services.notary.dbtcp.port                | Corda Notary DbTcp port. Used to expose database to other services                                         |
 | services.notary.dbtcp.targetPort          | Corda Notary DbTcp target port. Port where the database services are running                               |
-| services.notary.dbweb.port                | Corda Notary dbweb port. Used to expose dbweb to other services                                                    |
-| services.notary.dbweb.targetPort          | Corda Notary dbweb target port. Port where the dbweb services are running                                        |
-| services.peer. name                          | Name of the Corda Node                                                                                           |
+| services.notary.dbweb.port                | Corda Notary dbweb port. Used to expose dbweb to other services                                            |
+| services.notary.dbweb.targetPort          | Corda Notary dbweb target port. Port where the dbweb services are running                                  |
+
+The snapshot of peer service with example values is below
+```yaml
+      # The participating nodes are named as peers 
+      services:
+        peers:
+        - peer:
+          name: manufacturerskar
+          subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
+          type: node
+          p2p:
+            port: 10002
+            targetPort: 10002
+            ambassador: 10020       #Port for ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 10003
+            targetPort: 10003
+          rpcadmin:
+            port: 10005
+            targetPort: 10005
+          dbtcp:
+            port: 9101
+            targetPort: 1521
+          dbweb:             
+            port: 8080
+            targetPort: 81
+          springboot:             # This is for the springboot server
+            targetPort: 20001
+            port: 20001 
+          expressapi:             # This is for the express api server
+            targetPort: 3000
+            port: 3000
+```
+The fields under peer service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| services.peer.name                          | Name of the Corda Node                                                                                           |
 | services.peer.type                          | Service type must be `node` |
 | services.peer.subject                       | The node legal name subject. |
 | services.peer.auth                          | Vault auth of the corda Node                                                                                     |

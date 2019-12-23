@@ -7,65 +7,119 @@ metadata:
     app: "{{ $.Values.metadata.name }}"
     app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  serviceName: "{{ $.Values.metadata.name }}"
-  replicas: 1
+  backoffLimit: 7
   template:
     metadata:
       labels:
         app: "{{ $.Values.metadata.name }}"
-        app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
-        app.kubernetes.io/instance: {{ .Release.Name }} 
     spec:
       restartPolicy: OnFailure
+      serviceAccountName: "{{ $.Values.vault.serviceAccountName }}"
       imagePullSecrets:
         - name: "{{ $.Values.image.pullSecret }}"
       volumes:
         - name: {{ $.Values.metadata.name }}-pool-transactions-genesis
           configMap:
             name: {{ $.Values.metadata.name }}-pool-transactions-genesis
-      serviceAccountName: "{{ $.Values.vault.serviceAccountName }}"
+        - name: shared-data
+          emptyDir:
+            medium: Memory
       containers:
-        - name:  "{{ $.Values.image.cli.name }}"
-          image: "{{ $.Values.image.cli.repository }}"
-          imagePullPolicy: Always
-          env:
-           - name: VAULT_ADDR
-             value: "{{ $.Values.vault.address }}"
-           - name: ADMIN_PATH
-             value: "{{ $.Values.organization.name.adminIdentity.path }}"
-           - name: ADMIN_NAME
-             value: "{{ $.Values.organization.name.adminIdentity.name }}"
-           - name: IDENTITY_NAME
-             value:  "{{ $.Values.organization.name.newIdentity.name }}"
-           - name: IDENTITY_PATH
-             value: "{{ $.Values.organization.name.newIdentity.path }}"
-           - name: IDENTITY_ROLE
-             value: "{{ $.Values.organization.name.newIdentity.role }}"
-           - name: POOL_GENESIS_PATH
-             value: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
-          volumeMounts:
-            - name: {{ $.Values.metadata.name }}-pool-transactions-genesis
-              mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/
-              subPath: pool_transactions_genesis
-          command:
-            - "/bin/bash"
-            - "-c"
-            - >
-              
-              validateVaultResponse () {
-              if [ ${1} != 200 ]; then
-               echo "ERROR: Unable to retrieve. Http status: ${1}"
-               exit 1
-               fi
-              }
-              
-              KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
-              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.vault.role }}"}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
-              VAULT_TOKEN=$(cat token);
-              
-              response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/auth/token/lookup-self)
-              validateVaultResponse ${response_status};
-              
-              echo "Running ledger Transacion Script...";
-              ./home/indy-ledger.sh $VAULT_ADDR $VAULT_TOKEN $ADMIN_PATH $ADMIN_NAME $IDENTITY_PATH $IDENTITY_NAME $IDENTITY_ROLE $POOL_GENESIS_PATH;
+      - name: init-container
+        image: "{{ $.Values.image.cli.repository }}"
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          validateVaultResponse () {
+          if echo ${2} | grep "errors"; then
+           echo "ERROR: unable to retrieve ${1}: ${2}"
+           exit 1
+           fi
+          }
+
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          
+          echo $KUBE_SA_TOKEN;
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          # Login to Vault to get an approle token
+          VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/indy-ns-auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+            jq -r 'if .errors then . else .auth.client_token end')
+          validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+          
+          QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$ADMIN_PATH/$ADMIN_NAME/identity/private | jq -r 'if .errors then . else . end')
+          validateVaultResponse 'Admin Seed' "${QUERY_RES}"
+          admin_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]");
+          mkdir -p /data/seed;
+          echo "${admin_seed}" > /data/seed/adminseed.txt;
+          
+          QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$IDENTITY_PATH/$IDENTITY_NAME/identity/private | jq -r 'if .errors then . else . end')
+          validateVaultResponse 'Identity Seed' "${QUERY_RES}"
+          identity_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]")
+          echo "${identity_seed}" > /data/seed/identityseed.txt;
+          
+          
+        env:
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ $.Values.vault.authpath }}"
+          - name: VAULT_ADDR
+            value: "{{ $.Values.vault.address }}"
+          - name: ADMIN_PATH
+            value: "{{ $.Values.organization.name.adminIdentity.path }}"
+          - name: ADMIN_NAME
+            value: "{{ $.Values.organization.name.adminIdentity.name }}"
+          - name: IDENTITY_NAME
+            value:  "{{ $.Values.organization.name.newIdentity.name }}"
+          - name: IDENTITY_PATH
+            value: "{{ $.Values.organization.name.newIdentity.path }}"
+        volumeMounts:
+          - name: shared-data
+            mountPath: /data
+
+      - name: "{{ $.Values.image.cli.name }}"
+        image: "{{ $.Values.image.cli.repository }}"
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          apt-get install curl -y
+          
+          ADMIN_SEED=$( cat /data/adminseed.txt)
+          IDENTITY_SEED=$( cat /data/identityseed.txt)
+          echo "Running ledger Transaction Script...";
+          
+          ./home/indy-ledger.sh $ADMIN_DID $ADMIN_SEED $IDENTITY_DID $IDENTITY_SEED $IDENTITY_ROLE $IDENTITY_VERKEY $POOL_GENESIS_PATH;
+
+        env:
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ $.Values.vault.authpath }}"
+          - name: VAULT_ADDR
+            value: "{{ $.Values.vault.address }}"
+          - name: ADMIN_DID
+            value: "{{ $.Values.organization.name.adminIdentity.did }}"
+          - name: IDENTITY_DID
+            value:  "{{ $.Values.organization.name.newIdentity.did }}"
+          - name: IDENTITY_ROLE
+            value: "{{ $.Values.organization.name.newIdentity.role }}"
+          - name: IDENTITY_VERKEY
+            value: "{{ $.Values.organization.name.newIdentity.verkey }}"            
+          - name: POOL_GENESIS_PATH
+            value: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
+        volumeMounts:
+          - name: {{ $.Values.metadata.name }}-pool-transactions-genesis
+            mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
+            subPath: pool_transactions_genesis
+          - name: shared-data
+            mountPath: /data

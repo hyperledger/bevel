@@ -1,11 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+  name: anchorpeer-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
   namespace: {{ $.Values.metadata.namespace }}
   labels:
-    app: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
-    app.kubernetes.io/name: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: anchorpeer-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -15,8 +15,8 @@ spec:
   template:
     metadata:
       labels:
-        app: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
-        app.kubernetes.io/name: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: anchorpeer-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       restartPolicy: "OnFailure"
@@ -35,6 +35,9 @@ spec:
       - name: certificates
         emptyDir:
           medium: Memory
+      - name: anchorpeer-artifacts
+        configMap:
+          name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-artifacts
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -115,7 +118,7 @@ spec:
         - name: certificates
           mountPath: /secret        
       containers:
-      - name: joinchannel
+      - name: anchorpeer
         image: {{ $.Values.metadata.images.fabrictools }}
         stdin: true
         tty: true
@@ -123,7 +126,7 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
-          echo "Joining Channel ${CHANNEL_NAME}"
+          echo "Updating anchor peer for the channel ${CHANNEL_NAME}"
           tls_status=${CORE_PEER_TLS_ENABLED}
           if [ "$tls_status" = "true" ]
           then
@@ -131,12 +134,21 @@ spec:
           else
             peer channel fetch 0 ${CHANNEL_NAME}.block -o ${ORDERER_URL} -c ${CHANNEL_NAME} 
           fi
-          peer channel join -b ${CHANNEL_NAME}.block
+          cat ./channel-artifacts/anchors.tx.base64 | base64 --decode > ${CORE_PEER_LOCALMSPID}anchors.tx
+          if [ "$tls_status" = "true" ]
+          then
+            peer channel update -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f ${CORE_PEER_LOCALMSPID}anchors.tx --tls --cafile ${ORDERER_CA}
+          else
+            peer channel update -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f ${CORE_PEER_LOCALMSPID}anchors.tx
+          fi
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
         envFrom:
         - configMapRef:
-            name: joinchannel-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-config
+            name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-config
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
+          readOnly: true
+        - name: anchorpeer-artifacts
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
           readOnly: true

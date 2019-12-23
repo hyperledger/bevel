@@ -6,26 +6,7 @@ lib, pom.xml, source, static files. It also contains the Dockerfile for building
 ## Dependencies ##
 * JDK 8u181
 * NodeJS 11
---------------------------------------------------------------------------------------------------------------------------------------------------------------
-Sr.No   |	Property		    |Env Variable				   			|Default		|Description
---------------------------------------------------------------------------------------------------------------------------------------------------------------
-1. 		auth-password			NETWORKMAP_AUTH_PASSWORD				admin			system admin password
-2. 	    auth-username			NETWORKMAP_AUTH_USERNAME				sa				system admin username
-3. 		cache-timeout			NETWORKMAP_CACHE_TIMEOUT				2S				http cache timeout for this service in ISO 8601 duration format
-4.		db						NETWORKMAP_DB							.db				database directory for this service
-5.		hostname				NETWORKMAP_HOSTNAME						0.0.0.0			interface to bind the service to
-6.		mongo-connection-string	NETWORKMAP_MONGO_CONNECTION_STRING		embed			MongoDB connection string. If set to embed will start its own mongo instance
-7. 		mongod-database			NETWORKMAP_MONGOD_DATABASE				nms				name for mongo database
-8.		mongod-location			NETWORKMAP_MONGOD_LOCATION				----			optional location of pre-existing mongod server
-9.		network-map-delay		NETWORKMAP_NETWORK_MAP_DELAY			1S				queue time for the network map to update for addition of nodes
-10.		param-update-delay		NETWORKMAP_PARAM_UPDATE_DELAY			10S				schedule duration for a parameter update
-11.		port					NETWORKMAP_PORT							8080			web port
-12.		root-ca-name			NETWORKMAP_ROOT_CA_NAME					CN="", OU=DLT, O=DLT, L=London, ST=London, C=GB. The name for the root ca. If doorman and certman are turned off this will automatically default to Corda dev root ca
-13.		tls						NETWORKMAP_TLS							false			whether TLS is enabled or not
-14.		tls-cert-path			NETWORKMAP_TLS_CERT_PATH				----			path to cert if TLS is turned on
-15. 	tls-key-path			NETWORKMAP_TLS_KEY_PATH				    ----			path to key if TLS turned on
-16.		web-root				NETWORKMAP_WEB_ROOT					    /				for remapping the root url for all requests
-------------------------------------------------------------------------------------------------------------------------------------------------------------
+	
 ## Steps to build the networkmap jar ##
 
 1. To build the project, run the following command:
