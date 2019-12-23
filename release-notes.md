@@ -1,1 +1,1 @@
-This is a beta release version 0.2.0.0
+This is beta release version 0.3.0.0
