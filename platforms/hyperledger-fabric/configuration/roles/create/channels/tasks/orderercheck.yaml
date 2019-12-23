@@ -1,0 +1,16 @@
+# Check or wait for the Orderer pod
+- name: "Check orderer pod is up"
+  k8s_facts:
+    kind: Pod
+    namespace: "{{ orderer_namespace }}"
+    kubeconfig: "{{ orderer_kubeconfig }}"
+    context: "{{ orderer_context }}"
+    label_selectors:
+      - app = {{ orderer.name }}
+  loop: "{{ ordererorg.services.orderers }}"
+  loop_control:
+    loop_var: orderer
+  register: get_orderer
+  until: ("Running" in get_orderer|json_query('resources[*].status.phase'))
+  retries: "{{ network.env.retry_count}}"
+  delay: 40

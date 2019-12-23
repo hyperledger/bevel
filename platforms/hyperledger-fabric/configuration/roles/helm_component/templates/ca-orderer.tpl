@@ -38,6 +38,6 @@ spec:
 {% if component_services.ca.grpc.nodePort is defined %}
           nodeport: {{ component_services.ca.grpc.nodePort }}
 {% endif %}
-    ambassador:
+    proxy:
+      provider: {{ network.env.proxy }}
       type: orderer
-      component_name: {{ component_name }}

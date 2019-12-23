@@ -15,7 +15,7 @@
     component_name: "zkkafka"
     type: "zkkafka"
     consensus: "{{component_services.consensus}}"
-  when: component_services.orderer.consensus == 'kafka' and component_services.consensus is defined
+  when: component_services.consensus.name == 'kafka' and component_services.consensus is defined
 
 ############################################################################################
 # This task creates the value file for the Orderers as per requirements mentioned in 
@@ -26,12 +26,14 @@
   vars:
     name: "orderer"
     org_name: "{{ item.name | lower }}"
-    component_name: "orderer-{{ org_name }}"
+    component_name: "{{ orderer.name }}-{{ org_name }}"
     type: "orderers"
     consensus: "{{component_services.consensus}}"
-    orderer: "{{component_services.orderer}}"
     genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"
-  when: component_services.orderer is defined and component_services.consensus is defined
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: component_services.orderers is defined and component_services.consensus is defined
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
