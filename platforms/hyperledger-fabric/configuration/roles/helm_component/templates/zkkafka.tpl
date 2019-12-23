@@ -16,7 +16,7 @@ spec:
       namespace: {{ namespace }}
     storage: 
       storageclassname: {{ org_name }}sc
-      storagesize: 1Gi
+      storagesize: 512Mi
     kafka: 
       brokerservicename: {{consensus.type}}
       name: {{consensus.name}}
