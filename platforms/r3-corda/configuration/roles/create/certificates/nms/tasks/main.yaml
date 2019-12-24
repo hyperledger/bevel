@@ -116,6 +116,15 @@
     openssl req -x509 -out {{ NETWORKMAP_DOMAIN }}.crt -keyout {{ NETWORKMAP_DOMAIN }}.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ NETWORKMAP_DOMAIN }}" -extensions EXT -config <( printf "[dn]\nCN={{ NETWORKMAP_DOMAIN }}\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:{{ NETWORKMAP_DOMAIN }}\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
   loop: "{{ network['orderers'] }}"
   when: item.type.find('networkmap') != -1
+  register: result
+  debugger: on_failed
+
+- name: output result
+  debug: msg="{{ result }}"
+
+- name: output result
+  debug: msg="{{ result.out }}"
+
 
 - name: Putting certs to vault for root
   shell: |
