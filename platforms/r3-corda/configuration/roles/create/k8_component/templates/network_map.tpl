@@ -59,7 +59,7 @@ spec:
       certsecretprefix: {{ component_name }}/certs
       dbcredsecretprefix: {{ component_name }}/credentials/mongodb
       secretnetworkmappass: {{ component_name }}/credentials/userpassword
-      tlscertsecretprefix: {{ component_name }}/certs
+      tlscertsecretprefix: {{ component_name }}/tlscerts
       dbcertsecretprefix: {{ component_name }}/certs
     healthcheck:
       readinesscheckinterval: 10

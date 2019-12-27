@@ -153,9 +153,9 @@ spec:
              # get networkmap tls cert and key from vault
              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.tlscertsecretprefix }} | jq -r 'if .errors then . else . end')            
              validateVaultResponse "secret (${{ .Values.vault.tlscertsecretprefix }})" "${LOOKUP_SECRET_RESPONSE}"           
-             NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.crt"]')
-             NETWORKMAP_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.key"]')
-             echo "check-1"
+             NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacert"]')
+             NETWORKMAP_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlskey"]')
+             echo "check-1 $NETWORKMAP_CRT"
              echo "${NETWORKMAP_CRT}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/networkmap.crt 
              echo "${NETWORKMAP_KEY}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/networkmap.key 
           fi    
