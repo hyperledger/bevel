@@ -1,10 +1,9 @@
 package com.supplychain.bcc.webserver
 
-import com.supplychain.bcc.*
 import com.supplychain.bcc.contractstates.ContainerState
+import com.supplychain.baf.*
 import net.corda.client.jackson.JacksonSupport
 import net.corda.core.messaging.vaultQueryBy
-import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.DEFAULT_PAGE_NUM
 import net.corda.core.node.services.vault.PageSpecification
 import net.corda.core.node.services.vault.QueryCriteria
@@ -96,13 +95,13 @@ class ContainerController(rpc: NodeRPCConnection) {
 
     //package item
     @PutMapping(value = ["/{containerTrackingID}/package"], produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun packageProduct(@PathVariable containerTrackingID: UUID, @RequestBody() productTrackingID : Contents ) = ResponseEntity.ok(
+    fun packageProduct(@PathVariable containerTrackingID: UUID, @RequestBody() productTrackingID : Contents) = ResponseEntity.ok(
             proxy.startFlowDynamic(PackageItem::class.java, productTrackingID.contents, containerTrackingID).returnValue.getOrThrow()
     )
 
     //unpackage item
     @PutMapping(value = ["/{containerTrackingID}/unpackage"], produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun unPackageProduct(@PathVariable containerTrackingID: UUID, @RequestBody() productTrackingID : Contents ) = ResponseEntity.ok(
+    fun unPackageProduct(@PathVariable containerTrackingID: UUID, @RequestBody() productTrackingID : Contents) = ResponseEntity.ok(
             proxy.startFlowDynamic(UnPackageItem::class.java, productTrackingID.contents, containerTrackingID).returnValue.getOrThrow()
     )
 

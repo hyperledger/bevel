@@ -8,15 +8,13 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.testing.core.TestIdentity
 import net.corda.testing.node.MockServices
 import net.corda.testing.node.ledger
-import org.testng.annotations.Listeners
-import org.testng.annotations.Test
+import org.junit.Test
 import java.util.*
 import kotlin.test.assertFailsWith
 
-@Listeners(AgentListener::class)
 
 class ContractTests {
-    private val ledgerServices = MockServices(listOf("com.supplychain.bcc"))
+    private val ledgerServices = MockServices(listOf("com.supplychain.bcc.contractstates"))
     private val PartyA = TestIdentity(CordaX500Name("AA", "London", "GB"))
     private val PartyB = TestIdentity(CordaX500Name("BB", "London", "GB"))
 
