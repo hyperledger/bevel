@@ -24,7 +24,7 @@ spec:
       - name: NETWORKMAP_ROOT_CA_NAME
         value: {{ services.nms.subject }}
       - name: NETWORKMAP_TLS
-        value: false
+        value: true
       - name: NETWORKMAP_DB
         value: /opt/networkmap/db
       - name: DB_USERNAME

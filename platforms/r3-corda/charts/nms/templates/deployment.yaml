@@ -45,6 +45,11 @@ spec:
           export DB_PASSWORD=`cat /opt/creds/db_root_password`
           export NETWORKMAP_MONGO_CONNECTION_STRING="mongodb://${DB_USERNAME}:${DB_PASSWORD}@${DB_URL}:${DB_PORT}/${DATABASE}?ssl=true&sslInvalidHostNameAllowed=true&streamType=netty"
           export NETWORKMAP_AUTH_PASSWORD=`cat /opt/creds/user_cred`
+          echo "$NETWORKMAP_TLS_CERT_PATH"
+          echo "$NETWORKMAP_TLS_KEY_PATH"
+          echo "$DB_PASSWORD"
+          echo "$NETWORKMAP_AUTH_PASSWORD"
+          echo "$NETWORKMAP_TLS"
           yes | keytool -importcert -file {{ .Values.image.mountPath.basePath }}-tls/certs/mongoCA.crt -storepass changeit -alias mongoca -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts
           java -jar {{ .Values.image.mountPath.basePath }}/network-map-service.jar 2>&1
         ports:
