@@ -40,7 +40,7 @@ spec:
 
           # add permissions to dir
           chmod 777 -R {{ .Values.image.mountPath.basePath }}/;
-
+          chmod 777 -R {{ .Values.image.mountPath.basePath }}-tls/;
           # Setting up enviroment variables required for  jar
           {{- range $.Values.image.env }}
           export {{ .name }}="{{ .value }}"
@@ -55,7 +55,7 @@ spec:
           echo "$DB_PASSWORD"
           echo "$NETWORKMAP_AUTH_PASSWORD"
           echo "$NETWORKMAP_TLS"
-          
+
           # import self signed tls certificate of mongodb, since java only trusts certificate signed by well known CA
           yes | keytool -importcert -file {{ .Values.image.mountPath.basePath }}-tls/certs/mongoCA.crt -storepass changeit -alias mongoca -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts
           java -jar {{ .Values.image.mountPath.basePath }}/network-map-service.jar 2>&1

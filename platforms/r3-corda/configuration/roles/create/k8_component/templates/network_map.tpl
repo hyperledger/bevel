@@ -45,7 +45,7 @@ spec:
       tlsCertificate: true
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
-          basePath: /opt
+          basePath: /opt/networkmap
     storage:
       memory: 512Mi
       mountPath: "/opt/h2-data"
