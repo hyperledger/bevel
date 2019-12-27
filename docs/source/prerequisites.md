@@ -8,7 +8,7 @@ The Blockchain Automation Framework.
 
 ## Kubernetes
 The Blockchain Automation Framework deploys the DLT network on [Kubernetes](https://kubernetes.io/) clusters; so to use the Blockchain Automation Framework, at least one Kubernetes cluster should be available.
-The Blockchain Automation Framework recommends one Kubernetes cluster per organization for production-ready projects. 
+The Blockchain Automation Framework recommends one Kubernetes cluster per organization for production-ready deployments. 
 Also, a user needs to make sure that the Kubernetes clusters can support the number of pods and persistent volumes that will be created by the Blockchain Automation Framework.
 
 ---
