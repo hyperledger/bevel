@@ -1,0 +1,74 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: doormankd
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: supplychainkd-ns
+spec:
+  releaseName: doormankd
+  chart:
+    path: platforms/r3-corda/charts/doorman
+    git: git@github.com:deepakkumardbd/blockchain-automation-framework.git
+    ref: nms-changes-to-implement-latest-chart-test
+  values:
+    nodeName: doormankd
+    metadata:
+      namespace: supplychainkd-ns
+    image:
+      authusername: sa
+      containerName: adopblockchaincloud0502.azurecr.io/doorman:latest
+      env:
+      - name: DOORMAN_PORT
+        value: 8080
+      - name: DOORMAN_ROOT_CA_NAME
+        value: CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE
+      - name: DOORMAN_TLS
+        value: false
+      - name: DOORMAN_DB
+        value: /opt/doorman/db
+      - name: DOORMAN_AUTH_USERNAME
+        value: sa
+      - name: DB_URL
+        value: mongodb-doormankd
+      - name: DB_PORT
+        value: 27017
+      - name: DATABASE
+        value: admin
+      - name: DB_USERNAME
+        value: doormankd
+      imagePullSecret: regcred
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      mountPath:
+        basePath: /opt/doorman
+    storage:
+      memory: 512Mi
+      name: awsstorageclass
+    mountPath:
+      basePath: /opt/doorman
+    vault:
+      address: http://a4a513bb9209a11ea8ff702d1f01ff6c-1244186543.eu-west-1.elb.amazonaws.com:9000
+      role: vault-role
+      authpath: cordadoormankd
+      serviceaccountname: vault-auth
+      certsecretprefix: doormankd/certs
+      dbcredsecretprefix: doormankd/credentials/mongodb
+      secretdoormanpass: doormankd/credentials/userpassword
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
+      dburl: mongodb-doormankd:27017
+    service:
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+      annotations: {}
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
+    ambassador:
+      external_url_suffix: rc.dev.aws.blockchaincloudpoc-develop.com
+      
+    
+        
