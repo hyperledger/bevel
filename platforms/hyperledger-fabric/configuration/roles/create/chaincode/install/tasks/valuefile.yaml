@@ -1,13 +1,12 @@
 # Check if the joinchannel job is completed successfully or wait for it
 # This task will try for a maximum of 10 times with an interval of
 # 35 seconds between each try
-- name: 'Check/Wait for joinchannel job'
+- name: 'Check/Wait for anchorpeer update job'
   k8s_facts:
     kind: "Job"
-    name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
     namespace: "{{ namespace }}"
     label_selectors:
-      - app = joinchannel-{{ peer.name }}-{{ channel_name }}
+      - app = anchorpeer-{{ channel_name }}-{{ name }}
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   vars:
@@ -16,15 +15,14 @@
   loop_control:
     loop_var: channel
   register: component_data
-  retries: 10
-  delay: 35
-  until: component_data.resources|length > 0
+  retries: "{{ network.env.retry_count}}"
+  delay: 40
+  until: (1 in component_data|json_query('resources[*].status.succeeded'))
 
 # Check if install-chaincode is already run
 - name: 'Check for install-chaincode job'
   k8s_facts:
     kind: "Job"
-    name: installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
     namespace: "{{ namespace }}"
     label_selectors:
       - "app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"

@@ -12,7 +12,7 @@
     context: "{{ kubernetes.context }}"
   register: get_namespace
   until: get_namespace.resources|length > 0
-  retries: 10
+  retries: "{{ network.env.retry_count }}"
   delay: 35
 
 ############################################################################################
@@ -109,7 +109,7 @@
 # This task creates the vault auth
 - name: Create Vault auth role
   shell: |
-    vault write auth/{{ auth_path }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_name }} policies="vault-crypto-{{ component_type }}-{{ component_name }}-ro" ttl=120s
+    vault write auth/{{ auth_path }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_name }} policies="vault-crypto-{{ component_type }}-{{ component_name }}-ro" ttl=1200s
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

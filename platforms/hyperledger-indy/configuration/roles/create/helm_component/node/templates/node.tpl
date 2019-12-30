@@ -15,7 +15,7 @@ spec:
     metadata:
       name: {{ component_name }}
       namespace: {{ component_ns }}
-    network: 
+    network:
       name: {{ network.name }}
     organization:
       name: {{ organizationItem.name }}
@@ -29,21 +29,20 @@ spec:
         repository: {{ network.docker.url }}/indy-node:0.3.0.0
     node:
       name: {{ component_name }}
-      INDY_NODE_IP: {{ stewardItem.node.port }}
-      INDY_CLIENT_IP: {{ stewardItem.client.port }}
-      ports:
-        indyNodePort: {{ stewardItem.node.port }}
-        indyClientPort: {{ stewardItem.client.port }}
+      ip: 0.0.0.0
+      port: {{ stewardItem.node.port }}
+    client:
+      ip: 0.0.0.0
+      port: {{ stewardItem.client.port }}
     service:
       ports:
         nodePort: {{ stewardItem.node.port }}
         nodeTargetPort: {{ stewardItem.client.targetPort }}
         clientPort: {{ stewardItem.client.port }}
-        clientTargetPort:: {{ stewardItem.node.targetPort }}
+        clientTargetPort: {{ stewardItem.node.targetPort }}
     configmap:
-      domainGenesis: {{ organizationItem.name }}-domain-transactions-genesis
-      poolGenesis: poolGenesis-cm
-      indyConfig: |- 
+      poolGenesis: {{ organizationItem.name }}-pool-transactions-genesis
+      indyConfig: |-
         NETWORK_NAME = {{ network.name }}
         # Enable stdout logging
         enableStdOutLogging = True
@@ -82,8 +81,7 @@ spec:
     storage:
       data:
         storagesize: 1Gi
-        storageClassName: {{ organizationItem.cloud_provider }}storageclass
+        storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
       keys:
         storagesize: 1Gi
-        storageClassName: {{ organizationItem.cloud_provider }}storageclass
-        
+        storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
