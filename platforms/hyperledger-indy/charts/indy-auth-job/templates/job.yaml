@@ -41,6 +41,8 @@ spec:
               export VAULT_SA_NAME=$(kubectl get sa {{ $.Values.account.service }} -n {{ $.Values.metadata.namespace }} -o jsonpath="{.secrets[*]['name']}");
 
               export SA_CA_CRT=$(kubectl get secret $VAULT_SA_NAME -n {{ $.Values.metadata.namespace }} -o jsonpath="{.data['ca\.crt']}" | base64 -d; echo);
+              
+              export SA_JWT_TOKEN=$(kubectl get secret $VAULT_SA_NAME -n {{ $.Values.metadata.namespace }} -o jsonpath="{.data.token}" | base64 -d; echo)
 
               VAULT_TOKEN="$(curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "rw"}' -s -k {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.admin_auth_path }}/login | jq -r '.auth.client_token')";
 
