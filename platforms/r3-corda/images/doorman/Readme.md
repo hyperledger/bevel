@@ -7,6 +7,7 @@ lib, pom.xml, source, static files. It also contains the Dockerfile for building
 ## Dependencies ##
 * JDK 8u181
 * NodeJS 11
+* Maven
 	
 ## Steps to build doorman jar ##
 
