@@ -17,3 +17,4 @@ title: ''
 ## Post-release Test Checklist  
 - [ ] Do the new release instructions work using the released artefact?
 - [ ] Check if  read the docs have been updated with new release tags?
+- [ ] Close the release checklist issue
