@@ -39,12 +39,6 @@ spec:
             items:
               - key: genesis.json
                 path: genesis.json
-        - name: {{ .Values.node.name }}-staticnodes-volume
-          configMap:
-            name: staticnodes-{{ .Values.node.name }}
-            items:
-              - key: staticnodes.json
-                path: staticnodes.json
             
       initContainers:
       - name: certificates-init
@@ -168,9 +162,8 @@ spec:
         - |-
           #!/usr/bin/env sh
           sleep 5;
-          STATIC_NODES=$(cat {{ .Values.node.mountPath}}/staticnodes/staticnodes.json | sed 's/%\u0026%/&/g\' );
-          echo $STATIC_NODES > $QUORUM_DATA_DIR/static-nodes.json
-                    
+          
+          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
@@ -217,6 +210,4 @@ spec:
           mountPath: {{ .Values.node.mountPath }}/crypto/
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
-        - name: {{ .Values.node.name }}-staticnodes-volume
-          mountPath: {{ .Values.node.mountPath }}/staticnodes
       restartPolicy: Always     
