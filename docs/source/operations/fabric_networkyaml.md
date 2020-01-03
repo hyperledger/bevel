@@ -165,6 +165,58 @@ The snapshot of channels section with its fields and sample values is below
 ```
 The fields under the `channel` are
 
+The snapshot of channels section with its fields and sample values is below
+
+```yaml
+    # The channels defined for a network with participating peers in each channel
+  channels:
+  - channel:
+    consortium: SupplyChainConsortium
+    channel_name: AllChannel
+    orderer: 
+      name: supplychain
+    participants:
+    - organization:
+      name: carrier
+      type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
+      peers:
+      - peer:
+        name: peer0
+        type: validating
+        gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
+    - organization:      
+      name: store
+      type: joiner        # joiner organization will only join the channel and install chaincode
+      peers:
+      - peer:
+        name: peer0
+        type: validating
+        gossipAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+    - organization:
+      name: warehouse
+      type: joiner
+      peers:
+      - peer:
+        name: peer0
+        type: validating
+        gossipAddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+    - organization:
+      name: manufacturer
+      type: joiner
+      peers:
+      - peer:
+        name: peer0
+        type: validating
+        gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+    genesis:
+      name: OrdererGenesis
+```
+The fields under the channel are
+
 | Field                           | Description                                                |
 |---------------------------------|------------------------------------------------------------|
 | consortium                      | Name of the consortium, the channel belongs to             |
