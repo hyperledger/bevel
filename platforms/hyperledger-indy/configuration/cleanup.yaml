@@ -36,7 +36,7 @@
     when: network['type'] == 'indy'
 
   # Cleanup Flux release folder in Git for all organizations
-  - name: Delete releease folder
+  - name: Delete release folder
     include_role:
       name: clean/gitops
     vars:
@@ -48,6 +48,18 @@
     when: network['type'] == 'indy'
 
   # Delete all organizations' namespaces with all K8S resources (including PVCs and PVs)
+  - name: Delete all K8S resources
+    include_role:
+      name: clean/k8s_resources
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      organization_ns: "{{ organization }}-ns"
+      services: "{{ organizationItem.services }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
 
   # Delete Tiller from all organizations' K8S clusters
 

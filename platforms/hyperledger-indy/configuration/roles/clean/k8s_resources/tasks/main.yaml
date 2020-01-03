@@ -1,0 +1,70 @@
+# Remove an existing nodes as helm releases
+- name: Remove an existing nodes as helm releases
+  vars:
+    component_name: "{{ stewardItem.name }}"
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} helm delete {{ component_name }} --purge
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined
+  ignore_errors: yes
+
+- name: Wait for deleting stewards
+  vars:
+    component_name: "{{ stewardItem.name }}"
+  k8s_facts:
+    kind: "Pod"
+    label_selectors:
+    - release={{ component_name }}
+    namespace: "{{ organization_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: result
+  until: result.resources|length == 0
+  retries: 10
+  delay: 40
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined
+
+# Get all existing Cluster Role Bindings of organization
+- name: Get all existing Cluster Role Bindings of organization {{ organization }}
+  k8s_facts:
+    kind: ClusterRoleBinding
+    namespace: "default"
+    label_selectors:
+      - organization = {{ organization }}
+  register: rolelist
+
+# Remove an existing Cluster Role Binding
+- name: Remove an existing Cluster Role Binding of {{ organization }}
+  k8s:
+    state: absent
+    kind : ClusterRoleBinding
+    namespace: "default"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ rolelist.resources }}"
+  loop_control:
+    loop_var: item
+  when: rolelist is defined
+
+# Remove an existing Namespace
+- name: Remove an existing Namespace {{ organization_ns }}
+  k8s:
+    state: absent
+    kind: Namespace
+    namespace: "{{ organization_ns }}"
+    name: "{{ organization_ns }}"
+
+# Remove an existing Storage Class
+- name: Remove an existing Storage Class of {{ organization }}
+  vars:
+    provider: "{{ organizationItem.cloud_provider }}"
+    storageclass_name: "{{ provider }}-storageclass"
+    component_name: "{{ organization }}-{{ storageclass_name }}"
+  k8s:
+    state: absent
+    kind: StorageClass
+    namespace: "default"
+    name: "{{ component_name }}"
