@@ -397,6 +397,6 @@ The fields under orderer service are
 | service.orderers.orderer.ca_data.certificate         | Path to CA certificate ***  |
 
 
-\* non-validating feature is in future scope
-** non-anchor feature is in future scope
+\* non-validating feature is in future scope  
+** non-anchor feature is in future scope  
 *** feature is in future scope
