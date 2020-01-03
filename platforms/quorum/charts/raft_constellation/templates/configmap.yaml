@@ -2,16 +2,34 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: genesis-block-{{ .Values.node.name }}
+  name: genesis-{{ .Values.node.name }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
-    app.kubernetes.io/name: genesis-block
+    app.kubernetes.io/name: genesis-{{ .Values.node.name }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
 data:
-  genesis.block.base64: {{ .Values.genesis | quote }}
+  genesis.json: |
+    {
+      "alloc": 
+        {{ .Values.genesis.allocation | toJson | indent 4 }},
+      "coinbase": "0x0000000000000000000000000000000000000000",
+      "config": {
+          "homesteadBlock": 0,
+          "chainId": 13,
+          "eip155Block": null,
+          "isQuorum": true
+      },
+      "difficulty": "0x0",
+      "extraData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "gasLimit": "0xE0000000",
+      "mixhash": "0x00000000000000000000000000000000000000647572616c65787365646c6578",
+      "nonce": "0x0",
+      "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "timestamp": "0x0"
+    }
 
 ---
 apiVersion: v1
@@ -26,4 +44,5 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
 data:
-  staticnodes.base64: {{ .Values.staticnodes | quote }}
+  staticnodes.json: |
+    {{ .Values.staticnodes | toJson }}
