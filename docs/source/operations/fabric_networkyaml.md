@@ -2,8 +2,8 @@
 A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
 ![](./../_static/TopLevelClass.png)
 
-Before setting up a Fabric DLT network, this file needs to be updated with the required specifications.
-A sample configuration file is provide in the repo path:  
+Before setting up a Fabric DLT network, this file needs to be updated with the required specifications.  
+A sample configuration file is provided in the repo path:  
 `platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml` 
 
 The configurations are grouped in the following sections for better understanding.
@@ -38,7 +38,7 @@ The sections in the sample configuration file are
 
 `env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' or 'haproxy'
 
-The snapshot of the `env` section with expample value is below
+The snapshot of the `env` section with example value is below
 ```yaml 
   env:
     type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
@@ -54,7 +54,7 @@ The fields under `env` section are
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' or 'haproxy' |
 | ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`     |
-| retry_count       | Retry count for the checks.|
+| retry_count       | Retry count for the checks. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
@@ -111,7 +111,7 @@ The fields under the `orderers` section are
 | uri         | Orderer URL                                              |
 | certificate | Path to orderer certificate for connection by external organizations |
 
-`channels` sections contains the list of channels mentioning the participating peers of the organizations.
+The `channels` sections contains the list of channels mentioning the participating peers of the organizations.
 
 The snapshot of channels section with its fields and sample values is below
 
@@ -177,8 +177,8 @@ The fields under the channel are
 | organization.peer.type          | This field can be validating/non-validating*               |
 | organization.peer.gossipAddress | Gossip address of the peer                                 |
 
-`organizations` section contains the specifications of each organization.  
-In the sample configuration example we have five organization under the `organizations` section
+The `organizations` section contains the specifications of each organization.  
+In the sample configuration example, we have five organization under the `organizations` section
 
 The snapshot of an organization field with sample values is below
 ```yaml
@@ -226,14 +226,14 @@ For the aws and k8s field the snapshot with sample values is below
         config_file: "<path_to_k8s_config_file>"
 ```
 
-The aws field under each organisation contains
+The aws field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | aws.access_key                              | AWS Access key  |
 | aws.secret_key                              | AWS Secret key  |
 
-The k8s field under each organisation contains
+The k8s field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
@@ -268,9 +268,9 @@ The gitops field under each organization contains
 | gitops.password                             | Password of the user which has access rights to read/write on repository                                         |
 | gitops.private_key                          | Path to the private key file which has write-access to the git repo                                              |
 
-The services field for each organization under `organizations` section of Fabric contains list of services which could be ca,concensus and orderers or ca and peers based on if the organisation is an orderer or peer type
+The services field for each organization under `organizations` section of Fabric contains list of services which could be ca/orderers/consensus/peers based on if the type of organization. 
 
-The snapshot of ca service with example values is below
+Each organization will have a ca service under the service field. The snapshot of ca service with example values is below
 ```yaml
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample is an orderer service and includes a zk-kafka consensus
@@ -292,7 +292,7 @@ The fields under ca service are
 | services.ca.grpc.port                       | Grpc port number |
 
 
-The snapshot of peer service with example values is below
+Each organization with type as peer will have a peers service. The snapshot of peers service with example values is below
 ```yaml
         peers:
         - peer:
@@ -324,7 +324,7 @@ The snapshot of peer service with example values is below
             arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
             endorsements: "" #Endorsements (if any) provided along with the chaincode
 ```
-The fields under peer service are
+The fields under peers service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
@@ -349,7 +349,7 @@ The fields under peer service are
 | services.peers.peer.chaincode.arguments           | Arguments to the chaincode                                                                                       |
 | services.peers.peer.chaincode.endorsements        | This could be anchor/non-anchor ** |
 
-The snapshot of consensus service with example values is below
+The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 ```yaml
         consensus:
           name: kafka
@@ -367,7 +367,7 @@ The fields under consensus service are
 | service.consensus.replicas                  | Replica count of the brokers                                                                                     |
 | service.consensus.grpc.port                 | Grpc port of consensus service |
 
-The snapshot of orderer service with example values is below
+The organization with orderer type will have orderers service. The snapshot of orderers service with example values is below
 ```yaml
         orderers:
         # This sample has multiple orderers as an example.
@@ -395,3 +395,8 @@ The fields under orderer service are
 | service.orderers.orderer.grpc.port                   | Grpc port of orderer                                                                                             |
 | service.orderers.orderer.ca_data.url                 | Orderer url                                                                                                      |
 | service.orderers.orderer.ca_data.certificate         | Path to CA certificate ***  |
+
+
+/* non-validating feature is in future scope
+** non-anchor feature is in future scope
+*** feature is in future scope
