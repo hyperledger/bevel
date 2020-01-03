@@ -6,9 +6,10 @@
 # This tasks ensures the directory of ConfigMap existence, if not exits it creates a new one
 - name: Ensures {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
   vars:
-    component_name: "{{ organizationItem.name }}-pool-transactions-genesis"
+    organization: "{{ organizationItem.name }}"
+    component_name: "{{ organization }}-pool-transactions-genesis"
     gitops: "{{ organizationItem.gitops }}"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
   file:
     path: "{{ release_dir  }}/{{ component_name }}/"
     recurse: yes
@@ -66,8 +67,8 @@
     organization: "{{ organizationItem.name | lower }}"
     component_ns: "{{ organizationItem.name | lower }}-ns"
     gitops: "{{ organizationItem.gitops }}"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    component_name: "{{ organizationItem.name }}-pool-transactions-genesis"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+    component_name: "{{ organization }}-pool-transactions-genesis"
     pool_genesis_values: "{{ pool_genesis.stdout }}"
     values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
     chart: "indy-pool-genesis"
