@@ -36,7 +36,7 @@
   shell: |
     aws ec2 describe-addresses --public-ips {{ item.services.stewards[0].publicIp }} --region {{ aws.region }} --output json | jq '.Addresses[0].AllocationId'
   register: allocation_ip
-  when: network.type == 'indy' and item.services.stewards is defined and item.cloud_provider == 'aws' #As this shell code is specific to AWS, cloud provider check has been added
+  when: network.type == 'indy' and item.services.stewards is defined and (item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal') #As this shell code is specific to AWS, cloud provider check has been added
 
 - name: Install Ambassador with EIP for Indy
   shell: |

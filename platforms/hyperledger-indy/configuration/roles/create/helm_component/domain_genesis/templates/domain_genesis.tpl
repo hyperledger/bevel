@@ -19,4 +19,4 @@ spec:
       name: {{ organizationItem.name }}
     configmap:
       domainGenesis: |-
-        {{ domain_genesis_values }}
+        {{ domain_genesis_values | indent(width=8) }}
