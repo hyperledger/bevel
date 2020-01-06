@@ -171,11 +171,18 @@ The fields under the channel are
 | channel_name                    | Name of the channel                                        |
 | genesis.name                    | Name of the genesis block                                  |
 | orderer.name                    | Organization name to which the orderer belongs             |
-| organization.name               | Organization name of the peer participating in the channel |
-| organization.type               | This field can be creator/joiner of channel                |
-| organization.peer.name          | Name of the peer                                           |
-| organization.peer.type          | This field can be validating/non-validating*               |
-| organization.peer.gossipAddress | Gossip address of the peer                                 |
+| participants                    | Contains list of organizations participating in the channel|
+
+Each organization field under participants field of the channel contains the following fields
+
+| Field                           | Description                                                |
+|---------------------------------|------------------------------------------------------------|
+| participants.organization.name               | Organization name of the peer participating in the channel |
+| participants.organization.type               | This field can be creator/joiner of channel                |
+| participants.organization.peer.name          | Name of the peer                                           |
+| participants.organization.peer.type          | This field can be validating/non-validating*               |
+| participants.organization.peer.gossipAddress | Gossip address of the peer                                 |
+
 
 The `organizations` section contains the specifications of each organization.  
 In the sample configuration example, we have five organization under the `organizations` section
