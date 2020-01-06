@@ -10,7 +10,7 @@ spec:
   replicas: 1
   releaseName: mongodb-{{ nodename }}
   chart:
-    path: {{ org.gitops.chart_source }}/mongodb
+    path: {{ org.gitops.chart_source }}/{{ chart }}
     git: {{ org.gitops.git_ssh }}
     ref: {{ org.gitops.branch }}
   values:

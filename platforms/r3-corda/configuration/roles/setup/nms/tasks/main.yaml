@@ -70,8 +70,27 @@
     component_auth: "corda{{ services.nms.name | lower }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    chart: 'mongodb'
+  when: {{ services.nms.tls }} == 'off'
 
-# create deployment file for networkmap node
+# Create deployment file for nms mongodb node
+- name: "create mongodb for networkmap"
+  include_role:
+    name: create/k8_component
+  vars:
+    component_name: "networkmapmongodb"
+    component_type: "mongodb"
+    helm_lint: "true"
+    charts_dir: "{{ gitops.chart_source}}"
+    nodename: "{{ services.nms.name | lower }}"
+    component_auth: "corda{{ services.nms.name | lower }}"
+    org: "{{ item }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    chart: 'mongodb-tls'
+  when: {{ services.nms.tls }} == 'on'
+
+
+# create deployment file for networkmap node when tls is off
 - name: "create nms"
   include_role:
     name: create/k8_component
@@ -83,6 +102,23 @@
     component_auth: "corda{{ services.nms.name | lower }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    chart: nms
+  when: {{ services.nms.tls }} == 'off'
+
+# create deployment file for networkmap node when tls is on
+- name: "create nms"
+  include_role:
+    name: create/k8_component
+  vars:
+    component_name: "{{ services.nms.name | lower }}"
+    component_type: "nms" 
+    helm_lint: "true"
+    charts_dir: "{{ gitops.chart_source }}"
+    component_auth: "corda{{ services.nms.name | lower }}"
+    org: "{{ item }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    chart: nms-tls
+  when: {{ services.nms.tls }} == 'on'
 
 
 # Push the nms deployment files to repository
