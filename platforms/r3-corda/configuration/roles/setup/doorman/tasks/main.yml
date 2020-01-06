@@ -73,6 +73,11 @@
     chart: "mongodb"
   when: services.doorman.tls == 'off'
 
+- name: check tls value
+  debug:
+    msg: "value of  tls: {{ services.doorman.tls }}"
+
+
 # Create deployment file for doorman mongodb node when tls is on
 - name: "create mongodb for doorman"
   include_role:
@@ -87,8 +92,12 @@
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
     chart: "mongodb-tls"
-  when:  services.doorman.tls == 'on'
+  when: services.doorman.tls == 'on'
+  register: tls
 
+- name: check deployment logs
+  debug:
+    msg: "print tls: {{ tls.stdout }}"
 
 # create deployment file for doorman node
 - name: "create doorman"
