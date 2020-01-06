@@ -19,12 +19,14 @@
     path: "{{ mongorootca }}"
     recurse: yes
     state: directory
+  when: {{ services.nms.tls}} == 'on'
 
 - name: Ensure mongodbca dir exists
   file:
     path: "{{ mongodbca }}"
     recurse: yes
     state: directory
+  when: {{ services.nms.tls}} == 'on'
 
 - name: Check if root certs already created
   shell: |
@@ -92,6 +94,7 @@
     cd {{ mongorootca }}
     openssl genrsa -out mongoCA.key 3072
     openssl req -x509 -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '/{{ mongoroot_cert_subj }}'
+  when: {{ services.nms.tls}} == 'on'
 
 # Generating mongodb certificates.
 - name: Generating mongodb certificates
@@ -100,7 +103,7 @@
     openssl req -new -nodes -newkey rsa:4096 -keyout mongodb-{{ component_name}}.key -out mongodb-{{ component_name }}.csr -subj '/{{ mongodb_cert_subj }}' 
     openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
-
+  when: {{ services.nms.tls}} == 'on'
 
 - name: Putting certs to vault for root
   shell: |
