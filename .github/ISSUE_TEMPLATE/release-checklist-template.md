@@ -6,15 +6,24 @@ title: ''
 # Relase Checklist
 
 ## Pre-release Test Checklist
-- [ ] Have the release checklist issue been created for the release?
-- [ ] Have the release changelog and README been updated?
-- [ ] Have all the version numbers been incremented?
-- [ ] Has all new functionality been manually tested on a release build?
-- [ ] Have the Docs been updated with release dates?
-- [ ] Have all release code PRs been merged?
+- [ ] The release checklist issue is created for the release ?
+- [ ] Sprints in the release are closed ?
+- [ ] The release changelog and READMEs are updated ?
+* Documentation
+    - [ ] The documents have been updated with release dates ?
+    - [ ] The rollback process is documented ?
+    - [ ] The version numbers are incremented ?
+* Testing
+    - [ ] Smoke test scenario are create and tested ?
+    - [ ] All new functionality are manually tested on a release build ?
+    - [ ] CI/CD verified and working ?
+- [ ] All stakeholders signed off for the release
+- [ ] The code is mergered into master
 
 
-## Post-release Test Checklist  
-- [ ] Do the new release instructions work using the released artifact?
-- [ ] Check if  read the docs have been updated with new release tags?
+## Post-release Test Checklist
+- [ ] CI/CD pipeline passed
+- [ ] The new release instructions work using the released artifact?
+- [ ] Read the docs reflect with updated release changes and tags
+- [ ] Release communitations are sent
 - [ ] Close the release checklist issue
