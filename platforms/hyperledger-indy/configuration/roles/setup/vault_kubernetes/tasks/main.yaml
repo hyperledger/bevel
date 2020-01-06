@@ -1,5 +1,5 @@
 #############################################################################################
-# This role setups communication between the vault and kubernetes cluster and install 
+# This role setups communication between the vault and kubernetes cluster and install
 # neccessary configurations.
 #############################################################################################
 
@@ -50,8 +50,7 @@
 - name: Get Kubernetes cert files for organizations
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 --decode > "./build/{{ organization }}.ca.cert"
-  when: auth_list.stdout.find(auth_path) == -1
-
+#  when: auth_list.stdout.find(auth_path) == -1
 
 #####################################################################################################################
 # This task writes the Service Account token to the vault for Organizations
@@ -63,7 +62,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(auth_path) == -1 
+#  when: auth_list.stdout.find(auth_path) == -1
 
 # This task checks if the vault-rw polict already exists
 - name: Check if policy exists

@@ -40,13 +40,11 @@ spec:
 
               export VAULT_SA_NAME=$(kubectl get sa {{ $.Values.account.service }} -n {{ $.Values.metadata.namespace }} -o jsonpath="{.secrets[*]['name']}");
 
-              export SA_CA_CRT=$(kubectl get secret $VAULT_SA_NAME -n {{ $.Values.metadata.namespace }} -o jsonpath="{.data['ca\.crt']}" | base64 -d; echo);
-              
               export SA_JWT_TOKEN=$(kubectl get secret $VAULT_SA_NAME -n {{ $.Values.metadata.namespace }} -o jsonpath="{.data.token}" | base64 -d; echo)
 
-              VAULT_TOKEN="$(curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "rw"}' -s -k {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.admin_auth_path }}/login | jq -r '.auth.client_token')";
+              VAULT_TOKEN="$(curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.account.admin_role }}"}' -s -k {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.admin_auth_path }}/login | jq -r '.auth.client_token')";
 
-              SA_CA_CRT_ONELINE=$(kubectl get secret $VAULT_SA_NAME -n {{ $.Values.metadata.namespace }} -o jsonpath="{.data['ca\.crt']}" | base64 -d | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}');
+              export SA_CA_CRT_ONELINE=$(kubectl get secret $VAULT_SA_NAME -n {{ $.Values.metadata.namespace }} -o jsonpath="{.data['ca\.crt']}" | base64 -d | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}');
 
 
               # Create auth
@@ -75,7 +73,7 @@ spec:
 
               # Create role
 
-              curl -s -o /dev/null -w "%{http_code}" --header "X-Vault-Token: $VAULT_TOKEN" --request POST --data '{"bound_service_account_names": "{{ $.Values.account.service }}","bound_service_account_namespaces": "{{ $.Values.metadata.namespace }}","policies": ["{{ $.Values.vault.policy }}"], "ttl": 180}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/role/{{ $.Values.account.role }};
+              curl -s -o /dev/null -w "%{http_code}" --header "X-Vault-Token: $VAULT_TOKEN" --request POST --data '{"bound_service_account_names": "{{ $.Values.account.service }}","bound_service_account_namespaces": "{{ $.Values.metadata.namespace }}","policies": ["{{ $.Values.vault.policy }}"], "ttl": 3600}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/role/{{ $.Values.account.role }};
 
               # Check role
 
