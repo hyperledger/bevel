@@ -35,16 +35,10 @@ spec:
             medium: Memory
         - name: {{ .Values.node.name }}-genesis-volume
           configMap:
-            name: genesis-block-{{ .Values.node.name }}
+            name: genesis-{{ .Values.node.name }}
             items:
-              - key: genesis.block.base64
-                path: genesis.block.base64
-        - name: {{ .Values.node.name }}-staticnodes-volume
-          configMap:
-            name: staticnodes-{{ .Values.node.name }}
-            items:
-              - key: staticnodes.base64
-                path: staticnodes.base64
+              - key: genesis.json
+                path: genesis.json
             
       initContainers:
       - name: certificates-init
@@ -112,7 +106,7 @@ spec:
         args:
         - "-cx"
         - "mkdir -p $QUORUM_DATA_DIR;
-          cat {{ .Values.node.mountPath }}/genesis/genesis.block.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
+          cp {{ .Values.node.mountPath }}/genesis/genesis.json > $QUORUM_DATA_DIR/genesis.json;
             if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
               /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
               touch $QUORUM_DATA_DIR/genesis_created;
@@ -168,8 +162,8 @@ spec:
         - |-
           #!/usr/bin/env sh
           sleep 5;
-          cat {{ .Values.node.mountPath}}/staticnodes/staticnodes.base64 | base64 -d > $QUORUM_DATA_DIR/static-nodes.json
-                    
+          
+          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
@@ -216,6 +210,4 @@ spec:
           mountPath: {{ .Values.node.mountPath }}/crypto/
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
-        - name: {{ .Values.node.name }}-staticnodes-volume
-          mountPath: {{ .Values.node.mountPath }}/staticnodes
       restartPolicy: Always     
