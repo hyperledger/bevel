@@ -23,7 +23,7 @@ spec:
       volumes:
         - name: {{ $.Values.metadata.name }}-pool-transactions-genesis
           configMap:
-            name: {{ $.Values.metadata.name }}-pool-transactions-genesis
+            name: {{ $.Values.metadata.name }}-ptg
         - name: shared-data
           emptyDir:
             medium: Memory
@@ -44,7 +44,7 @@ spec:
           }
 
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          
+
           echo $KUBE_SA_TOKEN;
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
           # Login to Vault to get an approle token
@@ -53,19 +53,19 @@ spec:
             -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-          
+
           QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$ADMIN_PATH/$ADMIN_NAME/identity/private | jq -r 'if .errors then . else . end')
           validateVaultResponse 'Admin Seed' "${QUERY_RES}"
           admin_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]");
           mkdir -p /data/seed;
           echo "${admin_seed}" > /data/seed/adminseed.txt;
-          
+
           QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$IDENTITY_PATH/$IDENTITY_NAME/identity/private | jq -r 'if .errors then . else . end')
           validateVaultResponse 'Identity Seed' "${QUERY_RES}"
           identity_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]")
           echo "${identity_seed}" > /data/seed/identityseed.txt;
-          
-          
+
+
         env:
           - name: VAULT_APP_ROLE
             value: {{ $.Values.vault.role }}
@@ -93,11 +93,11 @@ spec:
         args:
         - |-
           apt-get install curl -y
-          
+
           ADMIN_SEED=$( cat /data/adminseed.txt)
           IDENTITY_SEED=$( cat /data/identityseed.txt)
           echo "Running ledger Transaction Script...";
-          
+
           ./home/indy-ledger.sh $ADMIN_DID $ADMIN_SEED $IDENTITY_DID $IDENTITY_SEED $IDENTITY_ROLE $IDENTITY_VERKEY $POOL_GENESIS_PATH;
 
         env:
@@ -114,7 +114,7 @@ spec:
           - name: IDENTITY_ROLE
             value: "{{ $.Values.organization.name.newIdentity.role }}"
           - name: IDENTITY_VERKEY
-            value: "{{ $.Values.organization.name.newIdentity.verkey }}"            
+            value: "{{ $.Values.organization.name.newIdentity.verkey }}"
           - name: POOL_GENESIS_PATH
             value: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
         volumeMounts:
