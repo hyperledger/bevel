@@ -131,7 +131,14 @@ spec:
           else
             peer channel fetch 0 ${CHANNEL_NAME}.block -o ${ORDERER_URL} -c ${CHANNEL_NAME} 
           fi
+          CHANNEL_JOIN=$(peer channel list 2>/dev/null)
+          echo $CHANNEL_JOIN | grep -q ${CHANNEL_NAME}
+          if [ $? = 1 ]
+          then
           peer channel join -b ${CHANNEL_NAME}.block
+          else
+          echo "Peer has already joined the channel"
+          fi
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
         envFrom:
         - configMapRef:
