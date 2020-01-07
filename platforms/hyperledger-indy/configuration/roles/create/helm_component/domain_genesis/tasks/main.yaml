@@ -7,7 +7,7 @@
 - name: Ensures {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
   vars:
     organization: "{{ organizationItem.name|lower }}"
-    component_name: "{{ organization }}-domain-transactions-genesis"
+    component_name: "{{ organization }}-dtg"
     gitops: "{{ organizationItem.gitops }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
   file:
@@ -47,7 +47,7 @@
                   --arg trustee_did "${first_global_trustee_did}" \
                   --arg trustee_verkey "${trustee_verkey}" \
                   --arg seqNo $seqNo \
-                  --arg alias "{{ organization.name }}-{{ trustee.name }}" \
+                  --arg alias "{{ trustee.name }}" \
                   '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$trustee_did,"role":"0","verkey":$trustee_verkey},"metadata":{},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
 
             else
@@ -56,7 +56,7 @@
                   --arg trustee_verkey "${trustee_verkey}" \
                   --arg first_global_trustee_did "${first_global_trustee_did}" \
                   --arg seqNo $seqNo \
-                  --arg alias "{{ organization.name }}-{{ trustee.name }}" \
+                  --arg alias "{{ trustee.name }}" \
                   '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$trustee_did,"role":"0","verkey":$trustee_verkey},"metadata":{"from":$first_global_trustee_did},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
 
             fi
@@ -69,6 +69,8 @@
         {% endif %}
         {% if organization.services.stewards is defined %}
           {% for steward in organization.services.stewards %}
+
+
             steward_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/stewards/"{{ steward.name }}"/identity/public | jq -r 'if .errors then . else .data.did end');
             steward_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/stewards/"{{ steward.name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
 
@@ -83,7 +85,7 @@
                         --arg trustee_did "${trustee_did}" \
                         --arg steward_verkey "${steward_verkey}" \
                         --arg seqNo $seqNo \
-                        --arg alias "{{ organization.name }}-{{ steward.name }}" \
+                        --arg alias "{{ steward.name }}" \
                         '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$steward_did,"role":"2","verkey":$steward_verkey},"metadata":{"from":$trustee_did},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
 
             ((seqNo++))
@@ -95,7 +97,7 @@
     {% endif %}
 
 
-    echo "${domain_genesis}"
+    echo -e "${domain_genesis}"
   register: domain_genesis
 
 # ################################################################################################
@@ -109,7 +111,7 @@
     component_ns: "{{ organizationItem.name | lower }}-ns"
     gitops: "{{ organizationItem.gitops }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
-    component_name: "{{ organization }}-domain-transactions-genesis"
+    component_name: "{{ organization }}-dtg"
     domain_genesis_values: "{{ domain_genesis.stdout }}"
     values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
     chart: "indy-domain-genesis"
