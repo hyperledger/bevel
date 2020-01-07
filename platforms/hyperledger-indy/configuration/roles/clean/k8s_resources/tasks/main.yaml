@@ -1,7 +1,7 @@
 # Remove an existing nodes as helm releases
 - name: Remove an existing nodes as helm releases
   vars:
-    component_name: "{{ stewardItem.name }}"
+    component_name: "{{ organization }}-{{ stewardItem.name }}-node"
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} helm delete {{ component_name }} --purge
   loop: "{{ services.stewards }}"
@@ -12,7 +12,7 @@
 
 - name: Wait for deleting stewards
   vars:
-    component_name: "{{ stewardItem.name }}"
+    component_name: "{{ organization }}-{{ stewardItem.name }}-node"
   k8s_facts:
     kind: "Pod"
     label_selectors:
@@ -68,3 +68,8 @@
     kind: StorageClass
     namespace: "default"
     name: "{{ component_name }}"
+
+# Remove all Helm releases
+- name: Remove all Helm releases
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} helm ls | grep {{ organization }}- | awk '{print $1}' | xargs helm delete --purge
