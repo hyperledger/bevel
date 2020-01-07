@@ -24,7 +24,7 @@ spec:
       - name: NETWORKMAP_ROOT_CA_NAME
         value: {{ services.nms.subject }}
       - name: NETWORKMAP_TLS
-        value: true
+        value: {{ chart_tls }}
       - name: NETWORKMAP_DB
         value: /opt/networkmap/db
       - name: DB_USERNAME
@@ -42,7 +42,7 @@ spec:
       - name: NETWORKMAP_MONGOD_DATABASE
         value: networkmap
       imagePullSecret: regcred
-      tlsCertificate: true
+      tlsCertificate: {{ chart_tls }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
           basePath: /opt/networkmap
