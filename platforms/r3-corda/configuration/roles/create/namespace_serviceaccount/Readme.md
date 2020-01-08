@@ -62,6 +62,7 @@ This task pushes all the value files created to the git repo.
     GIT_REPO: Url of the git repo
     GIT_USERNAME: username for git repo
     GIT_PASSWORD: password for git repo
+    GIT_EMAIL: Email for git config
     GIT_BRANCH: The branch where the files will be checked
     GIT_RESET_PATH: Any path that needs to be ignored.
     msg: Git commit message
