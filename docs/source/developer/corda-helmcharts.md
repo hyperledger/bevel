@@ -11,7 +11,9 @@ implementation.
 |   |-- h2-addUser
 |   |-- h2-password-change
 |   |-- mongodb
+|   |-- mongodb-tls 
 |   |-- nms
+|   |-- nms-tls
 |   |-- node
 |   |-- node-initial-registration
 |   |-- notary
@@ -109,6 +111,47 @@ This folder consists networkmapservice helm charts which are used by the ansible
 
 ----
 
+## nms-tls
+
+### About
+This folder consists networkmapservice helm charts that establishes a TLS connection with mongodb, which are used by the ansible playbooks for the deployment of networkmapservice component. This chart is deployed when TLS is on for nms. The folder contains a templates folder, a chart file and a value file. 
+
+### Folder Structure ###
+```
+/nms-tls
+|-- templates
+|   |-- volume.yaml
+|   |-- deployment.yaml
+|   |-- service.yaml
+|-- Chart.yaml
+|-- values.yaml
+```
+
+### Charts description
+
+#### templates 
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for nms implementation.
+- This folder contains following template files for nms implementation
+	  
+  - deployment.yaml:
+      This file is used as a basic manifest for creating a Kubernetes deployment for NMS . The file basically describes the container and volume specifications of the NMS. The file defines conatainers where NMS conatainer is defined with corda image and corda jar details. The init container init-certificates-creds creates NMS db root password and user credentials at mount path, init-certificates init container basically configures NMS keys.jks by fetching certsecretprefix from the vault, changepermissions init-containers provides permissions to base directory and db-healthcheck init-container checks for db is up or not.
+	  
+  - service.yaml:
+      This template is used as a basic manifest for creating a service endpoint for our deployment.
+	  This service.yaml creates nms service endpoint.The file basically specifies service type and kind of service ports for the nms server.
+	  
+  - volume.yaml:
+      This yaml is used to create persistent volumes claim for the nms deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
+	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud environment.
+	  This file creates nms pvc for, the volume claim for nms.
+	       
+      
+#### Chart.yaml
+- This file contains the information about the chart such as apiversion, appversion ,name etc.
+#### values.yaml
+- This file contains the default configuration values for the chart.
+
+----
 
 ## h2 (database)
 
@@ -227,6 +270,46 @@ This folder consists Mongodb helm charts which are used by the ansible playbooks
 ### Folder Structure ###
 ```
 /mongodb
+|-- templates
+|   |-- pvc.yaml
+|   |-- deployment.yaml
+|   |-- service.yaml
+|-- Chart.yaml
+|-- values.yaml
+```
+### Charts description
+
+#### templates 
+- This folder contains template structures which when combined with values ,will generate        valid Kubernetes manifest files for Mongodb implementation.
+- This folder contains following template files for Mongodb implementation
+ 
+  - deployment.yaml:
+      This file is used as a basic manifest for creating a Kubernetes deployment.For the Mongodb node, this file creates Mongodb deployment.
+	  
+  - service.yaml:
+      This template is used as a basic manifest for creating a service endpoint for our deployment.This service.yaml creates Mongodb service endpoint 
+	  
+  - pvc.yaml:
+      This yaml is used to create persistent volumes claim for the Mongodb deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
+	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud enviornment.
+	  This file creates mongodb-pvc for , the volume claim for mongodb.
+	  
+#### Chart.yaml
+- This file contains the information about the chart such as apiversion, appversion ,name etc.
+#### values.yaml 
+- This file contains the default configuration values for the chart.
+
+
+-----
+
+## mongodb-tls
+
+### About
+This folder consists Mongodb helm charts which are used by the ansible playbooks for the deployment of the Mongodb component. It allows for TLS connection. When TLS is on for nms or doorman this chart is deployed for them else mongodb chart is deployed. The folder contains a templates folder, a chart file and a value file. 
+
+### Folder Structure ###
+```
+/mongodb-tls
 |-- templates
 |   |-- pvc.yaml
 |   |-- deployment.yaml
