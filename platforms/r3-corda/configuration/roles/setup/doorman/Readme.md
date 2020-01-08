@@ -86,6 +86,7 @@ This tasks push the created value files into repository by calling git_push role
     *GIT_REPO: Gitops ssh url for flux value files
     *GIT_USERNAME:  Git Service user who has rights to check-in in all branches
     *GIT_PASSWORD: Git Server user password
+    *GIT_EMAIL: Email for git config
     *GIT_BRANCH: Git branch where release is being made
     GIT_RESET_PATH: path to specific folder to ignore when pushing files
     msg: commit message
