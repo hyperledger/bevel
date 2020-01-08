@@ -38,8 +38,8 @@ spec:
           configMap:
             name: genesis-{{ .Values.node.name }}
             items:
-              - key: genesis.json
-                path: genesis.json
+              - key: genesis.json.base64
+                path: genesis.json.base64
         - name: tessera-config
           configMap:
             name: tessera-config-{{ .Values.node.name }}
@@ -139,7 +139,7 @@ spec:
         args:
         - "-cx"
         - "mkdir -p $QUORUM_DATA_DIR;
-          cat {{ .Values.node.mountPath }}/genesis/genesis.json > $QUORUM_DATA_DIR/genesis.json;
+          cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
             if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
               /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
               touch $QUORUM_DATA_DIR/genesis_created;
@@ -249,7 +249,13 @@ spec:
           rm -f $QUORUM_HOME/crypto/keys/nodekey
           rm -f $QUORUM_HOME/crypto/keys/passwords.txt
 
-          args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
+          args=""
+          if [ $CONSENSUS == 'raft' ]; then
+            args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
+          fi;
+          if [ $CONSENSUS == 'ibft' ]; then
+            args=" --istanbul.blockperiod 1 --syncmode full --mine --minerthreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+          fi;
 
           /usr/local/bin/geth \
           --datadir $QUORUM_DATA_DIR \
@@ -277,6 +283,8 @@ spec:
             value: {{ .Values.node.mountPath }}
           - name: TM_HOME
             value: {{ .Values.node.mountPath }}/tm/
+          - name: CONSENSUS
+            value: {{ .Values.node.consensus }}
         volumeMounts:
         - name: certificates
           mountPath: {{ .Values.node.mountPath }}/crypto/
