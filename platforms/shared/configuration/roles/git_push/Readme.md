@@ -8,6 +8,7 @@ This task executes git push
 ##### Input Variables
     *GIT_DIR: Git Repo Path
     *GIT_USERNAME: Git Repo username
+    *GIT_EMAIL: Email to use in git config
 ##### Output Variables
 
     GIT_OUTPUT: This variable stores the output of git push task.
