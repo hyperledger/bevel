@@ -62,6 +62,15 @@
     when: network['type'] == 'indy'
 
   # Delete Tiller from all organizations' K8S clusters
+  - name: Delete Tiller from all organizations' K8S clusters
+    include_role:
+      name: clean/tiller
+    vars:
+      kubeconfig_path: "{{ organizationItem.k8s.config_file }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: network['type'] == 'indy'
 
   # Rollback all changes done on the Ansible controller (Vault client, Helm client, Kubects, AWS cli ...)
   - name: Delete all installed binaries in installation dir
