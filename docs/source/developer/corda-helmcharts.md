@@ -156,7 +156,7 @@ This folder consists networkmapservice helm charts that establishes a TLS connec
 ## h2 (database)
 
 ### About
-This folder consists H2 helm charts which are used by the ansible playbooks for the deployment of the H2 database. The folder contains a templates folder,a chart file and a value file. 
+This folder consists H2 helm charts which are used by the ansible playbooks for the deployment of the H2 database. The folder contains a templates folder, a chart file and a value file. 
 
 ### Folder Structure
 ```
@@ -188,7 +188,7 @@ This folder consists H2 helm charts which are used by the ansible playbooks for 
 	       
       
 #### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion ,name etc.
+- This file contains the information about the chart such as apiversion, appversion , name etc.
 #### values.yaml
 - This file contains the default configuration values for the chart.
 
@@ -305,7 +305,7 @@ This folder consists Mongodb helm charts which are used by the ansible playbooks
 ## mongodb-tls
 
 ### About
-This folder consists Mongodb helm charts which are used by the ansible playbooks for the deployment of the Mongodb component. It allows for TLS connection. When TLS is on for nms or doorman this chart is deployed for them else mongodb chart is deployed. The folder contains a templates folder, a chart file and a value file. 
+This folder consists Mongodb helm charts which are used by the ansible playbooks for the deployment of the Mongodb component. It allows for TLS connection. When TLS is on for nms or doorman, this chart is deployed for them else mongodb chart is deployed. The folder contains a templates folder, a chart file and a value file. 
 
 ### Folder Structure ###
 ```
