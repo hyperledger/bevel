@@ -24,30 +24,19 @@ spec:
         service.rpc: {{ .Values.node.name }}
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
-      hostname: {{ .Values.node.name }}
       imagePullSecrets:
           - name: {{ .Values.node.imagePullSecret }}
       volumes:
         - name: certificates
           emptyDir:
             medium: Memory
-        - name: mysql
-          emptyDir:
-            medium: Memory
         - name: {{ .Values.node.name }}-genesis-volume
           configMap:
             name: genesis-{{ .Values.node.name }}
             items:
-              - key: genesis.json
-                path: genesis.json
-        - name: tessera-config
-          configMap:
-            name: tessera-config-{{ .Values.node.name }}
-            items:
-              - key: tessera-config-enhanced.json.tmpl
-                path: tessera-config-enhanced.json.tmpl
-              - key: tessera-config-9.0.json.tmpl
-                path: tessera-config-9.0.json.tmpl
+              - key: genesis.json.base64
+                path: genesis.json.base64
+            
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
@@ -66,7 +55,7 @@ spec:
         command: ["sh", "-c"]
         args:
         - |-
-          #!/bin/bash
+          #!/usr/bin/env sh
           
           validateVaultResponse () {
           if echo ${2} | grep "errors"; then
@@ -76,7 +65,7 @@ spec:
           }
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          #Login to Vault and so I can get an approle token
+          #Login to Vault and to get an approle token
           VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
             -H "Content-Type: application/json" \
             -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
@@ -84,7 +73,8 @@ spec:
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
-          echo "Getting keys from $vault_secret_key"          
+          echo "Getting 3 keys from $vault_secret_key"
+          OUTPUT_PATH="${MOUNT_PATH}/keys"
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
@@ -95,42 +85,16 @@ spec:
           nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekey"]')
           keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
           gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["gethpassword"]')
-          username=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["db_user"]')
-          password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["db_password"]')
-          
-          OUTPUT_PATH="${MOUNT_PATH}/keys"
+
           mkdir -p ${OUTPUT_PATH}
           
-          echo -n "${tmpub}" > ${OUTPUT_PATH}/tm.pub
-          echo -n "${tmkey}" > ${OUTPUT_PATH}/tm.key
-          echo -n "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt
-          echo -n "${nodekey}" > ${OUTPUT_PATH}/nodekey
-          echo -n "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
-          echo "${username}" > ${OUTPUT_PATH}/username
-          echo "${password}" > ${OUTPUT_PATH}/password
-         
+          echo "${tmpub}" > ${OUTPUT_PATH}/tm.pub
+          echo "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt
+          echo "${tmkey}" > ${OUTPUT_PATH}/tm.key
+          echo "${nodekey}" > ${OUTPUT_PATH}/nodekey
+          echo "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
+          
         volumeMounts:
-        - name: certificates
-          mountPath: /secret
-      - name: mysql-init
-        image: {{ .Values.images.busybox }}
-        command: ["/bin/sh"]
-        args:
-        - "-cx"
-        - |-
-          #!/bin/bash
-
-          echo "getting username and password from vault"          
-          var=$(cat /secret/keys/password)         
-          cat << EOF > /docker-entrypoint-initdb.d/createTables.sql
-            UPDATE mysql.user SET authentication_string = PASSWORD('$var') WHERE User = 'demouser';
-            UPDATE mysql.user SET authentication_string = PASSWORD('$var') WHERE User = 'root';
-            CREATE TABLE IF NOT EXISTS ENCRYPTED_TRANSACTION (ENCODED_PAYLOAD BLOB NOT NULL, HASH VARBINARY(100) NOT NULL, TIMESTAMP BIGINT, PRIMARY KEY (HASH));
-            CREATE TABLE IF NOT EXISTS ENCRYPTED_RAW_TRANSACTION (ENCRYPTED_KEY BLOB NOT NULL, ENCRYPTED_PAYLOAD BLOB NOT NULL, NONCE BLOB NOT NULL, SENDER BLOB NOT NULL, TIMESTAMP BIGINT, HASH VARBINARY(100) NOT NULL, PRIMARY KEY (HASH));          
-          EOF         
-        volumeMounts:
-        - name: mysql
-          mountPath: /docker-entrypoint-initdb.d
         - name: certificates
           mountPath: /secret
       - name: quorum-genesis-init-container
@@ -139,7 +103,7 @@ spec:
         args:
         - "-cx"
         - "mkdir -p $QUORUM_DATA_DIR;
-          cat {{ .Values.node.mountPath }}/genesis/genesis.json > $QUORUM_DATA_DIR/genesis.json;
+          cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
             if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
               /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
               touch $QUORUM_DATA_DIR/genesis_created;
@@ -153,79 +117,40 @@ spec:
           mountPath: {{ .Values.node.mountPath }}
         - name: {{ .Values.node.name }}-genesis-volume
           mountPath: {{ .Values.node.mountPath }}/genesis
+
       containers:
-      - name: mysql-db
-        image: {{ .Values.images.mysql }}
-        imagePullPolicy: Always
-        env:
-        - name: "MYSQL_ROOT_PASSWORD"
-          value: ""
-        - name: MYSQL_DATABASE
-          value: "{{ .Values.node.dbname }}"
-        - name: MYSQL_USER
-          value: "{{ .Values.node.mysqluser }}"
-        - name: MYSQL_PASSWORD
-          value: "{{ .Values.node.mysqlpassword }}"
-        ports:
-          - containerPort: {{ .Values.node.ports.db }}
-        volumeMounts:
-        - name: mysql
-          mountPath: /docker-entrypoint-initdb.d
-        - name: {{ .Values.node.name }}-mysql
-          mountPath: "/var/lib/mysql"
-          subPath: mysql
-      - name: tessera
-        image: {{ .Values.images.tessera }}
+      - name: constellation
+        image: {{ .Values.images.constellation }}
         command: ["sh"]
         args:
         - "-cx"
         - "chmod 600 $QUORUM_HOME/crypto/keys/tm.key;
-          mkdir -p $QUORUM_HOME/logs;
-          mkdir -p $QUORUM_HOME/tm;
-          DDIR=$QUORUM_HOME/tm;
+           mkdir -p $QUORUM_HOME/logs;
+           mkdir -p $QUORUM_HOME/database;
+           DDIR=$QUORUM_HOME/tm;
+           printenv;
+           args=\" --url={{ .Values.constellation.url }}  \
+           --port={{ .Values.node.ports.constellation }} \
+           --storage={{ .Values.constellation.storage }} \
+           --workdir=$DDIR \
+           --socket=$DDIR/tm.ipc \
+           --publickeys=$QUORUM_HOME/crypto/keys/tm.pub \
+           --privatekeys=$QUORUM_HOME/crypto/keys/tm.key \
+           --verbosity=9 \
+           --tls={{ .Values.constellation.tls }} \
+           --othernodes={{ .Values.constellation.othernodes }} \";
+           /usr/local/bin/constellation-node $args  2>&1 | tee -a $QUORUM_HOME/logs/tm.log; "
           
-          printenv;
-
-          TESSERA_VERSION=$(unzip -p /tessera/tessera-app.jar META-INF/MANIFEST.MF | grep Tessera-Version | cut -d\" \" -f2);
-          echo \"Tessera version (extracted from manifest file): ${TESSERA_VERSION}\";
-
-          TESSERA_VERSION=\"${TESSERA_VERSION}-suffix\";
-
-          TESSERA_CONFIG_TYPE=;
-
-          if [ \"${TESSERA_VERSION}\" \\> \"0.8 \" ]; then TESSERA_CONFIG_TYPE=\"-enhanced\"; fi;
-          if [[ \"${TESSERA_VERSION}\" \\> \"0.9 \" ]]; then TESSERA_CONFIG_TYPE=\"-9.0\"; fi;
-
-          echo Config type ${TESSERA_CONFIG_TYPE};
-
-          CONFIG_TMPL=$(cat ${QUORUM_HOME}/tessera-config${TESSERA_CONFIG_TYPE}.json.tmpl);
-
-          PRIV_KEY=$(cat $QUORUM_HOME/crypto/keys/tm.key)
-          PUB_KEY=$(cat $QUORUM_HOME/crypto/keys/tm.pub)
-
-          CONFIG_FINAL=$(echo $CONFIG_TMPL | sed \"s-%THIS_PRIV_KEY%-${PRIV_KEY}-g\" |  sed \"s-%THIS_PUB_KEY%-${PUB_KEY}-g\");
-          CONFIG_FINAL_9_0=$(echo $CONFIG_TMPL | sed \"s-%THIS_PRIV_KEY%-${QUORUM_HOME}/crypto/keys/tm.key-g\" |  sed \"s-%THIS_PUB_KEY%-${QUORUM_HOME}/crypto/keys/tm.pub-g\");
-          if [[ \"${TESSERA_VERSION}\" \\> \"0.9 \" ]]; then CONFIG_FINAL=${CONFIG_FINAL_9_0}; fi;
-          echo $CONFIG_FINAL >  ${DDIR}/tessera-config-with-hosts.json;
-          cat  ${DDIR}/tessera-config-with-hosts.json;
-          java -Xms128M -Xmx128M -jar /tessera/tessera-app.jar -configfile ${DDIR}/tessera-config-with-hosts.json;
-        "
         ports:
-          - containerPort: {{ .Values.node.ports.tm }}
+          - containerPort: {{ .Values.node.ports.constellation }}
         env:
           - name: QUORUM_HOME
             value: {{ .Values.node.mountPath }}
         volumeMounts:
-          - name: certificates
-            mountPath: {{ .Values.node.mountPath }}/crypto/
-          - name: {{ .Values.node.name }}-pv
-            mountPath: {{ .Values.node.mountPath }}
-          - name: tessera-config
-            mountPath: {{ .Values.node.mountPath }}/tessera-config-enhanced.json.tmpl
-            subPath: tessera-config-enhanced.json.tmpl
-          - name: tessera-config
-            mountPath: {{ .Values.node.mountPath }}/tessera-config-9.0.json.tmpl
-            subPath: tessera-config-9.0.json.tmpl
+        - name: certificates
+          mountPath: {{ .Values.node.mountPath }}/crypto/
+        - name: {{ .Values.node.name }}-pv
+          mountPath: {{ .Values.node.mountPath }}
       - name: quorum
         image: "{{ .Values.images.node }}"
         command: ["sh"]
@@ -234,6 +159,7 @@ spec:
         - |-
           #!/usr/bin/env sh
           sleep 5;
+          
           echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
@@ -248,22 +174,27 @@ spec:
           rm -f $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
           rm -f $QUORUM_HOME/crypto/keys/nodekey
           rm -f $QUORUM_HOME/crypto/keys/passwords.txt
-
-          args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
+          
+          args=""
+          if [ $CONSENSUS == 'raft' ]; then
+            args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft "
+          fi;
+          if [ $CONSENSUS == 'ibft' ]; then
+            args=" --istanbul.blockperiod 1 --syncmode full --mine --minerthreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+          fi;
 
           /usr/local/bin/geth \
-          --datadir $QUORUM_DATA_DIR \
-          $args \
-          --nodiscover \
-          --nat=none \
-          --verbosity 9 \
-          --unlock 0 \
-          --emitcheckpoints \
-          --rpc \
-          --rpcaddr 0.0.0.0 \
-          --rpcport {{ .Values.node.ports.rpc }} \
-          --port {{ .Values.node.ports.quorum }} \
-          --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log; 
+           --datadir $QUORUM_DATA_DIR \
+           $args \
+           --nodiscover \
+           --verbosity 9 \
+           --unlock 0 \
+           --emitcheckpoints \
+           --rpc \
+           --rpcaddr 0.0.0.0 \
+           --rpcport {{ .Values.node.ports.rpc }} \
+           --port {{ .Values.node.ports.quorum }} \
+           --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
           - containerPort: {{ .Values.node.ports.raft }}
@@ -277,6 +208,8 @@ spec:
             value: {{ .Values.node.mountPath }}
           - name: TM_HOME
             value: {{ .Values.node.mountPath }}/tm/
+          - name: CONSENSUS
+            value: {{ .Values.node.consensus }}
         volumeMounts:
         - name: certificates
           mountPath: {{ .Values.node.mountPath }}/crypto/
@@ -292,11 +225,3 @@ spec:
         resources:
           requests:
             storage: {{ .Values.storage.storagesize }}
-    - metadata:
-        name: {{ .Values.node.name }}-mysql     
-      spec:
-        storageClassName: {{ .Values.storage.storageclassname }}    
-        accessModes: [ "ReadWriteOnce" ]
-        resources:
-          requests:
-            storage: {{ .Values.storage.dbstorage }}
