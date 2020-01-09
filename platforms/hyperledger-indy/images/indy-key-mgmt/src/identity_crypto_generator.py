@@ -189,9 +189,9 @@ class Crypto:
 
     def bootstrap_key_format(self):
         if self.is_client:
-            return '{}C.key.bootstrap'.format(self.name)
+            return '{}C.key'.format(self.name)
         else:
-            return '{}.key.bootstrap'.format(self.name)
+            return '{}.key'.format(self.name)
 
     def secret_key_format(self):
         if self.is_client:
