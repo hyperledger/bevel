@@ -27,24 +27,15 @@ spec:
       imagePullSecrets:
           - name: {{ .Values.node.imagePullSecret }}
       volumes:
-        - name: {{ .Values.node.name }}-pv 
-          persistentVolumeClaim:
-           claimName: {{ .Values.node.name }}-pvc
         - name: certificates
           emptyDir:
             medium: Memory
         - name: {{ .Values.node.name }}-genesis-volume
           configMap:
-            name: genesis-block-{{ .Values.node.name }}
+            name: genesis-{{ .Values.node.name }}
             items:
-              - key: genesis.block.base64
-                path: genesis.block.base64
-        - name: {{ .Values.node.name }}-staticnodes-volume
-          configMap:
-            name: staticnodes-{{ .Values.node.name }}
-            items:
-              - key: staticnodes.base64
-                path: staticnodes.base64
+              - key: genesis.json.base64
+                path: genesis.json.base64
             
       initContainers:
       - name: certificates-init
@@ -112,7 +103,7 @@ spec:
         args:
         - "-cx"
         - "mkdir -p $QUORUM_DATA_DIR;
-          cat {{ .Values.node.mountPath }}/genesis/genesis.block.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
+          cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
             if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
               /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
               touch $QUORUM_DATA_DIR/genesis_created;
@@ -168,8 +159,8 @@ spec:
         - |-
           #!/usr/bin/env sh
           sleep 5;
-          cat {{ .Values.node.mountPath}}/staticnodes/staticnodes.base64 | base64 -d > $QUORUM_DATA_DIR/static-nodes.json
-                    
+          
+          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
@@ -183,9 +174,15 @@ spec:
           rm -f $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
           rm -f $QUORUM_HOME/crypto/keys/nodekey
           rm -f $QUORUM_HOME/crypto/keys/passwords.txt
-
-          args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft "
           
+          args=""
+          if [ $CONSENSUS == 'raft' ]; then
+            args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft "
+          fi;
+          if [ $CONSENSUS == 'ibft' ]; then
+            args=" --istanbul.blockperiod 1 --syncmode full --mine --minerthreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+          fi;
+
           /usr/local/bin/geth \
            --datadir $QUORUM_DATA_DIR \
            $args \
@@ -211,11 +208,20 @@ spec:
             value: {{ .Values.node.mountPath }}
           - name: TM_HOME
             value: {{ .Values.node.mountPath }}/tm/
+          - name: CONSENSUS
+            value: {{ .Values.node.consensus }}
         volumeMounts:
         - name: certificates
           mountPath: {{ .Values.node.mountPath }}/crypto/
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
-        - name: {{ .Values.node.name }}-staticnodes-volume
-          mountPath: {{ .Values.node.mountPath }}/staticnodes
-      restartPolicy: Always     
+      restartPolicy: Always
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.node.name }}-pv
+      spec:
+        storageClassName: {{ .Values.storage.storageclassname }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.storagesize }}
