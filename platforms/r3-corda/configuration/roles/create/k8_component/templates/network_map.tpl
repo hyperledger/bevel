@@ -77,5 +77,3 @@ spec:
     ambassador:
       external_url_suffix: {{item.external_url_suffix}}
       
-    
-        
