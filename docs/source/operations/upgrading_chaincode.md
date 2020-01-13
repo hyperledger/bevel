@@ -146,6 +146,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
@@ -220,6 +221,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
@@ -307,6 +309,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
@@ -391,6 +394,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
@@ -476,6 +480,7 @@ network:
         git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
+        email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
       #Optional for infrastructure configuration files.
