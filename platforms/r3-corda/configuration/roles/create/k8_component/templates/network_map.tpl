@@ -8,7 +8,7 @@ metadata:
 spec:
   releaseName: {{ component_name }}
   chart:
-    path: {{ org.gitops.chart_source }}/nms
+    path: {{ org.gitops.chart_source }}/{{ chart }}
     git: {{ org.gitops.git_ssh }}
     ref: {{ org.gitops.branch }}
   values:
@@ -24,7 +24,7 @@ spec:
       - name: NETWORKMAP_ROOT_CA_NAME
         value: {{ services.nms.subject }}
       - name: NETWORKMAP_TLS
-        value: false
+        value: {{ chart_tls }}
       - name: NETWORKMAP_DB
         value: /opt/networkmap/db
       - name: DB_USERNAME
@@ -42,6 +42,7 @@ spec:
       - name: NETWORKMAP_MONGOD_DATABASE
         value: networkmap
       imagePullSecret: regcred
+      tlsCertificate: {{ chart_tls }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
           basePath: /opt/networkmap
@@ -58,6 +59,8 @@ spec:
       certsecretprefix: {{ component_name }}/certs
       dbcredsecretprefix: {{ component_name }}/credentials/mongodb
       secretnetworkmappass: {{ component_name }}/credentials/userpassword
+      tlscertsecretprefix: {{ component_name }}/tlscerts
+      dbcertsecretprefix: {{ component_name }}/certs
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
@@ -74,5 +77,3 @@ spec:
     ambassador:
       external_url_suffix: {{item.external_url_suffix}}
       
-    
-        

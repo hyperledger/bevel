@@ -14,6 +14,20 @@
     recurse: yes
     state: directory
 
+- name: Ensure mongorootca dir exists
+  file:
+    path: "{{ mongorootca }}"
+    recurse: yes
+    state: directory
+  when: services.nms.tls == 'on'
+
+- name: Ensure mongodbca dir exists
+  file:
+    path: "{{ mongodbca }}"
+    recurse: yes
+    state: directory
+  when: services.nms.tls == 'on'
+
 - name: Check if root certs already created
   shell: |
     vault kv get -format=yaml {{ component_name }}/certs
@@ -74,6 +88,23 @@
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: networkmap_certs.failed == True
 
+# Generating mongoroot certificates
+- name: Generating Mongoroot certificates
+  shell: |
+    cd {{ mongorootca }}
+    openssl genrsa -out mongoCA.key 3072
+    openssl req -x509 -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '/{{ mongoroot_cert_subj }}'
+  when: services.nms.tls == 'on'
+
+# Generating mongodb certificates.
+- name: Generating mongodb certificates
+  shell: |
+    cd {{ mongodbca }}
+    openssl req -new -nodes -newkey rsa:4096 -keyout mongodb-{{ component_name}}.key -out mongodb-{{ component_name }}.csr -subj '/{{ mongoroot_cert_subj }}-{{component_name}}' 
+    openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
+    cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
+  when: services.nms.tls == 'on'
+
 - name: Putting certs to vault for root
   shell: |
     vault kv put  {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
@@ -86,11 +117,12 @@
   shell: |
     vault kv put  {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
     vault kv put  {{ component_name }}/credentials/userpassword  sa="{{ userpassword_networkmap }}"
-    vault kv put  {{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put  {{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)" mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongoCA.crt | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: networkmap_certs.failed == True
+
 
 - name: Create Ambassador certificates
   include_role: 
