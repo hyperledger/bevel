@@ -15,6 +15,13 @@
       fi
     }
 
+    validateVaultResponse () {
+      if [ ${1} != 204 ]; then
+        echo "ERROR: Unable to retrieve. Http status: ${1}"
+        exit 1
+      fi
+    }
+
     # Remove organization secret from Vault and check if is removed
     response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request LIST {{ vault.url }}/v1/{{ organization }})
     validateVaultResponse ${response_status}
