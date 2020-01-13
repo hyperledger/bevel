@@ -57,7 +57,7 @@
     doorman_subject: "{{ services.doorman.subject }}"
     doorman_cert_subject: "{{ services.doorman.subject | regex_replace(',', '/') }}"
 
-# Create deployment file for doorman mongodb node
+# Create deployment file for doorman mongodb node when tls is off
 - name: "create mongodb for doorman"
   include_role:
     name: create/k8_component
@@ -70,6 +70,24 @@
     component_auth: "corda{{ services.doorman.name | lower }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    chart: "mongodb"
+  when: services.doorman.tls == 'off'
+
+# Create deployment file for doorman mongodb node when tls is on
+- name: "create mongodb for doorman"
+  include_role:
+    name: create/k8_component
+  vars:
+    component_name: "doormanmongodb"
+    component_type: "mongodb"
+    helm_lint: "true"
+    nodename: "{{ services.doorman.name }}"
+    charts_dir: "{{ gitops.chart_source}}"
+    component_auth: "corda{{ services.doorman.name | lower }}"
+    org: "{{ item }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    chart: "mongodb-tls"
+  when: services.doorman.tls == 'on'
 
 # create deployment file for doorman node
 - name: "create doorman"
