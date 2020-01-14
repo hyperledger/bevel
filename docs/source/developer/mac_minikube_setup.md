@@ -75,17 +75,18 @@ k8s:
 
  ## Potential issues when using Ansible playbook to setup DLT Network on OSX
 
+   ` -e "ansible_python_interpreter=/Library/Frameworks/Python.framework/Versions/3.8/bin/python3" `
+   <br/><br/>
 
 * If you get an error message "_the required library is installed, but Ansible is using the wrong Python interpreter"_, you will need to specify which interpreter to use when running the ansible-playbook
 
-   ` -e "ansible_python_interpreter=/Library/Frameworks/Python.framework/Versions/3.8/bin/python3" `
-<br/><br/>
+ `minikube start --vm-driver=virtualbox --kubernetes-version v1.15.4`
 
 * If ansible is stuck on a task where it checks to see if Tiller is  installed in the Kubernetes clusters and you get a message similar to this: 
 _"MODULE FAILURE\nSee stdout/stderr for the exact error"_, It is probably because the kubernetes version is 16 or higher. You will need to delete the kubernetes cluster and create a another cluster with v1.15.4. 
-<br/><br/>
+<br/>
 
-   `minikube start --vm-driver=virtualbox --kubernetes-version v1.15.4`
+  
 * 
    It is recommended that you use virtual box as the vm driver when deploying the DLT network. If you use hyperkit as the vm driver, your k8 cluster will not have access to the internet. 
 
