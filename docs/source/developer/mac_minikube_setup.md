@@ -85,7 +85,8 @@ k8s:
 _"MODULE FAILURE\nSee stdout/stderr for the exact error"_, It is probably because the kubernetes version is 16 or higher. You will need to delete the kubernetes cluster and create a another cluster with v1.15.4. 
 <br/><br/>
 
+   `minikube start --vm-driver=virtualbox --kubernetes-version v1.15.4`
 * 
    It is recommended that you use virtual box as the vm driver when deploying the DLT network. If you use hyperkit as the vm driver, your k8 cluster will not have access to the internet. 
 
-   `minikube start --vm-driver=virtualbox --kubernetes-version v1.15.4`
+   
