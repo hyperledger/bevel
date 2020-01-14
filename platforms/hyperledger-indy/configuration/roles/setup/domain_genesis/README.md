@@ -3,14 +3,14 @@ This role generates Helm releases of Kubernetes Config Maps, which contain of ge
 
 ## Tasks:
 ### 1. Create domain genesis
-This role creates Helm releases of kubernetes Config Maps, which contain of generated domain genesis.
-This role calls role from *create/helm_component/domain_genesis*
+This task creates Helm releases of kubernetes Config Maps, which contain of generated domain genesis.
+This task calls role from *create/helm_component/domain_genesis*
 #### Input Variables:
  - component_type: Set, which type of k8s component may be created. Default value *domain_genesis*.
  - chartName: Name of Chart, which will be used. Default value *domain_genesis*
 ### 2. Push the created deployment files to repository
-This role pushes generated Helm releases into remote branch.
-This role calls role from: *{{ playbook_dir }}/../../shared/configuration/roles/git_push*
+This task pushes generated Helm releases into remote branch.
+This task calls role from: *{{ playbook_dir }}/../../shared/configuration/roles/git_push*
 #### Input Variables:
  - GIT_DIR: A path of git directory. By default "{{ playbook_dir }}/../../../"
  - GIT_REPO: Url for git repository. It uses a variable *{{ gitops.git_push_url }}* 
@@ -21,8 +21,8 @@ This role calls role from: *{{ playbook_dir }}/../../shared/configuration/roles/
  - GIT_RESET_PATH: A path of git directory, which is reseted for committing. Default value is *platforms/hyperledger-indy/configuration*
  - msg: A message, which is printed, when the role is running.
 ### 3. Wait until domain genesis configmap are created
-This role waits for creation of all Config Maps for each organizations.
-This role calls role *check/k8_component*
+This task waits for creation of all Config Maps for each organizations.
+This task calls role *check/k8_component*
 #### Input Variables:
  - component_type: Set, which type of k8s component may be created. Default value *ConfigMap*.
  - kubernetes: A object, which contains kubernetes configurations form network.yaml. it uses a variable *{{ organizationItem.k8s }}*

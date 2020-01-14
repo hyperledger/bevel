@@ -3,19 +3,19 @@ This role check HashiCorp Vault for existing of policies, roles and auth method.
 
 ## Tasks:
 ### 1. Check namespace is created
-This role checking if namespaces for stewards of organizations are created.
+This task checking if namespaces for stewards of organizations are created.
 It uses *k8s_facts* Ansible role.
-This role waits 10 time for 35 seconds for creating namespace.
+This task waits 10 time for 35 seconds for creating namespace.
 
 #### Variables:
  - component_ns: A name of namespace of organization.
  - kubernetes.config_file: Kubernetes config file from network.yaml file.
  - kubernetes.context: Kubernetes contex from network.yaml file.
 ### 2. Ensures build dir exists
-This role check if *build* directory exists.
+This task check if *build* directory exists.
 If directory doesn't exist, then creates it.
 ### 3. Check if Kubernetes-auth already created for Organization
-This role lists auth methods in Vault. It uses installed vault binaries.
+This task lists auth methods in Vault. It uses installed vault binaries.
 Result is stored in variable.
 
 #### Environment variables:
@@ -25,8 +25,8 @@ Result is stored in variable.
 #### Output Variables:
  - auth_list: Ansible variable, where is stored output of this role, so list of auth methods.
 ### 4. Enable and configure Kubernetes-auth for Organization
-This role enables auth method in Vault by name, which is in variable *{{ auth_path }}*.
-This role is started, when auth method doesn't exist.
+This task enables auth method in Vault by name, which is in variable *{{ auth_path }}*.
+This task is started, when auth method doesn't exist.
 
 #### Variables:
  - auth_path: Vault auth method path.
@@ -36,7 +36,7 @@ This role is started, when auth method doesn't exist.
  - VAULT_TOKEN: Vault token, which is defined in variable *{{ vault.root_token }}*
  
 ### 5. Get Kubernetes cert files for organizations
-This role gets Kubernetes CA certificate from ServiceAccount by organization and store them into *build* directory.
+This task gets Kubernetes CA certificate from ServiceAccount by organization and store them into *build* directory.
 
 #### Variables:
  - kubernetes.config_file: Kubernetes config file from network.yaml file.
@@ -51,7 +51,7 @@ This role gets Kubernetes CA certificate from ServiceAccount by organization and
 #### Output:
  - A certification stored in *./build/{{ organization }}.ca.cert* file.
 ### 6. Write reviewer token for Organizations
-This role write reviewer token into Kubernetes auth method in Vault by organization
+This task write reviewer token into Kubernetes auth method in Vault by organization
 
 #### Input:
  - A certification stored in *./build/{{ organization }}.ca.cert* file. 
@@ -66,7 +66,7 @@ This role write reviewer token into Kubernetes auth method in Vault by organizat
  - VAULT_TOKEN: Vault token, which is defined in variable *{{ vault.root_token }}*
 
 ### 7. Check if policy exists
-This role check if policy of organization exists and store result into variable.
+This task check if policy of organization exists and store result into variable.
 
 #### Variables:
  - organization: A name of current organization.
@@ -79,7 +79,7 @@ This role check if policy of organization exists and store result into variable.
  - vault_policy_result - Stored output of this role.
 
 ### 8. Create policy for Orderer Access Control
-This role creates a *.hcl* file from template *admin-rw.tpl*.
+This task creates a *.hcl* file from template *admin-rw.tpl*.
 The *.hcl* file is for creating a access control policy in Vault.
 
 #### Input:
@@ -89,8 +89,8 @@ The *.hcl* file is for creating a access control policy in Vault.
  - ./build/{{ organization }}-admin-rw.hcl: A hcl file ready for vault policy.
  
 ### 9. Write Policy to Vault
-This role creates Vault policy from a *.hcl* file.
-The role stats, when the policy doesn't exist.
+This task creates Vault policy from a *.hcl* file.
+The task stats, when the policy doesn't exist.
 It can be checked by variable *vault_policy_result*
 
 #### Input:
@@ -105,7 +105,7 @@ It can be checked by variable *vault_policy_result*
  - VAULT_TOKEN: Vault token, which is defined in variable *{{ vault.root_token }}*
     
 ### 10. Create Vault auth role
-This role creates auth role by auth method, Kubernetes ServiceAccount and Vault policy.
+This task creates auth role by auth method, Kubernetes ServiceAccount and Vault policy.
 
 #### Variables:
  - auth_path: Vault auth method path.
