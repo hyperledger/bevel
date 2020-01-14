@@ -43,7 +43,7 @@ This task uses template for generating Config Map.
  - domain-genesis.tpl
 
 ## Templates:
- - domain_genesis.tpl - A template for creation Kubernetes ConfigMap to store domain genesis for a cluster.
+ - domain_genesis.tpl: A template for creation Kubernetes ConfigMap to store domain genesis for a cluster.
 
 ## Vars:
  - domain_genesis: domain_genesis.tpl

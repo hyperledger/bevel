@@ -43,7 +43,7 @@ This task uses template for generating Config Map.
  - pool-genesis.tpl
 
 ## Templates:
- - pool_genesis.tpl - A template for creation Kubernetes ConfigMap to store pool genesis for a cluster.
+ - pool_genesis.tpl: A template for creation Kubernetes ConfigMap to store pool genesis for a cluster.
 
 ## Vars:
  - pool_genesis: pool_genesis.tpl
