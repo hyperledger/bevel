@@ -21,7 +21,7 @@ This task calls role from: *{{ playbook_dir }}/../../shared/configuration/roles/
  - GIT_RESET_PATH: A path of git directory, which is reseted for committing. Default value is *platforms/hyperledger-indy/configuration*
  - msg: A message, which is printed, when the role is running.
 ### 3. Wait until pool genesis configmap are created
-This task waits for creation of all Config Maps for each organizations.
+This task is waiting for creation of all Config Maps for each organizations.
 This task calls role *check/k8_component*
 #### Input Variables:
  - component_type: Set, which type of k8s component may be created. Default value *ConfigMap*.
