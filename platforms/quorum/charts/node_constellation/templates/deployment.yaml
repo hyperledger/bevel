@@ -72,27 +72,36 @@ spec:
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
 
+          OUTPUT_PATH="${MOUNT_PATH}/keys"
+          mkdir -p ${OUTPUT_PATH}
+
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           echo "Getting 3 keys from $vault_secret_key"
-          OUTPUT_PATH="${MOUNT_PATH}/keys"
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
-          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.pub"]')
-          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.key"]')
           nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekey"]')
           keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
-          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["gethpassword"]')
-
-          mkdir -p ${OUTPUT_PATH}
+          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["gethpassword"]')                    
           
-          echo "${tmpub}" > ${OUTPUT_PATH}/tm.pub
-          echo "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt
-          echo "${tmkey}" > ${OUTPUT_PATH}/tm.key
+          echo "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt          
           echo "${nodekey}" > ${OUTPUT_PATH}/nodekey
           echo "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tm_keyname }}"
+          echo "Getting 2 keys from $vault_secret_key"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS \
+            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+            ${VAULT_ADDR}/v1/${vault_secret_key} | \
+            jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.pub"]')
+          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.key"]')
+          echo "${tmpub}" > ${OUTPUT_PATH}/tm.pub
+          echo "${tmkey}" > ${OUTPUT_PATH}/tm.key
           
         volumeMounts:
         - name: certificates
@@ -104,10 +113,10 @@ spec:
         - "-cx"
         - "mkdir -p $QUORUM_DATA_DIR;
           cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
-            if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
-              /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
-              touch $QUORUM_DATA_DIR/genesis_created;
-            fi;
+          if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
+            /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
+            touch $QUORUM_DATA_DIR/genesis_created;
+          fi;
           "
         env:
           - name: QUORUM_DATA_DIR
