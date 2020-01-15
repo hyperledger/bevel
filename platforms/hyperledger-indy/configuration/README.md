@@ -9,7 +9,7 @@ This folder contains Ansible playbooks and their corresponding roles which are u
 To run the playbooks, following are the pre-requisites.
 1. Ansible 2.8.2 with jmespath installed (a docker image can be made from this [Dockerfile](../../shared/images/ansibleSlave.Dockerfile)).
 2. Ansible controller configured like this [sample](../../shared/inventory) inventory settings.
-3. One Managed Kubernetes cluster for each organization (currently EKS tested so you need **AWS cli** credentials).
+3. One Managed Kubernetes cluster for each organization (currently Indy is only tested on Kubernetes 1.16 and also you need **AWS cli** credentials).
 4. A Hashicorp Vault installation for each organization which is initiated and unsealed. The Vault IP Address should be accessible from this machine (where the playbook is run), and the Vault root token is available.
 5. A Git User with write access to all the branches in the chosen Git repository. This user should be a service user and not a federated user.
 6. Edited and saved network.yaml with all fields populated according to your requirements. A Sample network.yaml can be found [here](./samples/network-indyv3.yaml)
@@ -27,7 +27,7 @@ Ideally, the configuration should be run by the following command from the root 
 ```
 ansible-playbook platforms/shared/configuration/site.yaml -e "@./platforms/hyperledger-indy/configuration/samples/network-indyv3.yaml"
 ```
-Ensure that you have added the **Flux SSH Key** with read-write permission to your git repository. The Flux SSH Key is produced when [platforms/shared/kubernetes-env-setup.yaml](../../shared/configuration/kubernetes-env-setup.yaml) is executed. Follow steps in [README](../../shared/configuration/README.md).<br>
+Ensure the public key, which has been added to your github repository with read/write access.<br>
 If you just want to run this deploy-network.yaml playbook, then, from the *platforms/hyperledger-indy/configuration* directory, run the following command for deploying the network
 ```
 ansible-playbook deploy-network.yaml -e "@./samples/network-indyv3.yaml"
