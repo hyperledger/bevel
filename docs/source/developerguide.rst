@@ -64,5 +64,5 @@ Mac Minikube Setup
 .. toctree::
    :maxdepth: 1
 
-    developer/mac_minikube_setup.md
+    developer/mac_minikube_setup
 
