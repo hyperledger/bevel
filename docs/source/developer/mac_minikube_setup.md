@@ -1,4 +1,4 @@
-# Setting up a test environment on Mac OSX:
+# Setting up a development environment on Mac OSX
 
 ## Install Kubectl using Homebrew: 
 
