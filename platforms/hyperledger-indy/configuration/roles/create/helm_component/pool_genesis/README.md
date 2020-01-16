@@ -1,5 +1,5 @@
 ## create/helm_component/pool_genesis
-This role create the config map value file for storing domain genesis for Indy cluster.
+This role create the config map value file for storing pool genesis for Indy cluster.
 
 ## Tasks:
 ### 1. Ensures {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
@@ -14,7 +14,56 @@ It the folder doesn't exist, then creates them.
 ### 2. Generate pool genesis for organization
 This task generate pool genesis with data from crypto, which is in Vault.
 This task need baf-ac token for getting public data from Vault.
-Result is a jsons for each organizations' stewards
+The result is domain genesis transactions, which define initial trusted trustees and stewards.
+(Each ledger may have pre-defined transactions defining the initial pool and network.)
+
+#### Genesis transaction structure
+```json
+{
+  "reqSignature":{},
+  "txn":{
+    "data":{
+      "data":{
+        "alias":$alias,
+        "blskey":$blskey,
+        "blskey_pop":$blskey_pop,
+        "client_ip":$client_ip,
+        "client_port":$client_port|tonumber,
+        "node_ip":$node_ip,
+        "node_port":$node_port|tonumber,
+        "services":[$type]
+      },
+      "dest":$dest
+    },
+    "metadata":{
+      "from":$from
+    },
+    "type":"0"
+  },
+  "txnMetadata":{
+    "seqNo":$seqNo|tonumber,
+    "txnId":$txnId
+  },
+  "ver":"1"
+}
+```
+- reqSignature (dict): Submitter's signature over request with transaction.
+- txn (dict): Transaction-specific payload (data)
+    - data (dict): Transaction-specific data fields
+        - alias (string): Node's alias
+        - blskey (base58-encoded string): BLS multi-signature key as base58-encoded string (it's needed for BLS signatures and state proofs support)
+        - blskey_pop: specifies Proof of possession for BLS key
+        - client_ip (string): Node's client listener IP address, that is the IP clients use to connect to the node when sending read and write requests.
+        - client_port (string): Node's client listener port, that is the port clients use to connect to the node when sending read and write requests.
+        - node_ip (string): The IP address other Nodes use to communicate with this Node; no clients are allowed here.
+        - node_port (string): The port other Nodes use to communicate with this Node; no clients are allowed here.
+        - services (array of strings): the service of the Node. VALIDATOR is the only supported one now.
+    - metadata (dict): Metadata as came from the request
+        - from (base58-encoded string): Identifier (DID) of the transaction author as base58-encoded string for 16 or 32 bit DID value.
+    - type (enum number as string): "0" == NODE
+- txnMetadata (dict):
+    - seqNo (integer): A unique sequence number of the transaction on Ledger
+- ver (string): Transaction version to be able to evolve content. The content of all sub-fields may depend on this version.
 
 #### Variables:
  - ac_vault_tokens - A map of baf-ac tokens, which are stored by organization's name.

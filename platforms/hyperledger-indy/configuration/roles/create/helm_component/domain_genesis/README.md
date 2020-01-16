@@ -14,8 +14,46 @@ It the folder doesn't exist, then creates them.
 ### 2. Generate domain genesis for organization
 This task generate domain genesis with data from crypto, which is in Vault.
 This task need baf-ac token for getting public data from Vault.
-Result is a jsons for each organizations' stewards
+The result is pool genesis transactions, which define initial trusted nodes in the pool.
+(Each ledger may have pre-defined transactions defining the initial pool and network.)
 
+#### Genesis transaction structure
+```json
+{
+  "reqSignature":{},
+  "txn":{
+    "data":{
+      "alias": <...>,
+      "dest": <...>,
+      "role": "0",
+      "verkey": <...>
+    },
+    "metadata":{
+      "from": <...>
+    },
+    "type": "1"
+  },
+  "txnMetadata":{
+    "seqNo": <...>
+  },
+  "ver": "1"
+}
+```
+- reqSignature (dict): Submitter's signature over request with transaction.
+- txn (dict): Transaction-specific payload (data)
+    - data (dict): Transaction-specific data fields
+        - alias (string): NYM's alias
+        - desc (base58-encoded string): Target DID as base58-encoded string for 16 or 32 byte DID value. It may differ from the from metadata field, where from is the DID of the submitter. If they are equal (in permissionless case), then transaction must be signed by the newly created verkey. <br>Example: from is a DID of a Endorser creating a new DID, and dest is a newly created DID.
+        - role (enum number as integer): "0" == TRUSTEE
+        - verkey (base58-encoded string): Target verification key as base58-encoded string.
+    - metadata (dict): Metadata as came from the request
+        - from (base58-encoded string): Identifier (DID) of the transaction author as base58-encoded string for 16 or 32 bit DID value.
+    - type (enum number as string): "1" == NYM transaction
+- txnMetadata (dict):
+    - seqNo (integer): A unique sequence number of the transaction on Ledger
+- ver (string): Transaction version to be able to evolve content. The content of all sub-fields may depend on this version.
+
+    
 #### Variables:
  - ac_vault_tokens - A map of baf-ac tokens, which are stored by organization's name.
  - organization.vault.url - A url address of Vault for a organization.
