@@ -2,6 +2,13 @@
 
 Docker image for indy key management, which allows using commands in bash.
 
+### Build
+Ideally, the build of the image should be run from this directory.<br>
+For build run command below:
+```bash
+docker build -t indy-key-mgmt:0.3.0.0 .
+```
+
 ## How to use
 
 In this Docker image is shell script generate_identity. The script can generate indy crypto and print it on console or put into Vault.
