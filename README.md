@@ -59,6 +59,15 @@ As a developer:
 * if you only have a little time, consider picking up a [“help-wanted”](https://github.com/hyperledger-labs/blockchain-automation-framework/labels/help%20wanted) or ["good-first-issue"](https://github.com/hyperledger-labs/blockchain-automation-framework/labels/good%20first%20issue) task
 * If you can commit to full-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework) to work through logistics
 
+# Build
+If you are not using the provided Jeknins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster. 
+```
+# Build provisioning image
+docker build . -t baf-build
+
+# Run the provisioning scripts
+docker run -v $(pwd)/config/:/home/build/config/ baf-build
+```
 
 ## Initial Committers
 - [tkuhrt](https://github.com/tkuhrt)
