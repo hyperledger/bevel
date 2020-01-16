@@ -1,5 +1,5 @@
 ## setup/node
-This role generates Helm releases of Kubernetes StatefullSet for nodes of Stewards.
+This role generates Helm releases of Kubernetes StatefulSet for nodes of Stewards.
 
 ## Tasks:
 ### 1. Wait for namespace creation for stewards
@@ -12,7 +12,7 @@ This task calls role from *check/k8_component*
 This task create pull secret of each stewards of organization.
 This task calls role from *create/imagepullsecret*
 ### 3. Create steward deployment file
-This task creates Helm releases of Kubernetes StatefullSet for nodes of Stewards.
+This task creates Helm releases of Kubernetes StatefulSet for nodes of Stewards.
 This task calls role from *create/helm_component/node*
 #### Input Variables:
  - component_type: Set, which type of k8s component may be created. Default value *node*.

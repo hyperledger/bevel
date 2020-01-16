@@ -1,11 +1,10 @@
 ## setup/vault_kubernetes
-This role check HashiCorp Vault for existing of policies, roles and auth method. When these don't exist, then creates them.
+This role checks HashiCorp Vault for existing of admin-vault-auth SA. When this doesn't exist, then creates it.
 
 ## Tasks:
 ### 1. Check namespace is created
 This task checking if namespaces for stewards of organizations are created.
 It uses *k8s_facts* Ansible role.
-This task waits 10 time for 35 seconds for creating namespace.
 
 #### Variables:
  - component_ns: A name of namespace of organization.
@@ -78,7 +77,7 @@ This task check if policy of organization exists and store result into variable.
 #### Output Variables:
  - vault_policy_result - Stored output of this role.
 
-### 8. Create policy for Orderer Access Control
+### 8. Create policy for Access Control
 This task creates a *.hcl* file from template *admin-rw.tpl*.
 The *.hcl* file is for creating a access control policy in Vault.
 
