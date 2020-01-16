@@ -27,7 +27,7 @@ Ideally, the configuration should be run by the following command from the root 
 ```
 ansible-playbook platforms/shared/configuration/site.yaml -e "@./platforms/hyperledger-indy/configuration/samples/network-indyv3.yaml"
 ```
-Ensure the public key, which has been added to your github repository with read/write access.<br>
+Ensure the public key counterpart of your private key specified in the network.yaml has been added to your GitHub repository with read/write access.<br>
 If you just want to run this deploy-network.yaml playbook, then, from the *platforms/hyperledger-indy/configuration* directory, run the following command for deploying the network
 ```
 ansible-playbook deploy-network.yaml -e "@./samples/network-indyv3.yaml"
