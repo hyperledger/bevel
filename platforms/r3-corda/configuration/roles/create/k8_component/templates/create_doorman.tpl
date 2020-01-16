@@ -8,7 +8,7 @@ metadata:
 spec:
   releaseName: {{ services.doorman.name }}
   chart:
-    path: {{ org.gitops.chart_source }}/doorman
+    path: {{ org.gitops.chart_source }}/{{ chart }}
     git: {{ org.gitops.git_ssh }}
     ref: {{ org.gitops.branch }}
   values:
@@ -24,7 +24,7 @@ spec:
       - name: DOORMAN_ROOT_CA_NAME
         value: {{ services.doorman.subject }}
       - name: DOORMAN_TLS
-        value: false
+        value: {{ chart_tls }}
       - name: DOORMAN_DB
         value: /opt/doorman/db
       - name: DOORMAN_AUTH_USERNAME
@@ -38,6 +38,7 @@ spec:
       - name: DB_USERNAME
         value: {{ services.doorman.name }}
       imagePullSecret: regcred
+      tlsCertificate: {{ chart_tls }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
         basePath: /opt/doorman
@@ -54,6 +55,8 @@ spec:
       certsecretprefix: {{ services.doorman.name }}/certs
       dbcredsecretprefix: {{ services.doorman.name }}/credentials/mongodb
       secretdoormanpass: {{ services.doorman.name }}/credentials/userpassword
+      tlscertsecretprefix: {{ services.doorman.name }}/tlscerts
+      dbcertsecretprefix: {{ component_name }}/certs
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15

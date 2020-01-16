@@ -88,13 +88,42 @@
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: networkmap_certs.failed == True
 
+# checking root certificates for mongodb
+- name: Check if mongoroot certs already created
+  shell: |
+    vault kv get -field=mongoCA.crt  {{ component_name }}/certs > {{ mongorootca }}/mongoCA.crt
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: mongoCA_certs
+  ignore_errors: yes
+  when: services.nms.tls == 'on'
+
+- name: check mongoroot certs
+  stat:
+    path: "{{ mongorootca }}/mongoCA.crt"
+  register: mongoCA_stat_result
+  when: services.nms.tls == 'on'
+
 # Generating mongoroot certificates
 - name: Generating Mongoroot certificates
   shell: |
     cd {{ mongorootca }}
     openssl genrsa -out mongoCA.key 3072
     openssl req -x509 -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '/{{ mongoroot_cert_subj }}'
+  when: services.nms.tls == 'on' and mongoCA_stat_result.stat.exists == False and mongoCA_certs.failed == True
+
+# checking if mongodb certificate already created
+- name: Check if mongodb certs already created
+  shell: |
+    vault kv get -field=mongodb-{{component_name}}.pem  {{ component_name }}/certs > {{ mongodbca }}/mongodb-{{component_name}}.pem
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: mongodb_certs
+  ignore_errors: yes
   when: services.nms.tls == 'on'
+
 
 # Generating mongodb certificates.
 - name: Generating mongodb certificates
@@ -103,7 +132,7 @@
     openssl req -new -nodes -newkey rsa:4096 -keyout mongodb-{{ component_name}}.key -out mongodb-{{ component_name }}.csr -subj '/{{ mongoroot_cert_subj }}-{{component_name}}' 
     openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
-  when: services.nms.tls == 'on'
+  when: services.nms.tls == 'on' and mongodb_certs.failed == True
 
 - name: Putting certs to vault for root
   shell: |
