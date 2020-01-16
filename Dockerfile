@@ -13,12 +13,6 @@ RUN apt-get update -y && \
         unzip \
         default-jre \
         git \
-        libffi-dev \
-        libssl-dev \
-        libxml2-utils \
-        locales \
-        openssh-client \
-        openssh-server \
         python \
         python3-dev \
         python3-pip && \
@@ -33,7 +27,6 @@ RUN pip3 install ansible && \
 RUN rm /etc/apt/apt.conf.d/docker-clean
 RUN mkdir /etc/ansible/
 RUN /bin/echo -e "[ansible_provisioners:children]\nlocal\n[local]\nlocalhost ansible_connection=local" > /etc/ansible/hosts
-RUN locale-gen en_US.UTF-8
 
 # Copy code to container
 COPY ./ /home/build/blockchain-automation-framework
@@ -41,9 +34,9 @@ COPY ./run.sh /home/build/run.sh
 RUN chmod 755 /home/build/run.sh
 
 # The path to mount the volume; should contain 
-# 1) K8s config file
-# 2) Network specific configuration file
-# 3) Private key file which has write-access to the git rep
+# 1) K8s config file as config
+# 2) Network specific configuration file as network.yaml
+# 3) Private key file which has write-access to the git repo
 
 VOLUME /home/build/config/
 
