@@ -14,6 +14,9 @@ spec:
   values:
     metadata:
       namespace: {{ namespace }}
+      images:
+        orderer: {{ orderer_image }}
+        alpineutils: {{ alpine_image }}
 
     orderer:
       name: {{ orderer.name }}

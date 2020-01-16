@@ -81,12 +81,12 @@ k8s:
 
    `ansible-playbook -e "ansible_python_interpreter=/pathtopython/bin/python3" -e "otherparameters" playbook.yaml`
 
-   You can find the path of python3 by executing `which python3`
+   You can find the path of python3 by executing `which python3`<br/>
 
 * If ansible is stuck on a task where it checks to see if Tiller is installed in the Kubernetes clusters and you get a message similar to this: 
 _"MODULE FAILURE\nSee stdout/stderr for the exact error"_, It is probably because the kubernetes version is 16 or higher. You will need to delete the kubernetes cluster and create a another cluster with v1.15.4 using the following command. 
-<br/>
- `minikube start --vm-driver=virtualbox --kubernetes-version v1.15.4`
+
+   `minikube start --vm-driver=virtualbox --kubernetes-version v1.15.4` <br/>
 
   
 * It is recommended that you use virtual box as the vm driver when deploying the DLT network. If you use hyperkit as the vm driver, your k8 cluster will not have access to the internet. 
