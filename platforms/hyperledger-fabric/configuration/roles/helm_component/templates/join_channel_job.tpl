@@ -14,6 +14,9 @@ spec:
   values:
     metadata:
       namespace: {{ component_ns }}
+      images:
+        fabrictools: {{ fabrictools_image }}
+        alpineutils: {{ alpine_image }}
 
     peer:
       name: {{ peer_name }}
