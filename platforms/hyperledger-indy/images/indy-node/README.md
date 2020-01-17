@@ -1,5 +1,5 @@
 ## Blockchain Automation Framework Indy indy-node Docker image
-Docker image for Indy node of Stewards.
+Docker image of an Indy node (runs using a Steward identity)
 
 ### Build
 Ideally, the build of the image should be run from this directory.<br>

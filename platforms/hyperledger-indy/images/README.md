@@ -15,10 +15,10 @@ Docker image contains Indy CLI, which is used to issue transactions agains an In
 For more information, see [Documentation](./indy-cli/README.md)
 
 ### indy-key-mgmt
-Docker image for indy key management, which allows using commands in bash.
+Docker image for indy key management, which generates identity crypto generation into Vault or on terminal output a in json format.
 For more information, see [Documentation](./indy-key-mgmt/README.md)
 ### indy-node
-Docker image for Indy node of Stewards.
+Docker image of an Indy node (runs using a Steward identity)
 For more information, see [Documentation](./indy-node/README.md)
 
 ## Manually creating images
