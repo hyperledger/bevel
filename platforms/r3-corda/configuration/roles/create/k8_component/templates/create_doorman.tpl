@@ -17,7 +17,7 @@ spec:
       namespace: {{component_ns }}
     image:
       authusername: sa
-      containerName: {{ network.docker.url }}/doorman:latest
+      containerName: {{ network.docker.url }}/doorman-linuxkit:latest
       env:
       - name: DOORMAN_PORT
         value: 8080
