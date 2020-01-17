@@ -7,6 +7,7 @@ implementation.
 /r3-corda
 |-- charts
 |   |-- doorman
+|   |-- doorman-tls
 |   |-- h2
 |   |-- h2-addUser
 |   |-- h2-password-change
@@ -68,6 +69,49 @@ This folder consists Doorman helm charts which are used by the ansible playbooks
 
 
 -----
+
+## doorman-tls
+### About
+This folder consists Doorman helm charts which are used by the ansible playbooks for the deployment of Doorman component when TLS is on for the doorman. The folder contains a templates folder, a chart file and a value file. 
+
+### Folder Structure
+```
+/doorman-tls
+|-- templates
+|   |-- pvc.yaml
+|   |-- deployment.yaml
+|   |-- service.tpl
+|-- Chart.yaml
+|-- values.yaml
+```
+
+### Charts description
+
+#### templates
+- This folder contains template structures which when combined with values ,will generate valid Kubernetes manifest files for Doorman implementation.
+- This folder contains following template files for Doorman implementation
+  
+  - deployment.yaml: 
+      This file is used as a basic manifest for creating a Kubernetes deployment for Doorman . The file basically describes the container and volume specifications of the Doorman. The file defines container where doorman container is defined with corda image and corda jar details. The init container init-creds creates doorman db root password and user credentials at mount path , init-certificates init container basically configures doorman keys.jks by fetching certsecretprefix from the vault, change permissions init-containers provides permissions to base directory and db-healthcheck init-container checks for db is up or not.
+	      
+  - pvc.yaml:
+      This yaml is used to create persistent volumes claim for the Doorman deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
+	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud environment.
+	  This file creates persistentVolumeClaim for Doorman pvc.
+      
+  - service.yaml:
+      This template is used as a basic manifest for creating a service endpoint for our deployment.
+	  This service.yaml creates ca service endpoint.The file basically specifies service type and kind of service ports for doorman server.
+      
+      
+#### Chart.yaml 
+- This file contains the information about the chart such as apiversion, appversion, name etc.
+#### values.yaml 
+- This file contains the default configuration values for the chart.
+
+
+-----
+
 
 ## nms 
 
