@@ -1,5 +1,9 @@
 ---
-# This is a sample configuration file for hyperledger indy.
+# This is a sample configuration file for hyperledger indy which can reused for a sample indy network of 9 nodes.
+# It has 3 organizations:
+# 1. organization "authority" with 1 trustee
+# 2. organization "provider" with 1 trustee, 2 stewards and 1 endorser
+# 3. organization "partner" with 1 trustee, 2 stewards and 1 endorser
 
 network:
   # Network level configuration specifies the attributes required for each organization
@@ -23,7 +27,8 @@ network:
     username: "docker_username"
     password: "docker_password"
 
-  name: baf
+  # It's used as the Indy network name (has impact e.g. on paths where the Indy nodes look for crypto files on their local filesystem)
+  name: baf 
 
   # Informatio about pool transaction genesis and domain transactions genesis
   genesis:
@@ -37,11 +42,12 @@ network:
     - organization:
       name: authority
       type: peer
-      cloud_provider: aws-baremetal
+      cloud_provider: aws-baremetal             # Currently eks is not supported due to aws_authenticator
+
       aws:
         access_key: "aws_access_key"            # AWS Access key
         secret_key: "aws_secret_key"            # AWS Secret key
-        encryption_key: "encryption_key_id"     # AWS encryption key
+        encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
         zone: "availability_zone"               # AWS availability zone
         region: "region"                        # AWS region
 
@@ -68,11 +74,6 @@ network:
         password: "git_password"                    # Git Server user password
         email: "git_email"                          # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
-
-      # Optional for infrastructure configuration files.
-      infrastructure:
-        target_state: "present"
-        refresh_inventory: yes
 
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has trustee
@@ -86,12 +87,12 @@ network:
     - organization:
       name: provider
       type: peer
-      cloud_provider: aws-baremetal
+      cloud_provider: aws-baremetal             # Currently eks is not supported due to aws_authenticator
 
       aws:
         access_key: "aws_access_key"            # AWS Access key
         secret_key: "aws_secret_key"            # AWS Secret key
-        encryption_key: "encryption_key_id"     # AWS encryption key
+        encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
         zone: "availability_zone"               # AWS availability zone
         region: "region"                        # AWS region
 
@@ -118,11 +119,6 @@ network:
         password: "git_password"                    # Git Server user password
         email: "git_email"                          # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
-
-      # Optional for infrastructure configuration files.
-      infrastructure:
-        target_state: "present"
-        refresh_inventory: yes
 
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has trustee, 2 stewards and endoorser
@@ -140,11 +136,11 @@ network:
           node:
             port: 9711
             targetPort: 9711
-            ambassador: 9711        # Port for ambassador service
+            ambassador: 15010        # Port for ambassador service
           client:
             port: 9712
             targetPort: 9712
-            ambassador: 9712        # Port for ambassador service
+            ambassador: 15010        # Port for ambassador service
         - steward:
           name: provider-steward-2
           type: VALIDATOR
@@ -153,11 +149,11 @@ network:
           node:
             port: 9721
             targetPort: 9721
-            ambassador: 9721        # Port for ambassador service
+            ambassador: 15010        # Port for ambassador service
           client:
             port: 9722
             targetPort: 9722
-            ambassador: 9722        # Port for ambassador service
+            ambassador: 15010        # Port for ambassador service
         endorsers:
         - endorser:
           name: provider-endorser
@@ -169,12 +165,12 @@ network:
     - organization:
       name: partner
       type: peer
-      cloud_provider: aws-baremetal
+      cloud_provider: aws-baremetal             # Currently eks is not supported due to aws_authenticator
 
       aws:
         access_key: "aws_access_key"            # AWS Access key
         secret_key: "aws_secret_key"            # AWS Secret key
-        encryption_key: "encryption_key_id"     # AWS encryption key
+        encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
         zone: "availability_zone"               # AWS availability zone
         region: "region"                        # AWS region
 
@@ -202,11 +198,6 @@ network:
         email: "git_email"                        # Email to use in git config
         private_key: "path_to_private_key"        # Path to private key file which has write-access to the git repo
 
-      # Optional for infrastructure configuration files.
-      infrastructure:
-        target_state: "present"
-        refresh_inventory: yes
-
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has trustee, 2 stewards and endoorser
       services:
@@ -223,11 +214,11 @@ network:
           node:
             port: 9731
             targetPort: 9731
-            ambassador: 9731            # Port for ambassador service
+            ambassador: 15010            # Port for ambassador service
           client:
             port: 9732
             targetPort: 9732
-            ambassador: 9732            # Port for ambassador service
+            ambassador: 15010            # Port for ambassador service
         - steward:
           name: partner-steward-2
           type: VALIDATOR
@@ -236,11 +227,11 @@ network:
           node:
             port: 9741
             targetPort: 9741
-            ambassador: 9741            # Port for ambassador service
+            ambassador: 15010            # Port for ambassador service
           client:
             port: 9742
             targetPort: 9742
-            ambassador: 9742            # Port for ambassador service
+            ambassador: 15010            # Port for ambassador service
         endorsers:
         - endorser:
           name: partner-endorser
