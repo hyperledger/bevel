@@ -30,8 +30,7 @@ RUN /bin/echo -e "[ansible_provisioners:children]\nlocal\n[local]\nlocalhost ans
 
 # Copy code to container
 COPY ./ /home/build/blockchain-automation-framework
-COPY ./run.sh /home/build/run.sh
-RUN chmod 755 /home/build/run.sh
+RUN chmod 755 /home/build/blockchain-automation-framework/run.sh
 
 # The path to mount the volume; should contain 
 # 1) K8s config file as config
@@ -40,4 +39,4 @@ RUN chmod 755 /home/build/run.sh
 
 VOLUME /home/build/config/
 
-CMD ["/home/build/run.sh"]
+CMD ["/home/build/blockchain-automation-framework/run.sh"]
