@@ -1,6 +1,6 @@
 # Blockchain Automation Framework Indy indy-key-mgmt Docker image
 
-Docker image for indy key management, which generates identity crypto generation into Vault or on terminal output a in json format.
+Docker image for indy key management, which generates identity crypto and stores it into Vault or displays it onto the terminal in json format.
 
 ### Build
 Ideally, the build of the image should be run from this directory.<br>
