@@ -14,8 +14,8 @@ It the folder doesn't exist, then creates them.
 ### 2. Generate domain genesis for organization
 This task generate domain genesis with data from crypto, which is in Vault.
 This task need baf-ac token for getting public data from Vault.
-The result is pool genesis transactions, which define initial trusted nodes in the pool.
-(Each ledger may have pre-defined transactions defining the initial trusted trustees and stewards.)
+The result is domain genesis transactions, which define initial trusted trustees and stewards.
+(Each ledger may have pre-defined transactions defining the initial pool and network.)
 
 #### Genesis transaction structure
 ```json

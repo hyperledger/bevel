@@ -14,7 +14,7 @@ It the folder doesn't exist, then creates them.
 ### 2. Generate pool genesis for organization
 This task generate pool genesis with data from crypto, which is in Vault.
 This task need baf-ac token for getting public data from Vault.
-The result is domain genesis transactions, which define initial trusted nodes in the pool.
+The result is pool genesis transactions, which define initial trusted nodes in the pool.
 (Each ledger may have pre-defined transactions defining the initial pool and network.)
 
 #### Genesis transaction structure
@@ -86,7 +86,7 @@ This task uses template for generating Config Map.
  - component_name: A name of config map. It uses *{{ organizationItem.name }}-ptg*
  - pool_genesis_values: A variable, which contains pool genesis. It uses a variable *pool_genesis.stdout* 
  - values_file: Path for output value file. It uses *{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml*
- - chart: A chart name. Default value is *indy-domain-genesis* 
+ - chart: A chart name. Default value is *indy-pool-genesis* 
 
 #### Template:
  - pool-genesis.tpl
