@@ -32,7 +32,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric, here in the example its Fabric
 
-`version` defines the version of platform being used. The current Fabric version support is 1.4.0
+`version` defines the version of platform being used. The current Fabric version support is 1.4.0 and 1.4.4
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -52,7 +52,7 @@ The fields under `env` section are
 | Field      | Description                                 |
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
-| proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' or 'haproxy' |
+| proxy      | Choice of the Cluster Ingress controller. Currently supports 'haproxy' only as 'ambassador' has not been implemented for Fabric |
 | ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`     |
 | retry_count       | Retry count for the checks. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
@@ -101,7 +101,7 @@ The snapshot of the `orderers` section with example values is below
       uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
       certificate: directory/file1.cert
 ```
-The fields under the `orderers` section are
+The fields under the each `orderer` are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
@@ -109,7 +109,7 @@ The fields under the `orderers` section are
 | type        | For Fabric, `orderer` is the only valid type of orderers.   |
 | org_name    | Name of the organization to which this orderer belong to |
 | uri         | Orderer URL                                              |
-| certificate | Path to orderer certificate for connection by external organizations |
+| certificate | Path to orderer certificate for connection by new organizations |
 
 The `channels` sections contains the list of channels mentioning the participating peers of the organizations.
 
@@ -163,7 +163,7 @@ The snapshot of channels section with its fields and sample values is below
     genesis:
       name: OrdererGenesis
 ```
-The fields under the channel are
+The fields under the `channel` are
 
 | Field                           | Description                                                |
 |---------------------------------|------------------------------------------------------------|
@@ -173,15 +173,16 @@ The fields under the channel are
 | orderer.name                    | Organization name to which the orderer belongs             |
 | participants                    | Contains list of organizations participating in the channel|
 
-Each organization field under participants field of the channel contains the following fields
+Each `organization` field under `participants` field of the channel contains the following fields
 
 | Field                           | Description                                                |
 |---------------------------------|------------------------------------------------------------|
-| participants.organization.name               | Organization name of the peer participating in the channel |
-| participants.organization.type               | This field can be creator/joiner of channel                |
-| participants.organization.peer.name          | Name of the peer                                           |
-| participants.organization.peer.type          | This field can be validating/non-validating*               |
-| participants.organization.peer.gossipAddress | Gossip address of the peer                                 |
+| name               | Organization name of the peer participating in the channel |
+| type               | This field can be creator/joiner of channel                |
+| ordererAddress     | URL of the orderer this peer connects to                   |
+| peer.name          | Name of the peer                                           |
+| peer.type          | This field can be validating/non-validating*               |
+| peer.gossipAddress | Gossip address of the peer                                 |
 
 
 The `organizations` section contains the specifications of each organization.  
@@ -201,7 +202,7 @@ The snapshot of an organization field with sample values is below
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
       cloud_provider: aws   # Options: aws, azure, gcp
 ```
-Each organization under the `organizations` section has the following fields. 
+Each `organization` under the `organizations` section has the following fields. 
 
 | Field                                    | Description                                 |
 |------------------------------------------|-----------------------------------------------------|
@@ -233,20 +234,20 @@ For the aws and k8s field the snapshot with sample values is below
         config_file: "<path_to_k8s_config_file>"
 ```
 
-The aws field under each organization contains
+The `aws` field under each organization contains: (This will be ignored if cloud_provider is not 'aws')
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| aws.access_key                              | AWS Access key  |
-| aws.secret_key                              | AWS Secret key  |
+| access_key                              | AWS Access key  |
+| secret_key                              | AWS Secret key  |
 
-The k8s field under each organization contains
+The `k8s` field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| k8s.region                                  | Region where the Kubernetes cluster is deployed, e.g : eu-west-1        |
-| k8s.context                                 | Context/Name of the cluster where the organization entities should be deployed                                   |
-| k8s.config_file                             | Path to the kubernetes cluster configuration file                                                                |
+| region                                  | Region where the Kubernetes cluster is deployed, e.g : eu-west-1        |
+| context                                 | Context/Name of the cluster where the organization entities should be deployed                                   |
+| config_file                             | Path to the kubernetes cluster configuration file                                                                |
 
 For gitops fields the snapshot from the sample configuration file with the example values is below
 ```yaml
@@ -259,6 +260,7 @@ For gitops fields the snapshot from the sample configuration file with the examp
         git_push_url: "github.com/<username>/blockchain-automation-framework.git"
         username: "<username>"          # Git Service user who has rights to check-in in all branches
         password: "<password>"          # Git Server user password/personal token
+        email: "<git_email>"              # Email to use in git config
         private_key: "<path to gitops private key>"
 ```
 
@@ -266,16 +268,17 @@ The gitops field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| gitops.git_ssh                              | SSH url of the repository where flux should be synced                                                            |
-| gitops.branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
-| gitops.release_dir                          | Relative path where flux should sync files                                                                       |
-| gitops.chart_source                         | Relative path where the helm charts are stored                                                                   |
-| gitops.git_push_url                         | Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
-| gitops.username                             | Username which has access rights to read/write on repository                                                     |
-| gitops.password                             | Password of the user which has access rights to read/write on repository                                         |
-| gitops.private_key                          | Path to the private key file which has write-access to the git repo                                              |
+| git_ssh                              | SSH url of the repository where flux should be synced                                                            |
+| branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
+| release_dir                          | Relative path where flux should sync files                                                                       |
+| chart_source                         | Relative path where the helm charts are stored                                                                   |
+| git_push_url                         | Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| username                             | Username which has access rights to read/write on repository                                                     |
+| password                             | Password of the user which has access rights to read/write on repository                                         |
+| email                                | Email of the user to be used in git config                                                                       |
+| private_key                          | Path to the private key file which has write-access to the git repo                                              |
 
-The services field for each organization under `organizations` section of Fabric contains list of services which could be ca/orderers/consensus/peers based on if the type of organization. 
+The services field for each organization under `organizations` section of Fabric contains list of `services` which could be ca/orderers/consensus/peers based on if the type of organization. 
 
 Each organization will have a ca service under the service field. The snapshot of ca service with example values is below
 ```yaml
@@ -289,14 +292,14 @@ Each organization will have a ca service under the service field. The snapshot o
           grpc:
             port: 7054
 ```
-The fields under ca service are
+The fields under `ca` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-|services.ca.name                             | Certificate Authority service name        |
-| services.ca.subject                         | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
-| services.ca.type | Type must be `ca` for certification authority |
-| services.ca.grpc.port                       | Grpc port number |
+| name                             | Certificate Authority service name        |
+| subject                         | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| type | Type must be `ca` for certification authority |
+| grpc.port                       | Grpc port number |
 
 
 Each organization with type as peer will have a peers service. The snapshot of peers service with example values is below
@@ -331,30 +334,30 @@ Each organization with type as peer will have a peers service. The snapshot of p
             arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
             endorsements: "" #Endorsements (if any) provided along with the chaincode
 ```
-The fields under peers service are
+The fields under `peer` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-|services.peers.peer.name                          | Name of the peer                                                                                                 |
-| services.peers.peer.type                          | Type is always `peer` for Peer                                                                    |
-| services.peers.peer.gossippeeraddress             | Gossip address of the peer                                                                                       |
-| services.peers.peer.grpc.port                     | Grpc port                                                                                                        |
-| services.peers.peer.events.port                   | Events port                                                                                                      |
-| services.peers.peer.couchdb.port                  | Couchdb port                                                                                                     |
-| services.peers.peer.restserver.targetPort         | Restserver target port                                                                                           |
-| services.peers.peer.restserver.port               | Restserver port                                                                                                  |
-| services.peers.peer.expressapi.targetPort         | Express server target port                                                                                       |
-| services.peers.peer.expressapi.port               | Express server port                                                                                              |
-| services.peers.peer.chaincode.name                | Name of the chaincode                                                                                            |
-| services.peers.peer.chaincode.version             | Version of the chaincode                                                                                         |
-| services.peers.peer.chaincode.maindirectory       | Path of main.go file                                                                                             |
-| services.peers.peer.chaincode.repository.username | Username which has access to the git repo containing chaincode                                                   |
-| services.peers.peer.chaincode.repository.password | Password of the user which has access to the git repo containing chaincode                                       |
-| services.peer.chaincode.repository.url      | URL of the git repository containing the chaincode                                                               |
-| services.peers.peer.chaincode.repository.branch   | Branch in the repository where the chaincode resides                                                             |
-| servcies.peers.peer.chaincode.repository.path     | Path of the chaincode in the repository branch                                                                   |
-| services.peers.peer.chaincode.arguments           | Arguments to the chaincode                                                                                       |
-| services.peers.peer.chaincode.endorsements        | This could be anchor/non-anchor ** |
+| name                          | Name of the peer                                                                                                 |
+| type                          | Type is always `peer` for Peer                                                                    |
+| gossippeeraddress             | Gossip address of the peer                                                                                       |
+| grpc.port                     | Grpc port                                                                                                        |
+| events.port                   | Events port                                                                                                      |
+| couchdb.port                  | Couchdb port                                                                                                     |
+| restserver.targetPort         | Restserver target port                                                                                           |
+| restserver.port               | Restserver port                                                                                                  |
+| expressapi.targetPort         | Express server target port                                                                                       |
+| expressapi.port               | Express server port                                                                                              |
+| chaincode.name                | Name of the chaincode                                                                                            |
+| chaincode.version             | Version of the chaincode                                                                                         |
+| chaincode.maindirectory       | Path of main.go file                                                                                             |
+| chaincode.repository.username | Username which has access to the git repo containing chaincode                                                   |
+| chaincode.repository.password | Password of the user which has access to the git repo containing chaincode                                       |
+| services.peer.chaincode.repository.url      | URL of the git repository containing the chaincode                                                 |
+| chaincode.repository.branch   | Branch in the repository where the chaincode resides                                                             |
+| chaincode.repository.path     | Path of the chaincode in the repository branch                                                                   |
+| chaincode.arguments           | Arguments to the chaincode                                                                                       |
+| chaincode.endorsements        | This could be anchor/non-anchor ** |
 
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 ```yaml
@@ -365,14 +368,14 @@ The organization with orderer type will have concensus service. The snapshot of 
           grpc:
             port: 9092
 ```
-The fields under consensus service are
+The fields under `consensus` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-|services.consensus.name                     | Name of the Consensus service                                                                            |
-| service.consensus.type                      | Consensus service type, for example: broker                                                                                 |
-| service.consensus.replicas                  | Replica count of the brokers                                                                                     |
-| service.consensus.grpc.port                 | Grpc port of consensus service |
+| name                     | Name of the Consensus service                                                                            |
+| type                      | Consensus service type, for example: broker                                                                                 |
+| replicas                  | Replica count of the brokers                                                                                     |
+| grpc.port                 | Grpc port of consensus service |
 
 The organization with orderer type will have orderers service. The snapshot of orderers service with example values is below
 ```yaml
@@ -392,16 +395,16 @@ The organization with orderer type will have orderers service. The snapshot of o
           grpc:
             port: 7050 
 ```
-The fields under orderer service are
+The fields under `orderer` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-|service.orderers.orderer.name                        | Name of the Orderer service                                                                                                     |
-|service.orderers.orderer.type | This type must be `orderer`  |
-| service.orderers.orderer.consensus                   | Consensus type, for example: kafka                                                                               |
-| service.orderers.orderer.grpc.port                   | Grpc port of orderer                                                                                             |
-| service.orderers.orderer.ca_data.url                 | Orderer url                                                                                                      |
-| service.orderers.orderer.ca_data.certificate         | Path to CA certificate ***  |
+| name                        | Name of the Orderer service                                                                                                     |
+| type          | This type must be `orderer`  |
+| consensus                   | Consensus type, for example: kafka                                                                               |
+| grpc.port                   | Grpc port of orderer                                                                                             |
+| ca_data.url                 | Orderer url                                                                                                      |
+| ca_data.certificate         | Path to CA certificate ***  |
 
 
 \* non-validating feature is in future scope  

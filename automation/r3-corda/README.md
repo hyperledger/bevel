@@ -143,7 +143,6 @@ It generates the Fabric Configuration file by replacing the keys with values.
 It Adds the AWS Details to Configuration.
 ##### 4. Deploy Corda Network
 Run deploy-network playbook which will setup environment and deploy the network
-###### NOTE: Please copy the FLUX SSH KEY generated and provide read-write access to this key on the git repo
 
 ### Folder Structure ###
 ```
