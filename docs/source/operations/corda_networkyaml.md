@@ -204,10 +204,12 @@ The snapshot of doorman service with example values is below
         doorman:
           name: doormanskar
           subject: "CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE"
+          db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
           type: doorman
           ports:
             servicePort: 8080
             targetPort: 8080
+          tls: "on"
 ```
 
 The fields under `doorman` service are 
@@ -216,19 +218,23 @@ The fields under `doorman` service are
 |-------------|----------------------------------------------------------|
 | name            | Name for the Doorman service                                                                                 |
 | subject                    | Certificate Subject for Doorman service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| db_subject                 | Certificate subject for mongodb database of doorman
 | type                       | Service type must be `doorman`                                                                             |
 | ports.servicePort          | HTTP port number where doorman service is accessible                                       |
 | ports.targetPort           | HTTP target port number of the doorman docker-container                                       |
+| tls                        | On/off based on whether we want TLS on/off for doorman 
 
 The snapshot of nms service example values is below
 ```yaml
         nms:
           name: networkmapskar
           subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
+          db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
           type: networkmap
           ports:
             servicePort: 8080
             targetPort: 8080
+          tls: "on"  
 ```
 The fields under `nms` service are
 
@@ -236,9 +242,11 @@ The fields under `nms` service are
 |-------------|----------------------------------------------------------|
 | name                | Name of the NetworkMap service                     |
 | subject      | Certificate Subject for NetworkMap service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| db_subject              | Certificate subject for mongodb database of nms.
 | type                    | Service type must be `networkmap`    |
 | ports.servicePort       | HTTP port number where NetworkMap service is accessible                                       |
-| ports.targetPort          | HTTP target port number of the NetworkMap docker-container                                  |
+| ports.targetPort        | HTTP target port number of the NetworkMap docker-container                                  |
+| tls                     | On/off based on whether we want TLS on/off for nms
 
 
 The snapshot of notary service with example values is below
