@@ -22,15 +22,15 @@ Use the below command to build the image
 docker build . -t baf-build
 ```
 
-This would create an image name baf-build
+This would create an image named baf-build
 
 
 
 ## Running the provisioning scripts
 
-A shell script run.sh is provided in repository to set environment variables and run the network deployment playbook.  
+A shell script `run.sh` is provided in repository to set environment variables and run the network deployment playbook.  
 
-The `dockerfile` also provides defaults for the executing container using the `CMD` variable
+The BAF `dockerfile` provides defaults for the executing container using the `CMD` variable
 
 ``` shell
 CMD ["/home/build/blockchain-automation-framework/run.sh"]
@@ -45,7 +45,7 @@ Syntax for bind-mount volume from docker official documentation
 ``` shell
 -v, --volume=[host-src:]container-dest[:<options>]: Bind mount a volume.
 ```
-The `[host-src]` is this case is `$(pwd)/config/`, the volume should contain the following files  
+The `[host-src]` in this case is `$(pwd)/config/`, the volume should contain the following files  
 
 1) K8s config file as config  
 2) Network specific configuration file as network.yaml  
