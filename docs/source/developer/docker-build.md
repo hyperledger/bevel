@@ -1,6 +1,6 @@
-# Blockchain Automation Framework deployment using docker build
+# Network deployment using docker build
 
-## Build the docker image for BAF deployment enviorment
+## Building the docker image
 
 Build the docker image using the docker file  `Dockerfile` provided in the blockchain-automation-framework repository.
 
@@ -28,7 +28,7 @@ This would create an image name baf-build
 
 ## Running the provisioning scripts
 
-A shell script `run.sh` is provided in repository to set enviorment varaibles and run the network deployement playbook.
+A shell script run.sh is provided in repository to set environment variables and run the network deployment playbook.  
 
 The `dockerfile` also provides defaults for the executing container using the `CMD` variable
 
@@ -40,7 +40,7 @@ Use the below command to run the container and the provisioning scripts. The com
 ```shell
 docker run -v $(pwd)/config/:/home/build/config/ baf-build
 ```
-Syntax for bind-mount volume from docker offical documentation 
+Syntax for bind-mount volume from docker official documentation 
 
 ``` shell
 -v, --volume=[host-src:]container-dest[:<options>]: Bind mount a volume.
