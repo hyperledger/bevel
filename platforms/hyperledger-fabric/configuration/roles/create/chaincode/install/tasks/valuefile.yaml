@@ -50,6 +50,8 @@
     peer_address: "{{ peer.gossippeeraddress }}"
     component_name: "chaincode-install-{{ name }}-{{ peer.name }}-{{ peer.chaincode.version | replace('.','-')}}"
     component_chaincode: "{{ peer.chaincode }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
   loop: "{{ network['orderers'] }}"
   loop_control:
     loop_var: orderer
@@ -63,6 +65,7 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     GIT_REPO: "{{ item.gitops.git_push_url }}"
     GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_EMAIL: "{{ item.gitops.email }}"
     GIT_PASSWORD: "{{ item.gitops.password }}"
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
