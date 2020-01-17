@@ -78,7 +78,7 @@ Although for production implementations, each organization (and thereby each clu
 Also install any required platform specific pre-requisites (some may be common).
 * [R3 Corda 4.0](https://docs.corda.net/releases/release-V4.0/)
 
-* [Hyperlegder Fabric 1.4.0](https://hyperledger-fabric.readthedocs.io/en/release-1.4/)
+* [Hyperlegder Fabric 1.4](https://hyperledger-fabric.readthedocs.io/en/release-1.4/)
 
 ## Jenkins
 
