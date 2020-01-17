@@ -1,0 +1,238 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Values.metadata.namespace }}
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: {{ .Values.node.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+  name: {{ .Values.node.name }}
+spec:
+  serviceName: {{ .Values.node.name }}
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: consortiumchain
+        name: {{ .Values.node.name }}
+        service.rpc: {{ .Values.node.name }}
+    spec:
+      serviceAccountName: {{ .Values.vault.serviceaccountname }}
+      imagePullSecrets:
+          - name: {{ .Values.node.imagePullSecret }}
+      volumes:
+        - name: certificates
+          emptyDir:
+            medium: Memory
+        - name: {{ .Values.node.name }}-genesis-volume
+          configMap:
+            name: genesis-{{ .Values.node.name }}
+            items:
+              - key: genesis.json.base64
+                path: genesis.json.base64
+            
+      initContainers:
+      - name: certificates-init
+        image: {{ .Values.images.alpineutils }}
+        imagePullPolicy: Always
+        env:
+        - name: VAULT_ADDR
+          value: {{ .Values.vault.address }}
+        - name: VAULT_SECRET_PREFIX
+          value: {{ .Values.vault.secretprefix }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ .Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ .Values.vault.role }}
+        - name: MOUNT_PATH
+          value: "/secret"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          
+          validateVaultResponse () {
+          if echo ${2} | grep "errors"; then
+           echo "ERROR: unable to retrieve ${1}: ${2}"
+           exit 1
+           fi
+          }
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          #Login to Vault and to get an approle token
+          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+            -H "Content-Type: application/json" \
+            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+            jq -r 'if .errors then . else .auth.client_token end')
+          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+
+          OUTPUT_PATH="${MOUNT_PATH}/keys"
+          mkdir -p ${OUTPUT_PATH}
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
+          echo "Getting 3 keys from $vault_secret_key"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS \
+            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+            ${VAULT_ADDR}/v1/${vault_secret_key} | \
+            jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekey"]')
+          keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["gethpassword"]')                    
+          
+          echo "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt          
+          echo "${nodekey}" > ${OUTPUT_PATH}/nodekey
+          echo "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tm_keyname }}"
+          echo "Getting 2 keys from $vault_secret_key"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS \
+            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+            ${VAULT_ADDR}/v1/${vault_secret_key} | \
+            jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.pub"]')
+          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.key"]')
+          echo "${tmpub}" > ${OUTPUT_PATH}/tm.pub
+          echo "${tmkey}" > ${OUTPUT_PATH}/tm.key
+          
+        volumeMounts:
+        - name: certificates
+          mountPath: /secret
+      - name: quorum-genesis-init-container
+        image: "{{ .Values.images.node }}"
+        command: [ "sh" ]
+        args:
+        - "-cx"
+        - "mkdir -p $QUORUM_DATA_DIR;
+          cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
+          if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
+            /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
+            touch $QUORUM_DATA_DIR/genesis_created;
+          fi;
+          "
+        env:
+          - name: QUORUM_DATA_DIR
+            value: {{ .Values.node.mountPath }}/dd
+        volumeMounts:
+        - name: {{ .Values.node.name }}-pv
+          mountPath: {{ .Values.node.mountPath }}
+        - name: {{ .Values.node.name }}-genesis-volume
+          mountPath: {{ .Values.node.mountPath }}/genesis
+
+      containers:
+      - name: constellation
+        image: {{ .Values.images.constellation }}
+        command: ["sh"]
+        args:
+        - "-cx"
+        - "chmod 600 $QUORUM_HOME/crypto/keys/tm.key;
+           mkdir -p $QUORUM_HOME/logs;
+           mkdir -p $QUORUM_HOME/database;
+           DDIR=$QUORUM_HOME/tm;
+           printenv;
+           args=\" --url={{ .Values.constellation.url }}  \
+           --port={{ .Values.node.ports.constellation }} \
+           --storage={{ .Values.constellation.storage }} \
+           --workdir=$DDIR \
+           --socket=$DDIR/tm.ipc \
+           --publickeys=$QUORUM_HOME/crypto/keys/tm.pub \
+           --privatekeys=$QUORUM_HOME/crypto/keys/tm.key \
+           --verbosity=9 \
+           --tls={{ .Values.constellation.tls }} \
+           --tlsservertrust={{ .Values.constellation.trust }} \
+           --tlsclienttrust={{ .Values.constellation.trust }} \
+           --othernodes={{ .Values.constellation.othernodes }} \";
+           /usr/local/bin/constellation-node $args  2>&1 | tee -a $QUORUM_HOME/logs/tm.log; "
+          
+        ports:
+          - containerPort: {{ .Values.node.ports.constellation }}
+        env:
+          - name: QUORUM_HOME
+            value: {{ .Values.node.mountPath }}
+        volumeMounts:
+        - name: certificates
+          mountPath: {{ .Values.node.mountPath }}/crypto/
+        - name: {{ .Values.node.name }}-pv
+          mountPath: {{ .Values.node.mountPath }}
+      - name: quorum
+        image: "{{ .Values.images.node }}"
+        command: ["sh"]
+        args:
+        - "-cx"
+        - |-
+          #!/usr/bin/env sh
+          sleep 5;
+          
+          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
+          mkdir -p $QUORUM_DATA_DIR/geth
+          mkdir -p $QUORUM_DATA_DIR/keystore          
+          # touch $qd/passwords.txt
+          cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
+          cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
+          cp $QUORUM_HOME/crypto/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
+          
+          echo what in this dir;
+          ls  $QUORUM_DATA_DIR;
+
+          rm -f $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
+          rm -f $QUORUM_HOME/crypto/keys/nodekey
+          rm -f $QUORUM_HOME/crypto/keys/passwords.txt
+          
+          args=""
+          if [ $CONSENSUS == 'raft' ]; then
+            args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft "
+          fi;
+          if [ $CONSENSUS == 'ibft' ]; then
+            args=" --istanbul.blockperiod 1 --syncmode full --mine --minerthreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+          fi;
+
+          /usr/local/bin/geth \
+           --datadir $QUORUM_DATA_DIR \
+           $args \
+           --nodiscover \
+           --verbosity 9 \
+           --unlock 0 \
+           --emitcheckpoints \
+           --rpc \
+           --rpcaddr 0.0.0.0 \
+           --rpcport {{ .Values.node.ports.rpc }} \
+           --port {{ .Values.node.ports.quorum }} \
+           --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
+        ports:
+          - containerPort: {{ .Values.node.ports.rpc }}
+          - containerPort: {{ .Values.node.ports.raft }}
+          - containerPort: {{ .Values.node.ports.quorum }}
+        env:
+          - name: PRIVATE_CONFIG
+            value: {{ .Values.node.mountPath }}/tm/tm.ipc
+          - name: QUORUM_DATA_DIR
+            value: {{ .Values.node.mountPath }}/dd
+          - name: QUORUM_HOME
+            value: {{ .Values.node.mountPath }}
+          - name: TM_HOME
+            value: {{ .Values.node.mountPath }}/tm/
+          - name: CONSENSUS
+            value: {{ .Values.node.consensus }}
+        volumeMounts:
+        - name: certificates
+          mountPath: {{ .Values.node.mountPath }}/crypto/
+        - name: {{ .Values.node.name }}-pv
+          mountPath: {{ .Values.node.mountPath }}
+      restartPolicy: Always
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.node.name }}-pv
+      spec:
+        storageClassName: {{ .Values.storage.storageclassname }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.storagesize }}

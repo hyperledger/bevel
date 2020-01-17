@@ -20,7 +20,7 @@ spec:
     organization:
       name: {{ organizationItem.name }}
     image:
-      imagePullSecret: regcred
+      pullSecret: regcred
       initContainer:
         name: {{ component_name }}-init
         repository: alpine:3.9.4
@@ -28,7 +28,7 @@ spec:
         name: {{ component_name }}
         repository: {{ network.docker.url }}/indy-node:0.3.0.0
     node:
-      name: {{ component_name }}
+      name: {{ stewardItem.name }}
       ip: 0.0.0.0
       port: {{ stewardItem.node.port }}
     client:
@@ -37,13 +37,12 @@ spec:
     service:
       ports:
         nodePort: {{ stewardItem.node.port }}
-        nodeTargetPort: {{ stewardItem.client.targetPort }}
+        nodeTargetPort: {{ stewardItem.node.targetPort }}
         clientPort: {{ stewardItem.client.port }}
-        clientTargetPort: {{ stewardItem.node.targetPort }}
+        clientTargetPort: {{ stewardItem.client.targetPort }}
     configmap:
-      poolGenesis: {{ organizationItem.name }}-pool-transactions-genesis
       indyConfig: |-
-        NETWORK_NAME = {{ network.name }}
+        NETWORK_NAME = '{{ network.name }}'
         # Enable stdout logging
         enableStdOutLogging = True
         logRotationBackupCount = 10
@@ -63,11 +62,13 @@ spec:
         NODE_INFO_DIR = '/var/lib/indy/data'
     ambassador:
       annotations: |-
+        ---
         apiVersion: ambassador/v1
         kind: TCPMapping
         name: {{ component_name|e }}-node-mapping
         port: {{ stewardItem.node.ambassador }}
         service: {{ component_name|e }}.{{ component_ns }}:{{ stewardItem.node.targetPort }}
+        ---
         apiVersion: ambassador/v1
         kind: TCPMapping
         name: {{ component_name|e }}-client-mapping
@@ -75,12 +76,14 @@ spec:
         service: {{ component_name|e }}.{{ component_ns }}:{{ stewardItem.client.targetPort }}
     vault:
       address: {{ vault.url }}
-      serviceAccountName: {{ component_name }}-vault-auth
-      keyPath: /keys/{{ network.name }}/keys/{{ component_name }}
-      nodeId: {{ component_name }}
+      serviceAccountName: {{ organizationItem.name }}-{{ stewardItem.name }}-vault-auth
+      keyPath: /keys/{{ network.name }}/keys/{{ stewardItem.name }}
+      authPath: kubernetes-{{ organizationItem.name }}-{{ stewardItem.name }}-auth
+      nodeId: {{ stewardItem.name }}
+      role: ro
     storage:
       data:
-        storagesize: 1Gi
+        storagesize: 10Gi
         storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
       keys:
         storagesize: 1Gi

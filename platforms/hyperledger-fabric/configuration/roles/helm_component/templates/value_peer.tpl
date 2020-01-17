@@ -14,6 +14,10 @@ spec:
   values:
     metadata:
       namespace: {{ peer_ns }}
+      images:
+        couchdb: {{ couchdb_image }}
+        peer: {{ peer_image }}
+        alpineutils: {{ alpine_image }}
         
     peer:
       name: {{ peer_name }}

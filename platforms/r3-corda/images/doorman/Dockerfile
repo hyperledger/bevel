@@ -16,6 +16,6 @@ RUN mkdir -p /opt/doorman/db /opt/doorman/logs /home/doorman \
   && chgrp -R 0 /opt/doorman \
   && chmod -R g=u /opt/doorman \
   && chown -R doorman:doorman /opt/doorman /home/doorman
-USER doorman
+USER root
 VOLUME /opt/doorman/db /opt/doorman/logs
 COPY target/doorman.jar /opt/doorman/doorman.jar

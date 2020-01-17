@@ -12,7 +12,9 @@
   gather_facts: no
   tasks:
     - include_role:
-        name: "create/chaincode/install"      
+        name: "create/chaincode/install"
+      vars:
+        docker_url: "{{ network.docker.url }}"
       loop: "{{ network['organizations'] }}"
       when: network.type == 'fabric' and item.type == 'peer'
 
@@ -20,6 +22,7 @@
         name: "create/chaincode/instantiate"
       vars:
         participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
     
     # delete build directory
