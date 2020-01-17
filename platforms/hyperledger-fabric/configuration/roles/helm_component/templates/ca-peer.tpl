@@ -14,6 +14,9 @@ spec:
   values:
     metadata:
       namespace: {{ component_name | e }}
+      images:
+        alpineutils: {{ alpine_image }}
+        ca: {{ ca_image }}
     server:
       name: {{ component_services.ca.name }}
       tlsstatus: true

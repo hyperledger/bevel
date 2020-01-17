@@ -28,7 +28,7 @@ Ideally, the configuration should be run by the following command from the root 
 ```
 ansible-playbook platforms/shared/configuration/site.yaml -e "@./platforms/hyperledger-fabric/configuration/network.yaml"
 ```
-Ensure that you have added the **Flux SSH Key** with read-write permission to your git repository. The Flux SSH Key is produced when [platforms/shared/kubernetes-env-setup.yaml](../../shared/configuration/kubernetes-env-setup.yaml) is executed. Follow steps in [README](../../shared/configuration/README.md).<br>
+Ensure that you have added an **SSH Key** with read-write permission to your git repository before executing the playbook. Follow steps in [README](../../shared/configuration/README.md).<br>
 If you just want to run this deploy-network.yaml playbook, then, from the *platforms/hyperledger-fabric/configuration* directory, run the following command for deploying the network
 ```
 ansible-playbook deploy-network.yaml -e "@./network.yaml"

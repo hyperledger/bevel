@@ -13,12 +13,15 @@
     # First install the new chaincode version
     - include_role:
         name: "create/chaincode/install"      
+      vars:
+        docker_url: "{{ network.docker.url }}"
       loop: "{{ network['organizations'] }}"
       when: network.type == 'fabric' and item.type == 'peer'
     # Then Upgrade, instantiation is not needed while upgrading
     - include_role:
         name: "create/chaincode/upgrade"
       vars:
+        docker_url: "{{ network.docker.url }}"
         participants: "{{ item.participants }}"
       loop: "{{ network['channels'] }}"
       when: network.type == 'fabric'

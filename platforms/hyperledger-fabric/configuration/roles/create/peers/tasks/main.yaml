@@ -21,6 +21,9 @@
     name: "{{ item.name | lower }}"
     type: "value_peer"
     component_name: values-{{ peer.name }}
+    couchdb_image: "hyperledger/fabric-couchdb:{{ couchdb_image_version[network.version] }}"
+    peer_image: "hyperledger/fabric-peer:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     peer_name: "{{ peer.name }}"
     peer_ns: "{{ namespace }}"
   loop: "{{ component_services.peers }}"
@@ -35,6 +38,7 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     GIT_REPO: "{{ item.gitops.git_push_url }}"
     GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_EMAIL: "{{ item.gitops.email }}"
     GIT_PASSWORD: "{{ item.gitops.password }}"
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
