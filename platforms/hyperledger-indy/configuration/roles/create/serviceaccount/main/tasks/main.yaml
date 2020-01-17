@@ -8,7 +8,7 @@
     name: create/serviceaccount/by_identities
   vars:
     component_namespace: "{{ component_ns }}"
-    component_name: "{{ trusteeItem.name }}-vault-auth"
+    component_name: "{{ organization }}-{{ trusteeItem.name }}-vault-auth"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
   loop: "{{ services.trustees }}"
   loop_control:
@@ -21,7 +21,7 @@
     name: create/serviceaccount/by_identities
   vars:
     component_namespace: "{{ component_ns }}"
-    component_name: "{{ stewardItem.name }}-vault-auth"
+    component_name: "{{ organization }}-{{ stewardItem.name }}-vault-auth"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
   loop: "{{ services.stewards }}"
   loop_control:
@@ -34,7 +34,7 @@
     name: create/serviceaccount/by_identities
   vars:
     component_namespace: "{{ component_ns }}"
-    component_name: "{{ endorserItem.name }}-vault-auth"
+    component_name: "{{ organization }}-{{ endorserItem.name }}-vault-auth"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
   loop: "{{ services.endorsers }}"
   loop_control:
@@ -67,6 +67,7 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     GIT_REPO: "{{ gitops.git_push_url }}"
     GIT_USERNAME: "{{ gitops.username }}"
+    GIT_EMAIL: "{{ gitops.email }}"
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
@@ -77,7 +78,7 @@
   include_role:
     name: create/serviceaccount/waiting
   vars:
-    name: "{{ trusteeItem.name }}"
+    name: "{{ organization }}-{{ trusteeItem.name }}"
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trusteeItem
@@ -88,7 +89,7 @@
   include_role:
     name: create/serviceaccount/waiting
   vars:
-    name: "{{ stewardItem.name }}"
+    name: "{{ organization }}-{{ stewardItem.name }}"
   loop: "{{ services.stewards }}"
   loop_control:
     loop_var: stewardItem
@@ -99,14 +100,14 @@
   include_role:
     name: create/serviceaccount/waiting
   vars:
-    name: "{{ endorserItem.name }}"
+    name: "{{ organization }}-{{ endorserItem.name }}"
   loop: "{{ services.endorsers }}"
   loop_control:
     loop_var: endorserItem
   when: services.endorsers is defined
 
 # Waiting for organization account and cluster binding role
-- name: "Waiting for endorsers accounts and cluster binding roles"
+- name: "Waiting for organization accounts and cluster binding roles"
   include_role:
     name: create/serviceaccount/waiting
   vars:

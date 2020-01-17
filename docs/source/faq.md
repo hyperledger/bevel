@@ -43,7 +43,7 @@ Unfortunately, there are no existing training for using the Blockchain Automatio
 Yes, you can add additional nodes to a running DLT network using the Blockchain Automation Framework (BAF). Unfortunately, BAF does not support removing nodes in a running DLT network, but this significant feature is in our future roadmap, and we will add this feature in a future release.
 
 ### Does the Blockchain Automation Framework support multiple versions of Fabric and Corda? What are the minimum versions for Fabric and Corda supported in the Blockchain Automation Framework?
-No, unfortunatley, the Blockchain Automation Framework currently only supports version 1.4.0 for Fabric and version 4.0 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda.
+No, unfortunatley, the Blockchain Automation Framework currently only supports version 1.4.0 & 1.4.4 for Fabric and version 4.1 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda.
 
 ## 2.FAQs for Operators Guide
 
@@ -96,7 +96,7 @@ Honest speaking, we don't know. Currently the Blockchain Automation Framework ha
 It is assumed that newer versions of these tools would be backward compatible, which is beyond our control. One can raise a new ticket to the Blockchain Automation Framework GitHub repository, if any major updates would break the system down.
 
 ### Why does the Flux K8s pod get a permission denied for this Blockchain Automation Framework GitHub repository?
-There is a SSH key displayed as the last role of the Flux Ansible playbook, this key should be added as an authentication method for the repository user. Details can be found in this [readme file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/README.md).
+This usually means that the private key that you have used in your network.yaml for gitops does not have access to the GitHub repository. The corresponding public key must be added to your GitHub Account (or other git repository that you are using). Details can be found in this [readme file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/README.md).
 
 ### Why does the flux-helm-operator keep on reporting "Failed to list *v1beta1.HelmRelease: the server could not find the requested resource (get helmreleases.flux.weave.works)"?
 The HelmRelease CustomResourceDefinition (CRD) was missing from the cluster, according to https://github.com/fluxcd/flux, the following command has to be used to deploy it:
