@@ -1,0 +1,17 @@
+#----------------------------------------------------------------------  
+# create deployment file for node steward
+- name: "Create new identity ledger transaction deployment file"
+  include_role:
+    name: create/helm_component/ledger_txn
+  vars:
+    component_type: "identity"
+    component_name: "{{ stewardItem.name }}"
+    indy_version: "indy-{{ network.version }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    adminIdentity: "{{ organizationItem.services.trustees }}"
+    newIdentity: "{{ organizationItem.services.endorsers }}"
+    component_ns: "{{ organizationItem.name | lower }}-ns"
+  loop: "{{ organizations }}"
+  when: organizationItem.services.endorsers is defined
+  loop_control:
+    loop_var: organizationItem

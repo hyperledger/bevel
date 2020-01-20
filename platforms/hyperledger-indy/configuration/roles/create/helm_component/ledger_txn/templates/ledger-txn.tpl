@@ -30,13 +30,12 @@ spec:
     organization:
       name: 
         adminIdentity:
-          name: {{ admin_name }}
-          path: {{ admin_path }}
+          name: {{ file_var.trustee_name }}
+          did: {{ file_var.trustee_did }}
         newIdentity:
-          name: {{ newIdentity_name }}
-          path: {{ newIdentity_path }}
+          name: {{ file_var.endorser_name }}
           role: {{ newIdentity_role }}
-		  did: {{ newIdentity_did }}
-		  verkey: {{ newIdentity_verkey }}
+		      did: {{ file_var.endorser_did }}
+		      verkey: {{ file_var.endorser_verkey }}
     node:
       name: {{ component_name }}

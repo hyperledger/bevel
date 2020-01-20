@@ -54,13 +54,13 @@ spec:
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
           
-          QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$ADMIN_PATH/$ADMIN_NAME/identity/private | jq -r 'if .errors then . else . end')
+          QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/kv/$ADMIN_NAME/identity/private | jq -r 'if .errors then . else . end')
           validateVaultResponse 'Admin Seed' "${QUERY_RES}"
           admin_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]");
           mkdir -p /data/seed;
           echo "${admin_seed}" > /data/seed/adminseed.txt;
           
-          QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$IDENTITY_PATH/$IDENTITY_NAME/identity/private | jq -r 'if .errors then . else . end')
+          QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/kv/$IDENTITY_NAME/identity/private | jq -r 'if .errors then . else . end')
           validateVaultResponse 'Identity Seed' "${QUERY_RES}"
           identity_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]")
           echo "${identity_seed}" > /data/seed/identityseed.txt;
@@ -73,14 +73,10 @@ spec:
             value: "{{ $.Values.vault.authpath }}"
           - name: VAULT_ADDR
             value: "{{ $.Values.vault.address }}"
-          - name: ADMIN_PATH
-            value: "{{ $.Values.organization.name.adminIdentity.path }}"
           - name: ADMIN_NAME
             value: "{{ $.Values.organization.name.adminIdentity.name }}"
           - name: IDENTITY_NAME
             value:  "{{ $.Values.organization.name.newIdentity.name }}"
-          - name: IDENTITY_PATH
-            value: "{{ $.Values.organization.name.newIdentity.path }}"
         volumeMounts:
           - name: shared-data
             mountPath: /data
