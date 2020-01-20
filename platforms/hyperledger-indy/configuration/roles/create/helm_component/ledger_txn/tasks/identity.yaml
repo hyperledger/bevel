@@ -1,0 +1,19 @@
+#----------------------------------------------------------------------  
+    # create deployment file for node steward
+    - name: "Create new identity ledger transaction deployment file"
+      include_role:
+        name: ledger-tpl
+      vars:
+        component_type: "identity"
+        component_name: "{{ organizationItem.name }}"
+        indy_version: "indy-{{ network.version }}"
+        release_dir: "/home/endorsers"
+        adminIdentity: "{{ organizationItem.services.trustees }}"
+        newIdentity: "{{ organizationItem.services.endorsers }}"
+        component_ns: "{{ organizationItem.name | lower }}-ns"
+        org_vault_url: "{{ organizationItem.vault.url}}"
+        vault_ac_token: "{{ ac_vault_tokens[organization] }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: organizationItem
+      when: organizationItem.services.endorsers is defined
