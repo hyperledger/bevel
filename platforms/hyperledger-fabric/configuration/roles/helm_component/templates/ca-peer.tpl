@@ -14,13 +14,16 @@ spec:
   values:
     metadata:
       namespace: {{ component_name | e }}
+      images:
+        alpineutils: {{ alpine_image }}
+        ca: {{ ca_image }}
     server:
       name: {{ component_services.ca.name }}
       tlsstatus: true
       admin: {{ component }}-admin
     storage:
       storageclassname: {{ component | lower }}sc
-      storagesize: 1Gi
+      storagesize: 512Mi
     vault:
       role: vault-role
       address: {{ vault.url }}
@@ -38,23 +41,6 @@ spec:
 {% if component_services.ca.grpc.nodePort is defined %}
           nodeport: {{ component_services.ca.grpc.nodePort }}
 {% endif %}
-    ambassador:
-    #Provide annotations for ambassador service configuration
-    #Only use HTTPS as HTTP and HTTPS don't work together ( https://github.com/datawire/ambassador/issues/1000 )
-      annotations: |- 
-        ---
-        apiVersion: ambassador/v1
-        kind:  Mapping
-        name:  ca_{{ component_name }}_mapping
-        prefix: /
-        host: ca.{{ component_name }}:7054
-        service: ca.{{ component_name }}:7054
-        tls: ca_{{ component_name }}_tls
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: ca_{{ component_name }}_tls
-        hosts:
-        - ca.{{ component_name }}
-        secret: ca-{{ component_name }}-ambassador-certs
-    
+    proxy:
+      provider: {{ network.env.proxy }}
+      type: peer

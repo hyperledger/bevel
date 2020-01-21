@@ -1,0 +1,45 @@
+# Remove all Helm releases of organization
+- name: Remove all Helm releases of organization {{ organization }}
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} helm ls | grep {{ organization }}- | awk '{print $1}' | xargs --no-run-if-empty helm delete --purge
+
+# Get all existing Cluster Role Bindings of organization
+- name: Get all existing Cluster Role Bindings of organization {{ organization }}
+  k8s_facts:
+    kind: ClusterRoleBinding
+    namespace: "default"
+    label_selectors:
+      - organization = {{ organization }}
+  register: rolelist
+
+# Remove an existing Cluster Role Binding
+- name: Remove an existing Cluster Role Binding of {{ organization }}
+  k8s:
+    state: absent
+    kind : ClusterRoleBinding
+    namespace: "default"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ rolelist.resources }}"
+  loop_control:
+    loop_var: item
+  when: rolelist is defined
+
+# Remove an existing Namespace
+- name: Remove an existing Namespace {{ organization_ns }}
+  k8s:
+    state: absent
+    kind: Namespace
+    namespace: "{{ organization_ns }}"
+    name: "{{ organization_ns }}"
+
+# Remove an existing Storage Class
+- name: Remove an existing Storage Class of {{ organization }}
+  vars:
+    provider: "{{ organizationItem.cloud_provider }}"
+    storageclass_name: "{{ provider }}-storageclass"
+    component_name: "{{ organization }}-{{ storageclass_name }}"
+  k8s:
+    state: absent
+    kind: StorageClass
+    namespace: "default"
+    name: "{{ component_name }}"

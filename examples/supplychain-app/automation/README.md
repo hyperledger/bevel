@@ -12,7 +12,7 @@ Ensure that you already have a Cloudbees Jenkins with master slave configuration
     * gradleslave
     * ansible
 2. Docker Registry to store the docker images.
-3. Working DLT Platform installed using The Blockchain Automation Framework.
+3. Working DLT Platform installed using the Blockchain Automation Framework.
 
 All environment variables and parameters are described in the respective jenkinsfiles. Please check them and update according to your environment.
 

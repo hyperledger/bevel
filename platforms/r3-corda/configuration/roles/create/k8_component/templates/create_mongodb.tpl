@@ -10,7 +10,7 @@ spec:
   replicas: 1
   releaseName: mongodb-{{ nodename }}
   chart:
-    path: {{ org.gitops.chart_source }}/mongodb
+    path: {{ org.gitops.chart_source }}/{{ chart }}
     git: {{ org.gitops.git_ssh }}
     ref: {{ org.gitops.branch }}
   values:
@@ -22,7 +22,7 @@ spec:
       imagePullSecret: regcred
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
     storage:
-      memory: 1Gi
+      memory: 512Mi
       name: {{ org.cloud_provider }}storageclass
       mountPath: /data/db
       volname: hostvol
@@ -32,6 +32,7 @@ spec:
       authpath: {{ component_auth }}
       secretprefix: {{ nodename }}/credentials/mongodb
       serviceaccountname: vault-auth
+      certsecretprefix: {{nodename}}/certs
     service:
       tcp:
           port: 27017
@@ -44,3 +45,5 @@ spec:
       annotations: {}
     mongodb:
       username: {{ nodename }}
+    cluster:
+      enabled: false

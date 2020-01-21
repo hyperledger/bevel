@@ -14,9 +14,13 @@ spec:
   values:
     metadata: 
       namespace: {{ namespace }}
+      images:
+        kafka: {{ kafka_image }}
+        zookeeper: {{ zookeeper_image }}
+      
     storage: 
       storageclassname: {{ org_name }}sc
-      storagesize: 1Gi
+      storagesize: 512Mi
     kafka: 
       brokerservicename: {{consensus.type}}
       name: {{consensus.name}}
