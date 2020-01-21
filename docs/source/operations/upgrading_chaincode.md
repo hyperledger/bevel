@@ -67,7 +67,6 @@ network:
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
       ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
     - organization:      
@@ -76,7 +75,6 @@ network:
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
@@ -85,7 +83,6 @@ network:
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
@@ -94,7 +91,6 @@ network:
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer.org1ambassador.blockchaincloudpoc.com:8443
     genesis:
@@ -242,7 +238,7 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: peer          
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.          
           gossippeeraddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443          
           grpc:
             port: 7051         
@@ -328,7 +324,7 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: peer
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.
           gossippeeraddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443          
           grpc:
             port: 7051         
@@ -413,7 +409,7 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: peer
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.
           gossippeeraddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443          
           grpc:
             port: 7051
@@ -499,7 +495,7 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: peer
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.
           gossippeeraddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443          
           grpc:
             port: 7051       
