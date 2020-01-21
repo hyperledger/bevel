@@ -18,9 +18,9 @@
     echo "${identity_data}" >> data.yaml
             
 
-    endorser_name={{ endorser_item }}
-    endorser_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[component_name] }}" "{{ org_vault_url }}"/v1/"{{ component_name }}"/endorser/"{{ endorser_item }}"/identity/public | jq -r 'if .errors then . else .data.did end');  
-    endorser_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[component_name] }}" "{{ org_vault_url }}"/v1/"{{ component_name }}"/endorser/"{{ endorser_item }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
+    endorser_name={{ identity_name }}
+    endorser_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[component_name] }}" "{{ org_vault_url }}"/v1/"{{ component_name }}"/endorser/"{{ identity_name }}"/identity/public | jq -r 'if .errors then . else .data.did end');  
+    endorser_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[component_name] }}" "{{ org_vault_url }}"/v1/"{{ component_name }}"/endorser/"{{ identity_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
 
     identity_data="endorser_name: ${endorser_name}"
     echo "${identity_data}" >> data.yaml
@@ -49,7 +49,6 @@
   vars:
     values_file: "{{ release_dir }}/{{ component_name }}/{{ endorser_item }}-{{ component_type }}.yaml"
     chart: "indy-ledger-txn"
-    newIdentity_role: "ENDORSER"
     identity_name: "{{ endorser_item }}"
     auth_path: "{{ component_ns }}-auth"
     

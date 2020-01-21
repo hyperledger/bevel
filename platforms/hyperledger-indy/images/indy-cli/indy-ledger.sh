@@ -3,15 +3,13 @@
 admin_did=$1
 admin_seed=$2
 identity_did=$3
-identity_seed=$4
-identity_role=$5
-identity_verkey=$6
-pool_genesis_path=$7
+identity_role=$4
+identity_verkey=$5
+pool_genesis_path=$6
 
 [ -z "$admin_did" ] && { echo "Script Failed: Admin DID Missing"; exit 1;} || echo "Admin DID Received";
 [ -z "$admin_seed" ] && { echo "Script Failed: Admin seed Missing"; exit 1;} || echo "Admin Seed Received";
 [ -z "$identity_did" ] && { echo "Script Failed: Identity DID Missing"; exit 1;} || echo "Identity DID Received";
-[ -z "$identity_seed" ] && { echo "Script Failed: Identity Seed Missing"; exit 1;} || echo "Identity Seed Received";
 [ -z "$identity_role" ] && { echo "Script Failed: Identity Role Missing"; exit 1;} || echo "Identity Role Received";
 [ -z "$identity_verkey" ] && { echo "Script Failed: Identity Verkey Missing"; exit 1;} || echo "Identity Verkey Received";
 [ -z "$pool_genesis_path" ] && { echo "Script Failed: Genesis Pool File Path Missing"; exit 1;} || echo "Genesis Pool File Path Received";
@@ -24,14 +22,6 @@ echo "{
 \"seed\": \"$admin_seed\"
 }]
 }" > admindid.txt;
-
-echo "{
-\"version\": 1,
-\"dids\": [{
-\"did\": \"$identity_did\", 
-\"seed\": \"$identity_seed\"
-}]
-}" > identitydid.txt;
 
 echo "wallet create myIndyWallet key=12345
 wallet open myIndyWallet key=12345
@@ -49,7 +39,6 @@ fi
 
 echo "wallet open myIndyWallet key=12345
 did import ./admindid.txt
-did import ./identitydid.txt
 exit" > indy_txn.txt;
 
 indy-cli indy_txn.txt > txn_result.txt;
