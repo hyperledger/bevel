@@ -1,0 +1,36 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: authority-authority-trustee-auth-job
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: authority-ns
+spec:
+  releaseName: authority-authority-trustee-auth-job
+  chart:
+    path: platforms/hyperledger-indy/charts/indy-auth-job
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+  values:
+    metadata:
+      name: authority-authority-trustee-auth-job
+      namespace: authority-ns
+    network:
+      name: baf
+      kubernetes_url: 
+    image:
+      name: authority
+      repository: alpine:3.9.4
+    vault:
+      address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9000
+      keyPath: authority.trustees
+      identity: authority-trustee
+      admin_auth_path: kubernetes-authority-admin-auth
+      policy: authority-authority-trustee-ro
+      policy_content: path \"/authority/trustees/authority-trustee/*\" { capabilities = [ \"read\", \"list\" ] }
+      auth_path: kubernetes-authority-authority-trustee-auth
+    account:
+      admin_service: authority-admin-vault-auth
+      admin_role: rw
+      service: authority-authority-trustee-vault-auth
+      role: ro
