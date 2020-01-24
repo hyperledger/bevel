@@ -1,0 +1,22 @@
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+    - include_role:
+        name: setup/geth
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'quorum'
+
+    - include_role:
+        name: setup/bootnode
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'quorum'
+
+    - include_role:
+        name: create/generate_crypto_raft
+      vars:
+        component_name: "{{ item.name | lower }}"
+        component_ns: "{{ item.name | lower }}-net"
+        vault: "{{ item.vault }}"
+        peer: "{{ item.services.peers[0] }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.type == 'quorum'
