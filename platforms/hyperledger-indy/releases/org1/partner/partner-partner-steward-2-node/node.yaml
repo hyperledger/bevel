@@ -1,0 +1,90 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: partner-partner-steward-2-node
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: partner-ns
+spec:
+  releaseName: partner-partner-steward-2-node
+  chart:
+    path: platforms/hyperledger-indy/charts/indy-node
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+  values:
+    metadata:
+      name: partner-partner-steward-2-node
+      namespace: partner-ns
+    network:
+      name: baf
+    organization:
+      name: partner
+    image:
+      pullSecret: regcred
+      initContainer:
+        name: partner-partner-steward-2-node-init
+        repository: alpine:3.9.4
+      indyNode:
+        name: partner-partner-steward-2-node
+        repository: adopblockchaincloud0502.azurecr.io/indy-node:0.3.0.0
+    node:
+      name: partner-steward-2
+      ip: 0.0.0.0
+      port: 9741
+    client:
+      ip: 0.0.0.0
+      port: 9742
+    service:
+      ports:
+        nodePort: 9741
+        nodeTargetPort: 9741
+        clientPort: 9742
+        clientTargetPort: 9742
+    configmap:
+      indyConfig: |-
+        NETWORK_NAME = 'baf'
+        # Enable stdout logging
+        enableStdOutLogging = True
+        logRotationBackupCount = 10
+        # Directory to store ledger.
+        LEDGER_DIR = '/var/lib/indy/data'
+        # Directory to store logs.
+        LOG_DIR = '/var/log/indy'
+        # Directory to store keys.
+        KEYS_DIR = '/var/lib/indy/keys'
+        # Directory to store genesis transactions files.
+        GENESIS_DIR = '/var/lib/indy/genesis'
+        # Directory to store backups.
+        BACKUP_DIR = '/var/lib/indy/backup'
+        # Directory to store plugins.
+        PLUGINS_DIR = '/var/lib/indy/plugins'
+        # Directory to store node info.
+        NODE_INFO_DIR = '/var/lib/indy/data'
+    ambassador:
+      annotations: |-
+        ---
+        apiVersion: ambassador/v1
+        kind: TCPMapping
+        name: partner-partner-steward-2-node-node-mapping
+        port: 9741
+        service: partner-partner-steward-2-node.partner-ns:9741
+        ---
+        apiVersion: ambassador/v1
+        kind: TCPMapping
+        name: partner-partner-steward-2-node-client-mapping
+        port: 9742
+        service: partner-partner-steward-2-node.partner-ns:9742
+    vault:
+      address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9000
+      serviceAccountName: partner-partner-steward-2-vault-auth
+      keyPath: /keys/baf/keys/partner-steward-2
+      authPath: kubernetes-partner-partner-steward-2-auth
+      nodeId: partner-steward-2
+      role: ro
+    storage:
+      data:
+        storagesize: 10Gi
+        storageClassName: partner-aws-baremetal-storageclass
+      keys:
+        storagesize: 1Gi
+        storageClassName: partner-aws-baremetal-storageclass
