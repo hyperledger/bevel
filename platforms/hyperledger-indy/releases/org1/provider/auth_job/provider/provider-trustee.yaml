@@ -1,0 +1,36 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: provider-provider-trustee-auth-job
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: provider-ns
+spec:
+  releaseName: provider-provider-trustee-auth-job
+  chart:
+    path: platforms/hyperledger-indy/charts/indy-auth-job
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+  values:
+    metadata:
+      name: provider-provider-trustee-auth-job
+      namespace: provider-ns
+    network:
+      name: baf
+      kubernetes_url: https://1AC499BC54318963A82BBEB7AA81E395.yl4.eu-west-1.eks.amazonaws.com
+    image:
+      name: provider
+      repository: alpine:3.9.4
+    vault:
+      address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9000
+      keyPath: provider.trustees
+      identity: provider-trustee
+      admin_auth_path: kubernetes-provider-admin-auth
+      policy: provider-provider-trustee-ro
+      policy_content: path \"/provider/trustees/provider-trustee/*\" { capabilities = [ \"read\", \"list\" ] }
+      auth_path: kubernetes-provider-provider-trustee-auth
+    account:
+      admin_service: provider-admin-vault-auth
+      admin_role: rw
+      service: provider-provider-trustee-vault-auth
+      role: ro
