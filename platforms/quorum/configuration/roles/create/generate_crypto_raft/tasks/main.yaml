@@ -1,3 +1,4 @@
+# This task checks if the crypto material is already stored in the vault or not
 - name: Check if nodekey already created
   shell: |
     vault read secret/{{ component_ns }}/crypto/{{ component_name }}/quorum/nodekey
@@ -7,12 +8,14 @@
   register: vault_nodekey_result
   ignore_errors: yes
 
+# This task creates the build directory if it does not exist
 - name: Create build directory if it does not exist
   file:
     path: build
     state: directory
     mode: '0755'
 
+# This task generates the crypto material for the node having raft consensus
 - name: Generate crypto for raft consensus
   shell: |
     mkdir build/{{ component_name }}
@@ -23,6 +26,7 @@
     cp build/{{ component_name }}/keystore/* build/{{ component_name }}/keystore.json
   when: vault_nodekey_result.failed == True
 
+# This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   shell: |
     vault kv put secret/{{ component_ns }}/crypto/{{ component_name }}/quorum nodekey="$(cat build/{{ component_name}}/nodekey)" keystore="$(cat build/{{ component_name }}/keystore.json)" db_user="demouser" db_password="password" gethpassword="$(cat build/{{ component_name }}/password)"

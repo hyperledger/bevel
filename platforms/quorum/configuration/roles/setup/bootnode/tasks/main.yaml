@@ -1,13 +1,16 @@
+# This task creates a temporary directory
 - name: register temporary directory
   tempfile:
     state: directory
   register: tmp_directory
 
+# This task checks if the bootnode binary is already in place or not
 - name: check bootnode
   stat:
     path: "{{ bootnode.bin_directory }}/bootnode"
   register: bootnod_stat_result
 
+# This task clones the quorum git repository
 - name: Clone the git repo
   git:
     repo: "{{ bootnode.repo }}"
@@ -15,12 +18,14 @@
     dest: "{{ tmp_directory.path }}"
   when: bootnod_stat_result.stat.exists == False
 
+# This task builds the bootnode binary
 - name: Make bootnode
   shell: |
     cd "{{ tmp_directory.path }}"
     make bootnode
   when: bootnod_stat_result.stat.exists == False
 
+# This task creates the bin directory, if it doesn't exist
 - name: create bin directory
   file:
     path: "{{ bootnode.bin_directory }}"
@@ -28,6 +33,7 @@
     recurse: yes
   when: bootnod_stat_result.stat.exists == False
 
+# This task puts the bootnode binary to the bin directory created in the above task
 - name: Copy bootnode binary to destination directory
   copy:
     src: "{{ tmp_directory.path }}/build/bin/bootnode"

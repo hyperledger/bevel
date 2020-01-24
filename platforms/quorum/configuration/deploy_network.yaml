@@ -1,16 +1,20 @@
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
+
+# This role makes up the geth binary and place it in the bin directory
     - include_role:
         name: setup/geth
       loop: "{{ network['organizations'] }}"
       when: network.type == 'quorum'
 
+# This role makes up the bootnode binary and place it in the bin directory
     - include_role:
         name: setup/bootnode
       loop: "{{ network['organizations'] }}"
       when: network.type == 'quorum'
 
+# This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
     - include_role:
         name: create/generate_crypto_raft
       vars:
