@@ -1,0 +1,31 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: authority-authority-trustee
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: authority-ns
+spec:
+  releaseName: authority-authority-trustee
+  chart:
+    path: platforms/hyperledger-indy/charts/indy-key-mgmt
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: feature/bafdemo
+  values:
+    metadata:
+      name: authority-authority-trustee
+      namespace: authority-ns
+    network:
+      name: baf
+    image:
+      name: authority
+      repository: adopblockchaincloud0502.azurecr.io/indy-key-mgmt:0.3.0.0
+      pullSecret: regcred
+    vault:
+      address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9000
+      keyPath: authority.trustees
+      identity: authority-trustee
+      auth_path: kubernetes-authority-admin-auth
+    account:
+      service: authority-admin-vault-auth
+      role: rw
