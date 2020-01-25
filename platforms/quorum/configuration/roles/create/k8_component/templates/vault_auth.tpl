@@ -3,4 +3,3 @@ kind: ServiceAccount
 metadata:
   name: vault-auth
   namespace: {{ component_name }}
-  

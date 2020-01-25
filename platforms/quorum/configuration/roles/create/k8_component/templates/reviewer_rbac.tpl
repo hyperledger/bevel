@@ -11,4 +11,3 @@ subjects:
 - kind: ServiceAccount
   name: vault-reviewer
   namespace: {{ component_name }}
-  

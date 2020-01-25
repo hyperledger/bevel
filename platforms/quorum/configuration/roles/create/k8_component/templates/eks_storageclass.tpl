@@ -7,4 +7,3 @@ reclaimPolicy: Delete
 volumeBindingMode: Immediate
 parameters:
   encrypted: "true" 
-   
