@@ -1,11 +1,27 @@
-#########################
-# Playbook to create deployment files for namespaces, service account and clusterrolebinding
-# Playbook arguments: complete network.yaml
-#########################
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:    
-  # ----------------------------------------------------------------------
+
+  # create namespace, service account and clusterrolebinding
+  - name: "Create namespace and service account"
+    include_role: 
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ item.name | lower }}-ns"
+      organisation: "{{ item.name | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      gitops: "{{ item.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'  
+
   # Create Storageclass
   - name: Create Storage Class
     include_role:
@@ -16,95 +32,48 @@
       org: "{{ item }}"
       kubernetes: "{{ item.k8s }}"
     loop: "{{ network['organizations'] }}"
-    when: network['type'] == 'corda'
-
-  # create namespace, service account and clusterrolebinding
-  - name: "Create namespace and vault auth"
-    include_role: 
-      name: create/namespace_serviceaccount
-    vars:
-      component_ns: "{{ item.name | lower }}-ns"
-      organisation: "{{ item.name | lower }}"
-      kubernetes: "{{ item.k8s }}"
-      gitops: "{{ item.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    when: network['type'] == 'corda'  
-
-  # ----------------------------------------------------------------------  
-  # Deploy Doorman node
-  - name: Deploy Doorman service node
-    include_role:
-      name: setup/doorman
-    vars:
-     services: "{{ item.services }}"
-     organisation: "{{ item.name | lower }}"
-     component_ns: "{{ item.name | lower }}-ns"
-     kubernetes: "{{ item.k8s }}"
-     vault: "{{ item.vault }}"
-     gitops: "{{ item.gitops }}"     
-    loop: "{{ network['organizations'] }}"
-    when: network['type'] == 'corda' and item.type.find('doorman') != -1
-
-    # ----------------------------------------------------------------------  
-  # Deploy NMS node
-  - name: Deploy Networkmap service node
-    include_role:
-      name: setup/nms      
-    vars:
-     services: "{{ item.services }}"
-     organisation: "{{ item.name | lower }}"
-     component_ns: "{{ item.name | lower }}-ns"
-     kubernetes: "{{ item.k8s }}"
-     vault: "{{ item.vault }}"
-     gitops: "{{ item.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    when: network['type'] == 'corda' and item.type.find('nms') != -1
+    when: network.type == 'quorum'
   
-  # ----------------------------------------------------------------------  
-  # Wait for orderer services to respond  
-  - name: Check that orderer uri are reachable
-    uri:
-      url: "{{ item.uri }}"
-      validate_certs: no
-    register: this
-    until: this.status == 200 or this.status == 401
-    loop: "{{ network['orderers'] }}"
-    retries: "{{ network.env.retry_count}}"
-    delay: 50
-    ignore_errors: yes
-
-  # ----------------------------------------------------------------------  
-  # Deploy notaries
-  - name: 'Deploy notary'
-    include_role:
-      name: setup/notary
+  
+  # Setup Vault-Kubernetes accesses and Regcred for docker registry
+  - name: "Setup vault"   
+    include_role: 
+      name: "setup/vault_kubernetes"
     vars:
-      node: "{{ item.services.notary }}"
-      organisation: "{{ item.name | lower }}"
       component_ns: "{{ item.name | lower }}-ns"
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}" 
+      component_name: "{{ item.name | lower}}"
+      component_path: "{{ item.name | lower }}/"
+      component_auth: "quorum{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: network['type'] == 'corda' and item.type.find('notary') != -1
+    when: network.type == 'quorum'
 
-  # ----------------------------------------------------------------------  
-  # Deploy all other nodes
-  - name: 'Deploy nodes'
+  # This role makes up the geth binary and place it in the bin directory
+  - name: "Setup geth"
     include_role:
-      name: setup/node
-    vars:
-      organisation: "{{ item.name | lower }}"
-      component_ns: "{{ item.name | lower }}-ns"
-      services: "{{ item.services }}"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}" 
-    loop: "{{ network['organizations'] }}"  
-    when: network['type'] == 'corda' and item.type == 'node'
+      name: setup/geth
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
 
-  # delete build directory
-  - name: Remove build directory
-    file:
-      path: "./build"
-      state: absent
+  # This role makes up the bootnode binary and place it in the bin directory
+  - name: "Setup bootnode"
+    include_role:
+      name: setup/bootnode
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
+  # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
+  - name: "Generate crypto material for RAFT consensus"
+    include_role:
+      name: create/generate_crypto_raft
+    vars:
+      component_name: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-net"
+      vault: "{{ item.vault }}"
+      peer: "{{ item.services.peers[0] }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
+  vars: #These variables can be overriden from the command line
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

@@ -22,8 +22,8 @@ This task checks if the vault path already exists.
     auth_list: Stores the list of enables auth methods
 
 #### 3. Enable and configure Kubernetes-auth for each Organization
-This task enables the path for the nms,doorman,notaries and nodes on vault
-This task runs only when {{auth_path}} is not already created
+This task enables the path for the nodes on vault
+This task runs only when {{component_auth}} is not already created
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
@@ -81,12 +81,12 @@ This task checks if the vault-ro polict already exists.
     vault_policy_result: Stores the list of policy
 
 #### 9.  Create policy for Organisations Access Control
-This task creates the access policy for various corda entity(nms,doorman,notary,nodes)
+This task creates the access policy for various nodes.
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
     *component_name: name of the resource
-**when**: Condition is specified here, runs only if the policy check is failed and component type is peer.
+**when**: Condition is specified here, runs only if the policy check is failed.
 
 #### 10.  Create Vault auth role
 This task creates the vault auth
@@ -97,5 +97,3 @@ This task creates the vault auth
     *component_name: name of the resource
 **shell** : This command creates the vault auth.
 **when**: Condition is specified here, runs only when *auth_path* is not found.
-
-

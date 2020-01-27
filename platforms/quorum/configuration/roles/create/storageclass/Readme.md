@@ -1,5 +1,5 @@
 ## ROLE: storageclass
-This role creates the storageclass value file for notaries and nodes
+This role creates the storageclass value file for nodes
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
@@ -33,9 +33,10 @@ This task pushes the generated value file to gitops repository by calling shared
     GIT_REPO: The git repository path where files willl be pushed to.
     GIT_USERNAME: The git repository ,where files willl be pushed to, username.
     GIT_PASSWORD: The git repository password, where files willl be pushed to, password.
+    GIT_EMAIL: Email for git config
     GIT_BRANCH: The git repository branch.
 
-#### 3. Wait for Storageclass creation for {{ component_name }}
+#### 4. Wait for Storageclass creation for {{ component_name }}
 This task checks storageclass is created or not by calling role check/k8_component role. 
 ##### Input Variables
 

@@ -6,4 +6,4 @@ provisioner: kubernetes.io/aws-ebs
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 parameters:
-  encrypted: "true"  
+  encrypted: "true"
