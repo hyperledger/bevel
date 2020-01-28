@@ -66,6 +66,10 @@ To execute all the playbooks sequentially, run the following command after editi
 ```
 ansible-playbook site.yaml -e "@./network.yaml"
 ```
+To reset the deployed network, run the following command after editing the correct network.yaml in the same folder as the playbook site.yaml
+```
+ansible-playbook site.yaml -e "@./network.yaml" -e "reset=true"
+```
 
 Individual playbooks can be run as
 ```
