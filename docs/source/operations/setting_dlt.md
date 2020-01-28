@@ -31,13 +31,7 @@ For a successful setup of DLT Network all the pods should be in running state.
 
 
 ## Deleting an existing DLT network
-The above mentioned playbook [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/README.md)) can be manually run after the configuration file [network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml), [network yaml details for R3-Corda](corda_networkyaml.md) and [network yaml details for Hyperledger-Fabric](fabric_networkyaml.md), has the required specifications which was used to setup the network by using the command:
+The above mentioned playbook [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/README.md)) can be run to reset the network using the network configuration file having the specifications which was used to setup the network using the following command:
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml" --extra-vars "reset=true"
-```
-
-
-The playbook [reset-network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/reset-network.yaml), ([reset-network yaml README for r3-corda](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration/README.md) and [reset-network yaml README for hyperledger fabric](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/README.md)), is used to reset the existing network based on specifications mentioned in configured [network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml), [network yaml details for R3-Corda](corda_networkyaml.md) and [network yaml details for Hyperledger-Fabric](fabric_networkyaml.md). This can also be done manually by using the command:
-```
-ansible-playbook path-to-reset-network.yaml --extra-vars "@path-to-network.yaml"
 ```
