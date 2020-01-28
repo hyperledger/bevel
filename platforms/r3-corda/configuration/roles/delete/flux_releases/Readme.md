@@ -4,10 +4,10 @@ This role deletes the helm releases and uninstalls Flux
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
 #### 1. Deletes Helmrelease
-This task deletes the doorman helmreleases
+This task deletes all helmreleases
 ##### Input Variables
     *component_name: name of the resource
-**shell** : script to purge and deletes the helmrelease for the same
+**shell** : script to purge and deletes the helmreleases
 **ignore_errors**: This flag ignores the any errors and proceeds further.
 
 #### 2. Uninstall Namespaces
