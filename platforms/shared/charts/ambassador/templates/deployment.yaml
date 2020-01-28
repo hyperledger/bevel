@@ -1,0 +1,96 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: ambassador
+rules:
+- apiGroups: [""]
+  resources:
+  - namespaces
+  - services
+  - secrets
+  - endpoints
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ambassador
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: ambassador
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ambassador
+subjects:
+- kind: ServiceAccount
+  name: ambassador
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ambassador
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: ambassador
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+        "consul.hashicorp.com/connect-inject": "false"
+      labels:
+        service: ambassador
+        name: ambassador
+        instance: {{ .Release.Name }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  service: ambassador
+              topologyKey: kubernetes.io/hostname
+      serviceAccountName: ambassador
+      containers:
+      - name: ambassador
+        image: {{ .Values.ambassador.image }}:{{ .Values.ambassador.tag }}
+        resources:
+          limits:
+            cpu: 1
+            memory: 400Mi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+        env:
+        - name: AMBASSADOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        ports:
+        - name: https
+          containerPort: 8443
+        - name: admin
+          containerPort: 8877
+        livenessProbe:
+          httpGet:
+            path: /ambassador/v0/check_alive
+            port: 8877
+          initialDelaySeconds: 30
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /ambassador/v0/check_ready
+            port: 8877
+          initialDelaySeconds: 30
+          periodSeconds: 3
+      restartPolicy: Always

@@ -1,0 +1,101 @@
+#################################################################################################
+# This role setups communication between the vault and kubernetes cluster and install 
+# neccessary configurations.
+#################################################################################################
+
+#################################################################################################
+# This tasks ensures the directory existance, if not exits it creates a new one
+- name: "Ensures build dir exists"
+  file:
+    path: "./build"
+    recurse: yes
+    state: directory
+
+# This task checks if the vault path already exists
+- name: Check if Kubernetes-auth already created for Organization
+  shell: |
+    vault auth list
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: auth_list
+
+###############################################################################################
+# This task enables the path for the nms,doorman,notaries and nodes on vault
+- name: Vault Auth enable for organisation
+  shell: |
+    vault auth enable --path="{{ component_auth }}" kubernetes
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: auth_list.stdout.find(component_auth) == -1   # Only when component_auth is NOT in the output of auth_list
+  ignore_errors: yes
+
+############################################################################################
+# This task get the certificate for the cluster mentioned in k8 secret
+- name: "Get Kubernetes cert files for organizations"
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 --decode > "./build/{{ component_ns }}.ca.cert"
+  when: auth_list.stdout.find(component_auth) == -1
+
+################################################################################################
+# This task writes the Service Account token to the vault for various corda entity(nms,doorman,notary,nodes)
+- name: Write reviewer token
+  shell: |
+    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_ns }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 --decode)
+    vault write auth/{{ component_auth }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_ns }}.ca.cert"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: auth_list.stdout.find(component_auth) == -1
+
+# This task checks if the vault secret path
+- name: Check if secret-path already created for Organization
+  shell: |
+    vault secrets list
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: secrets_list
+
+# This task creates the secret-path
+- name: Create Vault secrets path
+  shell: |
+    vault secrets enable -path={{ component_name }} kv
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: secrets_list.stdout.find(component_path) == -1
+
+# This task checks if the vault-ro polict already exists
+- name: Check if policy exists
+  shell: |
+    vault policy read vault-crypto-{{ component_name }}-ro
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_policy_result
+  ignore_errors: yes
+
+#####################################################################################################################
+# This task creates the access policy for various corda entity(nms,doorman,notary,nodes)
+- name: Create policy for Access Control
+  shell: |
+    cd ./build    
+    echo "path \"{{ component_name }}/*\" {
+        capabilities = [\"read\", \"list\"]
+    }"  >>  vault-crypto-{{ component_name }}-ro.hcl
+    vault write sys/policy/vault-crypto-{{ component_name }}-ro policy="@vault-crypto-{{ component_name }}-ro.hcl"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_policy_result.failed == True    # Run if policy check failed
+
+# This task creates the vault auth
+- name: Create Vault auth role
+  shell: |
+    vault write auth/{{ component_auth }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_ns }} policies=vault-crypto-{{ component_name }}-ro ttl=120s
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: auth_list.stdout.find(component_auth) == -1     # Run when auth_path is not found

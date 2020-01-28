@@ -1,0 +1,72 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
+  annotations:
+    getambassador.io/config: | 
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      name: {{ .Values.proxy.name }}_api_context
+      hosts:
+      - {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
+      {{ if eq .Values.proxy.type "fabric" }}
+      secret: {{ .Values.proxy.peer_name }}-{{ .Values.metadata.namespace }}-ambassador-certs
+      {{ else }}
+      secret: {{ .Values.proxy.peer_name }}-ambassador-certs
+      {{ end }}
+      ---
+      apiVersion: ambassador/v1
+      kind: Mapping
+      name: {{ .Values.proxy.name }}_api_p2p_mapping
+      prefix: /
+      host: {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}:8443
+      service: {{ .Values.proxy.name }}-expressapi.{{ .Values.metadata.namespace }}:{{ .Values.expressapp.nodePorts.port }}
+      timeout_ms: 20000
+      tls: false
+  {{ end }}
+  labels:
+    run: {{ .Values.nodeName }}
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+spec:
+  type: {{ .Values.expressapp.serviceType }}
+  selector:
+    app: {{ .Values.nodeName }}
+  ports:
+  - port: {{ .Values.expressapp.nodePorts.port }}
+    targetPort: {{ .Values.expressapp.nodePorts.targetPort }}
+    protocol: TCP
+    name: {{ .Values.expressapp.nodePorts.name }}
+    
+{{- if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+spec:
+  tls:
+  - hosts:
+    - {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
+    {{- if eq .Values.proxy.type "fabric" }}
+    secretName: {{ .Values.proxy.peer_name }}-{{ .Values.metadata.namespace }}-ambassador-certs
+    {{- else }}
+    secretName: {{ .Values.proxy.peer_name }}-ambassador-certs
+    {{- end }}
+  rules:
+  - host: {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ .Values.proxy.name }}-expressapi
+          servicePort: {{ .Values.expressapp.nodePorts.port }}
+{{- end }}

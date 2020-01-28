@@ -1,0 +1,232 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: {{ $.Values.peer.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    name: {{ $.Values.peer.name }}
+    app.kubernetes.io/name: {{ $.Values.peer.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  updateStrategy:
+    type: RollingUpdate 
+  serviceName: "{{ $.Values.peer.name }}"
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        app: {{ $.Values.peer.name }}
+        app.kubernetes.io/name: {{ $.Values.peer.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:   
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: dockersocket
+        hostPath:
+          path: /var/run/docker.sock
+      - name: {{ $.Values.peer.name }}-msp-config-volume
+        configMap:
+          name: {{ $.Values.peer.name }}-msp-config
+          items:
+            - key: mspconfig
+              path: mspconfig
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils}}
+        imagePullPolicy: Always
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ $.Values.vault.secretprefix }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: MOUNT_PATH
+          value: /secret
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          validateVaultResponse () {
+          if echo ${2} | grep "errors"; then
+           echo "ERROR: unable to retrieve ${1}: ${2}"
+           exit 1
+           fi
+          }
+
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          # Login to Vault and so I can get an approle token
+          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+            -H "Content-Type: application/json" \
+            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+            jq -r 'if .errors then . else .auth.client_token end')        
+          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/tls"
+          echo "Getting TLS certificates from Vault using key $vault_secret_key"
+
+          OUTPUT_PATH="${MOUNT_PATH}/tls"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ca.crt"]')
+          TLS_SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["server.crt"]')
+          TLS_SERVER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["server.key"]')
+
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+          echo "${TLS_SERVER_CERT}" >> ${OUTPUT_PATH}/server.crt
+          echo "${TLS_SERVER_KEY}" >> ${OUTPUT_PATH}/server.key
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/msp"
+          echo "Getting MSP certificates from Vault using key $vault_secret_key"
+
+          OUTPUT_PATH="${MOUNT_PATH}/msp"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+          ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["admincerts"]')
+          CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["cacerts"]')
+          KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+          SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signcerts"]')
+          TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+
+          # COUCH_DB CREDENTIALS
+          echo "Getting couch db credentials"
+          SECRET_COUCHDB_PASS={{ $.Values.vault.secretcouchdbpass }}
+          if [ ! -z $SECRET_COUCHDB_PASS ]
+          then
+            vault_secret_key=$(echo ${SECRET_COUCHDB_PASS} |awk -F "?" '{print $1}')
+            vault_data_key=$(echo ${SECRET_COUCHDB_PASS} |awk -F "?" '{print $2}')
+            LOOKUP_SECRET_RESPONSE=$(curl -sS \
+              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+            PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
+            echo "${PASSWORD}" >> ${MOUNT_PATH}/user_cred 
+          fi            
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+      containers:
+      - name: couchdb
+        image: {{ $.Values.metadata.images.couchdb }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          chown -R couchdb:couchdb /opt/couchdb
+          chmod -R 0770 /opt/couchdb/data
+          chmod 664 /opt/couchdb/etc/*.ini
+          chmod 664 /opt/couchdb/etc/local.d/*.ini
+          chmod 775 /opt/couchdb/etc/*.d
+          if [ -e /etc/hyperledger/fabric/crypto/user_cred ] && [ -z $COUCHDB_USER ]
+          then
+            echo " Error! Please provide username for the password "
+            exit 1
+            break
+          elif [ -e /etc/hyperledger/fabric/crypto/user_cred ] && [ ! -z $COUCHDB_USER ]
+          then
+            export COUCHDB_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
+            break
+          elif [ ! -e /etc/hyperledger/fabric/crypto/user_cred ] && [ ! -z $COUCHDB_USER ]
+          then
+            echo " Error! Please provide password for username $COUCHDB_USER "
+            exit 1
+            break
+          else
+            :
+          fi
+          tini -- /docker-entrypoint.sh /opt/couchdb/bin/couchdb
+
+        ports:
+        - containerPort: 5984
+        env:
+        - name: COUCHDB_USER
+          value: "{{ $.Values.peer.couchdb.username }}"
+        volumeMounts:
+        - name: datadir-couchdb
+          mountPath: /opt/couchdb/data
+        - name: certificates
+          mountPath: /etc/hyperledger/fabric/crypto
+      - name: {{ $.Values.peer.name }}
+        image: {{ $.Values.metadata.images.peer }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          cp /etc/hyperledger/fabric/NodeOUconfig/mspconfig  /etc/hyperledger/fabric/crypto/msp/config.yaml
+          export CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
+          peer node start
+        ports:
+        - name: grpc
+          containerPort: 7051
+        - name: events
+          containerPort: 7053
+        envFrom:
+        - configMapRef:
+            name: {{ $.Values.peer.name }}-config
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/hyperledger/production
+        - name: dockersocket
+          mountPath: /host/var/run/docker.sock
+        - name: certificates
+          mountPath: /etc/hyperledger/fabric/crypto
+        - name: {{ $.Values.peer.name }}-msp-config-volume
+          mountPath: /etc/hyperledger/fabric/NodeOUconfig
+          readOnly: true
+  volumeClaimTemplates: 
+  - metadata:
+      name: datadir
+    spec:
+      storageClassName: {{ $.Values.storage.peer.storageclassname }}
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ $.Values.storage.peer.storagesize }}
+  - metadata:
+      name: datadir-couchdb     
+    spec:
+      storageClassName: {{ $.Values.storage.couchdb.storageclassname }}    
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ $.Values.storage.couchdb.storagesize }}

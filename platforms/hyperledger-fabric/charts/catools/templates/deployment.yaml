@@ -1,0 +1,32 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.metadata.name }}
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.metadata.name }}
+    spec:
+      containers:
+        - name: {{ .Values.metadata.name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["sh", "-c", "/bin/bash"]
+          stdin: true
+          tty: true
+          volumeMounts:
+          - mountPath: /root/ca-tools
+            name: ca-tools-pv
+          - mountPath: /crypto-config
+            name: ca-tools-crypto-pv
+      volumes:
+      - name: ca-tools-pv
+        persistentVolumeClaim:
+          claimName: ca-tools-pvc
+      - name: ca-tools-crypto-pv
+        persistentVolumeClaim:
+          claimName: ca-tools-crypto-pvc

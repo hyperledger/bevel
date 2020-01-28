@@ -1,0 +1,85 @@
+#############################################################################################
+# This role generate genesis block and channel
+#############################################################################################
+
+- name: check configtxgen
+  stat:
+    path: "{{ build_path }}/configtxgen"
+  register: config_stat_result
+
+- name: register temporary directory
+  tempfile:
+    state: directory
+  register: tmp_directory
+
+############################################################################################
+# This task fetches the configtx gen tar file from the mentioned URL
+- name: "Geting the configtxgen binary tar"
+  get_url:
+    url: https://nexus.hyperledger.org/content/repositories/releases/org/hyperledger/fabric/hyperledger-fabric/{{fabric.os}}-{{fabric.arch}}-{{network.version}}/hyperledger-fabric-{{fabric.os}}-{{fabric.arch}}-{{network.version}}.tar.gz
+    dest: "{{ tmp_directory.path }}"
+  when: config_stat_result.stat.exists == False
+
+
+############################################################################################
+# This task unzips the above downloaded tar file
+- name: "Unziping the downloaded file"
+  unarchive:
+    src: "{{ tmp_directory.path }}/hyperledger-fabric-{{fabric.os}}-{{fabric.arch}}-{{network.version}}.tar.gz"
+    dest: "{{ tmp_directory.path }}"
+  when: config_stat_result.stat.exists == False
+
+############################################################################################
+# This task extracts the configtxgen binary and place it at appropriate path
+- name: "Moving the configtxgen from the extracted folder and place in it path"
+  copy:
+    src: "{{ tmp_directory.path }}/bin/configtxgen"
+    dest: "{{ build_path }}/configtxgen"
+    mode: 0755
+  when: config_stat_result.stat.exists == False
+
+- name: Remove old genesis block
+  file:
+    path: "{{ build_path }}/channel-artifacts/genesis.block"
+    state: absent
+
+############################################################################################
+# This task creates the channel-artifacts folder
+- name: "Creating channel-artifacts folder"
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+
+############################################################################################
+# This task creates the genesis block by consuming the configtx.yaml file
+- name: "Creating genesis block"
+  shell: |
+    cd {{ build_path }}
+    ./configtxgen -profile {{ genesis.name }} -outputBlock ./channel-artifacts/genesis.block
+    cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
+
+
+- name: remove old channel block
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{channel_name}}.tx"
+    state: absent
+
+############################################################################################
+# This task creates the channel by consuming the configtx.yaml file
+- name: "Creating channels"
+  shell: |
+    cd {{ build_path }}
+    ./configtxgen -profile {{ profile_name }} -outputCreateChannelTx ./channel-artifacts/{{channel_name}}.tx -channelID {{channel_name}}
+    cat ./channel-artifacts/{{channel_name}}.tx | base64 > ./channel-artifacts/{{channel_name}}.tx.base64
+
+############################################################################################
+# This task creates the anchortx files
+- name: "Creating Anchor artifacts"
+  shell: |
+    cd {{ build_path }}
+    ./configtxgen -profile {{ profile_name }} -outputAnchorPeersUpdate ./channel-artifacts/{{channel_name}}{{participant.name}}MSPAnchor.tx -channelID {{channel_name}} -asOrg {{participant.name}}MSP -configPath ./
+    cat ./channel-artifacts/{{channel_name}}{{participant.name}}MSPAnchor.tx | base64 > ./channel-artifacts/{{channel_name}}{{participant.name}}MSPAnchor.tx.base64
+  loop: "{{ item.participants }}"
+  loop_control:
+    loop_var: participant
+    

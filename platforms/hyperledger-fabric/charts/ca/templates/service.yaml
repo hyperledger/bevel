@@ -1,0 +1,56 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.server.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind:  Mapping
+      {{ if eq $.Values.proxy.type "orderer" }}
+      name:  ca_orderer_{{ $.Values.metadata.namespace }}_mapping
+      {{ else }}
+      name:  ca_{{ $.Values.metadata.namespace }}_mapping
+      {{ end }}
+      prefix: /
+      host: ca.{{ $.Values.metadata.namespace }}:7054
+      service: ca.{{ $.Values.metadata.namespace }}:7054
+      {{ if eq $.Values.proxy.type "orderer" }}
+      tls: ca_orderer_{{ $.Values.metadata.namespace }}_tls
+      {{ else }}
+      tls: ca_{{ $.Values.metadata.namespace }}_tls
+      {{ end }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      {{ if eq $.Values.proxy.type "orderer" }}
+      name: ca_orderer_{{ $.Values.metadata.namespace }}_tls
+      {{ else }}
+      name: ca_{{ $.Values.metadata.namespace }}_tls
+      {{ end }}
+      hosts:
+      - ca.{{ $.Values.metadata.namespace }}
+      secret: ca-{{ $.Values.metadata.namespace }}-ambassador-certs
+  {{ end }}
+  labels:
+    run: {{ $.Values.server.name }}
+    app.kubernetes.io/name: {{ $.Values.server.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  type: {{ $.Values.service.servicetype }}
+  selector:
+    name: {{ $.Values.server.name }}
+  ports:
+  - name: tcp
+    protocol: TCP
+    targetPort: 7054
+    port: {{ $.Values.service.ports.tcp.clusteripport }}
+    {{- if $.Values.service.ports.tcp.nodeport }}
+    nodePort: {{ $.Values.service.ports.tcp.nodeport }}
+    {{- end }}
