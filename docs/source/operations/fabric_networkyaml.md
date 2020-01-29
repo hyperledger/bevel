@@ -159,7 +159,7 @@ The snapshot of channels section with its fields and sample values is below
     genesis:
       name: OrdererGenesis
 ```
-The fields under the channel are
+The fields under the `channel` are
 
 | Field                           | Description                                                |
 |---------------------------------|------------------------------------------------------------|
