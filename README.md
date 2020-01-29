@@ -3,7 +3,11 @@
 [rocketchat-url]: https://chat.hyperledger.org/channel/blockchain-automation-framework
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
+<<<<<<< HEAD
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/blockchain-automation-framework/badge/?version=latest)](https://blockchain-automation-framework.readthedocs.io/en/latest/?badge=latest)
+=======
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/blockchain-automation-framework/badge/?version=latest)](https://blockchain-automation-framework.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
+>>>>>>> upstream/develop
 
 - [Short Description](#short-description)
 - [Scope of Lab](#scope-of-lab)

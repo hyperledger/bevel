@@ -1,0 +1,36 @@
+################################################################################################
+# This role creates deployment files for nodes, namespace,
+# storageclass, service accounts and clusterrolebinding
+# Deployment file for a node is created in a directory with name=nodeName
+# nodeName is stored in component_name
+# component_type specifies the type of deployment to be created
+################################################################################################
+
+---
+# Task to create and/or check if the target directory exists
+- name: "Ensures {{ release_dir }}/{{ component_name }} dir exists"
+  file:
+    path: "{{ release_dir }}/{{ component_name }}"
+    recurse: yes
+    state: directory
+
+# Task to create deployment file from a template
+- name: "create {{ component_type }} file for {{ component_name }}"
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+
+################################################################################################
+# This task tests the value file for syntax errors/ missing values
+# This is done by calling the helm_lint role and passing the value file parameter
+# When a new k8_component is added, changes should be made in helm_lint role as well
+- name: "Helm lint"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
+  vars:
+    helmtemplate_type: "{{ component_type }}"
+    chart_path: "{{ charts_dir }}"
+    value_file: "{{ release_dir }}/{{ component_name }}/{{ helmtemplate_type }}.yaml"
+  when: helm_lint=="true"

@@ -8,7 +8,9 @@
       # for cross org gossip communication.  Note, this value is only
       # encoded in the genesis block in the Application section context
 {% for peer in  item.services.peers %}
+{% if peer.type == 'anchor' %}
       - Host: {{ peer.name }}.{{ component_ns }}.{{ item.external_url_suffix }}
         Port: 8443
+{% endif %}
 {% endfor %}
     {% endif %} 
