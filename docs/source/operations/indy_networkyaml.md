@@ -245,7 +245,7 @@ The fields under `steward` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| name                | Name of the NetworkMap service                     |
+| name                | Name of the steward service                     |
 | type      | Certificate Subject for NetworkMap service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | genesis              | If using domain and pool transaction genesis. |
 | publicIp                    | Public Ip of service   |
@@ -267,7 +267,7 @@ The snapshot of endorser service with example values is below
           avatar: https://provider.com/avatar.png
           public_endpoint: https://provider.com/public
 ```
-The fields under `notary` service are 
+The fields under `endorser` service are 
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
