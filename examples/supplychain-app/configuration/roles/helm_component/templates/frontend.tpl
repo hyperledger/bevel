@@ -30,7 +30,7 @@ spec:
 {% else %}
       env:
         webserver: https://{{ peer_name }}api.{{ organization_data.external_url_suffix }}
-{% endif %}
+{% endif %}      
     deployment:
       annotations: {}
     proxy:
