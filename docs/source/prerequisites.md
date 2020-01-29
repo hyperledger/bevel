@@ -44,7 +44,7 @@ Follow [official instructions](https://docs.ansible.com/ansible/latest/installat
 
 ## Docker
 
-The Blockchain Automation Framework does not provision any pre-built docker images, instead, various Dockerfiles are provisioned, so a user is free to change them for whatever new demands they have. This means a user needs to install [Docker CLI](https://docs.docker.com/install/) to make sure the environment has the capbility of building these Dockerfiles to generate various docker images.
+The Blockchain Automation Framework does not provision any pre-built docker images, instead, various Dockerfiles are provided, so a user is free to change them. A user needs to install [Docker CLI](https://docs.docker.com/install/) to make sure the environment has the capbility of building these Dockerfiles to generate various docker images. Platform specific docker image details are mentioned [here](./operations/configure_prerequisites.md).
 
 ---
 **NOTE:** The Blockchain Automation Framework uses minimum Docker version 18.03.0
