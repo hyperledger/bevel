@@ -304,7 +304,7 @@ For gitops fields the snapshot from the sample configuration file with the examp
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "github.com/<username>/blockchain-automation-framework.git"
+        git_push_url: "github.com/<username>/blockchain-automation-framework.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
         password: "<password>"          # Git Server user password/personal token
         email: "<git_email>"              # Email to use in git config
