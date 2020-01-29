@@ -82,6 +82,7 @@ Also install any required platform specific pre-requisites (some may be common).
 
 * [Hyperledger Indy 1.9.2](https://hyperledger-indy.readthedocs.io/en/latest/index.html)
 
+
 ## Jenkins
 
 Jenkins is *optional* for the Blockchain Automation Framework (BAF), though there are some sample automation pipelines available in the source code which makes configuring BAF for dev and test environments easier.
