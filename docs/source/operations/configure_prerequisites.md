@@ -73,6 +73,15 @@ Build the Corda Networkmap image from **platforms/r3-corda/images/networkmap** b
 ### Corda Node
 Build the Corda node image from **platforms/r3-corda/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/README.md).
 
+### Hyperledger Indy Cli
+Docker Image for ability to use Indy Cli to create transactions. Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/images/indy-cli/README.md)
+
+### Hyperledger Indy Key Management
+Docker image for indy key management, which generates identity crypto and stores it into Vault or displays it onto the terminal in json format. Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/images/indy-key-mgmt/README.md)
+
+### Hyperledger Indy Node
+Docker image of an Indy node (runs using a Steward identity). Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/images/indy-node/README.md)
+
 <a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 
 
@@ -128,6 +137,11 @@ The output of the above command will look like this:
 * Configure your subdomain configuration to redirect the external DNS name to this external IP. For example, if you want to configure the external domain suffix as **test.corda.blockchaincloudpoc.com**, then update the DNS mapping to redirect all requests to ***.test.corda.blockchaincloudpoc.com** towards **EXTERNAL-IP** from above as an ALIAS.
 In AWS Route53, the settings look like below (in Hosted Zones).
 ![Ambassador DNS Configuration](../_static/ambassador-dns.png)
+
+---
+**NOTE:** Ambassador for AWS and AWS-baremetal expose Hyperledger Indy nodes via a TCP Network Load Balancer with a fixed IP address. The fixed IP address is used as EIP allocation ID for all steward public IPs found in the network.yaml. The same public IP is specified for all stewards within one organization. All ports used by Indy nodes in the particular organization have to be exposed.
+
+---
 
 <a name = "externaldns"></a>
 ## External DNS

@@ -12,7 +12,7 @@ BAF recommends one Kubernetes cluster per organization for production-ready proj
 Also, a user needs to make sure that the Kubernetes clusters can support the number of pods and persistent volumes that will be created by BAF.
 
 ---
-**NOTE:** For the current release, BAF has been tested on Amazon EKS with Kubernetes version 1.12. 
+**NOTE:** For the current release, BAF has been tested on Amazon EKS with Kubernetes version 1.12. Currently Indy is only tested on Kubernetes Cluster of AWS instances with Kubernetes version 1.16 and also you need AWS cli credentials.
 
 ---
 
@@ -79,6 +79,9 @@ Also install any required platform specific pre-requisites (some may be common).
 * [R3 Corda 4.0](https://docs.corda.net/releases/release-V4.0/)
 
 * [Hyperlegder Fabric 1.4](https://hyperledger-fabric.readthedocs.io/en/release-1.4/)
+
+* [Hyperledger Indy 1.9.2](https://hyperledger-indy.readthedocs.io/en/latest/index.html)
+
 
 ## Jenkins
 
