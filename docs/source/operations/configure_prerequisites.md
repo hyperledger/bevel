@@ -31,6 +31,11 @@ The above command generates an SSH key-pair: **gitops** (private key) and **gito
 
 Use the path to the private key (**gitops**) in the `gitops.private_key` section of the [configuration file](./corda_networkyaml.md).
 
+---
+**NOTE:** The **gitops**(private key) should have access permissions for the ansible host.
+
+---
+
 And add the public key contents (starts with **ssh-rsa**) as an Access Key (with read-write permissions) in your Github repository by following [this guide](https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account).
 
 
@@ -76,7 +81,7 @@ Build the Corda node image from **platforms/r3-corda/images** by following [thes
 <a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 
 
-Hashicorp Vault is one of the pre-requisites for the Blockchain Automation Framework. If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
+Hashicorp Vault is one of the pre-requisites for the Blockchain Automation Framework. Vault can be deployed as a kubernetes pod or on a machine and should be accessible by the ansible host as well as the kubernetes cluster (proper inbound/outbound rules should be configured). If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
 
 * Install Vault client. Follow the instructions on [Install Vault](https://www.vaultproject.io/docs/install/).
 
