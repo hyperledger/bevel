@@ -1,0 +1,20 @@
+#############################################################################################
+# This role creates the block modification script.
+#############################################################################################
+
+
+############################################################################################
+# This task creates the generate_block.sh file for new organizations
+- name: Create create-block-{{ channel_name }}.sh script file for new organisations
+  template:
+    src: "organisation_script.tpl"
+    dest: "./build/create-block-{{ channel_name }}.sh"
+  vars:
+    component_name: "{{ participant.name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.org_status == 'new'

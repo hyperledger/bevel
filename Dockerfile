@@ -1,11 +1,11 @@
 # USAGE: 
 # docker build . -t baf-build
-# docker run -v $(pwd)/config/:/home/build/config/ baf-build
+# docker run -v $(pwd):/home/blockchain-automation-framework/ baf-build
 
 FROM ubuntu:16.04
 
 # Create working directory
-WORKDIR /home/build
+WORKDIR /home/
 
 RUN apt-get update -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -28,15 +28,17 @@ RUN rm /etc/apt/apt.conf.d/docker-clean
 RUN mkdir /etc/ansible/
 RUN /bin/echo -e "[ansible_provisioners:children]\nlocal\n[local]\nlocalhost ansible_connection=local" > /etc/ansible/hosts
 
-# Copy code to container
-COPY ./ /home/build/blockchain-automation-framework
-RUN chmod 755 /home/build/blockchain-automation-framework/run.sh
+# Copy the provisional script to build container
+COPY ./run.sh /home
+RUN chmod 755 /home/run.sh
 
-# The path to mount the volume; should contain 
+# The mounted repo should contain a build folder with the following files
 # 1) K8s config file as config
 # 2) Network specific configuration file as network.yaml
 # 3) Private key file which has write-access to the git repo
 
-VOLUME /home/build/config/
+#path to mount the repo
+VOLUME /home/blockchain-automation-framework/
 
-CMD ["/home/build/blockchain-automation-framework/run.sh"]
+
+CMD ["/home/run.sh"]
