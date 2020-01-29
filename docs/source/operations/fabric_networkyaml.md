@@ -232,7 +232,6 @@ Each `organization` field under `participants` field of the channel contains the
 | peer.gossipAddress | Gossip address of the peer                                 |
 
 
-
 The `organizations` section contains the specifications of each organization.  
 In the sample configuration example, we have five organization under the `organizations` section
 
