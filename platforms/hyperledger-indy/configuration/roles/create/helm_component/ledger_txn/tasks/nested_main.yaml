@@ -5,8 +5,8 @@
   
     identity_data=""
     trustee_name={{ admin_name }}
-    trustee_did=$(curl --header "X-Vault-Token:{{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/trustees/"{{ admin_name }}"/identity/public | jq -r 'if .errors then . else .data.did end');
-    trustee_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/trustees/"{{ admin_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
+    trustee_did=$(curl --header "X-Vault-Token:{{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/"{{ admin_type }}"/"{{ admin_name }}"/identity/public | jq -r 'if .errors then . else .data.did end');
+    trustee_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/"{{ admin_type }}"/"{{ admin_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
     first_trustee_in_org_did="${trustee_did}"
     identity_data="first_trustee_name: ${first_trustee_in_org_did}"
     echo "${identity_data}" >> data.yaml
@@ -19,8 +19,8 @@
             
 
     endorser_name={{ identity_name }}
-    endorser_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/endorser/"{{ identity_name }}"/identity/public | jq -r 'if .errors then . else .data.did end');  
-    endorser_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/endorser/"{{ identity_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
+    endorser_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/"{{ identity_type }}"/"{{ identity_name }}"/identity/public | jq -r 'if .errors then . else .data.did end');  
+    endorser_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/"{{ identity_type }}"/"{{ identity_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
 
     identity_data="endorser_name: ${endorser_name}"
     echo "${identity_data}" >> data.yaml
@@ -47,9 +47,9 @@
     src: "{{ dlt_templates[component_type] }}"
     dest: "{{ values_file }}"
   vars:
-    values_file: "{{ release_dir }}/{{ new_component_name }}/{{ endorser_item }}-{{ component_type }}.yaml"
+    values_file: "{{ release_dir }}/{{ new_component_name }}/{{ identity_name }}-{{ component_type }}.yaml"
     chart: "indy-ledger-txn"
-    identity_name: "{{ endorser_item }}"
+    identity_name: "{{ identity_name }}"
     auth_path: "{{ component_ns }}-auth"
     
 - name: "Delete file"
@@ -66,4 +66,4 @@
   vars:
     helmtemplate_type: "{{ component_type }}"
     chart_path: "{{ gitops.chart_source }}"
-    value_file: "{{ release_dir }}/{{ new_component_name }}/{{ endorser_item }}.yaml"
+    value_file: "{{ release_dir }}/{{ new_component_name }}/{{ identity_name }}.yaml"
