@@ -92,8 +92,8 @@ The `genesis` section contains Information about pool transaction genesis and do
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | state        | State is placeholder for future, when there will be option to join to existing cluter. Currently only "absent" is supported. That means, that genesis will be always generated    |
-| pool         | Path to pool transaction genesis.     |
-| domain | Path to domain transaction genesis.             |
+| pool         | Path to pool transaction genesis. (/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis/README.md)     |
+| domain | Path to domain transaction genesis. (/platforms/hyperledger-indy/configuration/roles/setup/domain_genesis/README.md)            |
 
 
 The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. membership service, etc), then these services should be listed in this section as well.
@@ -216,7 +216,7 @@ The snapshot of trustee service with example values is below
           genesis: true
 ```
 
-The fields under `trustee` service are 
+The fields under `trustee` service are (find more about differences between trustee/steward/endorser [here](https://readthedocs.org/projects/indy-node/downloads/pdf/latest/))
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
@@ -246,7 +246,7 @@ The fields under `steward` service are
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | name                | Name of the steward service                     |
-| type      | Certificate Subject for NetworkMap service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| type      | type VALIDATOR/OBSERVER for steward service. Currenty only VALIDATOR type is supported. Validators are trusted parties who validate identities and transactions in a distributed fashion. They validate identities by the private key of the identity validator. An outside party can also verify claims using the public key of the validator. Observer nodes may be required as the network scales. From the perspective of Indy clients, an observer node is a read-only copy of the Sovrin ledger performing three functions (Read requests, Hot stanbys, Push subscriptions) |
 | genesis              | If using domain and pool transaction genesis. |
 | publicIp                    | Public Ip of service   |
 | node.port       | HTTP node port number                                       |
@@ -271,7 +271,7 @@ The fields under `endorser` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| name                     | Name of the notary service   |
+| name                     | Name of the endorser service   |
 | full_name                   | Full name of endorser service |
 | avatar                      | Link to avatar  |
 | public_endpoint                 | Link to public endpoint |
