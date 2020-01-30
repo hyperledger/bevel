@@ -18,7 +18,7 @@ spec:
     network:
       name: {{ network.name }}
     image:
-	    cli:
+      cli:
         name: {{ component_name }}
         repository: {{ network.docker.url }}/indy-ledger-txn:latest
         pullSecret: regcred
