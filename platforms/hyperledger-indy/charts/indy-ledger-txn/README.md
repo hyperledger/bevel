@@ -1,4 +1,4 @@
-# Charts for Hyperledger Fabric components
+# Charts for Hyperledger Indy components
 
 ## About
 This folder contains helm chart which is used to run Indy Ledger Transaction Script. 
