@@ -1,13 +1,12 @@
 # Check if the joinchannel job is completed successfully or wait for it
 # This task will try for a maximum of 10 times with an interval of
 # 35 seconds between each try
-- name: 'Check/Wait for joinchannel job'
+- name: 'Check/Wait for anchorpeer update job'
   k8s_facts:
     kind: "Job"
-    name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
     namespace: "{{ namespace }}"
     label_selectors:
-      - app = joinchannel-{{ peer.name }}-{{ channel_name }}
+      - app = anchorpeer-{{ channel_name }}-{{ name }}
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   vars:
@@ -16,15 +15,14 @@
   loop_control:
     loop_var: channel
   register: component_data
-  retries: 10
-  delay: 35
-  until: component_data.resources|length > 0
+  retries: "{{ network.env.retry_count}}"
+  delay: 40
+  until: (1 in component_data|json_query('resources[*].status.succeeded'))
 
 # Check if install-chaincode is already run
 - name: 'Check for install-chaincode job'
   k8s_facts:
     kind: "Job"
-    name: installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
     namespace: "{{ namespace }}"
     label_selectors:
       - "app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
@@ -52,6 +50,8 @@
     peer_address: "{{ peer.gossippeeraddress }}"
     component_name: "chaincode-install-{{ name }}-{{ peer.name }}-{{ peer.chaincode.version | replace('.','-')}}"
     component_chaincode: "{{ peer.chaincode }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
   loop: "{{ network['orderers'] }}"
   loop_control:
     loop_var: orderer
@@ -65,6 +65,7 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     GIT_REPO: "{{ item.gitops.git_push_url }}"
     GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_EMAIL: "{{ item.gitops.email }}"
     GIT_PASSWORD: "{{ item.gitops.password }}"
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"

@@ -1,5 +1,5 @@
 # This playbook deletes the DLT network on existing Kubernetes clusters which has been created
-#  using The Blockchain Automation Framework.
+#  using the Blockchain Automation Framework.
 # Please use the same network.yaml to run this playbook as used for deploy-network.yaml
 ###########################################################################################
 # THIS PLAYBOOK DELETES EVERYTHING, EVEN NAMESPACES and FLUX
@@ -25,9 +25,17 @@
         services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"
-
-    # Delete Helmreleases and uninstall flux
-    # Change this rile if you have new Helreleases to delete 
+    # Uninstalling Flux is needed so that everything is clean
+    # remove this if not needed
+    - name: Uninstall flux
+      shell: |
+        KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
+        KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux-{{ network.env.type }}
+      vars:
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      ignore_errors: yes
+    # Delete Helmreleases
     - include_role:
         name: "delete/flux_releases"
       vars:
@@ -36,21 +44,14 @@
         component_services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
 
-    # Uninstalling Flux is needed so that everything is clean
-    # remove this if not needed
-    - name: Uninstall flux
-      shell: |
-        KUBECONFIG={{ kubernetes.config_file }} kubectl delete -f {{ playbook_dir }}/../../../platforms/shared/charts/flux-helm-release-crd.yaml
-        KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux
-      vars:
-        kubernetes: "{{ item.k8s }}"
-      loop: "{{ network['organizations'] }}"
-      ignore_errors: yes
-        
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "/bin"            #Default to /bin install directory for binaries
-    
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

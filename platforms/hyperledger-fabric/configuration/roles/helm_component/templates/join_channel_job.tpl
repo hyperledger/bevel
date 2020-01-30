@@ -14,10 +14,13 @@ spec:
   values:
     metadata:
       namespace: {{ component_ns }}
+      images:
+        fabrictools: {{ fabrictools_image }}
+        alpineutils: {{ alpine_image }}
 
     peer:
       name: {{ peer_name }}
-      address: {{ peer_name }}.{{ component_ns }}:7051
+      address: {{ peer.gossipAddress }}
       localmspid: {{ org.name | lower}}MSP
       loglevel: debug
       tlsstatus: true
@@ -35,6 +38,4 @@ spec:
       name: {{channel_name}}      
     orderer:
       address: {{ participant.ordererAddress }}
-    anchorstx: |-
-{{ anchorstx | indent(width=6, indentfirst=True) }}
- 
+

@@ -15,14 +15,15 @@ spec:
     metadata:
       namespace: {{ component_name }}
       name: ca-tools
+
     replicaCount: 1
 
     image:
       repository: hyperledger/fabric-ca-tools
       tag: 1.2.0
       pullPolicy: IfNotPresent
-
+      
     storage:
       storageclassname: {{ component | lower }}sc
-      storagesize: 1Gi
+      storagesize: 512Mi
 

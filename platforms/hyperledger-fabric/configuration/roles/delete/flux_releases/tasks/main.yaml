@@ -32,16 +32,22 @@
   k8s_raw:
     kind: Helmrelease
     namespace: "{{ component_name }}"
-    name: "{{ org_name }}-orderer"
+    name: "{{ org_name }}-{{ orderer.name }}"
     state: absent
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer
   when: component_type == 'orderer'
   ignore_errors: yes
 
 - name: Remove Helm releases for orderer
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge "zkkafka-{{ org_name }}-orderer" "{{ org_name }}-orderer"
+    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge "zkkafka-{{ org_name }}-orderer" "{{ org_name }}-{{ orderer.name}}"
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer
   when: component_type == 'orderer'
   ignore_errors: yes
 
@@ -61,7 +67,8 @@
 # remove this if not needed
 - name: Uninstall flux
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux
+    KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
+    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux-{{ network.env.type }}
   ignore_errors: yes
 
 - name: Deletes namespaces

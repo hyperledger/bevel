@@ -28,7 +28,7 @@ Ideally, the configuration should be run by the following command from the root 
 ```
 ansible-playbook platforms/shared/configuration/site.yaml -e "@./platforms/hyperledger-fabric/configuration/network.yaml"
 ```
-Ensure that you have added the **Flux SSH Key** with read-write permission to your git repository. The Flux SSH Key is produced when [platforms/shared/kubernetes-env-setup.yaml](../../shared/configuration/kubernetes-env-setup.yaml) is executed. Follow steps in [README](../../shared/configuration/README.md).<br>
+Ensure that you have added an **SSH Key** with read-write permission to your git repository before executing the playbook. Follow steps in [README](../../shared/configuration/README.md).<br>
 If you just want to run this deploy-network.yaml playbook, then, from the *platforms/hyperledger-fabric/configuration* directory, run the following command for deploying the network
 ```
 ansible-playbook deploy-network.yaml -e "@./network.yaml"
@@ -58,4 +58,14 @@ ansible-playbook generate-artifacts-deploy.yaml -e "@./network.yaml"
 ```
 ansible-playbook reset-network.yaml -e "@./network.yaml"
 ```
+
+4. If you want to add an organization into existing network, then, from the *platforms/hyperledger-fabric/configuration* directory, run the following command for deploying the network
+```
+ansible-playbook add-oranization.yaml -e "@./network.yaml"
+```
+Follow steps in [README](https://github.com/hyperledger-labs/blockchain-automation-framework/docs/source/operations/adding_new_org_fabric.md).
+
+(Above command assumes that network.yaml is present in current directory with org_status tag and new organization details).<br>
+The playbook will create resources in the Kubernetes cluster(s) and will intermittently wait for resources to be created before proceeding. You may want to check the cluster(s) about any errors.
+
 You can maintain separate `network.yaml` for separate environments.

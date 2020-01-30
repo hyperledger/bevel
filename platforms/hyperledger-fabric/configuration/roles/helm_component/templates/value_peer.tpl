@@ -14,6 +14,10 @@ spec:
   values:
     metadata:
       namespace: {{ peer_ns }}
+      images:
+        couchdb: {{ couchdb_image }}
+        peer: {{ peer_image }}
+        alpineutils: {{ alpine_image }}
         
     peer:
       name: {{ peer_name }}
@@ -28,16 +32,17 @@ spec:
     storage:
       peer:
         storageclassname: {{ name }}sc
-        storagesize: 1Gi
+        storagesize: 512Mi
       couchdb:
         storageclassname: {{ name }}sc
-        storagesize: 3Gi
+        storagesize: 1Gi
 
     vault:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ namespace }}-auth
       secretprefix: secret/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
+      secretambassador: secret/crypto/peerOrganizations/{{ namespace }}/ambassador
       serviceaccountname: vault-auth
       imagesecretname: regcred
       secretcouchdbpass: secret/credentials/{{ namespace }}/couchdb/{{ name }}?user
@@ -61,36 +66,6 @@ spec:
           nodeport: {{ peer.couchdb.nodePort }}
 {% endif %}
           
-    ambassador:
-      annotations: |- 
-          ---
-          apiVersion: ambassador/v1
-          kind: TLSContext
-          name: tls_context_{{ peer_name }}_{{ peer_ns }}
-          hosts:
-          - {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}
-          secret: {{ peer_name }}-{{ peer_ns }}-ambassador-certs
-          alpn_protocols: h2
-          ---
-          apiVersion: ambassador/v1
-          kind: Mapping
-          tls: tls_context_{{ peer_name }}_{{ peer_ns }}
-          grpc: True
-          name: {{ peer_name }}_{{ peer_ns }}_mapping
-          headers:
-            :authority: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:8443
-          prefix: /
-          rewrite: /
-          service: https://{{ peer_name }}.{{ peer_ns }}:7051
-          ---
-          apiVersion: ambassador/v1
-          kind: Mapping
-          tls: tls_context_{{ peer_name }}_{{ peer_ns }}
-          grpc: True
-          name: {{ peer_name }}_{{ peer_ns }}_mapping_rest
-          headers:
-            :authority: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}
-          prefix: /
-          rewrite: /
-          service: https://{{ peer_name }}.{{ peer_ns }}:7051
-
+    proxy:
+      provider: {{ network.env.proxy }}
+      external_url_suffix: {{ item.external_url_suffix }}
