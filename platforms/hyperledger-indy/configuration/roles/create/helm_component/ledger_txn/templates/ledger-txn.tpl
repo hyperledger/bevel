@@ -35,7 +35,7 @@ spec:
         newIdentity:
           name: {{ file_var.endorser_name }}
           role: {{ newIdentity_role }}
-		      did: {{ file_var.endorser_did }}
-		      verkey: {{ file_var.endorser_verkey }}
+          did: {{ file_var.endorser_did }}
+          verkey: {{ file_var.endorser_verkey }}
     node:
       name: {{ component_name }}
