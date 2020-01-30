@@ -31,6 +31,11 @@ The above command generates an SSH key-pair: **gitops** (private key) and **gito
 
 Use the path to the private key (**gitops**) in the `gitops.private_key` section of the [configuration file](./corda_networkyaml.md).
 
+---
+**NOTE:** Ensure that the Ansible host has read-access to the private key file (gitops).
+
+---
+
 And add the public key contents (starts with **ssh-rsa**) as an Access Key (with read-write permissions) in your Github repository by following [this guide](https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account).
 
 
@@ -73,10 +78,19 @@ Build the Corda Networkmap image from **platforms/r3-corda/images/networkmap** b
 ### Corda Node
 Build the Corda node image from **platforms/r3-corda/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/README.md).
 
+### Hyperledger Indy Cli
+Docker Image for ability to use Indy Cli to create transactions. Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/images/indy-cli/README.md)
+
+### Hyperledger Indy Key Management
+Docker image for indy key management, which generates identity crypto and stores it into Vault or displays it onto the terminal in json format. Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/images/indy-key-mgmt/README.md)
+
+### Hyperledger Indy Node
+Docker image of an Indy node (runs using a Steward identity). Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/images/indy-node/README.md)
+
 <a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 
 
-Hashicorp Vault is one of the pre-requisites for the Blockchain Automation Framework. If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
+Hashicorp Vault is one of the pre-requisites for the Blockchain Automation Framework. The vault service should be accessible by the ansible host as well as the kubernetes cluster (proper inbound/outbound rules should be configured). If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
 
 * Install Vault client. Follow the instructions on [Install Vault](https://www.vaultproject.io/docs/install/).
 
@@ -128,6 +142,11 @@ The output of the above command will look like this:
 * Configure your subdomain configuration to redirect the external DNS name to this external IP. For example, if you want to configure the external domain suffix as **test.corda.blockchaincloudpoc.com**, then update the DNS mapping to redirect all requests to ***.test.corda.blockchaincloudpoc.com** towards **EXTERNAL-IP** from above as an ALIAS.
 In AWS Route53, the settings look like below (in Hosted Zones).
 ![Ambassador DNS Configuration](../_static/ambassador-dns.png)
+
+---
+**NOTE:** Ambassador for AWS and AWS-baremetal expose Hyperledger Indy nodes via a TCP Network Load Balancer with a fixed IP address. The fixed IP address is used as EIP allocation ID for all steward public IPs found in the network.yaml. The same public IP is specified for all stewards within one organization. All ports used by Indy nodes in the particular organization have to be exposed.
+
+---
 
 <a name = "externaldns"></a>
 ## External DNS
