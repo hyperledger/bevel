@@ -1,24 +1,24 @@
 ###################################################################################################
-# This role creates the deployment files for indy crypto generate job and pushes them to repository
+# This role creates the deployment files for endorsers and pushes them to repository
 ###################################################################################################
-- name: "Wait for namespace creation for identities"
-  include_role:
-    name: check/k8_component
-  vars:
-    component_type: "Namespace"
-    component_name: "{{ component_ns }}"
 
-# ---------------------------------------------------------------------
-# create image pull secrets
-- name: "Create image pull secret for identities"
-  include_role:
-    name: create/imagepullsecret
+  - name: "Wait for namespace creation for identities"
+    include_role:
+      name: check/k8_component
+    vars:
+      component_type: "Namespace"
+      component_name: "{{ component_ns }}"
+
+# # ---------------------------------------------------------------------
+# # create image pull secrets
+  - name: "Create image pull secret for identities"
+    include_role:
+      name: create/imagepullsecret
 
 # ---------------------------------------------------------------------
 # Create Deployment files for new Identities
-- name: "Create Deployment files for Identities"
-  include_tasks:
-    name: nested_main.yaml
+  - name: "Create Deployment files"
+    include_tasks: nested_main.yaml
     vars:
       component_type: "identity"
       component_name: "{{ organizationItem.name }}"
@@ -30,10 +30,4 @@
     loop: "{{ organizations }}"
     loop_control:
       loop_var: organizationItem
-    when: organizationItem.services.endorsers is defined
-
-# ---------------------------------------------------------------------
-# check Vault for correct inserted indy crypto
-- name: "Check Vault for Indy crypto"
-  include_role:
-    name: check/crypto
+    when: organizationItem is defined

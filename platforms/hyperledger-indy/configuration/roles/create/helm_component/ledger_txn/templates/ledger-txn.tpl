@@ -18,10 +18,10 @@ spec:
     network:
       name: {{ network.name }}
     image:
-	  cli:
-      name: {{ component_name }}
-      repository: {{ network.docker.url }}/indy-ledger-txn:latest
-      pullSecret: regcred
+	    cli:
+        name: {{ component_name }}
+        repository: {{ network.docker.url }}/indy-ledger-txn:latest
+        pullSecret: regcred
     vault:
       address: {{ vault.url }}
       role: {{ vault.role }}
