@@ -43,6 +43,7 @@ It calls the helm release development role for for creation of deployment file.
 -  new_org_vault_url: "New Identity's vault URL"
 -  new_component_name: "Name of New Identity's Organization"
 - admin_type: "Type of Admin Identity"
+- identity_type: "Type of identity to be added"
 
 ### 3. Push the created deployment files to repository
 This task pushes generated Helm releases into remote branch.
