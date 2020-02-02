@@ -1,0 +1,15 @@
+# Generate Ambassador certifiactes for nodes
+- name: "Create ambassador certificates for Nodes" 
+  include_role: 
+    name: create/certificates/nodes
+  vars:
+    root_subject: "{{ network.config.subject }}"
+    cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+    services: "{{ item.services }}"
+    organisation: "{{ item.name | lower }}"
+    component_ns: "{{ item.name | lower }}-ns"
+    component_name: "{{ item.name | lower }}"
+    kubernetes: "{{ item.k8s }}"
+    vault: "{{ item.vault }}"
+  loop: "{{ network['organizations']}}"
+  when: network.type == 'quorum'
