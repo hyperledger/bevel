@@ -1,5 +1,12 @@
 # This role calls for ambassador certifacate creation for each node.
 ---
+  - name: Create Ambassador certificates
+    include_role: 
+      name: "create/certificates/ambassador"
+    vars:
+      node_name: {{ node.name | lower }}
+    loop: "{{ services.peers }}"
+      loop_var: node
 # # create the root directory where CA root certificates and key will be placed
 # - name: Ensure rootca dir exists
 #   file:
@@ -63,11 +70,3 @@
 #     VAULT_ADDR: "{{ vault.url }}"
 #     VAULT_TOKEN: "{{ vault.root_token }}"
 #   when: doorman_certs.failed == True
-
-- name: Create Ambassador certificates
-  include_role: 
-    name: "create/certificates/ambassador"
-  vars:
-    node_name: {{ node.name | lower }}
-  loop: "{{ services.peers }}"
-    loop_var: node
