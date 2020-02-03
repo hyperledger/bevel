@@ -19,7 +19,7 @@
   when: type == 'ambassador'
 
 - name: Save root keychain
-  local_action: copy content="{{ vault_output['data'].rootca.jks | b64decode }}" dest="{{ cert_path }}/rootca.jks"
+  local_action: copy content="{{ vault_output['data'].rootca | b64decode }}" dest="{{ cert_path }}/rootca.jks"
   when: type == "rootca"
 
 - name: Extracting root certificate from .jks
@@ -30,10 +30,3 @@
     eval "openssl pkcs12 -in rootca.p12 -nodes -nocerts -out rootca.key -passin pass:'quorum' -passout pass:'quorum'"
   when: type == 'rootca'
 
-# - name: Save root cert
-#   local_action: copy content="{{ vault_output['data'].cacerts | b64decode }}" dest="{{ cert_path }}/quorumrootca.pem"
-#   when: type == 'rootca'
-
-# - name: Save root key
-#   local_action: copy content="{{ vault_output['data'].keystore | b64decode }}" dest="{{ cert_path }}/quorumrootca.key"
-#   when: type == 'rootca'
