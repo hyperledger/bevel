@@ -57,12 +57,14 @@
     cd {{ build_path }}
     ./configtxgen -profile {{ genesis.name }} -outputBlock ./channel-artifacts/genesis.block
     cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
+  when: add_new_org == 'false'
 
 
 - name: remove old channel block
   file:
     path: "{{ build_path }}/channel-artifacts/{{channel_name}}.tx"
     state: absent
+  when: add_new_org == 'false'
 
 ############################################################################################
 # This task creates the channel by consuming the configtx.yaml file
@@ -71,6 +73,7 @@
     cd {{ build_path }}
     ./configtxgen -profile {{ profile_name }} -outputCreateChannelTx ./channel-artifacts/{{channel_name}}.tx -channelID {{channel_name}}
     cat ./channel-artifacts/{{channel_name}}.tx | base64 > ./channel-artifacts/{{channel_name}}.tx.base64
+  when: add_new_org == 'false'
 
 ############################################################################################
 # This task creates the anchortx files
@@ -82,4 +85,15 @@
   loop: "{{ item.participants }}"
   loop_control:
     loop_var: participant
-    
+  when: add_new_org == 'false'
+
+# This task creates the channel by consuming the configtx.yaml file
+- name: "Creating JSON configration for new organization"
+  shell: |
+    cd {{ build_path }}
+    export FABRIC_CFG_PATH=$PWD
+    ./configtxgen -printOrg {{ participant.name }}MSP > ./channel-artifacts/{{ channel_name | lower }}.json
+  loop: "{{ item.participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.org_status == 'new' and add_new_org == 'true'

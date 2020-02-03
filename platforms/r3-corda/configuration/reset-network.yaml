@@ -25,18 +25,6 @@
         services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"
-
-    # Delete Helmreleases and uninstall flux
-    # Change this rile if you have new Helreleases to delete 
-    - include_role:
-        name: "delete/flux_releases"
-      vars:
-        component_name: "{{ item.name | lower}}-ns"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        kubernetes: "{{ item.k8s }}"
-      loop: "{{ network['organizations'] }}"
-
     # Uninstalling Flux is needed so that everything is clean
     # remove this if not needed
     - name: Uninstall flux
@@ -47,10 +35,23 @@
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"
       ignore_errors: yes
-        
+    # Delete Helmreleases
+    - include_role:
+        name: "delete/flux_releases"
+      vars:
+        component_name: "{{ item.name | lower}}-ns"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
-    

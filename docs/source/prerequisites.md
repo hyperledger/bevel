@@ -12,7 +12,7 @@ BAF recommends one Kubernetes cluster per organization for production-ready proj
 Also, a user needs to make sure that the Kubernetes clusters can support the number of pods and persistent volumes that will be created by BAF.
 
 ---
-**NOTE:** For the current release, BAF has been tested on Amazon EKS with Kubernetes version 1.12. 
+**NOTE:** For the current release, BAF has been tested on Amazon EKS with Kubernetes version 1.12. Currently Indy is only tested on Kubernetes Cluster of AWS instances with Kubernetes version 1.16 and also you need AWS cli credentials.
 
 ---
 
@@ -44,7 +44,7 @@ Follow [official instructions](https://docs.ansible.com/ansible/latest/installat
 
 ## Docker
 
-The Blockchain Automation Framework does not provision any pre-built docker images, instead, various Dockerfiles are provisioned, so a user is free to change them for whatever new demands they have. This means a user needs to install [Docker CLI](https://docs.docker.com/install/) to make sure the environment has the capbility of building these Dockerfiles to generate various docker images.
+The Blockchain Automation Framework does not provision any pre-built docker images, instead, various Dockerfiles are provided, so a user is free to change them. A user needs to install [Docker CLI](https://docs.docker.com/install/) to make sure the environment has the capbility of building these Dockerfiles to generate various docker images. Platform specific docker image details are mentioned [here](./operations/configure_prerequisites.md).
 
 ---
 **NOTE:** The Blockchain Automation Framework uses minimum Docker version 18.03.0
@@ -79,6 +79,9 @@ Also install any required platform specific pre-requisites (some may be common).
 * [R3 Corda 4.0](https://docs.corda.net/releases/release-V4.0/)
 
 * [Hyperlegder Fabric 1.4](https://hyperledger-fabric.readthedocs.io/en/release-1.4/)
+
+* [Hyperledger Indy 1.9.2](https://hyperledger-indy.readthedocs.io/en/latest/index.html)
+
 
 ## Jenkins
 

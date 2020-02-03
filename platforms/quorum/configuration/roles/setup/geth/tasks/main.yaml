@@ -1,0 +1,43 @@
+# This task registers a temporary directory
+- name: Register temporary directory
+  tempfile:
+    state: directory
+  register: tmp_directory
+
+# This task checks if the geth binary is already in place or not
+- name: Check geth
+  stat:
+    path: "{{ bin_install_dir }}/geth"
+  register: geth_stat_result
+
+# This task clones the quorum git repository
+- name: Clone the git repo
+  git:
+    repo: "{{ geth.repo }}"
+    version: master
+    dest: "{{ tmp_directory.path }}"
+  when: geth_stat_result.stat.exists == False
+
+# This task builds the geth binary
+- name: Make geth
+  shell: |
+    cd "{{ tmp_directory.path }}"
+    make geth
+  when: geth_stat_result.stat.exists == False
+
+# This task creates the bin directory, if it doesn't exist, for storing the geth binary
+- name: Create bin directory
+  file:
+    path: "{{ bin_install_dir }}"
+    state: directory
+    recurse: yes
+  when: geth_stat_result.stat.exists == False
+
+# This task puts the geth binary to above created bin directory
+- name: Copy geth binary to destination directory
+  copy:
+    src: "{{ tmp_directory.path }}/build/bin/geth"
+    dest: "{{ bin_install_dir }}/geth"
+    mode: 0755
+    remote_src: yes
+  when: geth_stat_result.stat.exists == False

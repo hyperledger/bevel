@@ -1,0 +1,79 @@
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:    
+
+  # create namespace, service account and clusterrolebinding
+  - name: "Create namespace and service account"
+    include_role: 
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ item.name | lower }}-ns"
+      organisation: "{{ item.name | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      gitops: "{{ item.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'  
+
+  # Create Storageclass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      git_dir: "{{ item.gitops.release_dir }}"
+      org: "{{ item }}"
+      kubernetes: "{{ item.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+  
+  
+  # Setup Vault-Kubernetes accesses and Regcred for docker registry
+  - name: "Setup vault"   
+    include_role: 
+      name: "setup/vault_kubernetes"
+    vars:
+      component_ns: "{{ item.name | lower }}-ns"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+      component_name: "{{ item.name | lower}}"
+      component_path: "{{ item.name | lower }}/"
+      component_auth: "quorum{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
+  # This role makes up the geth binary and place it in the bin directory
+  - name: "Setup geth"
+    include_role:
+      name: setup/geth
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
+  # This role makes up the bootnode binary and place it in the bin directory
+  - name: "Setup bootnode"
+    include_role:
+      name: setup/bootnode
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
+  # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
+  - name: "Generate crypto material for RAFT consensus"
+    include_role:
+      name: create/crypto/raft
+    vars:
+      component_name: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-ns"
+      vault: "{{ item.vault }}"
+      peers: "{{ item.services.peers }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
+  vars: #These variables can be overriden from the command line
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

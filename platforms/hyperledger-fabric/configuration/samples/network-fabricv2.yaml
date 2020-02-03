@@ -50,37 +50,37 @@ network:
     - organization:
       name: carrier
       type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
+      org_status: new
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
     - organization:      
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
+      org_status: new
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: warehouse
       type: joiner
+      org_status: new
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: manufacturer
       type: joiner
+      org_status: new
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     genesis:
@@ -100,6 +100,7 @@ network:
       subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
       type: orderer
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
+      org_status: new
       ca_data:
         url: ca.supplychain-net:7054
         certificate: file/server.crt        # This has not been implemented in 0.2.0.0
@@ -129,7 +130,7 @@ network:
         branch: "gitops_branch"           # Git branch where release is being made
         release_dir: "gitops_release_dir" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git" (without https://)
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
         email: "git_email"                # Email to use in git config
@@ -178,6 +179,7 @@ network:
       subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
       type: peer
       external_url_suffix: org2ambassador.blockchaincloudpoc.com
+      org_status: new
       ca_data:
         url: ca.manufacturer-net:7054
         certificate: file/server.crt
@@ -207,7 +209,7 @@ network:
         branch: "gitops_branch"           # Git branch where release is being made
         release_dir: "gitops_release_dir" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git" (without https://)
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
         email: "git_email"                # Email to use in git config
@@ -225,7 +227,7 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: peer          
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051         
@@ -260,6 +262,7 @@ network:
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
       type: peer
       external_url_suffix: org3ambassador.blockchaincloudpoc.com
+      org_status: new
       ca_data:
         url: ca.carrier-net:7054
         certificate: file/server.crt
@@ -289,7 +292,7 @@ network:
         branch: "gitops_branch"           # Git branch where release is being made
         release_dir: "gitops_release_dir" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git" (without https://)
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
         email: "git_email"                # Email to use in git config
@@ -305,7 +308,7 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: peer
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
           gossippeeraddress: peer0.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051         
@@ -339,6 +342,7 @@ network:
       subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
       type: peer
       external_url_suffix: org3ambassador.blockchaincloudpoc.com
+      org_status: new
       ca_data:
         url: ca.store-net:7054
         certificate: file/server.crt
@@ -368,7 +372,7 @@ network:
         branch: "gitops_branch"           # Git branch where release is being made
         release_dir: "gitops_release_dir" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git" (without https://)
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
         email: "git_email"                # Email to use in git config
@@ -390,7 +394,7 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: peer
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer. 
           gossippeeraddress: peer0.store-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051
@@ -425,6 +429,7 @@ network:
       subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"
       type: peer
       external_url_suffix: org2ambassador.blockchaincloudpoc.com
+      org_status: new
       ca_data:
         url: ca.warehouse-net:7054
         certificate: file/server.crt
@@ -454,7 +459,7 @@ network:
         branch: "gitops_branch"           # Git branch where release is being made
         release_dir: "gitops_release_dir" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_push_url: "gitops_push_url"   # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git" (without https://)
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user password
         email: "git_email"                # Email to use in git config
@@ -470,7 +475,7 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: peer
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.   
           gossippeeraddress: peer0.warehouse-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051       
