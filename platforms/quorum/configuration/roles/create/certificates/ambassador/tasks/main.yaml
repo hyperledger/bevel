@@ -55,16 +55,7 @@
     eval "yes | keytool -importkeystore -srckeystore rootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass quorum -destkeystore rootca.jks -deststorepass quorum"
     eval "yes | keytool -importkeystore -srckeystore rootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass quorum -destkeystore rootca.jks -deststorepass quorum"
   when: root_certs.failed == True and rootca_stat_result.stat.exists == False
-
-# - name: Putting certs to vault for root
-#   shell: |
-#     vault kv put secret/{{ component_name }}/crypto/{{ node_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/rootca.pem | base64)" keystore="$(cat {{ rootca }}/rootca.key | base64)"
-#   environment:
-#     VAULT_ADDR: "{{ vault.url }}"
-#     VAULT_TOKEN: "{{ vault.root_token }}"
-#   when: root_certs.failed == True
-  
-
+ 
 # Check ambassador tls certs already created
 - name: Check if ambassador tls already created
   shell: |
