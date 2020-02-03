@@ -85,23 +85,23 @@
     cert_path: "{{ ambassadortls }}"
   when: ambassador_tls_certs.failed == False
 
-# # Generates the openssl file for domain
-# - name: Generate openssl conf file
-#   shell: |
-#     cd ./build
-#     cat <<EOF >openssl{{ component_name }}.conf
-#     [dn]
-#     CN={{ domain_name }}
-#     [req]
-#     distinguished_name = dn
-#     [EXT]
-#     subjectAltName=DNS:{{ domain_name }}
-#     keyUsage=digitalSignature
-#     extendedKeyUsage=serverAuth
-#     EOF
-#   vars:
-#     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
-#   when: ambassador_tls_certs.failed == True
+# Generates the openssl file for domain
+- name: Generate openssl conf file
+  shell: |
+    cd {{ambassadortls}}
+    cat <<EOF >openssl{{ node_name }}.conf
+    [dn]
+    CN={{ domain_name }}
+    [req]
+    distinguished_name = dn
+    [EXT]
+    subjectAltName=DNS:{{ domain_name }}
+    keyUsage=digitalSignature
+    extendedKeyUsage=serverAuth
+    EOF
+  vars:
+    domain_name: "{{ node_name }}.{{ item.external_url_suffix }}"
+  when: ambassador_tls_certs.failed == True
 
 # Generates the ambassador tls certificates if already not generated
 - name: Generate ambassador tls certs
@@ -109,8 +109,7 @@
     cd {{ ambassadortls }}
     openssl ecparam -name prime256v1 -genkey -noout -out {{ node_name }}.key
     openssl req -new -nodes -key {{node_name}}.key -days 1000 -out {{ node_name }}.csr \
-    -extensions EXT -subj "/CN={{domain_name}}" -config <( \
-    printf "[dn]\nCN={{ domain_name }}\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:{{ domain_name }}\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+    -extensions EXT -subj "/CN={{domain_name}}" -config "{{ambassadortls}}/{{node_name}}.conf"
     openssl x509 -extfile {{ playbook_dir }}/openssl.conf -req -days 1000 -in {{ node_name }}.csr -CA {{ rootca }}/rootca.pem -CAkey {{ rootca }}/rootca.key -out {{node_name}}.pem -set_serial 01 -extensions v3_nonca
     cat {{ node_name }}.pem > {{node_name}}-certchain.pem
     cat {{ rootca }}/rootca.pem >> {{ node_name }}-certchain.pem
