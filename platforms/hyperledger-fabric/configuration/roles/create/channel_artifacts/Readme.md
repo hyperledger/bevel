@@ -91,3 +91,13 @@ This task Creates channel by consuming the configtx.yaml file.
     *profile_name: Name of Profile
     *channel_name: The name of the channel
 **shell**: The command goes to build path and creates the channel by consuming the configtx.yaml file.
+
+#### 11. Creating JSON Configuration
+This task Creates JSON configuration file by consuming the configtx.yaml file.
+##### Input Variables
+
+    *build_path: The path of build directory.
+    *profile_name: Name of Profile
+    *channel_name: The name of the channel
+    *participant: The new organization 
+**shell**: The command goes to build path and creates the channel by consuming the configtx.yaml file.

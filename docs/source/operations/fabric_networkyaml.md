@@ -130,7 +130,6 @@ The snapshot of channels section with its fields and sample values is below
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
     - organization:      
@@ -139,7 +138,6 @@ The snapshot of channels section with its fields and sample values is below
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
@@ -148,7 +146,6 @@ The snapshot of channels section with its fields and sample values is below
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
@@ -157,7 +154,6 @@ The snapshot of channels section with its fields and sample values is below
       peers:
       - peer:
         name: peer0
-        type: validating
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     genesis:
@@ -181,7 +177,6 @@ Each `organization` field under `participants` field of the channel contains the
 | type               | This field can be creator/joiner of channel                |
 | ordererAddress     | URL of the orderer this peer connects to                   |
 | peer.name          | Name of the peer                                           |
-| peer.type          | This field can be validating/non-validating*               |
 | peer.gossipAddress | Gossip address of the peer                                 |
 
 
@@ -257,7 +252,7 @@ For gitops fields the snapshot from the sample configuration file with the examp
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "github.com/<username>/blockchain-automation-framework.git"
+        git_push_url: "github.com/<username>/blockchain-automation-framework.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
         password: "<password>"          # Git Server user password/personal token
         email: "<git_email>"              # Email to use in git config
@@ -307,7 +302,7 @@ Each organization with type as peer will have a peers service. The snapshot of p
         peers:
         - peer:
           name: peer0          
-          type: peer          
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
           grpc:
             port: 7051         
@@ -339,7 +334,7 @@ The fields under `peer` service are
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | name                          | Name of the peer                                                                                                 |
-| type                          | Type is always `peer` for Peer                                                                    |
+| type                          | Type can be `anchor` and `nonanchor` for Peer                                                                    |
 | gossippeeraddress             | Gossip address of the peer                                                                                       |
 | grpc.port                     | Grpc port                                                                                                        |
 | events.port                   | Events port                                                                                                      |

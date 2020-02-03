@@ -58,4 +58,14 @@ ansible-playbook generate-artifacts-deploy.yaml -e "@./network.yaml"
 ```
 ansible-playbook reset-network.yaml -e "@./network.yaml"
 ```
+
+4. If you want to add an organization into existing network, then, from the *platforms/hyperledger-fabric/configuration* directory, run the following command for deploying the network
+```
+ansible-playbook add-oranization.yaml -e "@./network.yaml"
+```
+Follow steps in [README](https://github.com/hyperledger-labs/blockchain-automation-framework/docs/source/operations/adding_new_org_fabric.md).
+
+(Above command assumes that network.yaml is present in current directory with org_status tag and new organization details).<br>
+The playbook will create resources in the Kubernetes cluster(s) and will intermittently wait for resources to be created before proceeding. You may want to check the cluster(s) about any errors.
+
 You can maintain separate `network.yaml` for separate environments.

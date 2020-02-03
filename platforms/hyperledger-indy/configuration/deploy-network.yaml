@@ -103,7 +103,6 @@
     loop_control:
       loop_var: organizationItem
     when: network['type'] == 'indy'
-
   # Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
     include_role:
@@ -149,6 +148,12 @@
     loop_control:
       loop_var: organizationItem
     when: network['type'] == 'indy' and organizationItem.type == 'peer'
+
+  # Create and deploy Identities
+  - name: 'Create Endorser Identities'
+    include_role:
+      name: setup/endorsers
+    when: network['type'] == 'indy'
 
   # delete build directory
   - name: Remove build directory

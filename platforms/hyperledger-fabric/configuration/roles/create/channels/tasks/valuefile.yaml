@@ -14,25 +14,15 @@
     loop_var: ordererorg
   when: ordererorg.type == 'orderer'
 
-# Check or wait for the Creator peer
-- name: "Check creator peer pod is up"
-  k8s_facts:
-    kind: Pod
-    namespace: "{{ org.name | lower }}-net"
-    kubeconfig: "{{ org.k8s.config_file }}"
-    context: "{{ org.k8s.context }}"
-    label_selectors:
-      - app = {{ peer_name }}
+# Check or wait for the peer
+- name: "Check peer pod is up"
+  include_tasks: peercheck.yaml
   vars:
     org_query: "organizations[?name=='{{peer.name}}']"
-    peer_name: "{{ peer | json_query('peers[?type==`validating`].name') | first }}"
+    peers_data: "{{ peer | json_query('peers[*].name') }}"
   loop: "{{ network | json_query(org_query) }}"
   loop_control:
     loop_var: org
-  register: get_peer
-  until: ("Running" in get_peer|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
 
 # This task creates the value file for creator Organization
 - name: "Create Create_Channel value file"
@@ -47,7 +37,7 @@
     type: "create_channel_job"
     component_name: "{{item.channel_name|lower}}"
     component_ns: "{{ peer.name | lower}}-net"
-    peer_name: "{{ peer | json_query('peers[?type==`validating`].name') | first }}"
+    peer_name: "{{ peer | json_query('peers[*].name') | first }}"
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"

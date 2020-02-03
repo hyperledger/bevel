@@ -96,7 +96,7 @@
   ignore_errors: yes
 
 - name: Save Orderer certs if already created
-  local_action: copy content="{{ orderer_certs_result.results[0].stdout }}" dest="./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls/ca.crt"
+  local_action: copy content="{{ orderer_certs_result.results[0].stdout }}" dest="{{ orderer.certificate }}"
   loop: "{{ network.orderers }}"
   loop_control:
     loop_var: orderer
@@ -105,7 +105,7 @@
 - name: Copy organization level certificates for orderers
   shell: |
     {% for orderer in orderers %}
-    vault write secret/crypto/peerOrganizations/{{ component_name }}/orderer/tls ca.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls/ca.crt)" 
+    vault write secret/crypto/peerOrganizations/{{ component_name }}/orderer/tls ca.crt="$(cat {{ orderer.certificate }})" 
     {% endfor %}
   vars:
     orderers: "{{ network.orderers }}"
