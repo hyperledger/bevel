@@ -1,7 +1,10 @@
-## ROLE: geerate_crypto_raft
+## ROLE: create/crypto/raft
 This role generates the crypto material for RAFT consensus
 
-### Tasks
+### Tasks of nested_main.yaml
+
+#### A. Create crypto material for each peer with RAFT consensus
+This task calls in nested_main.yaml which generates crypto material for each peer with RAFT consensus.
 
 #### 1. Check if nodekey already present in the vault
 This tasks checks if nodekey is already present in the vault
