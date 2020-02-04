@@ -49,6 +49,22 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum'
 
+  # Generate Ambassador certificate for nodes
+  - name: "Create ambassador certificates for Nodes" 
+    include_role: 
+      name: create/certificates/ambassador
+    vars:
+      root_subject: "{{ network.config.subject }}"
+      cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+      services: "{{ item.services }}"
+      organisation: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-ns"
+      component_name: "{{ item.name | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+    loop: "{{ network['organizations']}}"
+    when: network.type == 'quorum'
+
   # This role makes up the geth binary and place it in the bin directory
   - name: "Setup geth"
     include_role:
