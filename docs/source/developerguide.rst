@@ -41,6 +41,7 @@ In BAF, Molecule is used to check for common coding standards, yaml errors and u
 * Molecule version used 2.22
 
 **Requirements**
+
 * Docker Engine
 * Python3 (and pip configured with python3)
 
