@@ -57,7 +57,7 @@ widely recommended `'--user' flag`_ when invoking ``pip``.
 
     $ pip install --user 'molecule[docker]'
 
-The existing test scenarios are found in the `molecule` folder under configuration of each platform e.g. `platforms/shared/configuration/molecule <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/docs/platforms/shared/configuration/molecule>`__ folder.
+The existing test scenarios are found in the `molecule` folder under configuration of each platform e.g. `platforms/shared/configuration/molecule <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/molecule>`__ folder.
 
 
 Ansible Roles and Playbooks 
