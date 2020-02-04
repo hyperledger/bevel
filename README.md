@@ -67,7 +67,7 @@ If you are not using the provided Jeknins automation scripts, you can run the pr
 docker build . -t baf-build
 
 # Run the provisioning scripts
-docker run -v $(pwd)/config/:/home/build/config/ baf-build
+docker run -v $(pwd):/home/blockchain-automation-framework/ baf-build
 ```
 
 ## Initial Committers

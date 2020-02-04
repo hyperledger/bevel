@@ -32,4 +32,3 @@ This task tests the value file for syntax errors/ missing values by calling role
 
 #### Note:
  Var folder has enviornment variable for k8_component role. Templates folder has tpl files for network-map, doorman, mongodb, namespace,storageclass, service accounts and clusterrolebinding. Any change to be reflected in the final value file then these tpl files inside template folder needs to be updated accordingly.
- 
