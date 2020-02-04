@@ -378,9 +378,5 @@ ansible-playbook platforms/hyperledger-fabric/configuration/add-organization.yam
 ```
 
 ---
-**NOTE:** Make sure that the `org_status` label was set as `new` when the network is deployed for the first time.
-
----
-
----
-**NOTE:** If you have additional applications, please deploy them as well.
+**NOTE:** Make sure that the `org_status` label was set as `new` when the network is deployed for the first time.<br/>
+          If you have additional applications, please deploy them as well.

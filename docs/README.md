@@ -27,7 +27,7 @@ pip install -U Sphinx
 ```
 2. Install the pre-requisites
 ```
-pip -r pip-requirements.txt
+pip install -r pip-requirements.txt
 ```
 3. Build the documents
 ```
