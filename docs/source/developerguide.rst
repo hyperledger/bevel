@@ -5,6 +5,7 @@ Refer :doc:`prerequisites` to install all the pre-requisites if this is the firs
 Additional Developer prerequisites
 ----------------------------------
 * :ref:`sphinx`
+* :ref:`molecule`
 
 .. _sphinx:
 
@@ -27,6 +28,35 @@ To build the documentation, execute the following command from `docs` directory:
     make html
     # or for Windows
     .\Make.bat html
+
+.. _molecule:
+
+Molecule
+~~~~~~~~~~~
+
+`Molecule <https://molecule.readthedocs.io/en/stable/>`_ is designed to aid in the development and testing of `Ansible <https://ansible.com/>`_ roles.
+In BAF, Molecule is used to check for common coding standards, yaml errors and unit testing Ansible code/roles.
+
+
+* Molecule version used 2.22
+
+**Requirements**
+* Docker Engine
+* Python3 (and pip configured with python3)
+
+**Molecule installation**
+Please refer to the `Virtual environment`_ documentation for installation best
+practices. If not using a virtual environment, please consider passing the
+widely recommended `'--user' flag`_ when invoking ``pip``.
+
+.. _Virtual environment: https://virtualenv.pypa.io/en/latest/
+.. _'--user' flag: https://packaging.python.org/tutorials/installing-packages/#installing-to-the-user-site
+
+.. code-block:: bash
+
+    $ pip install --user 'molecule[docker]'
+
+The existing test scenarios are found in the `molecule` folder under configuration of each platform e.g. `platforms/shared/configuration/molecule <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/docs/platforms/shared/configuration/molecule>`_ folder.
 
 
 Ansible Roles and Playbooks 
