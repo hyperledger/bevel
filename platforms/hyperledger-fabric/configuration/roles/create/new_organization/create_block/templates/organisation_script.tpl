@@ -9,7 +9,7 @@ apt-get install -y jq
 echo "installing configtxlator"
 mkdir temp
 cd temp/
-wget https://nexus.hyperledger.org/content/repositories/releases/org/hyperledger/fabric/hyperledger-fabric/{{ os }}-{{ arch }}-{{ version }}/hyperledger-fabric-{{ os }}-{{ arch }}-{{ version }}.tar.gz
+wget https://github.com/hyperledger/fabric/releases/download/v{{ version }}/hyperledger-fabric-{{ os }}-{{ arch }}-{{ version }}.tar.gz
 tar -xvf hyperledger-fabric-{{ os }}-{{ arch }}-{{ version }}.tar.gz
 mv bin/configtxlator ../
 cd ../
