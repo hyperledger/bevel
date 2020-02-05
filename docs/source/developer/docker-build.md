@@ -1,4 +1,4 @@
-# Network deployment using docker build
+# DLT Network deployment using docker build
 
 ## Building the docker image
 
