@@ -67,7 +67,7 @@ contract containerContract {
         public {
     }
 
-    function unpackageContainer(        
+    function unpackageContainer(
         string memory _containerID,
         string memory _trackingID
     ) public{
@@ -77,5 +77,5 @@ contract containerContract {
         string memory _containerID,
         string memory _trackingID
     ) public{
-
     }
+}
