@@ -12,36 +12,43 @@ contract containerContract {
     string[] public contents;
     string[] public participants;
 
-    address manufactorer;
+    //address manufactorer;
     address identity;
 
     constructor() public{
         identity = msg.sender;
     }
 
-    modifier onlyManufactorers(){
-        require(identity == manufactorer, "Only manufactorers can create contracts");
-        _;
-    }
+    // modifier onlyManufactorers(){
+    //     require(identity == manufactorer, "Only manufactorers can create contracts");
+    //     _;
+    // }
 
     function createContract(
         //mapping (string => string) memory _misc,
         string memory _health,
         string memory _trackingID,
         string memory _lastScannedAt,
-        string[] memory _counterparties) public onlyManufactorers{
+        string[] memory _counterparties) public{
+        //public onlyManufactorers{
+        bool onList = false;
 
-        //for(uint j = 0; j < _counterparties.length; j++){
-          //  if(_counterparties[j] == identity){
+        for(uint j = 0; j < _counterparties.length; j++){
+           if(_counterparties[j] == identity){
+               onList = true;
+            }
+        }
+        if(onList == true){
                 health = _health;
                 trackingID = _trackingID;
                 lastScannedAt = _lastScannedAt;
                 participants = _counterparties;
                 timestamp = now;
+                //misc = _misc;
                 containerID = "";
             //     custodian = identity;
-            // }
-        //}
+        }
+
     }
 
     function updateContainerCustodian(string memory _containerID) public{
