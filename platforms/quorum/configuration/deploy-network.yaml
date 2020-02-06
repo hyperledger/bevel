@@ -89,7 +89,32 @@
       vault: "{{ item.vault }}"
       peers: "{{ item.services.peers }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum'
+    when: network.type == 'quorum' and network.config.consensus == 'raft'
+
+  # This role makes up the istanbul binary and place it in the bin directory
+  - name: "Setup istanbul-tools"
+    include_role:
+      name: setup/istanbul
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum' and network.config.consensus == 'ibft'
+
+  # This role generates the genesis.json and nodekey/enode for all orgs of the network
+  - name: "Generate genesis and nodekey/enode for the network"
+    include_role:
+      name: create/genesis_nodekey      
+    when: network.type == 'quorum' and network.config.consensus == 'ibft'
+
+  # This role generates the crypto material for quorum network based on ibft consensus and store it in vault
+  - name: "Generate crypto material for IBFT consensus"
+    include_role:
+      name: create/crypto/ibft
+    vars:
+      component_name: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-ns"
+      vault: "{{ item.vault }}"
+      peers: "{{ item.services.peers }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum' and network.config.consensus == 'ibft'
 
   vars: #These variables can be overriden from the command line
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
