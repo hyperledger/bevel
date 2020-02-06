@@ -3,7 +3,7 @@ Developer Prerequisites
 
 The following mandatory pre-requisites must be completed to set up a development environment for BAF.
 
-**The estimated total effort is 70 mins.**
+**The estimated total effort is 55 mins.**
 
 ---
 **NOTE:** You will need at least 8GB RAM to run BAF on local machine.
@@ -29,7 +29,7 @@ To use Git, you need to install the software on your local machine.
    ```
    
 ## Setting up Github
-*Estimated Time: 15 minutes*
+*Estimated Time: 5 minutes*
 
 [GitHub](https://github.com/) is a web-based Git repository hosting service. It offers all of the distributed revision control and source code management (SCM) functionality of Git as well as adding its own features. You can create projects and repositories for you and your teams’ need.
 
@@ -61,7 +61,7 @@ Complete the following steps to download and configure BAF repository on your lo
    ```
 
 ## Setting up Docker
-*Estimated Time: 15 minutes*
+*Estimated Time: 10 minutes*
 
 Install [Docker Engine](https://docs.docker.com/install/) to make sure your local environment has the capbility to execute `docker` commands.
 You can check the version of Docker you have installed with the following
