@@ -1,6 +1,15 @@
 Developer Guide
 ===============
-Refer :doc:`prerequisites` to install all the pre-requisites if this is the first time.
+
+Quickstart Guides 
+---------------------------
+
+.. toctree::
+   :maxdepth: 1
+   
+   developer/dev_prereq
+   developer/mac_minikube_setup
+   developer/docker-build
 
 Additional Developer prerequisites
 ----------------------------------
@@ -34,7 +43,7 @@ To build the documentation, execute the following command from `docs` directory:
 Molecule
 ~~~~~~~~~~~
 
-`Molecule <https://molecule.readthedocs.io/en/stable/>`__ is designed to aid in the development and testing of `Ansible <https://ansible.com/>`_ roles.
+`Molecule <https://molecule.readthedocs.io/en/latest/>`__ is designed to aid in the development and testing of `Ansible <https://ansible.com/>`_ roles.
 In BAF, Molecule is used to check for common coding standards, yaml errors and unit testing Ansible code/roles.
 
 
@@ -58,7 +67,6 @@ widely recommended `'--user' flag`_ when invoking ``pip``.
     $ pip install --user 'molecule[docker]'
 
 The existing test scenarios are found in the `molecule` folder under configuration of each platform e.g. `platforms/shared/configuration/molecule <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/molecule>`__ folder.
-
 
 Ansible Roles and Playbooks 
 ---------------------------
@@ -88,20 +96,3 @@ Jenkins
 
    developer/corda-jenkins
    developer/fabric-jenkins
-
-Mac Minikube Setup 
----------------------------
-
-.. toctree::
-   :maxdepth: 1
-   
-   developer/mac_minikube_setup
-
-Docker Build 
----------------------------
-
-.. toctree::
-   :maxdepth: 1
-   
-   developer/docker-build
-
