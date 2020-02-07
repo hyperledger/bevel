@@ -91,5 +91,26 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum'
 
+  # This role sets up the constellation-node
+  - name: "Setup constellation-node"
+    include_role: 
+      name: setup/constellation-node
+    vars:
+      version: "{{network.config.tm_version}}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'  
+
+  # This role generates the crypto material for transaction manager for each node
+  - name: "Generate crypto material for Constellation"
+    include_role:
+      name: create/crypto/constellation
+    vars:
+      component_name: "{{ item.name | lower}}"
+      component_ns: "{{ item.name | lower }}-ns"
+      vault: "{{ item.vault }}"
+      peers: "{{item.services.peers}}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
   vars: #These variables can be overriden from the command line
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
