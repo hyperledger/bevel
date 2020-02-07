@@ -1,4 +1,4 @@
-## ROLE: create/crypto/raft
+## ROLE: create/crypto/constellation
 This role generates the crypto material for transaction manager for each node.
 
 ### Tasks of nested_main.yaml
@@ -26,7 +26,7 @@ This task creates the build directory if it does not exist
 **file**: This module creates the build directory if it does not exist
 
 
-#### 3. Generate crypto for raft consensus
+#### 3. Generate crypto for constellation-node
 This task generates crypto material for transaction manager for each node using constellation-node
 
 **shell**: This module starts a shell which runs commands to generate crypto
