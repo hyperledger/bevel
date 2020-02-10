@@ -8,10 +8,12 @@
   - import_playbook: kubernetes-env-setup.yaml # Then deploy Flux for each organization
     when: reset is undefined or reset == 'false'
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/add-organization.yaml"
+    vars:
+      add_new_org: 'true'
     when: network.type == 'fabric' and (reset is undefined or reset == 'false')
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/chaincode-install-instantiate.yaml"
     vars:
-      add_org: 'true'
+      add_new_org: 'true'
     when: network.type == 'fabric' and (reset is undefined or reset == 'false')
   - import_playbook: "{{ playbook_dir }}/../../r3-corda/configuration/deploy-network.yaml"
     when: network.type == 'corda' and (reset is undefined or reset == 'false')
