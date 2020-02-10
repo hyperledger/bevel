@@ -16,7 +16,7 @@
       vars:
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer'
+      when: network.type == 'fabric' and item.type == 'peer' and item.org_status == 'new'
 
     - include_role:
         name: "create/chaincode/instantiate"
@@ -24,6 +24,17 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
+      when: add_org == 'false'
+
+    # This task invokes chaincode after the chaincode installation for the new organization to 
+    # be added in existing network
+    - include_role:
+        name: "create/chaincode/invoke"
+      vars:
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: add_org == 'true'
     
     # delete build directory
     - name: Remove build directory
