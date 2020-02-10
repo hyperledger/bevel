@@ -1,5 +1,5 @@
-## ROLE: generate_crypto_raft
-This role generates the crypto material for RAFT consensus
+## ROLE: generate_crypto_tessera
+This role generates the crypto material for tessera transaction manager
 
 ### Tasks of nested_main.yaml
 
