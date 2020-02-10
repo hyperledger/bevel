@@ -128,5 +128,17 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum'
 
+  - name: "Generate crypto material for Constellation"
+    include_role:
+      name: create/crypto/constellation
+    vars:
+      component_name: "{{ item.name | lower}}"
+      component_ns: "{{ item.name | lower }}-ns"
+      vault: "{{ item.vault }}"
+      peers: "{{ item.services.peers }}"
+      version: "{{ network.config.tm_version }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
   vars: #These variables can be overriden from the command line
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
