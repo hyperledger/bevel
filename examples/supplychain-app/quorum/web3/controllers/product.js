@@ -151,15 +151,25 @@ router.post("/product", function(req, res) {
 
 //GET METHODS
 
-router.get("/get/product", function(req, res) {
+
+
+//PUT METHODS
+
+router.put("/product", function(req, res) {
+    let newProduct = {
+      productName: req.body.productName,
+      misc: { name: req.body.misc.name },
+      trackingID: req.body.trackingID,
+      counterparties: req.body.counterparties
+    };
+  
     productContract.methods
-    .getProducts()
-    .call()
-    .then(response => {
-        res.send(response)
-    })
-    .catch(error => {
-        console.log(error);
-        res.send("error")
-    });
-});
+      .addProduct(newProduct)
+      .send()
+      .then(response => {
+        res.send(response);
+      })
+      .catch(error => {
+        res.send("HTTP 404 ", error);
+      });
+  });
