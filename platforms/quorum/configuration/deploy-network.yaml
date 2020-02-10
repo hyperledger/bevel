@@ -91,16 +91,6 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum'
 
-  # This role sets up the constellation-node
-  - name: "Setup constellation-node"
-    include_role: 
-      name: setup/constellation-node
-    vars:
-      version: "{{network.config.tm_version}}"
-    loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum'  
-
-  # This role generates the crypto material for transaction manager for each node
   - name: "Generate crypto material for Constellation"
     include_role:
       name: create/crypto/constellation
@@ -108,7 +98,8 @@
       component_name: "{{ item.name | lower}}"
       component_ns: "{{ item.name | lower }}-ns"
       vault: "{{ item.vault }}"
-      peers: "{{item.services.peers}}"
+      peers: "{{ item.services.peers }}"
+      version: "{{ network.config.tm_version }}"
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum'
 
