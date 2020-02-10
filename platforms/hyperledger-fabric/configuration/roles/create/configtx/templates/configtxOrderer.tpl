@@ -8,6 +8,7 @@ Orderer: &OrdererDefaults
     - {{orderer.name}}.{{ item.external_url_suffix }}:8443
   {%- endif %}
 {% endfor %}
+
   BatchTimeout: 2s
   BatchSize:
     MaxMessageCount: 10
