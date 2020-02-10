@@ -1,5 +1,6 @@
 var Web3 = require("web3");
-
+var express = require("express"),
+  router = express.Router();
 web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 
 var address = "0x9561C133DD8580860B6b7E504bC5Aa500f0f06a7";
@@ -129,21 +130,23 @@ var productContract = new web3js.eth.Contract(abi, address);
 
 //POST METHODS
 
-let newProduct = {
-  productName: "Dextrose",
-  misc: { name: "Expensive Dextrose" },
-  trackingID: "0d15d7b8-caaa-468d-8b83-aae049b40f46",
-  counterparties: ["PartyB", "PartyC", "PartyD"]
-};
+router.post("/post/product", function(req, res) {
+  let newProduct = {
+    productName: req.body.productName,
+    misc: { name: req.body.misc.name },
+    trackingID: req.body.trackingID,
+    counterparties: req.body.counterparties
+  };
 
-productContract.methods
-  .createProduct(newProduct)
-  .send()
-  .then(response => {
-    //res.send(response);
-  })
-  .catch(error => {
-    console.log(error);
-  });
+  productContract.methods
+    .addProduct(newProduct)
+    .send()
+    .then(response => {
+      res.send(response);
+    })
+    .catch(error => {
+      res.send("HTTP 404 ", error);
+    });
+});
 
 //GET METHODS
