@@ -1,0 +1,35 @@
+# This task checks if the crypto material is already stored in the vault or not
+- name: Check if nodekey already present in the vault
+  shell: |
+    vault read -field=nodekey secret/{{ component_ns }}/crypto/{{ peer.name }}/quorum
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_nodekey_result
+  ignore_errors: yes
+
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: build/{{ component_name }}/{{ peer.name }}
+    state: directory
+    mode: '0755'
+    recurse: yes
+  when: vault_nodekey_result.failed == True
+
+- name: Generate enode url for each node and create a geth account and keystore
+  shell: |
+    bootnode --nodekey=build/{{ component_name }}/{{ peer.name }}/nodekey --writeaddress > build/{{ component_name }}/{{ peer.name }}/enode
+    echo {{ peer.geth_passphrase }} >> build/{{ component_name }}/{{ peer.name }}/password
+    geth account new --datadir build/{{ component_name }}/{{ peer.name }} --password build/{{ component_name }}/{{ peer.name }}/password
+    cp build/{{ component_name }}/{{ peer.name }}/keystore/* build/{{ component_name }}/{{ peer.name }}/keystore.json
+  when: vault_nodekey_result.failed == True
+
+# This tasks copy the crypto material to the vault
+- name: Copy the crypto material to Vault
+  shell: |
+    vault kv put secret/{{ component_ns }}/crypto/{{ peer.name }}/quorum nodekey="$(cat build/{{ component_name }}/{{ peer.name }}/nodekey)" keystore="$(cat build/{{ component_name }}/{{ peer.name }}/keystore.json)" db_user="demouser" db_password="password" gethpassword="$(cat build/{{ component_name }}/{{ peer.name }}/password)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_nodekey_result.failed == True
