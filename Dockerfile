@@ -12,6 +12,7 @@ RUN apt-get update -y && \
         curl \
         unzip \
         default-jre \
+	    openssh-client \
         git \
         python \
         python3-dev \
@@ -31,6 +32,7 @@ RUN /bin/echo -e "[ansible_provisioners:children]\nlocal\n[local]\nlocalhost ans
 # Copy the provisional script to build container
 COPY ./run.sh /home
 RUN chmod 755 /home/run.sh
+ENV PATH=$PATH:~/bin
 
 # The mounted repo should contain a build folder with the following files
 # 1) K8s config file as config
