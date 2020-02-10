@@ -150,3 +150,16 @@ router.post("/post/product", function(req, res) {
 });
 
 //GET METHODS
+
+router.get("/get/product", function(req, res) {
+    productContract.methods
+    .getProducts()
+    .call()
+    .then(response => {
+        res.send(response)
+    })
+    .catch(error => {
+        console.log(error);
+        res.send("error")
+    });
+});
