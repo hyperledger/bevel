@@ -12,7 +12,7 @@ RUN apt-get update -y && \
         curl \
         unzip \
         default-jre \
-	openssh-client \
+	    openssh-client \
         git \
         python \
         python3-dev \
