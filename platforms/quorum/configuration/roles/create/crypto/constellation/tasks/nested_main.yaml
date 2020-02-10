@@ -1,0 +1,32 @@
+# This tasks checks if transaction manager key is already present in the vault
+- name: Check tm key is present the vault
+  shell: |
+    vault read -field=tm.pub secret/{{ component_ns }}/crypto/{{ node.name }}/transaction
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_tm_result
+  ignore_errors: yes
+
+# Task creates the build directory if it is does not exist
+- name: Create build directory
+  file:
+    path: build/{{ component_name }}/{{ node.name }}
+    state: directory
+    mode: '0755'
+    recurse: yes
+  when: vault_tm_result.failed == True
+
+- name: Generate Crypto for constellation
+  shell: |
+    cd build/{{ component_name }}/{{ node.name }}
+    printf '\n' | constellation-node --generatekeys=tm
+  when: vault_tm_result.failed == True
+
+- name: Copy the crypto into vault
+  shell: |
+    vault kv put secret/{{component_ns}}/crypto/{{ node.name }}/transaction tm.pub="$(cat build/{{ component_name }}/{{ node.name }}/tm.pub)" tm.key="$(cat build/{{ component_name }}/{{ node.name }}/tm.key)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_tm_result.failed == True

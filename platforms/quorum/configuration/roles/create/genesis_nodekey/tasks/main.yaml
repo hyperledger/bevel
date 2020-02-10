@@ -1,0 +1,46 @@
+#This task checks if nodekey is present in the vault or not, if present, skip all the below tasks
+- name: Check if nodekey is present in vault
+  include_tasks: nodekey_vault_check.yaml
+  vars:
+    component_ns: "{{ org.name }}-ns"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+
+# This task fetch (org,node) pairs for each validating node present in all organizations of the network
+- name: Fetching data of validator nodes in the network from network.yaml
+  include_tasks: validator_node_data.yaml
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: vault_check|default(0)|int != 0
+
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: build
+    state: directory
+    mode: '0755'
+    recurse: yes
+  when: vault_check|default(0)|int != 0
+
+# This task generates the istanbul files
+- name: Generate istanbul files
+  shell: |
+    cd build
+    istanbul setup --num {{ validator_node_list | length }} --nodes --quorum --save --verbose
+  when: vault_check|default(0)|int != 0
+
+# This task rename the above created directories to the org_name/node_name 
+- name: Rename the directories created above with the elements of validator_node_list
+  copy: src=build/{{item.0}}/ dest=build/{{item.1.org}}/{{item.1.node}}
+  with_indexed_items: "{{ validator_node_list }}"
+  when: vault_check|default(0)|int != 0
+
+# Delete the numbered directories
+- name: Delete the numbered directories
+  file:
+    path: build/{{item.0}}
+    state: absent
+  with_indexed_items: "{{ validator_node_list }}"
+  when: vault_check|default(0)|int != 0
