@@ -91,5 +91,17 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum'
 
+  # This role generates the crypto material for quorum network based on tessera transaction manager and store it in vault
+  - name: "Generate crypto material for tessera transaction manager"
+    include_role:
+      name: create/crypto/tessera
+    vars:
+      component_name: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-ns"
+      vault: "{{ item.vault }}"
+      peers: "{{ item.services.peers }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.type == 'quorum'
+
   vars: #These variables can be overriden from the command line
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
