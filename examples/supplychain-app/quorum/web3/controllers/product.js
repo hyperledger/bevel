@@ -130,7 +130,7 @@ var productContract = new web3js.eth.Contract(abi, address);
 
 //POST METHODS
 
-router.post("/post/product", function(req, res) {
+router.post("/product", function(req, res) {
   let newProduct = {
     productName: req.body.productName,
     misc: { name: req.body.misc.name },
