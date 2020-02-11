@@ -68,9 +68,6 @@ contract newProductContract {
         counterparties[_trackingID] = _custodian;
         miscellaneous[count] = message;
         
-
     }
-    
-    
     
 }
