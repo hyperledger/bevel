@@ -1,20 +1,12 @@
 pragma solidity 0.6.1;
 
-contract newProductContract {
+contract productContract {
     
-    uint256 public count = 0;
-    
-   //  Product[] public supplyChain; //declaring an array of Products called supplyChain
-   
+       
     mapping(uint => Product) public supplyChain;
     mapping(uint => Transaction) public transactionHistory;
     mapping(uint => string) public miscellaneous;
-    
     mapping(string => string) public counterparties;
-    
-    
-   // string[] public counterparties; //history of previous owners
-
 
     address manufacturer;
 
@@ -22,7 +14,8 @@ contract newProductContract {
         require(msg.sender == manufacturer);
         _;
     }
-    
+
+    uint256 public count = 0;
 
     struct Product{
         string productName;
@@ -32,17 +25,11 @@ contract newProductContract {
         string custodian; //who currently owns the product
         string lastScannedAt;
         string trackingID;
-        
-        //misc: Map<String,Any>;
-        
     }
-    
-
     struct Transaction{
             uint256 timestamp;
             string containerID;
     }
-    
     
     event productAdded (string ID);
    
