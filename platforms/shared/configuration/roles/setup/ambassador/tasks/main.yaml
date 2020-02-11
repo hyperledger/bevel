@@ -39,8 +39,8 @@
     # format ip addresses list to string with space separator
     ips=$(echo '{{ item.publicIps }}' | tr -d '[]' | sed 's/,/\ /g')
     data=$(aws ec2 describe-addresses --public-ips ${ips} --region {{ aws.region }} --output json | jq '.Addresses[].AllocationId')
-    # format eip addresses list to string with comma separator
-    echo ${data} | tr -d '"' | sed 's/\ /,/g'
+    # format eip addresses list to string with comma separator (comma has to be escaped)
+    echo ${data} | tr -d '"' | sed 's/\ /\\,/g'
   register: allocation_ips
   when: network.type == 'indy' and item.services.stewards is defined and (item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal') #As this shell code is specific to AWS, cloud provider check has been added
 
