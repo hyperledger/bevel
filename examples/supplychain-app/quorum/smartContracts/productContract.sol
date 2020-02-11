@@ -1,8 +1,7 @@
 pragma solidity 0.6.1;
 
 contract productContract {
-    
-       
+
     mapping(uint => Product) public supplyChain;
     mapping(uint => Transaction) public transactionHistory;
     mapping(uint => string) public miscellaneous;
@@ -30,31 +29,26 @@ contract productContract {
             uint256 timestamp;
             string containerID;
     }
-    
+
     event productAdded (string ID);
-   
-    
-    
-     constructor() public{
+
+    constructor() public{
         manufacturer = msg.sender;
     }
-    
-    
+
     function addProduct(string memory _productName, string memory _health, bool _sold, 
                         bool _recalled, string memory _custodian, string memory _lastScannedAt, 
                         string memory _trackingID, string memory _containerID, string memory message) public onlyManufacturer {
       uint256 _timestamp = block.timestamp;
-      
+
       //  supplyChain.push(Product(_productName,_health,_sold,_recalled,_custodian,_lastScannedAt,_trackingID,_containerID));
         count += 1;
         supplyChain[count] = (Product(_productName,_health,_sold,_recalled,_custodian,_lastScannedAt,_trackingID));
         emit productAdded(_trackingID);
-        
+
         transactionHistory[count] = (Transaction(_timestamp, _containerID));
-        
+
         counterparties[_trackingID] = _custodian;
         miscellaneous[count] = message;
-        
     }
-    
 }
