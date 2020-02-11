@@ -93,13 +93,13 @@ The snapshot of the `orderers` section with example values is below
       name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: directory/file1.cert
+      certificate: /home/blockchain-automation-framework/build/orderer1.crt           # Ensure that the directory exists
     - orderer:
       type: orderer
       name: orderer2
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: directory/file1.cert
+      certificate: /home/blockchain-automation-framework/build/orderer2.crt           # Ensure that the directory exists
 ```
 The fields under the each `orderer` are
 
@@ -109,7 +109,7 @@ The fields under the each `orderer` are
 | type        | For Fabric, `orderer` is the only valid type of orderers.   |
 | org_name    | Name of the organization to which this orderer belong to |
 | uri         | Orderer URL                                              |
-| certificate | Path to orderer certificate for connection by new organizations |
+| certificate | Path to orderer certificate. For inital network setup, ensure that the directory is present, the file need not be present. For adding a new organization, ensure that the file is the crt file of the orderer of the existing network. |
 
 The `channels` sections contains the list of channels mentioning the participating peers of the organizations.
 
@@ -195,7 +195,7 @@ The snapshot of an organization field with sample values is below
       subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
       type: orderer
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
-      cloud_provider: aws   # Options: aws, azure, gcp
+      cloud_provider: aws   # Options: aws, azure, gcp, minikube
 ```
 Each `organization` under the `organizations` section has the following fields. 
 
@@ -209,7 +209,7 @@ Each `organization` under the `organizations` section has the following fields.
 | type                                        | This field can be orderer/peer            |
 | external_url_suffix                         | Public url suffix of the cluster.         |
 | ca_data                                     | Contains the certificate authority url and certificate path; This has not been implemented yet |
-| cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure or gcp |
+| cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | When the organization cluster is on AWS |
 | k8s                                         | Kubernetes cluster deployment variables.|
 | vault                                       | Contains Hashicorp Vault server address and root-token in the example |
