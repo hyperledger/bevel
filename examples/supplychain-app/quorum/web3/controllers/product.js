@@ -4,6 +4,8 @@ var express = require("express"),
 var bodyParser = require("body-parser");
 
 web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+
+//set up the express router
 router.use(bodyParser.json()); // for parsing application/json
 const port = 8000;
 router.get("/", (req, res) => res.send("Hello World!"));
@@ -134,12 +136,13 @@ var abi = [
   }
 ];
 
+//instantiate the product smartcontract 
 var productContract = new web3.eth.Contract(abi, address);
 
 //POST METHODS
 
+//Post New Product Method 
 router.post("/api/v1/product", function(req, res) {
-  console.log("*****", req.body);
   let newProduct = {
     productName: req.body.productName,
     misc: { name: req.body.misc.name },
@@ -150,21 +153,15 @@ router.post("/api/v1/product", function(req, res) {
   productContract.methods
     .addProduct(
       newProduct.productName,
-      "",
+      "health",
       true,
       true,
       "",
       newProduct.trackingID,
       "",
-      ""
+      "" 
     )
-    .send({ from: "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1" })
-    .on("transactionHash", function(hash) {
-      console.log("hash: " + hash);
-    })
-    .once("confirmation", function(confirmationNumber, receipt) {
-      console.log("transaction mined: ");
-    })
+    .send({ from: "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0" })
     .on("receipt", function(receipt) {
       // receipt example
       console.log(receipt);
