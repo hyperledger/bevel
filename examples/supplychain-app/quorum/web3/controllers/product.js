@@ -174,6 +174,7 @@ router.post("/product", function(req, res) {
       }
     })
     .on("error", function(error, receipt) {
+      res.send("Error! "+ JSON.stringify(error, null, 4));
       console.log("error" + JSON.stringify(error, null, 4));
       console.log(error);
     });
