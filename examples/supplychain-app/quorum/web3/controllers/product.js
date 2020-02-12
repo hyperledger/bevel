@@ -4,6 +4,7 @@ var express = require("express"),
 var bodyParser = require("body-parser");
 
 web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+router.use(bodyParser.json()); // for parsing application/json
 const port = 8000;
 router.get("/", (req, res) => res.send("Hello World!"));
 router.listen(port, () =>
@@ -137,7 +138,8 @@ var productContract = new web3.eth.Contract(abi, address);
 
 //POST METHODS
 
-router.post("/product", function(req, res) {
+router.post("/api/v1/product", function(req, res) {
+  console.log("*****", req.body);
   let newProduct = {
     productName: req.body.productName,
     misc: { name: req.body.misc.name },
