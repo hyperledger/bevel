@@ -1,15 +1,17 @@
-pragma solidity 0.6.1;
+pragma solidity 0.6.1; 
 
 contract productContract {
 
-    mapping(uint => Product) public supplyChain;
-    mapping(uint => Transaction) public transactionHistory;
-    mapping(uint => string) public miscellaneous;
-    mapping(string => string) public counterparties;
+    // supplyChain is a mapping of all the products created. The key begins at 1.
+    mapping(uint => Product) public supplyChain; 
+    mapping(string => Transaction) public transactionHistory;
+    mapping(string => string) public miscellaneous;
+    // counterparties stores the current custodian plus the previous participants
+    mapping(string => string[]) public counterparties;
 
-    address manufacturer;
+    address manufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
 
-    modifier onlyManufacturer() {
+    modifier onlyManufacturer() { // only manufacturer can call the addProduct function. 
         require(msg.sender == manufacturer);
         _;
     }
@@ -22,12 +24,14 @@ contract productContract {
         bool sold;
         bool recalled;
         string custodian; //who currently owns the product
-        string lastScannedAt;
         string trackingID;
+        string lastScannedAt;
     }
+    
     struct Transaction{
-            uint256 timestamp;
-            string containerID;
+        uint256 timestamp;
+        string containerID;
+
     }
 
     event productAdded (string ID);
@@ -36,19 +40,30 @@ contract productContract {
         manufacturer = msg.sender;
     }
 
-    function addProduct(string memory _productName, string memory _health, bool _sold,
-                        bool _recalled, string memory _custodian, string memory _lastScannedAt,
-                        string memory _trackingID, string memory _containerID, string memory message) public onlyManufacturer {
-        
+    // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false by default. 
+    function addProduct(string memory _productName, string memory _health, string memory _misc, string memory _trackingID, string memory _lastScannedAt) public onlyManufacturer {
+
         uint256 _timestamp = block.timestamp;
-
         count += 1;
-        supplyChain[count] = (Product(_productName,_health,_sold,_recalled,_custodian,_lastScannedAt,_trackingID));
+        bool _sold = false; 
+        bool _recalled = false;
+        string memory _containerID = "";
+        string memory _custodian = "manufacturer";
+       // counterparties [_trackingID] = _custodian;
+        
+        transactionHistory[_trackingID] = (Transaction(_timestamp, _containerID));
+        
+        supplyChain[count] = (Product(_productName,_health,_sold,_recalled,_custodian,_trackingID,_lastScannedAt));
+        
+        miscellaneous[_trackingID] = _misc; // use trackingID as the key to view string value. 
+        
+        addCounterParties(_trackingID,_custodian);//calls an internal function and appends the custodian to the product using the trackingID 
+        
         emit productAdded(_trackingID);
+    }
 
-        transactionHistory[count] = (Transaction(_timestamp, _containerID));
-
-        counterparties[_trackingID] = _custodian;
-        miscellaneous[count] = message;
+    //addCounterParties is a private method that updates the custodian of the product using the trackingID
+    function addCounterParties(string memory _trackingID, string memory _custodian) internal{
+        counterparties[_trackingID].push(_custodian);
     }
 }
