@@ -5,7 +5,7 @@
 ![Figure: Hyperledger Indy Components](../_static/hyperledger-indy-components.png)
 
 ### Docker Images
-The Blockchain Automation Framework uses own Docker images, which are based on Ubuntu and consist with official Hyperledger Indy libraries (indy-plenum and indy-node).
+The Blockchain Automation Framework creates/provides own Docker images, which are based on Ubuntu and consist with official Hyperledger Indy libraries (indy-plenum and indy-node).
 
 * [indy-cli](../../../platforms/hyperledger-indy/images/indy-cli/README.md) - Docker image contains Indy CLI, which is used to issue transactions again an Indy pool.
 * [indy-key-mgmt](../../../platforms/hyperledger-indy/images/indy-key-mgmt/README.md) - Docker image for indy key management, which generates identity crypto and stores it into Vault or displays it onto the terminal in json format.
