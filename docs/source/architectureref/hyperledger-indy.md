@@ -1,5 +1,22 @@
 # Hyperledger Indy Architecture Reference
 
+## Kubernetes
+
+### Peer Nodes
+
+The following diagram shows how Hyperledger Indy peer nodes will be deployed on your Kubernetes instance.
+
+![Figure: Hyperledger Indy Kubernetes Deployment - Peers](../_static/hyperledger-indy-kubernetes-deployment-peers.png)
+
+**Notes:**
+
+1. Pods are shown in blue in the diagram.
+
+2. Each StatefulSet will have `steward-node-init` for initialization (read crypto from Vault) and `steward-node` containers running. Since they are in the same pod, Kubernetes always schedules them on the same VM and they can communicate to each other through localhost. This guarantees minimal latency between them.
+
+4. The storage uses a Kubernetes Persistent Volume.
+
+
 ## Components
 
 ![Figure: Hyperledger Indy Components](../_static/hyperledger-indy-components.png)
