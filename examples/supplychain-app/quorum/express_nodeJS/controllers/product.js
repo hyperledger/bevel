@@ -10,7 +10,7 @@ require('dotenv').config(".env");
 const web3Host = process.env['WEB3_LOCAL_HOST'];
 const port = process.env['PORT'];
 
-web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+web3 = new Web3(new Web3.providers.HttpProvider(web3Host));
 
 //set up the express router
 router.use(bodyParser.json()); // for parsing application/json
@@ -22,8 +22,8 @@ router.listen(port, () =>
 
 /* address of smart contract
 */ 
-var address = process.env['TOADDRESS'];;
-var fromAddress = process.env
+var address = process.env['TOADDRESS'];
+var fromAddress = process.env['FROMADDRESS'];
 
 /* ABI generated from smart contract
 * has definition for all methods and variables in contract
@@ -130,46 +130,9 @@ var abi = [
 		"name": "getAllProducts",
 		"outputs": [
 			{
-				"components": [
-					{
-						"internalType": "string",
-						"name": "productName",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "health",
-						"type": "string"
-					},
-					{
-						"internalType": "bool",
-						"name": "sold",
-						"type": "bool"
-					},
-					{
-						"internalType": "bool",
-						"name": "recalled",
-						"type": "bool"
-					},
-					{
-						"internalType": "string",
-						"name": "custodian",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "trackingID",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "lastScannedAt",
-						"type": "string"
-					}
-				],
-				"internalType": "struct productContract.Product[]",
+				"internalType": "string",
 				"name": "",
-				"type": "tuple[]"
+				"type": "string"
 			}
 		],
 		"payable": false,
@@ -298,7 +261,7 @@ router.post("/api/v1/product", function(req, res) {
       newProduct.trackingID,
       ""
     )
-    .send({ from: process.env['FROMADDRESS'] })
+    .send({ from: fromAddress })
     .on("receipt", function(receipt) {
       // receipt example
       console.log(receipt);
@@ -315,5 +278,7 @@ router.post("/api/v1/product", function(req, res) {
       console.log(error);
     });
 });
+
+
 
 module.exports = router;
