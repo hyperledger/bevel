@@ -17,7 +17,7 @@ spec:
       namespace: {{ component_ns }}
       labels:
     images:
-      node: quorumengineering/quorum:2.1.1
+      node: quorumengineering/quorum:{{ network.version }}
       alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
       tessera: quorumengineering/tessera:0.9.2
       busybox: busybox
@@ -63,12 +63,14 @@ spec:
       trust: {{ network.config.tm_trust | upper }}
     genesis: {{ genesis }}
     staticnodes:
+{% if network.config.consensus == 'ibft' %}
 {% for enode in enode_data_list %}
-      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
+      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0
 {% endfor %}
+{% endif %}
     proxy:
       provider: "ambassador"
-      external_url: {{ component_name }}.{{ external_url }}
+      external_url: {{ name }}.{{ external_url }}
       portTM: {{ peer.transaction_manager.ambassador }}
       rpcport: {{ peer.rpc.ambassador }}
       quorumport: {{ peer.p2p.ambassador }}  
