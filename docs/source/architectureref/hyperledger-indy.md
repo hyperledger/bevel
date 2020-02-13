@@ -22,7 +22,7 @@ Detailed information on helm charts can be referred [here](../developer/indy-hel
 ## Vault Configuration
 
 The Blockchain Automation Framework stores their `crypto` immediately within the secret secrets engine.
-the `crypto` is stored by each organization under `/org_name_lowercase` - it contains provate/public keys, dids and seeds.
+The `crypto` is stored by each organization under `/org_name_lowercase` - it contains provate/public keys, dids and seeds.
 
 
 The complete key paths in the vault can be referred [here](certificates_path_list_indy.md)
