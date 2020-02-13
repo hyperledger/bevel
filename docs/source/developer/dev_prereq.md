@@ -124,10 +124,6 @@ For development environment, minikube can be used as the Kubernetes cluster on w
    minikube status
    ```
    The Kubernetes config file is generated at `~/.kube/config`
-1. To use the minikube's docker environment (so that you do not have to run another VM for docker), execute
-   ```bash
-   eval $(minikube docker-env)
-   ```
 1. To stop (do not delete) minikube execute the following
    ```bash
    minikube stop

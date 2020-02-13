@@ -1,6 +1,6 @@
 # Configuration file specification: R3 Corda
 A network.yaml file is the base configuration file for setting up a Corda DLT network. This file contains all the information related to the infrastructure and network specifications. Here is the structure of it.
-![](./../_static/TopLevelClass.png)
+![](./../_static/TopLevelClass-Corda.png)
 
 Before setting up a Corda DLT network, this file needs to be updated with the required specifications.
 A sample configuration file is provide in the repo path:  
