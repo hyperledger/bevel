@@ -77,6 +77,7 @@ Ansible Roles and Playbooks
    developer/shared
    developer/corda-ansible
    developer/fabric-ansible
+   developer/indy-ansible
 
 Helm Charts 
 ---------------------------
