@@ -53,7 +53,6 @@ contract productContract {
         
         transactionDetail[_trackingID] = (Transaction(_timestamp, _containerID, _custodian, manufacturer,_lastScannedAt)); // uses trackingID to get the timestamp, containerID, custodian and custodian_Address.
         
-        //supplyChain[count] = (Product(_productName,_health,_sold,_recalled,_custodian,_trackingID,_lastScannedAt));
         supplyChain.push(Product(_productName,_health,_sold,_recalled,_custodian,_trackingID,_lastScannedAt));
         
         miscellaneous[_trackingID] = _misc; // use trackingID as the key to view string value. 
@@ -68,7 +67,7 @@ contract productContract {
     function addCounterParties(string memory _trackingID, string memory _custodian) internal{
         counterparties[_trackingID].push(_custodian);
     }
-    
+
     //The updateCustodian method updates custodian when custodianship changes
     function updateCustodian(string memory _trackingID, string memory longLatsCoordinates ) public { 
         if(msg.sender != manufacturer){ // if the account calling this function is not the manufacturer, the following will be performed:
