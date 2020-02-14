@@ -12,12 +12,6 @@
   when: vault_msp_result.failed == True
 
 ############################################################################################
-# This task installs dos2unix on the Ansible container
-- name: "Install dos2unix to use unarchieve module of ansible"
-  apt:
-    name: dos2unix
-  when: vault_msp_result.failed == True
-
 # Copy generate-crypto script from scrips directory
 - name: Copy generate-usercrypto.sh to destination directory
   copy:
@@ -32,11 +26,11 @@
   when: vault_msp_result.failed == True
 
 ############################################################################################
-# This task converts the generate_crypto.sh file to unix format
-- name: Convert the file to unix format
-  shell: |
-    dos2unix ./build/{{ files }}
-    chmod 755 ./build/{{ files }}
+# This task changes the permission for msp
+- name: Changing the permission of msp files
+  file:  
+    path: ./build/{{ files }} 
+    mode: '0775'
   with_items:
     - "generate-crypto-{{ org_name|lower }}.sh"
     - generate-user-crypto.sh

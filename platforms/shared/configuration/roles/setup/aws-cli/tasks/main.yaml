@@ -3,6 +3,8 @@
     tempfile:
       state: directory
     register: tmp_directory
+    tags:
+      - molecule-idempotence-notest
 
   - name: check aws cli
     stat:
@@ -16,7 +18,7 @@
       url: "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip"
       dest: "{{ tmp_directory.path }}"
       checksum: ""
-    when: aws_cli_stat_result.stat.exists == False
+    when: not aws_cli_stat_result.stat.exists
     tags:
       - aws_cli
 
@@ -26,7 +28,7 @@
     package:
       name: unzip
       state: present
-    when: aws_cli_stat_result.stat.exists == False
+    when: not aws_cli_stat_result.stat.exists
     tags:
       - aws_cli
 
@@ -35,7 +37,7 @@
       src: "{{ tmp_directory.path }}/awscli-bundle.zip"
       dest: "{{ tmp_directory.path }}"
       remote_src: yes
-    when: aws_cli_stat_result.stat.exists == False
+    when: not aws_cli_stat_result.stat.exists
     tags:
       - aws_cli
 
@@ -44,7 +46,7 @@
       path: "{{ aws_cli.bin_directory }}"
       state: directory
       recurse: yes
-    when: aws_cli_stat_result.stat.exists == False
+    when: not aws_cli_stat_result.stat.exists
     tags:
       - aws_cli
 
@@ -54,12 +56,16 @@
     shell: |
       cd "{{ tmp_directory.path }}"
       ./awscli-bundle/install -b {{ aws_cli.bin_directory }}/aws
-    when: aws_cli_stat_result.stat.exists == False
+    when: not aws_cli_stat_result.stat.exists
     tags:
       - aws_cli
 
   - name: configuring aws
     shell: |
       cd {{ aws_cli.bin_directory }}/
-      aws configure set aws_access_key_id {{ aws_access_key }}
-      aws configure set aws_secret_access_key {{ aws_secret_key }}
+      ./aws configure set aws_access_key_id {{ aws_access_key }}
+      ./aws configure set aws_secret_access_key {{ aws_secret_key }}
+    when: not aws_cli_stat_result.stat.exists or aws_cli_stat_result.stat.exists
+    tags:
+      - notest
+      - molecule-idempotence-notest

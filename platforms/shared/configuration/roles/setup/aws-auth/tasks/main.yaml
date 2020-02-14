@@ -3,6 +3,8 @@
     tempfile:
       state: directory
     register: tmp_directory
+    tags:
+      - molecule-idempotence-notest
 
   - name: check aws-authenticator
     stat:
@@ -16,7 +18,7 @@
       path: "{{ aws_authenticator.bin_directory }}"
       state: directory
       recurse: yes
-    when: aws_auth_stat_result.stat.exists == False
+    when: not aws_auth_stat_result.stat.exists
     tags:
       - aws_auth
 
@@ -24,11 +26,12 @@
     become: "{{ privilege_escalate }}"
     become_user: root
     get_url:
-      url: "https://amazon-eks.s3-us-west-2.amazonaws.com/{{ aws_authenticator.version }}/{{ aws_authenticator.release_date }}/bin/{{ aws_authenticator.os }}/{{ aws_authenticator.arch }}/aws-iam-authenticator"
+      url: "https://amazon-eks.s3-us-west-2.amazonaws.com/{{ aws_authenticator.version }}/{{ aws_authenticator.release_date }}\
+      /bin/{{ aws_authenticator.os }}/{{ aws_authenticator.arch }}/aws-iam-authenticator"
       dest: "{{ aws_authenticator.bin_directory }}/aws-iam-authenticator"
       mode: 0755
       checksum: "{{ aws_authenticator.checksum }}"
-    when: aws_auth_stat_result.stat.exists == False
+    when: not aws_auth_stat_result.stat.exists
     tags:
       - aws_auth
 

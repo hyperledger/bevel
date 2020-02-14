@@ -3,7 +3,17 @@
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Call nested_sign_and_update for each peer
+
+#### 1. Call valuefile when participant is new
+This task calls valuefile
+##### Input Variables
+**include_tasks**: It includes the name of intermediatory task which is required for creating the value file for cli of peer, starting the cli and signing the block
+**loop**: loops over result list fetched from *channel_participants*
+**loop_control**: Specify conditions for controlling the loop.
+    
+     loop_var: loop variable used for iterating the loop.
+
+#### 2. Call nested_sign_and_update for each peer
 This task calls nested_sign_and_update
 ##### Input Variables
     *channel_name: Name of the channel
@@ -138,3 +148,32 @@ This task creates the cli for the creator organization first peer.
     *config_file: Kubernetes file
 
 
+------------
+### valuefile.yaml
+This task performs a check if the new organization peers are up
+
+### Tasks
+#### 1. Check peer pod is up
+This task creates valuefile for the peer.
+##### Input Variables
+
+    *org_query: New organization information 
+    *peer_data: Peer information
+
+**include_tasks**: It includes the name of intermediatory task which is required for creating the value file for cli of peer, starting the cli and signing the block
+**loop**: loops over result list fetched from *channel_participants*
+**loop_control**: Specify conditions for controlling the loop.
+    
+     loop_var: loop variable used for iterating the loop.  
+
+------------
+### peercheck.yaml
+This task performs a check if the new organization peers are up
+
+### Tasks
+#### 1. Check peer pod is up
+This task creates valuefile for the peer.
+##### Input Variables
+
+    *namespace: Namespace of the new organization 
+    *kubeconfig: Kubeconfig information

@@ -129,6 +129,7 @@ For the aws and k8s field the snapshot with sample values is below
         encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
         zone: "availability_zone"               # AWS availability zone
         region: "region"                        # AWS region
+        publicIps: []                           # List of all public IP addresses of each availability zone
 
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
@@ -147,6 +148,7 @@ The `aws` field under each organisation contains: (This will be ignored if cloud
 | encryption_key                              | AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.  |
 | zone                              | AWS availability zone  |
 | region                              | AWS region  |
+| publicIps                           | List of all public IP addresses of each availability zone |
 
 The `k8s` field under each organisation contains
 
