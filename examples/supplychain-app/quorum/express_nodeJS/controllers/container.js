@@ -1,4 +1,4 @@
-/* This file contains all routes and API calls for the Product Smart Contract
+/* This file contains all routes and API calls for the Container Smart Contract
 */
 
 var Web3 = require("web3");
@@ -22,7 +22,7 @@ router.listen(port, () =>
 
 /* address of smart contract
 */ 
-var address = "0x0c50AE063745bD160209C949B068Bb0B3F63505C";
+var address = process.env['CONTAINERADDRESS'];
 var fromAddress = process.env['CONTAINERFROMADDRESS'];
 
 /* ABI generated from smart contract
@@ -35,7 +35,7 @@ var containerContract = new web3.eth.Contract(abi, address);
 
 //POST METHODS
 
-//Post New Product Method 
+//Post New Container Method 
 router.post("/api/v1/container", function(req, res) {
   let newContainer = {
     misc: { name: req.body.misc.name },
