@@ -79,6 +79,19 @@ router.post("/api/v1/container", function(req, res) {
 }
 });
 
+// Get Containers method 
+router.get("/api/v1/container", function(req, res) {
+	containerContract.methods
+	.getAllContainers()
+	.send({ from: fromAddress, gas: 6721975, gasPrice: '30000000'})
+	.then(response => {
+	res.send(response.events.sendArray.returnValues.array);
+	})
+	.catch(err => {
+	console.log(err);
+	})
+});
+
 
 
 module.exports = router;

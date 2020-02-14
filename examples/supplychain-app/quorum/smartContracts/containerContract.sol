@@ -2,7 +2,7 @@ pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 contract containerContract {
-    Container[] public supplyChain;
+    Container[] public containerSupplyChain;
     mapping(string => Transaction) public transactionHistory;
     mapping(string => string) public miscellaneous;
     mapping(string => string[]) public counterparties; // counterparties stores the current custodian plus the previous participants
@@ -53,12 +53,18 @@ contract containerContract {
 
         transactionHistory[_trackingID] = (Transaction(_timestamp, _containerID));
 
-        supplyChain.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
+        containerSupplyChain.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
         count++;
         miscellaneous[_trackingID] = _misc;
 
         emit containerAdded(_trackingID);
-        emit sendObject(supplyChain[supplyChain.length-1]);
+        emit sendObject(containerSupplyChain[containerSupplyChain.length-1]);
+    }
+
+    // the getAllContainers() function will return all containers in the containerSupplyChain[] array
+    function getAllContainers() public returns(Container[] memory) {
+        emit sendArray(containerSupplyChain);
+        return containerSupplyChain;
     }
 
 }
