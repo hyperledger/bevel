@@ -18,8 +18,8 @@ spec:
       labels:
     images:
       node: quorumengineering/quorum:{{ network.version }}
-      alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
-      tessera: quorumengineering/tessera:0.9.2
+      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
+      tessera: quorumengineering/tessera:{{ network.config.tm_version }}
       busybox: busybox
       mysql: mysql/mysql-server:5.7
     node:
