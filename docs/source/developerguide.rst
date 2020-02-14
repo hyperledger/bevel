@@ -88,6 +88,7 @@ Helm Charts
    developer/shared-helmcharts
    developer/corda-helmcharts
    developer/fabric-helmcharts
+   developer/indy-helmcharts
 
 Jenkins 
 ---------------------------
