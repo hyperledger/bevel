@@ -37,7 +37,9 @@ Some of the common roles and playbooks between Hyperledger-Indy, Hyperledger-Fab
 
 Roles in ansible are a combination of logically inter-related tasks.
 
-Below is the single playbook that you need to execute to setup complete corda network.
+To deploy the indy network, run the deploy-network.yaml in `blockchain-automation-framework\platforms\hyperledger-indy\configuration\`
+The roles included in the file are as follows.
+
 ## **check/auth_job**
 
 * This role checks all auth jobs completing.

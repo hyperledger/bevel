@@ -1,6 +1,6 @@
 # Indy Charts
 
-The structure below represents the Chart structure for Hyperledger fabric components in the Blockchain Automation Framework 
+The structure below represents the Chart structure for Hyperledger Indy components in the Blockchain Automation Framework 
 implementation.
 
 ```
