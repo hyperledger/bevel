@@ -35,27 +35,27 @@ contract containerContract {
         manufacturer = msg.sender;
     }
 
+    function _addressToString(address x) private returns (string memory){
+    bytes memory b = new bytes(20);
+    for (uint i = 0; i < 20; i++)
+        b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
+    return string(b);
+}
+
 
     // The addContainer will create a new container only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
     function addContainer(string memory _health, string memory _misc, string memory _trackingID,
         string memory _lastScannedAt, string[] memory _counterparties) public returns (string memory) {
-        // require(
-        //     counterparties.includes(keccak256(abi.encodePacked((msg.sender)))),
-        //     "HTTP 404"
-        // );
 
         uint256 _timestamp = block.timestamp;
-        // string memory _custodian = keccak256(abi.encodePacked((msg.sender)));
-        string memory _custodian = "manug";
+        string memory _custodian = _addressToString(msg.sender);
         string memory _containerID = "";
 
-        transactionHistory[_trackingID] = (Transaction(_timestamp, _containerID)); // uses trackingID to get the timestamp and containerID.
+        transactionHistory[_trackingID] = (Transaction(_timestamp, _containerID));
 
         supplyChain.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
         count++;
-        miscellaneous[_trackingID] = _misc; // use trackingID as the key to view string value.
-
-        // counterparties(_trackingID, _custodian);//calls an internal function and appends the custodian to the product using the trackingID
+        miscellaneous[_trackingID] = _misc;
 
         emit containerAdded(_trackingID);
         emit sendObject(supplyChain[supplyChain.length-1]);
