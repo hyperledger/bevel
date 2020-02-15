@@ -18,13 +18,16 @@ contract productContract {
     uint256 public totalProductsCreated = 0;
 
     struct Product{
+        uint index; //position of the product in the array
         string productName;
         string health;
         bool sold;
         bool recalled;
-        string custodian; //who currently owns the product
+        string custodian; //who currently has possession of the product
         string trackingID; 
         string lastScannedAt;
+      //string[] participants;
+        
     }
     
     struct Transaction{ //stores current information of the product
@@ -33,7 +36,6 @@ contract productContract {
         string custodian;
         address custodianAddress;
         string lastScannedAt;
-
     }
 
     event productAdded (string ID);
@@ -43,18 +45,19 @@ contract productContract {
     }
     
     // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is created.
-    function addProduct(string memory _productName, string memory _health, string memory _misc, string memory _trackingID, string memory _lastScannedAt) public onlyManufacturer{
+    function addProduct(uint _index, string memory _productName, string memory _health, string memory _misc, string memory _trackingID, string memory _lastScannedAt) public onlyManufacturer{
         
         uint256 _timestamp = block.timestamp;
         bool _sold = false; 
         bool _recalled = false;
         string memory _containerID = "";
         string memory _custodian = "manufacturer";
-
         
+
+                                                                                             //manufacturer is the address of the account 
         transactionDetail[_trackingID] = (Transaction(_timestamp, _containerID, _custodian, manufacturer,_lastScannedAt)); // uses trackingID to get the timestamp, containerID, custodian and custodian_Address.
         
-        supplyChain.push(Product(_productName,_health,_sold,_recalled,_custodian,_trackingID,_lastScannedAt)); // pushes the new product to the array 
+        supplyChain.push(Product(_index,_productName,_health,_sold,_recalled,_custodian,_trackingID,_lastScannedAt)); // pushes the new product to the array 
         
         miscellaneous[_trackingID] = _misc; // use trackingID as the key to view string value. 
         
@@ -80,6 +83,15 @@ contract productContract {
             transactionDetail[_trackingID].custodian = _custodian; 
             transactionDetail[_trackingID].custodianAddress = _custodianAddress;
             addCounterParties(_trackingID,_custodian); //the new custodian gets added to the counterparties map.
+        }
+    }
+    
+    // You must updateCustodian before you could updateProduct
+    function updateProduct(uint _index, string memory _health, string memory _misc, string memory _trackingID, string memory _custodian) public {
+        if(transactionDetail[_trackingID].custodianAddress == msg.sender && keccak256(abi.encodePacked((transactionDetail[_trackingID].custodian))) == keccak256(abi.encodePacked((_custodian)))) {
+        
+            supplyChain[_index].health = _health;
+            miscellaneous[_trackingID] = _misc;
         }
     }
 }
