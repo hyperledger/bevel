@@ -9,7 +9,8 @@ contract productContract {
     mapping(string => string[]) public counterparties; // counterparties stores the current custodian plus the previous participants
 
     address manufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
-
+    
+    
     modifier onlyManufacturer() {  // only manufacturer can call the addProduct function. 
         require(msg.sender == manufacturer);
         _;
@@ -26,7 +27,7 @@ contract productContract {
         string trackingID; 
         string lastScannedAt;
     }
-
+    
     struct Transaction{ //stores current information of the product
         uint256 timestamp;
         string containerID;
@@ -42,10 +43,10 @@ contract productContract {
     constructor() public{
         manufacturer = msg.sender;
     }
-
+    
     // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is created.
     function addProduct(string memory _productName, string memory _health, string memory _misc, string memory _trackingID, string memory _lastScannedAt) public onlyManufacturer{
-
+        
         uint256 _timestamp = block.timestamp;
         bool _sold = false; 
         bool _recalled = false;
@@ -55,7 +56,7 @@ contract productContract {
         
         transactionDetail[_trackingID] = (Transaction(_timestamp, _containerID, _custodian, manufacturer,_lastScannedAt)); // uses trackingID to get the timestamp, containerID, custodian and custodian_Address.
         
-        supplyChain.push(Product(_productName,_health,_sold,_recalled,_custodian,_trackingID,_lastScannedAt));
+        supplyChain.push(Product(_productName,_health,_sold,_recalled,_custodian,_trackingID,_lastScannedAt)); // pushes the new product to the array 
         
         miscellaneous[_trackingID] = _misc; // use trackingID as the key to view string value. 
         
@@ -69,7 +70,7 @@ contract productContract {
     function addCounterParties(string memory _trackingID, string memory _custodian) internal{
         counterparties[_trackingID].push(_custodian);
     }
-
+    
     //The updateCustodian method updates custodian when custodianship changes
     function updateCustodian(string memory _trackingID, string memory longLatsCoordinates ) public { 
         if(msg.sender != manufacturer){ // if the account calling this function is not the manufacturer, the following will be performed:
