@@ -1,15 +1,9 @@
-/**
-This file is the smart contract for container 
- */
-
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
-contract containerContract {
-    Container[] public containerSupplyChain;
-    mapping(string => Transaction) public transactionHistory;
-    mapping(string => string) public miscellaneous;
-    mapping(string => string[]) public counterparties; // counterparties stores the current custodian plus the previous participants
+import "./ProductContract.sol";
+
+contract containerContract is ProductContract{
 
     address manufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
 
@@ -26,10 +20,10 @@ contract containerContract {
         string[] participants;
     }
 
-    struct Transaction{
-        uint256 timestamp;
-        string containerID;
-    }
+    Container[] public containerSupplyChain;
+    mapping(string => Container) supplyChainMap;
+    mapping(string => string) public miscellaneous;
+    mapping(string => string[]) public counterparties; // counterparties stores the current custodian plus the previous participants
 
     event containerAdded (string ID);
     event sendArray (Container[] array);
@@ -55,9 +49,9 @@ contract containerContract {
         string memory _custodian = _addressToString(msg.sender);
         string memory _containerID = "";
 
-        transactionHistory[_trackingID] = (Transaction(_timestamp, _containerID));
-
         containerSupplyChain.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
+        supplyChainMap[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
+            _trackingID, _timestamp, _containerID, _counterparties);
         count++;
         miscellaneous[_trackingID] = _misc;
 
@@ -69,6 +63,11 @@ contract containerContract {
     function getAllContainers() public returns(Container[] memory) {
         emit sendArray(containerSupplyChain);
         return containerSupplyChain;
+    }
+
+    function getSingleContainer(string memory _trackingID) public returns(Container memory) {
+        require(!supplyChainMap[_trackingID], "HTTP 404");
+        emit(supplyChainMap[_trackingID]);
     }
 
 }

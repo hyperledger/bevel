@@ -1,97 +1,125 @@
-/* This file contains all routes and API calls for the Container Smart Contract
-*/
-
-var Web3 = require("web3");
 var express = require("express"),
-  router = express();
+  router = express.Router();
+var multer = require("multer"); // v1.0.5
+var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require("body-parser");
-require('dotenv').config(".env");
 
-const web3Host = process.env['WEB3_LOCAL_HOST'];
-const port = process.env['PORT'];
-
-web3 = new Web3(new Web3.providers.HttpProvider(web3Host));
-
-//set up the express router
 router.use(bodyParser.json()); // for parsing application/json
-// const port = 8000;
-router.get("/", (req, res) => res.send("You have reached the correct endpoint, please use complete API paths for requests"));
-router.listen(port, () =>
-  console.log(`App listening on port ${port}!`)
-);
 
-/* address of smart contract
-*/ 
-var address = process.env['CONTAINERADDRESS'];
-var fromAddress = process.env['CONTAINERFROMADDRESS'];
-
-/* ABI generated from smart contract
-* has definition for all methods and variables in contract
-*/
-var abi = require("./variables/containerABI");
-
-//instantiate the product smartcontract 
-var containerContract = new web3.eth.Contract(abi, address);
-
-//POST METHODS
-
-//Post New Container Method 
-router.post("/api/v1/container", function(req, res) {
-  let newContainer = {
-    misc: { name: req.body.misc.name },
-    trackingID: req.body.trackingID,
-    counterparties: req.body.counterparties
-  };
-
-  var isInArray = false;
-
-  if(newContainer.counterparties.includes(fromAddress)){
-
-    isInArray = true;
-  } 
-  console.log(isInArray);
-  if(isInArray) {
+//GET container with or without trackingID
+router.get("/:trackingID?", function(req, res) {
+  if (req.params.trackingID != null) {
+    // TODO: Implement getContainerByID functionality
+    const trackingID = req.body.trackingID;
     containerContract.methods
-        .addContainer(
+      .getSingleContainer(req.body.trackingID)
+      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .then(response => {
+        res.send(response.events.sendObject.returnValues.container);
+      })
+      .catch(error => {
+        console.log(error);
+        res.send("error");
+      });
+  } else {
+    // TODO: Implement get all containers functionality
+    // getContainers()
+    containerContract.methods
+    .getAllContainers()
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .then(response => {
+      res.send(response.events.sendArray.returnValues.array);
+    })
+    .catch(err => {
+      console.log(err);
+    });
+  }
+});
+
+//POST for new container
+router.post("/api/v1/container", upload.array(), function(req, res) {
+  res.setTimeout(15000);
+  // TODO: Implement new container functionality
+  let newContainer = {
+    misc: req.body.misc,
+    trackingID: req.body.trackingID,
+    counterparties: req.body.counterparties.map(it =>
+      it.indexOf("O=") != -1 ? it.split("O=")[1].split(",")[0] : it
+    ) //filter out to only send org name
+  }; //filter out to only send org
+  var isInArray = false;
+  if (newContainer.counterparties.includes(fromAddress)) {
+    isInArray = true;
+  }
+  if (isInArray) {
+    containerContract.methods
+      .addContainer(
         "health",
         JSON.stringify(newContainer.misc),
         newContainer.trackingID,
         "",
-        newContainer.counterparties,
-        )
-        .send({ from: fromAddress, gas: 6721975, gasPrice: '30000000' })
-        .on("receipt", function(receipt) {
+        newContainer.counterparties
+      )
+      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .on("receipt", function(receipt) {
         console.log(receipt);
         console.log(receipt.events.sendObject.returnValues);
         if (receipt.status === true) {
-            res.send("Transaction successful");
+          res.send("Transaction successful");
         }
         if (receipt.status === false) {
-            res.send("Transaction not successful");
+          res.send("Transaction not successful");
         }
-        })
-        .on("error", function(error, receipt) {
-        res.send({message: "Error! "});
-        console.log(error);
-        });
-} else {
-    res.send("Transaction not sent. Your address is not in counterparties list");
-}
+      })
+      .catch(error => {
+        res.send("error");
+      });
+  } else {
+    res.send(
+      "Transaction not sent. Your address is not in counterparties list"
+    );
+  }
 });
 
-// Get Containers method 
-router.get("/api/v1/container", function(req, res) {
-	containerContract.methods
-	.getAllContainers()
-	.send({ from: fromAddress, gas: 6721975, gasPrice: '30000000'})
-	.then(response => {
-	res.send(response.events.sendArray.returnValues.array);
-	})
-	.catch(err => {
-	console.log(err);
-	})
+//PUT for changing custodian
+router.put("/:trackingID/custodian", function(req, res) {
+  res.setTimeout(15000);
+  // TODO: Implement change custodian functionality
+  // receiveContainer(req.params.trackingID)
+  // .then( response => {
+  //   res.send(response)
+  // })
+  // .catch(error => {
+  //   console.log(error)
+  //   res.send("error")
+  // })
 });
 
+//PUT for updatating contents
+router.put("/:trackingID/package", upload.array(), function(req, res) {
+  res.setTimeout(15000);
+  // TODO: Implement update content packages
+  // packageGood(req.params.trackingID,req.body)
+  // .then( response => {
+  //   res.send(response)
+  // })
+  // .catch(error => {
+  //   console.log(error)
+  //   res.send("error")
+  // })
+});
 
-
+//PUT for removing contents
+router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
+  res.setTimeout(15000);
+  // TODO: Implement remove content from container
+  // unPackageGood(req.params.trackingID,req.body)
+  // .then( response => {
+  //   res.send(response)
+  // })
+  // .catch(error => {
+  //   console.log(error)
+  //   res.send("error")
+  // })
+});
 module.exports = router;
