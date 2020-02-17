@@ -1,11 +1,11 @@
-pragma solidity 0.5.16;
+pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
 import "./ProductContract.sol";
 
 contract containerContract is ProductContract{
 
-    address manufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
+    address containerManufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
 
     uint256 public count = 0;
 
@@ -22,15 +22,13 @@ contract containerContract is ProductContract{
 
     Container[] public containerSupplyChain;
     mapping(string => Container) supplyChainMap;
-    mapping(string => string) public miscellaneous;
-    mapping(string => string[]) public counterparties; // counterparties stores the current custodian plus the previous participants
 
     event containerAdded (string ID);
     event sendArray (Container[] array);
     event sendObject(Container container);
 
     constructor() public{
-        manufacturer = msg.sender;
+        productManufacturer = msg.sender;
     }
 
     function _addressToString(address x) private returns (string memory){
@@ -53,7 +51,6 @@ contract containerContract is ProductContract{
         supplyChainMap[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties);
         count++;
-        miscellaneous[_trackingID] = _misc;
 
         emit containerAdded(_trackingID);
         emit sendObject(containerSupplyChain[containerSupplyChain.length-1]);
@@ -66,8 +63,7 @@ contract containerContract is ProductContract{
     }
 
     function getSingleContainer(string memory _trackingID) public returns(Container memory) {
-        require(!supplyChainMap[_trackingID], "HTTP 404");
-        emit(supplyChainMap[_trackingID]);
+        emit sendObject(supplyChainMap[_trackingID]);
     }
 
 }

@@ -6,7 +6,7 @@ import "./ownable.sol";
 contract ProductContract is Ownable {
 
     // Keeps the manufacturer address as some actions can only be done by the manufacturer
-    address manufacturer;
+    address productManufacturer;
 
     struct Product{
         string trackingID;
@@ -34,7 +34,7 @@ contract ProductContract is Ownable {
     // FIXME: move into a new contract called permissions
     // only manufacturer Modifier checks that only the manufacturer can perform the task
     modifier onlyManufacturer() {
-        require(msg.sender == manufacturer, "This function can only be executed by the manufacturer");
+        require(msg.sender == productManufacturer, "This function can only be executed by the manufacturer");
         _;
     }
 
@@ -42,7 +42,7 @@ contract ProductContract is Ownable {
 
     // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
     constructor() public{
-        manufacturer = msg.sender;
+        productManufacturer = msg.sender;
     }
 
     // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
