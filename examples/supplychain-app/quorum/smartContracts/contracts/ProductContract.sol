@@ -63,7 +63,7 @@ contract ProductContract is Ownable {
         string memory containerID = "";
         address custodian = msg.sender;
         string[] memory participants;
-        participants[1] = "Test";
+        // participants[1] = "Test";
 
          // uses trackingID to get the timestamp and containerID.
         Product memory newProduct = Product(_trackingID,
