@@ -1,4 +1,5 @@
 pragma solidity 0.6.1; 
+pragma experimental ABIEncoderV2;
 
 contract productContract {
     
@@ -37,6 +38,7 @@ contract productContract {
     }
 
     event productAdded (string ID);
+    event sendArray(Product[] array);
 
     constructor() public{
         manufacturer = msg.sender;
@@ -81,5 +83,10 @@ contract productContract {
             transactionDetail[_trackingID].custodianAddress = _custodianAddress;
             addCounterParties(_trackingID,_custodian); //the new custodian gets added to the counterparties map.
         }
+    }
+
+    function getAllProducts() public returns(Product[] memory) {
+        emit sendArray(supplyChain);
+        return supplyChain;
     }
 }
