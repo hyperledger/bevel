@@ -24,6 +24,7 @@ contract ProductContract is Ownable {
 
     // supplyChain is a mapping of all the products created. The key begins at 1.
     Product[] public products;
+    mapping(string => Product) productSupplyChainMap;
 
     mapping (string => uint) trackingIDtoProductID;
 
@@ -96,10 +97,4 @@ contract ProductContract is Ownable {
         emit sendProductArray(products);
         return products;
     }
-
-    // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
-
-    // }
-
-
 }
