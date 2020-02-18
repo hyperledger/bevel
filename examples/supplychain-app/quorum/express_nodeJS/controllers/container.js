@@ -1,8 +1,10 @@
-var express = require("express"),
-  router = express.Router();
-var multer = require("multer"); // v1.0.5
+var express = require('express')
+  , router = express.Router();
+
+const {productContract, fromAddress} = require('../web3services');
+var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
-var bodyParser = require("body-parser");
+var bodyParser = require('body-parser');
 
 router.use(bodyParser.json()); // for parsing application/json
 
@@ -11,7 +13,7 @@ router.get("/:trackingID?", function(req, res) {
   if (req.params.trackingID != null) {
     // TODO: Implement getContainerByID functionality
     const trackingID = req.body.trackingID;
-    containerContract.methods
+    productContract.methods
       .getSingleContainer(req.body.trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
@@ -24,10 +26,11 @@ router.get("/:trackingID?", function(req, res) {
   } else {
     // TODO: Implement get all containers functionality
     // getContainers()
-    containerContract.methods
+    productContract.methods
     .getAllContainers()
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .send({ from: fromAddress})
     .then(response => {
+      console.log(response.events);
       res.send(response.events.sendArray.returnValues.array);
     })
     .catch(err => {
@@ -52,7 +55,7 @@ router.post("/api/v1/container", upload.array(), function(req, res) {
     isInArray = true;
   }
   if (isInArray) {
-    containerContract.methods
+    productContract.methods
       .addContainer(
         "health",
         JSON.stringify(newContainer.misc),
