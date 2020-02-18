@@ -66,4 +66,18 @@ contract containerContract is ProductContract{
         emit sendObject(supplyChainMap[_trackingID]);
     }
 
+    function packageTrackable(string memory _trackableTrackingID, string memory _containerTrackingID) public returns(string memory) {
+        // container exists
+        // trackable exists
+        // custodian of container is our identity
+        // custodian of trackable is our identity
+        // container's containerID is empty ""
+        // trackable's containerID is empty ""
+        // packaged trackable custodian is updated
+        if(supplyChainMap[_trackableTrackingID].trackingID > 0 && supplyChainMap(_containerTrackingID).trackingID > 0) {
+            
+        }
+
+    }
+
 }
