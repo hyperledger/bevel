@@ -20,7 +20,7 @@ contract containerContract is ProductContract{
         string[] participants;
     }
 
-    Container[] public containerSupplyChain;
+    Container[] public containers;
     mapping(string => Container) supplyChainMap;
 
     event containerAdded (string ID);
@@ -28,7 +28,7 @@ contract containerContract is ProductContract{
     event sendObject(Container container);
 
     constructor() public{
-        productManufacturer = msg.sender;
+        containerManufacturer = msg.sender;
     }
 
     function _addressToString(address x) private returns (string memory){
@@ -47,19 +47,19 @@ contract containerContract is ProductContract{
         string memory _custodian = _addressToString(msg.sender);
         string memory _containerID = "";
 
-        containerSupplyChain.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
+        containers.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
         supplyChainMap[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties);
         count++;
 
         emit containerAdded(_trackingID);
-        emit sendObject(containerSupplyChain[containerSupplyChain.length-1]);
+        emit sendObject(containers[containers.length-1]);
     }
 
     // the getAllContainers() function will return all containers in the containerSupplyChain[] array
     function getAllContainers() public returns(Container[] memory) {
-        emit sendArray(containerSupplyChain);
-        return containerSupplyChain;
+        emit sendArray(containers);
+        return containers;
     }
 
     function getSingleContainer(string memory _trackingID) public returns(Container memory) {
