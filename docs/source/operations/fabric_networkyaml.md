@@ -1,6 +1,6 @@
 # Configuration file specification: Hyperledger-Fabric
 A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
-![](./../_static/TopLevelClass.png)
+![](./../_static/TopLevelClass-Fabric.png)
 
 Before setting up a Fabric DLT network, this file needs to be updated with the required specifications.  
 A sample configuration file is provided in the repo path:  

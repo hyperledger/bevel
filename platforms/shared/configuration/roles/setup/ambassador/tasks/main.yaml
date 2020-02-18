@@ -36,16 +36,20 @@
     AWS_ACCESS_KEY_ID: "{{ aws.access_key }}"
     AWS_SECRET_ACCESS_KEY: "{{ aws.secret_key }}"
   shell: |
-    aws ec2 describe-addresses --public-ips {{ item.services.stewards[0].publicIp }} --region {{ aws.region }} --output json | jq '.Addresses[0].AllocationId'
-  register: allocation_ip
+    # format ip addresses list to string with space separator
+    ips=$(echo '{{ item.aws.publicIps }}' | tr -d '[]' | sed 's/,/\ /g')
+    data=$(aws ec2 describe-addresses --public-ips ${ips} --region {{ aws.region }} --output json | jq '.Addresses[].AllocationId')
+    # format eip addresses list to string with comma separator (comma has to be escaped)
+    echo ${data} | tr -d '"' | sed 's/\ /\\,/g'
+  register: allocation_ips
   when: network.type == 'indy' and item.services.stewards is defined and (item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal') #As this shell code is specific to AWS, cloud provider check has been added
 
 - name: Install Ambassador with EIP for Indy
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ terminal.stdout }}"} --set ambassador.eip={{ allocation_ip.stdout }} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ terminal.stdout }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   tags:
     - ambassador
-  when: network.type == 'indy' and allocation_ip.stdout is defined
+  when: network.type == 'indy' and allocation_ips.stdout is defined
 
 - name: Install Ambassador for Corda/Quorum
   shell: |
@@ -83,4 +87,4 @@
   until: kubectl_get_pods.resources|length > 0
   retries: "{{ network.env.retry_count}}"
   delay: 15
-  when: (network.type == 'indy' and allocation_ip.stdout is defined) or network.type != 'indy'
+  when: (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'

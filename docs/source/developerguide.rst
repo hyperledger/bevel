@@ -77,6 +77,7 @@ Ansible Roles and Playbooks
    developer/shared
    developer/corda-ansible
    developer/fabric-ansible
+   developer/indy-ansible
 
 Helm Charts 
 ---------------------------
@@ -87,6 +88,7 @@ Helm Charts
    developer/shared-helmcharts
    developer/corda-helmcharts
    developer/fabric-helmcharts
+   developer/indy-helmcharts
 
 Jenkins 
 ---------------------------
