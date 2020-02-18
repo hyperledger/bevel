@@ -96,8 +96,14 @@ contract ProductContract is Ownable {
         return supplyChain;
     }
 
-    function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
-
+    function packageTrackable(string memory _trackingID, string memory _containerID) public returns(string memory) {
+        // container exists
+        // trackable exists
+        // custodian of container is our identity
+        // custodian of trackable is our identity
+        // container's containerID is empty ""
+        // trackable's containerID is empty ""
+        // packaged trackable custodian is updated
     }
 
 
