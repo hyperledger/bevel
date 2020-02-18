@@ -39,6 +39,8 @@ contract ProductContract is Ownable {
     }
 
     event productAdded (string ID);
+    event sendProductArray (Product[] array);
+    event sendProduct(Product product);
 
     // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
     constructor() public{
