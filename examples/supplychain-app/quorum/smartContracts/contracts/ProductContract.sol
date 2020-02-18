@@ -88,4 +88,15 @@ contract ProductContract is Ownable {
     function addCounterParties(string memory _trackingID, address _custodian) internal{
         counterparties[_trackingID].push(_custodian);
     }
+
+    function getAllProducts() public returns(Product[] memory) {
+        emit sendArray(supplyChain);
+        return supplyChain;
+    }
+
+    function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
+
+    }
+
+
 }
