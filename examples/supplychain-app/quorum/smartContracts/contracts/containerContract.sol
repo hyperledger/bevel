@@ -31,13 +31,15 @@ contract containerContract is ProductContract{
         productManufacturer = msg.sender;
     }
 
-    function _addressToString(address x) private pure returns (string memory){
+    function _addressToString(address x) private returns (string memory){
     bytes memory b = new bytes(20);
     for (uint i = 0; i < 20; i++)
         b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
     return string(b);
 }
-   // The addContainer will create a new container only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
+
+
+    // The addContainer will create a new container only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
     function addContainer(string memory _health, string memory _misc, string memory _trackingID,
         string memory _lastScannedAt, string[] memory _counterparties) public returns (string memory) {
 
@@ -63,4 +65,5 @@ contract containerContract is ProductContract{
     function getSingleContainer(string memory _trackingID) public returns(Container memory) {
         emit sendObject(supplyChainMap[_trackingID]);
     }
+
 }
