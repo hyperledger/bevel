@@ -12,12 +12,14 @@ contract containerContract is ProductContract{
     struct Container{
         string health;
         string misc;
-        string custodian; //who currently owns the product
+        address custodian; //who currently owns the product
         string lastScannedAt;
         string trackingID;
         uint timestamp;
         string containerID;
         string[] participants;
+        Product[] productTrackables;
+        Container[] containerTrackables;
     }
 
     Container[] public containers;
@@ -44,7 +46,7 @@ contract containerContract is ProductContract{
         string memory _lastScannedAt, string[] memory _counterparties) public returns (string memory) {
 
         uint256 _timestamp = block.timestamp;
-        string memory _custodian = _addressToString(msg.sender);
+        address memory _custodian = msg.sender;
         string memory _containerID = "";
 
         containers.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
@@ -64,6 +66,7 @@ contract containerContract is ProductContract{
 
     function getSingleContainer(string memory _trackingID) public returns(Container memory) {
         emit sendObject(supplyChainMap[_trackingID]);
+        return supplyChainMap[_trackingID];
     }
 
     function packageTrackable(string memory _trackableTrackingID, string memory _containerTrackingID) public returns(string memory) {
