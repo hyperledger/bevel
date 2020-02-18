@@ -36,9 +36,9 @@ router.get('/:trackingID?', function (req, res) {
     // TODO: Get all products
     productContract.methods
     .getAllProducts()
-    .send({ from: fromAddress, gas: 6721975, gasPrice: '30000000'})
+    .send({ from: fromAddress})
     .then(response => {
-    res.send(response.events.sendArray.returnValues.array);
+    res.send(response.events.sendProductArray.returnValues);
     })
     .catch(err => {
     console.log(err);
@@ -117,7 +117,7 @@ router.put('/:trackingID/custodian', function(req,res) {
 router.get("/product", function(req, res) {
 	productContract.methods
 	.getAllProducts()
-	.send({ from: fromAddress, gas: 6721975, gasPrice: '30000000'})
+	.send({ from: fromAddress})
 	.then(response => {
 	res.send(response.events.sendArray.returnValues.array);
 	})
@@ -127,33 +127,33 @@ router.get("/product", function(req, res) {
 });
 
 // PUT for package trackable
-router.put("/api/v1/container/{containerTrackingID}/package", function(req, res){
-	let trackable = {
-		containerID: req.params.("containerID"),
-		trackingID: req.body.trackingID
-	};
+// router.put("/api/v1/container/{containerTrackingID}/package", function(req, res){
+// 	let trackable = {
+// 		containerID: req.params.("containerID"),
+// 		trackingID: req.body.trackingID
+// 	};
 
-	productContract.methods
-	.packageTrackable(
-		trackable.trackingID,
-		trackable.containerID
-	)
-	.send({ from: fromAddress })
-    .on("receipt", function(receipt) {
-      // receipt example
-      console.log(receipt);
-      if (receipt.status === true) {
-        res.send("Transaction successful");
-      }
-      if (receipt.status === false) {
-        res.send("Transaction not successful");
-      }
-    })
-    .on("error", function(error, receipt) {
-      res.send("Error! "+ JSON.stringify(error, null, 4));
-      console.log("error" + JSON.stringify(error, null, 4));
-      console.log(error);
-    });
-});
+// 	productContract.methods
+// 	.packageTrackable(
+// 		trackable.trackingID,
+// 		trackable.containerID
+// 	)
+// 	.send({ from: fromAddress })
+//     .on("receipt", function(receipt) {
+//       // receipt example
+//       console.log(receipt);
+//       if (receipt.status === true) {
+//         res.send("Transaction successful");
+//       }
+//       if (receipt.status === false) {
+//         res.send("Transaction not successful");
+//       }
+//     })
+//     .on("error", function(error, receipt) {
+//       res.send("Error! "+ JSON.stringify(error, null, 4));
+//       console.log("error" + JSON.stringify(error, null, 4));
+//       console.log(error);
+//     });
+// });
 
 module.exports = router
