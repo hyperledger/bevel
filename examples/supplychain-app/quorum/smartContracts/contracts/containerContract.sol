@@ -1,76 +1,69 @@
-pragma solidity 0.5.16;
+pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
-contract productContract {
-    
-    
-    mapping(uint => Product) public supplyChain; // supplyChain is a mapping of all the products created. The key begins at 1.
-    mapping(string => Transaction) public transactionHistory;
-    mapping(string => string) public miscellaneous;
-    mapping(string => string[]) public counterparties; // counterparties stores the current custodian plus the previous participants
+import "./ProductContract.sol";
 
-    Product[] public allProds;
+contract containerContract is ProductContract{
 
-    address manufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
-    
-    modifier onlyManufacturer() {  // only manufacturer can call the addProduct function. 
-        require(msg.sender == manufacturer);
-        _;
-    }
+    address containerManufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
 
     uint256 public count = 0;
 
-
     struct Container{
-        string productName;
         string health;
-        bool sold;
-        bool recalled;
+        string misc;
         string custodian; //who currently owns the product
-        string trackingID;
         string lastScannedAt;
+        string trackingID;
+        uint timestamp;
+        string containerID;
+        string[] participants;
     }
-    
-    struct Transaction{
-        uint256 timestamp;
-        string containerID;    
-    }
+
+    Container[] public containerSupplyChain;
+    mapping(string => Container) supplyChainMap;
 
     event containerAdded (string ID);
-    event sendArray (Product[] array);
+    event sendArray (Container[] array);
+    event sendObject(Container container);
 
     constructor() public{
-        manufacturer = msg.sender;
+        productManufacturer = msg.sender;
     }
+
+    function _addressToString(address x) private returns (string memory){
+    bytes memory b = new bytes(20);
+    for (uint i = 0; i < 20; i++)
+        b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
+    return string(b);
+}
+
 
     // The addContainer will create a new container only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
-    function addContainer(string memory _health, string memory _misc, string memory _trackingID, string memory _lastScannedAt, string[] counterparties) returns (string memory) public onlyManufacturer {
-        require(
-            counterparties.includes(keccak256(abi.encodePacked((msg.sender)))),
-            return "HTTP 404"
-        );
+    function addContainer(string memory _health, string memory _misc, string memory _trackingID,
+        string memory _lastScannedAt, string[] memory _counterparties) public returns (string memory) {
 
         uint256 _timestamp = block.timestamp;
-        string _custodian = keccak256(abi.encodePacked((msg.sender))); 
-        string _containerID = "";
+        string memory _custodian = _addressToString(msg.sender);
+        string memory _containerID = "";
 
-        transactionHistory[_trackingID] = (Transaction(_timestamp, _containerID)); // uses trackingID to get the timestamp and containerID.
-        
-        supplyChain.push(Product(_productName,_health,_sold,_recalled,_custodian,_trackingID,_lastScannedAt));
-        
-        miscellaneous[_trackingID] = _misc; // use trackingID as the key to view string value. 
-        
-        addCounterParties(_trackingID,_custodian);//calls an internal function and appends the custodian to the product using the trackingID 
-        count += 1;
+        containerSupplyChain.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
+        supplyChainMap[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
+            _trackingID, _timestamp, _containerID, _counterparties);
+        count++;
 
         emit containerAdded(_trackingID);
-        emit sendObject(allProds[allProds.length-1]);
+        emit sendObject(containerSupplyChain[containerSupplyChain.length-1]);
     }
 
+    // the getAllContainers() function will return all containers in the containerSupplyChain[] array
+    function getAllContainers() public returns(Container[] memory) {
+        emit sendArray(containerSupplyChain);
+        return containerSupplyChain;
+    }
 
-
-
-
-
+    function getSingleContainer(string memory _trackingID) public returns(Container memory) {
+        emit sendObject(supplyChainMap[_trackingID]);
+    }
 
 }
