@@ -56,7 +56,7 @@ spec:
       external_url_suffix: {{ external_url }}
       rpcport: {{ peer.rpc.ambassador }}
       quorumport: {{ peer.p2p.ambassador }}
-      portConst: 1503
+      portConst: {{ peer.transaction_manager.ambassador }}
       portRaft: {{ peer.raft.ambassador }}
     storage:
       storageclassname: {{ storageclass_name }}
