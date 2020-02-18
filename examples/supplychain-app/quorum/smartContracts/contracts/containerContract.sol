@@ -18,8 +18,6 @@ contract ContainerContract is ProductContract{
         uint timestamp;
         string containerID;
         string[] participants;
-        Product[] productTrackables;
-        Container[] containerTrackables;
     }
 
     Container[] public containers;
@@ -46,7 +44,7 @@ contract ContainerContract is ProductContract{
         string memory _lastScannedAt, string[] memory _counterparties) public returns (string memory) {
 
         uint256 _timestamp = block.timestamp;
-        address memory _custodian = msg.sender;
+        address _custodian = msg.sender;
         string memory _containerID = "";
 
         containers.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
