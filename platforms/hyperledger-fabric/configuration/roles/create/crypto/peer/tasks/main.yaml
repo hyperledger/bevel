@@ -72,8 +72,18 @@
         OrganizationalUnitIdentifier: peer
     EOF
 
-# Ensure orderer-tls directory is present in build
-- name: Ensure ca directory exists
+# Check orderer-certificate File exists
+- name: Check that orderer-certificate File exists
+  stat:
+    path: "{{ orderer.certificate }}"
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  register: orderer_file_result
+  failed_when: add_new_org == 'true' and not orderer_file_result.results[0].stat.exists # Fail the task if new_org is added and orderer-cert does not exist
+
+# Ensure orderer-cert directory is present
+- name: Ensure orderer-cert directory exists
   file:
     path: "./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls"
     recurse: yes
@@ -81,6 +91,18 @@
   loop: "{{ network.orderers }}"
   loop_control:
     loop_var: orderer
+  when: add_new_org == 'false'
+
+# Copy the ca.crt when add_new_org is false 
+- name: Copy ca.crt from auto-generated path to given path
+  copy:
+    src: "./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls/ca.crt"
+    dest: "{{ orderer.certificate }}"
+    follow: no
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: add_new_org == 'false'
 
 # Check if Orderer certs exists in vault. If yes, get the certificate
 - name: Check if Orderer certs already created

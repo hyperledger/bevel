@@ -9,8 +9,13 @@
       # encoded in the genesis block in the Application section context
 {% for peer in  item.services.peers %}
 {% if peer.type == 'anchor' %}
+  {%- if provider == 'minikube' %}
+      - Host: {{ peer.name }}.{{ component_ns }}
+        Port: 7051
+  {%- else %}
       - Host: {{ peer.name }}.{{ component_ns }}.{{ item.external_url_suffix }}
         Port: 8443
+  {%- endif %}
 {% endif %}
 {% endfor %}
     {% endif %} 

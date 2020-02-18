@@ -1,0 +1,45 @@
+---
+- name: Register temporary directory
+  tempfile: 
+    state: directory
+  register: tmp_directory
+
+- name: check constellation
+  stat:
+    path: "{{ bin_install_dir }}/constellation-node"
+  register: constellation_stat_result
+
+- name: Finding the release for os
+  shell: |
+    lsb_release -r
+  register: release
+
+- name: Release version
+  set_fact: release_version={{ release.stdout | regex_replace('Release:\t') | regex_replace('\.') }}
+
+- name: Download the constellation-node binary
+  get_url: 
+    url: "{{ constellation.repo }}"
+    dest: "{{ tmp_directory.path }}"
+  when: constellation_stat_result.stat.exists == False
+
+- name: Unarchive the file.
+  unarchive:
+    src: "{{ tmp_directory.path }}/constellation-{{ version }}-ubuntu{{ release_version }}.tar.xz"
+    dest: "{{ tmp_directory.path }}"
+  when: constellation_stat_result.stat.exists == False
+
+- name: Create the bin directory
+  file:
+    path: "{{ bin_install_dir }}"
+    state: directory
+    recurse: yes
+  when: constellation_stat_result.stat.exists == False
+
+- name: This task puts the constellation-node binary into the bin directory
+  copy:
+    src: "{{ tmp_directory.path }}/constellation-{{ version }}-ubuntu{{ release_version }}/constellation-node"
+    dest: "{{ bin_install_dir }}/constellation-node"
+    mode: 0755
+    remote_src: yes
+  when: constellation_stat_result.stat.exists == False
