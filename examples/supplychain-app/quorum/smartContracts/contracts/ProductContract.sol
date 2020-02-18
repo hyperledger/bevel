@@ -55,7 +55,7 @@ contract ProductContract is Ownable {
         string memory _trackingID,
         string memory _lastScannedAt
         //FIXME: Add counterparties
-        ) public onlyManufacturer returns (Product memory) {
+        ) public returns (Product memory) {
 
         uint256 _timestamp = now;
         bool _sold = false;
@@ -63,7 +63,7 @@ contract ProductContract is Ownable {
         string memory containerID = "";
         address custodian = msg.sender;
         string[] memory participants;
-        participants[1] = "Test";
+        // participants[1] = "Test";
 
          // uses trackingID to get the timestamp and containerID.
         Product memory newProduct = Product(_trackingID,
@@ -84,6 +84,7 @@ contract ProductContract is Ownable {
         //calls an internal function and appends the custodian to the product using the trackingID
         addCounterParties(_trackingID,custodian);
         emit productAdded(_trackingID);
+        emit sendProduct(newProduct);
     }
 
     //addCounterParties is a private method that updates the custodian of the product using the trackingID
@@ -92,8 +93,8 @@ contract ProductContract is Ownable {
     }
 
     function getAllProducts() public returns(Product[] memory) {
-        emit sendArray(supplyChain);
-        return supplyChain;
+        emit sendProductArray(products);
+        return products;
     }
 
     function packageTrackable(string memory _trackingID, string memory _containerID) public returns(string memory) {
