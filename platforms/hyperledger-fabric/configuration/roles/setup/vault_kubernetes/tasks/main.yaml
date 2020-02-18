@@ -31,6 +31,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: auth_list
+  changed_when: false
 
 ############################################################################################
 # This task enables the path for the organizations and orderers on vault
@@ -48,21 +49,30 @@
 # This task get the certificate for the cluster mentioned in k8 secret
 # This task runs only when {{auth_path}} is not already created
 - name: Get Kubernetes cert files for organizations
+  args:
+    executable: /bin/bash
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 --decode > "./build/{{ component_name }}.ca.cert"
+    set -o pipefail
+    KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | \
+    grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 --decode > "./build/{{ component_name }}.ca.cert"
   when: auth_list.stdout.find(auth_path) == -1
 
 #####################################################################################################################
 # This task writes the Service Account token to the vault for Organisations
 # This task runs only when {{auth_path}} is not already created
 - name: Write reviewer token for Organisations
+  args:
+    executable: /bin/bash
   shell: |
-    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_name }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_name }} -o  jsonpath={.data.token} | base64 --decode)
-    vault write auth/{{ auth_path }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_name }}.ca.cert"
+    set -o pipefail
+    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount \
+    -n {{ component_name }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_name }} -o  jsonpath={.data.token} | base64 --decode)
+    vault write auth/{{ auth_path }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view \
+    -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_name }}.ca.cert"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(auth_path) == -1 
+  when: auth_list.stdout.find(auth_path) == -1
 
 # This task checks if the vault-ro polict already exists
 - name: Check if policy exists
@@ -72,6 +82,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_policy_result
+  changed_when: false
   ignore_errors: yes
 
 #####################################################################################################################
@@ -82,7 +93,7 @@
     dest: "./build/vault-crypto-{{ component_name | lower }}-ro.hcl"
   vars:
     component_name: "{{ component_name }}"
-  when: component_type == 'orderer' and vault_policy_result.failed == True  # Run if policy check failed
+  when: component_type == 'orderer' and vault_policy_result.failed  # Run if policy check failed
 
 
 ############################################################################################
@@ -93,7 +104,7 @@
     dest: "./build/vault-crypto-{{ component_name | lower }}-ro.hcl"
   vars:
     component_name: "{{ component_name }}"
-  when: component_type == 'peer' and vault_policy_result.failed == True   # Run if policy check failed
+  when: component_type == 'peer' and vault_policy_result.failed   # Run if policy check failed
 
 
 ############################################################################################
@@ -104,12 +115,13 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True    # Run if policy check failed
+  when: vault_policy_result.failed    # Run if policy check failed
 
 # This task creates the vault auth
 - name: Create Vault auth role
   shell: |
-    vault write auth/{{ auth_path }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_name }} policies="vault-crypto-{{ component_type }}-{{ component_name }}-ro" ttl=1200s
+    vault write auth/{{ auth_path }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_name }} \
+    policies="vault-crypto-{{ component_type }}-{{ component_name }}-ro" ttl=1200s
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -129,5 +141,7 @@
 # This task creates the docker pull credentials for image registry
 - name: Create the docker pull credentials
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_name }} docker-registry regcred --docker-server={{ network.docker.url }} --docker-username={{ network.docker.username }} --docker-password={{ network.docker.password }} --docker-email="test@abc.mail"
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_name }} docker-registry \
+    regcred --docker-server={{ network.docker.url }} --docker-username={{ network.docker.username }} \
+    --docker-password={{ network.docker.password }} --docker-email="test@abc.mail"
   when: get_regcred.resources|length == 0
