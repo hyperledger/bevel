@@ -30,17 +30,18 @@ router.get("/:trackingID?", function(req, res) {
     .getAllContainers()
     .send({ from: fromAddress})
     .then(response => {
-      console.log(response.events);
-      res.send(response.events.sendArray.returnValues.array);
+      console.log(response);
+      res.send(response.events.sendArray.returnValues[0]);
     })
     .catch(err => {
       console.log(err);
+      res.send(err);
     });
   }
 });
 
 //POST for new container
-router.post("/api/v1/container", upload.array(), function(req, res) {
+router.post("/", upload.array(), function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement new container functionality
   let newContainer = {
@@ -76,6 +77,7 @@ router.post("/api/v1/container", upload.array(), function(req, res) {
       })
       .catch(error => {
         res.send("error");
+        console.log(error);
       });
   } else {
     res.send(
