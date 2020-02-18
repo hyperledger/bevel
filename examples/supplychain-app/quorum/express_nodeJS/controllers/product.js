@@ -36,9 +36,9 @@ router.get('/:trackingID?', function (req, res) {
     // TODO: Get all products
     productContract.methods
     .getAllProducts()
-    .send({ from: fromAddress, gas: 6721975, gasPrice: '30000000'})
+    .send({ from: fromAddress})
     .then(response => {
-    res.send(response.events.sendArray.returnValues.array);
+    res.send(response.events.sendProductArray.returnValues.array);
     })
     .catch(err => {
     console.log(err);
@@ -79,7 +79,7 @@ router.post('/',upload.array(),function(req,res) {
       newProduct.trackingID,
       ""
     )
-    .send({ from: fromAddress })
+    .send({ from: fromAddress,  gas: 6721975, gasPrice: '30000000' })
     .on("receipt", function(receipt) {
       // receipt example
       console.log(receipt);
@@ -113,5 +113,6 @@ router.put('/:trackingID/custodian', function(req,res) {
   //   res.send("error")
   // })
 })
+
 
 module.exports = router

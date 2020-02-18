@@ -6,7 +6,7 @@ import "./ownable.sol";
 contract ProductContract is Ownable {
 
     // Keeps the manufacturer address as some actions can only be done by the manufacturer
-    address manufacturer;
+    address productManufacturer;
 
     struct Product{
         string trackingID;
@@ -24,6 +24,7 @@ contract ProductContract is Ownable {
 
     // supplyChain is a mapping of all the products created. The key begins at 1.
     Product[] public products;
+    mapping(string => Product) productSupplyChainMap;
 
     mapping (string => uint) trackingIDtoProductID;
 
@@ -34,15 +35,17 @@ contract ProductContract is Ownable {
     // FIXME: move into a new contract called permissions
     // only manufacturer Modifier checks that only the manufacturer can perform the task
     modifier onlyManufacturer() {
-        require(msg.sender == manufacturer, "This function can only be executed by the manufacturer");
+        require(msg.sender == productManufacturer, "This function can only be executed by the manufacturer");
         _;
     }
 
     event productAdded (string ID);
+    event sendProductArray (Product[] array);
+    event sendProduct(Product product);
 
     // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
     constructor() public{
-        manufacturer = msg.sender;
+        productManufacturer = msg.sender;
     }
 
     // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
@@ -53,7 +56,7 @@ contract ProductContract is Ownable {
         string memory _trackingID,
         string memory _lastScannedAt
         //FIXME: Add counterparties
-        ) public onlyManufacturer returns (Product memory) {
+        ) public returns (Product memory) {
 
         uint256 _timestamp = now;
         bool _sold = false;
@@ -61,7 +64,7 @@ contract ProductContract is Ownable {
         string memory containerID = "";
         address custodian = msg.sender;
         string[] memory participants;
-        participants[1] = "Test";
+        // participants[1] = "Test";
 
          // uses trackingID to get the timestamp and containerID.
         Product memory newProduct = Product(_trackingID,
@@ -82,10 +85,16 @@ contract ProductContract is Ownable {
         //calls an internal function and appends the custodian to the product using the trackingID
         addCounterParties(_trackingID,custodian);
         emit productAdded(_trackingID);
+        emit sendProduct(newProduct);
     }
 
     //addCounterParties is a private method that updates the custodian of the product using the trackingID
     function addCounterParties(string memory _trackingID, address _custodian) internal{
         counterparties[_trackingID].push(_custodian);
+    }
+
+    function getAllProducts() public returns(Product[] memory) {
+        emit sendProductArray(products);
+        return products;
     }
 }

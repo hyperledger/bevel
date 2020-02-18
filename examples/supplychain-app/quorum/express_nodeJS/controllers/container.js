@@ -1,8 +1,10 @@
-var express = require("express"),
-  router = express.Router();
-var multer = require("multer"); // v1.0.5
+var express = require('express')
+  , router = express.Router();
+
+const {productContract, fromAddress} = require('../web3services');
+var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
-var bodyParser = require("body-parser");
+var bodyParser = require('body-parser');
 
 router.use(bodyParser.json()); // for parsing application/json
 
@@ -11,7 +13,7 @@ router.get("/:trackingID?", function(req, res) {
   if (req.params.trackingID != null) {
     // TODO: Implement getContainerByID functionality
     const trackingID = req.body.trackingID;
-    containerContract.methods
+    productContract.methods
       .getSingleContainer(req.body.trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
@@ -24,20 +26,22 @@ router.get("/:trackingID?", function(req, res) {
   } else {
     // TODO: Implement get all containers functionality
     // getContainers()
-    containerContract.methods
+    productContract.methods
     .getAllContainers()
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .send({ from: fromAddress})
     .then(response => {
-      res.send(response.events.sendArray.returnValues.array);
+      console.log(response);
+      res.send(response.events.sendArray.returnValues[0]);
     })
     .catch(err => {
       console.log(err);
+      res.send(err);
     });
   }
 });
 
 //POST for new container
-router.post("/api/v1/container", upload.array(), function(req, res) {
+router.post("/", upload.array(), function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement new container functionality
   let newContainer = {
@@ -52,7 +56,7 @@ router.post("/api/v1/container", upload.array(), function(req, res) {
     isInArray = true;
   }
   if (isInArray) {
-    containerContract.methods
+    productContract.methods
       .addContainer(
         "health",
         JSON.stringify(newContainer.misc),
@@ -73,6 +77,7 @@ router.post("/api/v1/container", upload.array(), function(req, res) {
       })
       .catch(error => {
         res.send("error");
+        console.log(error);
       });
   } else {
     res.send(
@@ -122,4 +127,34 @@ router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
   //   res.send("error")
   // })
 });
+
+// PUT for package trackable
+// router.put("/api/v1/container/{containerTrackingID}/package", function(req, res){
+// 	let trackable = {
+// 		containerID: req.params.("containerID"),
+// 		trackingID: req.body.trackingID
+// 	};
+
+// 	productContract.methods
+// 	.packageTrackable(
+// 		trackable.trackingID,
+// 		trackable.containerID
+// 	)
+// 	.send({ from: fromAddress })
+//     .on("receipt", function(receipt) {
+//       // receipt example
+//       console.log(receipt);
+//       if (receipt.status === true) {
+//         res.send("Transaction successful");
+//       }
+//       if (receipt.status === false) {
+//         res.send("Transaction not successful");
+//       }
+//     })
+//     .on("error", function(error, receipt) {
+//       res.send("Error! "+ JSON.stringify(error, null, 4));
+//       console.log("error" + JSON.stringify(error, null, 4));
+//       console.log(error);
+//     });
+// });
 module.exports = router;
