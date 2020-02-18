@@ -74,8 +74,10 @@ contract containerContract is ProductContract{
         // container's containerID is empty ""
         // trackable's containerID is empty ""
         // packaged trackable custodian is updated
-        if(supplyChainMap[_trackableTrackingID].trackingID > 0 && supplyChainMap(_containerTrackingID).trackingID > 0) {
-            
+        if(bytes(supplyChainMap[_trackableTrackingID].trackingID).length > 0 && bytes(supplyChainMap[_containerTrackingID].trackingID).length > 0) {
+            if(supplyChainMap[_trackableTrackingID].custodian == msg.sender && supplyChainMap[_containerTrackingID].custodian == msg.sender) {
+
+            }
         }
 
     }
