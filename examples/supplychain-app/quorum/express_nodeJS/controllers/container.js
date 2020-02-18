@@ -12,9 +12,10 @@ router.use(bodyParser.json()); // for parsing application/json
 router.get("/:trackingID?", function(req, res) {
   if (req.params.trackingID != null) {
     // TODO: Implement getContainerByID functionality
-    const trackingID = req.body.trackingID;
+    const trackingID = req.params.trackingID;
+    console.log(trackingID, "***");
     productContract.methods
-      .getSingleContainer(req.body.trackingID)
+      .getSingleContainer(req.params.trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
         res.send(response.events.sendObject.returnValues.container);
@@ -28,7 +29,7 @@ router.get("/:trackingID?", function(req, res) {
     // getContainers()
     productContract.methods
     .getAllContainers()
-    .send({ from: fromAddress})
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(response => {
       console.log(response);
       res.send(response.events.sendArray.returnValues[0]);
