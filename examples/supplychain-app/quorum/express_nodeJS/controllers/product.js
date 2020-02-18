@@ -279,6 +279,16 @@ router.post("/api/v1/product", function(req, res) {
     });
 });
 
-
+router.get("/product", function(req, res) {
+	productContract.methods
+	.getAllProducts()
+	.send({ from: fromAddress, gas: 6721975, gasPrice: '30000000'})
+	.then(response => {
+	res.send(response.events.sendArray.returnValues.array);
+	})
+	.catch(err => {
+	console.log(err);
+	})
+});
 
 module.exports = router;
