@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "./ProductContract.sol";
 
-contract containerContract is ProductContract{
+contract ContainerContract is ProductContract{
 
     address containerManufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
 
