@@ -18,7 +18,7 @@ router.get("/:trackingID?", function(req, res) {
       .getSingleContainer(req.params.trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
-        res.send(response.events.sendObject.returnValues.container);
+        res.send(response);
       })
       .catch(error => {
         console.log(error);
@@ -32,7 +32,7 @@ router.get("/:trackingID?", function(req, res) {
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(response => {
       console.log(response);
-      res.send(response.events.sendArray.returnValues[0]);
+      res.send(response);
     })
     .catch(err => {
       console.log(err);
@@ -53,6 +53,7 @@ router.post("/", upload.array(), function(req, res) {
     ) //filter out to only send org name
   }; //filter out to only send org
   var isInArray = false;
+  console.log(newContainer.counterparties)
   if (newContainer.counterparties.includes(fromAddress)) {
     isInArray = true;
   }
@@ -68,7 +69,6 @@ router.post("/", upload.array(), function(req, res) {
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .on("receipt", function(receipt) {
         console.log(receipt);
-        console.log(receipt.events.sendObject.returnValues);
         if (receipt.status === true) {
           res.send("Transaction successful");
         }
