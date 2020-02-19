@@ -68,26 +68,7 @@ This task gets MSP info.
 
 #### 6. Create directory path on CA Tools
 This task creates directory path on CA Tools CLI.
-##### Input Variables
-    *name: dos2unix
 **shell** : This command creates CA TOOLS CLI.
-**when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
-
-#### 7. Install dos2unix to use unarchieve module of ansible
-This task installs dos2unix.
-##### Input Variables
-    *component_name: The name of the component
-    *KUBECONFIG: The config file of the custer.
-**shell** : This command creates CA TOOLS CLI.
-**when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
-
-#### 8. Convert the file to unix format
- This task converts the generate_crypto.sh file to unix format
-**with_items**:this lookup returns a list of items given to it, if any of the top level items is also a list it will flatten it, but it will not recurse.
-**shell** : Uses dos2unix module to convert to unix format.
-**loop_control**: Specify conditions for controlling the loop.
-                
-    loop_var: loop variable used for iterating the loop.
 **when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
 
 #### 9. Copy the generate_crypto.sh file into the CA Tools 
