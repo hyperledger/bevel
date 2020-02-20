@@ -105,14 +105,6 @@ router.put('/:trackingID/custodian', function(req,res) {
   // })
 })
 
-
-// PUT for package trackable
-// router.put("/api/v1/container/{containerTrackingID}/package", function(req, res){
-// 	let trackable = {
-// 		containerID: req.params.("containerID"),
-// 		trackingID: req.body.trackingID
-// 	};
-
 // 	productContract.methods
 // 	.packageTrackable(
 // 		trackable.trackingID,
