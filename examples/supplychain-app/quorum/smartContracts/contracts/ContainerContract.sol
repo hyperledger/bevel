@@ -4,10 +4,10 @@ pragma experimental ABIEncoderV2;
 import "./ProductContract.sol";
 
 contract ContainerContract is ProductContract {
-
     /**
     * @dev stores the account address of the where this contract is deployed on in a variable called manufacturer
     */
+    //TODO is this used? Delete if replaced by permission.sol/productManufacturer
     address containerManufacturer;
 
     uint256 public count = 0;

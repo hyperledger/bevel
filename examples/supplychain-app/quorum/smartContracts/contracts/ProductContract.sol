@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 import "./Permission.sol";
 
 contract ProductContract is Permission {
-
     struct Product{
         string trackingID;
         string productName;
