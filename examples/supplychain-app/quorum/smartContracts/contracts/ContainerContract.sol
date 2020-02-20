@@ -31,12 +31,10 @@ import "./ProductContract.sol";
         constructor() public{
             containerManufacturer = msg.sender;
         }
-
         // The addContainer will create a new container only if they are the manufacturer.
         // Sold and Recall values are set to false and containerID is "" when a product is newly created.
         function addContainer(string memory _health, string memory _misc, string memory _trackingID,
             string memory _lastScannedAt, string[] memory _counterparties) public returns (string memory) {
-
             uint256 _timestamp = block.timestamp;
             address _custodian = msg.sender;
             string memory _containerID = "";
@@ -86,13 +84,13 @@ import "./ProductContract.sol";
                     }
             }
             else if(bytes(productSupplyChain[_trackableTrackingID].trackingID).length > 0 &&
-                bytes(productSupplyChain[_containerTrackingID].trackingID).length > 0) {
+                bytes(containerSupplyChain[_containerTrackingID].trackingID).length > 0) {
                     if(productSupplyChain[_trackableTrackingID].custodian == msg.sender &&
-                        productSupplyChain[_containerTrackingID].custodian == msg.sender) {
+                        containerSupplyChain[_containerTrackingID].custodian == msg.sender) {
                             if(bytes(productSupplyChain[_trackableTrackingID].containerID).length == 0 &&
-                                bytes(productSupplyChain[_containerTrackingID].containerID).length == 0){
+                                bytes(containerSupplyChain[_containerTrackingID].containerID).length == 0){
                                     productSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
-                                    productSupplyChain[_trackableTrackingID].custodian = productSupplyChain[_containerTrackingID].custodian;
+                                    productSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
                                     containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
                                     return productSupplyChain[_containerTrackingID].containerID;
                             }
@@ -100,4 +98,26 @@ import "./ProductContract.sol";
             }
             return("HTTP400");
         }
+
+    function updateContainerCustodian(string memory _containerID) public {
+        Container memory thisContainer = containerSupplyChain[_containerID];
+        thisContainer.custodian = msg.sender;
+
+        for(uint i = 0; i < thisContainer.containerContents.length; i++){
+            if(bytes(productSupplyChain[thisContainer.containerContents[i]].trackingID).length > 0){
+                productSupplyChain[thisContainer.containerContents[i]].custodian = msg.sender;
+            }
+            else if (bytes(containerSupplyChain[thisContainer.containerContents[i]].trackingID).length > 0){
+                updateContainerCustodian(thisContainer.containerContents[i]);
+            }
+        }
+
+        emit sendObject(thisContainer);
     }
+
+    }
+    /**
+        custodian of container = me
+            all products within container custodian = me
+            if container then call this function......?
+     */

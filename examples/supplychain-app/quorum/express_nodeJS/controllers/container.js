@@ -18,6 +18,7 @@ router.get("/:trackingID?", function(req, res) {
       .getSingleContainer(req.params.trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
+        if(response.events.sendObject.returnValues) res.send(response.events.sendObject.returnValues[0]);
         res.send(response);
       })
       .catch(error => {
@@ -32,6 +33,7 @@ router.get("/:trackingID?", function(req, res) {
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(response => {
       console.log(response);
+      if(response.events.sendArray.returnValues) res.send(response.events.sendArray.returnValues[0]);
       res.send(response);
     })
     .catch(err => {
@@ -146,7 +148,7 @@ router.post("/:trackingID/package", function(req, res){
 		trackable.trackingID,
 		trackable.containerID
 	)
-  .send({ from: fromAddress, gas: 6721900, gasPrice: "30000000" })
+  .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
     .on("receipt", function(receipt) {
       console.log("send");
       // receipt example
