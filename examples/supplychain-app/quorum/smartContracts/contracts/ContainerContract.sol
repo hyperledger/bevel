@@ -92,7 +92,7 @@ pragma solidity 0.6.1;
                             if(bytes(productSupplyChain[_trackableTrackingID].containerID).length == 0 &&
                                 bytes(productSupplyChain[_containerTrackingID].containerID).length == 0){
                                     productSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
-                                    productSupplyChain[_trackableTrackingID].custodian = productSupplyChain[_containerTrackingID].custodian;
+                                    productSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
                                     containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
                                     return productSupplyChain[_containerTrackingID].containerID;
                             }
