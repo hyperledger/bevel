@@ -136,9 +136,6 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 * Create directory path on CA Tools for Orderers
 * Create directory path on CA Tools for Orgs
-* Install dos2unix to use unarchieve module of ansible
-* Convert the file to unix format for orderer
-* Convert the file to unix format for organization
 * Copy the generate_crypto.sh file into the orderer CA Tools
 * Copy the generate_crypto.sh file into the organization CA Tools
 * Copy the Orderer CA certificates to the Orderer CA Tools
