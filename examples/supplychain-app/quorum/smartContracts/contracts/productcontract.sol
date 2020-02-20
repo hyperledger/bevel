@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "./permission.sol";
 
-contract Product is Permission {
+contract ProductContract is Permission {
 
     // Keeps the manufacturer address as some actions can only be done by the manufacturer
     address productManufacturer;

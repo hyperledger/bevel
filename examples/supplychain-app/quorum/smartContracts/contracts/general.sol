@@ -1,8 +1,8 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
-import "./container.sol";
+import "./containercontract.sol";
 
-contract General is Container {
+contract General is ContainerContract {
 
 }
