@@ -68,9 +68,9 @@ router.post("/", upload.array(), function(req, res) {
       )
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .on("receipt", function(receipt) {
-        console.log(receipt);
         if (receipt.status === true) {
-          res.send("Transaction successful");
+            res.send(receipt.events.sendObject.returnValues[0]);
+
         }
         if (receipt.status === false) {
           res.send("Transaction not successful");
