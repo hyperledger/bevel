@@ -47,6 +47,15 @@ contract ProductContract is Ownable {
         _;
     }
 
+    event productAdded (string ID);
+    event sendProductArray (Product[] array);
+    event sendProduct(Product product);
+
+    // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
+    constructor() public{
+        productManufacturer = msg.sender;
+    }
+
     // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
     function addProduct(string memory _productName,
         string memory _health,
