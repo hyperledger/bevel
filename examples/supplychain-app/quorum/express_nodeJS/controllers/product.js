@@ -39,7 +39,7 @@ router.get('/:trackingID?', function (req, res) {
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(response => {
       console.log(response);
-      if(response.events){
+      if(response.events.sendProductArray){
         res.send(response.events.sendProductArray.returnValues[0]);
       }
     })
