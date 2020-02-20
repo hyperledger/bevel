@@ -1,7 +1,7 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
-import "./ownable.sol";
+import "./Ownable.sol";
 
 contract Permission is Ownable {
     address productManufacturer;
