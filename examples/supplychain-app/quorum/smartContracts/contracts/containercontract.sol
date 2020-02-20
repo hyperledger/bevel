@@ -1,7 +1,7 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
-import "./productcontract.sol";
+import "./ProductContract.sol";
 
 contract ContainerContract is ProductContract {
 
