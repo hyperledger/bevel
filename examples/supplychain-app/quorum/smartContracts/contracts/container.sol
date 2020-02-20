@@ -1,9 +1,9 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
-import "./ProductContract.sol";
+import "./product.sol";
 
-contract containerContract is ProductContract{
+contract Container is Product {
 
     address containerManufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
 
