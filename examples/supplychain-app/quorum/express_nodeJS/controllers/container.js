@@ -65,7 +65,7 @@ router.post("/", upload.array(), function(req, res) {
         "",
         newContainer.counterparties
       )
-      .send({ from: fromAddress, gas: 67219750, gasPrice: "30000000" })
+      .send({ from: fromAddress, gas: 6721900, gasPrice: "30000000" })
       .on("receipt", function(receipt) {
         console.log(receipt);
 
@@ -131,19 +131,21 @@ router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
 });
 
 // PUT for package trackable
-router.put("/api/v1/container/:containerTrackingID/package", function(req, res){
+router.post("/:trackingID/package", function(req, res){
+  console.log("send");
+
 	let trackable = {
-		containerID: req.params.containerID,
+		containerID: req.params.trackingID,
 		trackingID: req.body.trackingID
 	};
-
-	ContainerContract.methods
+	productContract.methods
 	.packageTrackable(
 		trackable.trackingID,
 		trackable.containerID
 	)
-	.send({ from: fromAddress })
+  .send({ from: fromAddress, gas: 6721900, gasPrice: "30000000" })
     .on("receipt", function(receipt) {
+      console.log("send");
       // receipt example
       console.log(receipt);
       if (receipt.status === true) {
