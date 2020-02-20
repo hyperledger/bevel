@@ -8,44 +8,43 @@ contract ProductContract is Ownable {
     // Keeps the manufacturer address as some actions can only be done by the manufacturer
     address productManufacturer;
 
+    // allProducts is a mapping of all the products created. The key begins at 1.
+    Product[] public allProducts;
+    string[] public productKeys;
+
+    mapping(string => Product) productSupplyChain;
+    mapping (string => uint) trackingIDtoProductID;
+    mapping(string => string) public miscellaneous;
+    // counterparties stores the current custodian plus the previous participants
+    mapping(string => address[]) public counterparties;
+
+    event productAdded (string ID);
+    event sendArray (Product[] array);
+    event sendProduct(Product product);
+
     struct Product{
         string trackingID;
         string productName;
         string health;
         bool sold;
         bool recalled;
-        // Who currently owns the product
-        address custodian;
+        address custodian; // Who currently owns the product
         uint256 timestamp;
         string lastScannedAt;
         string containerID;
         string[] participants;
     }
 
-    // supplyChain is a mapping of all the products created. The key begins at 1.
-    Product[] public products;
-    mapping(string => Product) productSupplyChainMap;
-
-    mapping (string => uint) trackingIDtoProductID;
-
-    mapping(string => string) public miscellaneous;
-    // counterparties stores the current custodian plus the previous participants
-    mapping(string => address[]) public counterparties;
+    // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
+    constructor() public{
+        productManufacturer = msg.sender;
+    }
 
     // FIXME: move into a new contract called permissions
     // only manufacturer Modifier checks that only the manufacturer can perform the task
     modifier onlyManufacturer() {
         require(msg.sender == productManufacturer, "This function can only be executed by the manufacturer");
         _;
-    }
-
-    event productAdded (string ID);
-    event sendProductArray (Product[] array);
-    event sendProduct(Product product);
-
-    // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
-    constructor() public{
-        productManufacturer = msg.sender;
     }
 
     // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
@@ -77,8 +76,8 @@ contract ProductContract is Ownable {
             _lastScannedAt,
             containerID,
             participants);
-        products.push(newProduct);
-        uint productID = products.length - 1;
+        allProducts.push(newProduct);
+        uint productID = allProducts.length - 1;
         trackingIDtoProductID[_trackingID] = productID;
         // use trackingID as the key to view string value.
         miscellaneous[_trackingID] = _misc;
@@ -94,7 +93,10 @@ contract ProductContract is Ownable {
     }
 
     function getAllProducts() public returns(Product[] memory) {
-        emit sendProductArray(products);
-        return products;
+        for(uint i = 0; i < productKeys.length; i++){
+            string memory trackingID = productKeys[i];
+            allProducts.push(productSupplyChain[trackingID]);
+        }
+        emit sendArray(allProducts);
     }
 }
