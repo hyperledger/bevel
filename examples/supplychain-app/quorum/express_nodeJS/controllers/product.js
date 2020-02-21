@@ -39,9 +39,9 @@ router.get('/:trackingID?', function (req, res) {
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(response => {
       console.log(response);
-      if(response.events){
-        res.send(response.events.sendProductArray.returnValues[0]);
-      }
+      if(response.events.sendArray){
+        res.send(response.events.sendArray.returnValues[0]);
+        }
     })
     .catch(err => {
     console.log(err);
@@ -68,7 +68,7 @@ router.post('/',upload.array(),function(req,res) {
       newProduct.trackingID,
       ""
     )
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .send({ from: fromAddress, gas: 2048275, gasPrice: "30000000" })
     .on("receipt", function(receipt) {
       // receipt example
       console.log(receipt);
@@ -77,7 +77,9 @@ router.post('/',upload.array(),function(req,res) {
           "#####",
           receipt
         );
+        res.send(receipt);
         if(receipt.events && receipt.events.sendProduct.returnValues[0]) res.send(receipt.events.sendProduct.returnValues[0]);
+        
       }
       if (receipt.status === false) {
         console.log("Request error");
