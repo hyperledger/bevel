@@ -59,7 +59,7 @@ contract ContainerContract is ProductContract{
 
     /**
     * @return all containers in the containerSupplyChain[] array
-    */    
+    */
     function getAllContainers() public returns(Container[] memory) {
         emit sendArray(containerSupplyChain);
         return containerSupplyChain;
