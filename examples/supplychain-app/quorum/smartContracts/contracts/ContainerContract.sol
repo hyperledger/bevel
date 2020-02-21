@@ -85,19 +85,6 @@ pragma solidity 0.6.1;
                             }
                     }
             }
-            /*if(bytes(productSupplyChain[_trackableTrackingID].trackingID).length > 0 &&
-                bytes(containerSupplyChain[_containerTrackingID].trackingID).length > 0) {
-                    if(productSupplyChain[_trackableTrackingID].custodian == msg.sender &&
-                        containerSupplyChain[_containerTrackingID].custodian == msg.sender) {
-                            if(bytes(productSupplyChain[_trackableTrackingID].containerID).length == 0 &&
-                                bytes(containerSupplyChain[_containerTrackingID].containerID).length == 0){
-                                    productSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
-                                    productSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
-                                    containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
-                                    return productSupplyChain[_containerTrackingID].containerID;
-                            }
-                    }
-            }*/
             else {
                 return("HTTP400");
             }
