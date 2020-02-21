@@ -1,12 +1,9 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
-import "./Ownable.sol";
+import "./Permission.sol";
 
-contract ProductContract is Ownable {
-
-    // Keeps the manufacturer address as some actions can only be done by the manufacturer
-    address manufacturer;
+contract ProductContract is Permission {
     struct Product{
         string trackingID;
         string productName;
@@ -55,27 +52,24 @@ contract ProductContract is Ownable {
     event sendProductArray (Product[] array);
     event sendProduct(Product product);
 
-    // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
-    constructor() public{
-        manufacturer = msg.sender;
-    }
-
-    // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
+    /**
+    * @return a new product
+    * @dev Only if the caller is the manufacturer. Sold and Recall values are set to false and containerID is "" when a product is newly created.
+    */
     function addProduct(string memory _productName,
         string memory _health,
         //FIXME: Update to an array of key --> value pairs
         string memory _misc,
         string memory _trackingID,
-        string memory _lastScannedAt,
-        address[] memory _participants
+        string memory _lastScannedAt
+        //FIXME: Add counterparties
         ) public returns (Product memory) {
 
-        uint256 _timestamp = block.timestamp;
+        uint256 _timestamp = now;
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
         address custodian = msg.sender;
-
         Product memory newProduct = Product(_trackingID,
             _productName,
             _health,
@@ -103,57 +97,33 @@ contract ProductContract is Ownable {
         emit sendProduct(newProduct);
     }
 
-    function getProduct(uint _productID) public view returns (Product memory){
-        return products[_productID];
+    /**
+    * @dev updates the custodian of the product using the trackingID
+    */
+    function addCounterParties(string memory _trackingID, address _custodian) internal{
+        counterparties[_trackingID].push(_custodian);
     }
 
-    //addCounterParties is a private method that updates the custodian of the product using the trackingID
-    function addCounterParties(uint _productID, address _custodian) internal{
-        counterparties[_productID].push(_custodian);
-    }
-    function getParticipantCount(uint _productID) internal returns(uint) {
-        participantsCount = products[_productID].participants.length;
-        return participantsCount;
-    }
+    /**
+    * @return all products
+    */
     function getAllProducts() public returns(Product[] memory) {
         emit sendProductArray(products);
         return products;
     }
-    // You must be the current custodian to call this function
-    function updateCustodian(uint _productID,
-                            address _newCustodian,
-                            string memory _longLatsCoordinates )
-                            public onlyCustodian(_productID) returns(bool){
-        getParticipantCount(_productID);
-        for(uint i=0; i == participantsCount; i ++){
-            if(_newCustodian == products[_productID].participants[i]){
-                products[_productID].timestamp = now;
-                products[_productID].lastScannedAt = _longLatsCoordinates;
-                products[_productID].custodian = _newCustodian;
-                addCounterParties(_productID, _newCustodian); //the new custodian gets added to the counterparties map.
-                return true;// incase another smart contract is calling this function
-            }
-        } revert("The new custodian is not a participant");
-    }
 
-    // You must be  the current custodian in order to updateProduct
-    function updateProduct(string memory _health,
-                            string memory _misc,
-                            uint _productID)
-                            public onlyCustodian(_productID) returns(bool){
-            string memory _trackingID;
-            productIDtoTrackingID[_productID] = _trackingID;
-            products[_productID].health = _health;
-            miscellaneous[_trackingID] = _misc;
-            return true;
-    }
+    //TODO what is this? Remove if unused
+    // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
 
-    //gets all the containerless products from the products array that is waiting to be packaged
-    function getContainerlessProduct() public returns(Product memory){
-        for(uint i = 0; i == products.length; i ++){
-            if(keccak256(abi.encodePacked(products[i].containerID)) == keccak256(abi.encodePacked(""))){
-                containerlessProducts.push(products[i]);
-            }
-        }
-    }
+    // }
+
+    /**
+    * @return one product
+    */
+    //TODO implement get product
+
+    /**
+    * @return all containerless products
+    */
+    //TODO implement get containerless
 }

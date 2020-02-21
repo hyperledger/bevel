@@ -128,34 +128,4 @@ router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
   //   res.send("error")
   // })
 });
-
-// PUT for package trackable
-// router.put("/api/v1/container/{containerTrackingID}/package", function(req, res){
-// 	let trackable = {
-// 		containerID: req.params.("containerID"),
-// 		trackingID: req.body.trackingID
-// 	};
-
-// 	productContract.methods
-// 	.packageTrackable(
-// 		trackable.trackingID,
-// 		trackable.containerID
-// 	)
-// 	.send({ from: fromAddress })
-//     .on("receipt", function(receipt) {
-//       // receipt example
-//       console.log(receipt);
-//       if (receipt.status === true) {
-//         res.send("Transaction successful");
-//       }
-//       if (receipt.status === false) {
-//         res.send("Transaction not successful");
-//       }
-//     })
-//     .on("error", function(error, receipt) {
-//       res.send("Error! "+ JSON.stringify(error, null, 4));
-//       console.log("error" + JSON.stringify(error, null, 4));
-//       console.log(error);
-//     });
-// });
 module.exports = router;

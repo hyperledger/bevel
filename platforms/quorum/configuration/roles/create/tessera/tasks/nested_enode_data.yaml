@@ -1,3 +1,24 @@
+# Check if the keystore.json exist in build directory
+- name: Check if enode is present in the build directory or not
+  stat:
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/enode"
+  register: file_status
+
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  when: file_status.stat.exists == False
+
+# Fetch enode from vault
+- name: Get the keystore.json from vault
+  shell: |
+    vault read -field=enode secret/{{ org.name }}-ns/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/enode
+  when: file_status.stat.exists == False
+
 # Get enode data
 - name: Get enode_data
   set_fact:
