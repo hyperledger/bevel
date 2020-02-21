@@ -128,14 +128,17 @@ router.put("/:trackingID/package", upload.array(), function(req, res) {
 router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement remove content from container
-  // unPackageGood(req.params.trackingID,req.body)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  var trackingID = req.params.trackingID;
+  productContract.methods
+    .unpackageTrackable(trackingID)
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .then( response => {
+        res.send(response)
+      })
+      .catch(error => {
+        console.log(error)
+        res.send(error.message)
+      })
 });
 
 // PUT for package trackable
