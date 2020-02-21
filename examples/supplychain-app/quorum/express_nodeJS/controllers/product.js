@@ -78,7 +78,7 @@ router.post('/',upload.array(),function(req,res) {
           "#####",
           receipt
         );
-        if(receipt.events && receipt.events.sendProduct.returnValues[0]) res.send(receipt.events.sendProduct.returnValues[0]);
+        if(receipt.events.length === null && receipt.events.sendProduct.returnValues[0]) res.send(receipt.events.sendProduct.returnValues[0]);
       }
       if (receipt.status === false) {
         console.log("Request error");
