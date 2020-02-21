@@ -1,41 +1,9 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
- 
+import "./Permission.sol";
 
-import "./ownable.sol";
-
- 
-
-contract ProductContract is Ownable {
-
- 
-
-    // Keeps the manufacturer address as some actions can only be done by the manufacturer
-    address productManufacturer;
-
- 
-
-    // allProducts is a mapping of all the products created. The key begins at 1.
-    Product[] public allProducts;
-    string[] public productKeys;
-
- 
-
-    mapping(string => Product) productSupplyChain;
-    mapping (string => uint) trackingIDtoProductID;
-    mapping(string => string) public miscellaneous;
-    // counterparties stores the current custodian plus the previous participants
-    mapping(string => address[]) public counterparties;
-
- 
-
-    event productAdded (string ID);
-    event sendArray (Product[] array);
-    event sendProduct(Product product);
-
- 
-
+contract ProductContract is Permission {
     struct Product{
         string trackingID;
         string productName;
@@ -49,6 +17,7 @@ contract ProductContract is Ownable {
         string[] participants;
     }
 
+<<<<<<< HEAD
  
 
     // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
@@ -69,6 +38,28 @@ contract ProductContract is Ownable {
     // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
 
     // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
+=======
+    /**
+    * @dev mapping of all the products created, the key begins at 1
+    */
+    Product[] public products;
+
+    /**
+    * @dev counterparties stores the current custodian plus the previous participants
+    */
+    mapping(string => address[]) public counterparties;
+    mapping(string => string) public miscellaneous;
+    mapping (string => uint) trackingIDtoProductID;
+
+    event productAdded (string ID);
+    event sendProductArray (Product[] array);
+    event sendProduct(Product product);
+
+    /**
+    * @return a new product
+    * @dev Only if the caller is the manufacturer. Sold and Recall values are set to false and containerID is "" when a product is newly created.
+    */
+>>>>>>> 220a45e1f56c2a7d0d4510cf1e68043fb93afb6a
     function addProduct(string memory _productName,
         string memory _health,
         //FIXME: Update to an array of key --> value pairs
@@ -112,15 +103,27 @@ contract ProductContract is Ownable {
         emit sendProduct(newProduct);
     }
 
+<<<<<<< HEAD
  
 
     //addCounterParties is a private method that updates the custodian of the product using the trackingID
+=======
+    /**
+    * @dev updates the custodian of the product using the trackingID
+    */
+>>>>>>> 220a45e1f56c2a7d0d4510cf1e68043fb93afb6a
     function addCounterParties(string memory _trackingID, address _custodian) internal{
         counterparties[_trackingID].push(_custodian);
     }
 
+<<<<<<< HEAD
  
 
+=======
+    /**
+    * @return all products
+    */
+>>>>>>> 220a45e1f56c2a7d0d4510cf1e68043fb93afb6a
     function getAllProducts() public returns(Product[] memory) {
         for(uint i = 0; i < productKeys.length; i++){
             string memory trackingID = productKeys[i];
@@ -128,4 +131,22 @@ contract ProductContract is Ownable {
         }
         emit sendArray(allProducts);
     }
+<<<<<<< HEAD
+=======
+
+    //TODO what is this? Remove if unused
+    // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
+
+    // }
+
+    /**
+    * @return one product
+    */
+    //TODO implement get product
+
+    /**
+    * @return all containerless products
+    */
+    //TODO implement get containerless
+>>>>>>> 220a45e1f56c2a7d0d4510cf1e68043fb93afb6a
 }
