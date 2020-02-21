@@ -23,8 +23,8 @@ contract ContainerContract is ProductContract{
         string[] participants;
     }
 
-    Container[] public containerSupplyChain;
-    mapping(string => Container) supplyChainMap;
+    
+    mapping(string => Container) containerSupplyChain;
 
     event containerAdded (string ID);
     event sendArray (Container[] array);
@@ -49,7 +49,7 @@ contract ContainerContract is ProductContract{
         string memory _containerID = "";
 
         containerSupplyChain.push(Container(_health, _misc, _custodian, _lastScannedAt, _trackingID, _timestamp, _containerID, _counterparties));
-        supplyChainMap[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
+        containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties);
         count++;
 
@@ -69,13 +69,30 @@ contract ContainerContract is ProductContract{
     * @return one container by trackingID
     */
     function getSingleContainer(string memory _trackingID) public returns(Container memory) {
-        emit sendObject(supplyChainMap[_trackingID]);
+        emit sendObject(containerSupplyChain[_trackingID]);
     }
 
     /**
-    * @return container with updated custodian
+    * return container with updated custodian
     */
-    //TODO implement update custodian
+    function updateContainerCustodian(string memory _containerID) public {
+        require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 404");
+        require(bytes(containerSupplyChain[_containerID].containerID).length <= 0, "HTTP 404");
+
+        containerSupplyChain[_containerID].custodian = msg.sender;
+        for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
+            if (bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
+                productSupplyChain[containerSupplyChain[_containerID]
+                    .containerContents[i]]
+                    .custodian = msg.sender;
+            } else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
+                updateContainerCustodian(
+                    containerSupplyChain[_containerID].containerContents[i]
+                );
+            }
+        }
+        emit sendObject(containerSupplyChain[_containerID]);
+    }
 
     /**
     * @return an updated container list with the package added
