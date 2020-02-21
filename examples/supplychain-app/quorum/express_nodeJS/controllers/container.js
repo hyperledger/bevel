@@ -18,8 +18,9 @@ router.get("/:trackingID?", function(req, res) {
       .getSingleContainer(req.params.trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
-        if(response.events.sendObject.returnValues) res.send(response.events.sendObject.returnValues[0]);
-        res.send(response);
+        if(Object.keys(response.events).length !== 0 && response.events.sendObject) res.send(response.events.sendObject.returnValues[0]);
+        else if(Object.keys(response.events).length !== 0 && response.events.sendString) res.send(response.events.sendString.returnValues[0]);
+        else res.send(response);
       })
       .catch(error => {
         console.log(error);
@@ -34,7 +35,7 @@ router.get("/:trackingID?", function(req, res) {
     .then(response => {
       console.log(response);
       if(response.events.sendArray.returnValues) res.send(response.events.sendArray.returnValues[0]);
-      res.send(response);
+      else res.send(response);
     })
     .catch(err => {
       console.log(err);
@@ -58,6 +59,7 @@ router.post("/", upload.array(), function(req, res) {
   if (newContainer.counterparties.includes(fromAddress)) {
     isInArray = true;
   }
+  console.log(isInArray);
   if (isInArray) {
     productContract.methods
       .addContainer(
@@ -91,7 +93,7 @@ router.post("/", upload.array(), function(req, res) {
 });
 
 //PUT for changing custodian
-router.post("/:trackingID/custodian", function(req, res) {
+router.put("/:trackingID/custodian", function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var trackingID = req.params.trackingID;
@@ -137,7 +139,7 @@ router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
 });
 
 // PUT for package trackable
-router.post("/:trackingID/package", function(req, res){
+router.put("/:trackingID/package", function(req, res){
   console.log("send");
 
 	let trackable = {

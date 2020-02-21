@@ -90,8 +90,10 @@ contract ContainerContract is ProductContract {
     /**
     */
     function updateContainerCustodian(string memory _containerID) public {
-        containerSupplyChain[_containerID].custodian = msg.sender;
+        require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 404");
+        require(bytes(containerSupplyChain[_containerID].containerID).length <= 0, "HTTP 404");
 
+        containerSupplyChain[_containerID].custodian = msg.sender;
         for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
             if (bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
                 productSupplyChain[containerSupplyChain[_containerID]
