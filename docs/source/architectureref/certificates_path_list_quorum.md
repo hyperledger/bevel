@@ -1,25 +1,15 @@
 Certificate Paths on Vault for Quorum Network
 ---------------------------------------------
 
-### For IBFT
+### For IBFT/ RAFT
 
 | Path                                                                              | Crypto-material               | Type         |
 |-----------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | nodekey                       | Public Key   |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | keystore                      | Private Key  |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_user                       | Username     |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | dn_password                   | Password     |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | gethpassword                   | Password     |
-
-
-### For RAFT
-
-| Path                                                                             | Crypto-material               | Type         |
-|----------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                        | nodekey                       | Public Key   |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                        | keystore                      | Private Key  |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                        | db_user                       | Username     |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                        | dn_password                   | Password     |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | nodekey                       | Public Key (Identity for a node)   |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | keystore                      | Private Key Data for a node |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_user                       | Username for Quorum keystore     |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | dn_password                   | Password for Quorum keystore     |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | gethpassword                   | Password for geth    |
 
 
 
@@ -27,29 +17,24 @@ Certificate Paths on Vault for Quorum Network
 
 | Path                                                                           | Crypto-material               | Type         |
 |--------------------------------------------------------------------------------|-------------------------------|--------------|
-| sys/policy/vault-crypto-{{ `component_name` }}-ro                              | tm.pub                        | Public Key   |
-| secret/{{component_ns}}/crypto/{{ `peer_name` }}/transaction                   | tm.key                        | Private Key  |
+| secret/{{ `component_ns` }}/crypto/{{ `peer_name` }}/transaction                   | tm.pub                        | Public key of Transaction manager for Tessera |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/transaction                   | tm.key                        | Private key of Transaction manager for Tessera |
 
+
+### For constellation
+
+| Path                                                                         | Crypto-material               | Type         |
+|------------------------------------------------------------------------------|-------------------------------|--------------|
+| secret/{{`component_ns`}}/crypto/{{ `node_name` }}/transaction                   | tm.pub                        | Public Key of Transaction manager for constellation |
+| secret/{{`component_ns`}}/crypto/{{ `node_name` }}/transaction                   | tm.key                        | Private Key of Transaction manager for constellation |
 
 ## For Root Certificates
 
 | Path                                                                         | Crypto-material               | Type         |
 |------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootca                        | Certificate  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorcrt                 | Certificate  |
-
-### For Policies
-
-| Path                                                                         | Crypto-material                            | Type         |
-|------------------------------------------------------------------------------|--------------------------------------------|--------------|
-| secret/{{`component_ns`}}/crypto/{{ `node_name` }}/transaction                   | vault-crypto-{{ `component_name` }}-ro.hcl   | HashiCorp configuration language Policy File   |
-
-### For Vault-Auth
-
-| Path                                                                         |
-|------------------------------------------------------------------------------|
-|  auth/{{ `component_auth` }}/role/vault-role                                   |
-
+| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootca                        | JKS(Java KeyStore) Initail Root CA Certificates  |
+| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorcrt                 | Certificate chain for Ambassador proxy  |
+| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorkey                 | Ambassador key  |
 
 ------------------------------------------------------------------------------------------------
 
