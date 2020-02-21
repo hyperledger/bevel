@@ -68,13 +68,20 @@ spec:
       - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0
 {% endfor %}
 {% endif %}
+{% if network.config.consensus == 'raft' %}
+{% for enode in enode_data_list %}
+      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
+{% endfor %}
+{% endif %}
     proxy:
       provider: "ambassador"
       external_url: {{ name }}.{{ external_url }}
       portTM: {{ peer.transaction_manager.ambassador }}
       rpcport: {{ peer.rpc.ambassador }}
-      quorumport: {{ peer.p2p.ambassador }}  
+      quorumport: {{ peer.p2p.ambassador }}
+{% if network.config.consensus == 'raft' %}  
       portRaft: {{ peer.raft.ambassador }}
+{% endif %}
     storage:
       storageclassname: {{ storageclass_name }}
       storagesize: 1Gi
