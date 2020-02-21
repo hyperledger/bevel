@@ -50,6 +50,7 @@ import "./ProductContract.sol";
 
         // the getAllContainers() function will return all containers in the containerSupplyChain[] array
         function getAllContainers() public returns(Container[] memory) {
+            delete allContainers;
             for(uint i = 0; i < containerKeys.length; i++){
                 string memory trackingID = containerKeys[i];
                 allContainers.push(containerSupplyChain[trackingID]);
@@ -100,24 +101,16 @@ import "./ProductContract.sol";
         }
 
     function updateContainerCustodian(string memory _containerID) public {
-        Container memory thisContainer = containerSupplyChain[_containerID];
-        thisContainer.custodian = msg.sender;
+        containerSupplyChain[_containerID].custodian = msg.sender;
 
-        for(uint i = 0; i < thisContainer.containerContents.length; i++){
-            if(bytes(productSupplyChain[thisContainer.containerContents[i]].trackingID).length > 0){
-                productSupplyChain[thisContainer.containerContents[i]].custodian = msg.sender;
+        for(uint i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++){
+            if(bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0){
+                productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].custodian = msg.sender;
             }
-            else if (bytes(containerSupplyChain[thisContainer.containerContents[i]].trackingID).length > 0){
-                updateContainerCustodian(thisContainer.containerContents[i]);
+            else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0){
+                updateContainerCustodian(containerSupplyChain[_containerID].containerContents[i]);
             }
         }
-
-        emit sendObject(thisContainer);
+        emit sendObject(containerSupplyChain[_containerID]);
     }
-
     }
-    /**
-        custodian of container = me
-            all products within container custodian = me
-            if container then call this function......?
-     */
