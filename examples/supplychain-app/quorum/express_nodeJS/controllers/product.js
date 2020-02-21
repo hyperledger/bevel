@@ -40,7 +40,7 @@ router.get('/:trackingID?', function (req, res) {
     .then(response => {
       console.log(response);
       if(response.events){
-        res.send(response.events.sendProductArray.returnValues[0]);
+        res.send(response.events);
       }
     })
     .catch(err => {
