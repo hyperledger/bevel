@@ -42,9 +42,16 @@ spec:
       authpath: quorum{{ name }}
     genesis: {{ genesis }}
     staticnodes:
+{% if network.config.consensus == 'ibft' %}
+{% for enode in enode_data_list %}
+      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0
+{% endfor %}
+{% endif %}
+{% if network.config.consensus == 'raft' %}
 {% for enode in enode_data_list %}
       - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
 {% endfor %}
+{% endif %}
     constellation:
       url: {{ network.config.tm_nodes }}
       storage: "bdb:/etc/quorum/qdata/database"
