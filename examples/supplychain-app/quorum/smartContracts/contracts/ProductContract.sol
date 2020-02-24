@@ -55,6 +55,7 @@ contract ProductContract is Permission {
             Product memory
         )
     {
+        require(bytes(productSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: product with this tracking ID already exists");
         uint256 _timestamp = now;
         bool _sold = false;
         bool _recalled = false;

@@ -44,6 +44,7 @@ contract ContainerContract is ProductContract {
         string memory _lastScannedAt,
         string[] memory _counterparties
     ) public returns (string memory) {
+        require(bytes(containerSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: Container with this tracking ID already exists");
         uint256 _timestamp = block.timestamp;
         address _custodian = msg.sender;
         string memory _containerID = "";

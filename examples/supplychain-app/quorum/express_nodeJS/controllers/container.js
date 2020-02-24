@@ -82,7 +82,7 @@ router.post("/", upload.array(), function(req, res) {
         }
       })
       .catch(error => {
-        res.send("error");
+        res.send(error.message);
         console.log(error);
       });
   } else {
@@ -111,7 +111,7 @@ router.put("/:trackingID/custodian", function(req, res) {
 });
 
 //PUT for removing contents
-router.post("/:containerTrackingID/unpackage", upload.array(), function(req, res) {
+router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement remove content from container
   var containerTrackingID = req.params.containerTrackingID;
