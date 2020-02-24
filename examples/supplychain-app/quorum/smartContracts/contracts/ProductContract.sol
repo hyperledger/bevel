@@ -20,7 +20,6 @@ contract ProductContract is Permission {
     /**
     * @dev mapping of all the products created, the key begins at 1
     */
-    
     Product[] public allProducts;
     string[] public productKeys;
 
@@ -113,7 +112,9 @@ contract ProductContract is Permission {
     /**
     * @return one product
     */
-    //TODO implement get product
+    function getSingleProduct(string memory _trackingID) public returns(Product memory) {
+        emit sendProduct(productSupplyChain[_trackingID]);
+    }
 
     /**
     * @return all containerless products
