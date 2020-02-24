@@ -1,53 +1,46 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
-import "./ownable.sol";
+import "./Permission.sol";
 
-contract ProductContract is Ownable {
-
-    // Keeps the manufacturer address as some actions can only be done by the manufacturer
-    address productManufacturer;
-
+contract ProductContract is Permission {
     struct Product{
         string trackingID;
         string productName;
         string health;
         bool sold;
         bool recalled;
-        // Who currently owns the product
-        address custodian;
+        address custodian; // Who currently owns the product
         uint256 timestamp;
         string lastScannedAt;
         string containerID;
         string[] participants;
     }
 
-    // supplyChain is a mapping of all the products created. The key begins at 1.
-    Product[] public products;
+    /**
+    * @dev mapping of all the products created, the key begins at 1
+    */
+    
+    Product[] public allProducts;
+    string[] public productKeys;
 
+    /**
+    * @dev counterparties stores the current custodian plus the previous participants
+    */
+    mapping(string => Product) productSupplyChain;
     mapping (string => uint) trackingIDtoProductID;
-
     mapping(string => string) public miscellaneous;
-    // counterparties stores the current custodian plus the previous participants
     mapping(string => address[]) public counterparties;
 
-    // FIXME: move into a new contract called permissions
-    // only manufacturer Modifier checks that only the manufacturer can perform the task
-    modifier onlyManufacturer() {
-        require(msg.sender == productManufacturer, "This function can only be executed by the manufacturer");
-        _;
-    }
-
     event productAdded (string ID);
-    event sendProductArray (Product[] array);
+    event sendArray (Product[] array);
     event sendProduct(Product product);
 
-    // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
-    constructor() public{
-        productManufacturer = msg.sender;
-    }
 
-    // The addProduct will create a new product only if they are the manufacturer.  Sold and Recall values are set to false and containerID is "" when a product is newly created.
+    /**
+    * @return a new product
+    * @dev Only if the caller is the manufacturer. Sold and Recall values are set to false and containerID is "" when a product is newly created.
+    */
     function addProduct(string memory _productName,
         string memory _health,
         //FIXME: Update to an array of key --> value pairs
@@ -76,8 +69,9 @@ contract ProductContract is Ownable {
             _lastScannedAt,
             containerID,
             participants);
-        products.push(newProduct);
-        uint productID = products.length - 1;
+        allProducts.push(newProduct);
+        productSupplyChain[_trackingID] = newProduct;
+        uint productID = allProducts.length - 1;
         trackingIDtoProductID[_trackingID] = productID;
         // use trackingID as the key to view string value.
         miscellaneous[_trackingID] = _misc;
@@ -87,19 +81,38 @@ contract ProductContract is Ownable {
         emit sendProduct(newProduct);
     }
 
-    //addCounterParties is a private method that updates the custodian of the product using the trackingID
+
+    /**
+    * @dev updates the custodian of the product using the trackingID
+    */
     function addCounterParties(string memory _trackingID, address _custodian) internal{
         counterparties[_trackingID].push(_custodian);
     }
 
+    /**
+    * @return all products
+    */
     function getAllProducts() public returns(Product[] memory) {
-        emit sendProductArray(products);
-        return products;
+        delete allProducts;
+        for(uint i = 0; i < productKeys.length; i++){
+            string memory trackingID = productKeys[i];
+            allProducts.push(productSupplyChain[trackingID]);
+        }
+        emit sendArray(allProducts);
     }
 
+    //TODO what is this? Remove if unused
     // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
 
     // }
 
+    /**
+    * @return one product
+    */
+    //TODO implement get product
 
+    /**
+    * @return all containerless products
+    */
+    //TODO implement get containerless
 }
