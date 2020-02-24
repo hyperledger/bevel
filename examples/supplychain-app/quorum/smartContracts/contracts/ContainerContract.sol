@@ -28,7 +28,10 @@ contract ContainerContract is ProductContract {
     Container[] public allContainers;
     mapping(string => Container) containerSupplyChain;
 
-    mapping(string => Container) containerSupplyChain;
+    event containerAdded (string);
+    event sendArray (Container[]);
+    event sendObject(Container);
+    event sendString(string);
 
     /**
     * @return a new container
@@ -135,8 +138,16 @@ contract ContainerContract is ProductContract {
     /**
     * @return an updated container list with the package removed
     */
-    function unpackageTrackable(string memory _trackingID) public {
-        
+    function unpackageTrackable(string memory _containerID, string memory _trackableID) public returns(string[] memory){
+        for(uint i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++){
+            string memory x = (containerSupplyChain[_containerID].containerContents[i]);
+            emit sendString(x);
+            if(keccak256(bytes(x)) == keccak256(bytes(_trackableID))){
+                delete containerSupplyChain[_containerID].containerContents[i];
+                if(bytes(containerSupplyChain[_trackableID].trackingID).length > 0) containerSupplyChain[_trackableID].containerID = "";
+            }
+        }
+        return containerSupplyChain[_containerID].containerContents;
     }
 
 }

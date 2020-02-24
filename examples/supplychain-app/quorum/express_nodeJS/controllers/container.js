@@ -110,27 +110,15 @@ router.put("/:trackingID/custodian", function(req, res) {
       })
 });
 
-//PUT for updatating contents
-router.put("/:trackingID/package", upload.array(), function(req, res) {
-  res.setTimeout(15000);
-  // TODO: Implement update content packages
-  // packageGood(req.params.trackingID,req.body)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
-});
-
 //PUT for removing contents
-router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
+router.post("/:containerTrackingID/unpackage", upload.array(), function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement remove content from container
-  var trackingID = req.params.trackingID;
+  var containerTrackingID = req.params.containerTrackingID;
+  var trackableID = req.body.contents;
+  console.log(containerTrackingID);
   productContract.methods
-    .unpackageTrackable(trackingID)
+    .unpackageTrackable(containerTrackingID, trackableID)
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then( response => {
         res.send(response)
@@ -142,7 +130,7 @@ router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
 });
 
 // PUT for package trackable
-router.put("/:trackingID/package", function(req, res){
+router.post("/:trackingID/package", function(req, res){
   console.log("send");
 
 	let trackable = {

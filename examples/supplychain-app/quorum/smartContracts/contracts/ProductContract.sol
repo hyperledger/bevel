@@ -15,10 +15,6 @@ contract ProductContract is Permission {
     // counterparties stores the current custodian plus the previous participants
     mapping(string => address[]) public counterparties;
 
-    event productAdded(string ID);
-    event sendArray(Product[] array);
-    event sendProduct(Product product);
-
     struct Product {
         string trackingID;
         string productName;
@@ -36,20 +32,10 @@ contract ProductContract is Permission {
     * @dev mapping of all the products created, the key begins at 1
     */
     
-    Product[] public allProducts;
-    string[] public productKeys;
 
-    /**
-    * @dev counterparties stores the current custodian plus the previous participants
-    */
-    mapping(string => Product) productSupplyChain;
-    mapping (string => uint) trackingIDtoProductID;
-    mapping(string => string) public miscellaneous;
-    mapping(string => address[]) public counterparties;
-
-    event productAdded (string ID);
-    event sendArray (Product[] array);
-    event sendProduct(Product product);
+    event productAdded (string);
+    event sendArray (Product[]);
+    event sendProduct(Product);
 
 
     /**
@@ -90,6 +76,7 @@ contract ProductContract is Permission {
             containerID,
             participants);
         allProducts.push(newProduct);
+        productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
         uint productID = allProducts.length - 1;
         trackingIDtoProductID[_trackingID] = productID;
