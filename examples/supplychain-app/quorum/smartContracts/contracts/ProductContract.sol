@@ -18,31 +18,26 @@ contract ProductContract is Permission {
         //participants array stores potential custodian addresses
         address[] participants;
     }
-/////////////////////////////////////
-    uint participantsCount;
-    address potentialCustodian;
-////////////////////////////////////
 
-    // products array stores all of the products created.
+    /**
+    * @dev array of all the products created, the key begins at 0
+    */
     Product[] public products;
-    //containerlessProducts stores all products that are containerless and waiting to be packaged
+     /**
+    * @dev array of all containerless products
+    */
     Product[] public containerlessProducts;
-
-    mapping (string => uint) public trackingIDtoProductID;
+    /**
+    * @dev counterparties stores the current custodian plus the previous participants
+    */
+    mapping(uint => address[]) public counterparties;
+    /**
+    * @dev miscellaneous uses the trackingID as a key to view messages
+    */
+    mapping(string => string) public miscellaneous;
+    mapping (string => uint) trackingIDtoProductID;
     mapping (uint => string) public productIDtoTrackingID;
 
-    //miscellaneous uses the trackingID as a key to view messages
-    mapping(string => string) public miscellaneous;
-
-    // counterparties stores a history of the previous custodians plus the current.
-    mapping(uint => address[]) public counterparties;
-
-    // FIXME: move into a new contract called permissions
-    // only manufacturer Modifier checks that only the manufacturer can perform the task
-    modifier onlyManufacturer() {
-        require(msg.sender == manufacturer, "This function can only be executed by the manufacturer");
-        _;
-    }
     modifier onlyCustodian(uint _productID) {
         require(products[_productID].custodian == msg.sender,"This action must be performed by the current custodian");
         _;
@@ -62,14 +57,15 @@ contract ProductContract is Permission {
         string memory _misc,
         string memory _trackingID,
         string memory _lastScannedAt
-        //FIXME: Add counterparties
-        ) public returns (Product memory) {
+        ) public onlyManufacturer() returns (Product memory) {
 
-        uint256 _timestamp = now;
+        uint256 _timestamp = block.timestamp;
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
         address custodian = msg.sender;
+        address[] memory counterparties;
+
         Product memory newProduct = Product(_trackingID,
             _productName,
             _health,
@@ -79,18 +75,14 @@ contract ProductContract is Permission {
             _timestamp,
             _lastScannedAt,
             containerID,
-            _participants);
+            counterparties);
         products.push(newProduct);
-
         uint productID = products.length - 1;
-
-        // uses trackingID to get the productID.
         trackingIDtoProductID[_trackingID] = productID;
         productIDtoTrackingID[productID] = _trackingID;
 
         // use trackingID as the key to view string value.
         miscellaneous[_trackingID] = _misc;
-
         //calls an internal function and appends the custodian to the product using the trackingID
         addCounterParties(productID,custodian);
         emit productAdded(_trackingID);
@@ -100,10 +92,9 @@ contract ProductContract is Permission {
     /**
     * @dev updates the custodian of the product using the trackingID
     */
-    function addCounterParties(string memory _trackingID, address _custodian) internal{
-        counterparties[_trackingID].push(_custodian);
+    function addCounterParties(uint _productID, address _custodian) internal{
+        counterparties[_productID].push(_custodian);
     }
-
     /**
     * @return all products
     */
@@ -111,19 +102,44 @@ contract ProductContract is Permission {
         emit sendProductArray(products);
         return products;
     }
-
-    //TODO what is this? Remove if unused
-    // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
-
-    // }
+     /**
+    * @dev You must be the current custodian to call this function
+    */
+    function updateCustodian(uint _productID,
+                            address _newCustodian,
+                            string memory _longLatsCoordinates )
+                            public onlyCustodian(_productID) returns(bool){
+        uint participantsCount = products[_productID].participants.length;
+        for(uint i = 0; i == participantsCount; i ++){
+            if(_newCustodian == products[_productID].participants[i]){
+                products[_productID].timestamp = now;
+                products[_productID].lastScannedAt = _longLatsCoordinates;
+                products[_productID].custodian = _newCustodian;
+                //the new custodian gets added to the counterparties map.
+                addCounterParties(_productID, _newCustodian);
+                return true;// incase another smart contract is calling this function
+            }
+        } revert("The new custodian is not a participant");
+    }
+    /**
+    * @ return one product using the product ID
+    */
+    function getProduct(uint _productID) public view returns (Product memory){
+        return products[_productID];
+    }
 
     /**
-    * @return one product
-    */
-    //TODO implement get product
-
-    /**
-    * @return all containerless products
-    */
-    //TODO implement get containerless
+    * @ return all containerless products
+    */function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
+        uint containerlessCounter = 0;
+        for(uint i = 0; i < products.length; i ++){
+            bytes memory containerIDLength = bytes(products[i].containerID);
+            if(containerIDLength.length == 0){
+                Product memory containerless = products[i];
+                containerlessProducts[containerlessCounter] = containerless;
+                containerlessCounter += 1;
+            }
+        }
+        return containerlessProducts;
+    }
 }
