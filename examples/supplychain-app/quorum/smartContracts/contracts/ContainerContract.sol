@@ -136,18 +136,34 @@ contract ContainerContract is ProductContract {
     }
 
     /**
-    * @return an updated container list with the package removed
+    * an updated container list with the package removed
     */
-    function unpackageTrackable(string memory _containerID, string memory _trackableID) public returns(string[] memory){
-        for(uint i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++){
-            string memory x = (containerSupplyChain[_containerID].containerContents[i]);
-            emit sendString(x);
-            if(keccak256(bytes(x)) == keccak256(bytes(_trackableID))){
-                delete containerSupplyChain[_containerID].containerContents[i];
+    function unpackageTrackable(string memory _containerID, string memory _trackableID) public{
+        uint length = containerSupplyChain[_containerID].containerContents.length;//remove product4
+        string[] memory newArr = containerSupplyChain[_containerID].containerContents; //[product4, container3]
+        delete containerSupplyChain[_containerID].containerContents; //[]
+
+        for(uint i = 0; i < length; i++){
+            if(keccak256(bytes(newArr[i])) == keccak256(bytes(_trackableID))){
                 if(bytes(containerSupplyChain[_trackableID].trackingID).length > 0) containerSupplyChain[_trackableID].containerID = "";
+                else if(bytes(productSupplyChain[_trackableID].trackingID).length > 0) productSupplyChain[_trackableID].containerID = "";
+            } else {
+                containerSupplyChain[_containerID].containerContents.push(newArr[i]);
             }
         }
-        return containerSupplyChain[_containerID].containerContents;
     }
+
+
+/**
+
+i = 0 -------- product4 ---- if
+i = 1 -------- container3 ---- push
+
+
+ */
+
+
+
+
 
 }
