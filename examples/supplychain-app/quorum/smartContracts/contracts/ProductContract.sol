@@ -136,7 +136,8 @@ contract ProductContract is Permission {
 
     /**
     * @ return all containerless products
-    */function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
+    */
+    function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
         uint containerlessCounter = 0;
         for(uint i = 0; i < allProducts.length; i ++){
             bytes memory containerIDLength = bytes(allProducts[i].containerID);
