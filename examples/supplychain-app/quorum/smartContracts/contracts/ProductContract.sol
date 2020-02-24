@@ -10,8 +10,7 @@ contract ProductContract is Permission {
         string health;
         bool sold;
         bool recalled;
-        // Who currently owns the product
-        address custodian;
+        address custodian; // Who currently owns the product
         uint256 timestamp;
         string lastScannedAt;
         string containerID;
@@ -22,7 +21,7 @@ contract ProductContract is Permission {
     /**
     * @dev array of all the products created, the key begins at 0
     */
-    Product[] public products;
+    Product[] public allProducts;
      /**
     * @dev array of all containerless products
     */
@@ -39,13 +38,14 @@ contract ProductContract is Permission {
     mapping (uint => string) public productIDtoTrackingID;
 
     modifier onlyCustodian(uint _productID) {
-        require(products[_productID].custodian == msg.sender,"This action must be performed by the current custodian");
+        require(allProducts[_productID].custodian == msg.sender,"This action must be performed by the current custodian");
         _;
       }
 
     event productAdded (string ID);
-    event sendProductArray (Product[] array);
+    event sendArray (Product[] array);
     event sendProduct(Product product);
+
 
     /**
     * @return a new product
@@ -75,9 +75,10 @@ contract ProductContract is Permission {
             _timestamp,
             _lastScannedAt,
             containerID,
-            counterparties);
-        products.push(newProduct);
-        uint productID = products.length - 1;
+            participants);
+        allProducts.push(newProduct);
+        productSupplyChain[_trackingID] = newProduct;
+        uint productID = allProducts.length - 1;
         trackingIDtoProductID[_trackingID] = productID;
         productIDtoTrackingID[productID] = _trackingID;
 
@@ -89,6 +90,7 @@ contract ProductContract is Permission {
         emit sendProduct(newProduct);
     }
 
+
     /**
     * @dev updates the custodian of the product using the trackingID
     */
@@ -99,8 +101,12 @@ contract ProductContract is Permission {
     * @return all products
     */
     function getAllProducts() public returns(Product[] memory) {
-        emit sendProductArray(products);
-        return products;
+        delete allProducts;
+        for(uint i = 0; i < productKeys.length; i++){
+            string memory trackingID = productKeys[i];
+            allProducts.push(productSupplyChain[trackingID]);
+        }
+        emit sendArray(allProducts);
     }
      /**
     * @dev You must be the current custodian to call this function
@@ -109,12 +115,12 @@ contract ProductContract is Permission {
                             address _newCustodian,
                             string memory _longLatsCoordinates )
                             public onlyCustodian(_productID) returns(bool){
-        uint participantsCount = products[_productID].participants.length;
+        uint participantsCount = allProducts[_productID].participants.length;
         for(uint i = 0; i == participantsCount; i ++){
-            if(_newCustodian == products[_productID].participants[i]){
-                products[_productID].timestamp = now;
-                products[_productID].lastScannedAt = _longLatsCoordinates;
-                products[_productID].custodian = _newCustodian;
+            if(_newCustodian == allProducts[_productID].participants[i]){
+                allProducts[_productID].timestamp = now;
+                allProducts[_productID].lastScannedAt = _longLatsCoordinates;
+                allProducts[_productID].custodian = _newCustodian;
                 //the new custodian gets added to the counterparties map.
                 addCounterParties(_productID, _newCustodian);
                 return true;// incase another smart contract is calling this function
@@ -125,17 +131,17 @@ contract ProductContract is Permission {
     * @ return one product using the product ID
     */
     function getProduct(uint _productID) public view returns (Product memory){
-        return products[_productID];
+        return allProducts[_productID];
     }
 
     /**
     * @ return all containerless products
     */function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
         uint containerlessCounter = 0;
-        for(uint i = 0; i < products.length; i ++){
-            bytes memory containerIDLength = bytes(products[i].containerID);
+        for(uint i = 0; i < allProducts.length; i ++){
+            bytes memory containerIDLength = bytes(allProducts[i].containerID);
             if(containerIDLength.length == 0){
-                Product memory containerless = products[i];
+                Product memory containerless = allProducts[i];
                 containerlessProducts[containerlessCounter] = containerless;
                 containerlessCounter += 1;
             }
