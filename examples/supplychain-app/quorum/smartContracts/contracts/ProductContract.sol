@@ -70,6 +70,7 @@ contract ProductContract is Permission {
             containerID,
             participants);
         allProducts.push(newProduct);
+        productSupplyChain[_trackingID] = newProduct;
         uint productID = allProducts.length - 1;
         trackingIDtoProductID[_trackingID] = productID;
         // use trackingID as the key to view string value.
@@ -92,6 +93,7 @@ contract ProductContract is Permission {
     * @return all products
     */
     function getAllProducts() public returns(Product[] memory) {
+        delete allProducts;
         for(uint i = 0; i < productKeys.length; i++){
             string memory trackingID = productKeys[i];
             allProducts.push(productSupplyChain[trackingID]);
