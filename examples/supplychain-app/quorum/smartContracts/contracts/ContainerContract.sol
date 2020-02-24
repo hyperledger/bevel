@@ -139,6 +139,18 @@ contract ContainerContract is ProductContract {
     * an updated container list with the package removed
     */
     function unpackageTrackable(string memory _containerID, string memory _trackableID) public{
+        require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 400: container does not exist");
+        require((bytes(productSupplyChain[_trackableID].trackingID).length > 0) ||
+                (bytes(containerSupplyChain[_trackableID].trackingID).length > 0), "HTTP 400: trackable does not exist");
+
+        require(containerSupplyChain[_trackableID].custodian == msg.sender, "HTTP 400: container custodian not same as sender address");
+        require((productSupplyChain[_trackableID].custodian == msg.sender) ||
+                containerSupplyChain[_trackableID].custodian == msg.sender, "HTTP 400: trackable custodian not same as sender address");
+
+        require(bytes(containerSupplyChain[_containerID].containerID).length <= 0, "HTTP 400");
+        require(keccak256(bytes(productSupplyChain[_trackableID].containerID)) == keccak256(bytes(_containerID)) ||
+                keccak256(bytes(containerSupplyChain[_trackableID].containerID)) == keccak256(bytes(_containerID)), "HTTP 404");
+
         uint length = containerSupplyChain[_containerID].containerContents.length;//remove product4
         string[] memory newArr = containerSupplyChain[_containerID].containerContents; //[product4, container3]
         delete containerSupplyChain[_containerID].containerContents; //[]
@@ -152,18 +164,6 @@ contract ContainerContract is ProductContract {
             }
         }
     }
-
-
-/**
-
-i = 0 -------- product4 ---- if
-i = 1 -------- container3 ---- push
-
-
- */
-
-
-
 
 
 }
