@@ -1,77 +1,103 @@
 pragma solidity 0.6.1;
-    pragma experimental ABIEncoderV2;
+pragma experimental ABIEncoderV2;
 
-    import "./ProductContract.sol";
+import "./ProductContract.sol";
 
-    contract ContainerContract is ProductContract {
+contract ContainerContract is ProductContract{
+    /**
+    * @dev stores the account address of the where this contract is deployed on in a variable called manufacturer
+    */
+    //TODO is this used? Delete if replaced by permission.sol/productManufacturer
+    address containerManufacturer;
 
-        address containerManufacturer; // stores the account address of the where this contract is deployed on in a variable called manufacturer.
+    uint256 public count = 0;
 
-        string[] public containerKeys;
-        Container[] public allContainers;
+    struct Container{
+        string health;
+        string misc;
+        address custodian; //who currently owns the product
+        string lastScannedAt;
+        string trackingID;
+        uint timestamp;
+        string containerID;
+        string[] participants;
+        string[] containerContents;
+    }
 
-        mapping(string => Container) containerSupplyChain;
+    string[] public containerKeys;
+    Container[] public allContainers;
+    mapping(string => Container) containerSupplyChain;
 
-        event containerAdded (string ID);
-        event sendArray (Container[] array);
-        event sendObject(Container container);
+    event containerAdded (string ID);
+    event sendArray (Container[] array);
+    event sendObject(Container container);
 
-        struct Container{
-            string health;
-            string misc;
-            address custodian; // Who currently owns the container
-            string lastScannedAt;
-            string trackingID;
-            uint timestamp;
-            string containerID;
-            string[] participants;
-            string[] containerContents;
+    /**
+    * @return a new container
+    * @dev Only if the caller is the manufacturer. Sold and Recall values are set to false and containerID is "" when a product is newly created.
+    */
+    function addContainer(string memory _health, string memory _misc, string memory _trackingID,
+        string memory _lastScannedAt, string[] memory _counterparties) public returns (string memory) {
+
+        uint256 _timestamp = block.timestamp;
+        address _custodian = msg.sender;
+        string memory _containerID = "";
+        string[] memory _containerContents;
+
+        containerKeys.push(_trackingID);
+        containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
+            _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
+
+        emit containerAdded(_trackingID);
+        emit sendObject(containerSupplyChain[_trackingID]);
+    }
+
+    /**
+    * @return all containers in the containerSupplyChain[] array
+    */
+    function getAllContainers() public returns(Container[] memory) {
+        delete allContainers;
+        for(uint i = 0; i < containerKeys.length; i++){
+            string memory trackingID = containerKeys[i];
+            allContainers.push(containerSupplyChain[trackingID]);
         }
+        emit sendArray(allContainers);
+    }
 
-        constructor() public{
-            containerManufacturer = msg.sender;
-        }
+    /**
+    * @return one container by trackingID
+    */
+    function getSingleContainer(string memory _trackingID) public returns(Container memory) {
+        emit sendObject(containerSupplyChain[_trackingID]);
+        return containerSupplyChain[_trackingID];
+    }
 
-        // The addContainer will create a new container only if they are the manufacturer.
-        // Sold and Recall values are set to false and containerID is "" when a product is newly created.
-        function addContainer(string memory _health, string memory _misc, string memory _trackingID,
-            string memory _lastScannedAt, string[] memory _counterparties) public returns (string memory) {
+    /**
+    * return container with updated custodian
+    */
+    function updateContainerCustodian(string memory _containerID) public {
+        require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 404");
+        require(bytes(containerSupplyChain[_containerID].containerID).length <= 0, "HTTP 404");
 
-            uint256 _timestamp = block.timestamp;
-            address _custodian = msg.sender;
-            string memory _containerID = "";
-            string[] memory _containerContents;
-
-            containerKeys.push(_trackingID);
-            containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
-                _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
-
-            emit containerAdded(_trackingID);
-            emit sendObject(containerSupplyChain[_trackingID]);
-        }
-
-        // the getAllContainers() function will return all containers in the containerSupplyChain[] array
-        function getAllContainers() public returns(Container[] memory) {
-            for(uint i = 0; i < containerKeys.length; i++){
-                string memory trackingID = containerKeys[i];
-                allContainers.push(containerSupplyChain[trackingID]);
+        containerSupplyChain[_containerID].custodian = msg.sender;
+        for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
+            if (bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
+                productSupplyChain[containerSupplyChain[_containerID]
+                    .containerContents[i]]
+                    .custodian = msg.sender;
+            } else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
+                updateContainerCustodian(
+                    containerSupplyChain[_containerID].containerContents[i]
+                );
             }
-            emit sendArray(allContainers);
         }
+        emit sendObject(containerSupplyChain[_containerID]);
+    }
 
-        function getSingleContainer(string memory _trackingID) public returns(Container memory) {
-            emit sendObject(containerSupplyChain[_trackingID]);
-            return containerSupplyChain[_trackingID];
-        }
-
-        // the packageTrackable() function will check if criteria are met and package a trackable (a product or container) into a container
-            // Check if container and trackable exist by checking if their trackingIDs exist
-            // Check if custodian of container and trackable is our identity
-            // Check if container and trackable's containerIDs are "" empty strings
-            // Change trackable's containerID to container's trackingID
-            // Update trackable's custodian to container's custodian
-            // Add the trackable's trackingID to container's contents
-        function packageTrackable(string memory _trackableTrackingID, string memory _containerTrackingID) public returns(string memory) {
+    /**
+    * @return an updated container list with the package added
+    */
+    function packageTrackable(string memory _trackableTrackingID, string memory _containerTrackingID) public returns(string memory) {
             if(bytes(containerSupplyChain[_trackableTrackingID].trackingID).length > 0 &&
                 bytes(containerSupplyChain[_containerTrackingID].trackingID).length > 0) {
                     if(containerSupplyChain[_trackableTrackingID].custodian == msg.sender &&
@@ -86,18 +112,25 @@ pragma solidity 0.6.1;
                     }
             }
             else if(bytes(productSupplyChain[_trackableTrackingID].trackingID).length > 0 &&
-                bytes(productSupplyChain[_containerTrackingID].trackingID).length > 0) {
+                bytes(containerSupplyChain[_containerTrackingID].trackingID).length > 0) {
                     if(productSupplyChain[_trackableTrackingID].custodian == msg.sender &&
-                        productSupplyChain[_containerTrackingID].custodian == msg.sender) {
+                        containerSupplyChain[_containerTrackingID].custodian == msg.sender) {
                             if(bytes(productSupplyChain[_trackableTrackingID].containerID).length == 0 &&
-                                bytes(productSupplyChain[_containerTrackingID].containerID).length == 0){
+                                bytes(containerSupplyChain[_containerTrackingID].containerID).length == 0){
                                     productSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
-                                    productSupplyChain[_trackableTrackingID].custodian = productSupplyChain[_containerTrackingID].custodian;
+                                    productSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
                                     containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
                                     return productSupplyChain[_containerTrackingID].containerID;
                             }
                     }
             }
-            return("HTTP400");
-        }
+            else {
+                return("HTTP400");
+            }
     }
+
+    /**
+    * @return an updated container list with the package removed
+    */
+    //TODO implement unpackage
+}
