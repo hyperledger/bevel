@@ -26,12 +26,9 @@ contract ContainerContract is ProductContract {
 
     string[] public containerKeys;
     Container[] public allContainers;
-
     mapping(string => Container) containerSupplyChain;
 
-    event sendString(string);
-    event sendArray(Container[]);
-    event sendObject(Container);
+    mapping(string => Container) containerSupplyChain;
 
     /**
     * @return a new container
@@ -50,28 +47,19 @@ contract ContainerContract is ProductContract {
         string[] memory _containerContents;
 
         containerKeys.push(_trackingID);
-        containerSupplyChain[_trackingID] = Container(
-            _health,
-            _misc,
-            _custodian,
-            _lastScannedAt,
-            _trackingID,
-            _timestamp,
-            _containerID,
-            _counterparties,
-            _containerContents
-        );
+        containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
+            _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
 
-        emit sendString(_trackingID);
+        emit containerAdded(_trackingID);
         emit sendObject(containerSupplyChain[_trackingID]);
     }
 
     /**
     * @return all containers in the containerSupplyChain[] array
     */
-    function getAllContainers() public returns (Container[] memory) {
+    function getAllContainers() public returns(Container[] memory) {
         delete allContainers;
-        for (uint256 i = 0; i < containerKeys.length; i++) {
+        for(uint i = 0; i < containerKeys.length; i++){
             string memory trackingID = containerKeys[i];
             allContainers.push(containerSupplyChain[trackingID]);
         }
@@ -88,6 +76,7 @@ contract ContainerContract is ProductContract {
     }
 
     /**
+    * return container with updated custodian
     */
     function updateContainerCustodian(string memory _containerID) public {
         require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 404");
@@ -111,7 +100,37 @@ contract ContainerContract is ProductContract {
     /**
     * @return an updated container list with the package added
     */
-    //TODO implement package
+    function packageTrackable(string memory _trackableTrackingID, string memory _containerTrackingID) public returns(string memory) {
+            if(bytes(containerSupplyChain[_trackableTrackingID].trackingID).length > 0 &&
+                bytes(containerSupplyChain[_containerTrackingID].trackingID).length > 0) {
+                    if(containerSupplyChain[_trackableTrackingID].custodian == msg.sender &&
+                        containerSupplyChain[_containerTrackingID].custodian == msg.sender) {
+                            if(bytes(containerSupplyChain[_trackableTrackingID].containerID).length == 0 &&
+                                bytes(containerSupplyChain[_containerTrackingID].containerID).length == 0){
+                                    containerSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
+                                    containerSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
+                                    containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
+                                    return containerSupplyChain[_containerTrackingID].containerID;
+                            }
+                    }
+            }
+            else if(bytes(productSupplyChain[_trackableTrackingID].trackingID).length > 0 &&
+                bytes(containerSupplyChain[_containerTrackingID].trackingID).length > 0) {
+                    if(productSupplyChain[_trackableTrackingID].custodian == msg.sender &&
+                        containerSupplyChain[_containerTrackingID].custodian == msg.sender) {
+                            if(bytes(productSupplyChain[_trackableTrackingID].containerID).length == 0 &&
+                                bytes(containerSupplyChain[_containerTrackingID].containerID).length == 0){
+                                    productSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
+                                    productSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
+                                    containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
+                                    return productSupplyChain[_containerTrackingID].containerID;
+                            }
+                    }
+            }
+            else {
+                return("HTTP400");
+            }
+    }
 
     /**
     * @return an updated container list with the package removed
