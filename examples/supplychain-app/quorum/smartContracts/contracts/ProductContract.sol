@@ -1,47 +1,9 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 
-<<<<<<< HEAD
- 
-
-import "./ownable.sol";
-
- 
-
-contract ProductContract is Ownable {
-
- 
-
-    // Keeps the manufacturer address as some actions can only be done by the manufacturer
-    address productManufacturer;
-
- 
-
-    // allProducts is a mapping of all the products created. The key begins at 1.
-    Product[] public allProducts;
-    string[] public productKeys;
-
- 
-
-    mapping(string => Product) productSupplyChain;
-    mapping (string => uint) trackingIDtoProductID;
-    mapping(string => string) public miscellaneous;
-    // counterparties stores the current custodian plus the previous participants
-    mapping(string => address[]) public counterparties;
-
- 
-
-    event productAdded (string ID);
-    event sendArray (Product[] array);
-    event sendProduct(Product product);
-
- 
-
-=======
 import "./Permission.sol";
 
 contract ProductContract is Permission {
->>>>>>> d228ea61d78d737b6832165315b441cb071bf4f2
     struct Product{
         string trackingID;
         string productName;
@@ -55,30 +17,9 @@ contract ProductContract is Permission {
         string[] participants;
     }
 
-<<<<<<< HEAD
- 
-
-    // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
-    constructor() public{
-        productManufacturer = msg.sender;
-    }
-
- 
-
-    // FIXME: move into a new contract called permissions
-    // only manufacturer Modifier checks that only the manufacturer can perform the task
-    modifier onlyManufacturer() {
-        require(msg.sender == productManufacturer, "This function can only be executed by the manufacturer");
-        _;
-    }
- 
-
-    // FIXME: This should be the owner, there should be a way to have the manufacturer added and an array of manufacturers
-=======
     /**
     * @dev mapping of all the products created, the key begins at 1
     */
-    
     Product[] public allProducts;
     string[] public productKeys;
 
@@ -94,7 +35,6 @@ contract ProductContract is Permission {
     event sendArray (Product[] array);
     event sendProduct(Product product);
 
->>>>>>> d228ea61d78d737b6832165315b441cb071bf4f2
 
     /**
     * @return a new product
@@ -144,7 +84,7 @@ contract ProductContract is Permission {
         emit sendProduct(newProduct);
     }
 
-
+    //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
     * @dev updates the custodian of the product using the trackingID
     */
@@ -164,6 +104,10 @@ contract ProductContract is Permission {
         emit sendArray(allProducts);
     }
 
+    function getSingleProduct(string memory _trackingID) public returns(Product memory) {
+        emit sendProduct(productSupplyChain[_trackingID]);
+    }
+
     //TODO what is this? Remove if unused
     // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
 
@@ -172,7 +116,6 @@ contract ProductContract is Permission {
     /**
     * @return one product
     */
-    //TODO implement get product
 
     /**
     * @return all containerless products
