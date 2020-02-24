@@ -23,7 +23,6 @@ router.get('/containerless', function (req,res){
 //GET product with or without trackingID
 router.get('/:trackingID?', function (req, res) {
   if (req.params.trackingID != null) {
-    // TODO: Implement getContainerByID functionality
     const trackingID = req.params.trackingID;
     console.log(trackingID, "***");
     productContract.methods
