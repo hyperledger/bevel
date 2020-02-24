@@ -10,8 +10,7 @@ contract ProductContract is Permission {
         string health;
         bool sold;
         bool recalled;
-        // Who currently owns the product
-        address custodian;
+        address custodian; // Who currently owns the product
         uint256 timestamp;
         string lastScannedAt;
         string containerID;
@@ -21,18 +20,22 @@ contract ProductContract is Permission {
     /**
     * @dev mapping of all the products created, the key begins at 1
     */
-    Product[] public products;
+    
+    Product[] public allProducts;
+    string[] public productKeys;
 
     /**
     * @dev counterparties stores the current custodian plus the previous participants
     */
-    mapping(string => address[]) public counterparties;
-    mapping(string => string) public miscellaneous;
+    mapping(string => Product) productSupplyChain;
     mapping (string => uint) trackingIDtoProductID;
+    mapping(string => string) public miscellaneous;
+    mapping(string => address[]) public counterparties;
 
     event productAdded (string ID);
-    event sendProductArray (Product[] array);
+    event sendArray (Product[] array);
     event sendProduct(Product product);
+
 
     /**
     * @return a new product
@@ -66,8 +69,8 @@ contract ProductContract is Permission {
             _lastScannedAt,
             containerID,
             participants);
-        products.push(newProduct);
-        uint productID = products.length - 1;
+        allProducts.push(newProduct);
+        uint productID = allProducts.length - 1;
         trackingIDtoProductID[_trackingID] = productID;
         // use trackingID as the key to view string value.
         miscellaneous[_trackingID] = _misc;
@@ -76,6 +79,7 @@ contract ProductContract is Permission {
         emit productAdded(_trackingID);
         emit sendProduct(newProduct);
     }
+
 
     /**
     * @dev updates the custodian of the product using the trackingID
@@ -88,8 +92,11 @@ contract ProductContract is Permission {
     * @return all products
     */
     function getAllProducts() public returns(Product[] memory) {
-        emit sendProductArray(products);
-        return products;
+        for(uint i = 0; i < productKeys.length; i++){
+            string memory trackingID = productKeys[i];
+            allProducts.push(productSupplyChain[trackingID]);
+        }
+        emit sendArray(allProducts);
     }
 
     //TODO what is this? Remove if unused
