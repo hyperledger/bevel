@@ -128,14 +128,16 @@ contract ProductContract is Permission {
         } revert("The new custodian is not a participant");
     }
     /**
-    * @ return one product using the product ID
+    * @ returns a single product using the product ID
     */
     function getProduct(uint _productID) public view returns (Product memory){
         return allProducts[_productID];
     }
 
     /**
-    * @ return all containerless products
+    * gets all the products from the allProduct array that have empty containerID
+    * puts them in a new array called containerlessProducts
+    * containerlessProducts stores all products that are containerless and waiting to be packaged
     */
     function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
         uint containerlessCounter = 0;
