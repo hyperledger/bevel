@@ -59,7 +59,9 @@ contract ProductContract is Permission {
         string memory _lastScannedAt
         ) public onlyManufacturer() returns (Product memory) {
 
-        uint256 _timestamp = block.timestamp;
+ 
+
+        uint256 _timestamp = now;
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
@@ -90,7 +92,7 @@ contract ProductContract is Permission {
         emit sendProduct(newProduct);
     }
 
-
+    //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
     * @dev updates the custodian of the product using the trackingID
     */
@@ -127,6 +129,16 @@ contract ProductContract is Permission {
             }
         } revert("The new custodian is not a participant");
     }
+
+    function getSingleProduct(string memory _trackingID) public returns(Product memory) {
+        emit sendProduct(productSupplyChain[_trackingID]);
+    }
+
+    //TODO what is this? Remove if unused
+    // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
+
+    // }
+
     /**
     * @ returns a single product using the product ID
     */
