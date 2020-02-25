@@ -20,7 +20,6 @@ contract ProductContract is Permission {
     /**
     * @dev mapping of all the products created, the key begins at 1
     */
-    
     Product[] public allProducts;
     string[] public productKeys;
 
@@ -50,6 +49,8 @@ contract ProductContract is Permission {
         //FIXME: Add counterparties
         ) public returns (Product memory) {
 
+ 
+
         uint256 _timestamp = now;
         bool _sold = false;
         bool _recalled = false;
@@ -57,6 +58,8 @@ contract ProductContract is Permission {
         address custodian = msg.sender;
         string[] memory participants;
         // participants[1] = "Test";
+
+ 
 
          // uses trackingID to get the timestamp and containerID.
         Product memory newProduct = Product(_trackingID,
@@ -81,7 +84,7 @@ contract ProductContract is Permission {
         emit sendProduct(newProduct);
     }
 
-
+    //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
     * @dev updates the custodian of the product using the trackingID
     */
@@ -101,6 +104,10 @@ contract ProductContract is Permission {
         emit sendArray(allProducts);
     }
 
+    function getSingleProduct(string memory _trackingID) public returns(Product memory) {
+        emit sendProduct(productSupplyChain[_trackingID]);
+    }
+
     //TODO what is this? Remove if unused
     // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
 
@@ -109,7 +116,6 @@ contract ProductContract is Permission {
     /**
     * @return one product
     */
-    //TODO implement get product
 
     /**
     * @return all containerless products

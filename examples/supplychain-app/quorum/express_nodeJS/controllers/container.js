@@ -91,14 +91,18 @@ router.post("/", upload.array(), function(req, res) {
 router.put("/:trackingID/custodian", function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
-  // receiveContainer(req.params.trackingID)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  var trackingID = req.params.trackingID;
+  console.log(trackingID);
+    productContract.methods
+      .updateContainerCustodian(trackingID)
+      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .then( response => {
+        res.send(response)
+      })
+      .catch(error => {
+        console.log(error)
+        res.send(error.message)
+      })
 });
 
 //PUT for updatating contents

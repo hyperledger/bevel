@@ -73,9 +73,26 @@ contract ContainerContract is ProductContract{
     }
 
     /**
-    * @return container with updated custodian
+    * return container with updated custodian
     */
-    //TODO implement update custodian
+    function updateContainerCustodian(string memory _containerID) public {
+        require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 404");
+        require(bytes(containerSupplyChain[_containerID].containerID).length <= 0, "HTTP 404");
+
+        containerSupplyChain[_containerID].custodian = msg.sender;
+        for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
+            if (bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
+                productSupplyChain[containerSupplyChain[_containerID]
+                    .containerContents[i]]
+                    .custodian = msg.sender;
+            } else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
+                updateContainerCustodian(
+                    containerSupplyChain[_containerID].containerContents[i]
+                );
+            }
+        }
+        emit sendObject(containerSupplyChain[_containerID]);
+    }
 
     /**
     * @return an updated container list with the package added
