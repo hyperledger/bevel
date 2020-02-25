@@ -21,17 +21,21 @@ router.get('/containerless', function (req,res){
 })
 
 //GET product with or without trackingID
+// Get single product
 router.get('/:trackingID?', function (req, res) {
-  if (req.params.trackingID != null){
-    // TODO: Get product by ID
-    // getProductByID(req.params.trackingID)
-    // .then( response => {
-    //   res.send(response)
-    // })
-    // .catch(error => {
-    //   console.log(error)
-    //   res.send("error")
-    // })
+  if (req.params.trackingID != null) {
+    const trackingID = req.params.trackingID;
+    console.log(trackingID, "***");
+    productContract.methods
+      .getSingleProduct(req.params.trackingID)
+      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .then(response => {
+        res.send(response);
+      })
+      .catch(error => {
+        console.log(error);
+        res.send("error");
+      });
   }else {
     // TODO: Get all products
     productContract.methods
@@ -39,9 +43,10 @@ router.get('/:trackingID?', function (req, res) {
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(response => {
       console.log(response);
-      if(response.events){
-        res.send(response.events.sendProductArray.returnValues[0]);
+      if(Object.keys(response.events).length !== 0 && response.events.sendArray){
+        res.send(response.events.sendArray.returnValues[0]);
       }
+    
     })
     .catch(err => {
     console.log(err);
@@ -77,7 +82,8 @@ router.post('/',upload.array(),function(req,res) {
           "#####",
           receipt
         );
-        if(receipt.events && receipt.events.sendProduct.returnValues[0]) res.send(receipt.events.sendProduct.returnValues[0]);
+        if(receipt.events.length !== null && receipt.events.sendProduct.returnValues[0]) res.send(receipt.events.sendProduct.returnValues[0]);
+        else res.send(receipt);
       }
       if (receipt.status === false) {
         console.log("Request error");
