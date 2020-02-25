@@ -2,7 +2,7 @@ pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 import "./Permission.sol";
 
-contract ProductContract1 is Permission {
+contract ProductContract is Permission {
 
     address potentialCustodian;
 
