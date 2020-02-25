@@ -43,9 +43,10 @@ router.get('/:trackingID?', function (req, res) {
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(response => {
       console.log(response);
-      if(response.events){
-        res.send(response.events.sendProductArray.returnValues[0]);
+      if(Object.keys(response.events).length !== 0 && response.events.sendArray){
+        res.send(response.events.sendArray.returnValues[0]);
       }
+    
     })
     .catch(err => {
     console.log(err);
@@ -81,7 +82,8 @@ router.post('/',upload.array(),function(req,res) {
           "#####",
           receipt
         );
-        if(receipt.events && receipt.events.sendProduct.returnValues[0]) res.send(receipt.events.sendProduct.returnValues[0]);
+        if(receipt.events.length !== null && receipt.events.sendProduct.returnValues[0]) res.send(receipt.events.sendProduct.returnValues[0]);
+        else res.send(receipt);
       }
       if (receipt.status === false) {
         console.log("Request error");

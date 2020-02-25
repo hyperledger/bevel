@@ -1,10 +1,10 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
-
 import "./Permission.sol";
 
 contract ProductContract is Permission {
-    struct Product{
+
+    struct Product {
         string trackingID;
         string productName;
         string health;
@@ -30,12 +30,15 @@ contract ProductContract is Permission {
     * @dev counterparties stores the current custodian plus the previous participants
     */
     mapping(uint => address[]) public counterparties;
-    /**
-    * @dev miscellaneous uses the trackingID as a key to view messages
-    */
-    mapping(string => string) public miscellaneous;
-    mapping (string => uint) trackingIDtoProductID;
+    
+    
+    mapping(string => Product) productSupplyChain;
+    mapping(string => uint256) trackingIDtoProductID;
     mapping (uint => string) public productIDtoTrackingID;
+    // miscellaneous is a map of messages where tracking ID is the key
+    mapping(string => string) public miscellaneous;
+    // counterparties stores the current custodian plus the previous participants
+    mapping(string => address[]) public counterparties;
 
     modifier onlyCustodian(uint _productID) {
         require(allProducts[_productID].custodian == msg.sender,"This action must be performed by the current custodian");
@@ -58,9 +61,7 @@ contract ProductContract is Permission {
         string memory _trackingID,
         string memory _lastScannedAt
         ) public onlyManufacturer() returns (Product memory) {
-
- 
-
+        require(bytes(productSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: product with this tracking ID already exists");
         uint256 _timestamp = now;
         bool _sold = false;
         bool _recalled = false;
@@ -79,6 +80,7 @@ contract ProductContract is Permission {
             containerID,
             participants);
         allProducts.push(newProduct);
+        productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
         uint productID = allProducts.length - 1;
         trackingIDtoProductID[_trackingID] = productID;
@@ -133,11 +135,6 @@ contract ProductContract is Permission {
     function getSingleProduct(string memory _trackingID) public returns(Product memory) {
         emit sendProduct(productSupplyChain[_trackingID]);
     }
-
-    //TODO what is this? Remove if unused
-    // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
-
-    // }
 
     /**
     * @ returns a single product using the product ID
