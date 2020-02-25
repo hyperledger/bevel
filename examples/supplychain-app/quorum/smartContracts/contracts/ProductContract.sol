@@ -2,7 +2,9 @@ pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
 import "./Permission.sol";
 
-contract ProductContract is Permission {
+contract ProductContract1 is Permission {
+
+    address potentialCustodian;
 
     struct Product {
         string trackingID;
@@ -19,26 +21,16 @@ contract ProductContract is Permission {
     }
 
     /**
-    * @dev array of all the products created, the key begins at 0
+    *@dev array of all the products created, the key begins at 0
     */
     Product[] public allProducts;
-     /**
-    * @dev array of all containerless products
-    */
-    Product[] public containerlessProducts;
-    /**
-    * @dev counterparties stores the current custodian plus the previous participants
-    */
-    mapping(uint => address[]) public counterparties;
-    
-    
+    string[] public productKeys;
+
     mapping(string => Product) productSupplyChain;
-    mapping(string => uint256) trackingIDtoProductID;
+    mapping(string => uint256) public trackingIDtoProductID;
     mapping (uint => string) public productIDtoTrackingID;
     // miscellaneous is a map of messages where tracking ID is the key
     mapping(string => string) public miscellaneous;
-    // counterparties stores the current custodian plus the previous participants
-    mapping(string => address[]) public counterparties;
 
     modifier onlyCustodian(uint _productID) {
         require(allProducts[_productID].custodian == msg.sender,"This action must be performed by the current custodian");
@@ -48,26 +40,24 @@ contract ProductContract is Permission {
     event productAdded (string ID);
     event sendArray (Product[] array);
     event sendProduct(Product product);
-
-
     /**
-    * @return a new product
-    * @dev Only if the caller is the manufacturer. Sold and Recall values are set to false and containerID is "" when a product is newly created.
+    *@return a new product
+    *@dev Only if the caller is the manufacturer. Sold and Recall values are set to false and containerID is "" when a product is newly created.
     */
-    function addProduct(string memory _productName,
+    function addProduct(string memory _trackingID,
+        string memory _productName,
         string memory _health,
         //FIXME: Update to an array of key --> value pairs
         string memory _misc,
-        string memory _trackingID,
-        string memory _lastScannedAt
-        ) public onlyManufacturer() returns (Product memory) {
+        string memory _lastScannedAt,
+        address[] memory _participants
+        ) public onlyOwner() returns (Product memory) {
         require(bytes(productSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: product with this tracking ID already exists");
         uint256 _timestamp = now;
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
         address custodian = msg.sender;
-        address[] memory counterparties;
 
         Product memory newProduct = Product(_trackingID,
             _productName,
@@ -78,11 +68,12 @@ contract ProductContract is Permission {
             _timestamp,
             _lastScannedAt,
             containerID,
-            participants);
+            _participants);
         allProducts.push(newProduct);
         productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
         uint productID = allProducts.length - 1;
+
         trackingIDtoProductID[_trackingID] = productID;
         productIDtoTrackingID[productID] = _trackingID;
 
@@ -96,13 +87,13 @@ contract ProductContract is Permission {
 
     //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
-    * @dev updates the custodian of the product using the trackingID
+    *@dev updates the custodian of the product using the trackingID
     */
     function addCounterParties(uint _productID, address _custodian) internal{
-        counterparties[_productID].push(_custodian);
+        allProducts[_productID].participants.push(_custodian);
     }
     /**
-    * @return all products
+    *@return all products
     */
     function getAllProducts() public returns(Product[] memory) {
         delete allProducts;
@@ -113,36 +104,33 @@ contract ProductContract is Permission {
         emit sendArray(allProducts);
     }
      /**
-    * @dev You must be the current custodian to call this function
+    *@dev You must be the current custodian to call this function
     */
     function updateCustodian(uint _productID,
                             address _newCustodian,
                             string memory _longLatsCoordinates )
                             public onlyCustodian(_productID) returns(bool){
         uint participantsCount = allProducts[_productID].participants.length;
-        for(uint i = 0; i == participantsCount; i ++){
+        for(uint i = 0; i < participantsCount; i ++){
             if(_newCustodian == allProducts[_productID].participants[i]){
                 allProducts[_productID].timestamp = now;
                 allProducts[_productID].lastScannedAt = _longLatsCoordinates;
                 allProducts[_productID].custodian = _newCustodian;
-                //the new custodian gets added to the counterparties map.
-                addCounterParties(_productID, _newCustodian);
                 return true;// incase another smart contract is calling this function
             }
         } revert("The new custodian is not a participant");
     }
-
+    // returns a single product using tracking ID
     function getSingleProduct(string memory _trackingID) public returns(Product memory) {
         emit sendProduct(productSupplyChain[_trackingID]);
     }
 
     /**
-    * @ returns a single product using the product ID
+    *@dev returns a single product using the product ID
     */
     function getProduct(uint _productID) public view returns (Product memory){
         return allProducts[_productID];
     }
-
     /**
     * gets all the products from the allProduct array that have empty containerID
     * puts them in a new array called containerlessProducts
