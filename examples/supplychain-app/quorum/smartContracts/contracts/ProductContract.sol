@@ -6,8 +6,6 @@ contract ProductContract is Permission {
     // Keeps the manufacturer address as some actions can only be done by the manufacturer
 
     // allProducts is a mapping of all the products created. The key begins at 1.
-    Product[] public allProducts;
-    string[] public productKeys;
 
     mapping(string => Product) productSupplyChain;
     mapping(string => uint256) trackingIDtoProductID;
@@ -31,7 +29,8 @@ contract ProductContract is Permission {
     /**
     * @dev mapping of all the products created, the key begins at 1
     */
-    
+    Product[] public allProducts;
+    string[] public productKeys;
 
     event productAdded (string);
     event sendArray (Product[]);
@@ -64,9 +63,10 @@ contract ProductContract is Permission {
         string[] memory participants;
         // participants[1] = "Test";
 
-        // uses trackingID to get the timestamp and containerID.
-        Product memory newProduct = Product(
-            _trackingID,
+ 
+
+         // uses trackingID to get the timestamp and containerID.
+        Product memory newProduct = Product(_trackingID,
             _productName,
             _health,
             _sold,
@@ -89,7 +89,7 @@ contract ProductContract is Permission {
         emit sendProduct(newProduct);
     }
 
-
+    //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
     * @dev updates the custodian of the product using the trackingID
     */
@@ -111,6 +111,10 @@ contract ProductContract is Permission {
         emit sendArray(allProducts);
     }
 
+    function getSingleProduct(string memory _trackingID) public returns(Product memory) {
+        emit sendProduct(productSupplyChain[_trackingID]);
+    }
+
     //TODO what is this? Remove if unused
     // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
 
@@ -119,7 +123,6 @@ contract ProductContract is Permission {
     /**
     * @return one product
     */
-    //TODO implement get product
 
     /**
     * @return all containerless products

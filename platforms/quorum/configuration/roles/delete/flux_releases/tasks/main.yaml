@@ -1,0 +1,61 @@
+#############################################################################################
+# This role deletes the helm releases and uninstalls Flux
+#############################################################################################
+
+#############################################################################################
+# Uninstalling Flux is needed so that everything is clean
+# remove this if not needed
+- name: Uninstall flux
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
+    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux-{{ network.env.type }}
+  ignore_errors: yes
+
+# This task deletes the helmrelease for each peer for Tessera Transaction Manager
+- name: Delete the helmrelease for each peer for Tessera TM
+  k8s:
+    kind: HelmRelease
+    api_version: flux.weave.works/v1beta1
+    namespace: "{{ org_namespace }}"
+    name: "{{ org_name }}{{ peer.name }}tessera"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
+
+# This task deletes the helmrelease for each peer for Constellation Transaction Manager
+- name: Delete the helmrelease for each peer for Constellation TM
+  k8s:
+    api_version: flux.weave.works/v1beta1
+    kind: HelmRelease
+    namespace: "{{ org_namespace }}"
+    name: "{{ org_name }}{{ peer.name }}constellation"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
+
+# This task deletes node helm releases for Tessera and Constellation Transaction Manager
+- name: Remove node helm releases
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge  "{{ org_name }}{{ peer.name }}tessera" "{{ org_name }}{{ peer.name }}constellation"
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
+
+# This task deletes the namespaces
+- name: Deletes namespaces
+  k8s:
+    kind: Namespace
+    name: "{{ org_namespace }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  ignore_errors: yes
