@@ -40,6 +40,15 @@
         release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name|lower }}"
       loop: "{{ network['organizations'] }}"
       when: network.type == 'fabric'
+
+    # Uninstalling Flux is needed so that everything is clean
+    # remove this if not needed
+    - name: Uninstall flux
+      shell: |
+        KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
+        KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux-{{ network.env.type }}
+      ignore_errors: yes
+
     # delete build directory
     - name: Remove build directory
       file:
