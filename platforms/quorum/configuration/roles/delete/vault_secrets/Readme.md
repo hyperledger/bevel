@@ -35,9 +35,8 @@ This task deletes vault auth.
 **ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
 #### 3. Delete Crypto Material
-This task deletes crypto materials for the orderer from vault.
+This task deletes crypto material
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
 **shell** : This command deletes the secrets
-**when**: Condition specified here, runs only when the *component_type* is 'orderer'.
