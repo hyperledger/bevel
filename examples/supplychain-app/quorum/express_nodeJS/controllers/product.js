@@ -21,21 +21,17 @@ router.get('/containerless', function (req,res){
 })
 
 //GET product with or without trackingID
-// Get single product
 router.get('/:trackingID?', function (req, res) {
-  if (req.params.trackingID != null) {
-    const trackingID = req.params.trackingID;
-    console.log(trackingID, "***");
-    productContract.methods
-      .getSingleProduct(req.params.trackingID)
-      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
-      .then(response => {
-        res.send(response);
-      })
-      .catch(error => {
-        console.log(error);
-        res.send("error");
-      });
+  if (req.params.trackingID != null){
+    // TODO: Get product by ID
+    // getProductByID(req.params.trackingID)
+    // .then( response => {
+    //   res.send(response)
+    // })
+    // .catch(error => {
+    //   console.log(error)
+    //   res.send("error")
+    // })
   }else {
     // TODO: Get all products
     productContract.methods
@@ -108,28 +104,5 @@ router.put('/:trackingID/custodian', function(req,res) {
   //   res.send("error")
   // })
 })
-
-// 	productContract.methods
-// 	.packageTrackable(
-// 		trackable.trackingID,
-// 		trackable.containerID
-// 	)
-// 	.send({ from: fromAddress })
-//     .on("receipt", function(receipt) {
-//       // receipt example
-//       console.log(receipt);
-//       if (receipt.status === true) {
-//         res.send("Transaction successful");
-//       }
-//       if (receipt.status === false) {
-//         res.send("Transaction not successful");
-//       }
-//     })
-//     .on("error", function(error, receipt) {
-//       res.send("Error! "+ JSON.stringify(error, null, 4));
-//       console.log("error" + JSON.stringify(error, null, 4));
-//       console.log(error);
-//     });
-// });
 
 module.exports = router
