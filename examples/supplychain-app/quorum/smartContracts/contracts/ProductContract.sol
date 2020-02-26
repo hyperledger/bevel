@@ -136,7 +136,7 @@ contract ProductContract is Permission {
     * puts them in a new array called containerlessProducts
     * containerlessProducts stores all products that are containerless and waiting to be packaged
     */
-    function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
+    function getContainerlessProduct() public view returns(Product[5] memory containerlessProducts){
         uint containerlessCounter = 0;
         for(uint i = 0; i < allProducts.length; i ++){
             bytes memory containerIDLength = bytes(allProducts[i].containerID);
