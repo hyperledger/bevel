@@ -241,3 +241,66 @@ This role setups communication between the vault and kubernetes cluster and inst
 * Create the docker pull credentials
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/vault_kubernetes/Readme.md) for detailed information.
+
+## **delete/flux_releases**
+
+This role deletes the helm releases and uninstalls Flux
+
+* Uninstall flux
+* Delete the helmrelease for each peer for Tessera TM
+* Delete the helmrelease for each peer for Constellation TM
+* Remove node helm releases
+* Deletes namespaces
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/flux_releases/Readme.md) for detailed information.
+
+## **delete/gitops_files**
+
+This role deletes all the gitops release files
+
+* Delete release files
+* Delete release files (namespaces)
+*  Git Push
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/gitops_files/Readme.md) for detailed information.
+
+## **delete/vault_secrets**
+
+This role deletes the Vault configurations
+
+* Delete docker creds
+* Delete Ambassador creds
+* Delete vault-auth path
+* Delete Crypto material 
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/vault_secrets/Readme.md) for detailed information.
+
+## **deploy-network.yaml**
+
+ This playbook deploys a DLT network on existing Kubernetes clusters. The Kubernetes clusters should already be created and the infomation to connect to the clusters be updated in the network.yaml file that is used as an input to this playbook. It calls the following roles.
+
+
+* create/namespace_serviceaccount
+* create/storageclass
+* setup/vault_kubernetes
+* create/certificates/ambassador
+* create/crypto/raft
+* create/genesis_raft
+* setup/istanbul
+* create/genesis_nodekey
+* create/crypto/ibft
+* create/crypto/tessera
+* create/crypto/constellation
+* create/tessera
+* create/constellation
+
+
+## **reset-network.yaml**
+
+This playbook deletes the DLT network on existing Kubernetes clusters which has been created using the Blockchain Automation Framework. It calls the following roles. THIS PLAYBOOK DELETES EVERYTHING, EVEN NAMESPACES and FLUX.
+
+* delete/vault_secrets
+* delete/flux_releases
+* delete/gitops_files
+* Remove build directory
+
