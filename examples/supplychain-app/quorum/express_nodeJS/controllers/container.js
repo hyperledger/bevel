@@ -10,6 +10,7 @@ router.use(bodyParser.json()); // for parsing application/json
 
 //GET container with or without trackingID
 router.get("/:trackingID?", function(req, res) {
+  // GET for get single container 
   if (req.params.trackingID != null) {
     // TODO: Implement getContainerByID functionality
     const trackingID = req.params.trackingID;
@@ -27,8 +28,8 @@ router.get("/:trackingID?", function(req, res) {
         res.send("error");
       });
   } else {
-    // TODO: Implement get all containers functionality
-    // getContainers()
+
+    // GET for get all containers
     productContract.methods
     .getAllContainers()
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
@@ -130,7 +131,7 @@ router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res)
 });
 
 // PUT for package trackable
-router.post("/:trackingID/package", function(req, res){
+router.put("/:trackingID/package", function(req, res){
   console.log("send");
 
 	let trackable = {

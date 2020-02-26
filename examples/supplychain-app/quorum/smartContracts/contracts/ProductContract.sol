@@ -111,18 +111,12 @@ contract ProductContract is Permission {
         emit sendArray(allProducts);
     }
 
+   /**
+    * @return one product
+    */
     function getSingleProduct(string memory _trackingID) public returns(Product memory) {
         emit sendProduct(productSupplyChain[_trackingID]);
     }
-
-    //TODO what is this? Remove if unused
-    // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
-
-    // }
-
-    /**
-    * @return one product
-    */
 
     /**
     * @return all containerless products
