@@ -2,6 +2,19 @@
     Name: {{ component_name }}MSP
     ID: {{ component_name }}MSP
     MSPDir: ./crypto-config/{{ component_type }}Organizations/{{ component_ns }}/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('{{ component_name }}Org.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('{{ component_name }}Org.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('{{ component_name }}Org.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('{{ component_name }}Org.member')"
     {% if component_type == 'peer' %}      
     AnchorPeers:
       # AnchorPeers defines the location of peers which can be used
