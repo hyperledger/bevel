@@ -5,12 +5,6 @@ This role consists of the following tasks
 
 - **Create directory path on CA Tools for Orgs:**  This task creates directories on CA Tool CLI for placing crypto material and scripts for Organizations.
 
-- **Install dos2unix to use unarchieve module of ansible:** This tasks install dos2unix on the ansible container.
-
-- **Convert the file to unix format for orderer:** This task converts the scripts to unix format for Orderer CA Tools.
-
-- **Convert the file to unix format for organization:** This task converts the scripts to unix format for Organizations CA Tools.
-
 - **Copy the generate_crypto.sh file into the orderer CA Tools:** This task puts the generate_crypto.sh script into CA Tools CLI for Orderers from Ansible container.
 
 - **Copy the generate_crypto.sh file into the organization CA Tools:** This task puts the generate_crypto.sh script into CA Tools CLI for Organizations from Ansible container.
