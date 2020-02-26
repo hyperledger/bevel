@@ -19,7 +19,6 @@
       vars:
         component_type: "{{ item.type | lower}}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric'
     # Create Orderer crypto materials
     - include_role:
         name: "create/crypto/orderer"
@@ -33,7 +32,7 @@
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'orderer'
+      when: item.type == 'orderer'
     
     # Create Organization crypto materials
     - include_role:
@@ -48,7 +47,7 @@
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer'
+      when: item.type == 'peer'
 
     #Creating channel artifacts and putting them in vault
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
@@ -57,7 +56,6 @@
         name: "create/configtx"
       vars:
         config_file: "./build/configtx.yaml"
-      when: network.type == 'fabric'
 
     # This role generate genesis block and channel
     - include_role:
@@ -68,7 +66,6 @@
         channel_name: "{{ item.channel_name | lower}}"
         profile_name: "{{ item.channel_name }}"
       loop: "{{ network['channels'] }}"
-      when: network.type == 'fabric'
    
     # This role creates value file for zkKafka and orderer
     - include_role:
@@ -84,7 +81,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'orderer'
+      when: item.type == 'orderer'
 
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
@@ -102,7 +99,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer'
+      when: item.type == 'peer'
     
     # delete build directory
     - name: Remove build directory
