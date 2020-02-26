@@ -103,6 +103,7 @@ contract ProductContract is Permission {
         }
         emit sendArray(allProducts);
     }
+
      /**
     *@dev You must be the current custodian to call this function
     */
@@ -120,7 +121,11 @@ contract ProductContract is Permission {
             }
         } revert("The new custodian is not a participant");
     }
-    // returns a single product using tracking ID
+   
+   // returns a single product using tracking ID
+   /**
+    * @return one product
+    */
     function getSingleProduct(string memory _trackingID) public returns(Product memory) {
         emit sendProduct(productSupplyChain[_trackingID]);
     }
@@ -131,6 +136,7 @@ contract ProductContract is Permission {
     function getProduct(uint _productID) public view returns (Product memory){
         return allProducts[_productID];
     }
+
     /**
     * gets all the products from the allProduct array that have empty containerID
     * puts them in a new array called containerlessProducts
