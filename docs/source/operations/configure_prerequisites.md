@@ -1,5 +1,5 @@
 <a name = "configuring-prerequisites"></a>
-# Configuring pre-requisites for the Blockchain Automation Framework
+# Configure Pre-requisites
 
 - [Ansible Inventory file](#Ansible_Inventory)
 - [Private Key for GitOps](#privatekey)
