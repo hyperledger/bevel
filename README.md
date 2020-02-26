@@ -42,6 +42,16 @@ For Corda, we build Docker containers from the Corda source. A number of differe
 
 ![Blockchain Automation Framework - Corda](./docs/images/blockchain-automation-framework-corda.png "Blockchain Automation Framework for Corda")
 
+### Hyperledger Indy
+For Hyperledger Indy, we build Docker containers from our source code. A number of different Ansible scripts will allow you to either create a new network (across clouds).
+
+![Blockchain Automation Framework - Indy](./docs/images/blockchain-automation-framework-indy.png "Blockchain Automation Framework for Hyperledger Indy")
+
+### Quorum
+For Quorum, we use the official Docker containers provided by Quorum. A number of different Ansible scripts will allow you to either create a new network (across clouds) with choice of Consensus (between IBFT and RAFT) and a choice of Transaction Manager (between Tessera and Constellation).
+
+![Blockchain Automation Framework - Quorum](./docs/images/blockchain-automation-framework-quorum.png "Blockchain Automation Framework for Quorum")
+
 ## Contact
 We welcome your questions & feedback on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework).
 
