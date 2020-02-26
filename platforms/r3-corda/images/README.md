@@ -24,7 +24,7 @@ For building tls-enabled Corda Node (which can be used as Corda Node as well as 
 ```
 3. The above command will create an image with tag *corda_node:4.1*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command below:
 ```
-	sudo docker tag corda_node:4.1 adopblockchaincloud0502.azurecr.io/corda:4.1-linuxkit
-	sudo docker push adopblockchaincloud0502.azurecr.io/corda:4.1-linuxkit
+	sudo docker tag corda_node:4.1 hyperledgerlabs/corda:4.1-linuxkit
+	sudo docker push hyperledgerlabs/corda:4.1-linuxkit
 ```
 
