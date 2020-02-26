@@ -1,5 +1,5 @@
-Prerequisites
-=============
+Install Pre-requisites
+=====================
 
 Before we begin, if you haven't already done so, you may wish to check that
 you have all the prerequisites below installed on the platform(s)
@@ -81,6 +81,8 @@ Also install any required platform specific pre-requisites (some may be common).
 * [Hyperlegder Fabric 1.4](https://hyperledger-fabric.readthedocs.io/en/release-1.4/)
 
 * [Hyperledger Indy 1.9.2](https://hyperledger-indy.readthedocs.io/en/latest/index.html)
+
+* [Quorum 2.1.1](https://docs.goquorum.com/en/latest/Getting%20Started/Getting%20Started%20Overview/)
 
 
 ## Jenkins
