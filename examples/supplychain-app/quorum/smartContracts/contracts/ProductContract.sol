@@ -1,10 +1,19 @@
 pragma solidity 0.6.1;
 pragma experimental ABIEncoderV2;
-
 import "./Permission.sol";
 
 contract ProductContract is Permission {
-    struct Product{
+    // Keeps the manufacturer address as some actions can only be done by the manufacturer
+
+    // allProducts is a mapping of all the products created. The key begins at 1.
+
+    mapping(string => Product) productSupplyChain;
+    mapping(string => uint256) trackingIDtoProductID;
+    mapping(string => string) public miscellaneous;
+    // counterparties stores the current custodian plus the previous participants
+    mapping(string => address[]) public counterparties;
+
+    struct Product {
         string trackingID;
         string productName;
         string health;
@@ -23,17 +32,9 @@ contract ProductContract is Permission {
     Product[] public allProducts;
     string[] public productKeys;
 
-    /**
-    * @dev counterparties stores the current custodian plus the previous participants
-    */
-    mapping(string => Product) productSupplyChain;
-    mapping (string => uint) trackingIDtoProductID;
-    mapping(string => string) public miscellaneous;
-    mapping(string => address[]) public counterparties;
-
-    event productAdded (string ID);
-    event sendArray (Product[] array);
-    event sendProduct(Product product);
+    event productAdded (string);
+    event sendArray (Product[]);
+    event sendProduct(Product);
 
 
     /**
@@ -46,11 +47,14 @@ contract ProductContract is Permission {
         string memory _misc,
         string memory _trackingID,
         string memory _lastScannedAt
-        //FIXME: Add counterparties
-        ) public returns (Product memory) {
-
- 
-
+    )
+        public
+        returns (
+            //FIXME: Add counterparties
+            Product memory
+        )
+    {
+        require(bytes(productSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: product with this tracking ID already exists");
         uint256 _timestamp = now;
         bool _sold = false;
         bool _recalled = false;
@@ -73,13 +77,14 @@ contract ProductContract is Permission {
             containerID,
             participants);
         allProducts.push(newProduct);
+        productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
         uint productID = allProducts.length - 1;
         trackingIDtoProductID[_trackingID] = productID;
         // use trackingID as the key to view string value.
         miscellaneous[_trackingID] = _misc;
         //calls an internal function and appends the custodian to the product using the trackingID
-        addCounterParties(_trackingID,custodian);
+        addCounterParties(_trackingID, custodian);
         emit productAdded(_trackingID);
         emit sendProduct(newProduct);
     }
@@ -88,7 +93,9 @@ contract ProductContract is Permission {
     /**
     * @dev updates the custodian of the product using the trackingID
     */
-    function addCounterParties(string memory _trackingID, address _custodian) internal{
+    function addCounterParties(string memory _trackingID, address _custodian)
+        internal
+    {
         counterparties[_trackingID].push(_custodian);
     }
 
@@ -104,21 +111,16 @@ contract ProductContract is Permission {
         emit sendArray(allProducts);
     }
 
+   /**
+    * @return one product
+    */
     function getSingleProduct(string memory _trackingID) public returns(Product memory) {
         emit sendProduct(productSupplyChain[_trackingID]);
     }
-
-    //TODO what is this? Remove if unused
-    // function packageTrackable(string memory _trackingID, string memory _containerID) public returns(...) {
-
-    // }
-
-    /**
-    * @return one product
-    */
 
     /**
     * @return all containerless products
     */
     //TODO implement get containerless
+
 }
