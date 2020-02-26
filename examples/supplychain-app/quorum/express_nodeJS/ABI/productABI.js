@@ -1,5 +1,891 @@
 let productABI = [
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "ID",
+        "type": "string"
+      }
+    ],
+    "name": "productAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "misc",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "containerContents",
+            "type": "string[]"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ContainerContract.Container[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "sendArray",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "productName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "sold",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "recalled",
+            "type": "bool"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ProductContract.Product[]",
+        "name": "array",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "sendArray",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "misc",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "containerContents",
+            "type": "string[]"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ContainerContract.Container",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "name": "sendObject",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "productName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "sold",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "recalled",
+            "type": "bool"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ProductContract.Product",
+        "name": "product",
+        "type": "tuple"
+      }
+    ],
+    "name": "sendProduct",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "name": "sendString",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_health",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_misc",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_trackingID",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_lastScannedAt",
+        "type": "string"
+      },
+      {
+        "internalType": "string[]",
+        "name": "_counterparties",
+        "type": "string[]"
+      }
+    ],
+    "name": "addContainer",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_productName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_health",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_misc",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_trackingID",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_lastScannedAt",
+        "type": "string"
+      }
+    ],
+    "name": "addProduct",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "productName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "sold",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "recalled",
+            "type": "bool"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          }
+        ],
+        "internalType": "struct ProductContract.Product",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "allContainers",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "health",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "misc",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "custodian",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "lastScannedAt",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "trackingID",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "containerID",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "allProducts",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "trackingID",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "productName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "health",
+        "type": "string"
+      },
+      {
+        "internalType": "bool",
+        "name": "sold",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "recalled",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "custodian",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "lastScannedAt",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "containerID",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "containerKeys",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [],
+    "name": "count",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "counterparties",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [],
+    "name": "getAllContainers",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "misc",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "containerContents",
+            "type": "string[]"
+          }
+        ],
+        "internalType": "struct ContainerContract.Container[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllProducts",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "productName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "sold",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "recalled",
+            "type": "bool"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          }
+        ],
+        "internalType": "struct ProductContract.Product[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_trackingID",
+        "type": "string"
+      }
+    ],
+    "name": "getSingleContainer",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "misc",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "containerContents",
+            "type": "string[]"
+          }
+        ],
+        "internalType": "struct ContainerContract.Container",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isOwner",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "name": "miscellaneous",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "productKeys",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_containerID",
+        "type": "string"
+      }
+    ],
+    "name": "updateContainerCustodian",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
@@ -140,6 +1026,76 @@ let productABI = [
     "type": "event"
   },
   {
+    "inputs": [],
+    "name": "isOwner",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -209,12 +1165,12 @@ let productABI = [
           }
         ],
         "indexed": false,
-        "internalType": "struct ProductContract.Product",
-        "name": "product",
-        "type": "tuple"
+        "internalType": "struct ProductContract.Product[]",
+        "name": "array",
+        "type": "tuple[]"
       }
     ],
-    "name": "sendProduct",
+    "name": "sendArray",
     "type": "event"
   },
   {
@@ -274,13 +1230,72 @@ let productABI = [
           }
         ],
         "indexed": false,
-        "internalType": "struct ProductContract.Product[]",
-        "name": "array",
-        "type": "tuple[]"
+        "internalType": "struct ProductContract.Product",
+        "name": "product",
+        "type": "tuple"
       }
     ],
-    "name": "sendProductArray",
+    "name": "sendProduct",
     "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "allProducts",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "trackingID",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "productName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "health",
+        "type": "string"
+      },
+      {
+        "internalType": "bool",
+        "name": "sold",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "recalled",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "custodian",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "lastScannedAt",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "containerID",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [
@@ -359,51 +1374,11 @@ let productABI = [
         "type": "uint256"
       }
     ],
-    "name": "products",
+    "name": "productKeys",
     "outputs": [
       {
         "internalType": "string",
-        "name": "trackingID",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "productName",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "health",
-        "type": "string"
-      },
-      {
-        "internalType": "bool",
-        "name": "sold",
-        "type": "bool"
-      },
-      {
-        "internalType": "bool",
-        "name": "recalled",
-        "type": "bool"
-      },
-      {
-        "internalType": "address",
-        "name": "custodian",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "lastScannedAt",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "containerID",
+        "name": "",
         "type": "string"
       }
     ],
@@ -587,11 +1562,6 @@ let productABI = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -608,19 +1578,6 @@ let productABI = [
       }
     ],
     "name": "OwnershipTransferred",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "ID",
-        "type": "string"
-      }
-    ],
-    "name": "containerAdded",
     "type": "event"
   },
   {
@@ -652,9 +1609,9 @@ let productABI = [
             "type": "string"
           },
           {
-            "internalType": "string",
+            "internalType": "address",
             "name": "custodian",
-            "type": "string"
+            "type": "address"
           },
           {
             "internalType": "string",
@@ -680,10 +1637,80 @@ let productABI = [
             "internalType": "string[]",
             "name": "participants",
             "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "containerContents",
+            "type": "string[]"
           }
         ],
         "indexed": false,
-        "internalType": "struct containerContract.Container[]",
+        "internalType": "struct ContainerContract.Container[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "sendArray",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "trackingID",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "productName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "health",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "sold",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "recalled",
+            "type": "bool"
+          },
+          {
+            "internalType": "address",
+            "name": "custodian",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "containerID",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "participants",
+            "type": "string[]"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct ProductContract.Product[]",
         "name": "array",
         "type": "tuple[]"
       }
@@ -707,9 +1734,9 @@ let productABI = [
             "type": "string"
           },
           {
-            "internalType": "string",
+            "internalType": "address",
             "name": "custodian",
-            "type": "string"
+            "type": "address"
           },
           {
             "internalType": "string",
@@ -735,11 +1762,16 @@ let productABI = [
             "internalType": "string[]",
             "name": "participants",
             "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "containerContents",
+            "type": "string[]"
           }
         ],
         "indexed": false,
-        "internalType": "struct containerContract.Container",
-        "name": "container",
+        "internalType": "struct ContainerContract.Container",
+        "name": "",
         "type": "tuple"
       }
     ],
@@ -815,65 +1847,13 @@ let productABI = [
     "anonymous": false,
     "inputs": [
       {
-        "components": [
-          {
-            "internalType": "string",
-            "name": "trackingID",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "productName",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "health",
-            "type": "string"
-          },
-          {
-            "internalType": "bool",
-            "name": "sold",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "recalled",
-            "type": "bool"
-          },
-          {
-            "internalType": "address",
-            "name": "custodian",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "lastScannedAt",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "containerID",
-            "type": "string"
-          },
-          {
-            "internalType": "string[]",
-            "name": "participants",
-            "type": "string[]"
-          }
-        ],
         "indexed": false,
-        "internalType": "struct ProductContract.Product[]",
-        "name": "array",
-        "type": "tuple[]"
+        "internalType": "string",
+        "name": "",
+        "type": "string"
       }
     ],
-    "name": "sendProductArray",
+    "name": "sendString",
     "type": "event"
   },
   {
@@ -975,7 +1955,7 @@ let productABI = [
         "type": "uint256"
       }
     ],
-    "name": "containers",
+    "name": "allContainers",
     "outputs": [
       {
         "internalType": "string",
@@ -988,9 +1968,9 @@ let productABI = [
         "type": "string"
       },
       {
-        "internalType": "string",
+        "internalType": "address",
         "name": "custodian",
-        "type": "string"
+        "type": "address"
       },
       {
         "internalType": "string",
@@ -1010,6 +1990,86 @@ let productABI = [
       {
         "internalType": "string",
         "name": "containerID",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "allProducts",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "trackingID",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "productName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "health",
+        "type": "string"
+      },
+      {
+        "internalType": "bool",
+        "name": "sold",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "recalled",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "custodian",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "lastScannedAt",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "containerID",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "containerKeys",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
         "type": "string"
       }
     ],
@@ -1177,51 +2237,11 @@ let productABI = [
         "type": "uint256"
       }
     ],
-    "name": "products",
+    "name": "productKeys",
     "outputs": [
       {
         "internalType": "string",
-        "name": "trackingID",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "productName",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "health",
-        "type": "string"
-      },
-      {
-        "internalType": "bool",
-        "name": "sold",
-        "type": "bool"
-      },
-      {
-        "internalType": "bool",
-        "name": "recalled",
-        "type": "bool"
-      },
-      {
-        "internalType": "address",
-        "name": "custodian",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "lastScannedAt",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "containerID",
+        "name": "",
         "type": "string"
       }
     ],
@@ -1305,9 +2325,9 @@ let productABI = [
             "type": "string"
           },
           {
-            "internalType": "string",
+            "internalType": "address",
             "name": "custodian",
-            "type": "string"
+            "type": "address"
           },
           {
             "internalType": "string",
@@ -1333,9 +2353,14 @@ let productABI = [
             "internalType": "string[]",
             "name": "participants",
             "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "containerContents",
+            "type": "string[]"
           }
         ],
-        "internalType": "struct containerContract.Container[]",
+        "internalType": "struct ContainerContract.Container[]",
         "name": "",
         "type": "tuple[]"
       }
@@ -1366,9 +2391,9 @@ let productABI = [
             "type": "string"
           },
           {
-            "internalType": "string",
+            "internalType": "address",
             "name": "custodian",
-            "type": "string"
+            "type": "address"
           },
           {
             "internalType": "string",
@@ -1394,18 +2419,36 @@ let productABI = [
             "internalType": "string[]",
             "name": "participants",
             "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "containerContents",
+            "type": "string[]"
           }
         ],
-        "internalType": "struct containerContract.Container",
+        "internalType": "struct ContainerContract.Container",
         "name": "",
         "type": "tuple"
       }
     ],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_containerID",
+        "type": "string"
+      }
+    ],
+    "name": "updateContainerCustodian",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   }
 ];
-
-  module.exports = {
-      productABI
-  }
+          
+module.exports = {
+  productABI
+}

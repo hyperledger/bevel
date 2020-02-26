@@ -10,6 +10,7 @@ router.use(bodyParser.json()); // for parsing application/json
 
 //GET container with or without trackingID
 router.get("/:trackingID?", function(req, res) {
+  // GET for get single container 
   if (req.params.trackingID != null) {
     // TODO: Implement getContainerByID functionality
     const trackingID = req.params.trackingID;
@@ -18,21 +19,24 @@ router.get("/:trackingID?", function(req, res) {
       .getSingleContainer(req.params.trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
-        res.send(response);
+        if(Object.keys(response.events).length !== 0 && response.events.sendObject) res.send(response.events.sendObject.returnValues[0]);
+        else if(Object.keys(response.events).length !== 0 && response.events.sendString) res.send(response.events.sendString.returnValues[0]);
+        else res.send(response);
       })
       .catch(error => {
         console.log(error);
         res.send("error");
       });
   } else {
-    // TODO: Implement get all containers functionality
-    // getContainers()
+
+    // GET for get all containers
     productContract.methods
     .getAllContainers()
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(response => {
       console.log(response);
-      res.send(response);
+      if(response.events.sendArray.returnValues) res.send(response.events.sendArray.returnValues[0]);
+      else res.send(response);
     })
     .catch(err => {
       console.log(err);
@@ -53,10 +57,10 @@ router.post("/", upload.array(), function(req, res) {
     ) //filter out to only send org name
   }; //filter out to only send org
   var isInArray = false;
-  console.log(newContainer.counterparties)
   if (newContainer.counterparties.includes(fromAddress)) {
     isInArray = true;
   }
+  console.log(isInArray);
   if (isInArray) {
     productContract.methods
       .addContainer(
@@ -66,18 +70,20 @@ router.post("/", upload.array(), function(req, res) {
         "",
         newContainer.counterparties
       )
-      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .send({ from: fromAddress, gas: 6721900, gasPrice: "30000000" })
       .on("receipt", function(receipt) {
-        if (receipt.status === true) {
-            res.send(receipt.events.sendObject.returnValues[0]);
+        console.log(receipt);
 
+        if (receipt.status === true) {
+          if(receipt.events.sendObject) res.send(receipt.events.sendObject.returnValues[0]);
+          else res.send(receipt);
         }
         if (receipt.status === false) {
           res.send("Transaction not successful");
         }
       })
       .catch(error => {
-        res.send("error");
+        res.send(error.message);
         console.log(error);
       });
   } else {
@@ -105,31 +111,54 @@ router.put("/:trackingID/custodian", function(req, res) {
       })
 });
 
-//PUT for updatating contents
-router.put("/:trackingID/package", upload.array(), function(req, res) {
-  res.setTimeout(15000);
-  // TODO: Implement update content packages
-  // packageGood(req.params.trackingID,req.body)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
-});
-
 //PUT for removing contents
-router.put("/:trackingID/unpackage", upload.array(), function(req, res) {
+router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement remove content from container
-  // unPackageGood(req.params.trackingID,req.body)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  var containerTrackingID = req.params.containerTrackingID;
+  var trackableID = req.body.contents;
+  console.log(containerTrackingID);
+  productContract.methods
+    .unpackageTrackable(containerTrackingID, trackableID)
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .then( response => {
+        res.send(response)
+      })
+      .catch(error => {
+        console.log(error)
+        res.send(error.message)
+      })
+});
+
+// PUT for package trackable
+router.put("/:trackingID/package", function(req, res){
+  console.log("send");
+
+	let trackable = {
+		containerID: req.params.trackingID,
+		trackingID: req.body.trackingID
+	};
+	productContract.methods
+	.packageTrackable(
+		trackable.trackingID,
+		trackable.containerID
+	)
+  .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .on("receipt", function(receipt) {
+      console.log("send");
+      // receipt example
+      console.log(receipt);
+      if (receipt.status === true) {
+        res.send("Transaction successful");
+      }
+      if (receipt.status === false) {
+        res.send("Transaction not successful");
+      }
+    })
+    .on("error", function(error, receipt) {
+      res.send("Error! "+ JSON.stringify(error, null, 4));
+      console.log("error" + JSON.stringify(error, null, 4));
+      console.log(error);
+    });
 });
 module.exports = router;
