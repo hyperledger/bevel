@@ -55,7 +55,7 @@
 - name: "Creating genesis block"
   shell: |
     cd {{ build_path }}
-    ./configtxgen -profile {{ genesis.name }} -outputBlock ./channel-artifacts/genesis.block
+    ./configtxgen -profile {{ genesis.name }} -channelID {{ channel_name }}  -outputBlock ./channel-artifacts/genesis.block
     cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
   when: add_new_org == 'false'
 
@@ -88,7 +88,7 @@
   when: add_new_org == 'false'
 
 # This task creates the channel by consuming the configtx.yaml file
-- name: "Creating JSON configration for new organization"
+- name: "Creating JSON configuration for new organization"
   shell: |
     cd {{ build_path }}
     export FABRIC_CFG_PATH=$PWD
@@ -96,4 +96,6 @@
   loop: "{{ item.participants }}"
   loop_control:
     loop_var: participant
+  register: result
+  failed_when: result.stderr != ''
   when: participant.org_status == 'new' and add_new_org == 'true'
