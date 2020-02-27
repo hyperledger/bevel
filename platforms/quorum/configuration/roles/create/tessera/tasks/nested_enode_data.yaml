@@ -13,10 +13,11 @@
     recurse: yes
   when: file_status.stat.exists == False
 
-# Fetch enode from vault
-- name: Get the keystore.json from vault
+# Fetch nodekey from vault
+- name: Get the nodekey from vault and generate the enode
   shell: |
-    vault read -field=enode secret/{{ org.name }}-ns/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/enode
+    vault read -field=nodekey secret/{{ org.name }}-ns/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey
+    bootnode --nodekey={{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey --writeaddress > {{ build_path }}/{{ org.name }}/{{ peer.name }}/enode
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

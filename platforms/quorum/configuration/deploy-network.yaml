@@ -77,14 +77,6 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.consensus == 'raft'
 
-  # This task generates the genesis.json file for RAFT consensus
-  - name: "Generate genesis.json file for RAFT consensus"
-    include_role:
-      name: create/genesis_raft
-    vars:
-      build_path: "./build"
-    when: network.type == 'quorum' and network.config.consensus == 'raft'
-
   # This role makes up the istanbul binary and place it in the bin directory
   - name: "Setup istanbul-tools"
     include_role:
@@ -122,7 +114,7 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.transaction_manager == 'tessera'
 
-
+  # This role generates the crypto material for quorum network based on constellation transaction manager and store it in vault
   - name: "Generate crypto material for Constellation"
     include_role:
       name: create/crypto/constellation
@@ -135,6 +127,7 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.transaction_manager == 'constellation'
 
+  # This role deploy nodes with Tessera transaction manager
   - name: "Deploy Tessera Transaction Manager"
     include_role:
       name: create/tessera
@@ -155,6 +148,7 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.transaction_manager == 'tessera'
     
+  # This role deployes nodes with constellation transaction mananger
   - name: "Deploy Constellation Transaction Manager"
     include_role:
       name: create/constellation
@@ -175,7 +169,7 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.transaction_manager == 'constellation'
   
-    # delete build directory
+  # delete build directory
   - name: Remove build directory
     file:
       path: "./build"
