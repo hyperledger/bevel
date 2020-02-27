@@ -19,7 +19,28 @@ router.get("/:trackingID?", function(req, res) {
       .getSingleContainer(req.params.trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
-        if(Object.keys(response.events).length !== 0 && response.events.sendObject) res.send(response.events.sendObject.returnValues[0]);
+        if(Object.keys(response.events).length !== 0 && response.events.sendObject) {
+          var container = response.events.sendObject.returnValues[0];
+          //response.events.sendObject.returnValues[0]
+        res.send(
+          {
+            "health": container.health,
+            "sold": container.sold,
+            "recalled": container.recalled,
+            "misc": container.misc,
+            "custodian": container.custodian,
+            "trackingID": container.trackingID,
+            "timestamp": container.timestamp,
+            "containerID": container.containerID,
+            "contents": container.contents,
+            "linearId": {
+                "externalId": null,
+                "id": "2059484c-0c3b-43a7-9604-4a61d3039639"
+            },
+             "participants": container.participants
+              }
+          ); 
+        }
         else if(Object.keys(response.events).length !== 0 && response.events.sendString) res.send(response.events.sendString.returnValues[0]);
         else res.send(response);
       })
@@ -28,15 +49,35 @@ router.get("/:trackingID?", function(req, res) {
         res.send("error");
       });
   } else {
-
+    var arrayLength;
+    var displayArray = [];
     // GET for get all containers
     productContract.methods
-    .getAllContainers()
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
-    .then(response => {
-      console.log(response);
-      if(response.events.sendArray.returnValues) res.send(response.events.sendArray.returnValues[0]);
-      else res.send(response);
+    .getProductsLength()
+    .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
+    .then(async response => {
+      arrayLength = response;
+      for(var i = 0; i < arrayLength; i++){
+        var toPush = await productContract.methods
+        .getContainerAt(i)
+        .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
+          var container = {};
+          container.health = toPush.health;
+          container.sold = toPush.sold;
+          container.recalled = toPush.recalled;
+          container.misc = JSON.parse(toPush.misc);
+          container.custodian = toPush.custodian;
+          container.trackingID = toPush.trackingID;
+          container.timestamp = toPush.timestamp;
+          container.containerID = toPush.containerID;
+          container.linearId = {};
+          container.linearId.externalId = null;
+          container.linearId.id = container.trackingID;
+          container.participants = toPush.participants;
+
+          displayArray.push(container);
+      }
+      res.send(displayArray);
     })
     .catch(err => {
       console.log(err);
@@ -60,12 +101,21 @@ router.post("/", upload.array(), function(req, res) {
   if (newContainer.counterparties.includes(fromAddress)) {
     isInArray = true;
   }
-  console.log(isInArray);
+  
+  var misc = [];
+  var keys = Object.keys(newContainer.misc);
+
+  for(var i = 0; i < keys.length; i++){
+    misc.push(keys[i]);
+    misc.push(newContainer.misc[keys[i]])
+  }
+
+
   if (isInArray) {
     productContract.methods
       .addContainer(
         "health",
-        JSON.stringify(newContainer.misc),
+        misc,
         newContainer.trackingID,
         "",
         newContainer.counterparties

@@ -12,12 +12,13 @@ contract ProductContract is Permission {
         string health;
         bool sold;
         bool recalled;
-        address custodian; // Who currently owns the product
+        string custodian; // Who currently owns the product
         uint256 timestamp;
         string lastScannedAt;
         string containerID;
+        string[] misc; //
         //participants array stores potential custodian addresses
-        address[] participants;
+        string[] participants;
     }
 
     /**
@@ -25,21 +26,20 @@ contract ProductContract is Permission {
     */
     Product[] public allProducts;
     string[] public productKeys;
-
+    
+    // mapping(address => mapping(uint256 => Shelf)) bookcase;
+    // struct Shelf {
+    //   string[] books;
+    //   uint shelfId;
+    
+    mapping(string => string[]) miscellaneous;
     mapping(string => Product) productSupplyChain;
-    mapping(string => uint256) public trackingIDtoProductID;
-    mapping (uint => string) public productIDtoTrackingID;
+    // mapping(string => uint256) public trackingIDtoProductID;
+    // mapping (uint => string) public productIDtoTrackingID;
     // miscellaneous is a map of messages where tracking ID is the key
-    mapping(string => string) public miscellaneous;
 
-    modifier onlyCustodian(uint _productID) {
-        require(allProducts[_productID].custodian == msg.sender,"This action must be performed by the current custodian");
-        _;
-      }
+    event locationEvent(string trackingID, string location);
 
-    event productAdded (string ID);
-    event sendArray (Product[] array);
-    event sendProduct(Product product);
     /**
     *@return a new product
     *@dev Only if the caller is the manufacturer. Sold and Recall values are set to false and containerID is "" when a product is newly created.
@@ -48,16 +48,17 @@ contract ProductContract is Permission {
         string memory _productName,
         string memory _health,
         //FIXME: Update to an array of key --> value pairs
-        string memory _misc,
+        string[] memory _misc,
         string memory _lastScannedAt,
-        address[] memory _participants
-        ) public onlyOwner() returns (Product memory) {
+        string[] memory _participants
+        ) public onlyManufacturer() returns (Product memory) {
         require(bytes(productSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: product with this tracking ID already exists");
         uint256 _timestamp = now;
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
-        address custodian = msg.sender;
+        string memory custodian = "msg.sender";
+
 
         Product memory newProduct = Product(_trackingID,
             _productName,
@@ -68,74 +69,87 @@ contract ProductContract is Permission {
             _timestamp,
             _lastScannedAt,
             containerID,
+            _misc,
             _participants);
         allProducts.push(newProduct);
         productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
-        uint productID = allProducts.length - 1;
 
-        trackingIDtoProductID[_trackingID] = productID;
-        productIDtoTrackingID[productID] = _trackingID;
+        // trackingIDtoProductID[_trackingID] = productID;
+        // productIDtoTrackingID[productID] = _trackingID;
+        
+        // miscellaneous[_trackingID] = _misc;
 
         // use trackingID as the key to view string value.
-        miscellaneous[_trackingID] = _misc;
+        // miscellaneous[_trackingID] = _misc;
         //calls an internal function and appends the custodian to the product using the trackingID
-        addCounterParties(productID,custodian);
-        emit productAdded(_trackingID);
-        emit sendProduct(newProduct);
+        return newProduct;
     }
 
     //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
     *@dev updates the custodian of the product using the trackingID
     */
-    function addCounterParties(uint _productID, address _custodian) internal{
-        allProducts[_productID].participants.push(_custodian);
+
+    function addMisc(string memory _trackingID, string[] memory _misc) internal {
+        miscellaneous[_trackingID] = _misc;
     }
-    /**
-    *@return all products
-    */
-    function getAllProducts() public returns(Product[] memory) {
-        delete allProducts;
-        for(uint i = 0; i < productKeys.length; i++){
-            string memory trackingID = productKeys[i];
-            allProducts.push(productSupplyChain[trackingID]);
-        }
-        emit sendArray(allProducts);
+
+    function test(string memory _trackingID, string[] memory _misc,
+        string memory _productName,
+        string memory _health,
+        //FIXME: Update to an array of key --> value pairs
+        string memory _lastScannedAt,
+        string[] memory _participants) public {
+
+        addMisc(_trackingID, _misc);
+        addProduct(_trackingID,
+         _productName,
+        _health,
+        //FIXME: Update to an array of key --> value pairs
+        _misc,
+        _lastScannedAt,
+         _participants);
+    }
+
+    function getMisc(string memory _trackingID) public view returns(string[] memory){
+        return miscellaneous[_trackingID];
+
+    }
+
+    function getProductsLength() public view returns (uint) {
+        return allProducts.length;
+    }
+
+    function getProductAt(uint index) public view returns (Product memory) {
+        string memory trackingID = productKeys[index-1];
+        return productSupplyChain[trackingID];
     }
 
      /**
     *@dev You must be the current custodian to call this function
     */
-    function updateCustodian(uint _productID,
-                            address _newCustodian,
-                            string memory _longLatsCoordinates )
-                            public onlyCustodian(_productID) returns(bool){
-        uint participantsCount = allProducts[_productID].participants.length;
-        for(uint i = 0; i < participantsCount; i ++){
-            if(_newCustodian == allProducts[_productID].participants[i]){
-                allProducts[_productID].timestamp = now;
-                allProducts[_productID].lastScannedAt = _longLatsCoordinates;
-                allProducts[_productID].custodian = _newCustodian;
-                return true;// incase another smart contract is calling this function
-            }
-        } revert("The new custodian is not a participant");
-    }
-   
+    // function updateCustodian(uint _productID,
+    //                         string memory _longLatsCoordinates )
+    //                         public returns(string memory){
+    //     uint participantsCount = allProducts[_productID].participants.length;
+    //     for(uint i = 0; i < participantsCount; i ++){
+    //         if(msg.sender == allProducts[_productID].participants[i]){
+    //             allProducts[_productID].timestamp = now;
+    //             allProducts[_productID].lastScannedAt = _longLatsCoordinates;
+    //             allProducts[_productID].custodian = msg.sender;
+    //             return allProducts[_productID].trackingID;
+    //         }
+    //     } revert("The new custodian is not a participant");
+    // }
+
    // returns a single product using tracking ID
    /**
     * @return one product
     */
-    function getSingleProduct(string memory _trackingID) public returns(Product memory) {
+    function getSingleProduct(string memory _trackingID) public view returns(Product memory) {
         require(bytes(productSupplyChain[_trackingID].trackingID).length > 0, "HTTP 400 product does not exist");
-        emit sendProduct(productSupplyChain[_trackingID]);
-    }
-
-    /**
-    *@dev returns a single product using the product ID
-    */
-    function getProduct(uint _productID) public view returns (Product memory){
-        return allProducts[_productID];
+        return productSupplyChain[_trackingID];
     }
 
     /**
