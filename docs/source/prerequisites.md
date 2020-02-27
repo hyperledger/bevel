@@ -38,6 +38,8 @@ Please note that this machine (also called **Ansible Controller**) should have c
 ---
 **NOTE:** The Blockchain Automation Framework requires minimum **Ansible version 2.8.1**
 
+**NOTE (MacOS):** Ansible requires GNU tar. Install it on MacOS through Homebrew `brew install gnu-tar`
+
 ---
 
 Follow [official instructions](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) to install Ansible in a new environment.

@@ -99,16 +99,20 @@ router.post('/',upload.array(),function(req,res) {
 
 //PUT for changing custodian
 router.put('/:trackingID/custodian', function(req,res) {
-  // TODO: Update product custodian
-  // res.setTimeout(15000);
-  // receiveProduct(req.params.trackingID)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
-})
+  res.setTimeout(15000);
+  // TODO: Implement change custodian functionality
+  var trackingID = req.params.trackingID;
+  console.log(trackingID);
+    productContract.methods
+      .updateCustodian(trackingID)
+      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .then( response => {
+        res.send(response)
+      })
+      .catch(error => {
+        console.log(error)
+        res.send(error.message)
+      })
+});
 
 module.exports = router
