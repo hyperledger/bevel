@@ -2,30 +2,37 @@
 #######################################
 # Master Playbook for the setting up and reseting the Blockchain Automation Framework DLT network
 #######################################
-  - hosts: all
+  - hosts: all,localhost
     gather_facts: no
+    run_once: True
+    tasks:
+      - set_fact:
+          platform: '{{ network.type }}'
+        delegate_to: localhost
+        delegate_facts: yes
   - import_playbook: environment-setup.yaml   # First setup environment for each organization
   - import_playbook: kubernetes-env-setup.yaml # Then deploy Flux for each organization
     when: reset is undefined or reset == 'false'
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/deploy-network.yaml"
     vars:
       add_new_org: 'false'
-    when: network.type == 'fabric' and (reset is undefined or reset == 'false')
+    when: hostvars.localhost.platform == 'fabric' and (reset is undefined or reset == 'false')
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/chaincode-install-instantiate.yaml"
     vars:
       add_new_org: 'false'
-    when: network.type == 'fabric' and (reset is undefined or reset == 'false')
+    when: hostvars.localhost.platform == 'fabric' and (reset is undefined or reset == 'false')
   - import_playbook: "{{ playbook_dir }}/../../r3-corda/configuration/deploy-network.yaml"
-    when: network.type == 'corda' and (reset is undefined or reset == 'false')
+    when: hostvars.localhost.platform == 'corda' and (reset is undefined or reset == 'false')
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-indy/configuration/deploy-network.yaml"
-    when: network.type == 'indy' and (reset is undefined or reset == 'false')
+    when: hostvars.localhost.platform == 'indy' and (reset is undefined or reset == 'false')
   - import_playbook: "{{ playbook_dir }}/../../quorum/configuration/deploy-network.yaml"
-    when: network.type == 'quorum' and (reset is undefined or reset == 'false')
+    when: hostvars.localhost.platform == 'quorum' and (reset is undefined or reset == 'false')
     
 # Reseting the network
   - import_playbook: "{{ playbook_dir }}/../../r3-corda/configuration/reset-network.yaml"
-    when: network.type == 'corda' and reset is defined and reset == 'true'
+    when: hostvars.localhost.platform == 'corda' and reset is defined and reset == 'true'
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/reset-network.yaml"
-    when: network.type == 'fabric' and reset is defined and reset == 'true'
+    when: hostvars.localhost.platform == 'fabric' and reset is defined and reset == 'true'
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-indy/configuration/cleanup.yaml"
-    when: network.type == 'indy' and reset is defined and reset == 'true'
+    when: hostvars.localhost.platform == 'indy' and reset is defined and reset == 'true'
+  
