@@ -127,6 +127,7 @@ contract ProductContract is Permission {
     * @return one product
     */
     function getSingleProduct(string memory _trackingID) public returns(Product memory) {
+        require(bytes(productSupplyChain[_trackingID].trackingID).length > 0, "HTTP 400 product does not exist");
         emit sendProduct(productSupplyChain[_trackingID]);
     }
 
