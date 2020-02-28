@@ -30,23 +30,32 @@ router.get('/:trackingID?', function (req, res) {
       .getSingleProduct(req.params.trackingID)
       .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
-        console.log("#@#$#$@#$@#$", response);
-        res.send({
-          "productName": response.responseName,
-          "health": response.health,
-          "sold": false,
-          "recalled": false,
-          "misc": response.misc,
-          "custodian": response.custodian,
-          "trackingID": response.trackingID,
-           "timestamp": response.timestamp,
-           "containerID": response.containerID,
-          "linearId": {
-              "externalId": null,
-              "id": response.trackingID
-          },
-          "participants": response.participants
-      });
+        var newProduct = response;
+
+        var product = {};
+        product.productName = newProduct.productName;
+        product.health = newProduct.health;
+        product.sold = false;
+        product.recalled = false;
+        product.misc = {};
+        //product.misc[newProduct.misc[0]] = newProduct.misc[1];
+        for(var j = 0; j < newProduct.misc.length; j++){
+          var json = JSON.parse(newProduct.misc[j]);
+          var key = Object.keys(json);
+          product.misc[key] = json[key];
+        }
+
+        
+        product.custodian = newProduct.custodian,
+        product.trackingID= newProduct.trackingID,
+        product.timestamp= newProduct.timestamp,
+        product.containerID= newProduct.containerID,
+        product.linearId = {
+            "externalId": null,
+            "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
+        },
+      product.participants= newProduct.participants
+        res.send(product);
       
       })
       .catch(error => {

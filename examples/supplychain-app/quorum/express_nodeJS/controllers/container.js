@@ -17,32 +17,33 @@ router.get("/:trackingID?", function(req, res) {
     console.log(trackingID, "***");
     productContract.methods
       .getSingleContainer(req.params.trackingID)
-      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
-        if(Object.keys(response.events).length !== 0 && response.events.sendObject) {
-          var container = response.events.sendObject.returnValues[0];
+          var newContainer = response;
           //response.events.sendObject.returnValues[0]
-        res.send(
-          {
-            "health": container.health,
-            "sold": container.sold,
-            "recalled": container.recalled,
-            "misc": container.misc,
-            "custodian": container.custodian,
-            "trackingID": container.trackingID,
-            "timestamp": container.timestamp,
-            "containerID": container.containerID,
-            "contents": container.contents,
-            "linearId": {
-                "externalId": null,
-                "id": "2059484c-0c3b-43a7-9604-4a61d3039639"
-            },
-             "participants": container.participants
-              }
+          var container = {};
+          container.health = newContainer.health;
+          container.sold = newContainer.sold;
+          container.recalled = newContainer.recalled;
+          container.misc = {};
+          console.log(newContainer.misc);
+          for(var j = 0; j < newContainer.misc.length; j++){
+            var json = JSON.parse(newContainer.misc[j]);
+            var key = Object.keys(json);
+            console.log(json, key);
+            container.misc[key] = json[key];
+          }
+          container.custodian = newContainer.custodian;
+          container.trackingID = newContainer.trackingID;
+          container.timestamp = newContainer.timestamp;
+          container.containerID = newContainer.containerID;
+          container.linearId = {};
+          container.linearId.externalId = null;
+          container.linearId.id = container.trackingID;
+          container.participants = newContainer.participants;
+        res.send(container
           ); 
-        }
-        else if(Object.keys(response.events).length !== 0 && response.events.sendString) res.send(response.events.sendString.returnValues[0]);
-        else res.send(response);
+        
       })
       .catch(error => {
         console.log(error);
@@ -57,7 +58,6 @@ router.get("/:trackingID?", function(req, res) {
     .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(async response => {
       arrayLength = response;
-      console.log(arrayLength)
       for(var i = 1; i <= arrayLength; i++){
         var toPush = await productContract.methods
         .getContainerAt(i)
@@ -68,11 +68,9 @@ router.get("/:trackingID?", function(req, res) {
           container.sold = toPush.sold;
           container.recalled = toPush.recalled;
           container.misc = {};
-          console.log(toPush.misc);
           for(var j = 0; j < toPush.misc.length; j++){
             var json = JSON.parse(toPush.misc[j]);
             var key = Object.keys(json);
-            console.log(json, key);
             container.misc[key] = json[key];
           }
 
@@ -119,9 +117,6 @@ router.post("/", upload.array(), function(req, res) {
   for(var i = 0; i < keys.length; i++){
     var x = "{ \""+keys[i] + '\": ' + JSON.stringify(newContainer.misc[keys[i]]) + "}";
     misc.push(x)
-    console.log("XXXXX ", x)
-    var y = JSON.parse(x);
-    console.log("YYYYY ", misc)
   }
 
 
@@ -139,9 +134,6 @@ router.post("/", upload.array(), function(req, res) {
 
         if (receipt.status === true) {
           res.send({generatedID: newContainer.trackingID});
-        }
-        if (receipt.status === false) {
-          res.send("Transaction not successful");
         }
       })
       .catch(error => {
@@ -165,7 +157,7 @@ router.put("/:trackingID/custodian", function(req, res) {
       .updateContainerCustodian(trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then( response => {
-        res.send(response)
+        res.send(trackingID)
       })
       .catch(error => {
         console.log(error)
@@ -179,23 +171,19 @@ router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res)
   // TODO: Implement remove content from container
   var containerTrackingID = req.params.containerTrackingID;
   var trackableID = req.body.contents;
-  console.log(containerTrackingID);
   productContract.methods
     .unpackageTrackable(containerTrackingID, trackableID)
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then( response => {
-        res.send(response)
+        res.send(containerTrackingID)
       })
       .catch(error => {
-        console.log(error)
         res.send(error.message)
       })
 });
 
 // PUT for package trackable
 router.put("/:trackingID/package", function(req, res){
-  console.log("send");
-
 	let trackable = {
 		containerID: req.params.trackingID,
 		trackingID: req.body.trackingID
@@ -207,19 +195,12 @@ router.put("/:trackingID/package", function(req, res){
 	)
   .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
     .on("receipt", function(receipt) {
-      console.log("send");
-      // receipt example
-      console.log(receipt);
       if (receipt.status === true) {
-        res.send("Transaction successful");
-      }
-      if (receipt.status === false) {
-        res.send("Transaction not successful");
+        res.send(trackable.containerID);
       }
     })
     .on("error", function(error, receipt) {
       res.send("Error! "+ JSON.stringify(error, null, 4));
-      console.log("error" + JSON.stringify(error, null, 4));
       console.log(error);
     });
 });
