@@ -41,8 +41,8 @@ This will create a file called *minimal-linuxkit-os-base.docker*
 	sudo tar cvf minimal-linuxkit-os-base.tar *
 
 	sudo cat minimal-linuxkit-os-base.tar | sudo docker import - minimal-linuxkit-os-base 
-	sudo docker tag minimal-linuxkit-os-base adopblockchaincloud0502.azurecr.io/blockchain-linuxkit:latest
-	sudo docker push adopblockchaincloud0502.azurecr.io/blockchain-linuxkit:latest
+	sudo docker tag minimal-linuxkit-os-base hyperledgerlabs/blockchain-linuxkit:latest
+	sudo docker push hyperledgerlabs/blockchain-linuxkit:latest
 ```
 You can delete the **temp** directory after pushing the docker image.
 
