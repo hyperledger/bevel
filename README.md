@@ -74,10 +74,10 @@ As a developer:
 If you are not using the provided Jeknins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster. 
 ```
 # Build provisioning image
-docker build . -t baf-build
+docker build . -t hyperledgerlabs/baf-build
 
 # Run the provisioning scripts
-docker run -v $(pwd):/home/blockchain-automation-framework/ baf-build
+docker run -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
 ```
 
 ## Initial Committers
