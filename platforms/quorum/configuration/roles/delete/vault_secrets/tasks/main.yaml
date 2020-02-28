@@ -48,3 +48,15 @@
   loop_control:
     loop_var: peer
   ignore_errors: yes
+
+# This task deletes crypto material
+- name: Delete Access policies 
+  shell: |
+    vault delete sys/policy/vault-crypto-{{ peer.name }}-ro
+  loop: "{{ services.peers }}"
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes

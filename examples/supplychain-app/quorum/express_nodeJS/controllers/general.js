@@ -1,5 +1,12 @@
 var express = require('express')
-  , router = express.Router()
+  , router = express.Router();
+
+const {productContract, fromAddress} = require('../web3services');
+var multer = require('multer'); // v1.0.5
+var upload = multer(); // for parsing multipart/form-data
+var bodyParser = require('body-parser');
+
+router.use(bodyParser.json()); // for parsing application/json
 
 router.get('/node-organization', function (req, res) {
 
@@ -28,15 +35,16 @@ router.get('/node-organizationUnit', function (req, res) {
 })
 
 router.get('/:trackingID/scan', function (req, res) {
-  // TODO: Implement scan function
-  // scan(req.params.trackingID)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  productContract.methods 
+  .scan(req.params.trackingID)
+  .send({ from: fromAddress, gas: 324234, gasPrice: "30000000" })
+  .then(response => { 
+    res.send(response.events.sendString.returnValues[0]);
+  })
+  .catch(error => {
+    console.log(error);
+    res.send("error");
+  });
 })
 
 router.get('/:trackingID/history', function (req, res) {

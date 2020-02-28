@@ -17,7 +17,7 @@ Having an awareness of the potential difficulty and complexity of getting a prod
 ## **The Blockchain Automation Framework Automated Platform**
 The objective of the Blockchain Automation Framework is to provide a consistent means by which developers can deploy production-ready distributed networks across public and private cloud providers. This enables developers to focus on building business applications quickly, knowing the framework upon which they are building can be adopted by an enterprise IT production operations organization. The Blockchain Automation Framework is not intended soley to quickly provision development environments which can be done more efficently with other projects/scripts. Likewise, the Blockchain Automation Framework is not intended to replace BaaS offerings in the market, but instead, the Blockchain Automation Framework is an alternative when existing BaaS offerings do not support a consoritum's current set of requirements. 
 
-![](_static/hl-platform-overview.png)
+![](../images/blockchain-automation-framework-overview.png)
 
 ## **How is it different from other BaaS?**
 - The Blockchain Automation Framework deployment scripts can be reused across cloud providers like AWS, Azure, GCP, and OpenShift

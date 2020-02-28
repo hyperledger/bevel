@@ -107,5 +107,3 @@ This chart is used to deploy Quorum nodes with tessera transaction manager.
 - This file contains the information about the chart such as apiversion, appversion ,name etc.
 #### values.yaml
 - This file contains the default configuration values for the chart.
-
-----
