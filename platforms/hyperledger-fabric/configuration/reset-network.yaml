@@ -20,8 +20,19 @@
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"
 
-    # Delete Helmreleases and uninstall flux
-    # Change this rile if you have new Helreleases to delete 
+    # Uninstalling Flux is needed so that everything is clean
+    # remove this if not needed
+    - name: Uninstall flux
+      shell: |
+        KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
+        KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux-{{ network.env.type }}
+      vars:
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      ignore_errors: yes
+
+    # Delete Helmreleases
+    # Change this file if you have new Helreleases to delete
     - include_role:
         name: "delete/flux_releases"
       vars:

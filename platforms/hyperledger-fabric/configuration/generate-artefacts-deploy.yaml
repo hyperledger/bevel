@@ -18,8 +18,9 @@
         name: "create/crypto_script"
       vars:
         component_type: "{{ item.type | lower}}"
+        orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
-      
+
     # Create Orderer crypto materials
     - include_role:
         name: "create/crypto/orderer"
@@ -72,13 +73,14 @@
     - include_role:
         name: "create/orderers"
       vars:
-        build_path: "./build"        
+        build_path: "./build"
         namespace: "{{ item.name | lower}}-net"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
         vault: "{{ item.vault }}"
         git_url: "{{ item.gitops.git_ssh }}"
         git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
@@ -89,14 +91,14 @@
     - include_role:
         name: "create/peers"
       vars:
-        build_path: "./build"        
+        build_path: "./build"
         namespace: "{{ item.name | lower}}-net"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
-        kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         git_url: "{{ item.gitops.git_ssh }}"
         git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
@@ -111,5 +113,5 @@
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
-
+    bin_install_dir:  "~/bin"            #Default to ~/bin install directory for binaries
+    add_new_org: "false"
