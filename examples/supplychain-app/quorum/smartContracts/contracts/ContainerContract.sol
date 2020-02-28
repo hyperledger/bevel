@@ -79,6 +79,15 @@ contract ContainerContract is ProductContract {
         require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 404");
         require(bytes(containerSupplyChain[_containerID].containerID).length <= 0, "HTTP 404");
 
+        string memory ourAddress = addressToString(msg.sender);
+        bool isParticipant = false;
+
+        for(uint i = 0; i < containerSupplyChain[_containerID].participants.length; i++ ){
+            string memory participant = _toLower(containerSupplyChain[_containerID].participants[i]);
+            if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
+        }
+        require(isParticipant, "HTTP 404: your identity is not in particiapnt list");
+
         containerSupplyChain[_containerID].custodian = msg.sender;
         for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
             if (bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
