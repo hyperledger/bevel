@@ -62,29 +62,36 @@ router.get('/:trackingID?', function (req, res) {
     .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(async response => {
       arrayLength = response; 
+      console.log("LENGTH ", response);
       for(var i = 1; i <= arrayLength; i++){
         var toPush = await productContract.methods
-        .getProductAt(i)
-        .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
+          .getProductAt(i)
+          .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
+        var product = {};
+          product.productName = toPush.productName;
+          product.health = toPush.health;
+          product.sold = false;
+          product.recalled = false;
+          product.misc = {};
+          //product.misc[toPush.misc[0]] = toPush.misc[1];
+          for(var j = 0; j < toPush.misc.length; j++){
+            var json = JSON.parse(toPush.misc[j]);
+            var key = Object.keys(json);
+            product.misc[key] = json[key];
+          }
 
-        var product = {
-          "productName": toPush.productName,
-          "health": toPush.health,
-          "sold": false,
-          "recalled": false,
-          "misc": toPush.misc,
-          "custodian": toPush.custodian,
-          "trackingID": toPush.trackingID,
-           "timestamp": toPush.timestamp,
-           "containerID": toPush.containerID,
-          "linearId": {
+          
+          product.custodian = toPush.custodian,
+          product.trackingID= toPush.trackingID,
+          product.timestamp= toPush.timestamp,
+          product.containerID= toPush.containerID,
+          product.linearId = {
               "externalId": null,
               "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
           },
-          "participants": toPush.participants
-      };
-        console.log("^^^^",toPush.trackingID);
-        displayArray.push(product);
+        product.participants= toPush.participants
+        // console.log("^^^^",product);
+        displayArray.push(product); 
       }
       res.send(displayArray)
     })
@@ -109,10 +116,13 @@ router.post('/',upload.array(),function(req,res) {
   var keys = Object.keys(newProduct.misc);
 
   for(var i = 0; i < keys.length; i++){
-    misc.push(keys[i]);
-    misc.push(newProduct.misc[keys[i]])
+    var x = "{ \""+keys[i] + '\": ' + JSON.stringify(newProduct.misc[keys[i]]) + "}";
+    misc.push(x)
+    console.log("XXXXX ", x)
+    var y = JSON.parse(x);
+    console.log("YYYYY ", y)
   }
-
+  console.log(misc);
   productContract.methods
     .addProduct( 
       newProduct.trackingID,

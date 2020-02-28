@@ -122,11 +122,9 @@ router.post("/", upload.array(), function(req, res) {
       )
       .send({ from: fromAddress, gas: 6721900, gasPrice: "30000000" })
       .on("receipt", function(receipt) {
-        console.log(receipt);
 
         if (receipt.status === true) {
-          if(receipt.events.sendObject) res.send(receipt.events.sendObject.returnValues[0]);
-          else res.send(receipt);
+          res.send({generatedID: newContainer.trackingID});
         }
         if (receipt.status === false) {
           res.send("Transaction not successful");
