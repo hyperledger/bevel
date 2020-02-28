@@ -29,8 +29,10 @@ contract ProductContract is Permission {
     mapping(string => Product) productSupplyChain;
     mapping(string => uint256) public trackingIDtoProductID;
     mapping (uint => string) public productIDtoTrackingID;
+
     // miscellaneous is a map of messages where tracking ID is the key
     mapping(string => string) public miscellaneous;
+    mapping(string => Product[]) public transferHistory;
 
     modifier onlyCustodian(uint _productID) {
         require(allProducts[_productID].custodian == msg.sender,"This action must be performed by the current custodian");
@@ -53,7 +55,7 @@ contract ProductContract is Permission {
         address[] memory _participants
         ) public onlyOwner() returns (Product memory) {
         require(bytes(productSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: product with this tracking ID already exists");
-        uint256 _timestamp = now;
+        uint256 _timestamp = block.timestamp;
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
@@ -80,17 +82,8 @@ contract ProductContract is Permission {
         // use trackingID as the key to view string value.
         miscellaneous[_trackingID] = _misc;
         //calls an internal function and appends the custodian to the product using the trackingID
-        addCounterParties(productID,custodian);
         emit productAdded(_trackingID);
         emit sendProduct(newProduct);
-    }
-
-    //addCounterParties is a private method that updates the custodian of the product using the trackingID
-    /**
-    *@dev updates the custodian of the product using the trackingID
-    */
-    function addCounterParties(uint _productID, address _custodian) internal{
-        allProducts[_productID].participants.push(_custodian);
     }
     /**
     *@return all products
@@ -101,7 +94,6 @@ contract ProductContract is Permission {
             string memory trackingID = productKeys[i];
             allProducts.push(productSupplyChain[trackingID]);
         }
-        emit sendArray(allProducts);
     }
      /**
     *@dev You must be the current custodian to call this function
@@ -113,7 +105,7 @@ contract ProductContract is Permission {
         uint participantsCount = allProducts[_productID].participants.length;
         for(uint i = 0; i < participantsCount; i ++){
             if(_newCustodian == allProducts[_productID].participants[i]){
-                allProducts[_productID].timestamp = now;
+                allProducts[_productID].timestamp = block.timestamp;
                 allProducts[_productID].lastScannedAt = _longLatsCoordinates;
                 allProducts[_productID].custodian = _newCustodian;
                 return true;// incase another smart contract is calling this function
@@ -128,15 +120,24 @@ contract ProductContract is Permission {
     /**
     *@dev returns a single product using the product ID
     */
-    function getProduct(uint _productID) public view returns (Product memory){
-        return allProducts[_productID];
-    }
     /**
     * gets all the products from the allProduct array that have empty containerID
     * puts them in a new array called containerlessProducts
     * containerlessProducts stores all products that are containerless and waiting to be packaged
     */
-    function getContainerlessProduct() public view returns(Product[5] memory containerlessProducts){
+
+/*
+    //finding all the containerless products and put them in an array
+    function getContainerlessAt() public view returns(P){
+        containerlessCounter = 0;
+        for(uint i = 0; i < allProducts.length; i ++){
+            containerlessCounter += 1;
+        }
+        return containerlessCounter;
+    }
+*/
+/*
+    function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
         uint containerlessCounter = 0;
         for(uint i = 0; i < allProducts.length; i ++){
             bytes memory containerIDLength = bytes(allProducts[i].containerID);
@@ -147,5 +148,48 @@ contract ProductContract is Permission {
             }
         }
         return containerlessProducts;
-    }
+*/
+        function getContainerlessProd() public view returns(uint256, Product[] memory containerlessProds){
+            uint256 countContainerless;
+            for(uint i = 0; i < allProducts.length; i ++){
+                bytes memory containerIDLength = bytes(allProducts[i].containerID);
+                if(containerIDLength.length == 0){
+                    containerlessProds[countContainerless] = allProducts[i];
+                    countContainerless ++;
+                }
+            }
+            return (countContainerless,containerlessProds);
+        }
+
+        function getContainerlessProAt() public view returns(Product memory){
+            getContainerlessProd();
+            for(uint i = 0; i < containerlessProds.length; i ++){
+
+            }
+
+        }
+
+
+
+
+
+
+
+        /*
+        function getContainerlessProduct () public view returns(Product[] memory){
+        uint index = 0;
+        Product[] memory containerlessProducts;
+            for(uint i = 0; i < allProducts.length; i ++){
+                bytes memory containerIDLength = bytes(allProducts[i].containerID);
+                if(containerIDLength.length == 0){
+                containerlessProducts[index] = allProducts[i];
+                index ++;
+                }
+            }
+        }
+       // for(index; index < containerlessProducts.length; index++){
+       //     return containerlessProducts[index];
+       // }
+   // } */
+
 }

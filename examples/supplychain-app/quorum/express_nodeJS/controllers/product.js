@@ -10,14 +10,22 @@ router.use(bodyParser.json()); // for parsing application/json
 
 router.get('/containerless', function (req,res){
   // TODO: Get products not assigned to a container
-  // getContainerlessProducts()
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  productContract.methods
+    .getContainerlessProduct()
+    
+    
+
+
+
+
+
+
+
+    })
+   .catch(error => {
+    console.log(error)
+    res.send("error")
+  })
 })
 
 //GET product with or without trackingID
@@ -110,5 +118,28 @@ router.put('/:trackingID/custodian', function(req,res) {
   //   res.send("error")
   // })
 })
+
+// 	productContract.methods
+// 	.packageTrackable(
+// 		trackable.trackingID,
+// 		trackable.containerID
+// 	)
+// 	.send({ from: fromAddress })
+//     .on("receipt", function(receipt) {
+//       // receipt example
+//       console.log(receipt);
+//       if (receipt.status === true) {
+//         res.send("Transaction successful");
+//       }
+//       if (receipt.status === false) {
+//         res.send("Transaction not successful");
+//       }
+//     })
+//     .on("error", function(error, receipt) {
+//       res.send("Error! "+ JSON.stringify(error, null, 4));
+//       console.log("error" + JSON.stringify(error, null, 4));
+//       console.log(error);
+//     });
+// });
 
 module.exports = router

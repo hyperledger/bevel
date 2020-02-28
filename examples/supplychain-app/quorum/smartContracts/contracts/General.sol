@@ -13,4 +13,10 @@ contract General is ContainerContract {
     * @return a list of objects with the location, timestamp of custodian change, and new custodian
     */
     //TODO implement location history
+    function getHistory(string memory trackingID)public returns(string[] memory){
+
+    }
+
+
+
 }

@@ -40,15 +40,15 @@ router.get('/:trackingID/scan', function (req, res) {
 })
 
 router.get('/:trackingID/history', function (req, res) {
-  // TODO: Implement location history
-  // locationHistory(req.params.trackingID)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  //TODO: Implement location history
+  locationHistory(req.params.trackingID)
+  .then( response => {
+    res.send(response)
+  })
+  .catch(error => {
+    console.log(error)
+    res.send("error")
+  })
 })
 
   module.exports = router
