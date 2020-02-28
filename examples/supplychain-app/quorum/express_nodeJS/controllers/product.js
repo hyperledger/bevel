@@ -136,7 +136,7 @@ router.post('/',upload.array(),function(req,res) {
       "health",
       misc,
       "",
-      []
+      newProduct.counterparties
     )
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
     .on("receipt", function(receipt) {
@@ -161,9 +161,10 @@ router.put('/:trackingID/custodian', function(req,res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var trackingID = req.params.trackingID;
+  var longLatCoordinates = req.params.longLatCoordinates;
   console.log(trackingID);
     productContract.methods
-      .updateCustodian(trackingID,"","" )
+      .updateCustodian(trackingID, longLatCoordinates)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then( response => {
         res.send(response)

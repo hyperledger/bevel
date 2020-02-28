@@ -12,7 +12,7 @@ contract ProductContract is Permission {
         string health;
         bool sold;
         bool recalled;
-        string custodian; // Who currently owns the product
+        address custodian; // Who currently owns the product
         uint256 timestamp;
         string lastScannedAt;
         string containerID;
@@ -57,7 +57,7 @@ contract ProductContract is Permission {
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
-        string memory custodian = "msg.sender";
+        address custodian = msg.sender;
 
 
         Product memory newProduct = Product(_trackingID,
@@ -129,19 +129,52 @@ contract ProductContract is Permission {
      /**
     *@dev You must be the current custodian to call this function
     */
-    // function updateCustodian(uint _productID,
-    //                         string memory _longLatsCoordinates )
-    //                         public returns(string memory){
-    //     uint participantsCount = allProducts[_productID].participants.length;
-    //     for(uint i = 0; i < participantsCount; i ++){
-    //         if(msg.sender == allProducts[_productID].participants[i]){
-    //             allProducts[_productID].timestamp = now;
-    //             allProducts[_productID].lastScannedAt = _longLatsCoordinates;
-    //             allProducts[_productID].custodian = msg.sender;
-    //             return allProducts[_productID].trackingID;
-    //         }
-    //     } revert("The new custodian is not a participant");
-    // }
+
+function addressToString(address _addr) internal pure returns(string memory) {
+    bytes32 value = bytes32(uint256(_addr));
+    bytes memory alphabet = "0123456789abcdef";
+
+    bytes memory str = new bytes(42);
+    str[0] = '0';
+    str[1] = 'x';
+    for (uint i = 0; i < 20; i++) {
+        str[2+i*2] = alphabet[uint(uint8(value[i + 12] >> 4))];
+        str[3+i*2] = alphabet[uint(uint8(value[i + 12] & 0x0f))];
+    }
+    return string(str);
+}
+
+function _toLower(string memory str) internal pure returns (string memory) {
+		bytes memory bStr = bytes(str);
+		bytes memory bLower = new bytes(bStr.length);
+		for (uint i = 0; i < bStr.length; i++) {
+			// Uppercase character...
+			if ((uint8(bStr[i]) >= 65) && (uint8(bStr[i]) <= 90)) {
+				// So we add 32 to make it lowercase
+				bLower[i] = bytes1(uint8(bStr[i]) + 32);
+			} else {
+				bLower[i] = bStr[i];
+			}
+		}
+		return string(bLower);
+	}
+    
+function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
+        require(bytes(productSupplyChain[_productID].trackingID).length > 0, "HTTP 404"); //product exists in supply chain
+        require(bytes(productSupplyChain[_productID].containerID).length <= 0, "HTTP 404"); //product containerid is ""
+        
+        string memory ourAddress = addressToString(msg.sender);
+        bool isParticipant = false;
+        
+        for(uint i = 0; i < productSupplyChain[_productID].participants.length; i++ ){
+            string memory participant = _toLower(productSupplyChain[_productID].participants[i]);
+            if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
+        }
+        require(isParticipant, "HTTP 404: your identity is not in particiapnt list");
+        
+        productSupplyChain[_productID].custodian = msg.sender;
+        productSupplyChain[_productID].lastScannedAt = longLat;
+    }
 
    // returns a single product using tracking ID
    /**

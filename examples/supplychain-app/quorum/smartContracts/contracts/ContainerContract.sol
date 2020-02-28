@@ -59,16 +59,16 @@ contract ContainerContract is ProductContract {
         return containerKeys.length;
     }
 
-    function getContainerAt(uint index) public view returns (Product memory) {
+    function getContainerAt(uint index) public view returns (Container memory) {
         string memory trackingID = containerKeys[index-1];
-        return productSupplyChain[trackingID];
+        return containerSupplyChain[trackingID];
     }
 
     /**
     * @return one container by trackingID
     */
     function getSingleContainer(string memory _trackingID) public view returns (Container memory) {
-        require(bytes(productSupplyChain[_trackingID].trackingID).length > 0, "HTTP 400 product does not exist");
+        require(bytes(containerSupplyChain[_trackingID].trackingID).length > 0, "HTTP 400 product does not exist");
         return containerSupplyChain[_trackingID];
     }
 
