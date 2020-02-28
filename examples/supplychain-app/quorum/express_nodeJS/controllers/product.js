@@ -117,10 +117,7 @@ router.post('/',upload.array(),function(req,res) {
 
   for(var i = 0; i < keys.length; i++){
     var x = "{ \""+keys[i] + '\": ' + JSON.stringify(newProduct.misc[keys[i]]) + "}";
-    misc.push(x)
-    console.log("XXXXX ", x)
-    var y = JSON.parse(x);
-    console.log("YYYYY ", y)
+    misc.push(x);
   }
   console.log(misc);
   productContract.methods

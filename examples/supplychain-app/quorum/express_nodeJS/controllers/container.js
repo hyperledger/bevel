@@ -53,19 +53,30 @@ router.get("/:trackingID?", function(req, res) {
     var displayArray = [];
     // GET for get all containers
     productContract.methods
-    .getProductsLength()
+    .getContainersLength()
     .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
     .then(async response => {
       arrayLength = response;
-      for(var i = 0; i < arrayLength; i++){
+      console.log(arrayLength)
+      for(var i = 1; i <= arrayLength; i++){
         var toPush = await productContract.methods
         .getContainerAt(i)
         .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
+        console.log(toPush);
           var container = {};
           container.health = toPush.health;
           container.sold = toPush.sold;
           container.recalled = toPush.recalled;
-          container.misc = JSON.parse(toPush.misc);
+          container.misc = {};
+          console.log(toPush.misc);
+          for(var j = 0; j < toPush.misc.length; j++){
+            var json = JSON.parse(toPush.misc[j]);
+            var key = Object.keys(json);
+            console.log(json, key);
+            container.misc[key] = json[key];
+          }
+
+
           container.custodian = toPush.custodian;
           container.trackingID = toPush.trackingID;
           container.timestamp = toPush.timestamp;
@@ -106,8 +117,11 @@ router.post("/", upload.array(), function(req, res) {
   var keys = Object.keys(newContainer.misc);
 
   for(var i = 0; i < keys.length; i++){
-    misc.push(keys[i]);
-    misc.push(newContainer.misc[keys[i]])
+    var x = "{ \""+keys[i] + '\": ' + JSON.stringify(newContainer.misc[keys[i]]) + "}";
+    misc.push(x)
+    console.log("XXXXX ", x)
+    var y = JSON.parse(x);
+    console.log("YYYYY ", misc)
   }
 
 
