@@ -1,7 +1,7 @@
 var express = require('express')
   , router = express.Router();
 
-const {productContract, fromAddress} = require('../web3services');
+const {productContract, fromAddress, fromNodeOrganization, fromNodeOrganizationUnit} = require('../web3services');
 var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require('body-parser');
@@ -10,28 +10,14 @@ router.use(bodyParser.json()); // for parsing application/json
 
 router.get('/node-organization', function (req, res) {
 
-  // TODO: Implement get self organization
-  // getSelf()
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  res.send({organization:fromNodeOrganization})
+  
 })
 
 router.get('/node-organizationUnit', function (req, res) {
 
-  // TODO: Implement get organization unit
-  // getRole()
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  res.send({organizationUnit:fromNodeOrganizationUnit})
+
 })
 
 router.get('/:trackingID/scan', function (req, res) {
