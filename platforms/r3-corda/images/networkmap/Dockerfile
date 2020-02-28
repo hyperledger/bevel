@@ -1,4 +1,4 @@
-FROM adopblockchaincloud0502.azurecr.io/blockchain-linuxkit:latest
+FROM hyperledgerlabs/blockchain-linuxkit:latest
 LABEL VENDOR="Hyperledger" \
       MAINTAINER="Hyperledger"
 EXPOSE 8080

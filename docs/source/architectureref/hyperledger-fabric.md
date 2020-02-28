@@ -44,7 +44,7 @@ The following diagram shows how Hyperledger Fabric orderer will be deployed on y
 
 ## Components
 
-![Figure: Hyperledger Fabric Components](../_static/hyperledger-fabric-components.png)
+![Figure: Hyperledger Fabric Components](../../images/blockchain-automation-framework-fabric.png)
 
   
 
@@ -73,7 +73,7 @@ The Blockchain Automation Framework uses the officially published Hyperledger Fa
 Detailed information on helm charts can be referred [here](../developer/fabric-helmcharts.md)
 
 
-<a  name="vault-config"></a>
+<a name="vault-config"></a>
 
 ## Vault Configuration
 
@@ -103,4 +103,4 @@ user="${NAMESPACE}-adminpw
 pass="${NAMESPACE}-peer-${n}-adminpw
 ```
 
-The complete Certificate and key paths in the vault can be referred [here](certificates_path_list_fabric)
+The complete Certificate and key paths in the vault can be referred [here](certificates_path_list_fabric).

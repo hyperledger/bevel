@@ -114,6 +114,7 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.transaction_manager == 'tessera'
 
+  # This role generates the crypto material for quorum network based on constellation transaction manager and store it in vault
   - name: "Generate crypto material for Constellation"
     include_role:
       name: create/crypto/constellation
@@ -126,6 +127,7 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.transaction_manager == 'constellation'
 
+  # This role deploy nodes with Tessera transaction manager
   - name: "Deploy Tessera Transaction Manager"
     include_role:
       name: create/tessera
@@ -146,6 +148,7 @@
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.transaction_manager == 'tessera'
     
+  # This role deployes nodes with constellation transaction mananger
   - name: "Deploy Constellation Transaction Manager"
     include_role:
       name: create/constellation
@@ -165,6 +168,11 @@
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
     when: network.type == 'quorum' and network.config.transaction_manager == 'constellation'
-
+  
+  # delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
   vars: #These variables can be overriden from the command line
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

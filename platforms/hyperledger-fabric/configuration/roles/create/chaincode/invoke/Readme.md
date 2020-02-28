@@ -4,8 +4,8 @@ This role creates helm value file for the deployment of chaincode_invoke job
 ### main.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Create value file for chaincode invokation
-This task creates value file for chaincode invokation.
+#### 1. Create value file for chaincode invocation
+This task creates value file for chaincode invocation.
 ##### Input Variables
 
     channelcreator_query:  query based on type, "participants[?type=='creator']"
@@ -45,8 +45,8 @@ This tasks checks/Wait for install-chaincode job.
   **delay**: Specifies the delay between every retry
   
 
-#### 2. Create value file for chaincode invokation
-This is the nested Task for chaincode invokation.
+#### 2. Create value file for chaincode invocation
+This is the nested Task for chaincode invocation.
 ##### Input Variables
 
     *name: "Name of the organisation"
