@@ -161,7 +161,7 @@ router.put('/:trackingID/custodian', function(req,res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var trackingID = req.params.trackingID;
-  var longLatCoordinates = req.params.longLatCoordinates;
+  var longLatCoordinates = req.body.longLatCoordinates;
   console.log(trackingID);
     productContract.methods
       .updateCustodian(trackingID, longLatCoordinates)

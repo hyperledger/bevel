@@ -21,22 +21,15 @@ contract ProductContract is Permission {
         string[] participants;
     }
 
+    event sendTrackingID(string);
+
     /**
     *@dev array of all the products created, the key begins at 0
     */
     Product[] public allProducts;
     string[] public productKeys;
-    
-    // mapping(address => mapping(uint256 => Shelf)) bookcase;
-    // struct Shelf {
-    //   string[] books;
-    //   uint shelfId;
-    
-    mapping(string => string[]) miscellaneous;
+
     mapping(string => Product) productSupplyChain;
-    // mapping(string => uint256) public trackingIDtoProductID;
-    // mapping (uint => string) public productIDtoTrackingID;
-    // miscellaneous is a map of messages where tracking ID is the key
 
     event locationEvent(string trackingID, string location);
 
@@ -59,7 +52,6 @@ contract ProductContract is Permission {
         string memory containerID = "";
         address custodian = msg.sender;
 
-
         Product memory newProduct = Product(_trackingID,
             _productName,
             _health,
@@ -74,15 +66,7 @@ contract ProductContract is Permission {
         allProducts.push(newProduct);
         productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
-
-        // trackingIDtoProductID[_trackingID] = productID;
-        // productIDtoTrackingID[productID] = _trackingID;
-        
-        // miscellaneous[_trackingID] = _misc;
-
-        // use trackingID as the key to view string value.
-        // miscellaneous[_trackingID] = _misc;
-        //calls an internal function and appends the custodian to the product using the trackingID
+        emit sendTrackingID(_trackingID);
         return newProduct;
     }
 
@@ -90,32 +74,6 @@ contract ProductContract is Permission {
     /**
     *@dev updates the custodian of the product using the trackingID
     */
-
-    function addMisc(string memory _trackingID, string[] memory _misc) internal {
-        miscellaneous[_trackingID] = _misc;
-    }
-
-    function test(string memory _trackingID, string[] memory _misc,
-        string memory _productName,
-        string memory _health,
-        //FIXME: Update to an array of key --> value pairs
-        string memory _lastScannedAt,
-        string[] memory _participants) public {
-
-        addMisc(_trackingID, _misc);
-        addProduct(_trackingID,
-         _productName,
-        _health,
-        //FIXME: Update to an array of key --> value pairs
-        _misc,
-        _lastScannedAt,
-         _participants);
-    }
-
-    function getMisc(string memory _trackingID) public view returns(string[] memory){
-        return miscellaneous[_trackingID];
-
-    }
 
     function getProductsLength() public view returns (uint) {
         return allProducts.length;
@@ -158,22 +116,23 @@ function _toLower(string memory str) internal pure returns (string memory) {
 		}
 		return string(bLower);
 	}
-    
+
 function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
         require(bytes(productSupplyChain[_productID].trackingID).length > 0, "HTTP 404"); //product exists in supply chain
         require(bytes(productSupplyChain[_productID].containerID).length <= 0, "HTTP 404"); //product containerid is ""
-        
+
         string memory ourAddress = addressToString(msg.sender);
         bool isParticipant = false;
-        
+
         for(uint i = 0; i < productSupplyChain[_productID].participants.length; i++ ){
             string memory participant = _toLower(productSupplyChain[_productID].participants[i]);
             if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
         }
         require(isParticipant, "HTTP 404: your identity is not in particiapnt list");
-        
+
         productSupplyChain[_productID].custodian = msg.sender;
         productSupplyChain[_productID].lastScannedAt = longLat;
+        emit sendTrackingID(_productID);
     }
 
    // returns a single product using tracking ID
