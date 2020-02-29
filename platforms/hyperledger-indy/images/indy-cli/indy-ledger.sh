@@ -56,7 +56,7 @@ did use $admin_did
 exit" > indy_txn.txt;
 
 indy-cli indy_txn.txt > txn_result.txt;
-if grep -q 'Did \"$admin_did\" has been set as active' 'txn_result.txt'
+if grep -Fxq "Did \"$admin_did\" has been set as active" txn_result.txt
 then
 	echo "DID set active.";
 else
@@ -72,7 +72,7 @@ pool list
 exit" > indy_txn.txt;
 
 indy-cli indy_txn.txt > txn_result.txt
-if grep -q 'Pool "sandboxpool" has been connected' 'txn_result.txt'
+if grep -Fxq "Pool \"sandboxpool\" has been connected" txn_result.txt
 then
 	echo "Pool successfully Connected";
 else
@@ -89,7 +89,7 @@ ledger get-nym did=$identity_did" > indy_txn.txt;
 
 indy-cli indy_txn.txt > txn_result.txt;
 
-if grep -q 'Following NYM has been received' 'txn_result.txt'
+if grep -Fxq "Following NYM has been received" txn_result.txt
 then
 	echo "Transaction Successful, NYM has been received";
 	exit 0
