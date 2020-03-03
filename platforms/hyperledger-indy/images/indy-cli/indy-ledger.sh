@@ -80,7 +80,6 @@ else
 	exit 1
 fi
 
-
 echo "wallet open myIndyWallet key=12345
 did use $admin_did
 pool connect sandboxpool
@@ -89,7 +88,7 @@ ledger get-nym did=$identity_did" > indy_txn.txt;
 
 indy-cli indy_txn.txt > txn_result.txt;
 
-if grep -Fxq "Following NYM has been received" txn_result.txt
+if grep -Fxq "Following NYM has been received." txn_result.txt
 then
 	echo "Transaction Successful, NYM has been received";
 	exit 0

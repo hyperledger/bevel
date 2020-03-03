@@ -12,7 +12,8 @@
     global_Org=""
     admin_url=""
     global_url=""
-    type=""
+    global_type=""
+    admin_type=""
     {% if network['organizations'] is defined %}
       {% for organization in network['organizations'] %}
         first_admin_in_org=""
@@ -25,7 +26,7 @@
                 first_admin_in_org="{{ trustee.name }}"
                 admin_Org="{{ organization.name }}"
                 admin_url="{{ organization.vault.url }}"
-                type="trustees"
+                admin_type="trustees"
               fi
             fi
             if [ -z "$first_global_admin" ]
@@ -33,7 +34,7 @@
               first_global_admin="{{ trustee.name }}"
               global_Org="{{ organization.name }}"
               global_url="{{ organization.vault.url }}"
-              type="trustees"
+              global_type="trustees"
             fi
           {% endfor %}
         {% endif %}
@@ -46,7 +47,7 @@
                 first_admin_in_org="{{ steward.name }}"
                 admin_Org="{{ organization.name }}"
                 admin_url="{{ organization.vault.url }}"
-                type="stewards"
+                admin_type="stewards"
               fi
             fi
             if [ -z "$first_global_admin" ]
@@ -54,7 +55,7 @@
               first_global_admin="{{ steward.name }}"
               global_Org="{{ organization.name }}"
               global_url="{{ organization.vault.url }}"
-              type="stewards"
+              global_type="stewards"
             fi
           {% endfor %}
         {% endif %}
@@ -66,16 +67,18 @@
       selectedAdmin="${first_admin_in_org}"
       adminUrl="${admin_url}"
       adminOrg="${admin_Org}"
+      admin_type="${admin_type}"
     else
       selectedAdmin="${first_global_admin}"
       adminUrl="${global_url}"
       adminOrg="${global_Org}"
+      admin_type="${global_type}"
     fi
     rm -rf admin.yaml
     echo "selectedAdmin: ${selectedAdmin}" >> admin.yaml
     echo "adminUrl: ${adminUrl}" >> admin.yaml
     echo "adminOrg: ${adminOrg}" >> admin.yaml
-    echo "type: ${type}" >> admin.yaml
+    echo "type: ${admin_type}" >> admin.yaml
   register: admin_file
 
 #----------------------------------------------------------------------------------------------
