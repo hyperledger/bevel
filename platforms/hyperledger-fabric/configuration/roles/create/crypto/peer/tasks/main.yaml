@@ -72,8 +72,8 @@
         OrganizationalUnitIdentifier: peer
     EOF
 
-# Check orderer-certificate File exists
-- name: Check that orderer-certificate File exists
+# Check orderer-certificate file exists
+- name: Check that orderer-certificate file exists
   stat:
     path: "{{ orderer.certificate }}"
   loop: "{{ network.orderers }}"
@@ -83,7 +83,7 @@
   failed_when: add_new_org == 'true' and not orderer_file_result.results[0].stat.exists # Fail the task if new_org is added and orderer-cert does not exist
 
 # Ensure orderer-cert directory is present
-- name: Ensure orderer-cert directory exists
+- name: Ensure orderer tls cert directory exists
   file:
     path: "./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls"
     recurse: yes
@@ -94,18 +94,19 @@
   when: add_new_org == 'false'
 
 # Copy the ca.crt when add_new_org is false 
-- name: Copy ca.crt from auto-generated path to given path
+- name: Copy tls ca.crt from auto-generated path to given path
   copy:
     src: "./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls/ca.crt"
     dest: "{{ orderer.certificate }}"
     follow: no
+    force: yes
   loop: "{{ network.orderers }}"
   loop_control:
     loop_var: orderer
   when: add_new_org == 'false'
 
 # Check if Orderer certs exists in vault. If yes, get the certificate
-- name: Check if Orderer certs already created
+- name: Check if Orderer certs exist in Vault
   shell: |
     vault kv get -field=ca.crt secret/crypto/peerOrganizations/{{ component_name }}/orderer/tls
   environment:
@@ -117,7 +118,7 @@
   register: orderer_certs_result
   ignore_errors: yes
 
-- name: Save Orderer certs if already created
+- name: Save Orderer certs if not in Vault
   local_action: copy content="{{ orderer_certs_result.results[0].stdout }}" dest="{{ orderer.certificate }}"
   loop: "{{ network.orderers }}"
   loop_control:

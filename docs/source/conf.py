@@ -31,7 +31,8 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.todo',
-    'sphinx_markdown_tables'
+    'sphinx_markdown_tables',
+    'recommonmark'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -42,11 +43,10 @@ templates_path = ['_templates']
 # for Sphinx-1.3 ###MARKDOWN
 from recommonmark.parser import CommonMarkParser
 
-source_parsers = {
-    '.md': CommonMarkParser,
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
 }
-
-source_suffix = ['.rst', '.md']
 #source_suffix = '.rst'
 
 # The master toctree document.
