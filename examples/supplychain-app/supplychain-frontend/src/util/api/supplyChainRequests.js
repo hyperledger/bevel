@@ -15,7 +15,7 @@ let getSelf = async () => {
 let getRole = (callback) => {
   axios.get(ENDPOINT + '/node-organizationUnit')
   .then(res=>{
-    callback(res.data);
+    callback(res.data.charAt(0).toUpperCase() + res.data.slice(1));
   })
   .catch(err => console.error(err));
 }

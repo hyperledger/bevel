@@ -108,6 +108,7 @@
     loop_control:
       loop_var: organizationItem
     when: network['type'] == 'indy'
+
   # Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
     include_role:
@@ -158,6 +159,15 @@
   - name: 'Create Endorser Identities'
     include_role:
       name: setup/endorsers
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      kubernetes: "{{ organizationItem.k8s }}"
+      gitops: "{{ organizationItem.gitops }}"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
     when: network['type'] == 'indy'
 
   # delete build directory

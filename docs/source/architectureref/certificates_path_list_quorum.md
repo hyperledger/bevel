@@ -3,7 +3,7 @@ Certificate Paths on Vault for Quorum Network
 
 ### For IBFT/ RAFT
 
-| Path                                                                              | Crypto-material               | Type         |
+| Path                                                                              | Key Name               | Description         |
 |-----------------------------------------------------------------------------------|-------------------------------|--------------|
 | secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | nodekey                       | Public Key (Identity for a node)   |
 | secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | keystore                      | Private Key Data for a node |
@@ -13,24 +13,17 @@ Certificate Paths on Vault for Quorum Network
 
 
 
-### For Tessera
+### For Tessera/Constellation
 
-| Path                                                                           | Crypto-material               | Type         |
+| Path                                                                           | Key Name               | Description         |
 |--------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{ `component_ns` }}/crypto/{{ `peer_name` }}/transaction                   | tm.pub                        | Public key of Transaction manager for Tessera |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/transaction                   | tm.key                        | Private key of Transaction manager for Tessera |
+| secret/{{ `component_ns` }}/crypto/{{ `peer_name` }}/transaction               | tm.pub                        | Public key of Transaction manager |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/transaction                 | tm.key                        | Private key of Transaction manager |
 
 
-### For constellation
+### For Root Certificates
 
-| Path                                                                         | Crypto-material               | Type         |
-|------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{`component_ns`}}/crypto/{{ `node_name` }}/transaction                   | tm.pub                        | Public Key of Transaction manager for constellation |
-| secret/{{`component_ns`}}/crypto/{{ `node_name` }}/transaction                   | tm.key                        | Private Key of Transaction manager for constellation |
-
-## For Root Certificates
-
-| Path                                                                         | Crypto-material               | Type         |
+| Path                                                                         | Key Name               | Description         |
 |------------------------------------------------------------------------------|-------------------------------|--------------|
 | secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootca                        | JKS(Java KeyStore) Initail Root CA Certificates  |
 | secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorcrt                 | Certificate chain for Ambassador proxy  |
@@ -41,8 +34,10 @@ Certificate Paths on Vault for Quorum Network
 
 Details of Variables
 
-`component_ns` : Name of Component's Namespace   
-`peer_name` : Name of Peer   
-`component_name` : Name of Component   
-`node_name` : Name of Node   
-`component_auth` : Auth Name
+| Variable | Description |
+|-------------------------------|--------------|
+|`component_ns` | Name of Component's Namespace |
+|`peer_name` | Name of Peer  | 
+|`component_name` | Name of Component  | 
+|`node_name` | Name of Node   |
+|`component_auth` | Auth Name |
