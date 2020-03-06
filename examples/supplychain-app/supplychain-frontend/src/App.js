@@ -101,7 +101,7 @@ class App extends Component {
   getRole(){
     api.getRole((data)=>{
       console.log(data.organizationUnit)
-      this.setState({role:data.organizationUnit})
+      this.setState({role:data.organizationUnit.charAt(0).toUpperCase() + data.organizationUnit.slice(1)})
     })
   }
 
