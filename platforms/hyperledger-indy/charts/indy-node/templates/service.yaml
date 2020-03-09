@@ -9,12 +9,19 @@ metadata:
     {{ $.Values.ambassador.annotations  | nindent 6 }}
   {{ end }}
 spec:
+  type: {{ $.Values.service.type }}
   ports:
   - name: indy-node-node
     port: {{ $.Values.service.ports.nodePort }}
     targetPort: {{ $.Values.service.ports.nodeTargetPort }}
+    {{ if eq $.Values.service.type "NodePort" }}
+    nodePort: {{ $.Values.service.ports.nodeTargetPort }}
+    {{ end }}
   - name: indy-node-client
     port: {{ $.Values.service.ports.clientPort }}
     targetPort: {{ $.Values.service.ports.clientTargetPort }}
+    {{ if eq $.Values.service.type "NodePort" }}
+    nodePort: {{ $.Values.service.ports.clientTargetPort }}
+    {{ end }}
   selector:
     app: "{{ $.Values.metadata.name }}"

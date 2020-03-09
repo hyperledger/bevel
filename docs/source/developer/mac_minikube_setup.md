@@ -14,6 +14,14 @@ Add minikube executable to your path:  `sudo mv minikube /usr/local/bin`
 
 Let’s confirm the minikube was installed correctly by starting your first cluster:<br/> `minikube start`
 
+*NOTE:* Minikube uses port in range 30000-32767. If you would like to change it, use command bellow:
+
+`minikube start --extra-config=apiserver.service-node-port-range=15000-20000`
+
+*NOTE:* For increase memory of virtual machine of Minikube, use command bellow:
+
+`minikube start --memory 4096`
+
 And now we will check the status: `minikube status`. You should see an output that looks similar to this:
 
 ```
@@ -37,6 +45,10 @@ export PATH=$GOPATH/bin:$PATH
 
 Once you set the GOPATH environment variable, follow the installation guide for [Hashicorp Vault](https://www.vaultproject.io/docs/install/#precompiled-binaries).<br/><br/>
 
+For getting URL address of Vault in minikube, use command bellow:
+
+`minikube service vault --url`
+
 ## Install Ansible using PIP
 
 The recommended method for installing Ansible is to use pip, see    [Ansible instruction](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#latest-releases-via-pip).
@@ -49,8 +61,31 @@ Add a file called hosts and copy the contents from this [page](https://github.co
 
 
 
-You do not need to install Ambassador in a Dev environment. 
+You do not need to install Ambassador in a Dev environment.
 
+## Install Kubernetes module into Ansible
+
+The recommended module for Ansible is Kubernetes.
+When you have installed Ansible on you Mac, then you install Kubernetes module via pip.
+
+`pip install openshift --user`
+
+or if you use python3, then you use command bellow:
+
+`python3 -m pip install openshift --user`
+
+## Install other prerequisites
+
+### GNU Tar
+Some Ansible roles use Tar for unpack packages. Mac OSX has installed Tar, but the roles use GNU version of Tar tool.
+Use `brew` tool for installation:
+
+`brew install gnu-tar`
+### JQ
+Some Ansible roles use JQ for parsing JSONs and read fields of the JSON objects.
+You need install JQ tool via `brew` tool.
+
+`brew install jq`
 
 ## Editing the network configuration file
 
@@ -74,6 +109,11 @@ k8s:
    context: "minikube"
    config_file: "/Users/username/.kube/config" 
 ```
+
+## Gettin IP address of Minikube for organizations nodes
+If you need public address for nodes in your `network.yaml` file, you can use command bellow:
+
+`minikube ip`
 
  ## Potential issues when using Ansible playbook to setup DLT Network on OSX
 
