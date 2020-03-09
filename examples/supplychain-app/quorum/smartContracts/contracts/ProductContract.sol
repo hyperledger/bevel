@@ -5,6 +5,7 @@ import "./Permission.sol";
 contract ProductContract is Permission {
 
     address potentialCustodian;
+    uint256 public containerless = 0;
 
     struct Product {
         string trackingID;
@@ -12,34 +13,36 @@ contract ProductContract is Permission {
         string health;
         bool sold;
         bool recalled;
-        address custodian; // Who currently owns the product
+        // Who currently owns the product
+        address custodian;
         uint256 timestamp;
         string lastScannedAt;
         string containerID;
+        string[] misc;
         //participants array stores potential custodian addresses
-        address[] participants;
+        string[] participants;
+    }
+
+    struct Transaction {
+        //string  trackingID;
+        address custodian;
+        string lastScannedAt;
+        uint256 timestamp;
     }
 
     /**
-    *@dev array of all the products created, the key begins at 0
+    *@dev array of all the products created
     */
     Product[] public allProducts;
     string[] public productKeys;
 
     mapping(string => Product) productSupplyChain;
-    mapping(string => uint256) public trackingIDtoProductID;
-    mapping (uint => string) public productIDtoTrackingID;
-    // miscellaneous is a map of messages where tracking ID is the key
-    mapping(string => string) public miscellaneous;
+    mapping(string => Transaction[]) public history;
 
-    modifier onlyCustodian(uint _productID) {
-        require(allProducts[_productID].custodian == msg.sender,"This action must be performed by the current custodian");
-        _;
-      }
+    event locationEvent(string trackingID, string location);
+    event sendTrackingID(string);
+    event productHistoryEvent(string trackingID, address custodian, string lastScannedAt, uint256 timestamp);
 
-    event productAdded (string ID);
-    event sendArray (Product[] array);
-    event sendProduct(Product product);
     /**
     *@return a new product
     *@dev Only if the caller is the manufacturer. Sold and Recall values are set to false and containerID is "" when a product is newly created.
@@ -48,111 +51,147 @@ contract ProductContract is Permission {
         string memory _productName,
         string memory _health,
         //FIXME: Update to an array of key --> value pairs
-        string memory _misc,
+        string[] memory _misc,
         string memory _lastScannedAt,
-        address[] memory _participants
-        ) public onlyOwner() returns (Product memory) {
+        string[] memory _participants
+        ) public onlyManufacturer() returns (Product memory) {
         require(bytes(productSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: product with this tracking ID already exists");
-        uint256 _timestamp = now;
+        uint256 _timestamp = block.timestamp;
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
-        address custodian = msg.sender;
+        address _custodian = msg.sender;
+        //getContainerless counter
+        containerless += 1;
+
+       // history[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
 
         Product memory newProduct = Product(_trackingID,
             _productName,
             _health,
             _sold,
             _recalled,
-            custodian,
+            _custodian,
             _timestamp,
             _lastScannedAt,
             containerID,
+            _misc,
             _participants);
         allProducts.push(newProduct);
         productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
-        uint productID = allProducts.length - 1;
 
-        trackingIDtoProductID[_trackingID] = productID;
-        productIDtoTrackingID[productID] = _trackingID;
+        Transaction memory newTransaction = Transaction(_custodian,_lastScannedAt,_timestamp);
+        history[_trackingID].push(newTransaction);
 
-        // use trackingID as the key to view string value.
-        miscellaneous[_trackingID] = _misc;
-        //calls an internal function and appends the custodian to the product using the trackingID
-        addCounterParties(productID,custodian);
-        emit productAdded(_trackingID);
-        emit sendProduct(newProduct);
+        /*history[_trackingID].custodian = _custodian;
+        history[_trackingID].lastScannedAt = _lastScannedAt;
+        history[_trackingID].timestamp = _timestamp;*/
+
+
+        emit sendTrackingID(_trackingID);
+        emit productHistoryEvent(_trackingID, _custodian, _lastScannedAt, _timestamp);
+        return newProduct;
     }
 
     //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
     *@dev updates the custodian of the product using the trackingID
     */
-    function addCounterParties(uint _productID, address _custodian) internal{
-        allProducts[_productID].participants.push(_custodian);
+
+    function getProductsLength() public view returns (uint) {
+        return allProducts.length;
     }
-    /**
-    *@return all products
-    */
-    function getAllProducts() public returns(Product[] memory) {
-        delete allProducts;
-        for(uint i = 0; i < productKeys.length; i++){
-            string memory trackingID = productKeys[i];
-            allProducts.push(productSupplyChain[trackingID]);
-        }
-        emit sendArray(allProducts);
+
+    function getProductAt(uint index) public view returns (Product memory) {
+        string memory trackingID = productKeys[index-1];
+        return productSupplyChain[trackingID];
     }
 
      /**
     *@dev You must be the current custodian to call this function
     */
-    function updateCustodian(uint _productID,
-                            address _newCustodian,
-                            string memory _longLatsCoordinates )
-                            public onlyCustodian(_productID) returns(bool){
-        uint participantsCount = allProducts[_productID].participants.length;
-        for(uint i = 0; i < participantsCount; i ++){
-            if(_newCustodian == allProducts[_productID].participants[i]){
-                allProducts[_productID].timestamp = now;
-                allProducts[_productID].lastScannedAt = _longLatsCoordinates;
-                allProducts[_productID].custodian = _newCustodian;
-                return true;// incase another smart contract is calling this function
-            }
-        } revert("The new custodian is not a participant");
+
+function addressToString(address _addr) internal pure returns(string memory) {
+    bytes32 value = bytes32(uint256(_addr));
+    bytes memory alphabet = "0123456789abcdef";
+
+    bytes memory str = new bytes(42);
+    str[0] = '0';
+    str[1] = 'x';
+    for (uint i = 0; i < 20; i++) {
+        str[2+i*2] = alphabet[uint(uint8(value[i + 12] >> 4))];
+        str[3+i*2] = alphabet[uint(uint8(value[i + 12] & 0x0f))];
     }
-   
+    return string(str);
+}
+
+function _toLower(string memory str) internal pure returns (string memory) {
+		bytes memory bStr = bytes(str);
+		bytes memory bLower = new bytes(bStr.length);
+		for (uint i = 0; i < bStr.length; i++) {
+			// Uppercase character...
+			if ((uint8(bStr[i]) >= 65) && (uint8(bStr[i]) <= 90)) {
+				// So we add 32 to make it lowercase
+				bLower[i] = bytes1(uint8(bStr[i]) + 32);
+			} else {
+				bLower[i] = bStr[i];
+			}
+		}
+		return string(bLower);
+	}
+
+    function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
+        require(bytes(productSupplyChain[_productID].trackingID).length > 0, "HTTP 404"); //product exists in supply chain
+        require(bytes(productSupplyChain[_productID].containerID).length <= 0, "HTTP 404"); //product containerid is ""
+
+        address newCustodian;
+        string memory ourAddress = addressToString(msg.sender);
+        bool isParticipant = false;
+        string memory _trackingID;
+
+        for(uint i = 0; i < productSupplyChain[_productID].participants.length; i++ ){
+            string memory participant = _toLower(productSupplyChain[_productID].participants[i]);
+            if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) {
+                newCustodian = msg.sender;
+                _trackingID = productSupplyChain[_productID].trackingID;
+                isParticipant = true;
+            }
+        }
+        require(isParticipant, "HTTP 404: your identity is not in particiapnt list");
+
+        uint256 _timestamp = block.timestamp;
+        productSupplyChain[_productID].custodian = msg.sender;
+        productSupplyChain[_productID].lastScannedAt = longLat;
+        history[_trackingID].push(Transaction(newCustodian, longLat, _timestamp));
+
+        emit sendTrackingID(_productID);
+        emit productHistoryEvent(_trackingID, newCustodian, longLat, _timestamp);
+
+    }
+
    // returns a single product using tracking ID
    /**
     * @return one product
     */
-    function getSingleProduct(string memory _trackingID) public returns(Product memory) {
+    function getSingleProduct(string memory _trackingID) public view returns(Product memory) {
         require(bytes(productSupplyChain[_trackingID].trackingID).length > 0, "HTTP 400 product does not exist");
-        emit sendProduct(productSupplyChain[_trackingID]);
+        return productSupplyChain[_trackingID];
     }
 
     /**
-    *@dev returns a single product using the product ID
+    *@dev The containerID gets updated in productSupplyChain when a product gets added to a container.
+    *The getContainerlessAt function will get called to iterate though the allProduct array to get the trackingID of each product
+    *Then it lookups that product using the productSupplyChain map.
+    *It converts the string containerID into bytes and compares it to see if it is empty
+    * if it's empty, the product will be returned.
     */
-    function getProduct(uint _productID) public view returns (Product memory){
-        return allProducts[_productID];
-    }
-
-    /**
-    * gets all the products from the allProduct array that have empty containerID
-    * puts them in a new array called containerlessProducts
-    * containerlessProducts stores all products that are containerless and waiting to be packaged
-    */
-    function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
-        uint containerlessCounter = 0;
-        for(uint i = 0; i < allProducts.length; i ++){
-            bytes memory containerIDLength = bytes(allProducts[i].containerID);
-            if(containerIDLength.length == 0){
-                Product memory containerless = allProducts[i];
-                containerlessProducts[containerlessCounter] = containerless;
-                containerlessCounter += 1;
-            }
+    function getContainerlessAt (uint256 index) public view returns(Product memory){
+        string memory containerlessTrackingID;
+        containerlessTrackingID = allProducts[index].trackingID;
+        bytes memory containerIDLength = bytes(productSupplyChain[containerlessTrackingID].containerID);
+        if(containerIDLength.length == 0){
+            return productSupplyChain[containerlessTrackingID];
         }
-        return containerlessProducts;
     }
 }
