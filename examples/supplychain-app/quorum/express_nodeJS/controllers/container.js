@@ -185,7 +185,7 @@ router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res)
 // PUT for package trackable
 router.put("/:trackingID/package", function(req, res){
 	let trackable = {
-		containerID: req.params.trackingID,
+		containerID: req.params.containerID,
 		trackingID: req.body.trackingID
 	};
 	productContract.methods

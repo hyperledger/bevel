@@ -27,6 +27,9 @@ contract ContainerContract is ProductContract {
     string[] public containerKeys;
     Container[] public allContainers;
     mapping(string => Container) containerSupplyChain;
+    mapping(string => Transaction[]) containerHistory;
+
+    //event containerHistory(address custodian, string lastScannedAt, uint256 timestamp);
 
     /**
     * @return a new container
@@ -49,6 +52,10 @@ contract ContainerContract is ProductContract {
         containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
 
+        containerHistory[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
+
+
+        //emit containerHistory(_custodian, _lastScannedAt, _timestamp);
         return containerSupplyChain[_trackingID];
     }
 
@@ -86,14 +93,24 @@ contract ContainerContract is ProductContract {
             string memory participant = _toLower(containerSupplyChain[_containerID].participants[i]);
             if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
         }
-        require(isParticipant, "HTTP 404: your identity is not in particiapnt list");
+        require(isParticipant, "HTTP 404: your identity is not in participant list");
 
         containerSupplyChain[_containerID].custodian = msg.sender;
+        string memory _trackingID = containerSupplyChain[_containerID].trackingID;
+
         for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
             if (bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
                 productSupplyChain[containerSupplyChain[_containerID]
                     .containerContents[i]]
                     .custodian = msg.sender;
+                uint256 _timestamp = block.timestamp;
+                address _custodian = msg.sender;
+                string memory _lastScannedAt = containerSupplyChain[_containerID].lastScannedAt;
+                containerHistory[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
+
+
+                    //emit containerHistory(_custodian, _lastScannedAt, _timestamp);
+
             } else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
                 updateContainerCustodian(
                     containerSupplyChain[_containerID].containerContents[i]
@@ -167,6 +184,4 @@ contract ContainerContract is ProductContract {
             }
         }
     }
-
-
 }

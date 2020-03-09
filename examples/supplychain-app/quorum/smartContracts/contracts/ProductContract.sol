@@ -5,6 +5,7 @@ import "./Permission.sol";
 contract ProductContract is Permission {
 
     address potentialCustodian;
+    uint256 public containerless = 0;
 
     struct Product {
         string trackingID;
@@ -12,26 +13,35 @@ contract ProductContract is Permission {
         string health;
         bool sold;
         bool recalled;
-        address custodian; // Who currently owns the product
+        // Who currently owns the product
+        address custodian;
         uint256 timestamp;
         string lastScannedAt;
         string containerID;
-        string[] misc; //
+        string[] misc;
         //participants array stores potential custodian addresses
         string[] participants;
     }
 
-    event sendTrackingID(string);
+    struct Transaction {
+        //string  trackingID;
+        address custodian;
+        string lastScannedAt;
+        uint256 timestamp;
+    }
 
     /**
-    *@dev array of all the products created, the key begins at 0
+    *@dev array of all the products created
     */
     Product[] public allProducts;
     string[] public productKeys;
 
     mapping(string => Product) productSupplyChain;
+    mapping(string => Transaction[]) public history;
 
     event locationEvent(string trackingID, string location);
+    event sendTrackingID(string);
+    event productHistoryEvent(string trackingID, address custodian, string lastScannedAt, uint256 timestamp);
 
     /**
     *@return a new product
@@ -46,18 +56,22 @@ contract ProductContract is Permission {
         string[] memory _participants
         ) public onlyManufacturer() returns (Product memory) {
         require(bytes(productSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: product with this tracking ID already exists");
-        uint256 _timestamp = now;
+        uint256 _timestamp = block.timestamp;
         bool _sold = false;
         bool _recalled = false;
         string memory containerID = "";
-        address custodian = msg.sender;
+        address _custodian = msg.sender;
+        //getContainerless counter
+        containerless += 1;
+
+       // history[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
 
         Product memory newProduct = Product(_trackingID,
             _productName,
             _health,
             _sold,
             _recalled,
-            custodian,
+            _custodian,
             _timestamp,
             _lastScannedAt,
             containerID,
@@ -66,7 +80,17 @@ contract ProductContract is Permission {
         allProducts.push(newProduct);
         productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
+
+        Transaction memory newTransaction = Transaction(_custodian,_lastScannedAt,_timestamp);
+        history[_trackingID].push(newTransaction);
+
+        /*history[_trackingID].custodian = _custodian;
+        history[_trackingID].lastScannedAt = _lastScannedAt;
+        history[_trackingID].timestamp = _timestamp;*/
+
+
         emit sendTrackingID(_trackingID);
+        emit productHistoryEvent(_trackingID, _custodian, _lastScannedAt, _timestamp);
         return newProduct;
     }
 
@@ -117,22 +141,33 @@ function _toLower(string memory str) internal pure returns (string memory) {
 		return string(bLower);
 	}
 
-function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
+    function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
         require(bytes(productSupplyChain[_productID].trackingID).length > 0, "HTTP 404"); //product exists in supply chain
         require(bytes(productSupplyChain[_productID].containerID).length <= 0, "HTTP 404"); //product containerid is ""
 
+        address newCustodian;
         string memory ourAddress = addressToString(msg.sender);
         bool isParticipant = false;
+        string memory _trackingID;
 
         for(uint i = 0; i < productSupplyChain[_productID].participants.length; i++ ){
             string memory participant = _toLower(productSupplyChain[_productID].participants[i]);
-            if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
+            if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) {
+                newCustodian = msg.sender;
+                _trackingID = productSupplyChain[_productID].trackingID;
+                isParticipant = true;
+            }
         }
         require(isParticipant, "HTTP 404: your identity is not in particiapnt list");
 
+        uint256 _timestamp = block.timestamp;
         productSupplyChain[_productID].custodian = msg.sender;
         productSupplyChain[_productID].lastScannedAt = longLat;
+        history[_trackingID].push(Transaction(newCustodian, longLat, _timestamp));
+
         emit sendTrackingID(_productID);
+        emit productHistoryEvent(_trackingID, newCustodian, longLat, _timestamp);
+
     }
 
    // returns a single product using tracking ID
@@ -145,20 +180,18 @@ function updateCustodian(string memory _productID, string memory longLat ) publi
     }
 
     /**
-    * gets all the products from the allProduct array that have empty containerID
-    * puts them in a new array called containerlessProducts
-    * containerlessProducts stores all products that are containerless and waiting to be packaged
+    *@dev The containerID gets updated in productSupplyChain when a product gets added to a container.
+    *The getContainerlessAt function will get called to iterate though the allProduct array to get the trackingID of each product
+    *Then it lookups that product using the productSupplyChain map.
+    *It converts the string containerID into bytes and compares it to see if it is empty
+    * if it's empty, the product will be returned.
     */
-    function getContainerlessProduct () public view returns(Product[5] memory containerlessProducts){
-        uint containerlessCounter = 0;
-        for(uint i = 0; i < allProducts.length; i ++){
-            bytes memory containerIDLength = bytes(allProducts[i].containerID);
-            if(containerIDLength.length == 0){
-                Product memory containerless = allProducts[i];
-                containerlessProducts[containerlessCounter] = containerless;
-                containerlessCounter += 1;
-            }
+    function getContainerlessAt (uint256 index) public view returns(Product memory){
+        string memory containerlessTrackingID;
+        containerlessTrackingID = allProducts[index].trackingID;
+        bytes memory containerIDLength = bytes(productSupplyChain[containerlessTrackingID].containerID);
+        if(containerIDLength.length == 0){
+            return productSupplyChain[containerlessTrackingID];
         }
-        return containerlessProducts;
     }
 }
