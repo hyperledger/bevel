@@ -56,7 +56,7 @@ Complete the following steps to download and configure BAF repository on your lo
    ```
 1. Checkout the develop branch. 
    ```bash
-   cd blockchain-automation-framwork
+   cd blockchain-automation-framework
    git checkout develop
    ```
 

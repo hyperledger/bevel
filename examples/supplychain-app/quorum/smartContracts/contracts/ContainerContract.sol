@@ -14,7 +14,7 @@ contract ContainerContract is ProductContract {
 
     struct Container {
         string health;
-        string misc;
+        string[] misc;
         address custodian; //who currently owns the product
         string lastScannedAt;
         string trackingID;
@@ -27,11 +27,9 @@ contract ContainerContract is ProductContract {
     string[] public containerKeys;
     Container[] public allContainers;
     mapping(string => Container) containerSupplyChain;
+    mapping(string => Transaction[]) containerHistory;
 
-    event containerAdded (string);
-    event sendArray (Container[]);
-    event sendObject(Container);
-    event sendString(string);
+    //event containerHistory(address custodian, string lastScannedAt, uint256 timestamp);
 
     /**
     * @return a new container
@@ -39,11 +37,11 @@ contract ContainerContract is ProductContract {
     */
     function addContainer(
         string memory _health,
-        string memory _misc,
+        string[] memory _misc,
         string memory _trackingID,
         string memory _lastScannedAt,
         string[] memory _counterparties
-    ) public returns (string memory) {
+    ) public returns (Container memory) {
         require(bytes(containerSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: Container with this tracking ID already exists");
         uint256 _timestamp = block.timestamp;
         address _custodian = msg.sender;
@@ -54,51 +52,72 @@ contract ContainerContract is ProductContract {
         containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
 
-        emit containerAdded(_trackingID);
-        emit sendObject(containerSupplyChain[_trackingID]);
+        containerHistory[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
+
+
+        //emit containerHistory(_custodian, _lastScannedAt, _timestamp);
+        return containerSupplyChain[_trackingID];
     }
 
     /**
     * @return all containers in the containerSupplyChain[] array
     */
-    function getAllContainers() public returns(Container[] memory) {
-        delete allContainers;
-        for(uint i = 0; i < containerKeys.length; i++){
-            string memory trackingID = containerKeys[i];
-            allContainers.push(containerSupplyChain[trackingID]);
-        }
-        emit sendArray(allContainers);
+    function getContainersLength() public view returns (uint) {
+        return containerKeys.length;
+    }
+
+    function getContainerAt(uint index) public view returns (Container memory) {
+        string memory trackingID = containerKeys[index-1];
+        return containerSupplyChain[trackingID];
     }
 
     /**
     * @return one container by trackingID
     */
-    function getSingleContainer(string memory _trackingID) public returns (Container memory) {
-        if(bytes(containerSupplyChain[_trackingID].trackingID).length > 0) emit sendObject(containerSupplyChain[_trackingID]);
-        else emit sendString("No container exists with that tracking ID");
+    function getSingleContainer(string memory _trackingID) public view returns (Container memory) {
+        require(bytes(containerSupplyChain[_trackingID].trackingID).length > 0, "HTTP 400 product does not exist");
         return containerSupplyChain[_trackingID];
     }
 
     /**
     * return container with updated custodian
     */
-    function updateContainerCustodian(string memory _containerID) public {
+    function updateContainerCustodian(string memory _containerID) public returns(string memory){
         require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 404");
         require(bytes(containerSupplyChain[_containerID].containerID).length <= 0, "HTTP 404");
 
+        string memory ourAddress = addressToString(msg.sender);
+        bool isParticipant = false;
+
+        for(uint i = 0; i < containerSupplyChain[_containerID].participants.length; i++ ){
+            string memory participant = _toLower(containerSupplyChain[_containerID].participants[i]);
+            if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
+        }
+        require(isParticipant, "HTTP 404: your identity is not in participant list");
+
         containerSupplyChain[_containerID].custodian = msg.sender;
+        string memory _trackingID = containerSupplyChain[_containerID].trackingID;
+
         for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
             if (bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
                 productSupplyChain[containerSupplyChain[_containerID]
                     .containerContents[i]]
                     .custodian = msg.sender;
+                uint256 _timestamp = block.timestamp;
+                address _custodian = msg.sender;
+                string memory _lastScannedAt = containerSupplyChain[_containerID].lastScannedAt;
+                containerHistory[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
+
+
+                    //emit containerHistory(_custodian, _lastScannedAt, _timestamp);
+
             } else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
                 updateContainerCustodian(
                     containerSupplyChain[_containerID].containerContents[i]
                 );
             }
         }
-        emit sendObject(containerSupplyChain[_containerID]);
+        return containerSupplyChain[_containerID].trackingID;
     }
 
     /**
@@ -165,6 +184,4 @@ contract ContainerContract is ProductContract {
             }
         }
     }
-
-
 }

@@ -17,6 +17,31 @@
     msp_path: "./build/crypto-config/ordererOrganizations/{{ component_name }}/msp"
   when: vault_msp_result.failed == False
 
+- name: Check if orderer tls already created
+  shell: |
+    vault kv get -field=ca.crt secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_tls_result
+  ignore_errors: yes
+
+# Ensure tls directory is present in build
+- name: Ensure tls directory exists
+  file:
+    path: "./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls"
+    recurse: yes
+    state: directory
+  when: vault_tls_result.failed == False
+
+- name: Get Orderer tls crt
+  shell: |
+    vault kv get -field=ca.crt secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls > ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/ca.crt
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_tls_result.failed == False
+
 ############################################################################################
 # This task creates directory path on CA Tools CLI
 - name: Create directory path on CA Tools
