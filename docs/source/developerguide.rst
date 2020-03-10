@@ -8,7 +8,7 @@ Quickstart Guides
    :maxdepth: 1
    
    developer/dev_prereq
-   developer/mac_minikube_setup
+   developer/baf_minikube_setup
    developer/docker-build
 
 Additional Developer prerequisites
