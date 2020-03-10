@@ -48,7 +48,6 @@ contract ProductContract is Permission {
     function addProduct(string memory _trackingID,
         string memory _productName,
         string memory _health,
-        //FIXME: Update to an array of key --> value pairs
         string[] memory _misc,
         string memory _lastScannedAt,
         string[] memory _participants
@@ -61,8 +60,6 @@ contract ProductContract is Permission {
         address _custodian = msg.sender;
         //getContainerless counter
         containerless += 1;
-
-       // history[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
 
         Product memory newProduct = Product(_trackingID,
             _productName,
@@ -100,10 +97,6 @@ contract ProductContract is Permission {
         return productSupplyChain[trackingID];
     }
 
-     /**
-    *@dev You must be the current custodian to call this function
-    */
-
 function addressToString(address _addr) internal pure returns(string memory) {
     bytes32 value = bytes32(uint256(_addr));
     bytes memory alphabet = "0123456789abcdef";
@@ -132,6 +125,10 @@ function _toLower(string memory str) internal pure returns (string memory) {
 		}
 		return string(bLower);
 	}
+
+    /**
+    *@dev You must be the current custodian to call this function
+    */
 
     function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
         require(bytes(productSupplyChain[_productID].trackingID).length > 0, "HTTP 404"); //product exists in supply chain
