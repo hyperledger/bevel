@@ -49,7 +49,9 @@
    ```bash
    git config --global core.autocrlf false
    ```
+   
 1. If not, update the EOL to LF for platforms/hyperledger-fabric/scripts/*.sh files.
+
 1. Execute following to correctly set docker environment.
    ```bash
    eval $('docker-machine.exe' env)
