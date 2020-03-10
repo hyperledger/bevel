@@ -194,6 +194,7 @@ router.put('/:trackingID/custodian', function (req, res) {
   var trackingID = req.params.trackingID;
   var longLatCoordinates = req.body.longLatCoordinates;
   console.log(trackingID);
+  console.log(longLatCoordinates);
   productContract.methods
     .updateCustodian(trackingID, longLatCoordinates)
     .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
