@@ -48,7 +48,7 @@ The roles included in the file are as follows.
 * Check if Indy  auth job pod for endorser is completed
 * Check if Indy  auth job pod for baf-ac is completed
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/auth_job/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/auth_job) for detailed information.
 
 ## **check/crypto**
 
@@ -60,7 +60,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Check stewards in vault
 * Check endorser in vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/crypto/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/crypto) for detailed information.
 
 ## **check/k8_component**
 
@@ -71,7 +71,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Get a ServiceAccount token for {{ component_name }}
 * Store Token
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/k8_component/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/k8_component) for detailed information.
 
 ## **check/validation**
 
@@ -115,7 +115,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Endorser vault policy and role generating
 * baf-ac vault policy and role generating
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/auth_job/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/auth_job) for detailed information.
 
 ## **create/helm_component/crypto**
 #### This role create the job value file for creating Hyperledger Indy Crypto
@@ -125,7 +125,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Stewards crypto generating
 * Endorser crypto generating
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/crypto/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/crypto) for detailed information.
 
 ## **create/helm_component/domain_genesis**
 #### This role create the config map value file for storing domain genesis for Indy cluster.
@@ -134,7 +134,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Generate domain genesis for organization
 * create value file for {{ component_name }} {{ component_type }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/domain_genesis/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/domain_genesis) for detailed information.
 
 ## **create/helm_component/ledger_txn**
 #### This role create the job value file for Indy NYM ledger transactions
@@ -144,7 +144,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Get identity data from vault
 * create value file for {{ new_component_name }} {{ component_type }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/ledger_txn/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/ledger_txn) for detailed information.
 
 ## **create/helm_component/node**
 #### This role creates value file for Helm Release of stewards.
@@ -152,7 +152,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Ensures {{ release_dir }}/{{ component_name }} dir exists
 * create value file for {{ component_name }} {{ component_type }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/node/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/node) for detailed information.
 
 ## **create/helm_component/pool_genesis**
 
@@ -160,7 +160,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Generate pool genesis for organization
 * create value file for {{ component_name }} {{ component_type }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/pool_genesis/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/helm_component/pool_genesis) for detailed information.
 
 ## **create/imagepullsecret**
 #### This role creates secret in Kubernetes for pull docker images from repository.
@@ -168,7 +168,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Check for ImagePullSecret for {{ organization }}
 * Create the docker pull registry secret for {{ component_ns }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/imagepullsecret/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/imagepullsecret) for detailed information.
 
 ## **create/k8_component**
 #### This role create value file for kubernetes component by inserted type.
@@ -176,7 +176,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Ensures {{ component_type_name }} dir exists
 * create {{ component_type }} file for {{ component_type_name }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/k8_component/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/k8_component) for detailed information.
 
 ## **create/namespace**
 
@@ -184,7 +184,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create namespaces
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/namespace/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/namespace) for detailed information.
 
 ## **create/serviceaccount/by_identities**
 
@@ -196,7 +196,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create cluster role binding for {{ component_name }}
 * Create admin cluster role binding for {{ component_name }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/serviceaccount/by_identities/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/serviceaccount/by_identities) for detailed information.
 
 
 ## **create/serviceaccount/main**
@@ -213,14 +213,14 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Waiting for organization accounts and cluster binding roles
 * Waiting for organization read only account and cluster binding role
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/serviceaccount/main/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/serviceaccount/main) for detailed information.
 
 ## **create/serviceaccount/waiting**
 
 * Wait for creation for service account
 * Wait for creation for cluster role binding
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/serviceaccount/waiting/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/serviceaccount/waiting) for detailed information.
 
 ## **create/storageclass**
 
@@ -229,7 +229,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Push the created deployment files to repository
 * Wait for Storageclass creation for {{ component_name }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/storageclass/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/storageclass) for detailed information.
 
 ## **setup/auth_job**
 
@@ -238,7 +238,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Push the created deployment files to repository
 * Check if auth job finished correctly
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/auth_job/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/auth_job) for detailed information.
 
 ## **setup/crypto**
 
@@ -248,7 +248,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Push the created deployment files to repository
 * Check Vault for Indy crypto
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/crypto/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/crypto) for detailed information.
 
 ## **setup/domain_genesis**
 
@@ -257,7 +257,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Wait until domain genesis configmap are created
 
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/domain_genesis/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/domain_genesis) for detailed information.
 
 
 ## **setup/endorsers**
@@ -269,7 +269,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Calling Helm Release Development Role...
 * Push the created deployment files to repository
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/endorsers/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/endorsers) for detailed information.
 
 ## **setup/node**
 
@@ -279,7 +279,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Push the created deployment files to repository
 * Wait until steward pods are running
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/node/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/node) for detailed information.
 
 ## **setup/pool_genesis**
 
@@ -287,7 +287,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Push the created deployment files to repository
 * Wait until pool genesis configmap are created
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis) for detailed information.
 
 ## **setup/vault_kubernetes**
 
@@ -302,4 +302,4 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Write Policy to Vault
 * Create Vault auth role
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/vault_kubernetes/README.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/vault_kubernetes) for detailed information.
