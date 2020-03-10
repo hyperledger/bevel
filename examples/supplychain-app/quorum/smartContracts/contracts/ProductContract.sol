@@ -24,7 +24,6 @@ contract ProductContract is Permission {
     }
 
     struct Transaction {
-        //string  trackingID;
         address custodian;
         string lastScannedAt;
         uint256 timestamp;
@@ -41,7 +40,6 @@ contract ProductContract is Permission {
 
     event locationEvent(string trackingID, string location);
     event sendTrackingID(string);
-    event productHistoryEvent(string trackingID, address custodian, string lastScannedAt, uint256 timestamp);
 
     /**
     *@return a new product
@@ -50,7 +48,6 @@ contract ProductContract is Permission {
     function addProduct(string memory _trackingID,
         string memory _productName,
         string memory _health,
-        //FIXME: Update to an array of key --> value pairs
         string[] memory _misc,
         string memory _lastScannedAt,
         string[] memory _participants
@@ -63,8 +60,6 @@ contract ProductContract is Permission {
         address _custodian = msg.sender;
         //getContainerless counter
         containerless += 1;
-
-       // history[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
 
         Product memory newProduct = Product(_trackingID,
             _productName,
@@ -84,13 +79,7 @@ contract ProductContract is Permission {
         Transaction memory newTransaction = Transaction(_custodian,_lastScannedAt,_timestamp);
         history[_trackingID].push(newTransaction);
 
-        /*history[_trackingID].custodian = _custodian;
-        history[_trackingID].lastScannedAt = _lastScannedAt;
-        history[_trackingID].timestamp = _timestamp;*/
-
-
         emit sendTrackingID(_trackingID);
-        emit productHistoryEvent(_trackingID, _custodian, _lastScannedAt, _timestamp);
         return newProduct;
     }
 
@@ -107,10 +96,6 @@ contract ProductContract is Permission {
         string memory trackingID = productKeys[index-1];
         return productSupplyChain[trackingID];
     }
-
-     /**
-    *@dev You must be the current custodian to call this function
-    */
 
 function addressToString(address _addr) internal pure returns(string memory) {
     bytes32 value = bytes32(uint256(_addr));
@@ -141,6 +126,10 @@ function _toLower(string memory str) internal pure returns (string memory) {
 		return string(bLower);
 	}
 
+    /**
+    *@dev You must be the current custodian to call this function
+    */
+
     function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
         require(bytes(productSupplyChain[_productID].trackingID).length > 0, "HTTP 404"); //product exists in supply chain
         require(bytes(productSupplyChain[_productID].containerID).length <= 0, "HTTP 404"); //product containerid is ""
@@ -166,8 +155,6 @@ function _toLower(string memory str) internal pure returns (string memory) {
         history[_trackingID].push(Transaction(newCustodian, longLat, _timestamp));
 
         emit sendTrackingID(_productID);
-        emit productHistoryEvent(_trackingID, newCustodian, longLat, _timestamp);
-
     }
 
    // returns a single product using tracking ID

@@ -7,7 +7,6 @@ contract ContainerContract is ProductContract {
     /**
     * @dev stores the account address of the where this contract is deployed on in a variable called manufacturer
     */
-    //TODO is this used? Delete if replaced by permission.sol/productManufacturer
     address containerManufacturer;
 
     uint256 public count = 0;
@@ -15,7 +14,8 @@ contract ContainerContract is ProductContract {
     struct Container {
         string health;
         string[] misc;
-        address custodian; //who currently owns the product
+        //who currently owns the product
+        address custodian;
         string lastScannedAt;
         string trackingID;
         uint256 timestamp;
@@ -28,8 +28,6 @@ contract ContainerContract is ProductContract {
     Container[] public allContainers;
     mapping(string => Container) containerSupplyChain;
     mapping(string => Transaction[]) containerHistory;
-
-    //event containerHistory(address custodian, string lastScannedAt, uint256 timestamp);
 
     /**
     * @return a new container
@@ -52,10 +50,9 @@ contract ContainerContract is ProductContract {
         containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
 
-        containerHistory[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
+        Transaction memory newTransaction = Transaction(_custodian,_lastScannedAt,_timestamp);
+        containerHistory[_trackingID].push(newTransaction);
 
-
-        //emit containerHistory(_custodian, _lastScannedAt, _timestamp);
         return containerSupplyChain[_trackingID];
     }
 
@@ -107,9 +104,6 @@ contract ContainerContract is ProductContract {
                 address _custodian = msg.sender;
                 string memory _lastScannedAt = containerSupplyChain[_containerID].lastScannedAt;
                 containerHistory[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
-
-
-                    //emit containerHistory(_custodian, _lastScannedAt, _timestamp);
 
             } else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
                 updateContainerCustodian(

@@ -28,16 +28,28 @@ contract General is ContainerContract {
     /**
     * @return a list of objects with the location, timestamp of custodian change, and new custodian
     */
-    //TODO implement location history
-    function getHistoryLength(string memory trackingID) public view returns(uint) {
-       uint total = history[trackingID].length;
-       return total;
+    function getHistoryLength(string memory _trackingID) public view returns(uint) {
+        uint total = history[_trackingID].length;
+        uint containertotal = containerHistory[_trackingID].length;
 
-       /* for(uint i =0; i < history[trackingID].length; i++){
-
-        } */
+        if(total > 0 ){
+            return total;
+        }
+        else if(containertotal > 0 ){
+            return containertotal;
+        }
     }
+
+    /**
+    * @return an array of transactions for that trackingID, regardless if it is a container or product
+    */
     function getHistory(uint index, string memory _trackingID)public view returns(Transaction memory){
-        return(history[_trackingID][index]);
+
+        if(history[_trackingID].length > 0){
+            return(history[_trackingID][index]);
+        }
+        else if(containerHistory[_trackingID].length > 0){
+            return(containerHistory[_trackingID][index]);
+        }
     }
 }
