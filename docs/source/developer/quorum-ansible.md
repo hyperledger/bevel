@@ -48,7 +48,7 @@ This role calls for ambassador certificate creation for each node.
 * Putting certs to vault
 * Check Ambassador cred exists
 * Create the Ambassador credentials
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/quorum/configuration/roles/create/certificates/ambassador/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/certificates/ambassador/Readme.md) for detailed information.
 
 ## **create/crypto/constellation**
 
@@ -59,7 +59,7 @@ This role creates crypto for constellation.
 * Generate Crypto for constellation
 * Copy the crypto into vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/constellation/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/constellation/Readme.md ) for detailed information.
 
 ## **create/crypto/ibft**
 
