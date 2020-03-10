@@ -52,8 +52,8 @@ contract ContainerContract is ProductContract {
         containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
 
-        containerHistory[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
-
+        Transaction memory newTransaction = Transaction(_custodian,_lastScannedAt,_timestamp);
+        containerHistory[_trackingID].push(newTransaction);
 
         //emit containerHistory(_custodian, _lastScannedAt, _timestamp);
         return containerSupplyChain[_trackingID];

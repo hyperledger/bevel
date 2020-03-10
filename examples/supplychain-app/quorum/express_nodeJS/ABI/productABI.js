@@ -24,37 +24,6 @@ let productABI = [
       {
         "indexed": false,
         "internalType": "string",
-        "name": "trackingID",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "custodian",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "lastScannedAt",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "productHistoryEvent",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "string",
         "name": "",
         "type": "string"
       }
@@ -568,11 +537,6 @@ let productABI = [
     "name": "history",
     "outputs": [
       {
-        "internalType": "string",
-        "name": "trackingID",
-        "type": "string"
-      },
-      {
         "internalType": "address",
         "name": "custodian",
         "type": "address"
@@ -948,37 +912,6 @@ let productABI = [
       }
     ],
     "name": "locationEvent",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "trackingID",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "custodian",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "lastScannedAt",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "productHistoryEvent",
     "type": "event"
   },
   {
@@ -1756,11 +1689,6 @@ let productABI = [
     "name": "history",
     "outputs": [
       {
-        "internalType": "string",
-        "name": "trackingID",
-        "type": "string"
-      },
-      {
         "internalType": "address",
         "name": "custodian",
         "type": "address"
@@ -1913,7 +1841,7 @@ let productABI = [
     "inputs": [
       {
         "internalType": "string",
-        "name": "trackingID",
+        "name": "_trackingID",
         "type": "string"
       }
     ],
@@ -1946,11 +1874,6 @@ let productABI = [
     "outputs": [
       {
         "components": [
-          {
-            "internalType": "string",
-            "name": "trackingID",
-            "type": "string"
-          },
           {
             "internalType": "address",
             "name": "custodian",
@@ -2044,37 +1967,6 @@ let productABI = [
       }
     ],
     "name": "locationEvent",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "trackingID",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "custodian",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "lastScannedAt",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "productHistoryEvent",
     "type": "event"
   },
   {
@@ -2177,11 +2069,6 @@ let productABI = [
     ],
     "name": "history",
     "outputs": [
-      {
-        "internalType": "string",
-        "name": "trackingID",
-        "type": "string"
-      },
       {
         "internalType": "address",
         "name": "custodian",
