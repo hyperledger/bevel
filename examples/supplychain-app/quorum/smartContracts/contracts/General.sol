@@ -7,6 +7,7 @@ contract General is ContainerContract {
 
     event sendString(string);
 
+
     /**
     * @return whether a tracking ID is owned and if so whether the scanning user is the owner
     */
@@ -24,9 +25,19 @@ contract General is ContainerContract {
             return("{'status': 'unowned'}");
         }
     }
-
     /**
     * @return a list of objects with the location, timestamp of custodian change, and new custodian
     */
     //TODO implement location history
+    function getHistoryLength(string memory trackingID) public view returns(uint) {
+       uint total = history[trackingID].length;
+       return total;
+
+       /* for(uint i =0; i < history[trackingID].length; i++){
+
+        } */
+    }
+    function getHistory(uint index, string memory _trackingID)public view returns(Transaction memory){
+        return(history[_trackingID][index]);
+    }
 }
