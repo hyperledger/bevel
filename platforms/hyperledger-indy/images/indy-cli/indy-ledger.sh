@@ -91,8 +91,17 @@ indy-cli indy_txn.txt > txn_result.txt;
 if grep -Fxq "Following NYM has been received." txn_result.txt
 then
 	echo "Transaction Successful, NYM has been received";
-	exit 0
 else
 	echo "Transaction Failed";
 	exit 1
+fi
+
+# It parses a output of indy-cli. It reads values of columns Desc(did), verkey and role for correct check.
+file=$(cat txn_result.txt)
+if [[ ${file} =~ \|[[:space:]]([[:alnum:]]*)[[:space:]]\|[[:space:]](${identity_did})[[:space:]]\|[[:space:]](${identity_verkey})[[:space:]]\|[[:space:]](${identity_role})[[:space:]]\| ]]; then
+  echo "Role [${identity_role}] successfuly created."
+  exit 0
+else
+  echo "Transaction Failed."
+  ecit 1
 fi
