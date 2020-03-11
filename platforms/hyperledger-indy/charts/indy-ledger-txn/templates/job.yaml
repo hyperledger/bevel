@@ -19,11 +19,11 @@ spec:
       restartPolicy: OnFailure
       serviceAccountName: "{{ $.Values.vault.serviceAccountName }}"
       imagePullSecrets:
-        - name: "{{ $.Values.image.pullSecret }}"
+        - name: "{{ $.Values.image.cli.pullSecret }}"
       volumes:
-        - name: {{ $.Values.metadata.name }}-pool-transactions-genesis
+        - name: {{ $.Values.organization.name }}-ptg
           configMap:
-            name: {{ $.Values.metadata.name }}-ptg
+            name: {{ $.Values.organization.name }}-ptg
         - name: shared-data
           emptyDir:
             medium: Memory
@@ -43,14 +43,11 @@ spec:
            fi
           }
 
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo $KUBE_SA_TOKEN;
+          KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
           # Login to Vault to get an approle token
-          VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/indy-ns-auth/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
+          curl --request POST --data '{"jwt": "'"${KUBE_TOKEN}"'", "role": "{{ $.Values.vault.role }}"}' ${VAULT_ADDR}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
+          VAULT_TOKEN=$(cat token);
           validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
           QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$ADMIN_PATH/$ADMIN_NAME/identity/private | jq -r 'if .errors then . else . end')
           validateVaultResponse 'Admin Seed' "${QUERY_RES}"
@@ -66,13 +63,13 @@ spec:
           - name: VAULT_ADDR
             value: "{{ $.Values.vault.address }}"
           - name: ADMIN_PATH
-            value: "{{ $.Values.organization.name.adminIdentity.path }}"
+            value: "{{ $.Values.organization.adminIdentity.path }}"
           - name: ADMIN_NAME
-            value: "{{ $.Values.organization.name.adminIdentity.name }}"
+            value: "{{ $.Values.organization.adminIdentity.name }}"
           - name: IDENTITY_NAME
-            value:  "{{ $.Values.organization.name.newIdentity.name }}"
+            value:  "{{ $.Values.organization.newIdentity.name }}"
           - name: IDENTITY_PATH
-            value: "{{ $.Values.organization.name.newIdentity.path }}"
+            value: "{{ $.Values.organization.newIdentity.path }}"
         volumeMounts:
           - name: shared-data
             mountPath: /data
@@ -86,7 +83,7 @@ spec:
         - |-
           apt-get install curl -y
 
-          ADMIN_SEED=$( cat /data/adminseed.txt)
+          ADMIN_SEED=$( cat /data/seed/adminseed.txt)
           echo "Running ledger Transaction Script...";
 
           ./home/indy-ledger.sh $ADMIN_DID $ADMIN_SEED $IDENTITY_DID $IDENTITY_ROLE $IDENTITY_VERKEY $POOL_GENESIS_PATH;
@@ -99,17 +96,17 @@ spec:
           - name: VAULT_ADDR
             value: "{{ $.Values.vault.address }}"
           - name: ADMIN_DID
-            value: "{{ $.Values.organization.name.adminIdentity.did }}"
+            value: "{{ $.Values.organization.adminIdentity.did }}"
           - name: IDENTITY_DID
-            value:  "{{ $.Values.organization.name.newIdentity.did }}"
+            value:  "{{ $.Values.organization.newIdentity.did }}"
           - name: IDENTITY_ROLE
-            value: "{{ $.Values.organization.name.newIdentity.role }}"
+            value: "{{ $.Values.organization.newIdentity.role }}"
           - name: IDENTITY_VERKEY
-            value: "{{ $.Values.organization.name.newIdentity.verkey }}"
+            value: "{{ $.Values.organization.newIdentity.verkey }}"
           - name: POOL_GENESIS_PATH
             value: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
         volumeMounts:
-          - name: {{ $.Values.metadata.name }}-pool-transactions-genesis
+          - name: {{ $.Values.organization.name }}-ptg
             mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
             subPath: pool_transactions_genesis
           - name: shared-data
