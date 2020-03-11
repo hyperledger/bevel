@@ -56,7 +56,8 @@
    ```bash
    eval $('docker-machine.exe' env)
    ```
-1. Mount windows local folder (blockchain-automation-framework folder) to VirtualBox docker VM ( the machine named “default” by default) from right-click menu, Settings -> Shared Folders. All paths in network.yaml should be the mounted path.
+<a name = "windows_mount"></a>
+1. Mount windows local folder (blockchain-automation-framework folder) to VirtualBox docker VM ( the machine named “default” by default) from right-click menu, Settings -> Shared Folders. All paths in network.yaml should be the mounted path. Shut down and restart the "default" machine after this.
 
    ![](./../_static/virtualbox-mountfolder.png)
 
@@ -102,6 +103,10 @@
 Run the following command to deploy BAF Fabric on minikube
 ```bash
 docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+```
+Windows users should use following (make sure that the local volume was mounted as per [this step](#windows_mount)):
+```bash
+docker run -it -v /blockchain-automation-framework:/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
 ```
 
 ---
