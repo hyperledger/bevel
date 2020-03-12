@@ -133,7 +133,7 @@ spec:
       keystoresecretprefix: {{ component_name }}/credentials/keystore
       certsecretprefix: {{ component_name }}/certs
       networkmapsecretprefix: {{ component_name }}/credentials/networkmappassword
-      cordappsreposecretprefix: {{ component_name }}/credentials/userpass
+      cordappsreposecretprefix: {{ component_name }}/credentials/cordapps
 
           
     healthcheck:
