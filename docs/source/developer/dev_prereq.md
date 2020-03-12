@@ -27,6 +27,10 @@ To use Git, you need to install the software on your local machine.
    git config user.name
    git config user.email
    ```
+1. Windows users should additionally execute the following so that the EOLs are not updated to Windows CRLF.
+   ```bash
+   git config --global core.autocrlf false
+   ```
    
 ## Setting up Github
 *Estimated Time: 5 minutes*
@@ -48,10 +52,10 @@ Complete the following steps to download and configure BAF repository on your lo
    eval "$(ssh-agent)"
    ssh-add ~/.ssh/gitops
    ```
-1. Create a `project` directory and clone the forked repostory to your local machine.
+1. Create a `project` directory in your home directory and clone the forked repostory to your local machine.
    ```bash
-   mkdir project
-   cd project
+   mkdir ~/project
+   cd ~/project
    git clone git@github.com:<githubuser>/blockchain-automation-framework.git
    ```
 1. Checkout the develop branch. 
@@ -69,6 +73,11 @@ command from a terminal prompt:
 ```bash
 docker --version
 ```
+---
+
+**NOTE:** For Windows, it is recommended to use Docker Toolbox with VirtualBox. Do not use Docker for Windows wih HyperV.
+
+---
 
 ## Setting up HashiCorp Vault
 *Estimated Time: 15 minutes*
@@ -77,11 +86,16 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
 1. To install the precompiled binary, [download](https://www.vaultproject.io/downloads/) the appropriate package for your system. 
 1. Once the zip is downloaded, unzip it into any directory. The `vault` binary inside is all that is necessary to run Vault (or `vault.exe` for Windows). Any additional files, if any, aren't required to run Vault.
 
-1. Create a directory `project/bin` and copy the binary there. Add `project/bin` directory to your `PATH`.
+1. Create a directory `project/bin` and copy the binary there. Add `project/bin` directory to your `PATH`. Run following fron git bash.
+   ```
+   mkdir ~/project/bin
+   mv vault.exe ~/project/bin
+   export PATH=~/project/bin:$PATH
+   ```
 1. Create a `config.hcl` file in the `project` directory with the following contents (use a file path in the `path` attribute which exists on your local machine)
    ```
    storage "file" {
-      path    = "/project/vault"
+      path    = "~/project/data"
    }
    ui = true
    listener "tcp" {
@@ -96,7 +110,7 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
 1. Open browser at [http://localhost:8200/](http://localhost:8200/). And initialize the Vault by providing your choice of key shares and threshold. (below example uses 1)
 ![](./../_static/vault-init.png)
 1. Click **Download Keys** or copy the keys, you will need them. Then click **Continue to Unseal**. Provide the unseal key first and then the root token to login.
-1. In a new terminal, execute the following (assuming `vault` is in your `PATH`)
+1. In a new terminal, execute the following (assuming `vault` is in your `PATH`, replace `VAULT_TOKEN` with your token)
    ```bash
    export VAULT_ADDR='http://127.0.0.1:8200'
    export VAULT_TOKEN="s.XmpNPoi9sRhYtdKHaQhkHP6x"
@@ -108,8 +122,8 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
 
 For development environment, minikube can be used as the Kubernetes cluster on which the DLT network will be deployed.
 
-1. Follow platform specific [instructions](https://kubernetes.io/docs/tasks/tools/install-minikube/) to install minikube on your local machine. Also install [Virtualbox](https://www.virtualbox.org/wiki/Downloads) as the Hypervisor.
-1. minikube is also a binary, so move it into your `project/bin` directory as it is already added to `PATH`.
+1. Follow platform specific [instructions](https://kubernetes.io/docs/tasks/tools/install-minikube/) to install minikube on your local machine. Also install [Virtualbox](https://www.virtualbox.org/wiki/Downloads) as the Hypervisor. (If you already have **HyperV** it should be removed or disabled.)
+1. minikube is also a binary, so move it into your `~/project/bin` directory as it is already added to `PATH`.
 1. Configure minikube to use 4GB memory and default kubernetes version
    ```bash
    minikube config set memory 4096
@@ -129,3 +143,9 @@ For development environment, minikube can be used as the Kubernetes cluster on w
    minikube stop
    ```
 Now your development environment is ready!
+
+---
+**NOTE:** Minikube uses port in range 30000-32767. If you would like to change it, use the following command: 
+```
+minikube start --vm-driver=virtualbox --extra-config=apiserver.service-node-port-range=15000-20000
+```
