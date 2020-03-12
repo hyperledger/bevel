@@ -84,6 +84,18 @@ spec:
         - name: {{ component_name|e }}operations
           permissions: [ALL]
 
+{% if cordapps_details|length %}
+    cordapps:
+      getcordapps: true
+      jars:
+        {% for jars in cordapps.jars %}
+- url: {{ jars.jar.url }}
+        {% endfor %}
+{% else %}
+    cordapps:
+      getcordapps: false
+{% endif %}
+
     volume:
       baseDir: /base/corda
     resources:
@@ -121,6 +133,7 @@ spec:
       keystoresecretprefix: {{ component_name }}/credentials/keystore
       certsecretprefix: {{ component_name }}/certs
       networkmapsecretprefix: {{ component_name }}/credentials/networkmappassword
+      cordappsreposecretprefix: {{ component_name }}/credentials/cordapps
 
           
     healthcheck:
