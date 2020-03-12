@@ -207,8 +207,8 @@ For cordapps fields the snapshot from the sample configuration file with the exa
         - jar:
             # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
             url: 
-        username: "repository_username"
-        password: "repository_password"
+        username: "cordapps_repository_username"
+        password: "cordapps_repository_password"
 ```
 
 The `cordapps` optional field under each organization contains
@@ -216,8 +216,8 @@ The `cordapps` optional field under each organization contains
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | jars        | Contains list of jars with jar URL that needs to fetched and put into organisation nodes    |
-| username                             | Repository username |
-| password                             | Repository password |
+| username                             | Cordapps Repository username |
+| password                             | Cordapps Repository password |
 
 The services field for each organization under `organizations` section of Corda contains list of `services` which could be doorman/nms/notary/peers
 
