@@ -159,6 +159,12 @@ For development environment, minikube can be used as the Kubernetes cluster on w
    ```
    Now your development environment is ready!
 
+**NOTE:** Minikube uses port in range 30000-32767. If you would like to change it, use the following command:
+
+```bash
+minikube start --vm-driver=virtualbox --extra-config=apiserver.service-node-port-range=15000-20000
+```
+
 ## Troubleshooting
 
 At Step 5, if you get the following error:
