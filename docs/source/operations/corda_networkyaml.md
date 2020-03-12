@@ -135,6 +135,7 @@ Each organization under the `organizations` section has the following fields.
 | k8s                                         | Kubernetes cluster deployment variables.|
 | vault                                       | Contains Hashicorp Vault server address and root-token in the example |
 | gitops                                      | Git Repo details which will be used by GitOps/Flux. |
+| cordapps (optional)                         | Cordapps Repo details which will be used to store/fetch cordapps jar |
 | services                                    | Contains list of services which could be peers/doorman/nms/notary | 
 
 
@@ -195,6 +196,28 @@ The `gitops` field under each organization contains
 | email                                | Email of the user to be used in git config                                                                       |
 | private_key                          | Path to the private key file which has write-access to the git repo                                              |
 
+For cordapps fields the snapshot from the sample configuration file with the example values is below
+```yaml
+      # Cordapps Repository details (optional use if cordapps jar are store in a repository)
+      cordapps:
+        jars: 
+        - jar:
+            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
+            url: 
+        - jar:
+            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
+            url: 
+        username: "cordapps_repository_username"
+        password: "cordapps_repository_password"
+```
+
+The `cordapps` optional field under each organization contains
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| jars        | Contains list of jars with jar URL that needs to fetched and put into organisation nodes    |
+| username                             | Cordapps Repository username |
+| password                             | Cordapps Repository password |
 
 The services field for each organization under `organizations` section of Corda contains list of `services` which could be doorman/nms/notary/peers
 
