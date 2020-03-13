@@ -165,3 +165,13 @@ kubectl get pods --all-namespaces -w
 ---
 
 **NOTE:** If you need public address for nodes in your `network.yaml` file, you can use the output of `minikube ip`.
+
+## Troubleshooting
+
+**`Failed to establish a new connection: [Errno 111] Connection refused`**
+
+This is because you have re-created minikube but have not updated K8s `config` file. Repeat _"Update kubeconfig file"_ steps 3 - 4 and try again.
+
+**`kubernetes.config.config_exception.ConfigException: File does not exists: /Users/.minikube/ca.crt`**
+
+This is because you have not removed the absolute paths to the certificates in `config` file. Repeat _"Update kubeconfig file"_ step 4 and try again.
