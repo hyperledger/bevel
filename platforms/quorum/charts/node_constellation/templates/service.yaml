@@ -19,12 +19,14 @@ metadata:
       name: {{ .Values.node.name }}-rpc
       port: {{ .Values.proxy.rpcport }}
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
+      {{- if eq $.Values.node.consensus "raft" }}
       ---
       apiVersion: ambassador/v1
       kind: TCPMapping
       name: {{ .Values.node.name }}-raft
       port: {{ .Values.proxy.portRaft }}
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.raft }}
+      {{- end }}
       ---
       apiVersion: ambassador/v1
       kind: TCPMapping
@@ -47,10 +49,12 @@ spec:
     protocol: TCP
     port: {{ .Values.node.ports.rpc }}
     targetPort: {{ .Values.node.ports.rpc }}
+{{- if eq $.Values.node.consensus "raft" }}
   - name: raft
     protocol: TCP
     port: {{ .Values.node.ports.raft }}
     targetPort: {{ .Values.node.ports.raft }}
+{{- end }}
   - name: tm-manager
     protocol: TCP
     port: {{ .Values.node.ports.constellation }}
