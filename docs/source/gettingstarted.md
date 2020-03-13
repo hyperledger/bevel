@@ -14,8 +14,9 @@ After installation of the [prerequisites](./prerequisites.md), some of them will
 ## Update Configuration File
 Once all the prerequisites have been configured, it is time to update the Blockchain Automation Framework configuration file. Depending on your platform of choice, there can be some differences in the configuration file. Please follow platform specific links below to learn more on updating the configuration file.
 * [R3 Corda Configuration File](./operations/corda_networkyaml.md)
-
 * [Hyperledger Fabric Configuration File](./operations/fabric_networkyaml.md)
+* [Hyperledger Indy Configuration File](./operations/indy_networkyaml.md)
+* [Quorum Configuration File](./operations/quorum_networkyaml.md)
 
 
 ## Deploy the Network
