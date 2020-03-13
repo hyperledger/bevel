@@ -59,8 +59,8 @@ spec:
 {% for tm_node in network.config.tm_nodes %}
         - url: {{ tm_node }}
 {% endfor %}
-      tls: {{ network.config.tm_tls | upper }}
-      trust: {{ network.config.tm_trust | upper }}
+      tls: "{{ network.config.tm_tls | upper }}"
+      trust: "{{ network.config.tm_trust | upper }}"
     genesis: {{ genesis }}
     staticnodes:
 {% if network.config.consensus == 'ibft' %}
