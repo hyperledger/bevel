@@ -171,7 +171,7 @@ For gitops fields the snapshot from the sample configuration file with the examp
 ```yaml
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
-        git_ssh: "git@github.com:<username>/blockchain-automation-framework.git" # Gitops ssh url for flux value files
+        git_ssh: "git@github.com/<username>/blockchain-automation-framework.git" # Gitops ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"      # Relative Path where the Helm charts are stored in Git repo

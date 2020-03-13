@@ -90,23 +90,21 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
    ```yaml
    docker:
      url: "index.docker.io/hyperledgerlabs"
-     username: “<your docker username>"
+     username: "<your docker username>"
      password: "<your docker password/token>"
    ```
-1. For each `organization`, update the following: (there are 3 organizations in this sample network.yaml)
+1. For each `organization`, update the following: (there are 3 organizations in this sample network.yaml; leave all other values as it is)
 
    ```yaml
    vault:
-     url: http://<Your Vault server address>:8200 (Use the local IP address rather than localhost)
-     root_token: <your vault_root_token>
+     url: "http://<Your Vault server address>:8200" (Use the local IP address rather than localhost)
+     root_token: "<your vault_root_token>"
    gitops:
-     git_ssh: <ssh url of your forked repo>
-     branch: "develop"
-     git_push_url: <https url of your forked repo without the https://)
+     git_ssh: "<ssh url of your forked repo>"   #like "ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
+     git_push_url: "<https url of your forked repo without the https://>" #like "github.com/hyperledger-labs/blockchain-automation-framework.git"
      username: "<github_username>"
      password: "<github token/password>"
      email: "<github_email>"
-     private_key: "/home/blockchain-automation-framework/build/gitops"
    ```
 
 ---
@@ -167,3 +165,13 @@ kubectl get pods --all-namespaces -w
 ---
 
 **NOTE:** If you need public address for nodes in your `network.yaml` file, you can use the output of `minikube ip`.
+
+## Troubleshooting
+
+**`Failed to establish a new connection: [Errno 111] Connection refused`**
+
+This is because you have re-created minikube but have not updated K8s `config` file. Repeat _"Update kubeconfig file"_ steps 3 - 4 and try again.
+
+**`kubernetes.config.config_exception.ConfigException: File does not exists: /Users/.minikube/ca.crt`**
+
+This is because you have not removed the absolute paths to the certificates in `config` file. Repeat _"Update kubeconfig file"_ step 4 and try again.
