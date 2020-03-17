@@ -208,8 +208,10 @@ spec:
            --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
-          - containerPort: {{ .Values.node.ports.raft }}
           - containerPort: {{ .Values.node.ports.quorum }}
+          {{- if eq $.Values.node.consensus "raft" }}
+          - containerPort: {{ .Values.node.ports.raft }}
+          {{- end }}
         env:
           - name: PRIVATE_CONFIG
             value: {{ .Values.node.mountPath }}/tm/tm.ipc

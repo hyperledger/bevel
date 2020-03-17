@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "71276df3-530e-4b7e-8e31-2561fae4ac62",
+		"_postman_id": "e65221ed-041a-4025-908e-55ed3f99b466",
 		"name": "SupplyChainTest",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -234,7 +234,14 @@
 					"script": {
 						"id": "16e6f0c8-0ec6-43c5-9873-a21b715b13b0",
 						"exec": [
-							""
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"var jsonData = pm.response.json();",
+							"const container = pm.environment.get(\"containerID\");",
+							"pm.test(\"Check correct container is created\", function () {",
+							"    pm.expect(jsonData.generatedID).to.eql(container);",
+							"});"
 						],
 						"type": "text/javascript"
 					}
@@ -449,7 +456,14 @@
 					"script": {
 						"id": "14145b9d-2cd8-4c4c-be9f-6c2234e4dc6e",
 						"exec": [
-							""
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"var jsonData = pm.response.json();",
+							"const product = pm.environment.get(\"productID\");",
+							"pm.test(\"Check correct product is created\", function () {",
+							"    pm.expect(jsonData.generatedID).to.eql(product);",
+							"});"
 						],
 						"type": "text/javascript"
 					}
@@ -657,6 +671,10 @@
 						"exec": [
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
+							"});",
+							"const container = pm.environment.get(\"containerID\");",
+							"pm.test(\"Response has containerID\", function () {",
+							"    pm.response.to.have.body(container);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -874,6 +892,10 @@
 						"exec": [
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
+							"});",
+							"const container = pm.environment.get(\"containerID\");",
+							"pm.test(\"Response has containerID\", function () {",
+							"    pm.response.to.have.body(container);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -976,6 +998,10 @@
 						"exec": [
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
+							"});",
+							"const container = pm.environment.get(\"containerID\");",
+							"pm.test(\"Response has containerID\", function () {",
+							"    pm.response.to.have.body(container);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -1123,7 +1149,7 @@
 			"response": []
 		},
 		{
-			"name": "History",
+			"name": "Container History",
 			"event": [
 				{
 					"listen": "test",
@@ -1167,6 +1193,99 @@
 						"api",
 						"v1",
 						"{{containerID}}",
+						"history"
+					]
+				},
+				"description": "Method to see tracking history of an item as it was modified and what time ownership changed (in milliseconds from some root time like Jan 1990 or something)"
+			},
+			"response": [
+				{
+					"name": "History of item created at A, moved to B, and moved to A again",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/v1/9e029d9d-c3e8-4b74-96e9-14250aecdf2f/history",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"9e029d9d-c3e8-4b74-96e9-14250aecdf2f",
+								"history"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json;charset=UTF-8"
+						},
+						{
+							"key": "Content-Length",
+							"value": "214"
+						},
+						{
+							"key": "Date",
+							"value": "Thu, 07 Feb 2019 18:52:46 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "[\n    {\n        \"party\": \"O=PartyA, L=London, C=GB\",\n        \"time\": 1549565435354\n    },\n    {\n        \"party\": \"O=PartyB, L=New York, C=US\",\n        \"time\": 1549565524382\n    },\n    {\n        \"party\": \"O=PartyA, L=London, C=GB\",\n        \"time\": 1549565561769\n    }\n]"
+				}
+			]
+		},
+		{
+			"name": "Product History",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7899d4fc-29e5-4304-9f14-85a62ca0964e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"var array = pm.response.json();",
+							"console.log(array);",
+							"pm.test(\"Check there are 3 timestamps\", function () {",
+							"    pm.expect(array.length).to.eql(3);",
+							"});",
+							"",
+							"pm.test(\"Check for Manufacturer\", function () {",
+							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"manufacturerID\"));",
+							"});",
+							"pm.test(\"Check for Carrier\", function () {",
+							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"carrierID\"));",
+							"});",
+							"pm.test(\"Check for Warehouse\", function () {",
+							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"warehouseID\"));",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{manufacturer-host}}/api/v1/{{productID}}/history",
+					"protocol": "https",
+					"host": [
+						"{{manufacturer-host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"{{productID}}",
 						"history"
 					]
 				},

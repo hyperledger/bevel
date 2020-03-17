@@ -55,9 +55,9 @@ spec:
     constellation:
       url: {{ network.config.tm_nodes }}
       storage: "bdb:/etc/quorum/qdata/database"
-      tls: {{ network.config.tm_tls }}
+      tls: "{{ network.config.tm_tls }}"
       othernodes: {{ network.config.tm_nodes }}
-      trust: {{ network.config.tm_trust }}
+      trust: "{{ network.config.tm_trust }}"
     proxy:
       provider: "ambassador"
       external_url_suffix: {{ external_url }}
