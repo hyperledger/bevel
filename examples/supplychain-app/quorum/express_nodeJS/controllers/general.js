@@ -1,7 +1,7 @@
 var express = require('express')
   , router = express.Router();
 
-const {productContract, fromAddress} = require('../web3services');
+const {productContract, fromAddress, fromNodeOrganization, fromNodeOrganizationUnit} = require('../web3services');
 var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require('body-parser');
@@ -10,28 +10,14 @@ router.use(bodyParser.json()); // for parsing application/json
 
 router.get('/node-organization', function (req, res) {
 
-  // TODO: Implement get self organization
-  // getSelf()
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  res.send({organization:fromNodeOrganization})
+  
 })
 
 router.get('/node-organizationUnit', function (req, res) {
 
-  // TODO: Implement get organization unit
-  // getRole()
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
+  res.send({organizationUnit:fromNodeOrganizationUnit})
+
 })
 
 router.get('/:trackingID/scan', function (req, res) {
@@ -48,15 +34,37 @@ router.get('/:trackingID/scan', function (req, res) {
 })
 
 router.get('/:trackingID/history', function (req, res) {
-  // TODO: Implement location history
-  // locationHistory(req.params.trackingID)
-  // .then( response => {
-  //   res.send(response)
-  // })
-  // .catch(error => {
-  //   console.log(error)
-  //   res.send("error")
-  // })
-})
+  //TODO: Implement location history
+
+  var transactionCount;
+  var trackingID = req.params.trackingID;
+  console.log(trackingID); ///
+  var allTransaction = [];
+  productContract.methods
+    .getHistoryLength(req.params.trackingID)
+    .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .then(async response => {
+       transactionCount = response;
+       console.log("LENGTH ", transactionCount);
+    
+      //transactionCount = 5;
+      for (var i = 1; i <= transactionCount; i++) { 
+        var toPush = await productContract.methods
+          .getHistory((i - 1), trackingID)
+          .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+          var history = {};
+          history.custodian = toPush.custodian,
+          history.lastScannedAt = toPush.lastScannedAt,
+          history.timestamp = toPush.timestamp,
+          allTransaction.push(history);
+          //console.log[trackingID][0];
+    }
+    res.send(allTransaction)
+  })
+  .catch(error => {
+    console.log(error);
+    res.send("error");
+  });
+});
 
   module.exports = router

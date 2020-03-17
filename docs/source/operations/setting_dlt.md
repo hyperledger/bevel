@@ -6,7 +6,7 @@ Ansible playbooks are used to set up a DLT network. For this, [Ansible host and 
 | [Hyperledger-Fabric](./fabric_networkyaml.md)|
 | [R3-Corda](./corda_networkyaml.md) 
 | [ Hyperledger-Indy](./indy_networkyaml.md)
-| [Quorum] |
+| [Quorum](./quorum_networkyaml.md) |
 
 
 ## Executing Ansible playbook to setup DLT network

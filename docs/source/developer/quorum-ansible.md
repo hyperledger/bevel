@@ -48,7 +48,7 @@ This role calls for ambassador certificate creation for each node.
 * Putting certs to vault
 * Check Ambassador cred exists
 * Create the Ambassador credentials
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/quorum/configuration/roles/create/certificates/ambassador/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/certificates/ambassador) for detailed information.
 
 ## **create/crypto/constellation**
 
@@ -59,7 +59,7 @@ This role creates crypto for constellation.
 * Generate Crypto for constellation
 * Copy the crypto into vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/constellation/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/constellation) for detailed information.
 
 ## **create/crypto/ibft**
 
@@ -70,7 +70,7 @@ This role creates crypto for ibft.
 * Generate enode url for each node and create a geth account and keystore
 * Copy the crypto material to Vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/ibft/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/ibft) for detailed information.
 
 ## **create/crypto/raft**
 
@@ -81,7 +81,7 @@ This role creates crypto for raft.
 * Generate crypto for raft consensus
 * Copy the crypto material to Vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/raft/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/raft) for detailed information.
 
 ## **create/crypto/tessera**
 
@@ -94,7 +94,7 @@ This role creates crypto for tessera.
 * Generate node tm keys
 * Copy the crypto material to Vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/tessera/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/tessera) for detailed information.
 
 ## **create/crypto/tessera**
 
@@ -110,7 +110,7 @@ This role creates genesis nodekey.
 * Rename the directories created above with the elements of validator_node_list
  * Delete the numbered directories
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/genesis_nodekey/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/genesis_nodekey) for detailed information.
 
 ## **create/k8_component**
 
@@ -119,7 +119,7 @@ This role creates deployment files for nodes, namespace storageclass, service ac
 * create {{ component_type }} file for {{ component_name }}
 * Helm lint
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/k8_component/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/k8_component) for detailed information.
 
 ## **create/namespace_serviceaccount**
 
@@ -131,7 +131,7 @@ This role creates the deployment files for namespaces, vault-auth, vault-reviewe
 * Create clusterrolebinding for {{ organisation }}
 * Push the created deployment files to repository
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/namespace_serviceaccount/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/namespace_serviceaccount) for detailed information.
 
 
 ## **create/storageclass**
@@ -142,7 +142,7 @@ This role creates value files for storage class
 * Push the created deployment files to repository
 * Wait for Storageclass creation for {{ component_name }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/storageclass/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/storageclass) for detailed information.
 
 ## **create/tessera**
 
@@ -152,7 +152,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Get enode_data
 * Get validator node data
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/tessera/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/tessera) for detailed information.
 
 ## **helm_component**
 
@@ -161,7 +161,7 @@ This role generates the value file for the helm releases.
 * create value file for {{ component_name }}
 * Helm lint
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/helm_component/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/helm_component) for detailed information.
 
 
 ## **setup/bootnode**
@@ -174,7 +174,7 @@ This role is used to setup bootnode.
 * Create bin directory
 * Copy bootnode binary to destination directory
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/bootnode/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/bootnode) for detailed information.
 
 ## **setup/constellation-node**
 
@@ -187,7 +187,7 @@ This role is used to setup constellation-node.
 * Create the bin directory
 * This task puts the constellation-node binary into the bin directory
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/constellation-node/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/constellation-node) for detailed information.
 
 ## **setup/get_crypto**
 
@@ -198,7 +198,7 @@ This role saves the crypto from Vault into ansible_provisioner.
 * Save root keychain
 * Extracting root certificate from .jks
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/get_crypto/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/get_crypto) for detailed information.
 
 ## **setup/geth**
 
@@ -209,7 +209,7 @@ This role setups geth.
 * Create bin directory
 * Copy geth binary to destination directory
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/geth/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/geth) for detailed information.
 
 ## **setup/istanbul**
 
@@ -221,7 +221,7 @@ This role setups instanbul.
 * Create bin directory
 * Copy istanbul binary to destination directory
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/istanbul/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/istanbul) for detailed information.
 
 ## **setup/vault_kubernetes**
 
@@ -240,7 +240,7 @@ This role setups communication between the vault and kubernetes cluster and inst
 * Create Vault auth role
 * Create the docker pull credentials
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/vault_kubernetes/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/vault_kubernetes) for detailed information.
 
 ## **delete/flux_releases**
 
@@ -252,7 +252,7 @@ This role deletes the helm releases and uninstalls Flux
 * Remove node helm releases
 * Deletes namespaces
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/flux_releases/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/flux_releases) for detailed information.
 
 ## **delete/gitops_files**
 
@@ -262,7 +262,7 @@ This role deletes all the gitops release files
 * Delete release files (namespaces)
 *  Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/gitops_files/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/gitops_files) for detailed information.
 
 ## **delete/vault_secrets**
 
@@ -273,7 +273,7 @@ This role deletes the Vault configurations
 * Delete vault-auth path
 * Delete Crypto material 
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/vault_secrets/Readme.md) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/vault_secrets) for detailed information.
 
 ## **deploy-network.yaml**
 
