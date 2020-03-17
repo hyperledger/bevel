@@ -10,7 +10,7 @@ pipeline {
         //GIT repo links
         GITOPS_REPO="github.com/hyperledger-labs/blockchain-automation-framework.git"
         //SSH version is also needed
-        GITOPS_SSH="ssh://git@github.com:hyperledger-labs/blockchain-automation-framework.git"
+        GITOPS_SSH="ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
         //Release path for Fabric
         REL_PATH="platforms/hyperledger-fabric/releases/dev"
         //Path for charts that will be deployed

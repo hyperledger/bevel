@@ -180,7 +180,7 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_password
       gitops:
-        git_ssh: "gitops_ssh_url"                   # Gitops ssh url for flux value files like "ssh://git@github.com:hyperledger-labs/blockchain-automation-framework.git"
+        git_ssh: "gitops_ssh_url"                   # Gitops ssh url for flux value files like "ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
         branch: "gitops_branch"                     # Git branch where release is being made
         release_dir: "gitops_release_dir"           # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"               # Relative Path where the Helm charts are stored in Git repo

@@ -20,7 +20,6 @@
       kubernetes: "{{ item.k8s }}"
       gitops: "{{ item.gitops }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum'  
 
   # Create Storageclass
   - name: Create Storage Class
@@ -32,8 +31,6 @@
       org: "{{ item }}"
       kubernetes: "{{ item.k8s }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum'
-  
   
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
   - name: "Setup vault"   
@@ -47,7 +44,6 @@
       component_path: "{{ item.name | lower }}/"
       component_auth: "quorum{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum'
 
   # Generate Ambassador certificate for nodes
   - name: "Create ambassador certificates for Nodes" 
@@ -63,7 +59,6 @@
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
     loop: "{{ network['organizations']}}"
-    when: network.type == 'quorum'
 
   # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
   - name: "Generate crypto material for RAFT consensus"
@@ -75,20 +70,20 @@
       vault: "{{ item.vault }}"
       peers: "{{ item.services.peers }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum' and network.config.consensus == 'raft'
+    when: network.config.consensus == 'raft'
 
   # This role makes up the istanbul binary and place it in the bin directory
   - name: "Setup istanbul-tools"
     include_role:
       name: setup/istanbul
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum' and network.config.consensus == 'ibft'
+    when: network.config.consensus == 'ibft'
 
   # This role generates the genesis.json and nodekey/enode for all orgs of the network
   - name: "Generate genesis and nodekey/enode for the network"
     include_role:
       name: create/genesis_nodekey      
-    when: network.type == 'quorum' and network.config.consensus == 'ibft'
+    when: network.config.consensus == 'ibft'
 
   # This role generates the crypto material for quorum network based on ibft consensus and store it in vault
   - name: "Generate crypto material for IBFT consensus"
@@ -100,7 +95,7 @@
       vault: "{{ item.vault }}"
       peers: "{{ item.services.peers }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum' and network.config.consensus == 'ibft'
+    when: network.config.consensus == 'ibft'
 
   # This role generates the crypto material for quorum network based on tessera transaction manager and store it in vault
   - name: "Generate crypto material for tessera transaction manager"
@@ -112,7 +107,7 @@
       vault: "{{ item.vault }}"
       peers: "{{ item.services.peers }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum' and network.config.transaction_manager == 'tessera'
+    when: network.config.transaction_manager == 'tessera'
 
   # This role generates the crypto material for quorum network based on constellation transaction manager and store it in vault
   - name: "Generate crypto material for Constellation"
@@ -125,7 +120,7 @@
       peers: "{{ item.services.peers }}"
       version: "{{ network.config.tm_version }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum' and network.config.transaction_manager == 'constellation'
+    when: network.config.transaction_manager == 'constellation'
 
   # This role deploy nodes with Tessera transaction manager
   - name: "Deploy Tessera Transaction Manager"
@@ -146,7 +141,7 @@
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum' and network.config.transaction_manager == 'tessera'
+    when: network.config.transaction_manager == 'tessera'
     
   # This role deployes nodes with constellation transaction mananger
   - name: "Deploy Constellation Transaction Manager"
@@ -167,7 +162,7 @@
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: network.type == 'quorum' and network.config.transaction_manager == 'constellation'
+    when: network.config.transaction_manager == 'constellation'
   
   # delete build directory
   - name: Remove build directory
@@ -175,4 +170,6 @@
       path: "./build"
       state: absent
   vars: #These variables can be overriden from the command line
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
