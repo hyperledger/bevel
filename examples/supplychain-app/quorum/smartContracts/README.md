@@ -9,11 +9,13 @@ Ganache is a personal Ethereum network that allows you to test smart contracts d
 
 `npm install -g ganache-cli`
 
-1. In terminal, CD to quorum/smartContracts and run command below to start the personal network. You will see the addresses of available accounts that can be used when running the supply chain application <br>
+1. In terminal, change directory to quorum/smartContracts and run command below to start the personal network. You will see the addresses of available accounts that can be used when running the supply chain application <br>
 
-        ganache-cli -d
+        ganache-cli --allowUnlimitedContractSize --gasLimit=68219752232 
 
-2. Open the .env file in quorum/express_nodeJS/.env directory. Copy the first address generated in the Ganache-CLI and paste it in the .env file where 
+
+
+2. Open the .env file in quorum/express_nodeJS. Copy the first address generated from the Ganache-CLI and paste it in the .env file where 
 
         NODE_IDENTITY = "Enter an address"
 
@@ -36,9 +38,13 @@ Ganache is a personal Ethereum network that allows you to test smart contracts d
 
         truffle-export-abi
 
-7.  Run truffle migrate to deploy the smart contracts on the network. Copy the **contract address** of _general_contract.js and past it in the .env file 
+7.  Run truffle migrate to deploy the smart contracts on the network. 
+        
+        truffle migrate
+
+8. Copy the **contract address** of _general_contract.js and past it in the .env file
 
         #CONTRACT ADDRESS
         PRODUCT_CONTRACT_ADDRESS = "Enter address where contract is deployed from "
 
-8. Once these steps are completed, follow the guide in the express directory to start the supply chain application.
+<br> Once these steps are completed, follow the README in quorum/express directory to start the supply chain application.

@@ -157,7 +157,6 @@ router.put("/:trackingID/custodian", function(req, res) {
       .updateContainerCustodian(trackingID)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then( response => {
-        //res.send(JSON.stringify(trackingID))
         res.send(trackingID)
       })
       .catch(error => {
@@ -199,7 +198,6 @@ router.put("/:containerID/package", function(req, res){
   .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
     .on("receipt", function(receipt) {
       if (receipt.status === true) {
-        //res.send({containerID: trackable.containerID});
         res.send(trackable.containerID);
         console.log(res.send(trackable.containerID));
       }
