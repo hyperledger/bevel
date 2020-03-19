@@ -20,7 +20,6 @@ router.get("/:trackingID?", function(req, res) {
       .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
           var newContainer = response;
-          //response.events.sendObject.returnValues[0]
           var container = {};
           container.health = newContainer.health;
           container.sold = newContainer.sold;

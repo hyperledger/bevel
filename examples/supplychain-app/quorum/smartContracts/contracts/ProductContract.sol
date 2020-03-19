@@ -81,8 +81,6 @@ contract ProductContract is Permission {
         emit sendTrackingID(_trackingID);
         return newProduct;
     }
-
-    //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
     *@dev updates the custodian of the product using the trackingID
     */
