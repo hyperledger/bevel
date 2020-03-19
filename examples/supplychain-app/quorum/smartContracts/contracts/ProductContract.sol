@@ -25,7 +25,6 @@ contract ProductContract is Permission {
 
     struct Transaction {
         address custodian;
-        string lastScannedAt;
         uint256 timestamp;
     }
 
@@ -76,14 +75,12 @@ contract ProductContract is Permission {
         productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
 
-        Transaction memory newTransaction = Transaction(_custodian,_lastScannedAt,_timestamp);
+        Transaction memory newTransaction = Transaction(_custodian,_timestamp);
         history[_trackingID].push(newTransaction);
 
         emit sendTrackingID(_trackingID);
         return newProduct;
     }
-
-    //addCounterParties is a private method that updates the custodian of the product using the trackingID
     /**
     *@dev updates the custodian of the product using the trackingID
     */
@@ -132,7 +129,7 @@ function _toLower(string memory str) internal pure returns (string memory) {
 
     function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
         require(bytes(productSupplyChain[_productID].trackingID).length > 0, "HTTP 404"); //product exists in supply chain
-        require(bytes(productSupplyChain[_productID].containerID).length <= 0, "HTTP 404"); //product containerid is ""
+        //require(bytes(productSupplyChain[_productID].containerID).length <= 0, "HTTP 404"); //product containerid is ""
 
         address newCustodian;
         string memory ourAddress = addressToString(msg.sender);
@@ -147,12 +144,12 @@ function _toLower(string memory str) internal pure returns (string memory) {
                 isParticipant = true;
             }
         }
-        require(isParticipant, "HTTP 404: your identity is not in particiapnt list");
+        require(isParticipant, "HTTP 404: your identity is not in participant list");
 
         uint256 _timestamp = block.timestamp;
         productSupplyChain[_productID].custodian = msg.sender;
         productSupplyChain[_productID].lastScannedAt = longLat;
-        history[_trackingID].push(Transaction(newCustodian, longLat, _timestamp));
+        history[_trackingID].push(Transaction(newCustodian, _timestamp));
 
         emit sendTrackingID(_productID);
     }
