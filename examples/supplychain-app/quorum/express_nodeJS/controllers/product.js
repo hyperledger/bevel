@@ -1,7 +1,7 @@
 var express = require('express')
   , router = express.Router();
 
-const { productContract, fromAddress } = require('../web3services');
+const { productContract, fromAddress, fromNodeSubject } = require('../web3services');
 var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require('body-parser');
@@ -191,8 +191,10 @@ router.post('/', upload.array(), function (req, res) {
 router.put('/:trackingID/custodian', function (req, res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
+  var identityArray = fromNodeSubject.split(',');
   var trackingID = req.params.trackingID;
-  var longLatCoordinates = req.body.longLatCoordinates;
+  //var longLatCoordinates = req.body.longLatCoordinates;
+  var longLatCoordinates = identityArray[3];
   console.log(trackingID);
   console.log(longLatCoordinates);
   productContract.methods
