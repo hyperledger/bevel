@@ -1,7 +1,7 @@
 var express = require('express')
   , router = express.Router();
 
-const {productContract, fromAddress} = require('../web3services');
+const {productContract, fromAddress, fromNodeSubject} = require('../web3services');
 var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require('body-parser');
@@ -20,7 +20,6 @@ router.get("/:trackingID?", function(req, res) {
       .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
       .then(response => {
           var newContainer = response;
-          //response.events.sendObject.returnValues[0]
           var container = {};
           container.health = newContainer.health;
           container.sold = newContainer.sold;
@@ -183,20 +182,23 @@ router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res)
 });
 
 // PUT for package trackable
-router.put("/:trackingID/package", function(req, res){
+router.put("/:containerID/package", function(req, res){
 	let trackable = {
 		containerID: req.params.containerID,
-		trackingID: req.body.trackingID
-	};
+    trackingID: req.body.contents
+  };    console.log(trackable.containerID);
+  console.log(trackable.trackingID);
+
 	productContract.methods
 	.packageTrackable(
 		trackable.trackingID,
-		trackable.containerID
+    trackable.containerID,
 	)
   .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
     .on("receipt", function(receipt) {
       if (receipt.status === true) {
         res.send(trackable.containerID);
+        console.log(res.send(trackable.containerID));
       }
     })
     .on("error", function(error, receipt) {
