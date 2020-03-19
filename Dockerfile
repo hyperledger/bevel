@@ -16,6 +16,7 @@ RUN apt-get update -y && \
 	    openssh-client \
         gcc \
         git \
+        jq \
         python \
         python3-dev \
         python3-pip && \
