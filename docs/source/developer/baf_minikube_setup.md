@@ -80,8 +80,8 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 1. Choose the DLT platform you want to run and copy the relevant sample network.yaml to build folder; rename it to network.yaml.
 
    ```bash
-   $ cd ~/project/blockchain-automation-framework
-   $ cp platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml build/network.yaml
+   cd ~/project/blockchain-automation-framework
+   cp platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml build/network.yaml
    ```
 
 1. Update Docker configurations:
