@@ -124,10 +124,10 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
 1. Open browser at [http://localhost:8200/](http://localhost:8200/). And initialize the Vault by providing your choice of key shares and threshold. (below example uses 1)
    ![](./../_static/vault-init.png)
 1. Click **Download Keys** or copy the keys, you will need them. Then click **Continue to Unseal**. Provide the unseal key first and then the root token to login.
-1. In a new terminal, execute the following (assuming `vault` is in your `PATH`, replace `VAULT_TOKEN` with your token)
+1. In a new terminal, execute the following (assuming `vault` is in your `PATH`):
    ```bash
-   export VAULT_ADDR='http://127.0.0.1:8200'
-   export VAULT_TOKEN="<YOUR-VAULT-ROOT-TOKEN>"
+   export VAULT_ADDR='http://<Your Vault local IP address>:8200' #e.g. http://192.168.0.1:8200
+   export VAULT_TOKEN="<Your Vault root token>"
    vault secrets enable -version=1 -path=secret kv
    ```
 
