@@ -42,7 +42,18 @@ Please note that this machine (also called **Ansible Controller**) should have c
 
 ---
 
-Follow [official instructions](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) to install Ansible in a new environment.
+Follow [official instructions](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) to install Ansible in a new environment.  
+
+# Docker Build
+
+Instead of installing Ansible and creating the **Ansible Controller** machine manually, you can create Anisble controller machine using docker build and run the provisioning scripts within the docker runtime. The details are mentioned [here](./developer/docker-build.md).
+```
+# Build provisioning image
+docker build . -t hyperledgerlabs/baf-build
+
+# Run the provisioning scripts
+docker run -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+```
 
 ## Docker
 

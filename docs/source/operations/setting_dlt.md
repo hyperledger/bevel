@@ -16,6 +16,15 @@ ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to
 ```
 The `site.yaml` playbook, in turn calls various playbooks depending on the configuration file and sets up your DLT network.
 
+## Executing provisioning script to setup DLT network
+
+If you are using Docker build as given in [prerequisites](../prerequisites), then you can run the provisioning script to deploy the network.
+```
+# Run the provisioning scripts
+docker run -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+```
+For detailed instructions on docker build, read [here](./developer/docker-build.md).
+
 ## Verify successful configuration of DLT network
 To verify if the network is successfully configured or not check if all the kubernetes pods are up and running or not.
 Below are some commands to check the pod's status:

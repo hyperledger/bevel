@@ -26,4 +26,11 @@ After the configuration file is updated and saved, now run the following command
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
 ```
-For detailed instructions, read [Setting up a DLT network](./operations/setting_dlt.md).
+If you are using Docker build for **Ansible Controller** as given in [prerequisites](prerequisites), then you can run the provisioning script to deploy the network using the following command.
+```
+# Run the provisioning scripts
+docker run -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+```
+
+For detailed instructions, read [Setting up a DLT network](./operations/setting_dlt.md).  
+For detailed instructions, read [DLT Network deployment using docker build](./developer/docker-build.md).
