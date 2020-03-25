@@ -123,9 +123,6 @@ function _toLower(string memory str) internal pure returns (string memory) {
 		return string(bLower);
 	}
 
-    /**
-    *@dev You must be the current custodian to call this function
-    */
 
     function updateCustodian(string memory _productID, string memory longLat ) public returns(string memory, string memory){
         require(bytes(productSupplyChain[_productID].trackingID).length > 0, "HTTP 404"); //product exists in supply chain
