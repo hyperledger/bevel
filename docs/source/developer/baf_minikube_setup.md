@@ -180,3 +180,11 @@ This is because you have re-created minikube but have not updated K8s `config` f
 **`kubernetes.config.config_exception.ConfigException: File does not exists: /Users/.minikube/ca.crt`**
 
 This is because you have not removed the absolute paths to the certificates in `config` file. Repeat _"Update kubeconfig file"_ step 4 and try again.
+
+**`error during connect: Get http://%2F%2F.%2Fpipe%2Fdocker_engine/v1.40/version: open //./pipe/docker_engine: The system cannot find the file specified. In the default daemon configuration on Windows, the docker client must be run elevated to connect. This error may also indicate that the docker daemon is not running`**
+
+This is because docker isn't running. To start it, just close all the instances of  Docker Quickstart Terminal and open again.
+
+**`ERROR! the playbook: /home/blockchain-automation-framework/platforms/shared/configuration/site.yaml could not be found`**
+
+This is because the blockchain-automation-framework repository isn't mounted to the default VM. Check [this step](#windows_mount)).
