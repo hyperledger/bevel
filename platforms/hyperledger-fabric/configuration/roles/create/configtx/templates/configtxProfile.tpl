@@ -5,7 +5,7 @@ Profiles:
       <<: *ChannelCapabilities
     Orderer:
       <<: *OrdererDefaults
-{% if consensus.name == 'etcdraft' %}
+{% if consensus.name == 'raft' %}
       OrdererType: etcdraft
       EtcdRaft:
         Consenters:

@@ -8,7 +8,7 @@ Capabilities:
   Application: &ApplicationCapabilities
     V1_1: true
 {% endif %}
-{% if consensus.name == 'etcdraft' %}
+{% if consensus.name == 'raft' %}
   Global: &ChannelCapabilities
     V1_4_3: true
   Orderer: &OrdererCapabilities

@@ -1,5 +1,9 @@
 Orderer: &OrdererDefaults
+{% if consensus.name == 'raft' %}
+  OrdererType: etcdraft
+{% else %}
   OrdererType: {{ consensus.name }}
+{% endif %}
   Addresses:
 {% for orderer in orderers %}
 {% if provider == 'minikube' %}
@@ -21,7 +25,7 @@ Orderer: &OrdererDefaults
       - {{ consensus.name }}-{{ i }}.{{ consensus.type }}.{{ component_ns }}.svc.cluster.local:{{ consensus.grpc.port }}
 {% endfor %}
 {% endif %}
-{% if consensus.name == 'etcdraft' %}
+{% if consensus.name == 'raft' %}
   EtcdRaft:
     Consenters:
 {% for orderer in orderers %}
