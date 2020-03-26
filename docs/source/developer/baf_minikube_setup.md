@@ -79,33 +79,38 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 
 1. Choose the DLT platform you want to run and copy the relevant sample network.yaml to build folder; rename it to network.yaml.
 
-   For Fabric, use `platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml`
-
    ```bash
    cd ~/project/blockchain-automation-framework
    cp platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml build/network.yaml
    ```
 
-1. Edit the following configurations in the `network.yaml` correctly:
+1. Update Docker configurations:
    ```yaml
    docker:
      url: "index.docker.io/hyperledgerlabs"
      username: "<your docker username>"
      password: "<your docker password/token>"
    ```
-1. For each `organization`, update the following: (there are 3 organizations in this sample network.yaml; leave all other values as it is)
+1. For each `organization`, update ONLY the following and leave everything else as-is:
 
    ```yaml
    vault:
-     url: "http://<Your Vault server address>:8200" (Use the local IP address rather than localhost)
+     url: "http://<Your Vault local IP address>:8200" # Use the local IP address rather than localhost e.g. http://192.168.0.1:8200
      root_token: "<your vault_root_token>"
    gitops:
-     git_ssh: "<ssh url of your forked repo>"   #like "ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
-     git_push_url: "<https url of your forked repo without the https://>" #like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+     git_ssh: "<ssh url of your forked repo>" #e.g. "ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
+     git_push_url: "<https url of your forked repo without the https://>" #e.g. "github.com/hyperledger-labs/blockchain-automation-framework.git"
      username: "<github_username>"
      password: "<github token/password>"
      email: "<github_email>"
    ```
+
+If you need help, you can use each platform's sample network-minikube.yaml:
+
+- For Fabric, use `platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml`
+- For Quorum, use `platforms/quorum/configuration/samples/network-minikube.yaml`
+
+And simply replace the placeholder values.
 
 ---
 
@@ -175,3 +180,11 @@ This is because you have re-created minikube but have not updated K8s `config` f
 **`kubernetes.config.config_exception.ConfigException: File does not exists: /Users/.minikube/ca.crt`**
 
 This is because you have not removed the absolute paths to the certificates in `config` file. Repeat _"Update kubeconfig file"_ step 4 and try again.
+
+**`error during connect: Get http://%2F%2F.%2Fpipe%2Fdocker_engine/v1.40/version: open //./pipe/docker_engine: The system cannot find the file specified. In the default daemon configuration on Windows, the docker client must be run elevated to connect. This error may also indicate that the docker daemon is not running`**
+
+This is because docker isn't running. To start it, just close all the instances of  Docker Quickstart Terminal and open again.
+
+**`ERROR! the playbook: /home/blockchain-automation-framework/platforms/shared/configuration/site.yaml could not be found`**
+
+This is because the blockchain-automation-framework repository isn't mounted to the default VM. Check [this step](#windows_mount)).
