@@ -25,7 +25,6 @@ contract ContainerContract is ProductContract {
     }
 
     string[] public containerKeys;
-    Container[] public allContainers;
     mapping(string => Container) containerSupplyChain;
     mapping(string => Transaction[]) containerHistory;
 
@@ -130,6 +129,7 @@ contract ContainerContract is ProductContract {
                                     containerSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
                                     containerSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
                                     containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
+                                    containerHistory[_containerTrackingID].push(Transaction(containerSupplyChain[_containerTrackingID].custodian, now));
                                     return containerSupplyChain[_containerTrackingID].containerID;
                             }
                     }
@@ -156,11 +156,12 @@ contract ContainerContract is ProductContract {
     * an updated container list with the package removed
     */
     function unpackageTrackable(string memory _containerID, string memory _trackableID) public{
+
         require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 400: container does not exist");
         require((bytes(productSupplyChain[_trackableID].trackingID).length > 0) ||
                 (bytes(containerSupplyChain[_trackableID].trackingID).length > 0), "HTTP 400: trackable does not exist");
 
-        require(containerSupplyChain[_trackableID].custodian == msg.sender, "HTTP 400: container custodian not same as sender address");
+        require(containerSupplyChain[_containerID].custodian == msg.sender, "HTTP 400: container custodian not same as sender address");
         require((productSupplyChain[_trackableID].custodian == msg.sender) ||
                 containerSupplyChain[_trackableID].custodian == msg.sender, "HTTP 400: trackable custodian not same as sender address");
 

@@ -54,7 +54,6 @@ router.get('/:trackingID/history', function (req, res) {
           .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
           var history = {};
           history.custodian = toPush.custodian,
-          history.lastScannedAt = toPush.lastScannedAt,
           history.timestamp = toPush.timestamp,
           allTransaction.push(history);
     }
