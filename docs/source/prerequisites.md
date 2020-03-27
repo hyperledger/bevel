@@ -54,6 +54,7 @@ Also, the user needs to provision their own docker registry, username and passwo
 ## Docker Build
 
 The Blockchain Automation Framework configuration is essentially Ansible scripts, create a containerized ansible machine to deploy the DLT network using docker build.  
+
 The details are mentioned [here](./developer/docker-build.md).
 
 Please note that this containerized machine (also called **Ansible Controller**) should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s).
@@ -75,16 +76,20 @@ Although for production implementations, each organization (and thereby each clu
 ---
 
 ## Ansible
-*Optional if not using the docker build*   
-You can install Ansible manually on the machine from which you will deploy the DLT network. This can be a local machine as long as Ansible commands can run on it.
 
-Please note that this machine (also called **Ansible Controller**) should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s).
+*Optional*   
+
+If you are not using docker build you can install Ansible manually on the machine from which you will deploy the DLT network. This can be a local machine as long as Ansible commands can run on it.
+
+Please note that this machine (also called **Ansible Controller**) should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s).  
 
 And it is essential to install the [git client](https://git-scm.com/download) on the Ansible Controller.  
+
 ---
 **NOTE:** The Blockchain Automation Framework requires minimum **Ansible version 2.8.1**
 
 **NOTE (MacOS):** Ansible requires GNU tar. Install it on MacOS through Homebrew `brew install gnu-tar`
+
 ---
 Follow [official instructions](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) to install Ansible in a new environment.
 
@@ -96,4 +101,7 @@ Add the contents of this file in your Ansible host configuration file (typically
 
 Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html)
 
+---
 **NOTE :** We suggest using docker build. 
+
+---

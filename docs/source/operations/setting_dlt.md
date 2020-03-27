@@ -18,8 +18,7 @@ docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/
 ```
 For detailed instructions on docker build, read [here](./developer/docker-build.md).  
 
-*optional*
-If you have create the **Ansible controller** manually, run the following command from the ansible machine
+*Optional:* If you have create the **Ansible controller** manually, run the following command from the ansible machine
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
 ```
