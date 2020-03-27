@@ -5,7 +5,7 @@ Docker image of an Indy node (runs using a Steward identity)
 Ideally, the build of the image should be run from this directory.<br>
 For build run command below:
 ```bash
-docker build -t indy-node:0.3.0.0 .
+docker build -t indy-node:1.9.2 .
 ```
 
 ### Using

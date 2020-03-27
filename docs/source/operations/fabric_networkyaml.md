@@ -396,7 +396,7 @@ The fields under `orderer` service are
 |-------------|----------------------------------------------------------|
 | name                        | Name of the Orderer service                                                                                                     |
 | type          | This type must be `orderer`  |
-| consensus                   | Consensus type, for example: kafka                                                                               |
+| consensus                   | Consensus type, for example: kafka, raft                                                                               |
 | grpc.port                   | Grpc port of orderer                                                                                             |
 | ca_data.url                 | Orderer url                                                                                                      |
 | ca_data.certificate         | Path to CA certificate ***  |
