@@ -6,7 +6,7 @@ The following mandatory pre-requisites must be completed to set up a development
 
 ---
 
-**NOTE:** You will need at least 8GB RAM to run BAF on local machine.
+**NOTE:** You will need at least 8GB RAM to run BAF on local machine. You can use the [script](https://github.com/hyperledger-labs/blockchain-automation-framework/platforms/shared/scripts/dev_prerequisites_setup.bat) to do the below mentioned steps via batch script for Windows OS.
 
 ---
 
