@@ -1,5 +1,5 @@
-## ROLE: k8-component
-This roles check if Job deployed and completed or not.
+## ROLE: node_component
+This roles check if Pod is deployed or not and Job being deployed and completed or not.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
@@ -32,7 +32,7 @@ Task to check if Pod deployed and running . This task will try for a maximum of 
 
 **retries**:  It means this task will try to deploy the value file for a maximum time of retries mentioned i.e 10. 
 **delay**:  It means each retry will happen at a gap of mentioned delay i.e 60 seconds.
-**until**:  It runs untill *component_data.resources|length* > 0, i.e. it will keep on retrying untill said resource if up within mentioned retries.
+**until**:  It runs untill *component_data.resources|length* > 0, i.e. it will keep on retrying untill said resource is up within mentioned retries.
 **when**:  It runs when *component_type* == "Pod" , i.e. this task will run for Pod .
 
 ##### Output Variables
