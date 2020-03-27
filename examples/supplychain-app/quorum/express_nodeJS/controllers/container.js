@@ -17,7 +17,7 @@ router.get("/:trackingID?", function(req, res) {
     console.log(trackingID, "***");
     productContract.methods
       .getSingleContainer(req.params.trackingID)
-      .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then(response => {
           var newContainer = response;
           var container = {};
@@ -54,13 +54,13 @@ router.get("/:trackingID?", function(req, res) {
     // GET for get all containers
     productContract.methods
     .getContainersLength()
-    .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
+    .call({ from: fromAddress, gas: 6721975, gasPrice: "0"})
     .then(async response => {
       arrayLength = response;
       for(var i = 1; i <= arrayLength; i++){
         var toPush = await productContract.methods
         .getContainerAt(i)
-        .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000"})
+        .call({ from: fromAddress, gas: 6721975, gasPrice: "0"})
         console.log(toPush);
           var container = {};
           container.health = toPush.health;
@@ -128,7 +128,7 @@ router.post("/", upload.array(), function(req, res) {
         "",
         newContainer.counterparties
       )
-      .send({ from: fromAddress, gas: 6721900, gasPrice: "30000000" })
+      .send({ from: fromAddress, gas: 6721900, gasPrice: "0" })
       .on("receipt", function(receipt) {
 
         if (receipt.status === true) {
@@ -154,7 +154,7 @@ router.put("/:trackingID/custodian", function(req, res) {
   console.log(trackingID);
     productContract.methods
       .updateContainerCustodian(trackingID)
-      .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then( response => {
         res.send(trackingID)
       })
@@ -172,7 +172,7 @@ router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res)
   var trackableID = req.body.contents;
   productContract.methods
     .unpackageTrackable(containerTrackingID, trackableID)
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then( response => {
         res.send(containerTrackingID)
       })
@@ -194,7 +194,7 @@ router.put("/:containerID/package", function(req, res){
 		trackable.trackingID,
     trackable.containerID,
 	)
-  .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+  .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .on("receipt", function(receipt) {
       if (receipt.status === true) {
         res.send(trackable.containerID);
