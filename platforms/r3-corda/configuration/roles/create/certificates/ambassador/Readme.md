@@ -27,7 +27,7 @@ This task fetches the generated ambassador tls certificates by calling role *set
 ##### Input Variables
     *cert_path: The path where to check/create is specified here.
     *vault_output: Yaml with ambassador_tls_certs output.
-    type:  Ambassador 
+    type:  ambassador 
     
 **when**: It runs when *ambassador_tls_certs*.failed == False, i.e. ambassador tls certs are present. 
 
@@ -71,7 +71,7 @@ This tasks check if the Check Ambassador credentials exists or not.
     *context: This refer to the required kubernetes cluster context
 ##### Output Variables
 
-    get_secret: This variable stores the output of Ambassador credentials check query.
+    get_ambassador_secret: This variable stores the output of Ambassador credentials check query.
     
 #### 8. Create the Ambassador credentials
 This task creates the Ambassador TLS credentials.

@@ -67,7 +67,7 @@ This task removes FLUX
 **shell**: This commands deletes Flux.
 **ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
-#### 7. Uninstall Namespaces
+#### 8. Uninstall Namespaces
 This task removes namespaces
 ##### Input Variables
     kind: Namespace
