@@ -1,22 +1,12 @@
 <a name = "configuring-prerequisites"></a>
 # Configure Pre-requisites
 
-- [Ansible Inventory file](#Ansible_Inventory)
 - [Private Key for GitOps](#privatekey)
 - [Docker Images](#docker)
 - [Vault Initialization and unseal](#vaultunseal)
 - [Ambassador](#ambassador)
 - [External DNS](#externaldns)
 - [HAProxy Ingress](#haproxy)
-
-<a name = "Ansible_Inventory"></a>
-## Ansible Inventory file
-
-In the Blockchain Automation Framework, we connect to Kubernetes cluster through the machine that run our Ansible playbooks and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). 
-
-Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
-
-Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html)
 
 <a name = "privatekey"></a>
 ## Private Key for GitOps
