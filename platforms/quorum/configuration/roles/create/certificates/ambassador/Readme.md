@@ -18,19 +18,20 @@ This task calls nested_main
 ### nested_main.yaml
 This task initaiates the nested_main role for each node in the organisation
 ### Tasks
-#### 1. Check if root CA directory exists or creates one.
+#### 1. Ensure rootca dir exists
 This task check for the Root CA dir alreasy created or not, if not then creates one.
 ##### Input variables
     path: The path to the directory is specified here.
     recurse: Yes/No to recursively check inside the path specified.
-#### 2. Check if ambassador tls dir exists, create one if the same doesn't exist
+
+#### 2. Ensure ambassador tls dir exists
 This tasks checks if the ambassador tls dir already created or not.
 ##### Input Variables
 
     path: The path to the directory is specified here.
     recurse: Yes/No to recursively check inside the path specified.
 
-#### 3. Check if root CA certs already created
+#### 3. Check if certs already created
 This tasks checks if ambassador tls certificates are already created or not.
 ##### Input Variables
 
@@ -42,7 +43,7 @@ This tasks checks if ambassador tls certificates are already created or not.
 
     root_certs: This variable stores the output of root certificates check query.
 
-#### 4. Get root CA certs
+#### 4. Get root certs
 This task fetches the generated root certificates by calling role *setup/get_crypto
 
 ##### Input Variables
@@ -52,7 +53,7 @@ This task fetches the generated root certificates by calling role *setup/get_cry
     
 **when**: It runs when *root_certs.failed* == False, i.e. root CA certs are present. 
 
-#### 5. Check the existing root certs
+#### 5. check root certs
 This task checks for the existing root certs in the specified folder.
 
 ##### Input Variables
@@ -61,7 +62,7 @@ This task checks for the existing root certs in the specified folder.
 ##### Output variables
     *rootca_stat_result: The varaiable store the result of Root certificate query in local directory.
 
-#### 6. Generate root CA certificates
+#### 6. Generate CAroot certificate
 This task generates the Root CA certificates.
 
 ##### Input Variables
@@ -70,7 +71,7 @@ This task generates the Root CA certificates.
 **shell**: It generates rootca.pem and rootca.key.
 **when**:  It runs when *root_certs.failed* == True, i.e. ambassador certs are not present and are generated. 
 
-#### 7. Check if ambassador tls certs already created
+#### 7. Check if ambassador tls already created
 This tasks checks if ambassador tls certificates are already created or not.
 ##### Input Variables
 
@@ -110,7 +111,7 @@ This task generates the ambassador tls certificates.
 **when**:  It runs when *ambassador_tls_certs.failed* == True, i.e. ambassador certs are not present and are generated. 
 
 
-#### 11. Write the tls certs to Vault.
+#### 11. Putting certs to vault
 This task writes the root and ambassador tls certificates to Vault
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
