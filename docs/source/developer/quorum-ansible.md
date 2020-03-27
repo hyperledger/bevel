@@ -31,6 +31,20 @@ Roles in ansible are a combination of logically inter-related tasks.
 To deploy the quorum network, run the deploy-network.yaml in `blockchain-automation-framework\platforms\quorum\configuration\`
 The roles included in the file are as follows.
 
+## **check/k8_component
+
+This role checks for the k8s resources in the cluster
+* Wait for {{ component_type }} {{ component_name }}
+* Wait for {{ component_type }} {{ component_name }}
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/check/k8_component) for detailed information.
+
+## **check/node_component
+
+This role checks for the k8s resources in the cluster
+* Wait for {{ component_type }} {{ component_name }}
+* Wait for {{ component_type }} {{ component_name }}
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/check/node_component) for detailed information.
+
 ## **create/certificates/ambassador**
 
 This role calls for ambassador certificate creation for each node.
@@ -96,7 +110,7 @@ This role creates crypto for tessera.
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/crypto/tessera) for detailed information.
 
-## **create/crypto/tessera**
+## **create/genesis_nodekey**
 
 This role creates genesis nodekey.
 * Check if nodekey is present in vault
@@ -149,8 +163,12 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Set enode_data_list to []
 * Get enode data for each node of all organization
 * Get enode data
+* Check if enode is present in the build directory or not
+* Create build directory if it does not exist
+* Get the nodekey from vault and generate the enode
 * Get enode_data
 * Get validator node data
+* Git Push
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/create/tessera) for detailed information.
 
@@ -167,8 +185,8 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 ## **setup/bootnode**
 
 This role is used to setup bootnode.
-* Register temporary directory
 * Check bootnode
+* Check quorum repo dir exists
 * Clone the git repo
 * Make bootnode
 * Create bin directory
@@ -183,6 +201,7 @@ This role is used to setup constellation-node.
 * check constellation
 * Finding the release for os
 * Release version
+* Download the constellation-node binary
 * Unarchive the file.
 * Create the bin directory
 * This task puts the constellation-node binary into the bin directory
@@ -203,13 +222,28 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 ## **setup/geth**
 
 This role setups geth.
-* Register temporary directory
 * Check geth
+* Check quorum repo dir exists
+* Clone the git repo
 * Make geth
 * Create bin directory
 * Copy geth binary to destination directory
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/geth) for detailed information.
+
+
+## **setup/golang**
+
+This role setups geth.
+* Register temporary directory
+* Check go
+* Download golang tar 
+* Extract the Go tarball
+* Create bin directory
+* Copy go binary to destination directory
+* Test go installation
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/setup/golang) for detailed information.
 
 ## **setup/istanbul**
 
@@ -247,8 +281,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 This role deletes the helm releases and uninstalls Flux
 
 * Uninstall flux
-* Delete the helmrelease for each peer for Tessera TM
-* Delete the helmrelease for each peer for Constellation TM
+* Delete the helmrelease for each peer
 * Remove node helm releases
 * Deletes namespaces
 
@@ -260,7 +293,7 @@ This role deletes all the gitops release files
 
 * Delete release files
 * Delete release files (namespaces)
-*  Git Push
+* Git Push
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/gitops_files) for detailed information.
 
@@ -272,6 +305,7 @@ This role deletes the Vault configurations
 * Delete Ambassador creds
 * Delete vault-auth path
 * Delete Crypto material 
+* Delete Access policies 
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/quorum/configuration/roles/delete/vault_secrets) for detailed information.
 
