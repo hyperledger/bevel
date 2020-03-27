@@ -8,8 +8,8 @@ For build run command below:
 docker build -t indy-node:1.9.2 .
 ```
 *NOTE*: Version 1.9.2 is default version also for version of Hyperledger Indy in this Docker image.<br>
-When you would like to update this version, then override build arguments.
-example for update to 1.11.0
+When you would like to update this version, then override build arguments.<br>
+Example for update to 1.11.0:
 ```bash
 docker build --build-arg indy_plenum_ver=1.11.0~dev945 --build-arg indy_node_ver=1.11.0~dev1123 --build-arg python3_pyzmq_ver=18.1.0 -t build.dev.di-uisp-accenture.com/indy-node:1.11.0 .
 ```
