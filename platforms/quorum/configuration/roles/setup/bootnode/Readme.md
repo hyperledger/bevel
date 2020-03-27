@@ -1,24 +1,23 @@
-## ROLE: bootnode
+## ROLE: setup/bootnode
 This role installs the bootnode binary if it doesn't exist
 
 ### Tasks
 
-#### 1. Register temporary directory
-This tasks creates a temporary directory for cloning and building bootnode
-
-**tempfile**: This module creates a temporary directory where the git repository is cloned if bootnode is not installed.
-
-##### Output Variables
-
-    tmp_directory: This variable stores the info about the temporary directory it created.
-
-#### 2. Check bootnode
+#### 1. Check bootnode
 This task check if bootnode is already installed or not
 
 **stat**: This module checks if bootnode is installed or not with path variable.
 
 ##### Output Variables
     bootnode_stat_result: This variable stores the info on availibility on bootnode binary
+
+#### 2. Check quorum repo dir exists
+This task check if bootnode is already installed or not
+
+**stat**: This module checks if quorum is cloned or not.
+
+##### Output Variables
+    quorum_stat_result: This variable stores the info on availibility on quorum repo dir
 
 #### 3. Clone the git repo
 This task clones the quorum git repository
@@ -29,7 +28,7 @@ This task clones the quorum git repository
     repo: The path where the bootnode binary should be installed
     dest: Path where the repository should be cloned
 
-**when**: It runs when *bootnode_stat_result.stat.exists* == False, i.e. when bootnode is not installed.
+**when**: It runs when *bootnode_stat_result.stat.exists* == False and *quorum_stat_result.stat.exists* == Flase i.e. when either bootnode is not installed or quorum dir is not there.
 
 #### 4. Make bootnode
 This task makes bootnode from the cloned repository and store the binary at build/bin

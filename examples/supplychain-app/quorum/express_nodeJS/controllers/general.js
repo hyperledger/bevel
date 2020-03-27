@@ -23,7 +23,7 @@ router.get('/node-organizationUnit', function (req, res) {
 router.get('/:trackingID/scan', function (req, res) {
   productContract.methods 
   .scan(req.params.trackingID)
-  .call({ from: fromAddress, gas: 324234, gasPrice: "30000000" })
+  .send({ from: fromAddress, gas: 324234, gasPrice: "0" })
   .then(response => { 
     var statusOf = response
     res.send({status:statusOf});
@@ -43,7 +43,7 @@ router.get('/:trackingID/history', function (req, res) {
   var allTransaction = [];
   productContract.methods
     .getHistoryLength(req.params.trackingID)
-    .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .then(async response => {
        transactionCount = response;
        console.log("LENGTH ", transactionCount);
@@ -51,7 +51,7 @@ router.get('/:trackingID/history', function (req, res) {
       for (var i = 1; i <= transactionCount; i++) { 
         var toPush = await productContract.methods
           .getHistory((i - 1), trackingID)
-          .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+          .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
           var history = {};
           history.custodian = toPush.custodian,
           history.timestamp = toPush.timestamp,
