@@ -1,0 +1,43 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: instantiate-ch-allchannel-supplychain1
+  namespace: ch-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: instantiate-ch-allchannel-supplychain1
+  chart:
+    git: git@github.com:himanshulalarya/blockchain-automation-framework.git
+    ref: fabric-test
+    path: platforms/hyperledger-fabric/charts/instantiate_chaincode
+  values:
+    metadata:
+      namespace: ch-net
+      images:
+        fabrictools: hyperledger/fabric-tools:1.4.4
+        alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+    peer:
+      name: peer0
+      address: peer0.ch-net.hf.dev.aws.blockchaincloudpoc-develop.com:8443
+      localmspid: chMSP
+      loglevel: debug
+      tlsstatus: true
+    vault:
+      role: vault-role
+      address: http://a6167b0bf69b911eab1a00673ff61cbe-206589349.eu-west-1.elb.amazonaws.com:9000
+      authpath: ch-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/ch-net/users/admin 
+      orderersecretprefix: secret/crypto/peerOrganizations/ch-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      tls: false
+    orderer:
+      address: orderer2.hf.dev.aws.blockchaincloudpoc-develop.com:8443
+    chaincode:
+      name: supplychain
+      version: 1
+      instantiationarguments: '\"init\",\"\"'
+      endorsementpolicies:  ''
+    channel:
+      name: allchannel
