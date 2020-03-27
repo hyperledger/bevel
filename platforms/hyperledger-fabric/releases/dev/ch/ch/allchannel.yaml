@@ -1,0 +1,47 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: channel-ch
+  namespace: ch-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: channel-ch
+  chart:
+    git: git@github.com:himanshulalarya/blockchain-automation-framework.git
+    ref: fabric-test
+    path: platforms/hyperledger-fabric/charts/create_channel   
+  values:
+    metadata:
+      namespace: ch-net
+      images:
+        fabrictools: hyperledger/fabric-tools:1.4.4
+        alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+    peer:
+      name: peer0
+      address: peer0.ch-net:7051
+      localmspid: chMSP
+      loglevel: debug
+      tlsstatus: true
+
+    vault:
+      role: vault-role
+      address: http://a6167b0bf69b911eab1a00673ff61cbe-206589349.eu-west-1.elb.amazonaws.com:9000
+      authpath: ch-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/ch-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/ch-net/orderer 
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    channel:
+      name: allchannel
+    orderer:
+      address: orderer2.hf.dev.aws.blockchaincloudpoc-develop.com:8443
+    channeltx: |-
+      CtYCChgKFggCGgYIuKX38wUiCmFsbGNoYW5uZWwSuQIKtgIKCmFsbGNoYW5uZWwSNxIlCgtBcHBs
+      aWNhdGlvbhIWEgkKBWNoTVNQEgASCQoFbWhNU1ASABoOCgpDb25zb3J0aXVtEgAa7gESwgEKC0Fw
+      cGxpY2F0aW9uErIBCAESCQoFY2hNU1ASABIJCgVtaE1TUBIAGiQKDENhcGFiaWxpdGllcxIUEgoK
+      CAoEVjFfMRIAGgZBZG1pbnMiIgoHUmVhZGVycxIXEg0IAxIJCgdSZWFkZXJzGgZBZG1pbnMiIgoH
+      V3JpdGVycxIXEg0IAxIJCgdXcml0ZXJzGgZBZG1pbnMiIgoGQWRtaW5zEhgSDggDEgoKBkFkbWlu
+      cxACGgZBZG1pbnMqBkFkbWlucxonCgpDb25zb3J0aXVtEhkSFwoVU3VwcGx5Q2hhaW5Db25zb3J0
+      aXVt
