@@ -1,7 +1,8 @@
 Profiles:
 {% for channel in network.channels %}
   {{channel.genesis.name}}:
-    <<: *ChannelDefaults
+    Capabilities:
+      <<: *ChannelCapabilities
     Orderer:
       <<: *OrdererDefaults
       Organizations:
@@ -15,7 +16,6 @@ Profiles:
           - *{{org.name}}Org
 {% endfor %}
   {{channel.channel_name}}:
-    <<: *ChannelDefaults
     Consortium: {{channel.consortium}}
     Application:
       <<: *ApplicationDefaults
@@ -23,4 +23,8 @@ Profiles:
 {% for org in channel.participants %}
         - *{{org.name}}Org
 {% endfor %}
+      Capabilities:
+        <<: *ApplicationCapabilities
 {% endfor %}
+
+

@@ -22,6 +22,7 @@ Orderer: &OrdererDefaults
 {% endfor %}
 {% endif %}
   Organizations:
+{% if network.version == '2.0' %}
   Policies:
     Readers:
       Type: ImplicitMeta
@@ -35,5 +36,6 @@ Orderer: &OrdererDefaults
     BlockValidation:
       Type: ImplicitMeta
       Rule: "ANY Writers"
+{% endif %}
   Capabilities:
     <<: *OrdererCapabilities

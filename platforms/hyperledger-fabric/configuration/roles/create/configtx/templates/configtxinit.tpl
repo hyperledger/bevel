@@ -9,6 +9,7 @@ Capabilities:
 
 Application: &ApplicationDefaults
   Organizations:
+{% if network.version == '2.0' %}
   Policies: &ApplicationDefaultPolicies
     LifecycleEndorsement:
         Type: ImplicitMeta
@@ -25,10 +26,12 @@ Application: &ApplicationDefaults
     Admins:
         Type: ImplicitMeta
         Rule: "MAJORITY Admins"
+{% endif %}
   Capabilities:
     <<: *ApplicationCapabilities
 
 Channel: &ChannelDefaults
+{% if network.version == '2.0' %}
   Policies:
     Readers:
       Type: ImplicitMeta
@@ -39,8 +42,9 @@ Channel: &ChannelDefaults
     Admins:
       Type: ImplicitMeta
       Rule: "MAJORITY Admins"
-
+{% endif %}
   Capabilities:
     <<: *ChannelCapabilities
 
 Organizations:
+
