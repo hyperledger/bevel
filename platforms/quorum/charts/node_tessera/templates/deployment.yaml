@@ -132,11 +132,11 @@ spec:
           echo "getting username and password from vault"          
           var=$(cat /secret/keys/password)         
           cat << EOF > /docker-entrypoint-initdb.d/createTables.sql
-            UPDATE mysql.user SET authentication_string = PASSWORD('$var') WHERE User = 'demouser';
-            UPDATE mysql.user SET authentication_string = PASSWORD('$var') WHERE User = 'root';
-            CREATE TABLE IF NOT EXISTS ENCRYPTED_TRANSACTION (ENCODED_PAYLOAD BLOB NOT NULL, HASH VARBINARY(100) NOT NULL, TIMESTAMP BIGINT, PRIMARY KEY (HASH));
-            CREATE TABLE IF NOT EXISTS ENCRYPTED_RAW_TRANSACTION (ENCRYPTED_KEY BLOB NOT NULL, ENCRYPTED_PAYLOAD BLOB NOT NULL, NONCE BLOB NOT NULL, SENDER BLOB NOT NULL, TIMESTAMP BIGINT, HASH VARBINARY(100) NOT NULL, PRIMARY KEY (HASH));          
-          EOF         
+          UPDATE mysql.user SET authentication_string = PASSWORD('$var') WHERE User = 'demouser';
+          UPDATE mysql.user SET authentication_string = PASSWORD('$var') WHERE User = 'root';
+          CREATE TABLE IF NOT EXISTS ENCRYPTED_TRANSACTION (ENCODED_PAYLOAD BLOB NOT NULL, HASH VARBINARY(100) NOT NULL, TIMESTAMP BIGINT, PRIMARY KEY (HASH));
+          CREATE TABLE IF NOT EXISTS ENCRYPTED_RAW_TRANSACTION (ENCRYPTED_KEY BLOB NOT NULL, ENCRYPTED_PAYLOAD BLOB NOT NULL, NONCE BLOB NOT NULL, SENDER BLOB NOT NULL, TIMESTAMP BIGINT, HASH VARBINARY(100) NOT NULL, PRIMARY KEY (HASH));
+          EOF
         volumeMounts:
         - name: mysql
           mountPath: /docker-entrypoint-initdb.d
@@ -194,9 +194,14 @@ spec:
           DDIR=$QUORUM_HOME/tm;
           
           printenv;
+          wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.15.tar.gz;
+          tar -xf mysql-connector-java-8.0.15.tar.gz;
+          cp /mysql-connector-java-8.0.15/mysql-connector-java-8.0.15.jar $QUORUM_HOME;
+          SQL_JAR=$QUORUM_HOME/mysql-connector-java-8.0.15.jar;
 
           TESSERA_VERSION=$(unzip -p /tessera/tessera-app.jar META-INF/MANIFEST.MF | grep Tessera-Version | cut -d\" \" -f2);
           echo \"Tessera version (extracted from manifest file): ${TESSERA_VERSION}\";
+          TESSERA_JAR=/tessera/tessera-app.jar;
 
           TESSERA_VERSION=\"${TESSERA_VERSION}-suffix\";
 
@@ -217,7 +222,7 @@ spec:
           if [[ \"${TESSERA_VERSION}\" \\> \"0.9 \" ]]; then CONFIG_FINAL=${CONFIG_FINAL_9_0}; fi;
           echo $CONFIG_FINAL >  ${DDIR}/tessera-config-with-hosts.json;
           cat  ${DDIR}/tessera-config-with-hosts.json;
-          java -Xms128M -Xmx128M -jar /tessera/tessera-app.jar -configfile ${DDIR}/tessera-config-with-hosts.json;
+          java -Xms128M -Xmx128M -cp $SQL_JAR:$TESSERA_JAR:. com.quorum.tessera.Launcher -configfile ${DDIR}/tessera-config-with-hosts.json;
         "
         ports:
           - containerPort: {{ .Values.node.ports.tm }}
@@ -263,21 +268,27 @@ spec:
             args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 1 --syncmode full --mine --minerthreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+            args=" --istanbul.blockperiod 1 --syncmode full --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
           fi;
 
           /usr/local/bin/geth \
           --datadir $QUORUM_DATA_DIR \
           $args \
+          --identity {{ .Values.node.subject | quote }} \
+          --vmdebug \
           --nodiscover \
           --nat=none \
-          --verbosity 9 \
-          --unlock 0 \
+          --verbosity 5 \
+          --mine \
+          --minerthreads 1 \
+          --targetgaslimit "8000000000" \
+          --gasprice "0"  \
           --emitcheckpoints \
           --rpc \
           --rpcaddr 0.0.0.0 \
           --rpcport {{ .Values.node.ports.rpc }} \
           --port {{ .Values.node.ports.quorum }} \
+          --unlock 0 \
           --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log; 
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
