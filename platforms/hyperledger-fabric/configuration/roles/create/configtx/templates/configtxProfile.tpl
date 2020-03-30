@@ -26,5 +26,3 @@ Profiles:
       Capabilities:
         <<: *ApplicationCapabilities
 {% endfor %}
-
-
