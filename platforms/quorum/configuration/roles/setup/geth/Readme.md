@@ -1,18 +1,9 @@
-## ROLE: geth
+## ROLE: setup/geth
 This role installs the geth binary if it doesn't exist
 
 ### Tasks
 
-#### 1. Register temporary directory
-This tasks creates a temporary directory for cloning and building geth
-
-**tempfile**: This module creates a temporary directory where the git repository is cloned if geth is not installed.
-
-##### Output Variables
-
-    tmp_directory: This variable stores the info about the temporary directory it created.
-
-#### 2. Check geth
+#### 1. Check geth
 This task check if geth is already installed or not
 
 **stat**: This module checks if geth is installed or not with path variable.
@@ -20,7 +11,15 @@ This task check if geth is already installed or not
 ##### Output Variables
     geth_stat_result: This variable stores the info on availibility on geth binary
 
-#### 3. Clone the git repo
+#### 2. Check quorum repo dir exists
+This task check if geth is already installed or not
+
+**stat**: This module checks if geth is installed or not with path variable.
+
+##### Output Variables
+    quorum_stat_result: This variable stores the info on availibility on geth binary
+
+#### 2. Clone the git repo
 This task clones the quorum git repository
 
 **git**: This module clones the quorum repository

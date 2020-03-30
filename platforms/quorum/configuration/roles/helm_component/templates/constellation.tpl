@@ -23,6 +23,7 @@ spec:
     node:
       name: {{ peer.name }}
       consensus: {{ consensus }}
+      subject: {{ peer.subject }}
       mountPath: /etc/quorum/qdata
       imagepullsecret: regcred
       keystore: keystore_1
@@ -53,11 +54,11 @@ spec:
 {% endfor %}
 {% endif %}
     constellation:
-      url: {{ network.config.tm_nodes }}
+      url: http://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/
       storage: "bdb:/etc/quorum/qdata/database"
-      tls: {{ network.config.tm_tls }}
+      tls: "{{ network.config.tm_tls }}"
       othernodes: {{ network.config.tm_nodes }}
-      trust: {{ network.config.tm_trust }}
+      trust: "{{ network.config.tm_trust }}"
     proxy:
       provider: "ambassador"
       external_url_suffix: {{ external_url }}

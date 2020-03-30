@@ -123,9 +123,21 @@ This task writes the database, rpcusers, vaultroottoken, keystore and networkmap
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
     component_name: The name of node resource
 
-**shell**:  It writes the database, rpcusers, vaultroottoken, keystore and networkmappassword credentials in Vault . 
+**shell**:  It writes the database, rpcusers, vaultroottoken, keystore and networkmappassword credentials in Vault .
 
-#### 11. Create the Ambassador certificates
+#### 12. Write cordapps credentials to vault
+This task writes the corapps repository userpass credentials in Vault.
+
+##### Input Variables
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+    component_name: The name of node resource
+
+**shell**:  It writes the credentials in Vault .
+
+**when**:  It runs when *cordapps_details* != "", i.e. cordapps repository details are provided in the configuration file . 
+
+#### 13. Create the Ambassador certificates
 This task creates the Ambassador certificates by calling create/certificates/ambassador role.
 
 #### Note:

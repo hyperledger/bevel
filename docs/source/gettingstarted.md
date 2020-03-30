@@ -14,15 +14,20 @@ After installation of the [prerequisites](./prerequisites.md), some of them will
 ## Update Configuration File
 Once all the prerequisites have been configured, it is time to update the Blockchain Automation Framework configuration file. Depending on your platform of choice, there can be some differences in the configuration file. Please follow platform specific links below to learn more on updating the configuration file.
 * [R3 Corda Configuration File](./operations/corda_networkyaml.md)
-
 * [Hyperledger Fabric Configuration File](./operations/fabric_networkyaml.md)
+* [Hyperledger Indy Configuration File](./operations/indy_networkyaml.md)
+* [Quorum Configuration File](./operations/quorum_networkyaml.md)
 
 
 ## Deploy the Network
 
-After the configuration file is updated and saved, now run the following command from the **blockchain-automation-framework** folder to deploy your network.
+After the configuration file is updated, saved and the **Ansible Controller** is built using docker build as given in [prerequisites](prerequisites), run the provisioning script to deploy the network using the following command.
+
+Read [DLT Network deployment using docker build](./developer/docker-build.md)
 
 ```
-ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
+# Run the provisioning scripts
+docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
 ```
+
 For detailed instructions, read [Setting up a DLT network](./operations/setting_dlt.md).

@@ -24,6 +24,9 @@ spec:
       localmspid: {{ org_name }}MSP
       tlsstatus: true
       keepaliveserverinterval: 10s
+    
+    consensus:
+      name: {{ orderer.consensus }}
 
     storage:
       storageclassname: {{ org_name }}sc

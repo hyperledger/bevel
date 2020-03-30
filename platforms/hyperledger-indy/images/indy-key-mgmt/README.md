@@ -6,8 +6,18 @@ Docker image for indy key management, which generates identity crypto and stores
 Ideally, the build of the image should be run from this directory.<br>
 For build run command below:
 ```bash
-docker build -t indy-key-mgmt:0.3.0.0 .
+docker build -t indy-key-mgmt:1.9.2 .
 ```
+*NOTE*: Version 1.9.2 is default version also for version of Hyperledger Indy in this Docker image.<br>
+When you would like to update this version, then override build arguments.<br>
+Example for update to 1.11.0:
+```bash
+docker build --build-arg INDY_NODE_VERSION=v1.11.0 -t build.dev.di-uisp-accenture.com/indy-key-mgmt:1.11.0 .
+```
+#### Build arguments with default values
+ - ROCKS_DB_VERSION=5.8.8
+ - LIBINDY_CRYPTO_VERSION=0.4.5
+ - INDY_NODE_VERSION=v1.9.2
 
 ## How to use
 
@@ -24,17 +34,17 @@ In this Docker image is shell script generate_identity. The script can generate 
 
 ### Example:
 ```bash
-docker run -it --rm -e VAULT_TOKEN=<your_token> indy-key-mgmt generate_identity <your_identity_name> <your_vault_path> <your_target> http://<your_vault_address>:8200
+docker run -it --rm -e VAULT_TOKEN=<your_token> indy-key-mgmt:1.9.2 generate_identity <your_identity_name> <your_vault_path> <your_target> http://<your_vault_address>:8200
 ```
 
 Insert to vault:
 ```bash
-docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" indy-key-mgmt generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
+docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" indy-key-mgmt:1.9.2 generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
 ```
 
 Print on console:
 ```bash
-docker run -it --rm indy-key-mgmt bash -c "generate_identity my-identity provider.stewards | jq"
+docker run -it --rm indy-key-mgmt:1.9.2 bash -c "generate_identity my-identity provider.stewards | jq"
 ```
 > You could use `| jq` for smooth printing of JSON
 

@@ -1,4 +1,4 @@
-## ROLE: k8-component
+## ROLE: k8_component
 This role creates deployment files for nodes, namespace, storageclass, service accounts and clusterrolebinding. Deployment file for a node is created in a directory with name=nodeName, nodeName is stored in component_name , component_type specifies the type of deployment to be created.
 
 ### Tasks
