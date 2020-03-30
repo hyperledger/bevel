@@ -1,4 +1,4 @@
-## ROLE: constellation-node
+## ROLE: setup/constellation-node
 This role installs the constellation-node binary if it doesn't exist
 
 ### Tasks
@@ -12,7 +12,7 @@ This tasks creates a temporary directory for cloning and building constellation-
 
     tmp_directory: This variable stores the info about the temporary directory it created.
 
-#### 2. Check constellation-node
+#### 2. check constellation
 This task check if constellation-node is already installed or not
 
 **stat**: This module checks if constellation-node is installed or not with path variable.
@@ -20,7 +20,7 @@ This task check if constellation-node is already installed or not
 ##### Output Variables
     constellation_stat_result: This variable stores the info on availibility on constellation-node binary
 
-#### 3. Download the constellation-node
+#### 3. Download the constellation-node binary
 This task fetches the constellation binary
 
 **get_url**: This module downloads the constellation-node binary
@@ -31,7 +31,7 @@ This task fetches the constellation binary
 
 **when**: It runs when *constellation_stat_result.stat.exists* == False, i.e. when binary is not installed.
 
-#### 4. Unzip the constellation-node 
+#### 4. Unarchive the file.
 This task unzips the binary
 
 **shell**: The task goes to the downloaded path.

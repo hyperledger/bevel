@@ -163,6 +163,9 @@ For more details, refer: [Peer](https://hyperledger-fabric.readthedocs.io/en/rel
 ### Zkkafka
 Kafka is primarily a distributed, horizontally-scalable, fault-tolerant, commit log. A commit log is basically a data structure that only appends. No modification or deletion is possible, which leads to no read/write locks, and the worst case complexity O(1). There can be multiple Kafka nodes in the blockchain network, with their corresponding Zookeeper ensemble.
 For more details, refer:  [zkkafka](https://hyperledger-fabric.readthedocs.io/en/release-1.4/peers/peers.html)
+### RAFT
+RAFT is distributed crash Fault tolerance consensus algorithm which makes sure that in the event of failure, the system should be able to take a decision and process clients request. In technical term Raft is a consensus algorithm for managing a replicated log. Replicated log is a part of Replicated state machine.
+For more details, refer: [raft](https://hyperledger-fabric.readthedocs.io/en/release-2.0/orderer/ordering_service.html#raft-concepts)
 
 ---------------------------------------------------------------------------------------------------------------------------------
 

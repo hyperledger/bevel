@@ -1,4 +1,4 @@
-## ROLE: golang
+## ROLE: setup/golang
 This role installs the go binary if it doesn't exist
 
 ### Tasks
