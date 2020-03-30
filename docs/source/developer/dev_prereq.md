@@ -8,7 +8,7 @@ You can use the [script](https://github.com/hyperledger-labs/blockchain-automati
 
 ---
 
-**NOTE:** You need to run the script with admin privilages. This can be done by right clicking the script and selecting 'Run as admininstrator'. 
+**NOTE:** You need to run the script with admin rights. This can be done by right clicking the script and selecting 'Run as admininstrator'. 
 
 ---
 
