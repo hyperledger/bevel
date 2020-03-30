@@ -35,4 +35,3 @@ This task tests the value file for syntax errors/ missing values.This is done by
     value_file: The final path of the value file to be created along with name.
     
 **include_role**: It includes the name of intermediatory role ( `{{ playbook_dir }}/../../shared/configuration/roles/helm_lint` which is required for creating the Vault Reviewer value file.
-

@@ -1,7 +1,7 @@
 var express = require('express')
   , router = express.Router();
 
-const { productContract, fromAddress } = require('../web3services');
+const { productContract, fromAddress, fromNodeSubject } = require('../web3services');
 var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require('body-parser');
@@ -15,14 +15,14 @@ router.get('/containerless', function (req, res) {
   var containerlessArray = [];
   productContract.methods
     .getProductsLength()
-    .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .then(async response => {
       productCount = response;
       console.log("LENGTH ", response);
       for (var i = 1; i <= productCount; i++) { 
         var toPush = await productContract.methods
           .getContainerlessAt(i - 1)
-          .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+          .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
           var product = {};
           product.productName = toPush.productName;
           product.health = toPush.health;
@@ -57,7 +57,7 @@ router.get('/:trackingID?', function (req, res) {
     console.log(trackingID, "***");
     productContract.methods
       .getSingleProduct(req.params.trackingID)
-      .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then(response => {
         var newProduct = response;
         var product = {};
@@ -66,7 +66,6 @@ router.get('/:trackingID?', function (req, res) {
         product.sold = false;
         product.recalled = false;
         product.misc = {};
-        //product.misc[newProduct.misc[0]] = newProduct.misc[1];
 
         for (var j = 0; j < newProduct.misc.length; j++) {
           var json = JSON.parse(newProduct.misc[j]);
@@ -95,23 +94,22 @@ router.get('/:trackingID?', function (req, res) {
     // TODO: Get all products
     var arrayLength;
     var displayArray = [];
-    productContract.methods //do thing with 5 array 
+    productContract.methods 
       .getProductsLength()
-      .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then(async response => {
         arrayLength = response; 
         console.log("LENGTH ", response);
         for (var i = 1; i <= arrayLength; i++) {
           var toPush = await productContract.methods
             .getProductAt(i)
-            .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+            .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
           var product = {};
           product.productName = toPush.productName;
           product.health = toPush.health;
           product.sold = false;
           product.recalled = false;
           product.misc = {};
-          //product.misc[toPush.misc[0]] = toPush.misc[1];
           for (var j = 0; j < toPush.misc.length; j++) {
             var json = JSON.parse(toPush.misc[j]);
             var key = Object.keys(json);
@@ -128,7 +126,6 @@ router.get('/:trackingID?', function (req, res) {
               "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
             },
             product.participants = toPush.participants
-          // console.log("^^^^",product);
           displayArray.push(product);
         }
         res.send(displayArray)
@@ -167,7 +164,7 @@ router.post('/', upload.array(), function (req, res) {
       "",
       newProduct.counterparties
     )
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .on("receipt", function (receipt) {
       // receipt example
       if (receipt.status === true) {
@@ -191,13 +188,14 @@ router.post('/', upload.array(), function (req, res) {
 router.put('/:trackingID/custodian', function (req, res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
+  var identityArray = fromNodeSubject.split(',');
   var trackingID = req.params.trackingID;
-  var longLatCoordinates = req.body.longLatCoordinates;
+  var longLatCoordinates = identityArray[3];
   console.log(trackingID);
   console.log(longLatCoordinates);
   productContract.methods
     .updateCustodian(trackingID, longLatCoordinates)
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .then(response => {
       res.send(response)
     })

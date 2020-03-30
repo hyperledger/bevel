@@ -1,4 +1,4 @@
-# Charts for R2 Corda components
+# Charts for R3 Corda components
 
 ## About
 This folder contains helm charts which are used by the ansible playbooks for the deployment of the component. Each chart folder contain a folder for templates, chart file and the corresponding value file. 
