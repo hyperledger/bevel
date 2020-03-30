@@ -9,7 +9,7 @@ Capabilities:
 
 Application: &ApplicationDefaults
   Organizations:
-{% if network.version == '2.0' %}
+{% if '2.' in network.version %}
   Policies: &ApplicationDefaultPolicies
     LifecycleEndorsement:
         Type: ImplicitMeta
@@ -31,7 +31,7 @@ Application: &ApplicationDefaults
     <<: *ApplicationCapabilities
 
 Channel: &ChannelDefaults
-{% if network.version == '2.0' %}
+{% if '2.' in network.version %}
   Policies:
     Readers:
       Type: ImplicitMeta

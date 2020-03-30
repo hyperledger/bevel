@@ -2,7 +2,7 @@
     Name: {{ component_name }}MSP
     ID: {{ component_name }}MSP
     MSPDir: ./crypto-config/{{ component_type }}Organizations/{{ component_ns }}/msp
-{% if network.version == '2.0' %}
+{%  if '2.' in network.version %}
     Policies:
       Readers:
         Type: Signature
