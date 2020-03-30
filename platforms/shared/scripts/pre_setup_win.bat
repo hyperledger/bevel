@@ -18,7 +18,8 @@ net session >nul 2>&1
 if %errorLevel% == 0 (
     echo Success: Administrative permissions confirmed.
 ) else (
-    echo Failure: Current permissions inadequate.
+    echo Failure: Current permissions inadequate. Press any key to exit the setup..
+	pause
 	exit
 )
 REM ############################################################################################################################################################
@@ -91,7 +92,7 @@ echo Configuring git so that EOLs are not updated to Windows CRLF
 REM ############################################################################################################################################################
 REM ############################################################################################################################################################
 
-REM Setting up of forked repo on local machine and checkout to a given branch ( defaulted to develop)
+REM Setting up of forked repo on local machine and checkout to a given branch ( defaulted to local)
 echo Please fork the blockchain-automation-framework repository from browser.
 PAUSE
 
@@ -102,10 +103,16 @@ md project
 chdir project
 set /p REPO_URL=Enter your forked repo clone url (HTTPS url): 
 git clone %REPO_URL%
-set /p REPO_BRANCH=Enter branch(default is develop): 
+set /p REPO_BRANCH=Enter branch(default is local): 
 chdir blockchain-automation-framework
-if NOT DEFINED REPO_BRANCH set "REPO_BRANCH=develop"
+if NOT DEFINED REPO_BRANCH set "REPO_BRANCH=local"
 "C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout %REPO_BRANCH%"
+if %ERRORLEVEL% == 1 (
+"C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout -b develop"
+"C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout -b %REPO_BRANCH% develop"
+"C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout %REPO_BRANCH%"
+"C:\Program Files\Git\bin\sh.exe" --login -i -c "git push -u origin %REPO_BRANCH%"
+)
 chdir ../..
 
 REM ############################################################################################################################################################
@@ -125,6 +132,7 @@ EXIT
 )
 echo Installing docker toolbox
 echo Installing docker toolbox. Press 'Next' at each prompt so that it gets installed with default settings
+echo Do not uncheck the virtualbox installation option in the installer. This step ensures, virtualbox gets installed with docker toolbox
 START /WAIT dockertoolbox.exe
 echo Docker toolbox successfully installed
 ) else (
@@ -184,13 +192,24 @@ REM ############################################################################
 
 REM Setting up of minikube
 REM Check if Minikube is already installed or not, if already present, then this step will be skipped
+"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" --version
+set VIRTUALBOXVAR=%errorlevel%
 minikube status
 set MINIKUBEVAR=%errorlevel%
-if %MINIKUBEVAR%==9009 (
-powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
-taskkill /f /im explorer.exe && explorer.exe
-choco install minikube -y
+if %VIRTUALBOXVAR% NEQ 9009 if %VIRTUALBOXVAR% NEQ 3 (
+  if %MINIKUBEVAR%==9009 (
+    powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
+    taskkill /f /im explorer.exe && explorer.exe
+    choco install minikube -y
+  )else (
+   echo Minikube is already installed
+  )
+)else (
+  echo Virtualbox is not installed. Press any key to exit the setup...
+  pause
+  exit
 )
+
 set /p RAMSIZE=Enter ram to be used by minikube(MB):  
 set /p CPUCOUNT=Enter cpu cores to be used by minikube:  
 minikube config set memory %RAMSIZE%
