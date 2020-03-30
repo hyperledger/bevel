@@ -1,16 +1,28 @@
 # Developer Prerequisites
 
-The following mandatory pre-requisites must be completed to set up a development environment for BAF.
+The following mandatory pre-requisites must be completed to set up a development environment for BAF.   
+The process of setting up developer pre-requisites can be done manually or via an automation script(currently script is for windows OS only)
+
+## Script Based Setup
+You can use the [script](https://github.com/hyperledger-labs/blockchain-automation-framework/platforms/shared/scripts/pre_setup_win.bat) to setup developer prerequisites (currently for Windows OS only).   
+
+---
+
+**NOTE:** You need to run the script with admin rights. This can be done by right clicking the script and selecting 'Run as admininstrator'. 
+
+---
+
+## Manual Setup
 
 **The estimated total effort is 55 mins.**
 
 ---
 
-**NOTE:** You will need at least 8GB RAM to run BAF on local machine.
+**NOTE:** You will need at least 8GB RAM to run BAF on local machine. 
 
 ---
 
-## Setting up Git on your machine
+### Setting up Git on your machine
 
 _Estimated Time: 10 minutes_
 
@@ -37,7 +49,7 @@ To use Git, you need to install the software on your local machine.
    git config --global core.autocrlf false
    ```
 
-## Setting up Github
+### Setting up Github
 
 _Estimated Time: 5 minutes_
 
@@ -73,7 +85,7 @@ Complete the following steps to download and configure BAF repository on your lo
    git checkout develop
    ```
 
-## Setting up Docker
+### Setting up Docker
 
 _Estimated Time: 10 minutes_
 
@@ -91,7 +103,7 @@ docker --version
 
 ---
 
-## Setting up HashiCorp Vault
+### Setting up HashiCorp Vault
 
 _Estimated Time: 15 minutes_
 
@@ -131,7 +143,7 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
    vault secrets enable -version=1 -path=secret kv
    ```
 
-## Setting up Minikube
+### Setting up Minikube
 
 _Estimated Time: 15 minutes_
 
@@ -165,7 +177,7 @@ For development environment, minikube can be used as the Kubernetes cluster on w
 minikube start --vm-driver=virtualbox --extra-config=apiserver.service-node-port-range=15000-20000
 ```
 
-## Troubleshooting
+### Troubleshooting
 
 At Step 5, if you get the following error:
 
