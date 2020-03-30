@@ -1,4 +1,4 @@
-## ROLE: namespace_serviceaccount
+## ROLE: create/namespace_serviceaccount
 This role creates the value files for namespaces, vault-auth, vault-reviewer and clusterrolebinding for each node.
 
 ### Tasks
@@ -8,9 +8,9 @@ This task check if the namespace is already created or not.
 ##### Input Variables
 
     kind: The path to the directory is specified here.
-    component_ns: The organisation's namespace
-    kubernetes.config_file: The kubernetes config file
-    kubernetes.context: The kubernetes current context
+    *component_ns: The organisation's namespace
+    *kubeconfig: The kubernetes config file
+    *context: The kubernetes current context
 
 ##### Output Variables
 
@@ -20,30 +20,34 @@ This task check if the namespace is already created or not.
 This task creates value file for namespace by calling create/k8_component role.
 ##### Input Variables
 
-    organisation: Organisation name
-    component_type: It specifies the type of deployment to be created. In this case it is "namespace".
-    component_name: The organisation's namespace.
-    release_dir: absolute path for release git directory 
+    component_type: It specifies the type of deployment to be    created. In this case it is "namespace".
+    *component_name: The organisation's namespace.
+    *release_dir: absolute path for release git directory 
+    helm_lint: Either true or false, for linting.
+
+**include_role**: It includes the name of intermediatory role which is required for creating the namespace.
 
 **when**:  It runs when *get_namespace.resources|length* == 0, i.e. the namespace does not exist.
 
 #### 3. Create vault auth service account for {{ organisation }}
-This task creates value file for serviceaccount by calling create/k8_component role.
+This task creates vault auth service account file for organisation by calling create/k8_component role.
 ##### Input Variables
     
     organisation: Organisation name
-    component_type: It specifies the type of deployment to be created. In this case it is "vaultAuth".
-    component_name: The organisation's namespace.
-    release_dir: absolute path for release git directory.
+    component_type: It specifies the type of deployment to be created. In this case it is "vault-reviewr".
+    *component_name: The organisation's namespace.
+    *release_dir: absolute path for release git directory.
+    helm_lint: Either true or false, for linting.
 
 #### 4. Create vault reviewer for {{ organisation }}
-This task creates value file for vault-reviewer by calling create/k8_component role.
+This task creates vault reviewer file for organisation by calling create/k8_component role.
 ##### Input Variables
     
     organisation: Organisation name
-    component_type: It specifies the type of deployment to be created. In this case it is "vault-reviewer".
-    component_name: The organisation's namespace.
-    release_dir: absolute path for release git directory.
+    component_type: It specifies the type of deployment to be created. In this case it is "vault-reviewr".
+    *component_name: The organisation's namespace.
+    *release_dir: absolute path for release git directory.
+    helm_lint: Either true or false, for linting.
 
 #### 5. Create clusterrolebinding for {{ organisation }}
 This task creates value file for clusterrolebinding by calling create/k8_component role.
@@ -51,11 +55,12 @@ This task creates value file for clusterrolebinding by calling create/k8_compone
     
     organisation: Organisation name
     component_type: It specifies the type of deployment to be created. In this case it is "reviewer_rbac".
-    component_name: The organisation's namespace.
-    release_dir: absolute path for release git directory.
+    *component_name: The organisation's namespace.
+    *release_dir: absolute path for release git directory.
+    helm_lint: Either true or false, for linting.
 
 #### 6. Push the created deployment files to repository
-This task pushes all the value files created to the git repo.
+This task pushes all the value files created to the git repo by calling git_push role in shared directory.
 ##### Input Variables
     
     GIT_DIR: root directory of the git cloned repository

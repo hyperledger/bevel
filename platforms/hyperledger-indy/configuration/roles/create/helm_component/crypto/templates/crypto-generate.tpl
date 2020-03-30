@@ -19,7 +19,7 @@ spec:
       name: {{ network.name }}
     image:
       name: {{ component_name }}
-      repository: {{ network.docker.url }}/indy-key-mgmt:0.3.0.0
+      repository: {{ network.docker.url }}/indy-key-mgmt:{{ network.version }}
       pullSecret: regcred
     vault:
       address: {{ vault.url }}

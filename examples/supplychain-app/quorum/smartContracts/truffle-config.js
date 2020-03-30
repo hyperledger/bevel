@@ -55,7 +55,8 @@ module.exports = {
       network_id: "*", // Match any network id
       gasPrice: 0,
       gas: 4500000,
-      type: "quorum" // needed for Truffle to support Quorum
+      type: "quorum", // needed for Truffle to support Quorum
+      identity: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
     }
 
     // Another network with more advanced options...

@@ -25,7 +25,6 @@ contract ContainerContract is ProductContract {
     }
 
     string[] public containerKeys;
-    Container[] public allContainers;
     mapping(string => Container) containerSupplyChain;
     mapping(string => Transaction[]) containerHistory;
 
@@ -50,7 +49,7 @@ contract ContainerContract is ProductContract {
         containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
 
-        Transaction memory newTransaction = Transaction(_custodian,_lastScannedAt,_timestamp);
+        Transaction memory newTransaction = Transaction(_custodian,_timestamp);
         containerHistory[_trackingID].push(newTransaction);
 
         return containerSupplyChain[_trackingID];
@@ -93,7 +92,7 @@ contract ContainerContract is ProductContract {
         require(isParticipant, "HTTP 404: your identity is not in participant list");
 
         containerSupplyChain[_containerID].custodian = msg.sender;
-        string memory _trackingID = containerSupplyChain[_containerID].trackingID;
+        string memory _containerTrackingID = containerSupplyChain[_containerID].trackingID;
 
         for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
             if (bytes(productSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
@@ -103,7 +102,10 @@ contract ContainerContract is ProductContract {
                 uint256 _timestamp = block.timestamp;
                 address _custodian = msg.sender;
                 string memory _lastScannedAt = containerSupplyChain[_containerID].lastScannedAt;
-                containerHistory[_trackingID].push(Transaction(_custodian, _lastScannedAt, _timestamp));
+                string memory _productID = containerSupplyChain[_containerID].containerContents[i];
+                //product custodian will get updated since it is being packaged into a container
+                updateCustodian(_productID, _lastScannedAt);
+                containerHistory[_containerTrackingID].push(Transaction(_custodian, _timestamp));
 
             } else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
                 updateContainerCustodian(
@@ -127,6 +129,7 @@ contract ContainerContract is ProductContract {
                                     containerSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
                                     containerSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
                                     containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
+                                    containerHistory[_containerTrackingID].push(Transaction(containerSupplyChain[_containerTrackingID].custodian, now));
                                     return containerSupplyChain[_containerTrackingID].containerID;
                             }
                     }
@@ -153,11 +156,12 @@ contract ContainerContract is ProductContract {
     * an updated container list with the package removed
     */
     function unpackageTrackable(string memory _containerID, string memory _trackableID) public{
+
         require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 400: container does not exist");
         require((bytes(productSupplyChain[_trackableID].trackingID).length > 0) ||
                 (bytes(containerSupplyChain[_trackableID].trackingID).length > 0), "HTTP 400: trackable does not exist");
 
-        require(containerSupplyChain[_trackableID].custodian == msg.sender, "HTTP 400: container custodian not same as sender address");
+        require(containerSupplyChain[_containerID].custodian == msg.sender, "HTTP 400: container custodian not same as sender address");
         require((productSupplyChain[_trackableID].custodian == msg.sender) ||
                 containerSupplyChain[_trackableID].custodian == msg.sender, "HTTP 400: trackable custodian not same as sender address");
 
