@@ -8,6 +8,16 @@ For build run command below:
 ```bash
 docker build -t indy-key-mgmt:1.9.2 .
 ```
+*NOTE*: Version 1.9.2 is default version also for version of Hyperledger Indy in this Docker image.<br>
+When you would like to update this version, then override build arguments.<br>
+Example for update to 1.11.0:
+```bash
+docker build --build-arg INDY_NODE_VERSION=v1.11.0 -t build.dev.di-uisp-accenture.com/indy-key-mgmt:1.11.0 .
+```
+#### Build arguments with default values
+ - ROCKS_DB_VERSION=5.8.8
+ - LIBINDY_CRYPTO_VERSION=0.4.5
+ - INDY_NODE_VERSION=v1.9.2
 
 ## How to use
 
