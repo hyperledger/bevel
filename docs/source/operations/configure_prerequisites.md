@@ -48,8 +48,8 @@ sudo docker build -t alpine-utils:1.0 -f alpine-utils.Dockerfile .
 ```
 * The above command will create an image with tag *alpine-utils:1.0*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command is shown below:
 ```
-sudo docker tag alpine-utils:1.0 adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
-sudo docker push adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+sudo docker tag alpine-utils:1.0 hyperledgerlabs/alpine-utils:1.0
+sudo docker push hyperledgerlabs/alpine-utils:1.0
 ```
 
 ---

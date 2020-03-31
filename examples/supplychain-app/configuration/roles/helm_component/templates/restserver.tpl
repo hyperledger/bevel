@@ -18,7 +18,7 @@ spec:
       name: {{ name }}-restserver
       port: {{ peer_restserver_port }}
       localmspid: {{ name }}MSP
-      image: {{ network.docker.url }}/supplychain_fabric/rest_server:latest
+      image: {{ network.docker.url }}/supplychain_fabric:rest_server_latest
       username: admin
       cert_path: "/secret/tls/admin.cert"
       key_path: "/secret/tls/admin.pem"
@@ -32,7 +32,7 @@ spec:
       secretprefix: secret/crypto/peerOrganizations/{{ component_ns }}
       serviceaccountname: vault-auth
       imagesecretname: regcred
-      image: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      image: hyperledgerlabs/alpine-utils:1.0
     service:
       servicetype: ClusterIP
       ports:
