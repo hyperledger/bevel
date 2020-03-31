@@ -8,9 +8,9 @@ This directory contains the files to build base linuxkit docker image which is t
 	
 ## Steps to build Linuxkit-base image ##
 
-1. To build base image (for a docker registry with address **adopblockchaincloud0502.azurecr.io**) run the following command in this directory:
+1. To build base image (for a docker registry with address **hyperledgerlabs**) run the following command in this directory:
 ```	
-    sudo linuxkit pkg build -org=adopblockchaincloud0502.azurecr.io .
+    sudo linuxkit pkg build -org=hyperledgerlabs .
 ```
 Change the docker registry address to your own docker registry in *build.yml* as well.
 Check the docker image created by running the following command:
@@ -20,7 +20,7 @@ Check the docker image created by running the following command:
 Note down the image tag that has been created. For example:
 ```
 REPOSITORY                                         TAG                                              
-adopblockchaincloud0502.azurecr.io/linuxkit-java   fb47dcbf8534bce1de86715569deaa42a5bb10f3  
+hyperledgerlabs/linuxkit-java   fb47dcbf8534bce1de86715569deaa42a5bb10f3  
 ```       
 
 2. Update imagename:tag in line 9 of *minimal-linuxkit-os-base.yml*, then create minimal-linuxkit-os-base docker image refering to this base image created above.

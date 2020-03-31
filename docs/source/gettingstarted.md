@@ -27,7 +27,8 @@ Read [DLT Network deployment using docker build](./developer/docker-build.md)
 
 ```
 # Run the provisioning scripts
-docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build bash
+$ ./home/blockchain-automation-framework/run.sh
 ```
 
 For detailed instructions, read [Setting up a DLT network](./operations/setting_dlt.md).

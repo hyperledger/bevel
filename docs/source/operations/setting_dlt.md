@@ -14,9 +14,14 @@ Ansible playbooks are used to set up a DLT network. For this, [Ansible host and 
 Use Docker build as given in [prerequisites](../prerequisites), then you can run the provisioning script to deploy the network after configuring the network specific configuration file.
 ```
 # Run the provisioning scripts
-docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build bash
+$ ./home/blockchain-automation-framework/run.sh
 ```
-For detailed instructions on docker build, read [here](./developer/docker-build.md).  
+For detailed instructions on docker build, read [here](./developer/docker-build.md).
+---
+**NOTE:** This baf-build container should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s). Which means, if your Vault is behind a bastion, you have to create the ssh-tunnel from inside the running baf-build container.
+
+---
 
 *Optional:* If you have create the **Ansible controller** manually, run the following command from the ansible machine
 ```
