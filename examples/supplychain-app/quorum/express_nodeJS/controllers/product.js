@@ -15,14 +15,14 @@ router.get('/containerless', function (req, res) {
   var containerlessArray = [];
   productContract.methods
     .getProductsLength()
-    .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .then(async response => {
       productCount = response;
       console.log("LENGTH ", response);
       for (var i = 1; i <= productCount; i++) { 
         var toPush = await productContract.methods
           .getContainerlessAt(i - 1)
-          .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+          .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
           var product = {};
           product.productName = toPush.productName;
           product.health = toPush.health;
@@ -40,7 +40,7 @@ router.get('/containerless', function (req, res) {
           product.containerID = toPush.containerID,
           product.linearId = {
           "externalId": null,
-          "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
+          "id": toPush.trackingID
           },
           product.participants = toPush.participants;
           containerlessArray.push(product);
@@ -57,7 +57,7 @@ router.get('/:trackingID?', function (req, res) {
     console.log(trackingID, "***");
     productContract.methods
       .getSingleProduct(req.params.trackingID)
-      .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then(response => {
         var newProduct = response;
         var product = {};
@@ -80,7 +80,7 @@ router.get('/:trackingID?', function (req, res) {
           product.containerID = newProduct.containerID,
           product.linearId = {
             "externalId": null,
-            "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
+            "id": newProduct.trackingID
           },
           product.participants = newProduct.participants
         res.send(product);
@@ -96,14 +96,14 @@ router.get('/:trackingID?', function (req, res) {
     var displayArray = [];
     productContract.methods 
       .getProductsLength()
-      .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+      .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then(async response => {
         arrayLength = response; 
         console.log("LENGTH ", response);
         for (var i = 1; i <= arrayLength; i++) {
           var toPush = await productContract.methods
             .getProductAt(i)
-            .call({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+            .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
           var product = {};
           product.productName = toPush.productName;
           product.health = toPush.health;
@@ -123,7 +123,7 @@ router.get('/:trackingID?', function (req, res) {
             product.containerID = toPush.containerID,
             product.linearId = {
               "externalId": null,
-              "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
+              "id": toPush.trackingID
             },
             product.participants = toPush.participants
           displayArray.push(product);
@@ -164,7 +164,7 @@ router.post('/', upload.array(), function (req, res) {
       "",
       newProduct.counterparties
     )
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .on("receipt", function (receipt) {
       // receipt example
       if (receipt.status === true) {
@@ -195,7 +195,7 @@ router.put('/:trackingID/custodian', function (req, res) {
   console.log(longLatCoordinates);
   productContract.methods
     .updateCustodian(trackingID, longLatCoordinates)
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "30000000" })
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .then(response => {
       res.send(response)
     })
