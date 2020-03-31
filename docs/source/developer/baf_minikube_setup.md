@@ -109,6 +109,7 @@ If you need help, you can use each platform's sample network-minikube.yaml:
 
 - For Fabric, use `platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml`
 - For Quorum, use `platforms/quorum/configuration/samples/network-minikube.yaml`
+- For Corda, use `platforms/r3-corda/configuration/samples/network-minikube.yaml`
 
 And simply replace the placeholder values.
 
