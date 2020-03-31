@@ -25,10 +25,10 @@ supplychain-app
 ### Step 1
 Build the following docker images from the respective folders and store in the docker repository. You can follow the pipeline samples in `automation` folder.
 * supplychain_frontend:latest (from `examples/supplychain-app/supplychain-frontend/` folder)
-* supplychain_corda/springboot_server:latest (from `examples/supplychain-app/corda/cordApps_springBoot/` folder) for Corda
-* supplychain_corda/express_app:latest (from `examples/supplychain-app/corda/express_nodeJS/` folder) for Corda
-* supplychain_fabric/rest_server:latest (from `examples/supplychain-app/fabric/chaincode_rest_server/rest-server/` folder) for Fabric
-* supplychain_fabric/express_app:latest (from `examples/supplychain-app/fabric/express_nodeJs/` folder) for Fabric
+* supplychain_corda:springboot_latest (from `examples/supplychain-app/corda/cordApps_springBoot/` folder) for Corda
+* supplychain_corda:express_app_latest (from `examples/supplychain-app/corda/express_nodeJS/` folder) for Corda
+* supplychain_fabric:rest_server_latest (from `examples/supplychain-app/fabric/chaincode_rest_server/rest-server/` folder) for Fabric
+* supplychain_fabric:express_app_latest (from `examples/supplychain-app/fabric/express_nodeJs/` folder) for Fabric
 
 ### Step 2
 Edit the Supplychain application configuration file (from `examples\supplychain-app\configuration\samples` depnding on your choice of DLT Platform). This file will be similar to the BAF Configuration File which few additional changes like the `frontend: enabled` and `google_maps_api: XYZ123`, also the chart location must be `chart_source: "examples\supplychain-app\charts"`
