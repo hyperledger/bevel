@@ -53,18 +53,14 @@ Also, the user needs to provision their own docker registry, username and passwo
 
 ## Docker Build
 
-The Blockchain Automation Framework configuration is essentially Ansible scripts, create a containerized ansible machine to deploy the DLT network using docker build.  
+The Blockchain Automation Framework configuration is essentially Ansible scripts, create a containerized Ansible machine to deploy the DLT network using docker build.  
 
-The details are mentioned [here](./developer/docker-build.md).
+The details on how to create a containerized Ansible machine is mentioned [here](./developer/docker-build.md).
 
-Please note that this containerized machine (also called **Ansible Controller**) should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s).
-```
-# Build provisioning image
-docker build . -t hyperledgerlabs/baf-build
+---
+**NOTE:** This containerized machine (also called **Ansible Controller**) should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s). Which means, if your Vault is behind a bastion, you have to create the ssh-tunnel from inside the running baf-build container.
 
-# Run the provisioning scripts
-docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
-```
+---
 
 ## Internet Domain
 As you may have read in the [Kubernetes key concepts](keyConcepts/kubernetes), the Blockchain Automation Framework uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) or [HAProxy Ingress Controller](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) for inter-cluster communication. So, for the Kubernetes services to be available outside the specific cluster, at least one DNS Domain is required. This domain name can then be sub-divided across multiple clusters and the domain-resolution configured for each.

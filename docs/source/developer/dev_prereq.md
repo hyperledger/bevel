@@ -89,7 +89,7 @@ Complete the following steps to download and configure BAF repository on your lo
 
 _Estimated Time: 10 minutes_
 
-Install [Docker Engine](https://docs.docker.com/install/) to make sure your local environment has the capbility to execute `docker` commands.
+Install [Docker Toolbox](https://docs.docker.com/toolbox/overview/) to make sure your local environment has the capbility to execute `docker` commands.
 You can check the version of Docker you have installed with the following
 command from a terminal prompt:
 
@@ -99,7 +99,7 @@ docker --version
 
 ---
 
-**NOTE:** For Windows, it is recommended to use Docker Toolbox with VirtualBox. Do not use Docker for Windows wih HyperV.
+**NOTE:** For Windows, you MUST use Docker Toolbox with VirtualBox. Do not use Docker Desktop for Windows. Also HyperV should be DISABLED for Mac and Windows.
 
 ---
 
