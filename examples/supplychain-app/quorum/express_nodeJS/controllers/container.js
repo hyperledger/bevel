@@ -33,6 +33,7 @@ router.get("/:trackingID?", function(req, res) {
             container.misc[key] = json[key];
           }
           container.custodian = newContainer.custodian;
+          container.custodian = container.custodian + "," + newContainer.lastScannedAt;
           container.trackingID = newContainer.trackingID;
           container.timestamp = newContainer.timestamp;
           container.containerID = newContainer.containerID;
@@ -75,6 +76,7 @@ router.get("/:trackingID?", function(req, res) {
 
 
           container.custodian = toPush.custodian;
+          container.custodian = container.custodian + "," + toPush.lastScannedAt;
           container.trackingID = toPush.trackingID;
           container.timestamp = toPush.timestamp;
           container.containerID = toPush.containerID;
@@ -101,9 +103,10 @@ router.post("/", upload.array(), function(req, res) {
   let newContainer = {
     misc: req.body.misc,
     trackingID: req.body.trackingID,
+    lastScannedAt: fromNodeSubject,
     counterparties: req.body.counterparties.map(it =>
       it.indexOf("O=") != -1 ? it.split("O=")[1].split(",")[0] : it
-    ) //filter out to only send org name
+    ), //filter out to only send org name
   }; //filter out to only send org
   var isInArray = false;
   if (newContainer.counterparties.includes(fromAddress)) {
@@ -125,8 +128,8 @@ router.post("/", upload.array(), function(req, res) {
         "health",
         misc,
         newContainer.trackingID,
-        "",
-        newContainer.counterparties
+        newContainer.lastScannedAt,
+        newContainer.counterparties,
       )
       .send({ from: fromAddress, gas: 6721900, gasPrice: "0" })
       .on("receipt", function(receipt) {
@@ -146,14 +149,15 @@ router.post("/", upload.array(), function(req, res) {
   }
 });
 
-//PUT for changing custodian
+//PUT for updating custodian
 router.put("/:trackingID/custodian", function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var trackingID = req.params.trackingID;
+  var lastScannedAt = fromNodeSubject;
   console.log(trackingID);
     productContract.methods
-      .updateContainerCustodian(trackingID)
+      .updateContainerCustodian(trackingID, lastScannedAt)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then( response => {
         res.send(trackingID)
