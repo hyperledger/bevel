@@ -480,35 +480,6 @@ let productABI = [
   {
     "inputs": [
       {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "history",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "custodian",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
@@ -790,6 +761,11 @@ let productABI = [
       {
         "internalType": "string",
         "name": "_containerID",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_lastScannedAt",
         "type": "string"
       }
     ],
@@ -1570,36 +1546,6 @@ let productABI = [
     "inputs": [
       {
         "internalType": "string",
-        "name": "",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "history",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "custodian",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
         "name": "_trackableTrackingID",
         "type": "string"
       },
@@ -1663,6 +1609,11 @@ let productABI = [
       {
         "internalType": "string",
         "name": "_containerID",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_lastScannedAt",
         "type": "string"
       }
     ],
@@ -1772,6 +1723,11 @@ let productABI = [
             "internalType": "uint256",
             "name": "timestamp",
             "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "lastScannedAt",
+            "type": "string"
           }
         ],
         "internalType": "struct ProductContract.Transaction",
@@ -1932,35 +1888,6 @@ let productABI = [
       {
         "internalType": "uint256",
         "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "history",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "custodian",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
         "type": "uint256"
       }
     ],

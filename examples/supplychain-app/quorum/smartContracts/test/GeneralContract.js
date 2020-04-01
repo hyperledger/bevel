@@ -14,7 +14,7 @@ const containers = [
         misc: ["\{ 'name': 'Dextrose' \}"],
         trackingID: "jjj",
         lastScannedAt: " ",
-        counterparties: [String(accounts[0]), String(carrier), String(warehouse)]
+        counterparties: [String(manufacturer), String(carrier), String(warehouse)]
     },
 ]
 const products = [
@@ -24,7 +24,7 @@ const products = [
         misc: ["\{ 'name': 'Expensive Dextrose' \}"],
         trackingID: "123",
         lastScannedAt: " ",
-        participants: [String(accounts[0]), String(carrier), String(warehouse)]
+        participants: [String(manufacturer), String(carrier), String(warehouse)]
     },
 ]
 
@@ -37,7 +37,7 @@ const products = [
             products[0].misc,
             products[0].lastScannedAt,
             products[0].participants);
-            // call getSingleProduct to see if product got created
+            // call getSingleProduct to see if product is created
             const result = await contractInstance.getSingleProduct("123");
             // Checking the 1st index of the returned tuple
             assert.equal(result[0],"123");
@@ -94,7 +94,8 @@ const products = [
         const trackingId = "123";
         // tracking ID of the container that will become the products container ID
         const containerId = "jjj";
-        await contractInstance.updateContainerCustodian(containerId, {from: carrier});
+        const lastScannedAt = "OU=Carrier, O=PartyB, L=51.50/-0.13/London, C=US"
+        await contractInstance.updateContainerCustodian(containerId,lastScannedAt,{from: carrier});
         const result = await contractInstance.getSingleContainer(containerId);
         //checking to see if the container custodian was updated
         assert.equal(result[2], String(carrier));

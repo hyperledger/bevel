@@ -26,6 +26,7 @@ contract ProductContract is Permission {
     struct Transaction {
         address custodian;
         uint256 timestamp;
+        string lastScannedAt;
     }
 
     /**
@@ -35,7 +36,7 @@ contract ProductContract is Permission {
     string[] public productKeys;
 
     mapping(string => Product) productSupplyChain;
-    mapping(string => Transaction[]) public history;
+    mapping(string => Transaction[]) history;
 
     event locationEvent(string trackingID, string location);
     event sendTrackingID(string);
@@ -75,7 +76,7 @@ contract ProductContract is Permission {
         productKeys.push(_trackingID);
         productSupplyChain[_trackingID] = newProduct;
 
-        Transaction memory newTransaction = Transaction(_custodian,_timestamp);
+        Transaction memory newTransaction = Transaction(_custodian,_timestamp, _lastScannedAt);
         history[_trackingID].push(newTransaction);
 
         emit sendTrackingID(_trackingID);
@@ -146,7 +147,7 @@ function _toLower(string memory str) internal pure returns (string memory) {
         uint256 _timestamp = block.timestamp;
         productSupplyChain[_productID].custodian = msg.sender;
         productSupplyChain[_productID].lastScannedAt = longLat;
-        history[_trackingID].push(Transaction(newCustodian, _timestamp));
+        history[_trackingID].push(Transaction(newCustodian, _timestamp, longLat));
 
         emit sendTrackingID(_productID);
     }
