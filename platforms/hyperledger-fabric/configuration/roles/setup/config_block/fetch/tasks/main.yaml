@@ -17,19 +17,18 @@
   when: participant.type == 'creator'
 
 # Start the cli, configure and download the configuration block
-- name: Call nested_create_cli for the peer
+- name: Call nested_fetch_role for the peer
   include_tasks: nested_fetch_role.yaml
   vars:
     channel_name: "{{ item.channel_name | lower }}"
-    org_query: "organizations[?name=='{{participant.name}}']"
+    org_query: "organizations[?name=='{{participantx.name}}']"
     org: "{{ network | json_query(org_query) | first }}"
-    peer: "{{ participant.peers | first }}"
-    participant: "{{ participant }}"
-    component_type: "{{ participant.type }}"
+    peer: "{{ participantx.peers | first }}"    
+    component_type: "{{ participantx.type }}"
     os: "{{ fabric.os }}"
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
   loop: "{{ participants }}"
   loop_control:
-    loop_var: participant
-  when: participant.type == 'creator'
+    loop_var: participantx
+  when: participantx.type == 'creator'
