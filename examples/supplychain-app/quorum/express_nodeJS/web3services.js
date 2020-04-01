@@ -25,5 +25,5 @@ module.exports = {
     fromAddress,
     fromNodeOrganization,
     fromNodeOrganizationUnit,
-    fromNodeSubject,
+    fromNodeSubject
 }

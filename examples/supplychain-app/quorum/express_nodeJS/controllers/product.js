@@ -35,12 +35,13 @@ router.get('/containerless', function (req, res) {
             product.misc[key] = json[key];
           }
           product.custodian = toPush.custodian,
+          product.custodian  = product.custodian +","+toPush.lastScannedAt,
           product.trackingID = toPush.trackingID,
           product.timestamp = toPush.timestamp,
           product.containerID = toPush.containerID,
           product.linearId = {
           "externalId": null,
-          "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
+          "id": toPush.trackingID
           },
           product.participants = toPush.participants;
           containerlessArray.push(product);
@@ -73,14 +74,14 @@ router.get('/:trackingID?', function (req, res) {
           product.misc[key] = json[key];
         }
 
-
         product.custodian = newProduct.custodian,
+        product.custodian  = product.custodian +","+newProduct.lastScannedAt,
           product.trackingID = newProduct.trackingID,
           product.timestamp = newProduct.timestamp,
           product.containerID = newProduct.containerID,
           product.linearId = {
             "externalId": null,
-            "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
+            "id": newProduct.trackingID
           },
           product.participants = newProduct.participants
         res.send(product);
@@ -118,12 +119,13 @@ router.get('/:trackingID?', function (req, res) {
 
 
           product.custodian = toPush.custodian,
+          product.custodian  = product.custodian +","+toPush.lastScannedAt,
             product.trackingID = toPush.trackingID,
             product.timestamp = toPush.timestamp,
             product.containerID = toPush.containerID,
             product.linearId = {
               "externalId": null,
-              "id": "af9efb7f-d13b-4b68-a10b-e680b5d2b2b0"
+              "id": toPush.trackingID
             },
             product.participants = toPush.participants
           displayArray.push(product);
@@ -145,7 +147,8 @@ router.post('/', upload.array(), function (req, res) {
     productName: req.body.productName,
     misc: req.body.misc,
     trackingID: req.body.trackingID,
-    counterparties: req.body.counterparties
+    counterparties: req.body.counterparties,
+    lastScannedAt: fromNodeSubject
   };
   var misc = [];
   var keys = Object.keys(newProduct.misc);
@@ -161,8 +164,8 @@ router.post('/', upload.array(), function (req, res) {
       newProduct.productName,
       "health",
       misc,
-      "",
-      newProduct.counterparties
+      newProduct.lastScannedAt,
+      newProduct.counterparties,
     )
     .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .on("receipt", function (receipt) {
@@ -184,17 +187,18 @@ router.post('/', upload.array(), function (req, res) {
     });
 })
 
-//PUT for changing custodian
+//PUT for updating custodian
 router.put('/:trackingID/custodian', function (req, res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var identityArray = fromNodeSubject.split(',');
   var trackingID = req.params.trackingID;
   var longLatCoordinates = identityArray[3];
+  var lastScannedAt = fromNodeSubject;
   console.log(trackingID);
   console.log(longLatCoordinates);
   productContract.methods
-    .updateCustodian(trackingID, longLatCoordinates)
+    .updateCustodian(trackingID, lastScannedAt)
     .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
     .then(response => {
       res.send(response)

@@ -49,7 +49,7 @@ contract ContainerContract is ProductContract {
         containerSupplyChain[_trackingID] = Container(_health, _misc, _custodian, _lastScannedAt,
             _trackingID, _timestamp, _containerID, _counterparties, _containerContents);
 
-        Transaction memory newTransaction = Transaction(_custodian,_timestamp);
+        Transaction memory newTransaction = Transaction(_custodian,_timestamp, _lastScannedAt);
         containerHistory[_trackingID].push(newTransaction);
 
         return containerSupplyChain[_trackingID];
@@ -78,7 +78,7 @@ contract ContainerContract is ProductContract {
     /**
     * return container with updated custodian
     */
-    function updateContainerCustodian(string memory _containerID) public returns(string memory){
+    function updateContainerCustodian(string memory _containerID, string memory _lastScannedAt) public returns(string memory){
         require(bytes(containerSupplyChain[_containerID].trackingID).length > 0, "HTTP 404");
         require(bytes(containerSupplyChain[_containerID].containerID).length <= 0, "HTTP 404");
 
@@ -92,6 +92,8 @@ contract ContainerContract is ProductContract {
         require(isParticipant, "HTTP 404: your identity is not in participant list");
 
         containerSupplyChain[_containerID].custodian = msg.sender;
+        containerSupplyChain[_containerID].lastScannedAt = _lastScannedAt;
+
         string memory _containerTrackingID = containerSupplyChain[_containerID].trackingID;
 
         for (uint256 i = 0; i < containerSupplyChain[_containerID].containerContents.length; i++) {
@@ -101,16 +103,15 @@ contract ContainerContract is ProductContract {
                     .custodian = msg.sender;
                 uint256 _timestamp = block.timestamp;
                 address _custodian = msg.sender;
-                string memory _lastScannedAt = containerSupplyChain[_containerID].lastScannedAt;
+
                 string memory _productID = containerSupplyChain[_containerID].containerContents[i];
                 //product custodian will get updated since it is being packaged into a container
                 updateCustodian(_productID, _lastScannedAt);
-                containerHistory[_containerTrackingID].push(Transaction(_custodian, _timestamp));
+                //Gets added to the containerHistory because of change in custodian
+                containerHistory[_containerTrackingID].push(Transaction(_custodian, _timestamp, _lastScannedAt));
 
             } else if (bytes(containerSupplyChain[containerSupplyChain[_containerID].containerContents[i]].trackingID).length > 0) {
-                updateContainerCustodian(
-                    containerSupplyChain[_containerID].containerContents[i]
-                );
+                updateContainerCustodian(containerSupplyChain[_containerID].containerContents[i], _lastScannedAt);
             }
         }
         return containerSupplyChain[_containerID].trackingID;
@@ -129,7 +130,10 @@ contract ContainerContract is ProductContract {
                                     containerSupplyChain[_trackableTrackingID].containerID = _containerTrackingID;
                                     containerSupplyChain[_trackableTrackingID].custodian = containerSupplyChain[_containerTrackingID].custodian;
                                     containerSupplyChain[_containerTrackingID].containerContents.push(_trackableTrackingID);
-                                    containerHistory[_containerTrackingID].push(Transaction(containerSupplyChain[_containerTrackingID].custodian, now));
+
+                                    //Gets added to containerHistory
+                                    containerHistory[_containerTrackingID].push(Transaction(containerSupplyChain[_containerTrackingID].custodian, now,
+                                    containerSupplyChain[_containerTrackingID].lastScannedAt));
                                     return containerSupplyChain[_containerTrackingID].containerID;
                             }
                     }
