@@ -108,8 +108,6 @@ router.post("/", upload.array(), function(req, res) {
       it.indexOf("O=") != -1 ? it.split("O=")[1].split(",")[0] : it
     ), //filter out to only send org name
   }; //filter out to only send org
-  // console.log("//////////////////////");
-  // console.log(fromNodeSubject);
   var isInArray = false;
   if (newContainer.counterparties.includes(fromAddress)) {
     isInArray = true;

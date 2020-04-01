@@ -1,22 +1,12 @@
 <a name = "configuring-prerequisites"></a>
 # Configure Pre-requisites
 
-- [Ansible Inventory file](#Ansible_Inventory)
 - [Private Key for GitOps](#privatekey)
 - [Docker Images](#docker)
 - [Vault Initialization and unseal](#vaultunseal)
 - [Ambassador](#ambassador)
 - [External DNS](#externaldns)
 - [HAProxy Ingress](#haproxy)
-
-<a name = "Ansible_Inventory"></a>
-## Ansible Inventory file
-
-In the Blockchain Automation Framework, we connect to Kubernetes cluster through the machine that run our Ansible playbooks and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). 
-
-Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
-
-Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html)
 
 <a name = "privatekey"></a>
 ## Private Key for GitOps
@@ -58,8 +48,8 @@ sudo docker build -t alpine-utils:1.0 -f alpine-utils.Dockerfile .
 ```
 * The above command will create an image with tag *alpine-utils:1.0*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command is shown below:
 ```
-sudo docker tag alpine-utils:1.0 adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
-sudo docker push adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+sudo docker tag alpine-utils:1.0 hyperledgerlabs/alpine-utils:1.0
+sudo docker push hyperledgerlabs/alpine-utils:1.0
 ```
 
 ---

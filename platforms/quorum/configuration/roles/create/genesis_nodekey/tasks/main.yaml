@@ -32,6 +32,30 @@
     istanbul setup --num {{ validator_node_list | length }} --nodes --quorum --save --verbose
   when: vault_check|default(0)|int != 0
 
+# Update txnSizeLimit in genesis file
+- name: Update txnSizeLimit in genesis file
+  lineinfile:
+    path: ./build/genesis.json
+    regexp: '"txnSizeLimit":'
+    line: '        "txnSizeLimit": 128,'  # 8 spaces necessary to keep format of json file
+  when: vault_check|default(0)|int != 0
+
+# Update maxCodeSize in genesis file
+- name: Update maxCodeSize in genesis file
+  lineinfile:
+    path: ./build/genesis.json
+    regexp: '"maxCodeSize":'
+    line: '        "maxCodeSize": 128,'   # 8 spaces necessary to keep format of json file
+  when: vault_check|default(0)|int != 0
+
+# Update byzantiumBlock in genesis file
+- name: Update byzantiumBlock in genesis file
+  lineinfile:
+    path: ./build/genesis.json
+    regexp: '"byzantiumBlock":'
+    line: '        "byzantiumBlock": 1,'   # 8 spaces necessary to keep format of json file
+  when: vault_check|default(0)|int != 0  
+
 # This task rename the above created directories to the org_name/node_name 
 - name: Rename the directories created above with the elements of validator_node_list
   copy: src=build/{{item.0}}/ dest=build/{{item.1.org}}/{{item.1.node}}

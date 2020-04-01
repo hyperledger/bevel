@@ -9,8 +9,21 @@ Ansible playbooks are used to set up a DLT network. For this, [Ansible host and 
 | [Quorum](./quorum_networkyaml.md) |
 
 
-## Executing Ansible playbook to setup DLT network
-The playbook [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/)) can be run after the configuration file (for example: [network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) for Fabric) has been updated.
+## Executing provisioning script to setup DLT network
+
+Use Docker build as given in [prerequisites](../prerequisites), then you can run the provisioning script to deploy the network after configuring the network specific configuration file.
+```
+# Run the provisioning scripts
+docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build bash
+$ ./home/blockchain-automation-framework/run.sh
+```
+For detailed instructions on docker build, read [here](./developer/docker-build.md).
+---
+**NOTE:** This baf-build container should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s). Which means, if your Vault is behind a bastion, you have to create the ssh-tunnel from inside the running baf-build container.
+
+---
+
+*Optional:* If you have create the **Ansible controller** manually, run the following command from the ansible machine
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
 ```

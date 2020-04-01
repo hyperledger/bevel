@@ -2285,7 +2285,7 @@ let productABI = [
     "type": "function"
   }
 ];
-          
+
 module.exports = {
   productABI
 }

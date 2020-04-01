@@ -1,8 +1,23 @@
-## ROLE: generate_crypto_tessera
+## ROLE: create/crypto/tessera
 This role generates the crypto material for tessera transaction manager
 
-### Tasks of nested_main.yaml
+### Tasks
+(Variables with * are fetched from the playbook which is calling this role)
+#### 1. Call nested_main for each node in an organisation
+This task calls nested_main
+##### Input Variables
+    *node_name: Name of the node
+**include_tasks**: It includes the name of intermediary task which is required for creating the crypto material for each peer.
+**loop**: loops over all the peers in an organisation
+**loop_control**: Specifies the condition for controlling the loop.
 
+    loop_var: loop variable used for iterating over the loop.
+
+---------------
+
+### nested_main.yaml
+This task initaiates the nested_main role for each node in the organisation
+### Tasks
 #### 1. Check if tm key already present in the vault
 This tasks checks if tm key is already present in the vault
 
@@ -56,3 +71,6 @@ This task copies the above generated crypto material to the vault
 **shell**: This module is used to put the generated crypto material in the vault
 
 **when**: It runs when *vault_tmkey_result.failed* == True, i.e. when tm key is not found in vault.
+
+#### Note: 
+vars folder has variable like tessera jar repo link

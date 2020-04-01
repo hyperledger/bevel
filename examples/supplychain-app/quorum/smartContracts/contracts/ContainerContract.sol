@@ -1,4 +1,4 @@
-pragma solidity 0.6.1;
+pragma solidity >0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "./ProductContract.sol";
@@ -103,7 +103,7 @@ contract ContainerContract is ProductContract {
                     .custodian = msg.sender;
                 uint256 _timestamp = block.timestamp;
                 address _custodian = msg.sender;
-                //string memory _lastScannedAt = containerSupplyChain[_containerID].lastScannedAt;
+
                 string memory _productID = containerSupplyChain[_containerID].containerContents[i];
                 //product custodian will get updated since it is being packaged into a container
                 updateCustodian(_productID, _lastScannedAt);
