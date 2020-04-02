@@ -3,7 +3,8 @@
 #############################################################################################
 
 # Check if StorageClass is created
-- include_role:
+- name: "Checking if the storage class {{ sc_name }} already exists"
+  include_role:
     name: "../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "StorageClass"
@@ -15,7 +16,8 @@
     get_sc: "{{ result }}"
 
 # this task creates {{ component_type }} diretory if not exists
-- include_role:
+- name: "creating {{ release_dir }}/{{ component_type }} directory"
+  include_role:
     name: "../../shared/configuration/roles/check/setup"
   vars:
     path: "{{ release_dir }}/{{ component_type }}"
@@ -61,7 +63,8 @@
   when: get_sc.resources|length == 0
 
 # Check if StorageClass created
-- include_role:
+- name: "Waiting for the creation of {{ sc_name }} storage class"
+  include_role:
     name: "../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "StorageClass"

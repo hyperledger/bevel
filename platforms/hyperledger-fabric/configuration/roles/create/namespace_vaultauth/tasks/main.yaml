@@ -3,7 +3,8 @@
 #############################################################################################
 
 # Check if namespace created
-- include_role:
+- name: "Checking if the namespace {{ item.name | lower }}-net already exists"
+  include_role:
     name: "../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "Namespace"
@@ -81,8 +82,9 @@
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "Pushing deployment files for namespace, service accounts and clusterrolebinding"
 
-# Check if namespace created
-- include_role:
+# Check if ClusterRoleBinding created
+- name: "Checking for the {{ item.name | lower }}-net-role-tokenreview-bindin"
+  include_role:
     name: "../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ClusterRoleBinding"
@@ -90,7 +92,8 @@
   when: get_namespace.resources|length == 0
 
 # Check if ServiceAccount is created for vault-reviwer
-- include_role:
+- name: "Including the check for ServiceAccount vault-reviewer in {{ item.name | lower }}-net "
+  include_role:
     name: "../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
@@ -98,7 +101,8 @@
     component_name: "vault-reviewer"
 
 # Check if ServiceAccount is created for vault-auth
-- include_role:
+- name: "Including the check for ServiceAccount vault-auth in {{ item.name | lower }}-net "
+  include_role:
     name: "../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
