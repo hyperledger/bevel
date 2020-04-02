@@ -2,21 +2,26 @@
 # This role creates value files for storage class
 #############################################################################################
 
-# Check if storageclass created
+# Check if StorageClass is created
+- name: "Checking if the storage class {{ sc_name }} already exists"
+  include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "StorageClass"
+    component_name: "{{ sc_name }}"
+    type: "no_retry"
 
-- name: Check storageclass is created
-  k8s_facts:
-    kind: StorageClass
-    name: "{{ sc_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: get_sc
+- name: "Set Variable"
+  set_fact:
+    get_sc: "{{ result }}"
 
-- name: Ensures {{ component_type }} dir exists
-  file:
+# this task creates {{ component_type }} diretory if not exists
+- name: "creating {{ release_dir }}/{{ component_type }} directory"
+  include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
     path: "{{ release_dir }}/{{ component_type }}"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
   when: get_sc.resources|length == 0
 
 #############################################################################################
@@ -57,3 +62,12 @@
     msg: "Pushing Storageclass files"
   when: get_sc.resources|length == 0
 
+# Check if StorageClass created
+- name: "Waiting for the creation of {{ sc_name }} storage class"
+  include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "StorageClass"
+    component_name: "{{ sc_name }}"
+    type: "retry"
+  when: get_sc.resources|length == 0
