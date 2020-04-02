@@ -2,18 +2,14 @@
 # This task checks the join channel job
 
 # Check or wait for the join channel job to complete
-- name: "Check join channel job is done"
-  k8s_facts:
-    kind: Job
+- name: "waiting for {{ peer.name }} to join {{ channel_name }}"
+  include_role:
+    name: "../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
     namespace: "{{ participant.name | lower}}-net"
-    kubeconfig: "{{ org.k8s.config_file }}"
-    context: "{{ org.k8s.context }}"
-    label_selectors:
-      - app = joinchannel-{{ peer.name }}-{{ channel_name }}
+    component_name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
+    kubernetes: "{{ org.k8s }}"
   loop: "{{ participant.peers }}"
   loop_control:
     loop_var: peer
-  register: get_peer
-  until: (1 in get_peer|json_query('resources[*].status.succeeded'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
