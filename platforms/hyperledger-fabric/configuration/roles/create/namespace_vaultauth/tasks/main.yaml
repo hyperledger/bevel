@@ -3,13 +3,18 @@
 #############################################################################################
 
 # Check if namespace created
-- name: Check namespace is created
-  k8s_facts:
-    kind: Namespace
-    name: "{{ component_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
+- include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ item.name | lower }}-net"
+    type: "no_retry"
   register: get_namespace
+
+- name: "Set Variable"
+  set_fact:
+    get_namespace: "{{ result }}"
+ 
 
 ############################################################################################
 # This task creates the value file of Namespace for Organizations
@@ -75,3 +80,27 @@
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "Pushing deployment files for namespace, service accounts and clusterrolebinding"
+
+# Check if namespace created
+- include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ item.name | lower }}-net-role-tokenreview-binding"
+  when: get_namespace.resources|length == 0
+
+# Check if ServiceAccount is created for vault-reviwer
+- include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_ns: "{{ item.name | lower }}-net"
+    component_name: "vault-reviewer"
+
+# Check if ServiceAccount is created for vault-auth
+- include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_ns: "{{ item.name | lower }}-net"
+    component_name: "vault-auth"
