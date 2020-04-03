@@ -34,7 +34,9 @@ RUN /bin/echo -e "[ansible_provisioners:children]\nlocal\n[local]\nlocalhost ans
 
 # Copy the provisional script to build container
 COPY ./run.sh /home
+COPY ./reset.sh /home
 RUN chmod 755 /home/run.sh
+RUN chmod 755 /home/reset.sh
 ENV PATH=/root/bin:$PATH
 
 # The mounted repo should contain a build folder with the following files
