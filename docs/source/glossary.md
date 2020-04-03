@@ -191,3 +191,167 @@ The Network Map Service accepts digitally signed documents describing network ro
 ### Notary
 The Corda design separates correctness consensus from uniqueness consensus, and the latter is provided by one or more Notary Services. The Notary will digitally sign a transaction presented to it, provided no transaction referring to any of the same inputs has been previously signed by the Notary, and the transaction timestamp is within bounds.  
 Business network operators and network participants may choose to enter into legal agreements which rely on the presence of such digital signatures when determining whether a transaction to which they are party, or upon the details of which they otherwise rely, is to be treated as ‘confirmed’ in accordance with the terms of the underlying agreement. For more details, refer [Corda Notaries](https://docs.corda.net/key-concepts-notaries.html).
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+
+## Hyperledger-Indy
+
+This section lists specific terms used in Hyperledger-Indy.
+
+### Agency
+ A service provider that hosts Cloud Agents and may provision Edge Agents on behalf of a Ledger’s Entities.
+
+### Agent
+A software program or process used by or acting on behalf of a Ledger’s Entity to interact with other Agents or, via a Ledger’s Client component, directly with the Ledger. Agents are of two types: Edge Agents run at the edge of the network on a local device, while Cloud Agents run remotely on a server or cloud hosting service. Agents typically have access to a Wallet in order to perform cryptographic operations on behalf of the Ledger’s Entity they represent.
+
+### Anonym
+A Blinded Identifier used exactly once. See also Pseudonym and Verinym.
+
+### Claim
+A digital assertion about identity attributes made by a Ledger Entity about itself or another Ledger Entity. The entity making the Claim is called the Issuer. The entity holding the issued Claim is called the Holder. If the Claim supports Zero Knowledge Proofs, the Holder is also called the Prover. The entity to whom a Claim is presented is called the Relying Party. A Claim may be Public Data or Private Data. Once issued, a Claim is typically stored by an Agent.
+
+### Cloud Agent
+An Agent that does not run at the edge of the network on a local device with which an Identity Owner interacts directly, but remotely on a server or cloud hosting service. Mutually exclusive with Edge Agent. A Cloud Agent typically has a Service Endpoint and may have access to a Cloud Wallet. Cloud agents may be hosted by an Agency.
+
+### Cloud Wallet
+A Wallet that operates remotely on a server or cloud hosting service and stores its cryptographic key material securely on that server or cloud service. Cloud Wallets will typically use an HSM (Hardware Security Module). Mutually exclusive with Edge Wallet.
+
+### Connection Offer
+An invitation from a one Ledger Entity to a second Ledger Entity to send the first Entity a Connection Request. Connection Offers are needed only in specialized use cases; in most cases a Connection will start with a Connection Request.
+
+### Dependent
+An Individual who needs to depend on a Guardian to administer the Individual’s Ledger Identities. Under a Trust Framework, all Dependents may have the right to become Independents. Mutually exclusive with Independent.
+
+### Developer
+An Identity Owner that has legal accountability (in a scenario where there is a Trust Framework) for the functionality of an Agent, or for software that interacts with an Agent or the Ledger, to provide services to a Ledger Entity.
+
+### DDO
+A DID descriptor object as defined by the DID Data Model and Generic Syntax specification. A DDO is associated with exactly one DID.
+
+### DID
+A decentralized identifier as defined by the DID Data Model and Generic Syntax specification. DIDs enable interoperable decentralized self-sovereign identity management. An Identity Record is associated with exactly one DID. A DID is associated with exactly one DDO.
+
+### DKMS
+Decentralized Key Management System, an emerging standard for interoperable cryptographic key management based on DIDs. DKMS standards apply to Agents and Wallets.
+
+### Edge Agent
+An Agent that runs at the edge of the network on a local device, such as a smartphone, tablet, laptop, automotive computer, etc. Mutually exclusive with Cloud Agent. An Edge Agent may be an app used directly by an Identity Owner, or it may be an operating system module or background process called by other apps. Edge Agents typically do not have a Service Endpoint, but do have access to a Edge Wallet.
+
+### Edge Wallet
+A Wallet, typically used by a Edge Agent, that operates at the edge of the network on a local device and stores its cryptographic key material in a secure enclave or other secure storage on that device. Mutually exclusive with Cloud Wallet.
+
+### Genesis Record
+The first Identity Record written to the Ledger that describes a new Ledger Entity. For a Steward, the Genesis Record must be written by a Trustee. For an Independent Identity Owner, the Genesis Record must be written by a Trust Anchor. For a Dependent Identity Owner, the Genesis Record must be written by a Guardian.
+
+### Guardian
+An Identity Owner who administers one or more Ledger Identities on behalf of a Dependent or a Thing. A Guardian must agree to the Guardian Obligations in the case of a Trust Framework.
+
+### Holder
+The Ledger Entity that has been issued a Claim by an Issuer. If the Claim supports Zero Knowledge Proofs, the Holder is also the Prover.
+
+### Identity
+A set of Identity Records, Claims, and Proofs that describes a Ledger Entity. To protect privacy: a) an Identity Owner may have more than one Ledger Identity, and b) only the Identity Owner and the Relying Party(s) with whom an Identity is shared knows the specific set of Identity Records, Claims, and Proofs that comprise that particular Identity.
+
+### Identity Owner
+A Ledger Entity who can be held legally accountable. An Identity Owner must be either an Individual or an Organization. Mutually exclusive with Thing.
+
+### Identity Record
+A transaction on the Ledger that describes a Ledger Entity. Every Identity Record is associated with exactly one DID. The registration of a DID is itself an Identity Record. Identity Records may include Public Keys, Service Endpoints, Claim Definitions, Public Claims, and Proofs. Identity Records are Public Data.
+
+### Independent
+An Individual who directly controls the Private Key(s) and Master Secret(s) necessary to administer an Identity and thus is not dependent on any other party for control. For any particular Identity, this definition is mutually exclusive with Dependent. Note that it is possible (though not a best practice) for the same Identity Owner to be both an Independent for some Identities and a Dependent on others.
+
+### Issuer Key
+The special type of cryptographic key necessary for an Issuer to issue a Claim that supports Zero Knowledge Proofs.
+
+### Legal Identity
+A set of information sufficient to identify an Identity Owner for the purpose of legal accountability in at least one Jurisdiction. For the purposes of the Provisional Network, a Legal Identity may be established by reference to one or more publicly accessible Web resources such as websites, blogs, social network profiles, or other Web pages that provide sufficient information to meet this test.
+
+### Master Secret
+An item of Private Data used by a Prover to guarantee that a claim uniquely applies to them. The Master Secret is an input to Zero Knowledge Proofs that combine data from multiple Claims in order to prove that the Claims have a common subject (the Prover). A Master Secret should be known only to the Prover. Similar to a Private Key, but without a corresponding Public Key.
+
+### Observer Node
+A Node that maintains a read-only copy of the Ledger by communicating directly with one or more Validator Nodes. A Node may be able to operate as either an Observer Node or Validator Node, but at any one point in time it must operate in only one of these two roles. A Steward may operate more than one Observer node. 
+
+### Pairwise-Unique Identifier
+A Pseudonym used in the context of only one digital relationship (Connection). See also Pseudonym and Verinym.
+
+### Private Claim
+A Claim that is sent by the Issuer to the Holder’s Agent to hold (and present to Relying Parties) as Private Data but which can be verified using Public Claims and Public Data. A Private Claim will typically use a Zero Knowledge Proof, however it may also use a Transparent Proof.
+
+### Private Data
+Data over which an Entity exerts access control. Private Data should not be stored on a Ledger even when encrypted. Mutually exclusive with Public Data.
+
+### Private Key
+The half of a cryptographic key pair designed to be kept as the Private Data of an Identity Owner. In elliptic curve cryptography, a Private Key is called a signing key.
+
+### Prover
+The Entity that issues a Zero Knowledge Proof from a Claim. The Prover is also the Holder of the Claim.
+
+### Pseudonym
+A Blinded Identifier used to maintain privacy in the context on an ongoing digital relationship (Connection). See also Anonym and Verinym.
+
+### Relying Party
+A party who relies on a Claim or Proof in order to make a trust decision about a Ledger Entity.
+
+### Steward
+An Organization, within a Trust Framework, that operate a Node. A Steward must meet the Steward Qualifications and agree to the Steward Obligations defined in the a Trust Framework. All Stewards are automatically Trust Anchors.
+
+### Technical Policies
+The set of policies, defined under the heading of the same name in a Trust Framework, that specify the technical requirements of the Network.
+
+### Transparent Proof
+A Proof that uses conventional digital signature scheme and therefore does not limit disclosure any of the information in a Claim, including the identity of the Identity Owner issuing the Proof. Mutually exclusive with Zero Knowledge Proof.
+
+### Trust Anchor
+An Identity Owner who may serve as a starting point in a Web of Trust. A Trust Anchor has two unique privileges: 1) to add new Identity Owners to a Network, and 2) to issue Trust Anchor Invitations. A Trust Anchor must meet the Trust Anchor Qualifications and agree to the Trust Anchor Obligations defined in a Trust Framework. All Trustees and Stewards are automatically Trust Anchors.  
+
+### Validator Node
+A Node that validates new transactions of Identity Records and actively writes valid transactions to an Indy-powered Ledger using the Plenum Consensus Protocol. A Node may be able to operate as either a Validator Node or an Observer Node, but at any one point in time it must operate in only one of these two roles. A Steward may run only one Validator node.
+
+### Verifiable Claim
+A Claim that includes a Proof from the Issuer. Typically this proof is in the form of a digital signature. A Verifiable Claim may be verified by a public key associated with the Issuer’s DID.
+
+### Verinym
+A DID authorized to be written to an Indy-powered Ledger by a Trust Anchor so that it is directly or indirectly associated with the Legal Identity of the Identity Owner. Mutually exclusive with Anonym.
+
+### Wallet
+A software module, and optionally an associated hardware module, for securely storing and accessing Private Keys, Master Secrets, and other sensitive cryptographic key material and optionally other Private Data used by an Entity on Indy. A Wallet may be either an Edge Wallet or a Cloud Wallet. In Indy infrastructure, a Wallet implements the emerging DKMS standards for interoperable decentralized cryptographic key management.
+
+### Zero Knowledge Proof
+A Proof that uses special cryptography and a Master Secret to permit selective disclosure of information in a set of Claims. A Zero Knowledge Proof proves that some or all of the data in a set of Claims is true without revealing any additional information, including the identity of the Prover. Mutually exclusive with Transparent Proof.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+
+## Quorum
+
+This section lists specific terms used in Quorum.
+
+### Constellation
+Haskell implementation of a general-purpose system for submitting information in a secure way. it is  comparable to a network of MTA (Message Transfer Agents) where messages are encrypted with PGP. Contains Node ( Private transaction manager ) and the Enclave. 
+
+### Private Transactions
+Private Transactions are those Transactions whose payload is only visible to the network participants whose public keys are specified in the privateFor parameter of the Transaction . privateFor can take multiple addresses in a comma separated list.
+
+### Public Transactions
+Public Transactions are those Transactions whose payload is visible to all participants of the same Quorum network. These are created as standard Ethereum Transactions in the usual way.
+
+### Quorum Node
+Quorum Node is intentionally designed to be a lightweight fork of geth in order that it can continue to take advantage of the R&D that is taking place within the ever growing Ethereum community.
+
+### State
+Quorum supports dual state, Public State(accessible by all nodes within the network) and Private State(only accessible by nodes with the correct permissions). The difference is made through the use of transactions with encrypted (private) and non-encrypted payloads (public). Nodes can determine if a transaction is private by looking at the v value of the signature. Public transactions have a v value of 27 or 28, private transactions have a value of 37 or 38.
+
+### Static nodes
+Static nodes are nodes we keep reference to even if the node is not alive, so that is the nodes comes alive, then we can connect to it. Hostnames are permitted here, and are resolved once at startup. If a static peer goes offline and its IP address changes, then it is expected that that peer would re-establish the connection in a fully static network, or have discovery enabled.
+
+### Tessera
+Java implementation of a general-purpose system for submitting information in a secure way. it is  comparable to a network of MTA (Message Transfer Agents) where messages are encrypted with PGP. Contains Node ( Private transaction manager ) and The Enclave. 
+
+### The Enclave
+Distributed Ledger protocols typically leverage cryptographic techniques for transaction authenticity, participant authentication, and historical data preservation (i.e. through a chain of cryptographically hashed data.) In order to achieve a separation of concerns, as well as to provide performance improvements through parallelization of certain crypto-operations, much of the cryptographic work including symmetric key generation and data encryption/decryption is delegated to the Enclave.
+
+### Transaction Manager
+Quorum’s Transaction Manager is responsible for Transaction privacy. It stores and allows access to encrypted transaction data, exchanges encrypted payloads with other participant's Transaction Managers but does not have access to any sensitive private keys. It utilizes the Enclave for cryptographic functionality (although the Enclave can optionally be hosted by the Transaction Manager itself.)
