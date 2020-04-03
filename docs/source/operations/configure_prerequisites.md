@@ -1,12 +1,22 @@
 <a name = "configuring-prerequisites"></a>
 # Configure Pre-requisites
 
+- [Ansible Inventory file](#Ansible_Inventory)
 - [Private Key for GitOps](#privatekey)
 - [Docker Images](#docker)
 - [Vault Initialization and unseal](#vaultunseal)
 - [Ambassador](#ambassador)
 - [External DNS](#externaldns)
 - [HAProxy Ingress](#haproxy)
+
+<a name = "Ansible_Inventory"></a>
+## Ansible Inventory file
+
+If not done already, configure the Ansible controller with this sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). 
+
+Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
+
+Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html)
 
 <a name = "privatekey"></a>
 ## Private Key for GitOps
@@ -32,55 +42,17 @@ And add the public key contents (starts with **ssh-rsa**) as an Access Key (with
 <a name = "docker"></a>
 ## Docker Images
 
-The Blockchain Automation Framework uses some custom-built docker images which are not available publicly (as of this release). These docker images need to be built by you and then uploaded to a docker registry like [https://hub.docker.com/](https://hub.docker.com/).
+The Blockchain Automation Framework provides pre-built docker images which are available on [Docker Hub](https://hub.docker.com/u/hyperledgerlabs). Ensure that the versions/tags you need are available. If not, raise it on our [RocketChat Channel](https://chat.hyperledger.org/channel/blockchain-automation-framework).
 
 ---
 **NOTE:** The Blockchain Automation Framework recommends use of private docker registry for production use. The username/password for the docker registry can be provided in a **network.yaml** file so that the Kubernetes cluster can access the registry.
 
 ---
-### Alpine Utils ###
-
-Alpine-utils docker image is a light-weight utility image used in the Blockchain Automation Framework (BAF). It is mainly used as init-containers in the BAF Kubernetes deployments to connect to Hashicorp Vault to download certificates.
-
-* To build the image, execute the following command from [platforms/shared/images](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/images) folder. 
-```
-sudo docker build -t alpine-utils:1.0 -f alpine-utils.Dockerfile .
-```
-* The above command will create an image with tag *alpine-utils:1.0*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command is shown below:
-```
-sudo docker tag alpine-utils:1.0 hyperledgerlabs/alpine-utils:1.0
-sudo docker push hyperledgerlabs/alpine-utils:1.0
-```
-
----
-**NOTE:** In the above sample command, please replace the docker image/tag name according to your registry and have your own docker repository for push.
-
----
-### LinuxKit Base
-Build the LinuxKit Base image from **platforms/r3-corda/images/linuxkit-base** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/linuxkit-base/Readme.md).
-
-### Corda Doorman
-Build the Corda Doorman image from **platforms/r3-corda/images/doorman** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/doorman/Readme.md).
-
-### Corda Networkmap
-Build the Corda Networkmap image from **platforms/r3-corda/images/networkmap** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/networkmap/Readme.md).
-
-### Corda Node
-Build the Corda node image from **platforms/r3-corda/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/images/README.md).
-
-### Hyperledger Indy Cli
-Docker Image for ability to use Indy Cli to create transactions. Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/images/indy-cli/README.md)
-
-### Hyperledger Indy Key Management
-Docker image for indy key management, which generates identity crypto and stores it into Vault or displays it onto the terminal in json format. Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/images/indy-key-mgmt/README.md)
-
-### Hyperledger Indy Node
-Docker image of an Indy node (runs using a Steward identity). Build the image from **platforms/hyperledger-indy/images** by following [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/images/indy-node/README.md)
 
 <a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 
 
-Hashicorp Vault is one of the pre-requisites for the Blockchain Automation Framework. The vault service should be accessible by the ansible host as well as the kubernetes cluster (proper inbound/outbound rules should be configured). If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
+[Hashicorp Vault](https://www.vaultproject.io/) is one of the pre-requisites for the Blockchain Automation Framework. The Vault service should be accessible by the ansible host as well as the kubernetes cluster (proper inbound/outbound rules should be configured). If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
 
 * Install Vault client. Follow the instructions on [Install Vault](https://www.vaultproject.io/docs/install/).
 
@@ -106,10 +78,20 @@ vault operator unseal << unseal-key-from-above >>
 ```
 * Run this command to login and check if Vault is unsealed: 
 ```
-vault login << give the root token >>`
+vault login << give the root token >>
+```
+* Enable secrets engine
+```
+vault secrets enable -version=1 -path=secret kv
 ```
 
-You may generate multiple root tokens at the time of initialising the Vault, and delete the one used in the network.yaml file as that may be visible in ansible logs.
+You may generate multiple root tokens at the time of initialising the Vault, and delete the one used in the network.yaml file as that is visible in ansible logs.
+
+---
+**NOTE**: It is recommended to use Vault auto-unseal using Cloud KMS for Production Systems. And use root token rotation.
+
+---
+
 
 <a name = "ambassador"></a>
 ## Ambassador
@@ -165,4 +147,3 @@ kubectl get services --all-namespaces -o wide
 
 * Configure your subdomain configuration to redirect the external DNS name to this external IP. For example, if you want to configure the external domain suffix as **test.corda.blockchaincloudpoc.com**, then update the DNS mapping to redirect all requests to ***.test.corda.blockchaincloudpoc.com** towards **EXTERNAL-IP** from above as an ALIAS.
 * Or, you can use [External DNS](#externaldns) above to configure the routes automatically.
-
