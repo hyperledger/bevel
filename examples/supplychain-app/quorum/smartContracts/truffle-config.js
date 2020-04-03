@@ -62,7 +62,7 @@ module.exports = {
       timeoutBlocks: 200
     },
     westlake: {
-   //   provider: new Web3.providers.HttpProvider("https://bafmanufacturer.blockchain.azure.com:3200/cMdeTASkSXPDEpNjENKmsNua"),
+   // provider: new Web3.providers.HttpProvider("https://bafmanufacturer.blockchain.azure.com:3200/cMdeTASkSXPDEpNjENKmsNua"),
       network_id: "*", // Match any network id
       gasPrice: 0,
       gas: 600000000,
