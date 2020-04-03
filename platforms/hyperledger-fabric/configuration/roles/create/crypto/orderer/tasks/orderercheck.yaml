@@ -1,23 +1,19 @@
 # Check if CA-tools pod is running
-- name: Check if CA-tools is running
-  k8s_facts:
-    kind: Pod
-    namespace: "{{ component_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    label_selectors:
-      - name = ca-tools   
-  register: ca_tools
-  until: ("Running" in ca_tools|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
+- name: "Waiting for CA-tool in {{ item.name | lower }}-net"
+  include_role:
+    name: "../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ item.name | lower }}-net"
+    component_name: "ca-tools"
+    check: "name"
 
 # Ensure ca directory is present in build
-- name: Ensure ca directory exists
-  file:
+- include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
     path: "./build/crypto-config/ordererOrganizations/{{ component_name }}/ca"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
 
 # Check if CA certs exists in vault, if not this should fail. If yes, get the certificate
 - name: Check if ca certs already created

@@ -169,8 +169,7 @@ spec:
         - "-cx"
         - |-
           #!/usr/bin/env sh
-          sleep 5;
-          
+          apk add curl;
           echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
@@ -186,12 +185,15 @@ spec:
           rm -f $QUORUM_HOME/crypto/keys/nodekey
           rm -f $QUORUM_HOME/crypto/keys/passwords.txt
           
+          sleep 5;
+          echo slept for 5 to give transaction manager time to start;
+
           args=""
           if [ $CONSENSUS == 'raft' ]; then
             args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft "
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 1 --syncmode full --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+            args=" --istanbul.blockperiod 3 --syncmode full --mine --minethreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
           fi;
 
           /usr/local/bin/geth \
@@ -199,16 +201,15 @@ spec:
            $args \
            --identity {{ .Values.node.subject | quote }} \
            --vmdebug \
+           --gcmode=archive \
            --nodiscover \
-           --verbosity 5 \
-           --mine \
-           --minerthreads 1 \
-           --targetgaslimit "8000000000" \
-           --gasprice "0"  \
+           --nat=none \
+           --verbosity 9 \
            --emitcheckpoints \
            --rpc \
            --rpcaddr 0.0.0.0 \
            --rpcport {{ .Values.node.ports.rpc }} \
+           --rpcvhosts=* \
            --port {{ .Values.node.ports.quorum }} \
            --unlock 0 \
            --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
