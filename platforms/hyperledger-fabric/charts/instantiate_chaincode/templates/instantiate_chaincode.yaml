@@ -123,6 +123,8 @@ spec:
         command: ["sh", "-c"]
         args:
         - |-
+          echo $INSTANTIATION_ARGUMENTS>INSTANTIATION_ARGUMENTS.txt
+          INSTANTIATION_ARGUMENTS=$(< INSTANTIATION_ARGUMENTS.txt)
           {{ if $.Values.chaincode.endorsementpolicies  }}
             peer chaincode instantiate -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -c '{"Args":['${INSTANTIATION_ARGUMENTS}']}' -P {{ $.Values.chaincode.endorsementpolicies | quote}}
           {{ else }}
