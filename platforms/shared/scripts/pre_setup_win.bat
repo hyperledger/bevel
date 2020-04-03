@@ -138,6 +138,7 @@ echo Docker toolbox successfully installed
 ) else (
 echo Docker Toolbox already installed
 )
+
 REM Uncomment the below line if you want to run the docker shell and intialize docker for the first time here itself.
 REM "C:\Program Files\Git\bin\bash.exe" --login -i "C:\Program Files\Docker Toolbox\start.sh"
 
@@ -198,7 +199,6 @@ set MINIKUBEVAR=%errorlevel%
 if %VIRTUALBOXVAR% NEQ 9009 if %VIRTUALBOXVAR% NEQ 3 (
   if %MINIKUBEVAR%==9009 (
     powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
-    
     choco install minikube -y
   )else (
    echo Minikube is already installed
