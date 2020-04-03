@@ -2,23 +2,19 @@
 # This task initiates the nested anchorpeer role for each organization
 
 # Check or wait for the join channel job to complete
-- name: "Check join channel job is done"
-  k8s_facts:
-    kind: Job
+- name: "Waiting for {{ peer.name }} to join channel {{ channel_name }}"
+  include_role:
+    name: "../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
     namespace: "{{ participant.name | lower}}-net"
-    kubeconfig: "{{ org.k8s.config_file }}"
-    context: "{{ org.k8s.context }}"
-    label_selectors:
-      - app = joinchannel-{{ peer.name }}-{{ channel_name }}
+    component_name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
+    kubernetes: "{{ org.k8s }}"
   loop: "{{ participant.peers }}"
   loop_control:
     loop_var: peer
-  register: get_peer
-  until: (1 in get_peer|json_query('resources[*].status.succeeded'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
 
-# Creeate the anchorpeer value file for each organization
+# Create the anchorpeer value file for each organization
 - name: "Creating value file of anchor peer for {{ channel_name }}"
   include_role:
     name: helm_component
