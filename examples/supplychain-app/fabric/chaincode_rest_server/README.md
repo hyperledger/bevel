@@ -167,7 +167,8 @@ docker push hyperledgerlabs/supplychain_fabric:rest_server_latest
 
 Once the push is complete, Flux-helmoperator should redeploy the restserver pods
 
-### Installing supplychain chaincode over BYFN
+## Installing supplychain chaincode over BYFN
+
 [BYFN](https://github.com/hyperledger/fabric-samples.git) (build your first network) is a sample network mentioned by Hyperledger Fabric.
 You can deploy the supplychain chaincode over BYFN.
 Here's the steps:
