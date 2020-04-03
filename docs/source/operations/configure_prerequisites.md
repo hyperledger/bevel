@@ -38,7 +38,6 @@ Use the path to the private key (**gitops**) in the `gitops.private_key` section
 
 And add the public key contents (starts with **ssh-rsa**) as an Access Key (with read-write permissions) in your Github repository by following [this guide](https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account).
 
-
 <a name = "docker"></a>
 ## Docker Images
 
@@ -91,7 +90,6 @@ You may generate multiple root tokens at the time of initialising the Vault, and
 **NOTE**: It is recommended to use Vault auto-unseal using Cloud KMS for Production Systems. And use root token rotation.
 
 ---
-
 
 <a name = "ambassador"></a>
 ## Ambassador

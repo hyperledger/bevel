@@ -15,7 +15,7 @@ spec:
     replicaCount: 1
     metadata:
       namespace: {{ component_ns }}
-      labels:
+      labels: 
     images:
       node: quorumengineering/quorum:{{ network.version }}
       alpineutils: {{ network.docker.url }}/alpine-utils:1.0
