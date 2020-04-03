@@ -138,10 +138,6 @@ echo Docker toolbox successfully installed
 ) else (
 echo Docker Toolbox already installed
 )
-<<<<<<< HEAD
-=======
-
->>>>>>> upstream/develop
 REM Uncomment the below line if you want to run the docker shell and intialize docker for the first time here itself.
 REM "C:\Program Files\Git\bin\bash.exe" --login -i "C:\Program Files\Docker Toolbox\start.sh"
 
