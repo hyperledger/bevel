@@ -23,7 +23,7 @@
 //
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
-const Web3 = require('web3');
+// const Web3 = require('web3');
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -62,7 +62,7 @@ module.exports = {
       timeoutBlocks: 200
     },
     westlake: {
-      provider: new Web3.providers.HttpProvider("https://bafmanufacturer.blockchain.azure.com:3200/cMdeTASkSXPDEpNjENKmsNua"),
+   //   provider: new Web3.providers.HttpProvider("https://bafmanufacturer.blockchain.azure.com:3200/cMdeTASkSXPDEpNjENKmsNua"),
       network_id: "*", // Match any network id
       gasPrice: 0,
       gas: 600000000,
