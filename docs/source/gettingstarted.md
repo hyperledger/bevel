@@ -21,14 +21,13 @@ Once all the prerequisites have been configured, it is time to update the Blockc
 
 ## Deploy the Network
 
-After the configuration file is updated, saved and the **Ansible Controller** is built using docker build as given in [prerequisites](prerequisites), run the provisioning script to deploy the network using the following command.
+After the configuration file is updated and saved on the **Ansible Controller**, run the provisioning script to deploy the network using the following command.
 
-Read [DLT Network deployment using docker build](./developer/docker-build.md)
-
-```
+```bash
+# go to blockchain-automation-framework
+cd blockchain-automation-framework
 # Run the provisioning scripts
-docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build bash
-$ ./home/blockchain-automation-framework/run.sh
+ansible-playbook  platforms/shared/configuration/site.yaml -e "@/path/to/network.yaml" 
 ```
 
-For detailed instructions, read [Setting up a DLT network](./operations/setting_dlt.md).
+For more detailed instructions to set up a network, read [Setting up a DLT network](./operations/setting_dlt.md).
