@@ -1,16 +1,12 @@
-# Check or wait for the Orderer pod
-- name: "Check orderer pod is up"
-  k8s_facts:
-    kind: Pod
+- name: "Waiting for orderer pod {{ orderer.name }} in {{ orderer_namespace }}"
+  include_role:
+    name: "../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
     namespace: "{{ orderer_namespace }}"
-    kubeconfig: "{{ orderer_kubeconfig }}"
-    context: "{{ orderer_context }}"
-    label_selectors:
-      - app = {{ orderer.name }}
+    component_name: "{{ orderer.name }}"
+    kubernetes: "{{ ordererorg.k8s }}"
+    check: "app"
   loop: "{{ ordererorg.services.orderers }}"
   loop_control:
     loop_var: orderer
-  register: get_orderer
-  until: ("Running" in get_orderer|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40

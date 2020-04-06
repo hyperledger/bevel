@@ -27,11 +27,12 @@
   ignore_errors: yes
 
 # Ensure tls directory is present in build
-- name: Ensure tls directory exists
-  file:
+- name: "create directory ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls"
+  include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
     path: "./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
   when: vault_tls_result.failed == False
 
 - name: Get Orderer tls crt

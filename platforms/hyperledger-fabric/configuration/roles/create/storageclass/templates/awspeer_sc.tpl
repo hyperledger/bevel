@@ -12,3 +12,4 @@ allowedTopologies:
   - key: failure-domain.beta.kubernetes.io/zone
     values:
     - "{{ kubernetes.region }}a"
+    - "{{ kubernetes.region }}b"
