@@ -203,7 +203,7 @@ This section lists specific terms used in Hyperledger-Indy.
 A decentralized identifier for Admin as defined by the DID Data Model and Generic Syntax specification.
 
 ###  Admin Seed
-Seed can be any randomly chosen 32 byte value. It is not having a proper format and used to initializing keys. The seed used for Admin key is called an admin seed.
+Seed can be any randomly chosen 32 byte value. There is no predefined format for the seed and it used to initializing keys. The seed used for Admin key is called an admin seed.
 
 ### Agency
  A service provider that hosts Cloud Agents and may provision Edge Agents on behalf of a Ledger’s Entities.
@@ -224,7 +224,7 @@ A decentralized identifier as defined by the DID Data Model and Generic Syntax s
 Domain genesis is a genesis file used to initialise the network and may populate network with some domain data.
 
 ### Endorser
-Endorser is having the required rights to write on a ledger. Endorser submits a transaction on behalf of the original author.
+Endorser has the required rights to write on a ledger. Endorser submits a transaction on behalf of the original author.
 
 ### Genesis Record
 The first Identity Record written to the Ledger that describes a new Ledger Entity. For a Steward, the Genesis Record must be written by a Trustee. For an Independent Identity Owner, the Genesis Record must be written by a Trust Anchor. For a Dependent Identity Owner, the Genesis Record must be written by a Guardian.
@@ -233,22 +233,22 @@ The first Identity Record written to the Ledger that describes a new Ledger Enti
 A set of Identity Records, Claims, and Proofs that describes a Ledger Entity. To protect privacy: a) an Identity Owner may have more than one Ledger Identity, and b) only the Identity Owner and the Relying Party(s) with whom an Identity is shared knows the specific set of Identity Records, Claims, and Proofs that comprise that particular Identity.
 
 ### Identity Owner
-A Ledger Entity who can be held legally accountable. An Identity Owner must be either an Individual or an Organization. Mutually exclusive with Thing.
+A Ledger Entity who can be held legally accountable. An Identity Owner must be either an Individual or an Organization. Identity owners can also be distinguised as Independent Identity Owner and Dependent Identity Owner based on the writer of the Genesis record, for an Independent Identity Owner the Genesis Record must be written by a Trust Anchor and in case of a Dependent Identity Owner the the Genesis Record must be written by a Guardian.
 
 ### Identity Record
 A transaction on the Ledger that describes a Ledger Entity. Every Identity Record is associated with exactly one DID. The registration of a DID is itself an Identity Record. Identity Records may include Public Keys, Service Endpoints, Claim Definitions, Public Claims, and Proofs. Identity Records are Public Data.
 
 ### Identity Role
-Each identity has a specific role in indy described by one of four roles in Indy.
+Each identity has a specific role in Indy described by one of four roles in Indy. These roles are Trustee, Steward, Endorser and Netork Monitor.
 
 ### Issuer Key
 The special type of cryptographic key necessary for an Issuer to issue a Claim that supports Zero Knowledge Proofs.
 
 ### Ledger
-The ledger in Indy is indy-plenum based. Provides a simple, python-based, immutable, ordered log of transactions backed by a merkle tree.
+The ledger in Indy is Indy-plenum based. Provides a simple, python-based, immutable, ordered log of transactions backed by a merkle tree. For more details, refer [Indy-plenum](https://github.com/hyperledger/indy-plenum/blob/master/README.md)
 
 ### NYM Transaction
-NYM record is created by a for a specific user, Trust Anchor, Sovrin Stewards or trustee. The transaction can be used for creation of new DIDs, setting and Key Rotation of verification key, setting and changing of roles.
+NYM record is created for a specific user, Trust Anchor, Sovrin Stewards or trustee. The transaction can be used for creation of new DIDs, setting and Key Rotation of verification key, setting and changing of roles.
 
 ### Pairwise-Unique Identifier
 A Pseudonym used in the context of only one digital relationship (Connection). See also Pseudonym and Verinym.
@@ -269,7 +269,7 @@ The half of a cryptographic key pair designed to be kept as the Private Data of 
 The Entity that issues a Zero Knowledge Proof from a Claim. The Prover is also the Holder of the Claim.
 
 ### Pseudonym
-A Blinded Identifier used to maintain privacy in the context on an ongoing digital relationship (Connection). See also Anonym and Verinym.
+A Blinded Identifier used to maintain privacy in the context on an ongoing digital relationship (Connection).
 
 ### Steward
 An Organization, within a Trust Framework, that operate a Node. A Steward must meet the Steward Qualifications and agree to the Steward Obligations defined in the a Trust Framework. All Stewards are automatically Trust Anchors.
@@ -294,16 +294,16 @@ A Proof that uses special cryptography and a Master Secret to permit selective d
 This section lists specific terms used in Quorum.
 
 ### Constellation
-Haskell implementation of a general-purpose system for submitting information in a secure way. it is  comparable to a network of MTA (Message Transfer Agents) where messages are encrypted with PGP. Contains Node ( Private transaction manager ) and the Enclave. 
+Haskell implementation of a general-purpose system for submitting information in a secure way. it is comparable to a network of MTA (Message Transfer Agents) where messages are encrypted with PGP. Contains Node ( Private transaction manager ) and the Enclave. 
 
 ### Enode
 Enode is a url which identifies a node, it is generated using the node keys.
 
 ### Istanbul Tool
-Istanbul tool is istanbul binary compiled from the code repository.
+Istanbul tool is istanbul binary compiled from the code repository. The tool is used to generate the configuration files required for setting up the Quorum network with IBFT consensus.
 
 ### Node Keys
-Node keys consist of node private and node public keys. Those keys are required by the binaries provided by quorum to boot the node and the network.
+Node keys consist of node private and node public keys. Those keys are required by the binaries provided by Quorum to boot the node and the network.
 
 ### Private Transactions
 Private Transactions are those Transactions whose payload is only visible to the network participants whose public keys are specified in the privateFor parameter of the Transaction . privateFor can take multiple addresses in a comma separated list.
@@ -312,7 +312,7 @@ Private Transactions are those Transactions whose payload is only visible to the
 Public Transactions are those Transactions whose payload is visible to all participants of the same Quorum network. These are created as standard Ethereum Transactions in the usual way.
 
 ### Quorum Node
-Quorum Node is intentionally designed to be a lightweight fork of geth in order that it can continue to take advantage of the R&D that is taking place within the ever growing Ethereum community.
+Quorum Node is designed to be a lightweight fork of geth in order that it can continue to take advantage of the R&D that is taking place within the ever growing Ethereum community. Quorum Node is running geth, a Go-Etherium client with rpc endpoints. It supports raft and IBFT pluggable consensus and private and permissioned transactions.  
 
 ### State
 Quorum supports dual state, Public State(accessible by all nodes within the network) and Private State(only accessible by nodes with the correct permissions). The difference is made through the use of transactions with encrypted (private) and non-encrypted payloads (public). Nodes can determine if a transaction is private by looking at the v value of the signature. Public transactions have a v value of 27 or 28, private transactions have a value of 37 or 38.
