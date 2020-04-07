@@ -42,7 +42,7 @@ REM ############################################################################
 
 REM Check for software versions, if present
 REM If version mismatch, prompt to delete software and exit
-SET PATH=%PATH%;%cd%\project\bin
+SET PATH=%cd%\project\bin;%PATH%
 echo "Checking versions of git, vault cli, docker toolbox and minikube"
 git --version>GIT_VERSION.txt
 docker --version>DOCKER_VERSION.txt
