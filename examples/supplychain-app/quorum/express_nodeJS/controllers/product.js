@@ -24,27 +24,30 @@ router.get('/containerless', function (req, res) {
           .getContainerlessAt(i - 1)
           .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
           var product = {};
+        if(toPush.trackingID != 0){
+          product.trackingID = toPush.trackingID,
           product.productName = toPush.productName;
           product.health = toPush.health;
           product.sold = toPush.sold;
           product.recalled = toPush.recalled;
+          product.custodian = toPush.custodian,
+          product.custodian  = product.custodian +","+toPush.lastScannedAt,
+          product.time  = new Date(toPush.timestamp * 1000),
+          product.lastScannedAt = toPush.lastScannedAt,
+          product.containerID = toPush.containerID,
           product.misc = {};
           for (var j = 0; j < toPush.misc.length; j++) {
             var json = JSON.parse(toPush.misc[j]);
             var key = Object.keys(json);
             product.misc[key] = json[key];
           }
-          product.custodian = toPush.custodian,
-          product.custodian  = product.custodian +","+toPush.lastScannedAt,
-          product.trackingID = toPush.trackingID,
-          product.timestamp = toPush.timestamp,
-          product.containerID = toPush.containerID,
           product.linearId = {
           "externalId": null,
           "id": toPush.trackingID
           },
           product.participants = toPush.participants;
           containerlessArray.push(product);
+        }
     }
     res.send(containerlessArray)
   })
@@ -61,7 +64,7 @@ router.get('/:trackingID?', function (req, res) {
       .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then(response => {
         var newProduct = response;
-        var product = {};
+        var product = {};``
         product.productName = newProduct.productName;
         product.health = newProduct.health;
         product.sold = false;
@@ -77,7 +80,7 @@ router.get('/:trackingID?', function (req, res) {
         product.custodian = newProduct.custodian,
         product.custodian  = product.custodian +","+newProduct.lastScannedAt,
           product.trackingID = newProduct.trackingID,
-          product.timestamp = newProduct.timestamp,
+          product.time  = new Date(newProduct.timestamp * 1000),
           product.containerID = newProduct.containerID,
           product.linearId = {
             "externalId": null,
@@ -121,7 +124,7 @@ router.get('/:trackingID?', function (req, res) {
           product.custodian = toPush.custodian,
           product.custodian  = product.custodian +","+toPush.lastScannedAt,
             product.trackingID = toPush.trackingID,
-            product.timestamp = toPush.timestamp,
+            product.time  = new Date(toPush.timestamp * 1000),
             product.containerID = toPush.containerID,
             product.linearId = {
               "externalId": null,
