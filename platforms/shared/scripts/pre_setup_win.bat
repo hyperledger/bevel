@@ -40,6 +40,51 @@ EXIT
 REM ############################################################################################################################################################
 REM ############################################################################################################################################################
 
+REM Check for software versions, if present
+REM If version mismatch, prompt to delete software and exit
+SET PATH=%cd%\project\bin;%PATH%
+echo "Checking versions of git, vault cli, docker toolbox and minikube"
+git --version>GIT_VERSION.txt
+docker --version>DOCKER_VERSION.txt
+vault --version>VAULT_VERSION.txt
+minikube version>MINIKUBE_VERSION.txt
+set /P GIT_VERSION=<GIT_VERSION.txt
+set /P DOCKER_VERSION=<DOCKER_VERSION.txt
+set /P VAULT_VERSION=<VAULT_VERSION.txt
+set /P MINIKUBE_VERSION=<MINIKUBE_VERSION.txt
+for /f "delims=" %%a in (MINIKUBE_VERSION.txt) do set "MINIKUBE_VERSION=%%a"&goto :stop
+:stop
+del GIT_VERSION.txt DOCKER_VERSION.txt VAULT_VERSION.txt MINIKUBE_VERSION.txt
+
+if "%GIT_VERSION%" NEQ "git version 2.26.0.windows.1" (
+	goto GIT_CHECK
+) else (
+	echo "Git is already installed with git version 2.26.0.windows.1"
+)
+:CHECK_DOCKER
+if "%DOCKER_VERSION%" NEQ "Docker version 19.03.1, build 74b1e89e8a" (
+	goto DOCKER_CHECK
+) else (
+	echo "Docker is already installed with Docker version 19.03.1, build 74b1e89e8a"
+)
+:CHECK_VAULT
+if "%VAULT_VERSION%" NEQ "Vault v1.3.4" (
+	goto VAULT_CHECK
+) else (
+	echo "Vault cli already installed with version 1.3.4"
+)
+:CHECK_MINIKUBE
+if "%MINIKUBE_VERSION%" NEQ "minikube version: v1.8.2" (
+	goto MINIKUBE_CHECK
+) else (
+	echo "Minikube already installed with minikube version: v1.8.2"
+)
+:CONTINUE_WITH_SCRIPT
+
+
+REM ############################################################################################################################################################
+REM ############################################################################################################################################################
+
 REM Installing GIT binary
 REM Check if the git is already present or not, if already present, then this step will be skipped
 git --version
@@ -106,6 +151,7 @@ git clone %REPO_URL%
 set /p REPO_BRANCH=Enter branch(default is local): 
 chdir blockchain-automation-framework
 if NOT DEFINED REPO_BRANCH set "REPO_BRANCH=local"
+echo Ignore errors here, if any.
 "C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout %REPO_BRANCH%"
 if %ERRORLEVEL% == 1 (
 "C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout -b develop"
@@ -157,6 +203,7 @@ EXIT
 )
 powershell -Command "Expand-Archive -Force vault.zip .\project\bin"
 )
+md project\bin
 echo Please enter the project\bin (absolute path) to environment variables (both system and environment variables) and continue
 PAUSE
 
@@ -165,7 +212,7 @@ REM taskkill /f /im explorer.exe && explorer.exe
 (
 echo ui = true
 echo storage "file" {
-echo  path    = "~/project/data"
+echo  path    = "./project/data"
 echo }
 echo listener "tcp" {
 echo   address     = "0.0.0.0:8200"
@@ -213,6 +260,7 @@ set /p CPUCOUNT=Enter cpu cores to be used by minikube:
 minikube config set memory %RAMSIZE%
 minikube config set cpus %CPUCOUNT%
 minikube config set kubernetes-version v1.15.4
+minikube delete
 minikube start --vm-driver=virtualbox
 minikube status
 
@@ -227,3 +275,52 @@ echo "		|____/_/    \_\_|     		"
 
 
 PAUSE
+EXIT 
+
+:GIT_CHECK
+if ["%GIT_VERSION%"]==[""] (
+	echo "Git not present. Git will be installed via this script"
+	goto CHECK_DOCKER
+) else (
+	goto GIT_FAILED
+)
+:GIT_FAILED
+echo "Git version mismatched. Remove git and then run the script again."
+PAUSE
+EXIT
+
+:DOCKER_CHECK
+if ["%DOCKER_VERSION%"]==[""] (
+	echo "Docker toolbox not present. Docker toolbox will be installed via this script"
+	goto CHECK_VAULT
+) else (
+	goto DOCKER_FAILED
+)
+:DOCKER_FAILED
+echo "Docker toolbox version mismatched. Remove docker toolbox and then run the script again."
+PAUSE
+EXIT
+
+:VAULT_CHECK
+if ["%VAULT_VERSION%"]==[""] (
+	echo "Vault cli not present. Vault cli will be installed via this script"
+	goto CHECK_MINIKUBE
+) else (
+	goto VAULT_FAILED
+)
+:VAULT_FAILED
+echo "Vault cli version mismatched. Remove vault cli and then run the script again."
+PAUSE
+EXIT
+
+:MINIKUBE_CHECK
+if ["%MINIKUBE_VERSION%"]==[""] (
+	echo "Minikube not present. Minikube will be installed via this script"
+	goto CONTINUE_WITH_SCRIPT
+) else (
+	goto MINIKUBE_FAILED
+)
+:MINIKUBE_FAILED
+echo "Minikube version mismatched. Remove minikube and then run the script again."
+PAUSE
+EXIT
