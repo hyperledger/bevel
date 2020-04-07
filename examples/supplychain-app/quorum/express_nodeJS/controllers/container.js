@@ -35,7 +35,7 @@ router.get("/:trackingID?", function(req, res) {
           container.custodian = newContainer.custodian;
           container.custodian = container.custodian + "," + newContainer.lastScannedAt;
           container.trackingID = newContainer.trackingID;
-          container.time  = new Date(newContainer.timestamp * 1000);
+          container.timestamp  = (new Date(newContainer.timestamp * 1000)).getTime();
           container.containerID = newContainer.containerID;
           container.linearId = {};
           container.linearId.externalId = null;
@@ -80,7 +80,7 @@ router.get("/:trackingID?", function(req, res) {
           container.custodian = container.custodian + "," + toPush.lastScannedAt;
           container.lastScannedAt = toPush.lastScannedAt;
           container.trackingID = toPush.trackingID;
-          container.time  = new Date(toPush.timestamp * 1000);
+          container.timestamp  = (new Date(toPush.timestamp * 1000)).getTime();
           container.containerID = toPush.containerID;
           container.linearId = {};
           container.linearId.externalId = null;

@@ -55,7 +55,7 @@ router.get('/:trackingID/history', function (req, res) {
           var history = {};
           history.party = toPush.custodian;
           history.party = history.party+","+toPush.lastScannedAt;
-          history.time  = new Date(toPush.timestamp * 1000);
+          history.time  = (new Date(toPush.timestamp * 1000)).getTime();
           history.location = toPush.lastScannedAt;
           allTransaction.push(history);
     }
