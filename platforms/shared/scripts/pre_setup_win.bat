@@ -138,9 +138,8 @@ echo Docker toolbox successfully installed
 ) else (
 echo Docker Toolbox already installed
 )
-taskkill /f /im explorer.exe && explorer.exe
 REM Uncomment the below line if you want to run the docker shell and intialize docker for the first time here itself.
-:: "C:\Program Files\Git\bin\bash.exe" --login -i "C:\Program Files\Docker Toolbox\start.sh"
+REM "C:\Program Files\Git\bin\bash.exe" --login -i "C:\Program Files\Docker Toolbox\start.sh"
 
 REM ############################################################################################################################################################
 REM ############################################################################################################################################################
@@ -162,7 +161,7 @@ echo Please enter the project\bin (absolute path) to environment variables (both
 PAUSE
 
 REM Killing explorer.exe to set the environment variables
-taskkill /f /im explorer.exe && explorer.exe
+REM taskkill /f /im explorer.exe && explorer.exe
 (
 echo ui = true
 echo storage "file" {
@@ -199,7 +198,6 @@ set MINIKUBEVAR=%errorlevel%
 if %VIRTUALBOXVAR% NEQ 9009 if %VIRTUALBOXVAR% NEQ 3 (
   if %MINIKUBEVAR%==9009 (
     powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
-    taskkill /f /im explorer.exe && explorer.exe
     choco install minikube -y
   )else (
    echo Minikube is already installed

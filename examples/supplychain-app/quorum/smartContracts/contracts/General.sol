@@ -22,7 +22,6 @@ contract General is ContainerContract {
         else if((containerSupplyChain[_trackingID].custodian == address(0)) || productSupplyChain[_trackingID].custodian == address(0)) {
              return('new');
         }
-
     }
     /**
     * @return a list of objects with the location, timestamp of custodian change, and new custodian
