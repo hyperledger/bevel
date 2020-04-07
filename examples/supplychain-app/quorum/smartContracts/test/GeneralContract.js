@@ -13,8 +13,10 @@ const containers = [
         health: "good",
         misc: ["\{ 'name': 'Dextrose' \}"],
         trackingID: "jjj",
-        lastScannedAt: " ",
-        counterparties: [String(manufacturer), String(carrier), String(warehouse)]
+        lastScannedAt: "OU=Manufacturer,O=Manufacturer,L=47.38/8.54/Zurich,C=CH",
+        counterparties: [(String(manufacturer)+","+"OU=Manufacturer,O=Manufacturer,L=47.38/8.54/Zurich,C=CH"), 
+                        (String(carrier)+","+"OU=Carrier,O=PartyB,L=51.50/-0.13/London,C=GB"), 
+                        (String(warehouse)+","+"OU=Warehouse,O=PartyC,L=42.36/-71.06/Boston,C=US")]
     },
 ]
 const products = [
@@ -23,60 +25,74 @@ const products = [
         health: "good",
         misc: ["\{ 'name': 'Expensive Dextrose' \}"],
         trackingID: "123",
-        lastScannedAt: " ",
-        participants: [String(manufacturer), String(carrier), String(warehouse)]
+        lastScannedAt: "OU=Manufacturer,O=Manufacturer,L=47.38/8.54/Zurich,C=CH",
+        participants: [(String(manufacturer)+","+"OU=Manufacturer,O=Manufacturer,L=47.38/8.54/Zurich,C=CH"), 
+                        (String(carrier)+","+"OU=Carrier,O=PartyB,L=51.50/-0.13/London,C=GB"), 
+                        (String(warehouse)+","+"OU=Warehouse,O=PartyC,L=42.36/-71.06/Boston,C=US")]
     },
 ]
 
-    it("Should create a new product", async () => {
+    it("Create a new product", async () => {
             
-            await contractInstance.addProduct(
-            products[0].trackingID,
-            products[0].productName,
-            products[0].health, 
-            products[0].misc,
-            products[0].lastScannedAt,
-            products[0].participants);
-            // call getSingleProduct to see if product is created
-            const result = await contractInstance.getSingleProduct("123");
-            // Checking the 1st index of the returned tuple
-            assert.equal(result[0],"123");
+        await contractInstance.addProduct(
+        products[0].trackingID,
+        products[0].productName,
+        products[0].health, 
+        products[0].misc,
+        products[0].lastScannedAt,
+        products[0].participants);
+        // call getSingleProduct to see if product is created
+        const result = await contractInstance.getSingleProduct("123");
+        // Checking the 1st index of the returned tuple
+        assert.equal(result[0],"123");
     })
 
-    it("Should create a new container", async () => {
-            await contractInstance.addContainer(
-            containers[0].health, 
-            containers[0].misc,
-            containers[0].trackingID,
-            containers[0].lastScannedAt,
-            containers[0].counterparties);
-            // call getSingleContainer to see if product got created
-            const result = await contractInstance.getSingleContainer("jjj");
-            assert.equal(result[4],"jjj");
+    it("Create a new container", async () => {
+        await contractInstance.addContainer(
+        containers[0].health, 
+        containers[0].misc,
+        containers[0].trackingID,
+        containers[0].lastScannedAt,
+        containers[0].counterparties);
+        // call getSingleContainer to see if product got created
+        const result = await contractInstance.getSingleContainer("jjj");
+        assert.equal(result[4],"jjj");
     })
 
-    it("Should get the total number of products created", async () => {
+    it("Get the total number of products created", async () => {
         const result = await contractInstance.getProductsLength();
         assert.equal(result.toNumber(),1)
     })
 
-    it("Should get the total number of containers created", async () => {
+    it("Get the total number of containers created", async () => {
         const result = await contractInstance.getContainersLength();
         assert.equal(result.toNumber(),1)
     })
     
-    it("Should get a container using a tracking id", async () => {
+    it("Get a container using a tracking id", async () => {
         var trackingID = "jjj";
         const result = await contractInstance.getSingleContainer(trackingID);
         assert.equal(result[4],trackingID);
     }) 
 
-    it("Should get a product using a tracking id", async () => {
+    it("Get a product using a tracking id", async () => {
         var trackingID = "123";
         const result = await contractInstance.getSingleProduct(trackingID);
         assert.equal(result[0],trackingID);
     }) 
 
+    it("Get all containerless product", async () => {
+        var containerlessProducts = [];
+        // Calls getProductsLength to get the total number of products created
+        const counter = await contractInstance.getProductsLength();
+        console.log(counter.toNumber());
+        //toNumber function converts big number to javascript native number
+        for(var i = 0; i < counter.toNumber(); i++){
+            result = await contractInstance.getContainerlessAt(i);
+            console.log(result);
+            }
+            containerlessProducts.push(result);
+        })
     it("Manufacturer packages product into container and checks product", async () => {
         //tracking ID of the product
         const trackingId = "123";
@@ -94,11 +110,11 @@ const products = [
         const trackingId = "123";
         // tracking ID of the container that will become the products container ID
         const containerId = "jjj";
-        const lastScannedAt = "OU=Carrier, O=PartyB, L=51.50/-0.13/London, C=US"
+        const lastScannedAt = "OU=Carrier,O=PartyB,L=51.50/-0.13/London,C=GB"
         await contractInstance.updateContainerCustodian(containerId,lastScannedAt,{from: carrier});
         const result = await contractInstance.getSingleContainer(containerId);
-        //checking to see if the container custodian was updated
-        assert.equal(result[2], String(carrier));
+        //checking to see if the container custodian was updated to carrier
+        assert.equal((String(result[2])+","+lastScannedAt), containers[0].counterparties[1]);
     })
 
     // Manufacturer no longer have possession of the product and therefore should not be able to unpackage the container
@@ -129,9 +145,10 @@ const products = [
 
     it("Warehouse wants to claim product", async () => {
         const trackingId = "123";
-        await contractInstance.updateCustodian(trackingId,"L=51.50/-0.13/London,C=US", {from: warehouse});
+        const lastScannedAt = "OU=Warehouse,O=PartyC,L=42.36/-71.06/Boston,C=US";
+        await contractInstance.updateCustodian(trackingId,lastScannedAt, {from: warehouse});
         const result = await contractInstance.getSingleProduct(trackingId);
-        assert.equal(result[5], warehouse);
+        assert.equal((String(result[5])+","+lastScannedAt), products[0].participants[2]);
     })
 
     it("Manufacturer wants to check ownership of product", async () => {

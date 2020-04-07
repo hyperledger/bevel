@@ -14,6 +14,7 @@ console.log(fromNodeOrganizationUnit);
 
 const fromNodeSubject = nodeSubject;
 console.log(fromNodeSubject);
+console.log(fromAddress+","+fromNodeSubject);
 
 web3 = new Web3(new Web3.providers.HttpProvider(ganacheServer));
 
