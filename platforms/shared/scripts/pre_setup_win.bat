@@ -151,6 +151,7 @@ git clone %REPO_URL%
 set /p REPO_BRANCH=Enter branch(default is local): 
 chdir blockchain-automation-framework
 if NOT DEFINED REPO_BRANCH set "REPO_BRANCH=local"
+echo Ignore errors here, if any.
 "C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout %REPO_BRANCH%"
 if %ERRORLEVEL% == 1 (
 "C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout -b develop"
