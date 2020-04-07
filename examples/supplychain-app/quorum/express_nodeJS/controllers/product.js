@@ -25,16 +25,16 @@ router.get('/containerless', function (req, res) {
           .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
           var product = {};
         if(toPush.trackingID != 0){
-          product.trackingID = toPush.trackingID,
+          product.trackingID = toPush.trackingID;
           product.productName = toPush.productName;
           product.health = toPush.health;
           product.sold = toPush.sold;
           product.recalled = toPush.recalled;
-          product.custodian = toPush.custodian,
-          product.custodian  = product.custodian +","+toPush.lastScannedAt,
-          product.time  = new Date(toPush.timestamp * 1000),
-          product.lastScannedAt = toPush.lastScannedAt,
-          product.containerID = toPush.containerID,
+          product.custodian = toPush.custodian;
+          product.custodian  = product.custodian +","+toPush.lastScannedAt;
+          product.time  = new Date(toPush.timestamp * 1000);
+          product.lastScannedAt = toPush.lastScannedAt;
+          product.containerID = toPush.containerID;
           product.misc = {};
           for (var j = 0; j < toPush.misc.length; j++) {
             var json = JSON.parse(toPush.misc[j]);
@@ -44,7 +44,7 @@ router.get('/containerless', function (req, res) {
           product.linearId = {
           "externalId": null,
           "id": toPush.trackingID
-          },
+          };
           product.participants = toPush.participants;
           containerlessArray.push(product);
         }
@@ -64,7 +64,7 @@ router.get('/:trackingID?', function (req, res) {
       .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then(response => {
         var newProduct = response;
-        var product = {};``
+        var product = {};
         product.productName = newProduct.productName;
         product.health = newProduct.health;
         product.sold = false;

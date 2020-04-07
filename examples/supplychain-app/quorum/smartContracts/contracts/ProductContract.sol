@@ -137,7 +137,7 @@ function _toLower(string memory str) internal pure returns (string memory) {
 
         for(uint i = 0; i < productSupplyChain[_productID].participants.length; i++ ){
             string memory participant = _toLower(productSupplyChain[_productID].participants[i]);
-            if((keccak256(yourIdentity)) == (keccak256(abi.encodePacked((participant)))) ) {
+            if(keccak256(yourIdentity) == keccak256(abi.encodePacked((participant))) ) {
                 newCustodian = msg.sender;
                 _trackingID = productSupplyChain[_productID].trackingID;
                 isParticipant = true;

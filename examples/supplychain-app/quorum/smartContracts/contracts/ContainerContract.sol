@@ -90,7 +90,7 @@ contract ContainerContract is ProductContract {
 
         for(uint i = 0; i < containerSupplyChain[_containerID].participants.length; i++ ){
             string memory participant = _toLower(containerSupplyChain[_containerID].participants[i]);
-            if((keccak256(yourIdentity)) == (keccak256(abi.encodePacked((participant)))) ) isParticipant = true;
+            if(keccak256(yourIdentity) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
         }
         require(isParticipant, "HTTP 404: your identity is not in participant list");
 

@@ -78,9 +78,9 @@ router.get("/:trackingID?", function(req, res) {
 
           container.custodian = toPush.custodian;
           container.custodian = container.custodian + "," + toPush.lastScannedAt;
-          container.lastScannedAt = toPush.lastScannedAt,
+          container.lastScannedAt = toPush.lastScannedAt;
           container.trackingID = toPush.trackingID;
-          container.time  = new Date(toPush.timestamp * 1000),
+          container.time  = new Date(toPush.timestamp * 1000);
           container.containerID = toPush.containerID;
           container.linearId = {};
           container.linearId.externalId = null;
@@ -108,10 +108,8 @@ router.post("/", upload.array(), function(req, res) {
     misc: req.body.misc,
     trackingID: req.body.trackingID,
     lastScannedAt: fromNodeSubject,
-    counterparties: req.body.counterparties//.map(it =>
-     // it.indexOf("O=") != -1 ? it.split("O=")[1].split(",")[0] : it
-    //), //filter out to only send org name
-  }; //filter out to only send org
+    counterparties: req.body.counterparties
+  };
   var isInArray = false;
   if (newContainer.counterparties.includes(fromAddress+","+fromNodeSubject)) {
     isInArray = true;
