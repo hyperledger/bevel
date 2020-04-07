@@ -35,12 +35,14 @@ router.get("/:trackingID?", function(req, res) {
           container.custodian = newContainer.custodian;
           container.custodian = container.custodian + "," + newContainer.lastScannedAt;
           container.trackingID = newContainer.trackingID;
-          container.timestamp = newContainer.timestamp;
+          container.timestamp  = (new Date(newContainer.timestamp * 1000)).getTime();
           container.containerID = newContainer.containerID;
           container.linearId = {};
           container.linearId.externalId = null;
           container.linearId.id = container.trackingID;
           container.participants = newContainer.participants;
+          container.contents = newContainer.containerContents;
+
         res.send(container
           ); 
         
@@ -74,16 +76,18 @@ router.get("/:trackingID?", function(req, res) {
             container.misc[key] = json[key];
           }
 
-
           container.custodian = toPush.custodian;
           container.custodian = container.custodian + "," + toPush.lastScannedAt;
+          container.lastScannedAt = toPush.lastScannedAt;
           container.trackingID = toPush.trackingID;
-          container.timestamp = toPush.timestamp;
+          container.timestamp  = (new Date(toPush.timestamp * 1000)).getTime();
           container.containerID = toPush.containerID;
           container.linearId = {};
           container.linearId.externalId = null;
           container.linearId.id = container.trackingID;
           container.participants = toPush.participants;
+          container.contents = toPush.containerContents;
+
 
           displayArray.push(container);
       }
@@ -104,12 +108,10 @@ router.post("/", upload.array(), function(req, res) {
     misc: req.body.misc,
     trackingID: req.body.trackingID,
     lastScannedAt: fromNodeSubject,
-    counterparties: req.body.counterparties.map(it =>
-      it.indexOf("O=") != -1 ? it.split("O=")[1].split(",")[0] : it
-    ), //filter out to only send org name
-  }; //filter out to only send org
+    counterparties: req.body.counterparties
+  };
   var isInArray = false;
-  if (newContainer.counterparties.includes(fromAddress)) {
+  if (newContainer.counterparties.includes(fromAddress+","+fromNodeSubject)) {
     isInArray = true;
   }
   
@@ -142,10 +144,6 @@ router.post("/", upload.array(), function(req, res) {
         res.send(error.message);
         console.log(error);
       });
-  } else {
-    res.send(
-      "Transaction not sent. Your address is not in counterparties list"
-    );
   }
 });
 
