@@ -45,8 +45,6 @@ REM If version mismatch, prompt to delete software and exit
 echo "Creating %cd%\project directory."
 mkdir project
 mkdir project\bin
-echo Please add the %cd%\project\bin to environment variables and continue ...
-PAUSE
 SET PATH=%cd%\project\bin;%PATH%
 echo "Checking versions of git, vault cli, docker toolbox and minikube"
 git --version>GIT_VERSION.txt
@@ -143,11 +141,15 @@ REM ############################################################################
 REM ############################################################################################################################################################
 
 REM Setting up of forked repo on local machine and checkout to a given branch ( defaulted to local)
-echo Please fork the blockchain-automation-framework repository from browser and then ...
+echo Please fork the blockchain-automation-framework repository from browser and then continue ...
 PAUSE
-
+echo Generating key file for Git
 "C:\Program Files\Git\bin\sh.exe" --login -i -c 'ssh-keygen -q -N "" -f ~/.ssh/gitops'
 "C:\Program Files\Git\bin\sh.exe" --login -i -c "eval $(ssh-agent)"
+
+echo Add the following public key to your Git Account with "gist,repo" access then continue ...
+"C:\Program Files\Git\bin\sh.exe" --login -i -c "cat ~/.ssh/gitops.pub"
+PAUSE
 
 chdir project
 set /p REPO_URL=Enter your forked repo clone url (HTTPS url): 
