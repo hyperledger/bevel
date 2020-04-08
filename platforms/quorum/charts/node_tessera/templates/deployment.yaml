@@ -176,12 +176,14 @@ spec:
         - name: MYSQL_USER
           value: "{{ .Values.node.mysqluser }}"
         - name: MYSQL_PASSWORD
-          value: "{{ .Values.node.mysqlpassword }}"
+          value: /secret/keys/password
         ports:
           - containerPort: {{ .Values.node.ports.db }}
         volumeMounts:
         - name: mysql
           mountPath: /docker-entrypoint-initdb.d
+        - name: certificates
+          mountPath: /secret
         - name: {{ .Values.node.name }}-mysql
           mountPath: "/var/lib/mysql"
           subPath: mysql
@@ -194,7 +196,8 @@ spec:
           mkdir -p $QUORUM_HOME/logs;
           mkdir -p $QUORUM_HOME/tm;
           DDIR=$QUORUM_HOME/tm;
-          
+          PASSWORD=$(cat $QUORUM_HOME/crypto/keys/password);
+
           printenv;
           wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.15.tar.gz;
           tar -xf mysql-connector-java-8.0.15.tar.gz;
@@ -230,10 +233,10 @@ spec:
           cat  ${DDIR}/tessera-config-with-hosts.json;
 
           TESSERA_MAIN=com.quorum.tessera.Launcher;
-          if [[ \"${Tess_Ver_Second}\" -ge \"9\" ]]; then
+          if [[ \"${Tess_Ver_Second}\" -g \"9\" ]]; then
             TESSERA_MAIN=com.quorum.tessera.launcher.Main;
           fi;
-          java -Xms128M -Xmx128M -cp $SQL_JAR:$TESSERA_JAR:. $TESSERA_MAIN -configfile ${DDIR}/tessera-config-with-hosts.json;
+          java -Xms128M -Xmx128M -cp $SQL_JAR:$TESSERA_JAR:. $TESSERA_MAIN -configfile ${DDIR}/tessera-config-with-hosts.json --jdbc.password $PASSWORD;
         "
         ports:
           - containerPort: {{ .Values.node.ports.tm }}
