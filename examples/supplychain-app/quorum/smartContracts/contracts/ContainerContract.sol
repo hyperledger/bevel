@@ -38,7 +38,7 @@ contract ContainerContract is ProductContract {
         string memory _trackingID,
         string memory _lastScannedAt,
         string[] memory _counterparties
-    ) public returns (Container memory) {
+    ) public onlyManufacturer() returns (Container memory) {
         require(bytes(containerSupplyChain[_trackingID].trackingID).length <= 0, "HTTP 400: Container with this tracking ID already exists");
         uint256 _timestamp = block.timestamp;
         address _custodian = msg.sender;
@@ -84,10 +84,13 @@ contract ContainerContract is ProductContract {
 
         string memory ourAddress = addressToString(msg.sender);
         bool isParticipant = false;
+        string memory lowercaseLongLat = _toLower(_lastScannedAt);
+        bytes memory yourIdentity = abi.encodePacked(ourAddress,",",lowercaseLongLat);
+
 
         for(uint i = 0; i < containerSupplyChain[_containerID].participants.length; i++ ){
             string memory participant = _toLower(containerSupplyChain[_containerID].participants[i]);
-            if(keccak256(abi.encodePacked((ourAddress))) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
+            if(keccak256(yourIdentity) == keccak256(abi.encodePacked((participant))) ) isParticipant = true;
         }
         require(isParticipant, "HTTP 404: your identity is not in participant list");
 
