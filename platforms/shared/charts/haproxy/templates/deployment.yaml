@@ -3,20 +3,20 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    run: myingress-default-backend
-  name: myingress-default-backend
+    run: ingress-default-backend
+  name: ingress-default-backend
   namespace: {{ .Values.metadata.namespace }}
 spec:
   selector:
     matchLabels:
-      run: myingress-default-backend
+      run: ingress-default-backend
   template:
     metadata:
       labels:
-        run: myingress-default-backend
+        run: ingress-default-backend
     spec:
       containers:
-      - name: myingress-default-backend
+      - name: ingress-default-backend
         image: {{ .Values.image.defaultbackend }}
         ports:
         - containerPort: 8080
@@ -30,27 +30,27 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
-    run: myhaproxy-ingress
-  name: myhaproxy-ingress
+    run: haproxy-ingress
+  name: haproxy-ingress
   namespace: {{ .Values.metadata.namespace }}
 spec:
   updateStrategy:
     type: RollingUpdate
   selector:
     matchLabels:
-      run: myhaproxy-ingress
+      run: haproxy-ingress
   template:
     metadata:
       labels:
-        run: myhaproxy-ingress
+        run: haproxy-ingress
     spec:
       hostNetwork: true
-      serviceAccountName: myingress-controller
+      serviceAccountName: ingress-controller
       containers:
-      - name: myhaproxy-ingress
+      - name: haproxy-ingress
         image: {{ .Values.image.haproxy }}:{{ .Values.image.version }}
         args:
-        - --default-backend-service=$(POD_NAMESPACE)/myingress-default-backend
+        - --default-backend-service=$(POD_NAMESPACE)/ingress-default-backend
         - --configmap=$(POD_NAMESPACE)/myhaproxy-ingress
         - --sort-backends
         ports:
