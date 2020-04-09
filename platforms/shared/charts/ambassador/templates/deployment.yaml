@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: ambassador
+  name: myambassador
 rules:
 - apiGroups: [""]
   resources:
@@ -15,40 +15,40 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ambassador
-  namespace: default
+  name: myambassador
+  namespace: test
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: ambassador
+  name: myambassador
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: ambassador
+  name: myambassador
 subjects:
 - kind: ServiceAccount
-  name: ambassador
-  namespace: default
+  name: myambassador
+  namespace: test
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ambassador
-  namespace: default
+  name: myambassador
+  namespace: test
 spec:
   replicas: 3
   selector:
     matchLabels:
-      name: ambassador
+      name: myambassador
   template:
     metadata:
       annotations:
         sidecar.istio.io/inject: "false"
         "consul.hashicorp.com/connect-inject": "false"
       labels:
-        service: ambassador
-        name: ambassador
+        service: myambassador
+        name: myambassador
         instance: {{ .Release.Name }}
     spec:
       affinity:
@@ -58,11 +58,11 @@ spec:
             podAffinityTerm:
               labelSelector:
                 matchLabels:
-                  service: ambassador
+                  service: myambassador
               topologyKey: kubernetes.io/hostname
-      serviceAccountName: ambassador
+      serviceAccountName: myambassador
       containers:
-      - name: ambassador
+      - name: myambassador
         image: {{ .Values.ambassador.image }}:{{ .Values.ambassador.tag }}
         resources:
           limits:
