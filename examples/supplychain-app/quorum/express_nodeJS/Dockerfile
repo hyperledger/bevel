@@ -1,0 +1,25 @@
+FROM node:10-alpine
+
+
+#copy app
+COPY . ./app
+
+#Set working directory and copy package files over for
+WORKDIR /app
+
+#install dependencies
+RUN npm install python
+RUN npm install
+
+#Variables for ENV file
+ENV PORT=3000
+ENV QUORUM_SERVER="P2P"
+ENV GANACHE_SERVER="RPC Address of Quorum node"
+ENV PRODUCT_CONTRACT_ADDRESS="Enter address where contract is deployed from"
+ENV NODE_IDENTITY="Enter address of an account"
+ENV NODE_SUBJECT="node subject"
+ENV ORGANIZATION="Manufacturer"
+ENV NODE_ORGANIZATIONUNIT="manufacturer"
+
+EXPOSE ${PORT}
+CMD [ "node", "app.js" ]
