@@ -1,6 +1,5 @@
 FROM node:10-alpine
 
-
 #copy app
 COPY . ./app
 
@@ -8,8 +7,7 @@ COPY . ./app
 WORKDIR /app
 
 #install dependencies
-RUN npm install python
-RUN npm install
+RUN apk update || : && apk add python make build-base
 
 #Variables for ENV file
 ENV PORT=3000
