@@ -1,9 +1,9 @@
-## ROLE: vault_kubernetes
+## ROLE: setup/vault_kubernetes
 This role setups communication between the vault and kubernetes cluster and install neccessary configurations.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Ensure build directory exists
+#### 1. "Ensures build dir exists"
 This task checks whether build directory present or not.If not present,creates one.
 ##### Input Variables
   
@@ -21,7 +21,7 @@ This task checks if the vault path already exists.
 ##### Output Variables
     auth_list: Stores the list of enables auth methods
 
-#### 3. Enable and configure Kubernetes-auth for each Organization
+#### 3. Vault Auth enable for organisation
 This task enables the path for the nms,doorman,notaries and nodes on vault
 This task runs only when {{auth_path}} is not already created
 ##### Input Variables
@@ -31,7 +31,7 @@ This task runs only when {{auth_path}} is not already created
 **when**: It runs Only when component_auth is *NOT* in the output of auth_list
 **ignore_errors**: This flag ignores the any errors and proceeds further.
 
-#### 4. Get Kubernetes cert files for each organizations
+#### 4. "Get Kubernetes cert files for organizations"
 This task get the certificate for the cluster mentioned in k8 secret
 **shell** : This command get the certificates for cluster and stores them in the temporary build directory.
 ##### Input Variables
@@ -50,7 +50,7 @@ This task writes the Service Account token to the vault for various corda entity
 The vault write command writes the Service Account token to the vault for Organisations
 **when**: It runs only when the *auth_path* is not created
 
-#### 6. Check if vault secret path already created for Organization
+#### 6. Check if secret-path already created for Organization
 This task checks if the vault secret path.
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -80,7 +80,7 @@ This task checks if the vault-ro polict already exists.
 ##### Output Variables
     vault_policy_result: Stores the list of policy
 
-#### 9.  Create policy for Organisations Access Control
+#### 9. Create policy for Access Control
 This task creates the access policy for various corda entity(nms,doorman,notary,nodes)
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -88,7 +88,7 @@ This task creates the access policy for various corda entity(nms,doorman,notary,
     *component_name: name of the resource
 **when**: Condition is specified here, runs only if the policy check is failed and component type is peer.
 
-#### 10.  Create Vault auth role
+#### 10. Create Vault auth role
 This task creates the vault auth
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -97,5 +97,3 @@ This task creates the vault auth
     *component_name: name of the resource
 **shell** : This command creates the vault auth.
 **when**: Condition is specified here, runs only when *auth_path* is not found.
-
-
