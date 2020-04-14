@@ -1,4 +1,4 @@
-## ROLE: imagepullsecret
+## ROLE: create/imagepullsecret
 This role creates the docker pull registry secret within each namespace.
 
 ### Tasks
@@ -7,11 +7,11 @@ This role creates the docker pull registry secret within each namespace.
 This tasks checks if the image secret for the organisation already created or not.
 ##### Input Variables
 
-    kind: The path to the directory is specified here.
-    namespace: The organisation's namespace
+    kind: The k8s resource is specified here
+    *namespace: The organisation's namespace
     name: The secret name
-    kubeconfig: The kubernetes config file
-    context: The kubernetes current context
+    *kubeconfig: The kubernetes config file
+    *context: The kubernetes current context
 
 ##### Output Variables
 
@@ -26,4 +26,4 @@ This tasks creates the docker pull registry image secret for each namespace.
     docker-username: Username of docker server, Fetched using 'network.docker.' from network.yaml.
     docker-password: Password of docker server, Fetched using 'network.docker.' from network.yaml.
 
-**when**:  It runs when *secret_present.resources|length* == 0, i.e. imagesecret is not created present .
+**when**:  It runs when *secret_present.resources|length* == 0, i.e. imagesecret is not present.
