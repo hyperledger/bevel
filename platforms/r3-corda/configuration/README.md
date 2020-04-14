@@ -37,10 +37,10 @@ The playbook will create resources in the Kubernetes cluster(s) and will intermi
 **NOTE**: The playbook has a wait for 5 minutes, this is needed so that the client certificates are valid. Read about the issue [here](https://eprint.iacr.org/2013/538.pdf)
 
 ### Step 3
-After deploy-network.yaml has run successfully and your doorman, mongodb-doorman, networkmap and  mongodb-networkmap are all running. 
+After deploy-network.yaml has run successfully and your doorman, mongodb-doorman, networkmap, mongodb-networkmap and participating nodes should be up and running.
 
 ### Step 4
-To deploy notary and nodes run deploy-nodes.yaml playbook. If you want to run the playbook from the *platforms/r3-corda/configuration* directory, run the following command for deploying the network
+If NMS and Doorman is already up that is we only want to bring notary and nodes up then we can skip step 3 and run this step. To deploy notary and nodes run deploy-nodes.yaml playbook. If you want to run the playbook from the *platforms/r3-corda/configuration* directory, run the following command for deploying the network
 ```
 ansible-playbook deploy-nodes.yaml -e "@./samples/network-cordav2.yaml"
 ```
@@ -51,7 +51,7 @@ The playbook will create resources in the Kubernetes cluster(s) and will intermi
 
 
 ### Step 5
-After deploy-node.yaml has run successfully and your notary and nodes are all running.
+After deploy-node.yaml has run successfully your notary and nodes should be up and running.
 
 ## Miscellenous
 

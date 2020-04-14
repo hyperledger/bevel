@@ -1,4 +1,4 @@
-## ROLE: namespace_serviceaccount
+## ROLE: create/namespace_serviceaccount
 This role creates the value files for namespaces, vault-auth, vault-reviewer and clusterrolebinding for each node.
 
 ### Tasks

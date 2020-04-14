@@ -93,7 +93,7 @@ This task fetches the generated ambassador tls certificates by calling role *set
 **when**: It runs when *ambassador_tls_certs*.failed == False, i.e. ambassador tls certs are present.
 
 #### 9. Generate the openssl conf file
-This task generates compoenent openssl configuration file.
+This task generates component openssl configuration file.
 
 ##### Input Variables
     *domain_name: The name of the uri formed by attaching node_name with external_url_suffix.
