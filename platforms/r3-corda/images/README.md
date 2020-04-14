@@ -11,7 +11,7 @@ Contains Dockerfile and other source files to create various docker images neede
 |-- networkmap
 ```
 ## Manually creating images ##
-For **doorman**, **linuxkit-base** and **networkmap**, follow the readme's in the repective folders.
+For **doorman**, **linuxkit-base** and **networkmap**, follow the readme's in the respective folders.
 
 ### Corda Node ###
 
@@ -27,4 +27,3 @@ For building tls-enabled Corda Node (which can be used as Corda Node as well as 
 	sudo docker tag corda_node:4.1 hyperledgerlabs/corda:4.1-linuxkit
 	sudo docker push hyperledgerlabs/corda:4.1-linuxkit
 ```
-
