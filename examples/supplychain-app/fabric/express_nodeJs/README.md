@@ -8,7 +8,7 @@ The deployment has been made easy for Docker. The provided docker file will crea
 
 The following will create the image called express_fabric_app and then run the service on port 3000 for the manufacturer
 ```
-docker build -t express_fabric_app
+docker build -t express_fabric_app .
 docker run -p 3000:3000 -e "API_URL=https://manufacturer.fabric.supplychain.blockchaincloudpoc.com/api/v1 PORT=3000" express_fabric_app
 ```
 
