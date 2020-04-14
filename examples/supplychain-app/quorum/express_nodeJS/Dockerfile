@@ -7,8 +7,9 @@ COPY . ./app
 #Set working directory and copy package files over for
 WORKDIR /app
 
+RUN apk update || : && apk add python make build-base
+
 #install dependencies
-RUN npm install python
 RUN npm install
 
 #Variables for ENV file
@@ -18,7 +19,7 @@ ENV GANACHE_SERVER="RPC Address of Quorum node"
 ENV PRODUCT_CONTRACT_ADDRESS="Enter address where contract is deployed from"
 ENV NODE_IDENTITY="Enter address of an account"
 ENV NODE_SUBJECT="node subject"
-ENV ORGANIZATION="Manufacturer"
+ENV NODE_ORGANIZATION="Manufacturer"
 ENV NODE_ORGANIZATIONUNIT="manufacturer"
 
 EXPOSE ${PORT}
