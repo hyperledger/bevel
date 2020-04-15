@@ -62,3 +62,15 @@
   loop_control:
     loop_var: node
   when: component_type == 'node'
+
+# This task deletes the policies
+- name: Delete policy
+  shell: |
+    vault policy delete vault-crypto-{{ node.name }}-ro
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: node
+  when: component_type == 'node'
