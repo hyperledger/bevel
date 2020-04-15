@@ -1,5 +1,5 @@
 ## About
-This folder contains the files that are needed for the deployment of a R3 Corda network in BAF. 
+This folder contains the files that are needed for the deployment of a R3 Corda network using BAF. 
 
 ## Folder structure
 ```
