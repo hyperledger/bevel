@@ -69,12 +69,12 @@ spec:
       networkMapURL: 
       doormanURL:
 {% endif %}
-      jarVersion: "4.0"
+      jarVersion: {{ network.version }}
       devMode: false
       env:
         - name: JAVA_OPTIONS
           value: -Xmx512m
-        - name: CORDA_HOME
+        - name: HOME
           value: /opt/corda
         - name: BASE_DIR
           value: /base/corda
