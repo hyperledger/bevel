@@ -41,6 +41,17 @@ This task check if CA certs exists in vault, if not this should fail. If yes, ge
 **shell** : This command check if CA certs exists in vault, if yes, it moves the certificate to the specified directory.
 **vault* : This variable contains details of vault from network.yaml. It comes from previous calling playbook(deploy-network,yaml) 
 
+
+#### 3.1. Check if ca key already created
+This task check if CA key exists in vault, if not this should fail. If yes, get the key.
+##### Input Variables
+    *component_name: The name of the component
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**environment** : It includes the list of environment variables.
+**shell** : This command check if CA key exists in vault, if yes, it moves the key to the specified directory.
+**vault* : This variable contains details of vault from network.yaml. It comes from previous calling playbook(deploy-network,yaml) 
+
 #### 4. Check if orderer msp already created
 This task Check orderer msp already created.
 ##### Input Variables
@@ -65,6 +76,22 @@ This task gets MSP info.
     *msp_path: "Path for MSP"
 **include_role** : It includes the name of intermediatory role which is required for getting MSP info.
 **when**: Condition is specified here, runs only when *vault_msp_result.failed* is FALSE i.e. MSP is found.
+
+#### 5.1 Check if orderer tls already created
+This task gets orderer tls info.
+##### Input Variables
+    *vault_output: "Result of vault msp check query"
+    type: "orderer"
+    *msp_path: "Path for MSP"
+**include_role** : It includes the name of intermediatory role which is required for getting MSP info.
+**when**: Condition is specified here, runs only when *vault_tls_result.failed* is FALSE i.e. MSP is found.
+
+#### 5.2 Ensure tls directory exists
+This tasks ensures whether the tls directory exists
+
+#### 5.3 Get orderer tls crt
+This task gets the orderer tls certificate.
+**when** : It runs when *vault_tls_result.failed == False*
 
 #### 6. Create directory path on CA Tools
 This task creates directory path on CA Tools CLI.
@@ -108,3 +135,13 @@ This task puts the above created crypto material in the vault
 **environment** : It includes the list of environment variables.
 **shell** : The specified commands copies the generated crypto material from the respective CA Tools CLI.
 **when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
+
+#### 11. Check if Ambassador cred exists
+This task Checks if Ambassador cred exists
+##### Input Variables
+    kind: "Secret"
+    *namespace: Namespace of entity
+    name: Name of entity
+    context: context name
+#### Output variables
+    *get_orderer_secret: Stores the result of query.

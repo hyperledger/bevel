@@ -38,7 +38,14 @@ Some of the common roles and playbooks between Hyperledger-Fabric and R3-Corda a
 Roles in ansible are a combination of logically inter-related tasks.
 
 Below is the single playbook that you need to execute to setup complete fabric network.
+
 ## **create/anchorpeer**
+* Call nested_anchorpeer for each organization
+* Check join channel job is done
+* Creating value file of anchor peer for {{ channel_name }}
+* Git Push
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-fabric/configuration/roles/create/anchorpeer/) for detailed information.
 
 ## **create/ca_server**
 
