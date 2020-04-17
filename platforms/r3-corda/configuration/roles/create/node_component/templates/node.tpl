@@ -74,7 +74,7 @@ spec:
       env:
         - name: JAVA_OPTIONS
           value: -Xmx512m
-        - name: HOME
+        - name: CORDA_HOME
           value: /opt/corda
         - name: BASE_DIR
           value: /base/corda
