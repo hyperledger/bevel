@@ -22,6 +22,10 @@ spec:
       constellation: quorumengineering/constellation:{{ network.config.tm_version }}
     node:
       name: {{ peer.name }}
+{% if network.config.genesis | default('', true) | trim != '' %}
+      peer_id: {{ peer_id | int }}
+{% endif %}
+      status: {{ node_status }}
       consensus: {{ consensus }}
       subject: {{ peer.subject }}
       mountPath: /etc/quorum/qdata
@@ -49,9 +53,16 @@ spec:
 {% endfor %}
 {% endif %}
 {% if network.config.consensus == 'raft' %}
+{% if network.config.genesis | default('', true) | trim == '' %}
 {% for enode in enode_data_list %}
       - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
 {% endfor %}
+{% endif %}
+{% if network.config.genesis | default('', true) | trim != '' %}
+{% for enode in network.config.staticnodes %}
+      - {{ enode }}
+{% endfor %}
+{% endif %}
 {% endif %}
     constellation:
 {% if network.config.tm_tls == 'strict' %}

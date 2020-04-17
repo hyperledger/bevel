@@ -117,7 +117,17 @@ The snapshot of the `config` section with example values is below
     #     ewogICAgImFsbG9jIjogewogICAgICAgICIwOTg2Nzk2ZjM0ZDhmMWNkMmI0N2M3MzQ2YTUwYmY2
     #     OWFhOWM1NzcyIjogewogICAgICAgICAgICAiYmFsYW5jZSI6ICIxMDAwMDAwMDAwMDAwMDAwMDAw
     #     MDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImY2MjkyNTQ1YWVjNTkyMDU4MzQ
-
+    # geth account details
+    # make sure that the account is unlocked prior to adding a new node
+    geth:
+      #name of the node 
+      name: carrier
+      #ambassador url of the node
+      url: carrier.test.quorum.blockchaincloudpoc.com
+      #rpc port of the node
+      rpcport: 15011
+      #id of the node.
+      nodeid: 1
 ```
 The fields under `config` are
 
@@ -132,6 +142,7 @@ The fields under `config` are
 | tm_nodes | The Transaction Manager nodes public addresses should be provided. For `tessera`, all participating nodes should be provided, for `constellation`, only one bootnode should be provided. NOTE The difference in the addresses for Tessera and Constellation. |
 | staticnodes | *** Existing network's static nodes need to be provided as an array. This will be implemented with addition of new node. |
 | genesis | *** Existing network's genesis.json needs to be provided in base64. This will be implemented with addition of new node.|
+| geth | *** Geth account details . This will be implemented with addition of new node.|
 
 The `organizations` section contains the specifications of each organization.  
 In the sample configuration example, we have four organization under the `organizations` section.
