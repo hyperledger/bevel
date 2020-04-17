@@ -30,13 +30,13 @@
   loop_control:
     loop_var: enode
   register: peer_id
-  when: network.config.genesis | default('', true) | trim != ''
+  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
 
 # This task fetches the peer_id 
 - name: Get peer_id
   set_fact:
     peer_id: "{{ peer_id.results[0].stdout | from_json | json_query('result') }}"
-  when: network.config.genesis | default('', true) | trim != ''
+  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
 
 # This task creates the Tessera Transaction Manager value files for each node of organization
 - name: Create value file for Tessera TM for each node
@@ -62,7 +62,7 @@
   loop: "{{ peers }}"
   loop_control:
     loop_var: peer
-  when: network.config.genesis | default('', true) | trim != ''
+  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
