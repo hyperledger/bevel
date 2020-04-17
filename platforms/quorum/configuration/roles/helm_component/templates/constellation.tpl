@@ -23,7 +23,9 @@ spec:
     node:
       name: {{ peer.name }}
 {% if network.config.genesis | default('', true) | trim != '' %}
+{% if network.config.consensus == 'raft' %}
       peer_id: {{ peer_id | int }}
+{% endif %}
 {% endif %}
       status: {{ node_status }}
       consensus: {{ consensus }}
