@@ -69,7 +69,7 @@ spec:
       networkMapURL: 
       doormanURL:
 {% endif %}
-      jarVersion: {{ network.version }}
+      jarVersion: {{ network.version | quote }}
       devMode: false
       env:
         - name: JAVA_OPTIONS
