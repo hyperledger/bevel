@@ -15,16 +15,27 @@ This task calls nested_channel_join
     
      loop_var: loop variable used for iterating the loop.
 
+#### 2. Call check for each peer
+This task calls check.yaml
+##### Input Variables
+    *channel_name: Name of the channel
+    *org_query: Query to get peer names for organisations
+    *org: List of orgs
+**include_tasks**: It includes the name of intermediatory task which is required for creating the vault auth value file.
+**loop**: loops over result list fetched from *participants query*
+**loop_control**: Specify conditions for controlling the loop.
+    
+     loop_var: loop variable used for iterating the loop.
+
 ------------
 ### nested_channel_join.yaml
 This task initiates the nested join channel role to internally join the peers in various permutations
 
 ### Tasks
-#### 1. join channel {{ *channel_name* }}
-This task creates the join channel value file for each participating peer.
+#### 1. Check create channel job is done
+This task check or wait for the create channel job to complete.
 ##### Input Variables
 
-    *channel_name: Name of the channel
     kind: This defines the kind of Kubernetes resource
     *name: Name of the component 
     *namespace: Namespace of the component
@@ -41,7 +52,7 @@ This task creates the join channel value file for each participating peer.
   **delay**: Specifies the delay between every retry
   
 #### 2. join channel {{ *channel_name* }}
-This task creates the value file for creator Organization
+This task creates the value file for each participationg peer.
 ##### Input Variables
     *name: The name of the organisation
     type: "join_channel_job"
@@ -72,3 +83,23 @@ This task pushes the above generated value files to git repo.
     msg: "Message for git commit"
 These variables are fetched through network.yaml using *item.gitops*
 
+-------------------------------------------------------------
+#### check.yaml
+#### 1. Check create channel job is done
+This task check or wait for the create channel job to complete.
+##### Input Variables
+
+    kind: This defines the kind of Kubernetes resource
+    *name: Name of the component 
+    *namespace: Namespace of the component
+    *kubeconfig: The config file of the cluster
+    *context: This refer to the required kubernetes cluster context
+    *org_query: Query to get peer names for organisations
+    *peer_name: Name of the peer
+##### Output Variables
+
+    get_peer: This variable stores the output of get peer pod query.
+	
+  **until**: This condition checks until *get_peer.resources* exists
+  **retries**: No of retries
+  **delay**: Specifies the delay between every retry

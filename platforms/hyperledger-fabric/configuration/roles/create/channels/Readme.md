@@ -18,7 +18,26 @@ This task Call valuefile when participant is creator
 This task is the nested task for main.yaml which helps to create the channels_join files
 
 ### Tasks
-#### 1. Check creator peer pod is up
+#### 1. Check orderer pod is up
+This tasks check if the orderer is already created or not.
+##### Input Variables
+
+    kind: This defines the kind of Kubernetes resource
+    *name: Name of the component 
+    *namespace: Namespace of the component
+    *kubeconfig: The config file of the cluster
+    *context: This refer to the required kubernetes cluster context
+    *org_query: Query to get peer names for organisations
+    *peer_name: Name of the peer
+##### Output Variables
+
+    get_orderer: This variable stores the output of get orderer pod query.
+	
+  **until**: This condition checks until *get_peer.resources* exists
+  **retries**: No of retries
+  **delay**: Specifies the delay between every retry
+
+#### 2. Check peer pod is up
 This tasks check if the namespace is already created or not.
 ##### Input Variables
 
@@ -37,7 +56,7 @@ This tasks check if the namespace is already created or not.
   **retries**: No of retries
   **delay**: Specifies the delay between every retry
   
-#### 2. Create Create_Channel value file
+#### 3. Create Create_Channel value file
 This task creates the value file for creator Organization
 ##### Input Variables
     *name: The name of the organisation
@@ -58,7 +77,7 @@ This task creates the value file for creator Organization
 **loop_control**: Specify conditions for controlling the loop.
     loop_var: loop variable used for iterating the loop.
 
-#### 3. Git Push
+#### 4. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
     GIT_DIR: "The path of directory which needs to be pushed"
