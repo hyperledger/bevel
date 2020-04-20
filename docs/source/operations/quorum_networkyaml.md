@@ -119,14 +119,14 @@ The snapshot of the `config` section with example values is below
     #     MDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImY2MjkyNTQ1YWVjNTkyMDU4MzQ
     # geth account details
     # make sure that the account is unlocked prior to adding a new node
-    geth:
-      #name of the node 
+    bootnode:
+      #name of the bootnode 
       name: carrier
-      #ambassador url of the node
+      #ambassador url of the bootnode
       url: carrier.test.quorum.blockchaincloudpoc.com
-      #rpc port of the node
+      #rpc port of the bootnode
       rpcport: 15011
-      #id of the node.
+      #id of the bootnode
       nodeid: 1
 ```
 The fields under `config` are
@@ -140,9 +140,18 @@ The fields under `config` are
 | tm_tls | Options are `strict` and `off`. This enables TLS for the transaction managers, and is not related to the actual Quorum network. `off` is not recommended for production. |
 | tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for tessera]( https://github.com/jpmorganchase/tessera/wiki/TLS) and [for consellation](https://github.com/jpmorganchase/constellation/blob/master/sample.conf).|
 | tm_nodes | The Transaction Manager nodes public addresses should be provided. For `tessera`, all participating nodes should be provided, for `constellation`, only one bootnode should be provided. NOTE The difference in the addresses for Tessera and Constellation. |
-| staticnodes | *** Existing network's static nodes need to be provided as an array. This will be implemented with addition of new node. |
-| genesis | *** Existing network's genesis.json needs to be provided in base64. This will be implemented with addition of new node.|
-| geth | *** Geth account details . This will be implemented with addition of new node.|
+| staticnodes | Existing network's static nodes need to be provided as an array.|
+| genesis | Existing network's genesis.json needs to be provided in base64.|
+| bootnode | Bootnode account details.|
+
+The `bootnode` field contains:
+
+| Field                            | Description                                        |
+|----------------------------------|----------------------------------------------------|
+| name                             | Name of the bootnode                               |
+| url                              | URL of the bootnode, generally the ambassador URL  |
+| rpcport                          | RPC port of the bootnode                           |
+| nodeid                           | Node ID of the bootnode                            |
 
 The `organizations` section contains the specifications of each organization.  
 In the sample configuration example, we have four organization under the `organizations` section.
