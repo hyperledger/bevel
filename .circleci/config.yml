@@ -4,18 +4,21 @@ jobs:
   doorman_build: # Builds doorman jar file
     docker: # it uses the docker executor
       - image: circleci/openjdk:8-jdk-stretch
-    working_directory: platforms/r3-corda/images/doorman/ # directory where steps will run
+    #working_directory: platforms/r3-corda/images/doorman/ # directory where steps will run
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
       - run: ls -a
-      - run: mvn clean install
+      - run: 
+          command: |
+          cd platforms/r3-corda/images/doorman/
+            mvn clean install
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory
           root: my_workspace
           # Must be relative path from root
           paths:
-            - target/doorman.jar
+            - platforms/r3-corda/images/doorman/target/doorman.jar
   doorman_docker: # This is our second job.
     docker: # it runs inside a docker image, the same as above.
       - image: circleci/ruby:2.4.1
