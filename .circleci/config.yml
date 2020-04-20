@@ -76,22 +76,30 @@ jobs:
       - docker_push:
           build_path: "platforms/r3-corda/images/networkmap"
           image: "hyperledgerlabs/networkmap-linuxkit"
+  shared_test:
+    docker:
+      - image: hyperledgerlabs/baf-build:latest
+    steps:
+      - checkout
+
 
 # Under the workflows: map, we can coordinate our two jobs, defined above.
 workflows:
   version: 2
+  shared:
+    jobs:
+      - shared_test
   corda: # this is the name of our workflow
     jobs: # and here we list the jobs we are going to run.
       - doorman_build:
-          filters:
+          filters:      # doorman build only for develop branch and all tags
             branches:
               only:
                 - develop
-                - circleci-project-setup
             tags:
               only: /.*/
       - networkmap_build:
-          filters:
+          filters:      # networkmap build only for develop branch and all tags
             branches:
               only:
                 - develop
