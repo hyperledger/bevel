@@ -44,7 +44,7 @@ pipeline {
                     echo 'installing curl ...'
                     apt-get install curl
                     echo 'installing node'
-                    curl -sL https://deb.nodesource.com/setup_8.x | bash -
+                    curl -sL https://deb.nodesource.com/setup_10.x | bash -
                     echo 'installing nodejs'
                     apt-get install -y nodejs
                     node -v
