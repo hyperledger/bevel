@@ -3,18 +3,14 @@
 #############################################################################################
 
 # Check if CA-tools pod is running
-- name: Check if CA-tools is running
-  k8s_facts:
-    kind: Pod
-    namespace: "{{ component_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    label_selectors:
-      - name = ca-tools  
-  register: ca_tools
-  until: ("Running" in ca_tools|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
+- name: "Waiting for CA-tool in {{ item.name | lower }}-net"
+  include_role:
+    name: "../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ item.name | lower }}-net"
+    component_name: "ca-tools"
+    check: "name"
 
 # Ensure ca directory is present in build
 - name: Ensure ca directory exists
@@ -80,7 +76,7 @@
   loop_control:
     loop_var: orderer
   register: orderer_file_result
-  failed_when: add_new_org == 'true' and not orderer_file_result.results[0].stat.exists # Fail the task if new_org is added and orderer-cert does not exist
+  failed_when: add_new_org == 'true' and not orderer_file_result.stat.exists # Fail the task if new_org is added and orderer-cert does not exist
 
 # Ensure orderer-cert directory is present
 - name: Ensure orderer tls cert directory exists

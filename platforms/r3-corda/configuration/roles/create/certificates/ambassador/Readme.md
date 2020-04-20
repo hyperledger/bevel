@@ -1,22 +1,22 @@
-## ROLE: ambassador
+## ROLE: create/certificates/ambassador
 This role generates certificates for ambassador and places them in vault. Certificates are created using openssl.This also creates the Kubernetes secrets
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Check if ambassador tls dir exists create one if the same doesn't exist
+#### 1. Ensure ambassador tls dir exists
 This tasks checks if the ambassador tls dir already created or not.
 ##### Input Variables
 
     path: The path to the directory is specified here.
     recurse: Yes/No to recursively check inside the path specified.
 
-#### 2. Check if ambassador tls certs already created
+#### 2. Check if ambassador tls already created
 This tasks checks if ambassador tls certificates are already created or not.
 ##### Input Variables
 
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    ignore_errors: Ignore ifany error occurs
+    ignore_errors: Ignore if any error occurs
 ##### Output Variables
 
     ambassador_tls_certs: This variable stores the output of ambassador tls certificates check query.
@@ -31,12 +31,11 @@ This task fetches the generated ambassador tls certificates by calling role *set
     
 **when**: It runs when *ambassador_tls_certs*.failed == False, i.e. ambassador tls certs are present. 
 
-#### 4. Generate the openssl conf file
+#### 4. Generate openssl conf file
 This task generates compoenent openssl configuration file.
 
 ##### Input Variables
-    *component_name: The name of resource
-    *component_type: The type of resource
+    *domain_name: The name of the uri formed by attaching component_name with external_url_suffix.
 
 **shell**: It goes to the ./build directory and generates component's openssl configuration file.
 **when**: It runs when *ambassador_tls_certs.failed* == True, i.e. ambassador certs are not present and are generated.
@@ -45,12 +44,12 @@ This task generates compoenent openssl configuration file.
 This task generates the ambassador tls certificates.
 
 ##### Input Variables
-    domain_name: Contains component name and  external_url_suffix, Fetched using 'item.' from network.yaml
+    domain_name: Contains component name and  external_url_suffix, fetched using 'item.' from network.yaml
 
 **shell**: It generates ambassador.crt and ambassador.key.
 **when**:  It runs when *ambassador_tls_certs.failed* == True, i.e. ambassador certs are not present and are generated. 
 
-#### 6. Write the tls certs to Vault.
+#### 6. Putting tls certs to vault
 This task writes the ambassador tls certificates to Vault
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -77,7 +76,6 @@ This tasks check if the Check Ambassador credentials exists or not.
 This task creates the Ambassador TLS credentials.
 ##### Input Variables
     *component_name: The name of resource
-    *component_type: The type of resource
     *kubernetes.config_file: The config file of kubernetes cluster.
 
 **shell**: The specified command creates ambassador credentials.

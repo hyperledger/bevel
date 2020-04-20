@@ -33,13 +33,16 @@ router.get("/:trackingID?", function(req, res) {
             container.misc[key] = json[key];
           }
           container.custodian = newContainer.custodian;
+          container.custodian = container.custodian + "," + newContainer.lastScannedAt;
           container.trackingID = newContainer.trackingID;
-          container.timestamp = newContainer.timestamp;
+          container.timestamp  = (new Date(newContainer.timestamp * 1000)).getTime();
           container.containerID = newContainer.containerID;
           container.linearId = {};
           container.linearId.externalId = null;
           container.linearId.id = container.trackingID;
           container.participants = newContainer.participants;
+          container.contents = newContainer.containerContents;
+
         res.send(container
           ); 
         
@@ -73,15 +76,18 @@ router.get("/:trackingID?", function(req, res) {
             container.misc[key] = json[key];
           }
 
-
           container.custodian = toPush.custodian;
+          container.custodian = container.custodian + "," + toPush.lastScannedAt;
+          container.lastScannedAt = toPush.lastScannedAt;
           container.trackingID = toPush.trackingID;
-          container.timestamp = toPush.timestamp;
+          container.timestamp  = (new Date(toPush.timestamp * 1000)).getTime();
           container.containerID = toPush.containerID;
           container.linearId = {};
           container.linearId.externalId = null;
           container.linearId.id = container.trackingID;
           container.participants = toPush.participants;
+          container.contents = toPush.containerContents;
+
 
           displayArray.push(container);
       }
@@ -101,12 +107,11 @@ router.post("/", upload.array(), function(req, res) {
   let newContainer = {
     misc: req.body.misc,
     trackingID: req.body.trackingID,
-    counterparties: req.body.counterparties.map(it =>
-      it.indexOf("O=") != -1 ? it.split("O=")[1].split(",")[0] : it
-    ) //filter out to only send org name
-  }; //filter out to only send org
+    lastScannedAt: fromNodeSubject,
+    counterparties: req.body.counterparties
+  };
   var isInArray = false;
-  if (newContainer.counterparties.includes(fromAddress)) {
+  if (newContainer.counterparties.includes(fromAddress+","+fromNodeSubject)) {
     isInArray = true;
   }
   
@@ -125,8 +130,8 @@ router.post("/", upload.array(), function(req, res) {
         "health",
         misc,
         newContainer.trackingID,
-        "",
-        newContainer.counterparties
+        newContainer.lastScannedAt,
+        newContainer.counterparties,
       )
       .send({ from: fromAddress, gas: 6721900, gasPrice: "0" })
       .on("receipt", function(receipt) {
@@ -139,21 +144,18 @@ router.post("/", upload.array(), function(req, res) {
         res.send(error.message);
         console.log(error);
       });
-  } else {
-    res.send(
-      "Transaction not sent. Your address is not in counterparties list"
-    );
   }
 });
 
-//PUT for changing custodian
+//PUT for updating custodian
 router.put("/:trackingID/custodian", function(req, res) {
   res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var trackingID = req.params.trackingID;
+  var lastScannedAt = fromNodeSubject;
   console.log(trackingID);
     productContract.methods
-      .updateContainerCustodian(trackingID)
+      .updateContainerCustodian(trackingID, lastScannedAt)
       .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
       .then( response => {
         res.send(trackingID)

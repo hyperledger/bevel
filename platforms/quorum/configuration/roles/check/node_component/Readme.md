@@ -1,10 +1,10 @@
-## ROLE: node_component
+## ROLE: check/node_component
 This roles check if Pod is deployed or not and the Job deployed and completed or not.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
 #### 1. Wait for {{ component_type }} {{ component_name }}
-Task to check if Job deployed and completed. This task will try for a maximum of 10 times with an interval of 60 seconds between each try.
+Task to check if Job deployed and completed. This task will try for a maximum of *env.retry_count* times mentioned in network.yaml with an interval of 60 seconds between each try.
 ##### Input Variables
 
     *component_type: The type of resource/organisation.
