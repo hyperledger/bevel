@@ -51,11 +51,14 @@ commands:
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
           docker push << parameters.image >>:<< parameters.tag >>
       - run: |
-        if [[ $CIRCLE_TAG ]]; then 
-          docker tag << parameters.image >>:<< parameters.tag >> << parameters.image >>:$CIRCLE_TAG
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
-          docker push << parameters.image >>:$CIRCLE_TAG
-        fi
+          echo $CIRCLE_TAG
+          if [[ -z "$CIRCLE_TAG" ]] then 
+            echo "Not a tagged check-in"
+          else
+            docker tag << parameters.image >>:<< parameters.tag >> << parameters.image >>:$CIRCLE_TAG
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+            docker push << parameters.image >>:$CIRCLE_TAG
+          fi;
 # Create jobs, so that a workflow can coordinate them.
 jobs: 
   doorman_build: # Builds doorman jar file
