@@ -19,12 +19,6 @@ commands:
           command: |
             cd << parameters.build_path >>
             mvn clean install
-      #- persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory
-      #    root: << parameters.build_path >>/target
-          # Must be relative path from root
-      #    paths:
-      #      - << parameters.build_jar >>
   docker_push:
     description: "Builds docker image and pushes to dockerhub"
     parameters:
@@ -40,15 +34,12 @@ commands:
     steps:
       - setup_remote_docker:
           version: 18.06.0-ce
-      #- attach_workspace:
-          # Must be absolute path or relative path from working_directory
-      #    at: << parameters.build_path >>/target
       - run: ls -a << parameters.build_path >>/target/
       # build and push Docker image
       - run: |
           cd << parameters.build_path >>
           docker build -t << parameters.image >>:<< parameters.tag >> .
-          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
           docker push << parameters.image >>:<< parameters.tag >>
       - run: |
           echo $CIRCLE_TAG
@@ -56,7 +47,7 @@ commands:
             echo "Not a tagged check-in";
           else
             docker tag << parameters.image >>:<< parameters.tag >> << parameters.image >>:$CIRCLE_TAG;
-            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD;
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin;
             docker push << parameters.image >>:$CIRCLE_TAG;
           fi
 # Create jobs, so that a workflow can coordinate them.
@@ -80,10 +71,10 @@ jobs:
     steps:
       - checkout # this pulls pulls code down from GitHub
       - mvn_build:
-          build_path: "platforms/r3-corda/images/networkmap/"
+          build_path: "platforms/r3-corda/images/networkmap"
           build_jar: "network-map-service.jar"
       - docker_push:
-          build_path: "platforms/r3-corda/images/networkmap/"
+          build_path: "platforms/r3-corda/images/networkmap"
           image: "hyperledgerlabs/networkmap-linuxkit"
 
 # Under the workflows: map, we can coordinate our two jobs, defined above.
@@ -92,4 +83,17 @@ workflows:
   corda: # this is the name of our workflow
     jobs: # and here we list the jobs we are going to run.
       - doorman_build
+          filters:
+            branches:
+              only:
+                - develop
+                - circleci-project-setup
+            tags:
+              only: /.*/
       - networkmap_build
+          filters:
+            branches:
+              only:
+                - develop
+            tags:
+              only: /.*/
