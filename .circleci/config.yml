@@ -78,30 +78,22 @@ jobs:
           image: "hyperledgerlabs/networkmap-linuxkit"
   shared_test:
     docker:
-      - image: hyperledgerlabs/baf-build:latest
+      - image: circleci/python:3.6.10
     steps:
       - checkout
       - setup_remote_docker:
           version: 18.06.0-ce
       - run:
-          name: Install Docker client
+          name: Prepare environment
           command: |
-            apt-get update
-            apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl gnupg-agent software-properties-common
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-            add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-            apt-get update
-            apt-get install -y docker-ce-cli
             docker --version
+            sudo pip3 install 'ansible==2.9.4'
+            sudo pip3 install 'molecule[docker]==3.0.2'
+            sudo pip3 install openshift
       - run: |
-          echo "alias python=python3" >> ~/.bashrc
-          source ~/.bashrc
-          export LC_ALL=C.UTF-8
-          export LANG=C.UTF-8
-          export PATH=/root/.local/bin/:$PATH
-          pip3 install 'molecule[docker]==3.0.2'
+          export PATH=~/.local/bin/:~/bin:$PATH
           cd platforms/shared/configuration
-          molecule test
+          sudo molecule test
 
 
 # Under the workflows: map, we can coordinate our two jobs, defined above.
