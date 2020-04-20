@@ -1,21 +1,22 @@
-version: 2
-jobs: # we now have TWO jobs, so that a workflow can coordinate them!
-  one: # This is our first job.
+version: 2.1
+# Create jobs, so that a workflow can coordinate them.
+jobs: 
+  doorman_build: # Builds doorman jar file
     docker: # it uses the docker executor
-      - image: circleci/ruby:2.4.1 # specifically, a docker image with ruby 2.4.1
+      - image: circleci/openjdk:8-jdk-stretch
+    working_directory: platforms/r3-corda/images/doorman/ # directory where steps will run
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
-      - run: echo "A first hello" # This prints "A first hello" to stdout.
-      - run: mkdir -p my_workspace
-      - run: echo "Trying out workspaces" > my_workspace/echo-output
+      - run: ls -a
+      - run: mvn clean install
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory
           root: my_workspace
           # Must be relative path from root
           paths:
-            - echo-output
-  two: # This is our second job.
+            - target/doorman.jar
+  doorman_docker: # This is our second job.
     docker: # it runs inside a docker image, the same as above.
       - image: circleci/ruby:2.4.1
     steps:
@@ -24,18 +25,13 @@ jobs: # we now have TWO jobs, so that a workflow can coordinate them!
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: my_workspace
-      - run: |
-          if [[ $(cat my_workspace/echo-output) == "Trying out workspaces" ]]; then
-            echo "It worked!";
-          else
-            echo "Nope!"; exit 1
-          fi
+      - run: ls -a my_workspace/
 # Under the workflows: map, we can coordinate our two jobs, defined above.
 workflows:
   version: 2
-  one_and_two: # this is the name of our workflow
+  doorman: # this is the name of our workflow
     jobs: # and here we list the jobs we are going to run.
-      - one
-      - two:
+      - doorman_build
+      - doorman_docker:
           requires:
-           - one
+           - doorman_build
