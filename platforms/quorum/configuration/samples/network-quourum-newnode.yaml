@@ -1,33 +1,3 @@
-<a name = "adding-new-org-to-existing-network-in-quorum"></a>
-# Adding a new node in Quorum
-
-  - [Prerequisites](#prerequisites)
-  - [Create Configuration File](#create-configuration-file)
-  - [Run playbook](#run-playbook)
-
-<a name = "prerequisites"></a>
-## Prerequisites
-To add a new organization in Quorum, an existing quorum network should be running, enode information of all existing nodes present in the network should be available, genesis block should be available in base64 encoding and the geth information of a node should be available and that node account should be unlocked prior adding the new node to the existing quorum network. 
-
----
-**NOTE**: Addition of a new organization has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
-
----
-
-<a name = "create_config_file"></a>
-## Create Configuration File
-
-Refer [this guide](./quorum_networkyaml.md) for details on editing the configuration file.
-
-The `network.yaml` file should contain the specific `network.organization` patch along with the enode information, genesis block in base64 encoding and geth account details
-
----
-**NOTE**: Make sure that the genesis block information is given in base64 encoding. Also, if you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
-
----
-For reference, sample `network.yaml` file looks like below for RAFT consensus (but always check the latest network-quorum-newnode.yaml at `platforms/quourm/configuration/samples`):
-
-```
 ---
 # This is a sample configuration file for Quorum network which has 4 nodes.
 # All text values are case-sensitive
@@ -95,16 +65,14 @@ network:
     #     ewogICAgImFsbG9jIjogewogICAgICAgICIwOTg2Nzk2ZjM0ZDhmMWNkMmI0N2M3MzQ2YTUwYmY2
     #     OWFhOWM1NzcyIjogewogICAgICAgICAgICAiYmFsYW5jZSI6ICIxMDAwMDAwMDAwMDAwMDAwMDAw
     #     MDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImY2MjkyNTQ1YWVjNTkyMDU4MzQ
-    # geth account details
-    # make sure that the account is unlocked prior to adding a new node
     bootnode:
-      #name of the node 
+      #name of the bootnode 
       name: carrier
-      #ambassador url of the node
+      #ambassador url of the bootnode
       url: carrier.test.quorum.blockchaincloudpoc.com
-      #rpc port of the node
+      #rpc port of the bootnode
       rpcport: 15011
-      #id of the node.
+      #id of the bootnode
       nodeid: 1
   
   # Allows specification of one or many organizations that will be connecting to a network.
@@ -161,33 +129,3 @@ network:
             ambassador: 15013
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
-           
-
-```
-Three new sections are added to the network.yaml
-| Field       | Description                                              |
-|-------------|----------------------------------------------------------|
-| staticnodes | Existing network's static nodes need to be provided as an array.|
-| genesis | Existing network's genesis.json needs to be provided in base64.|
-| bootnode | Bootnode account details.|
-
-
-The `network.config.bootnode` field contains:
-
-| Field                            | Description                                        |
-|----------------------------------|----------------------------------------------------|
-| name                             | Name of the bootnode                               |
-| url                              | URL of the bootnode, generally the ambassador URL  |
-| rpcport                          | RPC port of the bootnode                           |
-| nodeid                           | Node ID of the bootnode                            |
-
-<a name = "run_network"></a>
-## Run playbook
-
-The [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
-
-```
-ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
-```
-
-
