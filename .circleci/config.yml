@@ -48,7 +48,7 @@ commands:
       - run: |
           cd << parameters.build_path >>
           docker build -t << parameters.image >>:<< parameters.tag >> .
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
           docker push << parameters.image >>:<< parameters.tag >>
       - run: |
           echo $CIRCLE_TAG
@@ -56,7 +56,7 @@ commands:
             echo "Not a tagged check-in"
           else
             docker tag << parameters.image >>:<< parameters.tag >> << parameters.image >>:$CIRCLE_TAG
-            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
             docker push << parameters.image >>:$CIRCLE_TAG
           fi;
 # Create jobs, so that a workflow can coordinate them.
