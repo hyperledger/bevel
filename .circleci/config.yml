@@ -85,7 +85,14 @@ jobs:
           version: 18.06.0-ce
       - run:
           name: Install Docker client
-          command: apt-get install docker-ce-cli
+          command: |
+            apt-get update
+            apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+            add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+            apt-get update
+            apt-get install -y docker-ce-cli
+            docker --version
       - run: |
           echo "alias python=python3" >> ~/.bashrc
           source ~/.bashrc
