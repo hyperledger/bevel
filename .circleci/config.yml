@@ -1,42 +1,92 @@
 version: 2.1
+# commands are used to group common steps and enable re-use
+commands:
+  mvn_build:
+    description: "Builds jar file using maven and stores to workspace"
+    parameters:
+      build_path:
+        type: string
+        default: "."
+      build_jar:
+        type: string
+        default: "doorman.jar"
+    steps:      
+      - run: 
+          command: |
+            curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+            sudo apt-get install -y nodejs
+      - run: 
+          command: |
+            cd << parameters.build_path >>
+            mvn clean install
+      #- persist_to_workspace:
+          # Must be an absolute path, or relative path from working_directory
+      #    root: << parameters.build_path >>/target
+          # Must be relative path from root
+      #    paths:
+      #      - << parameters.build_jar >>
+  docker_push:
+    description: "Builds docker image and pushes to dockerhub"
+    parameters:
+      build_path:
+        type: string
+        default: "."
+      image:
+        type: string
+        default: "hyperledgerlabs/doorman-linuxkit"
+      tag:
+        type: string
+        default: "latest"
+    steps:
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      #- attach_workspace:
+          # Must be absolute path or relative path from working_directory
+      #    at: << parameters.build_path >>/target
+      - run: ls -a << parameters.build_path >>/target/
+      # build and push Docker image
+      - run: |
+          cd << parameters.build_path >>
+          docker build -t << parameters.image >>:<< parameters.tag >> .
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+          docker push << parameters.image >>:<< parameters.tag >>
+      - run: |
+        if [[ $CIRCLE_TAG ]]; then 
+          docker tag << parameters.image >>:<< parameters.tag >> << parameters.image >>:$CIRCLE_TAG
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+          docker push << parameters.image >>:$CIRCLE_TAG
+        fi
 # Create jobs, so that a workflow can coordinate them.
 jobs: 
   doorman_build: # Builds doorman jar file
     docker: # it uses the docker executor
       - image: circleci/openjdk:8-jdk-stretch
-    #working_directory: platforms/r3-corda/images/doorman/ # directory where steps will run
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
-      - run: ls -a
-      - run: 
-          command: |
-            curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
-            sudo apt-get install -y nodejs
-            cd platforms/r3-corda/images/doorman/
-            mvn clean install
-      - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory
-          root: platforms/r3-corda/images/doorman/target
-          # Must be relative path from root
-          paths:
-            - doorman.jar
-  doorman_docker: # This is our second job.
-    docker: # it runs inside a docker image, the same as above.
-      - image: circleci/ruby:2.4.1
+      - mvn_build:
+          build_path: "platforms/r3-corda/images/doorman"
+          build_jar: "doorman.jar"
+      - docker_push:
+          build_path: "platforms/r3-corda/images/doorman"
+          image: "hyperledgerlabs/doorman-linuxkit"
+  networkmap_build: # Builds networkmap jar file
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    # Steps are a list of commands to run inside the docker container above.
     steps:
-      - checkout
-      - run: echo "A more familiar hi" # We run a similar echo command to above.
-      - attach_workspace:
-          # Must be absolute path or relative path from working_directory
-          at: platforms/r3-corda/images/doorman/target
-      - run: ls -a platforms/r3-corda/images/doorman/target/
+      - checkout # this pulls pulls code down from GitHub
+      - mvn_build:
+          build_path: "platforms/r3-corda/images/networkmap/"
+          build_jar: "network-map-service.jar"
+      - docker_push:
+          build_path: "platforms/r3-corda/images/networkmap/"
+          image: "hyperledgerlabs/networkmap-linuxkit"
+
 # Under the workflows: map, we can coordinate our two jobs, defined above.
 workflows:
   version: 2
-  doorman: # this is the name of our workflow
+  corda: # this is the name of our workflow
     jobs: # and here we list the jobs we are going to run.
       - doorman_build
-      - doorman_docker:
-          requires:
-           - doorman_build
+      - networkmap_build
