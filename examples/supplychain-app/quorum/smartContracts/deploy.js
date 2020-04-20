@@ -8,6 +8,7 @@ const web3 = new Web3(`${url}`); // Creating a provider
 const initArguments = process.env.INITARGUMENTS | " ";
 const bytecode = `0x${smartContract.bytecode}`;
 const unlockPassPhrase = process.env.PASSPHRASE | " ";
+const timeTillUnlocked = process.env.TIMETILLUNLOCKED | 600;
 const gasEstimate = parseInt(smartContract.gasEstimates.creation.executionCost*numberOfIterations)+parseInt(smartContract.gasEstimates.creation.codeDepositCost); // Gas Estimation
 const payload = initArguments !== " " ?{data: bytecode, arguments : initArguments} : {data: bytecode}; // If Initial Argumants are set in ENV variable
 
@@ -15,7 +16,8 @@ const deploy = async ()=>{
 
     const accounts = await web3.eth.getAccounts(); // Get the accounts created on the quorum node
 
-    // web3.eth.personal.unlockAccount(accounts[0], "unlockPassPhrase" , 600)
+    //TODO account unlocking
+    // web3.eth.personal.unlockAccount(accounts[0], unlockPassPhrase , parseInt(timeTillUnlocked)) 
     // .then(console.log('Account unlocked!'));
 
     let myContract = new web3.eth.Contract(smartContract.abi); // defigning the contract using interface
