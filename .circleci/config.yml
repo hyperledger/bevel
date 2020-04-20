@@ -81,6 +81,8 @@ jobs:
       - image: hyperledgerlabs/baf-build:latest
     steps:
       - checkout
+      - setup_remote_docker:
+          version: 18.06.0-ce
       - run: |
           echo "alias python=python3" >> ~/.bashrc
           source ~/.bashrc
@@ -89,6 +91,9 @@ jobs:
           export PATH=/root/.local/bin/:$PATH
           pip install --user 'molecule[docker]'
           molecule --version
+      - run: |
+          cd platforms/shared/configuration
+          molecule test --all
 
 
 # Under the workflows: map, we can coordinate our two jobs, defined above.
