@@ -1,20 +1,23 @@
-const contract = require('./compile'); //Importing the function to compile smart contract
 const Web3 = require('web3');
+const contract = require('./compile'); //Importing the function to compile smart contract
 
-const numberOfIterations = parseInt(process.env.ITERATIONS) | 200; // Number of Iterations of execution of code for calculation of gas
-const smartContract = contract.GetByteCode(numberOfIterations); // Converting smart contract to byte code, optimizing the bytecode conversion for numer of Iterations
-const url = process.env.URL;  // url of RPC port of quorum node
-const web3 = new Web3(`${url}`); // Creating a provider
-const initArguments = process.env.INITARGUMENTS | " ";
-const bytecode = `0x${smartContract.bytecode}`;
-const unlockPassPhrase = process.env.PASSPHRASE | " ";
+const url = process.argv[2];  // url of RPC port of quorum node
+const contractPath = process.argv[3]; // path to the contract directory
+const contractEntryPoint = process.argv[4]; // Smart contract entrypoint eg Main.sol
+const contractName = process.argv[5]; // Smart Contract Class Nameconst initArguments = process.env.INITARGUMENTS | " ";
+const unlockPassPhrase = process.env.PASSPHRASE | " "; // Passphrase to unlock the account
 const timeTillUnlocked = process.env.TIMETILLUNLOCKED | 600;
-const gasEstimate = parseInt(smartContract.gasEstimates.creation.executionCost*numberOfIterations)+parseInt(smartContract.gasEstimates.creation.codeDepositCost); // Gas Estimation
-const payload = initArguments !== " " ?{data: bytecode, arguments : initArguments} : {data: bytecode}; // If Initial Argumants are set in ENV variable
+const numberOfIterations = parseInt(process.env.ITERATIONS) | 200; // Number of Iterations of execution of code for calculation of gas
+
+const web3 = new Web3(`${url}`); // Creating a provider
 
 const deploy = async ()=>{
 
+    const smartContract = await contract.GetByteCode(numberOfIterations,contractPath,contractEntryPoint,contractName); // Converting smart contract to byte code, optimizing the bytecode conversion for numer of Iterations
     const accounts = await web3.eth.getAccounts(); // Get the accounts created on the quorum node
+    const bytecode = `0x${smartContract.bytecode}`;
+    const gasEstimate = parseInt(smartContract.gasEstimates.creation.executionCost*numberOfIterations)+parseInt(smartContract.gasEstimates.creation.codeDepositCost); // Gas Estimation
+    const payload = initArguments !== " " ?{data: bytecode, arguments : initArguments} : {data: bytecode}; // If Initial Argumants are set in ENV variable
 
     //TODO account unlocking
     // web3.eth.personal.unlockAccount(accounts[0], unlockPassPhrase , parseInt(timeTillUnlocked)) 
