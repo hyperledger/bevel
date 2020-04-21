@@ -52,8 +52,8 @@ Ganache is a personal Ethereum network that allows you to test smart contracts d
 # Deploying Smart Contract on Quorum network using javaScript
 
 ## Requirments 
-node<br>
-npm<br>
+- node<br>
+- npm<br>
 
 
 1. In terminal, change directory to quorum/smartContracts and run command below to install the required packages listed in package.json .<br>
@@ -64,7 +64,9 @@ npm<br>
 
         node deploy.js "< address of quorum node with RPC port >" "< path to the contracts folder>" "< main entrypoint contract filename >" "< Name of the contract >"
 
- The program by default optimizes the smart contract and the gas to run the contract for 200 iterations, it can be increased or decresed using the environment variable ITERATIONS. Initial arguments to the smart contract is passed by setting the environment variable INITARGUMENTS.<br>
+ The program by default optimizes the smart contract and the gas to run the contract for 200 iterations, it can be increased or decresed using the environment variable *ITERATIONS*. Initial arguments to the smart contract is passed by setting the environment variable *INITARGUMENTS*.<br>
 
         export ITERATIONS=< number of iterations > && export INITARGUMENTS="<initial arguments >" && node deploy.js "< address of quorum node with RPC port >" "< path to the contracts folder>" "< main entrypoint contract filename >" "< Name of the contract >"
+
+The address where the smart contract is deployed will be returned and printed to the console and also exported to an environment variable *CONTRACT_ADDRESS* after the successful execution of the script.
 
