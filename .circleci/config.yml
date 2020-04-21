@@ -104,6 +104,15 @@ jobs:
       - docker_push:
           build_path: "platforms/r3-corda/images/networkmap"
           image: "hyperledgerlabs/networkmap-linuxkit"
+  frontend_build: # Builds supplychain-frontend docker image
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - docker_push:
+          build_path: "examples/supplychain-app/supplychain-frontend"
+          image: "hyperledgerlabs/supplychain_frontend"
   shared_test:
     machine:
       image: ubuntu-1604:201903-01
@@ -151,6 +160,14 @@ workflows:
   shared:
     jobs:
       - shared_test
+      - frontend_build:
+          filters:      # frontend build only for develop branch and all tags
+            branches:
+              only:
+                - develop
+                - circleci-project-setup
+            tags:
+              only: /.*/
   corda: # this is the name of our workflow
     jobs: # and here we list the jobs we are going to run.
       - shared_test_corda
