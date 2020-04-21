@@ -2,7 +2,7 @@ version: 2.1
 # commands are used to group common steps and enable re-use
 commands:
   mvn_build:
-    description: "Builds jar file using maven and stores to workspace"
+    description: "Builds jar file using maven"
     parameters:
       build_path:
         type: string
@@ -50,6 +50,36 @@ commands:
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin;
             docker push << parameters.image >>:$CIRCLE_TAG;
           fi
+  molecule:
+    description: "Executes molecule test for ansible roles"
+    parameters:
+      role_path:
+        type: string
+        default: "."
+      scenario:
+        type: string
+        default: "default"
+    steps:  
+      - run:
+          name: Install molecule
+          command: |
+            docker --version
+            python --version
+            pip install --user 'molecule[docker]==3.0.2'
+            pip install openshift
+      - run: 
+          name: Run molecule tests
+          command: |
+            export PATH=~/.local/bin/:~/bin:$PATH
+            molecule --version
+            cd << parameters.role_path >>
+            molecule test -s << parameters.scenario >>
+      - store_artifacts:
+          path: tests/output/reports/coverage
+          destination: coverage-report
+      - store_test_results:
+          path: tests/output/molecule
+
 # Create jobs, so that a workflow can coordinate them.
 jobs: 
   doorman_build: # Builds doorman jar file
@@ -83,20 +113,39 @@ jobs:
       PYENV_VERSION: 3.6.5
     steps:
       - checkout
-      - run:
-          name: Install molecule
-          command: |
-            docker --version
-            python --version
-            pip install --user 'molecule[docker]==3.0.2'
-            pip install openshift
-      - run: 
-          name: Run molecule tests
-          command: |
-            export PATH=~/.local/bin/:~/bin:$PATH
-            molecule --version
-            cd platforms/shared/configuration
-            molecule test --all
+      - molecule:
+          role_path: "platforms/shared/configuration"
+  shared_test_corda:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PYENV_VERSION: 3.6.5
+    steps:
+      - checkout
+      - molecule:
+          role_path: "platforms/shared/configuration"
+          scenario: "kubernetes-corda"
+  shared_test_fabric:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PYENV_VERSION: 3.6.5
+    steps:
+      - checkout
+      - molecule:
+          role_path: "platforms/shared/configuration"
+          scenario: "kubernetes-fabric"
+  shared_test_indy:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PYENV_VERSION: 3.6.5
+    steps:
+      - checkout
+      - molecule:
+          role_path: "platforms/shared/configuration"
+          scenario: "kubernetes-indy"
+      
 
 # Under the workflows: map, we can coordinate our two jobs, defined above.
 workflows:
@@ -106,6 +155,7 @@ workflows:
       - shared_test
   corda: # this is the name of our workflow
     jobs: # and here we list the jobs we are going to run.
+      - shared_test_corda
       - doorman_build:
           filters:      # doorman build only for develop branch and all tags
             branches:
@@ -120,3 +170,9 @@ workflows:
                 - develop
             tags:
               only: /.*/
+  fabric: # this is the name of our workflow
+    jobs: # and here we list the jobs we are going to run.
+      - shared_test_fabric
+  indy: # this is the name of our workflow
+    jobs: # and here we list the jobs we are going to run.
+      - shared_test_indy
