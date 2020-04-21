@@ -79,29 +79,24 @@ jobs:
   shared_test:
     machine:
       image: ubuntu-1604:201903-01
-      resource_class: xlarge
+    environment:
+      PYENV_VERSION: 3.6.5
     steps:
       - checkout
-      #- setup_remote_docker:
-      #    version: 18.06.0-ce
       - run:
-          name: Install Docker client
+          name: Install molecule
           command: |
             docker --version
-            docker ps
             python --version
-      - run: |
-          python --version
-          update-alternatives --install /usr/bin/python python /usr/bin/python3.5 1
-          python --version
-          pip3 install 'molecule[docker]==3.0.2'
+            pip install --user 'molecule[docker]==3.0.2'
+            pip install openshift
+      - run: 
+          name: Run molecule tests
+          command: |
           export PATH=~/.local/bin/:~/bin:$PATH
-          export LC_ALL=C.UTF-8
-          export LANG=C.UTF-8
           molecule --version
           cd platforms/shared/configuration
-          molecule test
-
+          molecule test --all
 
 # Under the workflows: map, we can coordinate our two jobs, defined above.
 workflows:
