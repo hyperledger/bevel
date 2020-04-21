@@ -1,6 +1,5 @@
 FROM node:10-alpine
 
-
 #copy app
 COPY . ./app
 
