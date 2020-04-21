@@ -41,7 +41,7 @@ commands:
       # build and push Docker image
       - run: |
           cd << parameters.build_path >>
-          docker build -t << parameters.image >>:<< parameters.tag >> .
+          docker build -t << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >> .
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
           docker push << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >>
       - run: |
@@ -121,14 +121,14 @@ jobs:
             ./gradlew test
       - store_test_results:
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
-          path: build/test-results/test
+          path: examples/supplychain-app/corda/cordApps_springBoot/build/test-results/test
       - run:
           name: Build webapp
           command: |
             cd examples/supplychain-app/corda/cordApps_springBoot
             ./gradlew deployWebapps
       - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: build/webapps
+          path: examples/supplychain-app/corda/cordApps_springBoot/build/webapps
           when: always
       - docker_push:
           build_path: "examples/supplychain-app/corda/cordApps_springBoot"
