@@ -35,8 +35,6 @@ commands:
         type: string
         default: ""
     steps:
-      - setup_remote_docker:
-          version: 18.06.0-ce
       - run: ls -a << parameters.build_path >>/*
       # build and push Docker image
       - run: |
@@ -90,6 +88,8 @@ jobs:
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
       - mvn_build:
           build_path: "platforms/r3-corda/images/doorman"
           build_jar: "doorman.jar"
@@ -102,6 +102,8 @@ jobs:
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
       - mvn_build:
           build_path: "platforms/r3-corda/images/networkmap"
           build_jar: "network-map-service.jar"
@@ -114,6 +116,8 @@ jobs:
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
       - run:
           name: Test cordapps
           command: |
@@ -121,7 +125,7 @@ jobs:
             ./gradlew test
       - store_test_results:
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
-          path: examples/supplychain-app/corda/cordApps_springBoot/build/test-results/test
+          path: examples/supplychain-app/corda/cordApps_springBoot/build/reports/tests
       - run:
           name: Build webapp
           command: |
@@ -144,6 +148,8 @@ jobs:
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
       - docker_push:
           build_path: "examples/supplychain-app/supplychain-frontend"
           image: "hyperledgerlabs/supplychain_frontend"
@@ -153,6 +159,8 @@ jobs:
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
       - docker_push:
           build_path: "examples/supplychain-app/fabric/chaincode_rest_server/rest-server"
           image: "hyperledgerlabs/supplychain_fabric"
