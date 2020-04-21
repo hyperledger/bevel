@@ -1,4 +1,6 @@
 version: 2.1
+orbs:
+  gradle: circleci/gradle@2.1.0
 # commands are used to group common steps and enable re-use
 commands:
   mvn_build:
@@ -31,6 +33,9 @@ commands:
       tag:
         type: string
         default: "latest"
+      tag_prefix:
+        type: string
+        default: ""
     steps:
       - setup_remote_docker:
           version: 18.06.0-ce
@@ -40,15 +45,15 @@ commands:
           cd << parameters.build_path >>
           docker build -t << parameters.image >>:<< parameters.tag >> .
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
-          docker push << parameters.image >>:<< parameters.tag >>
+          docker push << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >>
       - run: |
           echo $CIRCLE_TAG
           if [[ -z "$CIRCLE_TAG" ]]; then 
             echo "Not a tagged check-in";
           else
-            docker tag << parameters.image >>:<< parameters.tag >> << parameters.image >>:$CIRCLE_TAG;
+            docker tag << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >> << parameters.image >>:<< parameters.tag_prefix >>$CIRCLE_TAG;
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin;
-            docker push << parameters.image >>:$CIRCLE_TAG;
+            docker push << parameters.image >>:<< parameters.tag_prefix >>$CIRCLE_TAG;
           fi
   molecule:
     description: "Executes molecule test for ansible roles"
@@ -73,10 +78,11 @@ commands:
             export PATH=~/.local/bin/:~/bin:$PATH
             molecule --version
             cd << parameters.role_path >>
-            export ANSIBLE_LOG_PATH=$PWD/molecule/test-results.log
+            mkdir tests
+            export ANSIBLE_LOG_PATH=$PWD/tests/test-results.log
             molecule test -s << parameters.scenario >>
       - store_test_results:
-          path: << parameters.role_path >>/molecule/test-results.log
+          path: << parameters.role_path >>/tests
 
 # Create jobs, so that a workflow can coordinate them.
 jobs: 
@@ -104,6 +110,23 @@ jobs:
       - docker_push:
           build_path: "platforms/r3-corda/images/networkmap"
           image: "hyperledgerlabs/networkmap-linuxkit"
+  corda_build: # Builds supplychain-corda docker images
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - gradle/run:
+          app_src_directory: "examples/supplychain-app/corda/cordApps_springBoot"
+          command: "deployWebapps"
+      - docker_push:
+          build_path: "examples/supplychain-app/corda/cordApps_springBoot"
+          image: "hyperledgerlabs/supplychain_corda"
+          tag_prefix: "springboot_"
+      - docker_push:
+          build_path: "examples/supplychain-app/corda/express_nodeJS"
+          image: "hyperledgerlabs/supplychain_corda"
+          tag_prefix: "express_app_"
   frontend_build: # Builds supplychain-frontend docker image
     docker: # it uses the docker executor
       - image: circleci/openjdk:8-jdk-stretch
@@ -113,6 +136,20 @@ jobs:
       - docker_push:
           build_path: "examples/supplychain-app/supplychain-frontend"
           image: "hyperledgerlabs/supplychain_frontend"
+  fabric_build: # Builds supplychain-fabric docker images
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - docker_push:
+          build_path: "examples/supplychain-app/fabric/chaincode_rest_server/rest-server"
+          image: "hyperledgerlabs/supplychain_fabric"
+          tag_prefix: "rest_server_"
+      - docker_push:
+          build_path: "examples/supplychain-app/fabric/express_nodeJs"
+          image: "hyperledgerlabs/supplychain_fabric"
+          tag_prefix: "express_app_"
   shared_test:
     machine:
       image: ubuntu-1604:201903-01
@@ -165,7 +202,6 @@ workflows:
             branches:
               only:
                 - develop
-                - circleci-project-setup
             tags:
               only: /.*/
   corda: # this is the name of our workflow
@@ -185,9 +221,25 @@ workflows:
                 - develop
             tags:
               only: /.*/
+      - corda_build:
+        filters:      # corda build only for develop branch and all tags
+          branches:
+            only:
+              - develop
+              - circleci-project-setup
+          tags:
+            only: /.*/
   fabric: # this is the name of our workflow
     jobs: # and here we list the jobs we are going to run.
       - shared_test_fabric
+      - fabric_build:
+        filters:      # corda build only for develop branch and all tags
+          branches:
+            only:
+              - develop
+              - circleci-project-setup
+          tags:
+            only: /.*/
   indy: # this is the name of our workflow
     jobs: # and here we list the jobs we are going to run.
       - shared_test_indy
