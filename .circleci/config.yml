@@ -1,6 +1,4 @@
 version: 2.1
-orbs:
-  gradle: circleci/gradle@2.1.0
 # commands are used to group common steps and enable re-use
 commands:
   mvn_build:
@@ -116,9 +114,22 @@ jobs:
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
-      - gradle/run:
-          app_src_directory: "examples/supplychain-app/corda/cordApps_springBoot"
-          command: "deployWebapps"
+      - run:
+          name: Test cordapps
+          command: |
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew test
+      - store_test_results:
+          # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+          path: build/test-results/test
+      - run:
+          name: Build webapp
+          command: |
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew deployWebapps
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: build/webapps
+          when: always
       - docker_push:
           build_path: "examples/supplychain-app/corda/cordApps_springBoot"
           image: "hyperledgerlabs/supplychain_corda"
