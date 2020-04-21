@@ -34,12 +34,15 @@ commands:
       tag_prefix:
         type: string
         default: ""
+      args:
+        type: string
+        default: ""
     steps:
       - run: ls -a << parameters.build_path >>/*
       # build and push Docker image
       - run: |
           cd << parameters.build_path >>
-          docker build -t << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >> .
+          docker build << parameters.args >> -t << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >> .
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
           docker push << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >>
       - run: |
@@ -74,11 +77,8 @@ commands:
             export PATH=~/.local/bin/:~/bin:$PATH
             molecule --version
             cd << parameters.role_path >>
-            mkdir tests
-            export ANSIBLE_LOG_PATH=$PWD/tests/test-results.log
             molecule test -s << parameters.scenario >>
-      - store_test_results:
-          path: << parameters.role_path >>/tests
+      #TODO Explore test report/artefact generation. reports should be xml format
 
 # Create jobs, so that a workflow can coordinate them.
 jobs: 
@@ -113,6 +113,8 @@ jobs:
   corda_build: # Builds supplychain-corda docker images
     docker: # it uses the docker executor
       - image: circleci/openjdk:8-jdk-stretch
+    environment:
+      VERSION: "0.1"
     # Steps are a list of commands to run inside the docker container above.
     steps:
       - checkout # this pulls pulls code down from GitHub
@@ -124,13 +126,20 @@ jobs:
             cd examples/supplychain-app/corda/cordApps_springBoot
             ./gradlew test
       - store_test_results:
-          # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+          #TODO Fix test report/artefact generation. reports should be xml format
           path: examples/supplychain-app/corda/cordApps_springBoot/build/reports/tests
       - run:
           name: Build webapp
           command: |
+            build_version=""
+            if [[ -z "$CIRCLE_TAG" ]]; then 
+              build_version="-Pversion=0.1"
+            else
+              build_version="-Pversion=$CIRCLE_TAG"
+              VERSION="$CIRCLE_TAG""
+            fi
             cd examples/supplychain-app/corda/cordApps_springBoot
-            ./gradlew deployWebapps
+            ./gradlew $build_version deployWebapps
       - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
           path: examples/supplychain-app/corda/cordApps_springBoot/build/webapps
           when: always
@@ -138,6 +147,7 @@ jobs:
           build_path: "examples/supplychain-app/corda/cordApps_springBoot"
           image: "hyperledgerlabs/supplychain_corda"
           tag_prefix: "springboot_"
+          args: "--build-arg var_WEBAPP_NAME='webserver-supply-chain-$VERSION.jar'"
       - docker_push:
           build_path: "examples/supplychain-app/corda/express_nodeJS"
           image: "hyperledgerlabs/supplychain_corda"
