@@ -77,23 +77,19 @@ jobs:
           build_path: "platforms/r3-corda/images/networkmap"
           image: "hyperledgerlabs/networkmap-linuxkit"
   shared_test:
-    docker:
-      - image: hyperledgerlabs/baf-build:latest
+    machine:
+      image: ubuntu-1604:201903-01
+      resource_class: xlarge
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 18.06.0-ce
+      #- setup_remote_docker:
+      #    version: 18.06.0-ce
       - run:
           name: Install Docker client
           command: |
-            apt-get update
-            apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl gnupg-agent software-properties-common
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-            add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-            apt-get update
-            apt-get install -y docker-ce docker-ce-cli containerd.io
             docker --version
             docker ps
+            python --version
       - run: |
           python --version
           update-alternatives --install /usr/bin/python python /usr/bin/python3.5 1
