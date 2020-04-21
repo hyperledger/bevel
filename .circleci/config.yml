@@ -143,6 +143,24 @@ jobs:
       - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
           path: examples/supplychain-app/corda/cordApps_springBoot/build/webapps
           when: always
+      - run:
+          name: Build Cordapps
+          command: |
+            build_version=""
+            if [[ -z "$CIRCLE_TAG" ]]; then 
+              build_version="-Pversion=0.1"
+            else
+              build_version="-Pversion=$CIRCLE_TAG"
+              VERSION="$CIRCLE_TAG""
+            fi
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew $build_version build
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: examples/supplychain-app/corda/cordApps_springBoot/cordapp-contracts-states/build/libs
+          when: always
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: examples/supplychain-app/corda/cordApps_springBoot/cordapp-supply-chain/build/libs
+          when: always
       - docker_push:
           build_path: "examples/supplychain-app/corda/cordApps_springBoot"
           image: "hyperledgerlabs/supplychain_corda"
@@ -266,7 +284,6 @@ workflows:
           branches:
             only:
               - develop
-              - circleci-project-setup
           tags:
             only: /.*/
   indy: # this is the name of our workflow
