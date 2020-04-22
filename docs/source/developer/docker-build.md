@@ -30,7 +30,7 @@ This would create an image named hyperledgerlabs/baf-build
 
 A shell script `run.sh` is provided in repository to set the environment variables and run the network deployment playbook.  
 
-The BAF `dockerfile` provides defaults for the executing container using the `CMD` variable
+The BAF `Dockerfile` provides defaults for the executing container using the `CMD` variable
 
 ``` shell
 CMD ["/home/run.sh"]

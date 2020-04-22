@@ -1,15 +1,12 @@
-- name: "Check peer pod is up"
-  k8s_facts:
-    kind: Pod
+- name: "Waiting for peer pod {{ peer_name }} in {{ org.name | lower }}-net"
+  include_role:
+    name: "../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
     namespace: "{{ org.name | lower }}-net"
-    kubeconfig: "{{ org.k8s.config_file }}"
-    context: "{{ org.k8s.context }}"
-    label_selectors:
-      - app = {{ peer_name }}
+    component_name: "{{ peer_name }}"
+    kubernetes: "{{ org.k8s }}"
+    check: "app"
   loop: "{{ peers_data | from_yaml }}"
   loop_control:
     loop_var: peer_name
-  register: get_peer
-  until: ("Running" in get_peer|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
-  delay: 40

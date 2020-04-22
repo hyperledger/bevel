@@ -10,16 +10,8 @@ This task checks if configtxgen is present or not.
     *build_path: The path of build directory.
 ##### Output Variables
     config_stat_result: This variable stores the output of configtxgen check query.
-    
-#### 2. Register temporary directory
-This task creates a register temporary directory
-##### Input Variables
 
-    state: directory( i.e. It will create a new directory)
-##### Output Variables
-    tmp_directory: This variable stores the output of temporary directory check query.
-
-#### 3. Geting the configtxgen binary tar
+#### 2. Geting the configtxgen binary tar
 This task creates a register temporary directory
 ##### Input Variables
     *fabric.os: Type of OS
@@ -30,7 +22,7 @@ This task creates a register temporary directory
 **dest**: The destination path.
 **when**: Condition specified here, It runs only when, configtxgen binary is not found.
 
-#### 4. Unzipping the downloaded file
+#### 3. Unzipping the downloaded file
 This task unzips the downloaded file.
 ##### Input Variables
     *fabric.os: Type of OS
@@ -41,7 +33,7 @@ This task unzips the downloaded file.
 **dest**: The destination path for unzip.
 **when**: Condition specified here, It runs only when, configtxgen binary is not found.
 
-#### 5. Moving the configtxgen from the extracted folder and place in it path
+#### 4. Moving the configtxgen from the extracted folder and place in it path
 This task extracts the configtxgen binary and place it at appropriate path.
 ##### Input Variables
     *build_path: The path of build directory.
@@ -51,7 +43,7 @@ This task extracts the configtxgen binary and place it at appropriate path.
 **mode**: The permission for file is specified here.
 **when**: Condition specified here, It runs only when, configtxgen binary is not found.
 
-#### 6. Remove old genesis block
+#### 5. Remove old genesis block
 This task removes the old genesis block.
 ##### Input Variables
 
@@ -59,7 +51,7 @@ This task removes the old genesis block.
 **path**: The path for genesis block
 **state**: Used to specify state. (absent, meaning it will remove the file).
 
-#### 7. Creating channel-artifacts folder
+#### 6. Creating channel-artifacts folder
 This task Creates channel-artifacts folder.
 ##### Input Variables
 
@@ -67,14 +59,14 @@ This task Creates channel-artifacts folder.
 **path**: The path for genesis block
 **state**: Used to specify state. (directory, meaning it will create).
 
-#### 8. Creating genesis block
+#### 7. Creating genesis block
 This task Creates the genesis block.
 ##### Input Variables
 
     *build_path: The path of build directory.
 **shell**: The command goes to build path and creates the genesis block by consuming the configtx.yaml file.
 
-#### 9. Remove old channel block
+#### 8. Remove old channel block
 This task removes the old channel block.
 ##### Input Variables
 
@@ -83,7 +75,7 @@ This task removes the old channel block.
 **path**: The path for the channel block
 **state**: Used to specify state. (absent, meaning it will remove the file).
 
-#### 10. Creating channels
+#### 9. Creating channels
 This task Creates channel by consuming the configtx.yaml file.
 ##### Input Variables
 
@@ -91,6 +83,16 @@ This task Creates channel by consuming the configtx.yaml file.
     *profile_name: Name of Profile
     *channel_name: The name of the channel
 **shell**: The command goes to build path and creates the channel by consuming the configtx.yaml file.
+
+#### 10. Creating Anchor artifacts
+This task creates the anchortx files.
+##### Input Variables
+
+    *build_path: The path of build directory.
+    *profile_name: Name of Profile
+    *channel_name: The name of the channel
+**shell**: The command goes to build path and creates the anchortx file.
+
 
 #### 11. Creating JSON Configuration
 This task Creates JSON configuration file by consuming the configtx.yaml file.

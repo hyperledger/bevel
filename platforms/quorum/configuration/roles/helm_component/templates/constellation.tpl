@@ -15,13 +15,19 @@ spec:
     replicaCount: 1
     metadata:
       namespace: {{ component_ns }}
-      labels:
+      labels: 
     images:
-      node: quorumengineering/quorum:2.1.1
-      alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
-      constellation: quorumengineering/constellation:0.3.2
+      node: quorumengineering/quorum:{{ network.version }}
+      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
+      constellation: quorumengineering/constellation:{{ network.config.tm_version }}
     node:
       name: {{ peer.name }}
+{% if network.config.genesis | default('', true) | trim != '' %}
+{% if network.config.consensus == 'raft' %}
+      peer_id: {{ peer_id | int }}
+{% endif %}
+{% endif %}
+      status: {{ node_status }}
       consensus: {{ consensus }}
       subject: {{ peer.subject }}
       mountPath: /etc/quorum/qdata
@@ -49,12 +55,23 @@ spec:
 {% endfor %}
 {% endif %}
 {% if network.config.consensus == 'raft' %}
+{% if network.config.genesis | default('', true) | trim == '' %}
 {% for enode in enode_data_list %}
       - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
 {% endfor %}
 {% endif %}
+{% if network.config.genesis | default('', true) | trim != '' %}
+{% for enode in network.config.staticnodes %}
+      - {{ enode }}
+{% endfor %}
+{% endif %}
+{% endif %}
     constellation:
+{% if network.config.tm_tls == 'strict' %}
+      url: https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/
+{% else %}
       url: http://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/
+{% endif %}
       storage: "bdb:/etc/quorum/qdata/database"
       tls: "{{ network.config.tm_tls }}"
       othernodes: {{ network.config.tm_nodes }}

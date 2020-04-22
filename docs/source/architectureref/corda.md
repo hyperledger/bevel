@@ -32,9 +32,9 @@ The following diagram shows how the Corda Support Services (**Doorman**, **Netwo
 
 The Blockchain Automation Framework creates/provides a set of Corda Docker images that can be found in the [Hyperledger-Labs repository](https://hub.docker.com/u/hyperledgerlabs) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
 The following Corda Docker Images are used and needed by the Blockchain Automation Framework.
-* Corda Network Map Service (adopblockchaincloud0502.azurecr.io/nms:latest) 
-* Corda Doorman Service (adopblockchaincloud0502.azurecr.io/doorman:latest) - 
-* Corda Node (adopblockchaincloud0502.azurecr.io/corda:4.0-linuxkit or /corda:4.1-linuxkit )
+* Corda Network Map Service (hyperledgerlabs/networkmap-linuxkit:latest) 
+* Corda Doorman Service (hyperledgerlabs/doorman-linuxkit:latest) - 
+* Corda Node (hyperledgerlabs/corda:4.0-linuxkit or hyperledgerlabs/corda:4.1-linuxkit )
 
 ### Ansible Playbooks
 

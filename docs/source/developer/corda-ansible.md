@@ -6,18 +6,19 @@ Ansible playbooks contains a series of roles and tasks which run in sequential o
 /r3-corda
 |-- charts
 |   |-- doorman
+|   |-- doorman-tls
 |   |-- h2
 |   |-- h2-addUser
 |   |-- h2-password-change
 |   |-- mongodb
+|   |-- mongodb-tls
 |   |-- nms
+|   |-- nms-tls
 |   |-- node
 |   |-- node-initial-registration
 |   |-- notary
 |   |-- notary-initial-registration
-|   |-- springbootwebserver
 |   |-- storage
-|   |-- webserver
 |-- images
 |-- configuration
 |   |-- roles/
@@ -43,12 +44,13 @@ Below is the single playbook that you need to execute to setup complete corda ne
 This is the main ansible playbook which call all the roles in below sequence to setup corda network.
 
 * Create Storage Class
-* Create root certificates
-* Store certificates and credentials to vault for doorman and nms
-* Deploy Networkmap service node
+* Create namespace and vault auth
 * Deploy Doorman service node
+* Deploy Networkmap service node
+* Check that orderer uri are reachable
 * Deploy notary
 * Deploy nodes
+* Remove build directory
 
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda/configuration) for detailed information.

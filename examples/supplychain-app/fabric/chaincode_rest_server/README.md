@@ -161,8 +161,90 @@ The input network.yaml should be updated correctly with the Chart path `examples
 To update running Fabric rest-servers, ensure you are logged in to the Azure Docker Registry. Then:
 
 ```bash
-docker build -t adopblockchaincloud0502.azurecr.io/supplychain_fabric/rest_server rest-server
-docker push adopblockchaincloud0502.azurecr.io/supplychain_fabric/rest_server:latest
+docker build -t hyperledgerlabs/supplychain_fabric:rest_server_latest rest-server
+docker push hyperledgerlabs/supplychain_fabric:rest_server_latest
 ```
 
 Once the push is complete, Flux-helmoperator should redeploy the restserver pods
+
+## Installing supplychain chaincode over BYFN
+
+[BYFN](https://github.com/hyperledger/fabric-samples.git) (build your first network) is a sample network mentioned by Hyperledger Fabric.
+You can deploy the supplychain chaincode over BYFN.
+Here's the steps:
+1. Clone the repository and install the binaries required  
+
+```
+git clone https://github.com/hyperledger/fabric-samples.git  
+cd fabric-samples/  
+git checkout release-1.4  
+curl -sSL http://bit.ly/2ysbOFE | bash -s -- 1.4.4 1.4.4 0.4.18  
+```
+
+2. Setup the byfn network with raft consensus and fabric version 1.4.4 
+``` 
+cd first-network/  
+printf '%s\n' y | ./byfn.sh generate -o etcdraft -s couchdb  
+printf '%s\n' y | ./byfn.sh up -s couchdb -o etcdraft  
+```
+
+3. Copy the chaincode from BAF repository and put it in the CLI container
+```
+export CLI_CONTAINER_ID="$(docker ps -a | grep cli | awk '{print $1}')"
+git clone https://github.com/hyperledger-labs/blockchain-automation-framework.git
+cd blockchain-automation-framework
+git checkout develop
+docker cp $PWD/examples/supplychain-app/fabric/chaincode_rest_server/chaincode/ $CLI_CONTAINER_ID:/opt/gopath/src/github.com/chaincode/
+```
+
+4. Move chaincode to correct path and install dependencies
+```
+docker exec -it $CLI_CONTAINER_ID bash
+apt-get update
+printf '%s\n' y | apt-get install vim
+cd /opt/gopath/src/github.com/chaincode
+mv chaincode/* .
+mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+cd /opt/gopath/src/github.com/chaincode && dep ensure
+```
+
+5. Install chaincode
+```
+export CORE_PEER_LOCALMSPID="Org1MSP"
+export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
+export CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.key
+export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
+export CORE_PEER_ADDRESS=peer0.org1.example.com:7051
+peer chaincode install -n supplychain -v 1.0 -p github.com/chaincode/supplychain/cmd
+
+export CORE_PEER_LOCALMSPID="Org1MSP"
+export CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/tls/server.key
+export CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.crt
+export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
+export CORE_PEER_ADDRESS=peer1.org1.example.com:8051
+peer chaincode install -n supplychain -v 1.0 -p github.com/chaincode/supplychain/cmd
+
+export CORE_PEER_LOCALMSPID="Org2MSP"
+export CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/server.key
+export CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/tls/server.crt
+export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
+export CORE_PEER_ADDRESS=peer0.org2.example.com:9051
+peer chaincode install -n supplychain -v 1.0 -p github.com/chaincode/supplychain/cmd
+
+export CORE_PEER_LOCALMSPID="Org2MSP"
+export CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/tls/server.key
+export CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/server.crt
+export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
+export CORE_PEER_ADDRESS=peer1.org2.example.com:10051
+peer chaincode install -n supplychain -v 1.0 -p github.com/chaincode/supplychain/cmd
+```
+
+6. Instantiate chaincode
+```
+peer chaincode instantiate -o orderer.example.com:7050 -C mychannel  --tls true --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -n supplychain -v 1.0 -c '{"Args":['\"init\",\"\"']}' -P 'AND ('\''Org1MSP.peer'\'','\''Org2MSP.peer'\'')'
+```
+
+

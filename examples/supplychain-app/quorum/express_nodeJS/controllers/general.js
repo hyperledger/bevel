@@ -23,7 +23,7 @@ router.get('/node-organizationUnit', function (req, res) {
 router.get('/:trackingID/scan', function (req, res) {
   productContract.methods 
   .scan(req.params.trackingID)
-  .send({ from: fromAddress, gas: 324234, gasPrice: "0" })
+  .call({ from: fromAddress, gas: 324234, gasPrice: "0" })
   .then(response => { 
     var statusOf = response
     res.send({status:statusOf});
@@ -39,7 +39,7 @@ router.get('/:trackingID/history', function (req, res) {
 
   var transactionCount;
   var trackingID = req.params.trackingID;
-  console.log(trackingID); ///
+  console.log(trackingID);
   var allTransaction = [];
   productContract.methods
     .getHistoryLength(req.params.trackingID)
@@ -53,8 +53,10 @@ router.get('/:trackingID/history', function (req, res) {
           .getHistory((i - 1), trackingID)
           .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
           var history = {};
-          history.custodian = toPush.custodian,
-          history.timestamp = toPush.timestamp,
+          history.party = toPush.custodian;
+          history.party = history.party+","+toPush.lastScannedAt;
+          history.time  = (new Date(toPush.timestamp * 1000)).getTime();
+          history.location = toPush.lastScannedAt;
           allTransaction.push(history);
     }
     res.send(allTransaction)
