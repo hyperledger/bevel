@@ -11,11 +11,13 @@ commands:
         type: string
         default: "doorman.jar"
     steps:      
-      - run: 
+      - run:
+          name: Install node 
           command: |
             curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
             sudo apt-get install -y nodejs
       - run: 
+          name: Maven build
           command: |
             cd << parameters.build_path >>
             mvn clean install
@@ -38,26 +40,32 @@ commands:
         type: string
         default: ""
     steps:
-      - run: ls -a << parameters.build_path >>/*
+      - run: 
+          name: Check contents of directory
+          command: ls -a << parameters.build_path >>/*
       # build and push Docker image
-      - run: |
-          cd << parameters.build_path >>
-          local_tag=<< parameters.tag >>
-          if [ "$CIRCLE_BRANCH" = "master" ]; then
-            local_tag="stable"
-          fi
-          docker build << parameters.args >> -t << parameters.image >>:<< parameters.tag_prefix >>$local_tag .
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
-          docker push << parameters.image >>:<< parameters.tag_prefix >>$local_tag
-      - run: |
-          echo $CIRCLE_TAG
-          if [[ -z "$CIRCLE_TAG" ]]; then 
-            echo "Not a tagged check-in";
-          else
-            docker tag << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >> << parameters.image >>:<< parameters.tag_prefix >>$CIRCLE_TAG;
-            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin;
-            docker push << parameters.image >>:<< parameters.tag_prefix >>$CIRCLE_TAG;
-          fi
+      - run: 
+          name: Build docker image
+          command: |
+            cd << parameters.build_path >>
+            local_tag=<< parameters.tag >>
+            if [ "$CIRCLE_BRANCH" = "master" ]; then
+              local_tag="stable"
+            fi
+            docker build << parameters.args >> -t << parameters.image >>:<< parameters.tag_prefix >>$local_tag .
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+            docker push << parameters.image >>:<< parameters.tag_prefix >>$local_tag
+      - run: 
+          name: Tag image if there is github tag
+          command: |
+            echo $CIRCLE_TAG
+            if [[ -z "$CIRCLE_TAG" ]]; then 
+              echo "Not a tagged check-in";
+            else
+              docker tag << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >> << parameters.image >>:<< parameters.tag_prefix >>$CIRCLE_TAG;
+              echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin;
+              docker push << parameters.image >>:<< parameters.tag_prefix >>$CIRCLE_TAG;
+            fi
   molecule:
     description: "Executes molecule test for ansible roles"
     parameters:
