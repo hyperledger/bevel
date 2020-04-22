@@ -139,34 +139,30 @@ jobs:
       - run:
           name: Build webapp
           command: |
-            build_version=''
             if [[ -z "$CIRCLE_TAG" ]]; then 
-              build_version='-Pversion=0.1'
+              echo $VERSION
             else
               VERSION=${CIRCLE_TAG:1}
               echo $VERSION
               echo 'export VERSION=${CIRCLE_TAG:1}' >> $BASH_ENV
               source $BASH_ENV
-              build_version='-Pversion=$VERSION'
             fi
             cd examples/supplychain-app/corda/cordApps_springBoot
-            ./gradlew $build_version deployWebapps
+            ./gradlew -Pversion=$VERSION deployWebapps
       - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
           path: examples/supplychain-app/corda/cordApps_springBoot/build/webapps
           when: always
       - run:
           name: Build Cordapps
           command: |
-            build_version=''
             if [[ -z "$CIRCLE_TAG" ]]; then 
-              build_version='-Pversion=0.1'
+              echo $VERSION
             else
               VERSION=${CIRCLE_TAG:1}
               echo $VERSION
-              build_version='-Pversion=$VERSION'
             fi
             cd examples/supplychain-app/corda/cordApps_springBoot
-            ./gradlew $build_version build
+            ./gradlew -Pversion=$VERSION build
       - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
           path: examples/supplychain-app/corda/cordApps_springBoot/cordapp-contracts-states/build/libs
           when: always
