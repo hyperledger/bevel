@@ -1,0 +1,314 @@
+version: 2.1
+# commands are used to group common steps and enable re-use
+commands:
+  mvn_build:
+    description: "Builds jar file using maven"
+    parameters:
+      build_path:
+        type: string
+        default: "."
+      build_jar:
+        type: string
+        default: "doorman.jar"
+    steps:
+      - run:
+          name: Install node
+          command: |
+            curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+            sudo apt-get install -y nodejs
+      - run:
+          name: Maven build
+          command: |
+            cd << parameters.build_path >>
+            mvn clean install
+  docker_push:
+    description: "Builds docker image and pushes to dockerhub"
+    parameters:
+      build_path:
+        type: string
+        default: "."
+      image:
+        type: string
+        default: "hyperledgerlabs/doorman-linuxkit"
+      tag:
+        type: string
+        default: "latest"
+      tag_prefix:
+        type: string
+        default: ""
+      args:
+        type: string
+        default: ""
+    steps:
+      - run:
+          name: Check contents of directory
+          command: ls -a << parameters.build_path >>/*
+      # build and push Docker image
+      - run:
+          name: Build and push docker image
+          command: |
+            cd << parameters.build_path >>
+            local_tag=<< parameters.tag >>
+            if [ "$CIRCLE_BRANCH" = "master" ]; then
+              local_tag="stable"
+            fi
+            docker build << parameters.args >> -t << parameters.image >>:<< parameters.tag_prefix >>$local_tag .
+            echo $CIRCLE_TAG
+            if [[ -z "$CIRCLE_TAG" ]]; then
+              echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+              docker push << parameters.image >>:<< parameters.tag_prefix >>$local_tag
+            else
+              docker tag << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >> << parameters.image >>:<< parameters.tag_prefix >>${CIRCLE_TAG:1};
+              echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin;
+              docker push << parameters.image >>:<< parameters.tag_prefix >>${CIRCLE_TAG:1};
+            fi
+  molecule:
+    description: "Executes molecule test for ansible roles"
+    parameters:
+      role_path:
+        type: string
+        default: "."
+      scenario:
+        type: string
+        default: "default"
+    steps:
+      - run:
+          name: Install molecule
+          command: |
+            docker --version
+            python --version
+            pip install --user 'molecule[docker]==3.0.2'
+            pip install openshift
+      - run:
+          name: Run molecule tests
+          command: |
+            export PATH=~/.local/bin/:~/bin:$PATH
+            molecule --version
+            cd << parameters.role_path >>
+            molecule test -s << parameters.scenario >>
+      #TODO Explore test report/artefact generation. reports should be xml format
+
+# Create jobs, so that a workflow can coordinate them.
+jobs:
+  doorman_build: # Builds doorman jar file
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - mvn_build:
+          build_path: "platforms/r3-corda/images/doorman"
+          build_jar: "doorman.jar"
+      - docker_push:
+          build_path: "platforms/r3-corda/images/doorman"
+          image: "hyperledgerlabs/doorman-linuxkit"
+  networkmap_build: # Builds networkmap jar file
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - mvn_build:
+          build_path: "platforms/r3-corda/images/networkmap"
+          build_jar: "network-map-service.jar"
+      - docker_push:
+          build_path: "platforms/r3-corda/images/networkmap"
+          image: "hyperledgerlabs/networkmap-linuxkit"
+  corda_build: # Builds supplychain-corda docker images
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    environment:
+      VERSION: '0.1'
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - run:
+          name: Test cordapps
+          command: |
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew test
+      - store_test_results:
+          #TODO Fix test report/artefact generation. reports should be xml format
+          path: examples/supplychain-app/corda/cordApps_springBoot/build/reports/tests
+      - run:
+          name: Build webapp
+          command: |
+            if [[ -z "$CIRCLE_TAG" ]]; then
+              echo $VERSION
+            else
+              VERSION=${CIRCLE_TAG:1}
+              echo $VERSION
+              echo 'export VERSION=${CIRCLE_TAG:1}' >> $BASH_ENV
+              source $BASH_ENV
+            fi
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew -Pversion=$VERSION deployWebapps
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: examples/supplychain-app/corda/cordApps_springBoot/build/webapps
+          when: always
+      - run:
+          name: Build Cordapps
+          command: |
+            if [[ -z "$CIRCLE_TAG" ]]; then
+              echo $VERSION
+            else
+              VERSION=${CIRCLE_TAG:1}
+              echo $VERSION
+            fi
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew -Pversion=$VERSION build
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: examples/supplychain-app/corda/cordApps_springBoot/cordapp-contracts-states/build/libs
+          when: always
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: examples/supplychain-app/corda/cordApps_springBoot/cordapp-supply-chain/build/libs
+          when: always
+      - docker_push:
+          build_path: "examples/supplychain-app/corda/cordApps_springBoot"
+          image: "hyperledgerlabs/supplychain_corda"
+          tag_prefix: "springboot_"
+          args: "--build-arg var_WEBAPP_NAME=webserver-supply-chain-$VERSION.jar"
+      - docker_push:
+          build_path: "examples/supplychain-app/corda/express_nodeJS"
+          image: "hyperledgerlabs/supplychain_corda"
+          tag_prefix: "express_app_"
+  frontend_build: # Builds supplychain-frontend docker image
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - docker_push:
+          build_path: "examples/supplychain-app/supplychain-frontend"
+          image: "hyperledgerlabs/supplychain_frontend"
+  fabric_build: # Builds supplychain-fabric docker images
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - docker_push:
+          build_path: "examples/supplychain-app/fabric/chaincode_rest_server/rest-server"
+          image: "hyperledgerlabs/supplychain_fabric"
+          tag_prefix: "rest_server_"
+      - docker_push:
+          build_path: "examples/supplychain-app/fabric/express_nodeJs"
+          image: "hyperledgerlabs/supplychain_fabric"
+          tag_prefix: "express_app_"
+  shared_test:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PYENV_VERSION: 3.6.5
+    steps:
+      - checkout
+      - molecule:
+          role_path: "platforms/shared/configuration"
+  shared_test_corda:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PYENV_VERSION: 3.6.5
+    steps:
+      - checkout
+      - molecule:
+          role_path: "platforms/shared/configuration"
+          scenario: "kubernetes-corda"
+  shared_test_fabric:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PYENV_VERSION: 3.6.5
+    steps:
+      - checkout
+      - molecule:
+          role_path: "platforms/shared/configuration"
+          scenario: "kubernetes-fabric"
+  shared_test_indy:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PYENV_VERSION: 3.6.5
+    steps:
+      - checkout
+      - molecule:
+          role_path: "platforms/shared/configuration"
+          scenario: "kubernetes-indy"
+
+
+# Under the workflows: map, we can coordinate our two jobs, defined above.
+workflows:
+  version: 2
+  shared:
+    jobs:
+      - shared_test
+      - frontend_build:
+          filters:      # frontend build only for develop branch and all tags
+            branches:
+              only:
+                - develop
+                - master
+            tags:
+              only: /^v.*/
+      #TODO Add baf-build image build job
+      #TODO Add application molecule test(s) job
+  corda: # this is the name of our workflow
+    jobs: # and here we list the jobs we are going to run.
+      - shared_test_corda
+      - doorman_build:
+          filters:      # doorman build only for develop branch and all tags
+            branches:
+              only:
+                - develop
+                - master
+            tags:
+              only: /^v.*/
+      - networkmap_build:
+          filters:      # networkmap build only for develop branch and all tags
+            branches:
+              only:
+                - develop
+                - master
+            tags:
+              only: /^v.*/
+      - corda_build:
+          filters:      # corda build only for develop branch and all tags
+            branches:
+              only:
+                - develop
+                - master
+            tags:
+              only: /^v.*/
+      #TODO Add corda (specific version) image build job
+      #TODO Add corda molecule test(s) job
+  fabric: # this is the name of our workflow
+    jobs: # and here we list the jobs we are going to run.
+      - shared_test_fabric
+      - fabric_build:
+          filters:      # corda build only for develop branch and all tags
+            branches:
+              only:
+                - develop
+                - master
+            tags:
+              only: /^v.*/
+      #TODO Add fabric molecule test(s) job
+      #TODO Add fabric chaincode test(s) job
+  indy: # this is the name of our workflow
+    jobs: # and here we list the jobs we are going to run.
+      - shared_test_indy
+      #TODO Add Indy image build job
+      #TODO Add indy molecule test(s) job
+  #TODO Add quorum jobs
+    #TODO Add quorum molecule test(s) job
+    #TODO Add quorum smartcontract test(s) job
