@@ -45,7 +45,7 @@ commands:
           command: ls -a << parameters.build_path >>/*
       # build and push Docker image
       - run: 
-          name: Build docker image
+          name: Build and push docker image
           command: |
             cd << parameters.build_path >>
             local_tag=<< parameters.tag >>
@@ -53,14 +53,10 @@ commands:
               local_tag="stable"
             fi
             docker build << parameters.args >> -t << parameters.image >>:<< parameters.tag_prefix >>$local_tag .
-            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
-            docker push << parameters.image >>:<< parameters.tag_prefix >>$local_tag
-      - run: 
-          name: Tag image if there is github tag
-          command: |
             echo $CIRCLE_TAG
-            if [[ -z "$CIRCLE_TAG" ]]; then 
-              echo "Not a tagged check-in";
+            if [[ -z "$CIRCLE_TAG" ]]; then
+              echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+              docker push << parameters.image >>:<< parameters.tag_prefix >>$local_tag
             else
               docker tag << parameters.image >>:<< parameters.tag_prefix >><< parameters.tag >> << parameters.image >>:<< parameters.tag_prefix >>${CIRCLE_TAG:1};
               echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin;
@@ -147,8 +143,11 @@ jobs:
             if [[ -z "$CIRCLE_TAG" ]]; then 
               build_version='-Pversion=0.1'
             else
-              build_version='-Pversion=${CIRCLE_TAG:1}'
               VERSION='${CIRCLE_TAG:1}'
+              echo $VERSION
+              echo 'export VERSION=${CIRCLE_TAG:1}' >> $BASH_ENV
+              source $BASH_ENV
+              build_version='-Pversion=$VERSION'
             fi
             cd examples/supplychain-app/corda/cordApps_springBoot
             ./gradlew $build_version deployWebapps
@@ -162,8 +161,9 @@ jobs:
             if [[ -z "$CIRCLE_TAG" ]]; then 
               build_version='-Pversion=0.1'
             else
-              build_version='-Pversion=${CIRCLE_TAG:1}'
               VERSION='${CIRCLE_TAG:1}'
+              echo $VERSION
+              build_version='-Pversion=$VERSION'
             fi
             cd examples/supplychain-app/corda/cordApps_springBoot
             ./gradlew $build_version build
