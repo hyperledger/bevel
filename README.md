@@ -77,7 +77,7 @@ If you are not using the provided Jeknins automation scripts, you can run the pr
 docker build . -t hyperledgerlabs/baf-build
 
 # Run the provisioning scripts
-docker run -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
 ```
 
 ## Initial Committers
