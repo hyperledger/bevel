@@ -10,13 +10,13 @@ commands:
       build_jar:
         type: string
         default: "doorman.jar"
-    steps:      
+    steps:
       - run:
-          name: Install node 
+          name: Install node
           command: |
             curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
             sudo apt-get install -y nodejs
-      - run: 
+      - run:
           name: Maven build
           command: |
             cd << parameters.build_path >>
@@ -40,11 +40,11 @@ commands:
         type: string
         default: ""
     steps:
-      - run: 
+      - run:
           name: Check contents of directory
           command: ls -a << parameters.build_path >>/*
       # build and push Docker image
-      - run: 
+      - run:
           name: Build and push docker image
           command: |
             cd << parameters.build_path >>
@@ -71,7 +71,7 @@ commands:
       scenario:
         type: string
         default: "default"
-    steps:  
+    steps:
       - run:
           name: Install molecule
           command: |
@@ -79,7 +79,7 @@ commands:
             python --version
             pip install --user 'molecule[docker]==3.0.2'
             pip install openshift
-      - run: 
+      - run:
           name: Run molecule tests
           command: |
             export PATH=~/.local/bin/:~/bin:$PATH
@@ -89,7 +89,7 @@ commands:
       #TODO Explore test report/artefact generation. reports should be xml format
 
 # Create jobs, so that a workflow can coordinate them.
-jobs: 
+jobs:
   doorman_build: # Builds doorman jar file
     docker: # it uses the docker executor
       - image: circleci/openjdk:8-jdk-stretch
@@ -139,7 +139,7 @@ jobs:
       - run:
           name: Build webapp
           command: |
-            if [[ -z "$CIRCLE_TAG" ]]; then 
+            if [[ -z "$CIRCLE_TAG" ]]; then
               echo $VERSION
             else
               VERSION=${CIRCLE_TAG:1}
@@ -155,7 +155,7 @@ jobs:
       - run:
           name: Build Cordapps
           command: |
-            if [[ -z "$CIRCLE_TAG" ]]; then 
+            if [[ -z "$CIRCLE_TAG" ]]; then
               echo $VERSION
             else
               VERSION=${CIRCLE_TAG:1}
@@ -244,7 +244,6 @@ jobs:
       - molecule:
           role_path: "platforms/shared/configuration"
           scenario: "kubernetes-indy"
-      
 
 # Under the workflows: map, we can coordinate our two jobs, defined above.
 workflows:
