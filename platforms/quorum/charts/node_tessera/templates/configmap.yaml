@@ -25,12 +25,54 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 data:
+  tessera-config.json.tmpl: |-    
+    {
+      "useWhiteList": false,
+      "jdbc": {
+        "username": {{ .Values.tessera.dbusername | quote }},
+        "password": "",
+        "url": {{ .Values.tessera.dburl | quote }}
+      },
+      "server": {
+        "port": {{ .Values.node.ports.tm }},
+        "hostName": "http://{{ .Values.node.name }}",
+        "bindingAddress": "http://0.0.0.0:{{ .Values.node.ports.tm }}",
+        "sslConfig": {
+          "tls": {{ .Values.tessera.tls | quote }},
+          "generateKeyStoreIfNotExisted": true,
+          "serverKeyStore": "{{ .Values.node.mountPath }}/tm/server-keystore",
+          "serverKeyStorePassword": "quorum",
+          "serverTrustStore": "{{ .Values.node.mountPath }}/tm/server-truststore",
+          "serverTrustStorePassword": "quorum",
+          "serverTrustMode": {{ .Values.tessera.trust | quote }},
+          "knownClientsFile": "{{ .Values.node.mountPath }}/tm/knownClients",
+          "clientKeyStore": "{{ .Values.node.mountPath }}/tm/client-keystore",
+          "clientKeyStorePassword": "quorum",
+          "clientTrustStore": "{{ .Values.node.mountPath }}/tm/client-truststore",
+          "clientTrustStorePassword": "quorum",
+          "clientTrustMode": {{ .Values.tessera.trust | quote }},
+          "knownServersFile": "{{ .Values.node.mountPath }}/tm/knownServers"
+        }
+      },
+      "peer": {{ .Values.tessera.othernodes | toPrettyJson | indent 6 }},
+      "keys": {
+        "passwords": [],
+        "keyData": [
+          {
+            "privateKeyPath": "{{ .Values.node.mountPath }}tm/tm.key",
+            "publicKeyPath": "{{ .Values.node.mountPath }}/tm/tm.pub"
+          }
+        ]
+      },
+      "alwaysSendTo": [],
+      "unixSocketFile": "{{ .Values.node.mountPath }}/tm/tm.ipc"
+    }
   tessera-config-enhanced.json.tmpl: |-
     {
       "useWhiteList": "false",
       "jdbc": {
         "username": {{ .Values.tessera.dbusername | quote }},
-        "password": {{ .Values.tessera.dbpassword | quote }},
+        "password": "",
         "url": {{ .Values.tessera.dburl | quote }}
       },
       "serverConfigs": [
@@ -98,7 +140,7 @@ data:
       "useWhiteList": "false",
       "jdbc": {
         "username": {{ .Values.tessera.dbusername | quote }},
-        "password": {{ .Values.tessera.dbpassword | quote }},
+        "password": "",
         "url": {{ .Values.tessera.dburl | quote }}
       },
       "serverConfigs": [

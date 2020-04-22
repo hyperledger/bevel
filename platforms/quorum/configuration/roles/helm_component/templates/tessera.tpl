@@ -24,6 +24,12 @@ spec:
       mysql: mysql/mysql-server:5.7
     node:
       name: {{ peer.name }}
+{% if network.config.genesis | default('', true) | trim != '' %}
+{% if network.config.consensus == 'raft' %}
+      peer_id: {{ peer_id | int }}
+{% endif %}
+{% endif %}
+      status: {{ node_status }}
       consensus: {{ consensus }}
       subject: {{ peer.subject }}
       mountPath: /etc/quorum/qdata
@@ -38,7 +44,6 @@ spec:
         db: {{ peer.db.port }}
       dbname: demodb
       mysqluser: demouser
-      mysqlpassword: password
     vault:
       address: {{ vault.url }}
       secretprefix: secret/{{ component_ns }}/crypto/{{ peer.name }}
@@ -50,7 +55,6 @@ spec:
     tessera:
       dburl: "jdbc:mysql://{{ peer.name }}:3306/demodb"
       dbusername: demouser
-      dbpassword: password
 {% if network.config.tm_tls == 'strict' %}
       url: "https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
 {% else %}
@@ -70,9 +74,16 @@ spec:
 {% endfor %}
 {% endif %}
 {% if network.config.consensus == 'raft' %}
+{% if network.config.genesis | default('', true) | trim == '' %}
 {% for enode in enode_data_list %}
       - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
 {% endfor %}
+{% endif %}
+{% if network.config.genesis | default('', true) | trim != '' %}
+{% for enode in network.config.staticnodes %}
+      - {{ enode }}
+{% endfor %}
+{% endif %}
 {% endif %}
     proxy:
       provider: "ambassador"

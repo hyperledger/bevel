@@ -68,7 +68,7 @@ spec:
     service:
       port: {{ services.nms.ports.servicePort }}
       targetPort: {{ services.nms.ports.targetPort }}
-{% if services.nms.ports.nodePort is defined and services.nms.ports.nodePort|length %}
+{% if services.nms.ports.nodePort is defined %}
       type: NodePort
       nodePort: {{ services.nms.ports.nodePort }}
 {% else %}

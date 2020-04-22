@@ -1,0 +1,73 @@
+---
+- name: Verify
+  hosts: localhost
+  connection: local
+  vars:
+    bin_install_dir: "~/bin"
+    kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
+    kubecontext: "kind"
+    network:
+      env:
+        type: test
+  tasks:
+  # Assert Tiller is installed on Kubernetes
+  - name: Check Tiller on Kubernetes clusters
+    k8s_info:
+      kind: Pod
+      namespace: kube-system
+      kubeconfig: "{{ kubeconfig_path }}"
+      context: "{{ kubecontext }}"
+      label_selectors:
+        - app = helm
+      field_selectors:
+        - status.phase=Running
+    register: tiller_status
+  - name: Assert Tiller has been installed
+    assert:
+      that: tiller_status.resources|length == 1
+  # Assert Flux is installed on Kubernetes
+  - name: Check Flux on Kubernetes clusters
+    k8s_info:
+      kind: Pod
+      namespace: default
+      kubeconfig: "{{ kubeconfig_path }}"
+      context: "{{ kubecontext }}"
+      label_selectors:
+        - app = flux
+        - release = flux-{{ network.env.type }}
+      field_selectors:
+        - status.phase=Running
+    register: flux_service
+  - name: Assert Flux has been installed
+    assert:
+      that: flux_service.resources|length == 1
+  # Assert Ambassador is installed on Kubernetes
+  - name: Check Ambassador on Kubernetes clusters
+    k8s_info:
+      kind: Pod
+      namespace: default
+      kubeconfig: "{{ kubeconfig_path }}"
+      context: "{{ kubecontext }}"
+      label_selectors:
+        - name = ambassador
+      field_selectors:
+        - status.phase=Running
+    register: ambassador_status
+  - name: Assert Ambassador has been installed and 3 pods running
+    assert:
+      that: ambassador_status.resources|length == 3
+  # Assert Haproxy is installed on Kubernetes
+  - name: Check Haproxy on Kubernetes clusters
+    k8s_info:
+      kind: Pod
+      namespace: "ingress-controller"
+      kubeconfig: "{{ kubeconfig_path }}"
+      context: "{{ kubecontext }}"
+      label_selectors:
+        - run = haproxy-ingress
+      field_selectors:
+        - status.phase=Running
+    register: haproxy_status
+  - name: Assert HAproxy has been installed
+    assert:
+      that: haproxy_status.resources|length == 1

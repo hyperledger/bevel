@@ -1,6 +1,6 @@
 ## delete/gitops_files
 This role deletes all the gitops release files
-### main.yaml
+
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
 #### 1. Delete release files
@@ -10,7 +10,7 @@ This task deletes all the files from the release directory
     state: absent ( This deletes any found result)
 
 #### 2. Git Push
-This task pushes the above generated value files to git repo by calling git_push role from shared.
+This task pushes the current state to git repo after deleting value files from *release_dir* calling git_push role from shared.
 ##### Input Variables
     *GIT_DIR: "The path of directory which needs to be pushed"
     *GIT_REPO: "The name of GIT REPO"

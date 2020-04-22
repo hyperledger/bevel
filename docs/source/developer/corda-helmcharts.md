@@ -19,9 +19,7 @@ implementation.
 |   |-- node-initial-registration
 |   |-- notary
 |   |-- notary-initial-registration
-|   |-- springbootwebserver
 |   |-- storage
-|   |-- webserver
 ```
 ---------
 ## Pre-requisites

@@ -1,6 +1,6 @@
 FROM phusion/baseimage:0.11
 
-LABEL net.corda.version = "4.0" \
+LABEL net.corda.version = "4.1" \
       maintainer = "Hyperledger" \
       vendor = "R3"
 
