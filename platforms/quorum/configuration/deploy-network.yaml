@@ -122,10 +122,33 @@
     loop: "{{ network['organizations'] }}"
     when: network.config.transaction_manager == 'constellation'
 
-  # This role deploy nodes with Tessera transaction manager
-  - name: "Deploy Tessera Transaction Manager"
+  # This role deploy nodes with Tessera transaction manager and RAFT consensus
+  - name: "Deploy nodes with Tessera Transaction Manager and RAFT consensus"
     include_role:
       name: create/tessera
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-ns"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_ssh }}"
+      git_branch: "{{ item.gitops.branch }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      geth_data: "{{ network.config.bootnode }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.transaction_manager == 'tessera' and network.config.consensus == 'raft'
+    
+  # This role deployes nodes with constellation transaction mananger and RAFT consensus
+  - name: "Deploy nodes with Constellation Transaction Manager and RAFT consensus"
+    include_role:
+      name: create/constellation
     vars:
       build_path: "./build"
       consensus: "{{ network.config.consensus }}"
@@ -140,11 +163,34 @@
       docker_url: "{{ network.docker.url }}"
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      geth_data: "{{ network.config.bootnode }}"
     loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'tessera'
+    when: network.config.transaction_manager == 'constellation' and network.config.consensus == 'raft'
+
+  # This role deploy nodes with Tessera transaction manager and IBFT consensus
+  - name: "Deploy nodes with Tessera Transaction Manager and IBFT consensus"
+    include_role:
+      name: create/tessera
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-ns"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_ssh }}"
+      git_branch: "{{ item.gitops.branch }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.transaction_manager == 'tessera' and network.config.consensus == 'ibft'
     
-  # This role deployes nodes with constellation transaction mananger
-  - name: "Deploy Constellation Transaction Manager"
+  # This role deployes nodes with constellation transaction mananger and IBFT consensus
+  - name: "Deploy nodes with Constellation Transaction Manager and IBFT consensus"
     include_role:
       name: create/constellation
     vars:
@@ -162,7 +208,7 @@
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'constellation'
+    when: network.config.transaction_manager == 'constellation' and network.config.consensus == 'ibft'
   
   # delete build directory
   - name: Remove build directory
