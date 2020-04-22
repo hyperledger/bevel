@@ -286,8 +286,15 @@ spec:
           echo transaction manager is up;
 
           args=""
+          NODE_STATUS=""
           if [ $CONSENSUS == 'raft' ]; then
-            args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
+            NODE_STATUS={{ .Values.node.status }}
+          fi;
+          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'additional' ]; then
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft --raftjoinexisting {{ .Values.node.peer_id }}";
+          fi;
+          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'default' ]; then
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
             args=" --istanbul.blockperiod 3 --syncmode full --mine --minerthreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
