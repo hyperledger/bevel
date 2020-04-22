@@ -27,12 +27,11 @@ This task create value file for chaincode installation.
 ### valuefile.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-
-#### 1. 'Check/Wait for joinchannel job'
-This tasks checks if the joinchannel job is completed successfully or wait for it.This task will try for a maximum of 10 times with an interval of 35 seconds between each try.
-
+#### 1. Check/Wait for anchorpeer update job
+This task checks for anchor peer.
 ##### Input Variables
 
+    *name: Name of Item
     kind: The kind of task i.e. here `Job`
     name: Name of join channel job. Format: "joinchannel-{{ peer.name }}-{{ channel_name }}"
     namespace: Namespace of component
@@ -41,6 +40,10 @@ This tasks checks if the joinchannel job is completed successfully or wait for i
     kubeconfig: The config file of the cluster
     context: The context of kubernetes
     channel_name: Name of the channel
+**loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
 ##### Output Variables
 
     component_data: This variable stores the output of joinchannel query.

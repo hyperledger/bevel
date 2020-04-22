@@ -1,6 +1,6 @@
 FROM phusion/baseimage:0.11
 
-LABEL net.corda.version = "4.1" \
+LABEL net.corda.version = "4.4" \
       maintainer = "Hyperledger" \
       vendor = "R3"
 
@@ -18,7 +18,7 @@ ARG var_CORDA_HOME=/opt/corda
 ENV CORDA_HOME=$var_CORDA_HOME
 
 # Env variables for running locally
-ARG var_WEBAPP_NAME=cordaWebserver
+ARG var_WEBAPP_NAME=webserver-supply-chain-0.1.jar
 ARG var_WEBAPP_PROFILE=cordaTest
 ENV WEBAPP_NAME=$var_WEBAPP_NAME
 ENV WEBAPP_PROFILE=$var_WEBAPP_PROFILE
@@ -27,7 +27,7 @@ ENV WEBAPP_PROFILE=$var_WEBAPP_PROFILE
 EXPOSE 20001
 
 # Copy jar
-COPY build/webapps/webserver-supply-chain-0.1.jar webserver-supply-chain-0.1.jar
+COPY build/webapps/$var_WEBAPP_NAME webserver-supply-chain-0.1.jar
 
 RUN chown -R corda:corda /opt/corda
 
