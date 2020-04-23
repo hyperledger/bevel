@@ -4,6 +4,7 @@
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/blockchain-automation-framework/badge/?version=latest)](https://blockchain-automation-framework.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
+[![Build Status](https://travis-ci.com/hyperledger-labs/blockchain-automation-framework.svg?branch=master)](https://travis-ci.com/hyperledger-labs/blockchain-automation-framework)
 
 - [Short Description](#short-description)
 - [Scope of Lab](#scope-of-lab)
