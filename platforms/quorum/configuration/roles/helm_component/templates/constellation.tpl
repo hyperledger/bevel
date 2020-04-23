@@ -50,9 +50,16 @@ spec:
     genesis: {{ genesis }}
     staticnodes:
 {% if network.config.consensus == 'ibft' %}
+{% if network.config.genesis | default('', true) | trim == '' %}
 {% for enode in enode_data_list %}
       - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0
 {% endfor %}
+{% endif %}
+{% if network.config.genesis | default('', true) | trim != '' %}
+{% for enode in network.config.staticnodes %}
+      - {{ enode }}
+{% endfor %}
+{% endif %}
 {% endif %}
 {% if network.config.consensus == 'raft' %}
 {% if network.config.genesis | default('', true) | trim == '' %}
@@ -68,9 +75,9 @@ spec:
 {% endif %}
     constellation:
 {% if network.config.tm_tls == 'strict' %}
-      url: https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/
+      url: "https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
 {% else %}
-      url: http://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/
+      url: "http://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
 {% endif %}
       storage: "bdb:/etc/quorum/qdata/database"
       tls: "{{ network.config.tm_tls }}"
