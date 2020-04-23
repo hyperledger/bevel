@@ -10,13 +10,23 @@ stages:
 jobs:
   fast_finish: true
   include:
-  - env: SCENARIO=default
-  - env: SCENARIO=kubernetes-corda
-  - env: SCENARIO=kubernetes-fabric
-  - env: SCENARIO=kubernetes-indy
+    - stage: test
+      - env: SCENARIO=default
+      - env: SCENARIO=kubernetes-corda
+      - env: SCENARIO=kubernetes-fabric
+      - env: SCENARIO=kubernetes-indy
+    - stage: build
+      script:
+        - echo "here"
+        - echo "there"
+
 services:
 - docker
-  
+
+before_install:
+  - curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+  - sudo apt-get install -y nodejs
+
 install:
 - pip install molecule yamllint ansible-lint docker openshift
   
