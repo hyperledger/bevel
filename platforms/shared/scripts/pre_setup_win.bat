@@ -65,10 +65,17 @@ echo "Creating %cd%\project directory."
 mkdir project
 mkdir project\bin
 SET PATH=%cd%\project\bin;%PATH%
-echo "Checking versions of git, vault cli, docker toolbox and minikube"
+echo "Checking versions of vault cli, docker toolbox and minikube"
+git --version>GIT_VERSION.txt
 docker --version>DOCKER_VERSION.txt
 vault --version>VAULT_VERSION.txt
 minikube version>MINIKUBE_VERSION.txt
+set /P GIT_VERSION=<GIT_VERSION.txt
+if ["%GIT_VERSION%"]==[""] (
+	echo "Git not present. Please install git and re-run the script."
+	pause
+	exit
+)
 set /P DOCKER_VERSION=<DOCKER_VERSION.txt
 set /P VAULT_VERSION=<VAULT_VERSION.txt
 set /P MINIKUBE_VERSION=<MINIKUBE_VERSION.txt
