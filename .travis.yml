@@ -1,7 +1,19 @@
 ---
 sudo: required
 language: python
+
+stages:
+  - test
+  - name: build
+    if: branch IN (master, develop) OR tag =~ /^(v)/
   
+jobs:
+  fast_finish: true
+  include:
+  - env: SCENARIO=default
+  - env: SCENARIO=kubernetes-corda
+  - env: SCENARIO=kubernetes-fabric
+  - env: SCENARIO=kubernetes-indy
 services:
 - docker
   
@@ -10,4 +22,4 @@ install:
   
 script:
 - cd platforms/shared/configuration
-- molecule test
+- molecule test -s $SCENARIO
