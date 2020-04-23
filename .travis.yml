@@ -2,26 +2,37 @@
 dist: xenial
 os: linux
 language: python
-env: 
-  - DIR=platforms/shared/configuration SCENARIO=default
-  - DIR=platforms/shared/configuration SCENARIO=kubernetes-corda
-  - DIR=platforms/shared/configuration SCENARIO=kubernetes-fabric
-  - DIR=platforms/shared/configuration SCENARIO=kubernetes-indy
 
 jobs:
   fast_finish: true
   include:
-    - stage: "Molecule tests"      
+    - stage: "Molecule tests"
+      env: 
+        - DIR=platforms/shared/configuration
+        - SCENARIO=default
+      - env: 
+        - DIR=platforms/shared/configuration
+        - SCENARIO=kubernetes-corda
+      - env: 
+        - DIR=platforms/shared/configuration
+        - SCENARIO=kubernetes-fabric
+      - env: 
+        - DIR=platforms/shared/configuration
+        - SCENARIO=kubernetes-indy
     - stage: "Docker build"
       if: (branch IN ("master", "develop") AND type != pull_request) OR tag =~ /^(v)/
+      language: node_js
       install:
         - curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
         - sudo apt-get install -y nodejs
-      - env: DIR=platforms/r3-corda/images/doorman
-      - env: DIR=platforms/r3-corda/images/networkmap
+      env: 
+        - DIR=platforms/r3-corda/images/doorman
       script:
         - cd $DIR
+        - java -version
         - mvn clean install
+      - env:
+        - DIR=platforms/r3-corda/images/networkmap
 
 services:
 - docker
