@@ -6,28 +6,38 @@ language: python
 jobs:
   fast_finish: true
   include:
-    - stage: test
+    - stage: "Molecule tests"
       env: 
+        - DIR=platforms/shared/configuration
         - SCENARIO=default
-    - env: SCENARIO=kubernetes-corda
-    - env: SCENARIO=kubernetes-fabric
-    - env: SCENARIO=kubernetes-indy
-    - stage: build
-      if: (branch IN ("master", "develop") AND type = push) OR tag =~ /^(v)/
+      env: 
+        - DIR=platforms/shared/configuration
+        - SCENARIO=kubernetes-corda
+      env: 
+        - DIR=platforms/shared/configuration
+        - SCENARIO=kubernetes-fabric
+      env: 
+        - DIR=platforms/shared/configuration
+        - SCENARIO=kubernetes-indy
+    - stage: "Docker build"
+      if: (branch IN ("master", "develop") AND type != pull_request) OR tag =~ /^(v)/
+      install:
+        - curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+        - sudo apt-get install -y nodejs
+      env: 
+        - DIR=platforms/r3-corda/images/doorman
+      env:
+        - DIR=platforms/r3-corda/images/networkmap
       script:
-        - echo "here"
-        - echo "there"
+        - cd $DIR
+        - mvn clean install
 
 services:
 - docker
-
-before_install:
-  - curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
-  - sudo apt-get install -y nodejs
 
 install:
 - pip install molecule yamllint ansible-lint docker openshift
   
 script:
-- cd platforms/shared/configuration
+- cd $DIR
 - molecule test -s $SCENARIO

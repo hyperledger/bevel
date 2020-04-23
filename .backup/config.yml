@@ -62,31 +62,6 @@ commands:
               echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin;
               docker push << parameters.image >>:<< parameters.tag_prefix >>${CIRCLE_TAG:1};
             fi
-  molecule:
-    description: "Executes molecule test for ansible roles"
-    parameters:
-      role_path:
-        type: string
-        default: "."
-      scenario:
-        type: string
-        default: "default"
-    steps:
-      - run:
-          name: Install molecule
-          command: |
-            docker --version
-            python --version
-            pip install --user 'molecule[docker]==3.0.2'
-            pip install openshift
-      - run:
-          name: Run molecule tests
-          command: |
-            export PATH=~/.local/bin/:~/bin:$PATH
-            molecule --version
-            cd << parameters.role_path >>
-            molecule test -s << parameters.scenario >>
-      #TODO Explore test report/artefact generation. reports should be xml format
 
 # Create jobs, so that a workflow can coordinate them.
 jobs:
