@@ -75,9 +75,9 @@ spec:
 {% endif %}
     constellation:
 {% if network.config.tm_tls == 'strict' %}
-      url: "https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
+      url: "https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/"
 {% else %}
-      url: "http://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
+      url: "http://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/"
 {% endif %}
       storage: "bdb:/etc/quorum/qdata/database"
       tls: "{{ network.config.tm_tls }}"
