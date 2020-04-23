@@ -64,6 +64,20 @@
     loop_var: peer
   when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
 
+# This task creates the Tessera Transaction Manager value files for each node of organization
+- name: Create value file for Tessera TM for each node
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ name }}{{ peer.name }}tessera"
+    type: "tessera"
+    genesis: "{{ network.config.genesis }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'ibft'
+
+
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
