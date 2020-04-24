@@ -166,17 +166,6 @@ jobs:
         - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
         - docker build --build-arg var_WEBAPP_NAME=webserver-supply-chain-$VERSION.jar -t $IMAGE_NAME:$local_tag .
         - docker push $IMAGE_NAME:$local_tag
-      deploy:   # Create release files (this will only build for tags) This section needs to be repeated for all release filess
-        provider: releases
-        token: $GITHUB_OAUTH_TOKEN
-        file_glob: true
-        overwrite: true
-        file:     # List any more files that are needed to be released
-          - examples/supplychain-app/corda/cordApps_springBoot/cordapp-contracts-states/build/libs/*.jar
-          - examples/supplychain-app/corda/cordApps_springBoot/cordapp-supply-chain/build/libs/*.jar
-        cleanup: false
-        on:
-          tags: true
     - <<: *docker_push
       name: Build Corda express_app image     # use docker_push alias to create corda express_app image
       env:
