@@ -32,7 +32,8 @@ import os
 extensions = [
     'sphinx.ext.todo',
     'sphinx_markdown_tables',
-    'recommonmark'
+    'recommonmark',
+    'sphinxcontrib.mermaid'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -187,3 +188,7 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
+
+html_css_files = [
+    'custom.css',
+]
