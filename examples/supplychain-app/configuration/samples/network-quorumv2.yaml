@@ -7,6 +7,8 @@ network:
   type: quorum
   version: 2.5.0  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
 
+  frontend: enabled #Flag for frontend to enabled for nodes/peers
+
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
@@ -165,11 +167,13 @@ network:
             ambassador: 15023
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
-          chaincode:
+          smart_contract:
             name: "General"           # Name of the smart contract or Name of the main Smart contract Class
-            path: "./contracts"       # Path of the smart contract folder 
+            contract_path: "./contracts"       # Path of the smart contract folder
+            deployjs_path: "blockchain-automation-framework/examples/supplychain-app/quorum/smartContracts" 
             iterations: 200           # Number of Iteration of execution to which the gas and the code is optimised
-            entrypoint: "General.sol" # Main entrypoint solidity file of the contract
+            entrypoint: "General.sol" # Main entrypoint solidity file of the contract 
+            geth_url: "http://manufacturer.test.corda.blockchaincloudpoc.com:15021" 
 
     - organization:
       name: store

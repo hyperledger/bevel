@@ -130,22 +130,24 @@ network:
                 ambassador: 15023
               db:                       
                 port: 3306
-              chaincode:
+              smart_contract:
                 name: "General"           
-                path: "./contracts"      
+                contract_path: "./contracts"  
+                deployjs_path: "blockchain-automation-framework/examples/supplychain-app/quorum/smartContracts"    
                 iterations: 200           
-                entrypoint: "General.sol"            
+                entrypoint: "General.sol"  
+                geth_url: "http://manufacturer.test.corda.blockchaincloudpoc.com:15021"          
 ```
 
 #### Step 2
 Run the playbook with the following command
 
 ```
-ansible-playbook deploy-supplychain-smartContract.yaml --extra-vars "@./network.yaml"
+ansible-playbook deploy-supplychain-app.yaml --extra-vars "@./network.yaml"
 ```
 
 For multiple clusters, run the above command for each cluster's network.yaml
 ```
-ansible-playbook deploy-supplychain-smartContract.yaml --extra-vars "@./network1.yaml"
-ansible-playbook deploy-supplychain-smartContract.yaml --extra-vars "@./network2.yaml"
+ansible-playbook deploy-supplychain-app.yaml --extra-vars "@./network1.yaml"
+ansible-playbook deploy-supplychain-app.yaml --extra-vars "@./network2.yaml"
 ```
