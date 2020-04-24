@@ -79,6 +79,8 @@ _docker_push: &docker_push
 
 stages:
   - name: Unit Tests
+    # the if condition specifies all build jobs run only for master and develop branch and for tags starting with v
+    if: tag IS blank
   - name: Build
     # the if condition specifies all build jobs run only for master and develop branch and for tags starting with v
     if: (branch IN ("master", "develop") AND type != pull_request) OR tag =~ /^(v)/
@@ -174,7 +176,7 @@ jobs:
         file:     # List any more files that are needed to be released
           - examples/supplychain-app/corda/cordApps_springBoot/cordapp-contracts-states/build/libs/*.jar
           - examples/supplychain-app/corda/cordApps_springBoot/cordapp-supply-chain/build/libs/*.jar
-        cleanup: false
+        skip_cleanup: true
         on:
           tags: true
     - <<: *docker_push
