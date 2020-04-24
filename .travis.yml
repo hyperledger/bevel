@@ -11,10 +11,6 @@ jdk:
 services:
   - docker
 
-# A global variable can be define here
-env:
-  global: VERSION="0.1"
-
 # The following tags (staring with _ ) are private aliases which are used to group same stages like a function
 
 # _molecule is used to run molecule test jobs
@@ -79,7 +75,7 @@ _docker_push: &docker_push
 
 stages:
   - name: Unit Tests
-    # the if condition specifies all build jobs run only for master and develop branch and for tags starting with v
+    # the if condition specifies that this stage will run only if tag is blank
     if: tag IS blank
   - name: Build
     # the if condition specifies all build jobs run only for master and develop branch and for tags starting with v
@@ -152,6 +148,7 @@ jobs:
               VERSION="0.1"
             fi
         - cd examples/supplychain-app/corda/cordApps_springBoot
+        - echo $VERSION
         - ./gradlew -Pversion=$VERSION deployWebapps
         - ./gradlew -Pversion=$VERSION build
         - |           # Docker is being repeated because TravisCI does not allow sharing of cache
@@ -174,8 +171,8 @@ jobs:
         file_glob: true
         overwrite: true
         file:     # List any more files that are needed to be released
-          - examples/supplychain-app/corda/cordApps_springBoot/cordapp-contracts-states/build/libs/*.jar
-          - examples/supplychain-app/corda/cordApps_springBoot/cordapp-supply-chain/build/libs/*.jar
+          - examples/supplychain-app/corda/cordApps_springBoot/cordapp-contracts-states/build/libs/
+          - examples/supplychain-app/corda/cordApps_springBoot/cordapp-supply-chain/build/libs/
         skip_cleanup: true
         on:
           tags: true
