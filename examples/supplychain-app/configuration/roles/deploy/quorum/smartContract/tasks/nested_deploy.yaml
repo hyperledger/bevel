@@ -1,0 +1,31 @@
+############################################################################################
+# install the required packages listed in package.json
+- name: Installing the required packages listed in package.json
+  shell: |
+    cd ../quorum/smartContracts/ && npm install
+
+############################################################################################
+# Run deploy.js to to install smart contract
+- name: Run deploy.js for "{{ organization_data.name | lower }}"
+  shell: |
+    cd ../quorum/smartContracts && node ./deploy.js "{{ URL }}" "{{ contract_path }}" "{{ entrypoint }}" "{{ contract }}" 
+  vars:
+    URL: "http://{{ peer.name }}.{{ organization_data.external_url_suffix }}:{{ peer.rpc.ambassador }}"
+    contract_path: "{{ chaincode.path }}"
+    entrypoint: "{{ chaincode.entrypoint}}"
+    contract: "{{ chaincode.name}}"
+  environment:
+    ITERATIONS: "{{ chaincode.iterations }}"
+  register: address
+  retries: "{{ network.env.retry_count}}"
+  delay: 5
+  until: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
+
+############################################################################################
+
+# delete node_module directory
+- name: Remove node_module directory 
+  file:
+    path: "../quorum/smartContracts/node_modules"
+    state: absent
+

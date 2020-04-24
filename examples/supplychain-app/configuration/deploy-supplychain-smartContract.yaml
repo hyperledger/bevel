@@ -1,0 +1,38 @@
+# This playbook deploys the supplychain apis and frontend to an existing DLT network
+# The DLT network should already be created using the same configuration file as that
+#   used for running this playbook.
+---
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+  ############################################################################################
+  # Deploy the Smart contract on Quorum node
+  - name: "Deploying smartcontract on quorum node"
+    include_role:
+      name: "deploy/quorum/smartContract"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_vault: "{{ organization_data.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'quorum'
+
+
+  # # Place the smart contract in the vault of the organization
+  - name: "Adding SmartContract address to the other organizations"
+    include_role:
+      name: "setup/smartContractAddress"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_vault: "{{ organization_data.vault }}"
+      contract_address: "{{ address['stdout_lines'][1].split(':')[1] | trim }}"
+      contract_name: "{{ address['stdout_lines'][2].split(':')[1] | trim }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: address['stdout_lines'][1] != "Error"
+
+  
+
