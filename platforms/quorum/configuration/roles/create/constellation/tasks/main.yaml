@@ -65,6 +65,19 @@
     loop_var: peer
   when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
 
+# This task creates the Constellation Manager value file for each node of organization for ibft
+- name: Create value file for constellation TM for each node in the organization
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ name }}{{ peer.name }}constellation"
+    type: "constellation"
+    genesis: "{{ network.config.genesis }}"
+  loop: "{{ peers }}"
+  loop_control: 
+    loop_var: peer
+  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'ibft'
+
 - name: Git push
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
