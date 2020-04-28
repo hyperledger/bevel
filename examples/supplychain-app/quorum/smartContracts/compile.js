@@ -24,8 +24,12 @@ var createInput = function(dirname) {
 
 async function GetByteCode(numberOfIterations, dirname, entrypoint, contractName){
 
-  let source = await createInput(dirname).then((data)=>{
+  let source = await createInput(dirname)
+  .then((data)=>{
     return (data);
+  })
+  .catch((err)=>{
+    console.log("error while compiling", err)
   });
 
   const input = {
@@ -46,10 +50,10 @@ async function GetByteCode(numberOfIterations, dirname, entrypoint, contractName
 
   var output = JSON.parse(solc.compile(JSON.stringify(input))); // compiling the smart contract using the main entrypoint file
   var smartContract = {};
-  smartContract.bytecode = output.contracts[`${entrypoint}`][contractName].evm.bytecode.object;
-  smartContract.abi = output.contracts[`${entrypoint}`][contractName].abi;
-  smartContract.gasEstimates = output.contracts[`${entrypoint}`][contractName].evm.gasEstimates;
-  smartContract.totalCost = output.contracts[`${entrypoint}`][contractName].evm.gasEstimates.creation.totalCost;
+  smartContract.bytecode = output.contracts[`${entrypoint}`][`${contractName}`].evm.bytecode.object;
+  smartContract.abi = output.contracts[`${entrypoint}`][`${contractName}`].abi;
+  smartContract.gasEstimates = output.contracts[`${entrypoint}`][`${contractName}`].evm.gasEstimates;
+  smartContract.totalCost = output.contracts[`${entrypoint}`][`${contractName}`].evm.gasEstimates.creation.totalCost;
   return smartContract;
 }
 
