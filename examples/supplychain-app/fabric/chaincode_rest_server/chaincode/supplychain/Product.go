@@ -251,7 +251,7 @@ func (s *SmartContract) updateProductCustodian(stub shim.ChaincodeStubInterface,
 	if !(product.AccessibleBy(identity)) {
 		return peer.Response{
 			Status:  403,
-			Message: fmt.Sprintf("You are not authorized to perform this transaction, product not accesible by indentity"),
+			Message: fmt.Sprintf("You are not authorized to perform this transaction, product not accesible by identity"),
 		}
 	}
 	//Ensure new custodian isnt the same as old one

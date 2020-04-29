@@ -1,0 +1,68 @@
+# This circleci file is added to avoid the red X on our branches
+# This job builds the artifacts and stores on Circleci website as releasing artifacts is not working on TravisCI
+version: 2.1
+
+# Create jobs, so that a workflow can coordinate them.
+jobs:  
+  corda_build: # Builds supplychain-corda docker images
+    docker: # it uses the docker executor
+      - image: circleci/openjdk:8-jdk-stretch
+    environment:
+      VERSION: '0.1'
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      - checkout # this pulls pulls code down from GitHub
+      - run:
+          name: Test cordapps
+          command: |
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew test
+      - store_test_results:
+          #TODO Fix test report/artefact generation. reports should be xml format
+          path: examples/supplychain-app/corda/cordApps_springBoot/build/reports/tests
+      - run:
+          name: Build webapp
+          command: |
+            if [[ -z "$CIRCLE_TAG" ]]; then
+              echo $VERSION
+            else
+              VERSION=${CIRCLE_TAG:1}
+              echo $VERSION
+              echo 'export VERSION=${CIRCLE_TAG:1}' >> $BASH_ENV
+              source $BASH_ENV
+            fi
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew -Pversion=$VERSION deployWebapps
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: examples/supplychain-app/corda/cordApps_springBoot/build/webapps
+          when: always
+      - run:
+          name: Build Cordapps
+          command: |
+            if [[ -z "$CIRCLE_TAG" ]]; then
+              echo $VERSION
+            else
+              VERSION=${CIRCLE_TAG:1}
+              echo $VERSION
+            fi
+            cd examples/supplychain-app/corda/cordApps_springBoot
+            ./gradlew -Pversion=$VERSION build
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: examples/supplychain-app/corda/cordApps_springBoot/cordapp-contracts-states/build/libs
+          when: always
+      - store_artifacts: # Upload test results for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: examples/supplychain-app/corda/cordApps_springBoot/cordapp-supply-chain/build/libs
+          when: always
+
+# Under the workflows: map, we can coordinate our two jobs, defined above.
+workflows:
+  version: 2
+  release_artifacts: # this is the name of our workflow
+    jobs: # and here we list the jobs we are going to run.
+      - corda_build:
+          filters:      # corda build only for develop branch and all tags
+            branches:
+              only:
+                - master
+            tags:
+              only: /^v.*/

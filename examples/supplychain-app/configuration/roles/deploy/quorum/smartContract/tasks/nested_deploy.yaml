@@ -1,0 +1,37 @@
+############################################################################################
+# install the required packages listed in package.json
+- name: Installing the required packages listed in package.json
+  shell: |
+    cd ../../../../{{ smart_contract.deployjs_path }} && npm install
+
+############################################################################################
+# Run deploy.js to to install smart contract
+- name: Run deploy.js for "{{ organization_data.name | lower }}"
+  shell: |
+    cd ../quorum/smartContracts && node ./deploy.js "{{ URL }}" "{{ contract_path }}" "{{ entrypoint }}" "{{ contract }}" 
+  vars:
+    URL: "{{ smart_contract.geth_url }}"
+    contract_path: "{{ smart_contract.contract_path }}"
+    entrypoint: "{{ smart_contract.entrypoint}}"
+    contract: "{{ smart_contract.name}}"
+  environment:
+    ITERATIONS: "{{ smart_contract.iterations }}"
+  register: address
+  retries: "{{ network.env.retry_count}}"
+  delay: 5
+  until: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
+
+- set_fact:
+    contract_address: "{{ address['stdout_lines'][1].split(':')[1] | trim }}"
+    contract_name: "{{ address['stdout_lines'][2].split(':')[1] | trim }}"
+    check: address['stdout_lines'][1]
+    when: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
+
+############################################################################################
+
+# delete node_module directory
+- name: Remove node_module directory 
+  file:
+    path: "../../../../{{ smart_contract.deployjs_path }}/node_modules"
+    state: absent
+

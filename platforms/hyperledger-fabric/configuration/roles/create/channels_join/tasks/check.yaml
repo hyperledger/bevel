@@ -1,0 +1,15 @@
+############################################################################################
+# This task checks the join channel job
+
+# Check or wait for the join channel job to complete
+- name: "waiting for {{ peer.name }} to join {{ channel_name }}"
+  include_role:
+    name: "../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ participant.name | lower}}-net"
+    component_name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
+    kubernetes: "{{ org.k8s }}"
+  loop: "{{ participant.peers }}"
+  loop_control:
+    loop_var: peer

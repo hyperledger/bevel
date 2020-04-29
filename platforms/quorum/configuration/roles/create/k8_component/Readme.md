@@ -1,4 +1,4 @@
-## ROLE: k8-component
+## ROLE: k8_component
 This role creates deployment files for nodes, namespace, storageclass, service accounts and clusterrolebinding. Deployment file for a node is created in a directory with name=nodeName, nodeName is stored in component_name , component_type specifies the type of deployment to be created.
 
 ### Tasks
@@ -31,4 +31,4 @@ This task tests the value file for syntax errors/ missing values by calling role
 **when**:  It runs when *helm_lint*==true, i.e. the check for syntax needs to be done for generated value file .
 
 #### Note:
- Var folder has enviornment variable for k8_component role. Templates folder has tpl files for network-map, doorman, mongodb, namespace,storageclass, service accounts and clusterrolebinding. Any change to be reflected in the final value file then these tpl files inside template folder needs to be updated accordingly.
+ Var folder has enviornment variable for k8_component role. Templates folder has tpl files for eks_storageclass, namespace, vault_auth, storageclass, reviewer, and reviewer_rbac. Any change to be reflected in the final value file then these tpl files inside template folder needs to be updated accordingly.

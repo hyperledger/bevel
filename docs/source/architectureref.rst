@@ -180,7 +180,12 @@ Platform-Specific Reference Guides
    architectureref/certificates_path_list_corda
    architectureref/hyperledger-fabric
    architectureref/certificates_path_list_fabric
+   architectureref/hyperledger-indy
+   architectureref/certificates_path_list_indy
+   architectureref/quorum
+   architectureref/certificates_path_list_quorum
 
 .. _Corda: https://docs.corda.net/
 .. _Hyperledger Fabric: https://hyperledger-fabric.readthedocs.io
 .. _Hashicorp Vault: https://www.vaultproject.io/
+.. _Hyperledger Indy: https://hyperledger-indy.readthedocs.io/en/latest/

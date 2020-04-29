@@ -14,11 +14,12 @@
 
 ############################################################################################
 # This task creates the folder to store crypto material
-- name: Ensures crypto dir exists
-  file:
+- name: "creating the directory ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
+  include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
     path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
 
 - name: Get ca certs and key
   shell: |
@@ -94,7 +95,7 @@
   vars:
     name: "{{ ca.name }}"
     type: "ca-orderer"
-    ca_image: "hyperledger/fabric-ca:{{ network.version }}"
+    ca_image: "hyperledger/fabric-ca:{{ ca_image_version[network.version] }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     git_url: "{{ gitops.git_ssh }}"
     git_branch: "{{ gitops.branch }}"
@@ -109,7 +110,7 @@
   vars:
     name: "{{ ca.name }}"
     type: "ca-peer"
-    ca_image: "hyperledger/fabric-ca:{{ network.version }}"
+    ca_image: "hyperledger/fabric-ca:{{ ca_image_version[network.version] }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     git_url: "{{ gitops.git_ssh }}"
     git_branch: "{{ gitops.branch }}"

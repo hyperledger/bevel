@@ -21,7 +21,7 @@ Environment variable are defined in Jenkins file. These variables are passed to 
 1. **GITOPS_REPO**: Path of the git repository.
     eg GITOPS_REPO="github.com/hyperledger-labs/blockchain-automation-framework.git"
 2. **GITOPS_SSH**: SSH path for git repo
-    eg GITOPS_SSH="ssh://git@github.com:hyperledger-labs/blockchain-automation-framework.git"
+    eg GITOPS_SSH="ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
 3. **REL_PATH**: Relative path in the repo where files would pushed by GitOps
     eg REL_PATH="platforms/corda/releases/dev"
 4. **CHART_PATH**: Path for the Helm Charts
@@ -31,9 +31,9 @@ Environment variable are defined in Jenkins file. These variables are passed to 
 6. **ROOT_DIR**: Root directory path . This is by default set to "${pwd()}"
     eg ROOT_DIR="${pwd()}"
 7. **DOCKER_REGISTRY**: Docker registry to store docker images 
-    eg DOCKER_REGISTRY= "adopblockchaincloud0502.azurecr.io"
+    eg DOCKER_REGISTRY= "index.docker.io/hyperledgerlabs"
 8. **DOCKER_USERNAME**: Username for docker registry
-    eg DOCKER_USERNAME = 'ADOPBlockchainCloud0502'
+    eg DOCKER_USERNAME = 'hyperledgerlabs'
 9. **DOCKER_PASSWORD**: Password for docker registry. Password has to be stored in  Jenkins credentials
     eg DOCKER_PASSWORD = credentials('azure_container_password')
 10. **KUBECONFIG**: Cluster config file name

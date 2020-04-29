@@ -69,7 +69,7 @@ spec:
       networkMapURL: 
       doormanURL:
 {% endif %}
-      jarVersion: "4.0"
+      jarVersion: {{ network.version | quote }}
       devMode: false
       env:
         - name: JAVA_OPTIONS
@@ -83,6 +83,18 @@ spec:
       rpcUser:
         - name: {{ component_name|e }}operations
           permissions: [ALL]
+
+{% if cordapps_details|length %}
+    cordapps:
+      getcordapps: true
+      jars:
+        {% for jars in cordapps.jars %}
+- url: {{ jars.jar.url }}
+        {% endfor %}
+{% else %}
+    cordapps:
+      getcordapps: false
+{% endif %}
 
     volume:
       baseDir: /base/corda
@@ -121,11 +133,12 @@ spec:
       keystoresecretprefix: {{ component_name }}/credentials/keystore
       certsecretprefix: {{ component_name }}/certs
       networkmapsecretprefix: {{ component_name }}/credentials/networkmappassword
+      cordappsreposecretprefix: {{ component_name }}/credentials/cordapps
 
           
     healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 15
+      readinesscheckinterval: 20
+      readinessthreshold: 20
     ambassador:
       component_name: {{ component_name | e }}
       external_url_suffix: {{ item.external_url_suffix }}

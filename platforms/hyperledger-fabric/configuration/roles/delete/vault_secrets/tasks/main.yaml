@@ -5,7 +5,7 @@
 #############################################################################################
 # This task deletes the Docker credentials
 - name: Delete docker creds
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: "{{ component_name }}"
     name: "regcred"
@@ -16,7 +16,7 @@
 
 # Delete the Ambassador Creds for CA
 - name: Delete Ambassador creds
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: default
     name: ca-{{ component_name }}-ambassador-certs
@@ -26,7 +26,7 @@
   ignore_errors: yes
 
 - name: Delete Ambassador creds
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: default
     name: orderer-{{ component_name }}-ambassador-certs
@@ -36,7 +36,7 @@
   ignore_errors: yes
 
 - name: Delete Ambassador creds
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: "{{ component_name }}"
     name: orderer-{{ component_name }}-ambassador-certs
@@ -47,7 +47,7 @@
   ignore_errors: yes
   
 - name: Delete Ambassador creds
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: default
     name: peer0-{{ component_name }}-ambassador-certs
@@ -57,7 +57,7 @@
   ignore_errors: yes
 
 - name: Delete Ambassador creds
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: "{{ component_name }}"
     name: peer0-{{ component_name }}-ambassador-certs
@@ -84,6 +84,7 @@
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
     vault delete secret/crypto/ordererOrganizations/{{ component_name }}/ambassador/{{orderer.name}}
+    vault delete secret/credentials/{{ component_name }}/ca/{{ org_name }}
   loop: "{{ services.orderers }}"
   loop_control:
     loop_var: orderer
@@ -109,9 +110,18 @@
     {% endfor %}
     vault delete secret/credentials/{{ component_name }}/ca/{{ org_name }}
     vault delete secret/credentials/{{ component_name }}/couchdb/{{ org_name }}
+    vault delete secret/credentials/{{ component_name }}/git
   vars:
     peers: "{{ services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   when: component_type == 'peer'
+
+- name: Delete policy
+  shell: |
+    vault policy delete vault-crypto-{{ component_type }}-{{ component_name }}-ro
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  ignore_errors: yes

@@ -22,6 +22,10 @@
     dest: "{{ config_file }}"
     block: "{{ lookup('template', 'configtxinit.tpl') }}"
     marker: "#"
+  vars:
+    consensus: "{{ item.services.consensus }}"
+  loop: "{{ network['organizations'] }}"
+  when: item.type == 'orderer'
 
 - name: "Adding organization patch to configtx.yaml"
   blockinfile:
@@ -32,6 +36,7 @@
     component_name: "{{ item.name }}"
     component_ns: "{{ item.name | lower }}-net"
     component_type: "{{ item.type | lower }}"
+    provider: "{{ item.cloud_provider }}"
   loop: "{{ network['organizations'] }}"
 
 - name: "Adding orderer patch to configtx.yaml"
@@ -43,6 +48,7 @@
     orderers: "{{ item.services.orderers }}"
     consensus: "{{ item.services.consensus }}"
     component_ns: "{{ item.name | lower }}-net"
+    provider: "{{ item.cloud_provider }}"
   loop: "{{ network['organizations'] }}"
   when: item.type == 'orderer'
 
@@ -51,4 +57,9 @@
     dest: "{{ config_file }}"
     block: "{{ lookup('template', 'configtxProfile.tpl') }}"
     marker: "#"
-  when: network.channels is defined
+  vars:
+    orderers: "{{ item.services.orderers }}"
+    consensus: "{{ item.services.consensus }}"
+    component_ns: "{{ item.name | lower }}-net"
+  loop: "{{ network['organizations'] }}"
+  when: network.channels is defined and item.type == 'orderer'

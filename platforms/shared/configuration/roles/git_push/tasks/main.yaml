@@ -23,7 +23,7 @@
         git --git-dir={{ GIT_DIR }}/.git reset "{{ GIT_RESET_PATH }}"
     fi  
     
-    git --git-dir={{ GIT_DIR }}/.git commit -m "{{ msg }}" || true
+    git --git-dir={{ GIT_DIR }}/.git commit -s -m "{{ msg }}" || true
     git --git-dir={{ GIT_DIR }}/.git push https://{{ GIT_USERNAME }}:{{ GIT_PASSWORD }}@{{ GIT_REPO }} HEAD:{{ GIT_BRANCH }}
   
   register: GIT_OUTPUT
@@ -32,9 +32,9 @@
 # Display output of shell excution
 - name: "Output for gitpush"
   debug:
-    var: GIT_OUTPUT.stdout
+    msg: "{{ GIT_OUTPUT.stdout.split('\n') }}"
 
 # Display error of shell task
 - name: "Error for git_push"
   debug:
-    var: GIT_OUTPUT.stderr
+    msg: "{{ GIT_OUTPUT.stderr.split('\n') }}"

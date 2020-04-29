@@ -3,7 +3,8 @@
     tempfile:
       state: directory
     register: tmp_directory
-
+    tags:
+      - molecule-idempotence-notest
 
   - name: check vault
     stat:
@@ -18,7 +19,7 @@
       dest: "{{ tmp_directory.path }}/vault_{{ vault.version }}_{{ vault.os }}_{{ vault.arch }}.zip"
       mode: 0755
     register: vault_download
-    when: vault_stat_result.stat.exists == False
+    when: not vault_stat_result.stat.exists
     tags:
       - vault
 
@@ -27,7 +28,7 @@
       path: "{{ vault.bin_directory }}"
       state: directory
       recurse: yes
-    when: vault_stat_result.stat.exists == False
+    when: not vault_stat_result.stat.exists
     tags:
       - vault
 
@@ -37,11 +38,14 @@
       copy: no
       dest: "{{ vault.bin_directory }}"
       mode: 0755
-    when: vault_stat_result.stat.exists == False
+    when: not vault_stat_result.stat.exists
     with_items:
       - vault
     loop_control:
       loop_var: bin_item
 
   - name: Test vault installation
-    command: vault version
+    command: "vault version"
+    changed_when: false
+    tags:
+      - molecule-idempotence-notest

@@ -112,6 +112,15 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
 
+- name: "Write cordapps credentials to vault"
+  shell: |
+    vault kv put {{ component_name }}/credentials/cordapps repo_username="{{ cordapps_details.username }}" repo_password="{{ cordapps_details.password }}"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: cordapps_details != ""
+
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"
+    

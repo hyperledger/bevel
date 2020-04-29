@@ -129,6 +129,7 @@ For the aws and k8s field the snapshot with sample values is below
         encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
         zone: "availability_zone"               # AWS availability zone
         region: "region"                        # AWS region
+        publicIps: []                           # List of all public IP addresses of each availability zone
 
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
@@ -147,6 +148,7 @@ The `aws` field under each organisation contains: (This will be ignored if cloud
 | encryption_key                              | AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.  |
 | zone                              | AWS availability zone  |
 | region                              | AWS region  |
+| publicIps                           | List of all public IP addresses of each availability zone |
 
 The `k8s` field under each organisation contains
 
@@ -178,7 +180,7 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_password
       gitops:
-        git_ssh: "gitops_ssh_url"                   # Gitops ssh url for flux value files like "ssh://git@github.com:hyperledger-labs/blockchain-automation-framework.git"
+        git_ssh: "gitops_ssh_url"                   # Gitops ssh url for flux value files like "ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
         branch: "gitops_branch"                     # Git branch where release is being made
         release_dir: "gitops_release_dir"           # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"               # Relative Path where the Helm charts are stored in Git repo

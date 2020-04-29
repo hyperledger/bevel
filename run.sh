@@ -4,7 +4,7 @@ set -e
 echo "Starting build process..."
 
 echo "Adding env variables..."
-PATH=$PATH:/root/bin
+export PATH=/root/bin:$PATH
 
 #Path to k8s config file
 KUBECONFIG=/home/blockchain-automation-framework/build/config

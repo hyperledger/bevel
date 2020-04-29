@@ -2,6 +2,15 @@
 # This task calls nested_sign_and_update and nested_update_channel tasks
 ############################################################################################
 
+# Check or wait for the peer
+- name: Call valuefile when participant is new
+  include_tasks: valuefile.yaml
+  vars:
+    channelcreator_query: "participants[?org_status=='new']"
+  loop: "{{ item | json_query(channelcreator_query) }}"
+  loop_control:
+    loop_var: peer
+  
 # Task for creating the cli for first peer of each organization
 # Config block gets signed by the admin of every organization
 - name: Call nested_sign_and_update for each peer

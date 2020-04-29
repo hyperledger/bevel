@@ -16,7 +16,7 @@
 # This task fetches the configtx gen tar file from the mentioned URL
 - name: "Geting the configtxgen binary tar"
   get_url:
-    url: https://nexus.hyperledger.org/content/repositories/releases/org/hyperledger/fabric/hyperledger-fabric/{{fabric.os}}-{{fabric.arch}}-{{network.version}}/hyperledger-fabric-{{fabric.os}}-{{fabric.arch}}-{{network.version}}.tar.gz
+    url: https://github.com/hyperledger/fabric/releases/download/v{{network.version}}/hyperledger-fabric-{{install_os}}-{{install_arch}}-{{network.version}}.tar.gz
     dest: "{{ tmp_directory.path }}"
   when: config_stat_result.stat.exists == False
 
@@ -25,7 +25,7 @@
 # This task unzips the above downloaded tar file
 - name: "Unziping the downloaded file"
   unarchive:
-    src: "{{ tmp_directory.path }}/hyperledger-fabric-{{fabric.os}}-{{fabric.arch}}-{{network.version}}.tar.gz"
+    src: "{{ tmp_directory.path }}/hyperledger-fabric-{{install_os}}-{{install_arch}}-{{network.version}}.tar.gz"
     dest: "{{ tmp_directory.path }}"
   when: config_stat_result.stat.exists == False
 
@@ -55,7 +55,11 @@
 - name: "Creating genesis block"
   shell: |
     cd {{ build_path }}
+    {% if '2.' in network.version %}
+    ./configtxgen -profile {{ genesis.name }} -channelID {{ channel_name }}  -outputBlock ./channel-artifacts/genesis.block
+    {% else %}
     ./configtxgen -profile {{ genesis.name }} -outputBlock ./channel-artifacts/genesis.block
+    {% endif %}
     cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
   when: add_new_org == 'false'
 
@@ -88,7 +92,7 @@
   when: add_new_org == 'false'
 
 # This task creates the channel by consuming the configtx.yaml file
-- name: "Creating JSON configration for new organization"
+- name: "Creating JSON configuration for new organization"
   shell: |
     cd {{ build_path }}
     export FABRIC_CFG_PATH=$PWD
@@ -96,4 +100,7 @@
   loop: "{{ item.participants }}"
   loop_control:
     loop_var: participant
+  register: result
+  failed_when: result.stderr != ''
   when: participant.org_status == 'new' and add_new_org == 'true'
+

@@ -22,7 +22,11 @@ spec:
     peer:
       name: {{ peer_name }}
       gossippeeraddress: {{ peer.gossippeeraddress }}
+{% if provider == 'minikube' %}
+      gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}:7051
+{% else %}
       gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:8443
+{% endif %}
       localmspid: {{ name }}MSP
       loglevel: info
       tlsstatus: true

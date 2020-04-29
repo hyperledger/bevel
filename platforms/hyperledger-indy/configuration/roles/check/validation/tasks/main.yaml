@@ -1,0 +1,27 @@
+# This role checks for validation of network.yaml
+# Conditions to be checked
+# At least 4 genesis stewards
+# Max 1 trustee per org
+# Max 1 endorser per org
+# At least one trustee per network.yaml
+
+#----------------------------------------------------------------------
+
+- name: "Check Validation"
+  include_tasks: check_count.yaml
+  vars:
+    trustees: "{{ organizationItem.services.trustees|default([]) }}"
+    endorsers: "{{ organizationItem.services.endorsers|default([]) }}"
+    stewards:  "{{ organizationItem.services.stewards|default([]) }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem
+
+
+- name: Print error and end playbook if genesis steward count limit fails
+  debug: msg="The genesis count is {{ steward_count }}. There should be atleast 4 genesis steward in total."
+  failed_when: steward_count|int < 4
+
+- name: Print error and end playbook if total trustee count limit fails
+  debug: msg="The total trustee count is {{ total_trustees }}. There should be atleast 1 trustees per network yaml."
+  when: total_trustees|int < 1

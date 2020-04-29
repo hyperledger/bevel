@@ -11,3 +11,14 @@
   loop_control:
     loop_var: participant
   when: participant.org_status == 'new'
+
+- name: Call check for each peer
+  include_tasks: check.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.org_status == 'new'

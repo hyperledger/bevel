@@ -61,24 +61,6 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: auth_list.stdout.find(component_auth) == -1
 
-# This task checks if the vault secret path
-- name: Check if secret-path already created for Organization
-  shell: |
-    vault secrets list
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: secrets_list
-
-# This task creates the secret-path
-- name: Create Vault secrets path
-  shell: |
-    vault secrets enable -path={{ component_name }} kv
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: secrets_list.stdout.find(component_path) == -1
-
 # This task checks if the vault-ro policy already exists
 - name: Check if policy exists
   shell: |
@@ -94,7 +76,10 @@
 - name: Create policy for Access Control
   shell: |
     cd ./build    
-    echo "path \"secret/{{ component_name }}/crypto/*\" {
+    echo "path \"secret/{{ component_ns }}/crypto/*\" {
+        capabilities = [\"read\", \"list\"]
+    }
+    path \"secret/{{ component_ns }}/smartContracts/*\" {
         capabilities = [\"read\", \"list\"]
     }"  >>  vault-crypto-{{ component_name }}-ro.hcl
     vault write sys/policy/vault-crypto-{{ component_name }}-ro policy="@vault-crypto-{{ component_name }}-ro.hcl"
@@ -111,3 +96,11 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: auth_list.stdout.find(component_auth) == -1     # Run when auth_path is not found
+
+#####################################################################################################################
+# This task creates the docker pull credentials for image registry
+- name: Create the docker pull credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_ns }} docker-registry regcred --docker-server={{ network.docker.url }} --docker-username={{ network.docker.username }} --docker-password={{ network.docker.password }} --docker-email="test@abc.mail"
+  when: auth_list.stdout.find(component_auth) == -1
+  ignore_errors: yes

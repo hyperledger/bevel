@@ -1,0 +1,13 @@
+--- 
+############################################################################################
+# This task is the nested task for main.yaml which helps to create a check for peers for new organization
+
+# Check or wait for the peer
+- name: "Check peer pod is up"
+  include_tasks: peercheck.yaml
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    peers_data: "{{ peer | json_query('peers[*].name') }}"
+  loop: "{{ network | json_query(org_query) }}"
+  loop_control:
+    loop_var: org

@@ -53,10 +53,10 @@
     name: create/certificates/node
   vars:
     component_name: "{{ node.name | lower }}"
+    cordapps_details: "{{ cordapps }}"
     nms_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
     nms_cert_file: "{{ network | json_query('orderers[?type==`networkmap`].certificate') | first }}"
     doorman_cert_file: "{{ network | json_query('orderers[?type==`doorman`].certificate') | first }}"
-    component_name: "{{ node.name | lower }}"
     cert_subject: "{{ item.subject | regex_replace(',', '/') }}" #Use org level subject for certificate generation
   loop: "{{ services.peers }}"
   loop_control:
@@ -124,28 +124,7 @@
   loop: "{{ services.peers }}"
   loop_control:
     loop_var: node
-
-- name: "Wait for node db pod creation"
-  include_role:
-    name: check/node_component
-  vars:
-    component_type: "Pod"
-    component_name: "{{ node.name }}db"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-
-- name: "Wait for node job completion"
-  include_role:
-    name: check/node_component
-  vars:
-    component_type: "Job"
-    component_name: "{{ node.name }}-registration"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-  when: nodekeystore_result.results[0].failed == True
-
+    
 #----------------------------------------------------------------------  
 # create deployment file for node node
 - name: 'Create node deployment file'
@@ -160,6 +139,7 @@
     doorman_url: "{{ network | json_query('orderers[?type==`doorman`].uri') | first }}"
     doorman_domain: "{{ doorman_url.split(':')[1] }}"
     corda_version: "corda-{{ network.version }}"
+    cordapps_details: "{{ cordapps }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
   loop: "{{ services.peers }}"
   loop_control:

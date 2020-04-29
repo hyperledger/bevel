@@ -35,12 +35,14 @@ ansible-playbook deploy-network.yaml -e "@./samples/network-quorum.yaml"
 The playbook will create resources in the Kubernetes cluster(s) and will intermittently wait for resources to be created before proceeding. You may want to check the cluster(s) for any errors.
 <br>
 
-### Step 5
-After deploy-network.yaml has run successfully, your quorum network should be up and running.
+### Step 3
+After deploy-network.yaml has run successfully, your nodes or the participants in the quorum network should be up and running.
 
-## Miscellenous
+## Miscellaneous
 
-1. If you want to reset the network, i.e. delete all created pods as well as the Flux deployment. Then run the following command (from the platforms/quorum/configuration/ directory)
+1. openssl.conf: This is the configuration file used to generate the Root CA certificates for Quorum-CA.
+
+2. If you want to reset the network, i.e. delete all created resources while setting up the Quorum network like pods as well as the Flux deployment, then run the following command (from the platforms/quorum/configuration/ directory)
 ```
 ansible-playbook reset-network.yaml -e "@./samples/network-quorum.yaml"
 ```

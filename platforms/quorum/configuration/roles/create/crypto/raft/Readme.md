@@ -1,11 +1,19 @@
 ## ROLE: create/crypto/raft
 This role generates the crypto material for RAFT consensus
 
-### Tasks of nested_main.yaml
+### Tasks
+(Variables with * are fetched from playbook which is calling this role)
+#### 1. Create crypto material for each peer with RAFT consensus.
+**include_tasks**: It includes the name of intermediary task which is required for creating the crypto material for each peer for RAFT consensus.
+**loop**: loops over all the peers in an organisation
+**loop_control**: Specifies the condition for controlling the loop.
 
-#### A. Create crypto material for each peer with RAFT consensus
-This task calls in nested_main.yaml which generates crypto material for each peer with RAFT consensus.
+    loop_var: loop variable used for iterating over the loop.
 
+--------------
+
+### nested_main.yaml
+### Tasks
 #### 1. Check if nodekey already present in the vault
 This tasks checks if nodekey is already present in the vault
 
@@ -40,4 +48,3 @@ This task copies the above generated crypto material to the vault
 **shell**: This module is used to put the generated crypto material in the vault
 
 **when**: It runs when *vault_nodekey_result.failed* == True, i.e. when nodekey is not found in vault.
-
