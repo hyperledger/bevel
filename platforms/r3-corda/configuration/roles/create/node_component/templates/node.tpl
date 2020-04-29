@@ -137,8 +137,8 @@ spec:
 
           
     healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 15
+      readinesscheckinterval: 20
+      readinessthreshold: 20
     ambassador:
       component_name: {{ component_name | e }}
       external_url_suffix: {{ item.external_url_suffix }}
