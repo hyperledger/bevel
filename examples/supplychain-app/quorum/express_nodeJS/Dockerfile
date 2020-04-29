@@ -22,3 +22,4 @@ ENV NODE_ORGANIZATION="Manufacturer"
 ENV NODE_ORGANIZATIONUNIT="manufacturer"
 
 EXPOSE ${PORT}
+CMD [ "node", "app.js" ]
