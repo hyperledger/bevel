@@ -54,7 +54,8 @@ module.exports = {
     },
     manufacturer: {
       host: "manufacturer.quo.demo.aws.blockchaincloudpoc.com",     // Localhost (default: none)
-      port: 15021,            // Standard Ethereum port (default: none)
+      //port: 15021,            // Standard Ethereum port (default: none)
+      port: 17008,
       network_id: "*", // Match any network id
       gasPrice: 0,
       gas: 3000000000,
