@@ -15,6 +15,7 @@ config:
   eip158Block: 1
   isQuorum: true
   txnSizeLimit: 128
+  raftSeconds: true
 difficulty: '0x0'
 extraData: '0x0000000000000000000000000000000000000000000000000000000000000000'
 gasLimit: '0xE000000000'

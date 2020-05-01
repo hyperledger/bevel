@@ -35,7 +35,11 @@ spec:
       mountPath: /etc/quorum/qdata
       imagePullSecret: regcred
       keystore: keystore_1
+{% if item.cloud_provider == 'minikube' %}     
+      servicetype: NodePort
+{% else %}      
       servicetype: ClusterIP
+{% endif %}
       ports:
         rpc: {{ peer.rpc.port }}
         raft: {{ peer.raft.port }}
