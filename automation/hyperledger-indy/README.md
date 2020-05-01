@@ -1,1 +1,0 @@
-# Hyperledger Indy Automation
