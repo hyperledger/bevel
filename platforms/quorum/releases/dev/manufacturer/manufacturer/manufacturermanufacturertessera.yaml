@@ -1,0 +1,77 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: manufacturermanufacturertessera
+  namespace: manufacturer-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: manufacturermanufacturertessera
+  chart:
+    git: git@github.com:Rayas-NG/blockchain-automation-framework.git
+    ref: local
+    path: platforms/quorum/charts/node_tessera  
+  values:
+    replicaCount: 1
+    metadata:
+      namespace: manufacturer-ns
+      labels:
+    images:
+      node: quorumengineering/quorum:2.5.0
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      tessera: quorumengineering/tessera:0.11
+      busybox: busybox
+      mysql: mysql/mysql-server:5.7
+    node:
+      name: manufacturer
+      status: default
+      consensus: raft
+      subject: O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH
+      mountPath: /etc/quorum/qdata
+      imagePullSecret: regcred
+      keystore: keystore_1
+     
+      servicetype: NodePort
+      ports:
+        rpc: 8546
+        raft: 50401
+        tm: 9001
+        quorum: 21000
+        db: 3306
+      dbname: demodb
+      mysqluser: demouser
+    vault:
+      address: http://192.168.0.10:8200
+      secretprefix: secret/manufacturer-ns/crypto/manufacturer
+      serviceaccountname: vault-auth
+      keyname: quorum
+      tm_keyname: transaction
+      role: vault-role
+      authpath: quorummanufacturer
+    tessera:
+      dburl: "jdbc:mysql://manufacturer:3306/demodb"
+      dbusername: demouser
+      url: "http://manufacturer.manufacturer-ns.svc.cluster.local:15022"
+      othernodes:
+        - url: http://carrier.carrier-ns.svc.cluster.local:9001
+        - url: http://manufacturer.manufacturer-ns.svc.cluster.local:9001
+        - url: http://warehouse.warehouse-ns.svc.cluster.local:9001
+      tls: "OFF"
+      trust: "TOFU"
+    genesis: ewogICAgImFsbG9jIjogewogICAgICAgICIwOTVhYjg4NjFiNmQxMmJiZTM3MWQ1MzY2MTkzODdlODdkZTQyZjVhIjogewogICAgICAgICAgICAiYmFsYW5jZSI6ICIxMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgIjIwNjY3NDIzYTRjZjJiNzdlM2U4ZmM3OGVjYWQ3NWEzODg1MTFkMGUiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiCiAgICAgICAgfSwKICAgICAgICAiZThlYjA4MGQ0MTdiOGFmN2VmOTY1Nzk0MDdmOTk3YTFkODUwMWFkYSI6IHsKICAgICAgICAgICAgImJhbGFuY2UiOiAiMTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIKICAgICAgICB9CiAgICB9LAogICAgImNvaW5iYXNlIjogIjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgICAiY29uZmlnIjogewogICAgICAgICJieXphbnRpdW1CbG9jayI6IDEsCiAgICAgICAgImNoYWluSWQiOiAxMCwKICAgICAgICAiY29uc3RhbnRpbm9wbGVCbG9jayI6IDAsCiAgICAgICAgImVpcDE1MEJsb2NrIjogMSwKICAgICAgICAiZWlwMTUwSGFzaCI6ICIweDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLAogICAgICAgICJlaXAxNTVCbG9jayI6IDAsCiAgICAgICAgImVpcDE1OEJsb2NrIjogMSwKICAgICAgICAiaXNRdW9ydW0iOiB0cnVlLAogICAgICAgICJwZXRlcnNidXJnQmxvY2siOiAwLAogICAgICAgICJyYWZ0U2Vjb25kcyI6IHRydWUsCiAgICAgICAgInR4blNpemVMaW1pdCI6IDEyOAogICAgfSwKICAgICJkaWZmaWN1bHR5IjogIjB4MCIsCiAgICAiZXh0cmFEYXRhIjogIjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgICAiZ2FzTGltaXQiOiAiMHhFMDAwMDAwMDAwIiwKICAgICJtaXhoYXNoIjogIjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA2NDc1NzI2MTZjNjU3ODczNjU2NDZjNjU3OCIsCiAgICAibm9uY2UiOiAiMHgwIiwKICAgICJwYXJlbnRIYXNoIjogIjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgICAidGltZXN0YW1wIjogIjB4MDAiCn0=
+    staticnodes:
+      - enode://26facc22bb8927e38cb3fc61642deeca91fe87f04535e51670f3ee490bdef5e544672cf02cfc6f8898faae1761b8e2210cb8959f60acdad30a5df7e5e4ff1d7e@carrier.manufacturer-ns.svc.cluster.local:15010?discport=0&raftport=15013
+      - enode://df848b4f164d947eabb5038433cca4780c791bcdd3b60227983872361dc640ea8170d0765c5bbc9306a7390d70e43f00131e5dd92dc3627e4b96604b06a8f9a4@manufacturer.manufacturer-ns.svc.cluster.local:15020?discport=0&raftport=15023
+      - enode://fe6c403e4931ffdf4cdd8b1f75ee961bcff12c9caf2f155124170ce61ff0962051e2c89ff26e0be350b3132e29d4372a65ea5207fa66ac5b8f204a103d25ad59@warehouse.manufacturer-ns.svc.cluster.local:15040?discport=0&raftport=15043
+    proxy:
+      provider: "ambassador"
+      external_url: manufacturer.manufacturer-ns.svc.cluster.local
+      portTM: 15022
+      rpcport: 15021
+      quorumport: 15020
+  
+      portRaft: 15023
+    storage:
+      storageclassname: minikubestorageclass
+      storagesize: 1Gi
+      dbstorage: 1Gi
