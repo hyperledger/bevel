@@ -6,16 +6,16 @@
     Policies:
       Readers:
         Type: Signature
-        Rule: "OR('{{ component_name }}Org.member')"
+        Rule: "OR('{{ component_name }}MSP.member')"
       Writers:
         Type: Signature
-        Rule: "OR('{{ component_name }}Org.member')"
+        Rule: "OR('{{ component_name }}MSP.member')"
       Admins:
         Type: Signature
-        Rule: "OR('{{ component_name }}Org.admin')"
+        Rule: "OR('{{ component_name }}MSP.admin')"
       Endorsement:
         Type: Signature
-        Rule: "OR('{{ component_name }}Org.member')"
+        Rule: "OR('{{ component_name }}MSP.member')"
 {% endif %}
     {% if component_type == 'peer' %}      
     AnchorPeers:
