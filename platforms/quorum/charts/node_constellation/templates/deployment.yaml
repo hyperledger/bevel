@@ -74,6 +74,10 @@ spec:
 
           OUTPUT_PATH="${MOUNT_PATH}/keys"
           mkdir -p ${OUTPUT_PATH}
+          
+
+          echo ${OUTPUT_PATH}
+          
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           echo "Getting 3 keys from $vault_secret_key"
@@ -90,6 +94,11 @@ spec:
           echo "${nodekey}" > ${OUTPUT_PATH}/nodekey
           echo "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
 
+          cat ${OUTPUT_PATH}/passwords.txt 
+          cat ${OUTPUT_PATH}/nodekey 
+          cat ${OUTPUT_PATH}/{{ .Values.node.keystore }} 
+          
+
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tm_keyname }}"
           echo "Getting 2 keys from $vault_secret_key"
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
@@ -102,6 +111,10 @@ spec:
           tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.key"]')
           echo "${tmpub}" > ${OUTPUT_PATH}/tm.pub
           echo "${tmkey}" > ${OUTPUT_PATH}/tm.key
+
+
+          cat ${OUTPUT_PATH}/tm.pub
+          cat ${OUTPUT_PATH}/tm.key
           
         volumeMounts:
         - name: certificates
@@ -134,6 +147,12 @@ spec:
         args:
         - "-cx"
         - "chmod 600 $QUORUM_HOME/crypto/keys/tm.key;
+
+           cat $QUORUM_HOME;
+           cat $QUORUM_HOME/crypto/keys/tm.key;
+
+
+
            mkdir -p $QUORUM_HOME/logs;
            mkdir -p $QUORUM_HOME/database;
            DDIR=$QUORUM_HOME/tm;
@@ -174,6 +193,14 @@ spec:
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
+
+          cat $QUORUM_HOME
+          cat $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
+          cat $QUORUM_HOME/crypto/keys/nodekey
+          cat $QUORUM_HOME/crypto/keys/passwords.txt
+
+
+
           cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
           cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
           cp $QUORUM_HOME/crypto/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
@@ -200,7 +227,7 @@ spec:
             args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft"
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --mine --minethreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+            args=" --istanbul.blockperiod 3 --syncmode full --mine --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
           fi;
 
           /usr/local/bin/geth \
