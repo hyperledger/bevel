@@ -109,21 +109,6 @@
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
     msg: "Pushing db and job deployment files for {{ node.name }}"
 
-- name: "Wait for notary db pod creation"
-  include_role:
-    name: check/node_component
-  vars:
-    component_type: "Pod"
-    component_name: "{{ node.name }}db"
-
-- name: "Wait for notary job completion"
-  include_role:
-    name: check/node_component
-  vars:
-    component_type: "Job"
-    component_name: "{{ node.name }}-registration"
-  when: nodekeystore_result.failed == True
-
 #----------------------------------------------------------------------  
 # create deployment file for notary node
 - name: 'Create notary node deployment file'
@@ -142,7 +127,7 @@
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
 # ----------------------------------------------------------------------  
-# Push the deployment files for h2, job and node of notary
+# Push the deployment files for notary node
 - name: 'Push notary deployment files'
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -155,13 +140,3 @@
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
     GIT_BRANCH: "{{ gitops.branch }}"
     msg: "Creating node deployment file for {{ node.name }}"
-
-# ----------------------------------------------------------------------  
-# Wait for flux to deploy all notaries pods
-- name: "Wait for notary pod creation"
-  include_role:
-    name: check/node_component
-  vars:
-    component_type: "Pod"
-    component_name: "{{ node.name }}"
-    
