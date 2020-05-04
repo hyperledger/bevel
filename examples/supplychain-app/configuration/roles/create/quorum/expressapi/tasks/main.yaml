@@ -1,0 +1,32 @@
+############################################################################################
+# Create express-api value file for the peer nodes
+- name: "Create express-api values file for peer organizations"
+  include_role:
+    name: helm_component
+  vars:
+    type: "expressapi-quorum"
+    name: "{{ peer_data.name }}"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    expressapi_image: "supplychain_quorum:express_app_latest"
+    geth_address: "{{ peer_data.geth_url }}"
+    peer_expressapi_port: "{{ peer_data.expressapi.port }}"
+    peer_expressapi_targetport: "{{ peer_data.expressapi.targetPort }}"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: peer_data.expressapi is defined
+
+# Push the express-api deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ component_gitops.git_push_url }}"
+    GIT_USERNAME: "{{ component_gitops.username }}"
+    GIT_EMAIL: "{{ component_gitops.email }}"
+    GIT_PASSWORD: "{{ component_gitops.password }}"
+    GIT_BRANCH: "{{ component_gitops.branch }}"
+    GIT_RESET_PATH: "platforms/quorum/configuration"
+    msg: "Pushing deployment files for quorum expressapi"
+    

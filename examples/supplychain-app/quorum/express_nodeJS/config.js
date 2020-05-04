@@ -7,6 +7,6 @@ module.exports = {
   nodeIdentity : process.env.NODE_IDENTITY,
   productContractAddress : process.env.PRODUCT_CONTRACT_ADDRESS,
   nodeOrganization : process.env.NODE_ORGANIZATION,
-  nodeOrganizationUnit : process.env.NODE_ORGANIZATIONUNIT,
+  nodeOrganizationUnit : process.env.NODE_ORGANIZATION_UNIT,
   nodeSubject : process.env.NODE_SUBJECT
 };
