@@ -4,22 +4,35 @@
   shell: |
     cd ../../../../{{ smart_contract.deployjs_path }} && npm install
 
+# create build directory directory
+- name: Remove node_module directory 
+  file:
+    path: "../../../../{{ smart_contract.deployjs_path }}/build"
+    state: directory
+
 ############################################################################################
 # Run deploy.js to to install smart contract
 - name: Run deploy.js for "{{ organization_data.name | lower }}"
   shell: |
-    cd ../quorum/smartContracts && node ./deploy.js "{{ URL }}" "{{ contract_path }}" "{{ entrypoint }}" "{{ contract }}" 
+    cd ../quorum/smartContracts && node ./deploy.js "{{ URL }}" "{{ contract_path }}" "{{ entrypoint }}" "{{ contract }}" {{ privateFor }}
   vars:
-    URL: "{{ smart_contract.geth_url }}"
+    URL: "{{ peer.geth_url }}"
     contract_path: "{{ smart_contract.contract_path }}"
     entrypoint: "{{ smart_contract.entrypoint}}"
     contract: "{{ smart_contract.name}}"
+    privateFor: "{{ smart_contract.private_for | default('0', true) }}"
   environment:
     ITERATIONS: "{{ smart_contract.iterations }}"
   register: address
   retries: "{{ network.env.retry_count}}"
   delay: 5
   until: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
+
+- debug:
+    msg: 
+      - "{{address['cmd']}}"
+      - "{{address['stdout_lines']}}"
+    verbosity: 2
 
 - set_fact:
     contract_address: "{{ address['stdout_lines'][1].split(':')[1] | trim }}"

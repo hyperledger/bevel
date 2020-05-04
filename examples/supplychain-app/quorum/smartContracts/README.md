@@ -62,11 +62,11 @@ Ganache is a personal Ethereum network that allows you to test smart contracts d
 
 2. In terminal, run the javaScript program deploy.js using the command below.<br>
 
-        node deploy.js "< address of quorum node with RPC port >" "< path to the contracts folder>" "< main entrypoint contract filename >" "< Name of the contract >"
+        node deploy.js "< address of quorum node with RPC port >" "< path to the contracts folder>" "< main entrypoint contract filename >" "< Name of the contract >" "< Public keys in csv format for privateFor >"
 
  The program by default optimizes the smart contract and the gas to run the contract for 200 iterations, it can be increased or decresed using the environment variable *ITERATIONS*. Initial arguments to the smart contract is passed by setting the environment variable *INITARGUMENTS*.<br>
 
-        export ITERATIONS=< number of iterations > && export INITARGUMENTS="<initial arguments >" && node deploy.js "< address of quorum node with RPC port >" "< path to the contracts folder>" "< main entrypoint contract filename >" "< Name of the contract >"
+        export ITERATIONS=< number of iterations > && export INITARGUMENTS="<initial arguments >" && node deploy.js "< address of quorum node with RPC port >" "< path to the contracts folder>" "< main entrypoint contract filename >" "< Name of the contract >" "< Public keys in csv format for privateFor >"
 
 The address where the smart contract is deployed will be returned and printed to the console and also exported to an environment variable *CONTRACT_ADDRESS* after the successful execution of the script.
 

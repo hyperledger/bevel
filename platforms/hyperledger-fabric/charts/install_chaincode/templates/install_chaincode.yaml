@@ -139,17 +139,18 @@ spec:
         - |-
           ## Git repository clone for chaincode
           mkdir -p /root/.ssh/          
+          apk add curl openssh
           ssh-keyscan {{ $.Values.chaincode.repository.hostname }} > /root/.ssh/known_hosts
           git_password=$(cat /opt/gopath/src/github.com/hyperledger/fabric/crypto/user_cred)
           cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode
 
           ## Copying desired chaincode to a location relative to $GOPATH/src
-          mkdir -p /opt/gopath/src/github.com/chaincode
-          cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* /opt/gopath/src/github.com/chaincode/
+          mkdir -p $GOPATH/src/github.com/chaincode
+          cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
 
           # Get dependencies
           mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-          cd /opt/gopath/src/github.com/chaincode && dep ensure
+          cd $GOPATH/src/github.com/chaincode && dep ensure
           ## Installing chaincode on a peer
           peer chaincode install -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -p github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR}
         env:

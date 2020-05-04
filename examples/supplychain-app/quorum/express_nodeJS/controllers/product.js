@@ -144,7 +144,6 @@ router.get('/:trackingID?', function (req, res) {
 
 //POST for new product
 router.post('/', upload.array(), function (req, res) {
-  res.setTimeout(15000);
   // TODO: Create product
   let newProduct = {
     productName: req.body.productName,
@@ -192,7 +191,6 @@ router.post('/', upload.array(), function (req, res) {
 
 //PUT for updating custodian
 router.put('/:trackingID/custodian', function (req, res) {
-  res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var identityArray = fromNodeSubject.split(',');
   var trackingID = req.params.trackingID;
