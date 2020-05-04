@@ -34,11 +34,11 @@ spec:
         port: {{ peer_expressapi_port }}
         targetPort: {{ peer_expressapi_targetport }}
         name: tcp
-    env:
-      geth_address: {{ geth_address }}
-      node_subject: {{ peer_data.subject }}
-      node_organization: {{ organization_data.unit }}
-      node_organization_unit: {{ organization_data.unit | lower }}
+      env:
+        geth_address: {{ geth_address }}
+        node_subject: {{ peer_data.subject }}
+        node_organization: {{ organization_data.unit }}
+        node_organization_unit: {{ organization_data.unit | lower }}
     proxy:
       provider: {{ network.env.proxy }}
       name: {{ organization_data.name }}
