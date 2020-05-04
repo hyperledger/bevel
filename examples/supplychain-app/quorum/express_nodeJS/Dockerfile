@@ -18,8 +18,8 @@ ENV GANACHE_SERVER="RPC Address of Quorum node"
 ENV PRODUCT_CONTRACT_ADDRESS="Enter address where contract is deployed from"
 ENV NODE_IDENTITY="Enter address of an account"
 ENV NODE_SUBJECT="node subject"
-ENV NODE_ORGANIZATION="Manufacturer"
-ENV NODE_ORGANIZATIONUNIT="manufacturer"
+ENV NODE_ORGANIZATION="node organization"
+ENV NODE_ORGANIZATION_UNIT="node organization unit"
 
 EXPOSE ${PORT}
 CMD [ "node", "app.js" ]

@@ -115,7 +115,7 @@
       loop_var: organization_data
     when: network['type'] == 'quorum'
   
-  # # Place the smart contract in the vault of the organization
+  # Place the smart contract in the vault of the organization
   - name: "Adding SmartContract address to the other organizations"
     include_role:
       name: "setup/smartContractAddress"
@@ -126,3 +126,35 @@
     loop_control:
       loop_var: organization_data
     when: network['type'] == 'quorum' and check != "Error"
+
+  ############################################################################################
+  # Create expressapi value file for the quorum nodes
+  - include_role:
+      name: "create/quorum/expressapi"
+    vars:
+      component_name: "expressapi"
+      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'quorum'
+  ############################################################################################
+  # Create frontend value file for the quorum nodes
+  - include_role:
+      name: "create/quorum/frontend"
+    vars:
+      component_name: "frontend"
+      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_type: "{{ organization_data.type | default(' ', true) | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      kubernetes: "{{ organization_data.k8s }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data 
+    when: network['type'] == 'quorum' and network['frontend'] == 'enabled'

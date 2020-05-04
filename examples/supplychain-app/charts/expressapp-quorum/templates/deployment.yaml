@@ -104,17 +104,15 @@ spec:
             value: "{{ .Values.expressapp.env.node_organization }}"
           - name: NODE_ORGANIZATION_UNIT
             value: "{{ .Values.expressapp.env.node_organization_unit }}"
-          command: ["sh", "-c"]
+          command: ["sh"]
           args:
-          - |-
-            #!/user/bin/env sh
-            export PRODUCT_CONTRACT_ADDRESS=$(cat /secret/keys/product_contract_address)
-            export NODE_IDENTITY=$(cat /secret/keys/node_identity)
-            node app.js
+          - "-cx"
+          - "export PRODUCT_CONTRACT_ADDRESS=$(cat /secret/keys/product_contract_address);
+            export NODE_IDENTITY=$(cat /secret/keys/node_identity);
+            node app.js;"
           ports:
             - containerPort: {{ .Values.expressapp.nodePorts.targetPort }}
               name: expressapp
           volumeMounts:
           - name: config
             mountPath: /secret
-          
