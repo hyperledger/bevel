@@ -2,7 +2,6 @@
     Name: {{ component_name }}MSP
     ID: {{ component_name }}MSP
     MSPDir: ./crypto-config/{{ component_type }}Organizations/{{ component_ns }}/msp
-{%  if '2.' in network.version %}
     Policies:
       Readers:
         Type: Signature
@@ -16,7 +15,6 @@
       Endorsement:
         Type: Signature
         Rule: "OR('{{ component_name }}MSP.member')"
-{% endif %}
     {% if component_type == 'peer' %}      
     AnchorPeers:
       # AnchorPeers defines the location of peers which can be used
