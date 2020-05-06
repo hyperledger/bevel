@@ -11,6 +11,13 @@
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+        
     - include_role:
         name: "create/chaincode/install"
       vars:
@@ -36,11 +43,6 @@
       loop: "{{ network['channels'] }}"
       when: add_new_org == 'true'
     
-    # delete build directory
-    - name: Remove build directory
-      file:
-        path: "./build"
-        state: absent
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
