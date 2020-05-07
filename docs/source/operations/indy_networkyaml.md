@@ -148,7 +148,9 @@ The `aws` field under each organisation contains: (This will be ignored if cloud
 | encryption_key                              | AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.  |
 | zone                              | AWS availability zone  |
 | region                              | AWS region  |
-| publicIps                           | List of all public IP addresses of each availability zone |
+| publicIps                           | List of all public IP addresses of each availability zone from all organizations in the same k8s cluster |
+
+*NOTE*: Network.yaml file consists of more organizations, where each organization can be under different availability zone. It means, that each organization has different IP. The field `publicIps` holds list of all IPs of all organizations in the same cluster.
 
 The `k8s` field under each organisation contains
 
