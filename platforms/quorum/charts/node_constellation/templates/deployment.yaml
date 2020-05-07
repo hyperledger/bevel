@@ -74,10 +74,6 @@ spec:
 
           OUTPUT_PATH="${MOUNT_PATH}/keys"
           mkdir -p ${OUTPUT_PATH}
-          
-
-          echo ${OUTPUT_PATH}
-          
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           echo "Getting 3 keys from $vault_secret_key"
@@ -94,11 +90,6 @@ spec:
           echo "${nodekey}" > ${OUTPUT_PATH}/nodekey
           echo "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
 
-          cat ${OUTPUT_PATH}/passwords.txt 
-          cat ${OUTPUT_PATH}/nodekey 
-          cat ${OUTPUT_PATH}/{{ .Values.node.keystore }} 
-          
-
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tm_keyname }}"
           echo "Getting 2 keys from $vault_secret_key"
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
@@ -112,10 +103,6 @@ spec:
           echo "${tmpub}" > ${OUTPUT_PATH}/tm.pub
           echo "${tmkey}" > ${OUTPUT_PATH}/tm.key
 
-
-          cat ${OUTPUT_PATH}/tm.pub
-          cat ${OUTPUT_PATH}/tm.key
-          
         volumeMounts:
         - name: certificates
           mountPath: /secret
@@ -193,13 +180,6 @@ spec:
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
-
-          cat $QUORUM_HOME
-          cat $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
-          cat $QUORUM_HOME/crypto/keys/nodekey
-          cat $QUORUM_HOME/crypto/keys/passwords.txt
-
-
 
           cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
           cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
