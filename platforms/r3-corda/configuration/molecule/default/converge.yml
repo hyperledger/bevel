@@ -28,6 +28,7 @@
         network:
           env:
             retry_count: 100
+
     - role: create/namespace_serviceaccount
       vars:
         org:
@@ -42,4 +43,29 @@
             email: testemail
             password: testpassword
             branch: testbranch
-        
+
+  tasks:
+    - name: Deploy the storageclass on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../releases/dev/aws-storageclass/aws-storageclass.yaml"
+
+    - name: Deploy the namespace on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../releases/dev/test-ns/namespace.yaml"
+
+    - name: Deploy vaultauth serviceaccount on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../releases/dev/test-ns/vaultAuth.yaml"
+
+    - name: Deploy vaultreviewer serviceaccount on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../releases/dev/test-ns/vault-reviewer.yaml"
+
+    - name: Deploy clusterrolebinding on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../releases/dev/test-ns/reviewer_rbac.yaml"
