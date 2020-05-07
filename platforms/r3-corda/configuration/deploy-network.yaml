@@ -10,24 +10,18 @@
   - name: Create Storage Class
     include_role:
       name: create/storageclass
-    vars:
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
-      git_dir: "{{ item.gitops.release_dir }}"
-      org: "{{ item }}"
-      kubernetes: "{{ item.k8s }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
     when: network['type'] == 'corda'
 
   # create namespace, service account and clusterrolebinding
-  - name: "Create namespace and vault auth"
+  - name: "Create namespace, service accounts and clusterrolebinding"
     include_role: 
       name: create/namespace_serviceaccount
-    vars:
-      component_ns: "{{ item.name | lower }}-ns"
-      organisation: "{{ item.name | lower }}"
-      kubernetes: "{{ item.k8s }}"
-      gitops: "{{ item.gitops }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
     when: network['type'] == 'corda'  
 
   # ----------------------------------------------------------------------  
