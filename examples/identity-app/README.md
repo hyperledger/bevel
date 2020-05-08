@@ -5,9 +5,9 @@ This folder contains the files that are needed for the deployment of a Identity 
 
 ## Folder structure
 ```
-supplychain-app
-|-- charts: this folder contains the Helm charts that are needed for the deployment of the Supplychain Application.
-|-- images: 
+identity-app
+|-- charts: this folder contains the Helm charts that are needed for the deployment of the Identity Application.
+|-- images: this folder contains the Docker images that are needed for running of the Identity Application.
 ```
 
 ## Pre-requisites
@@ -24,7 +24,7 @@ supplychain-app
 ### Step 1
 Be sure that Docker image von-network is on your Docker registry.
 If you have not the Docker image on your Docker registry, then build them.
-Please follow [Dokumentation](./images/von-network/README.md)
+Please follow [Documentation](./images/von-network/README.md)
 ### Step 2
 Prepare a network.yaml file for your demo or you can use this sample for [AWS](../../platforms/hyperledger-indy/configuration/samples/network-indyv3-aries.yaml) or [Minikube](../../platforms/hyperledger-indy/configuration/samples/network-minikube-aries.yaml) and update for your case.
 ### Step 3
