@@ -6,9 +6,11 @@
       stat:
         path: "{{ playbook_dir }}/test/peer/awspeerstorageclass.yaml"
       register: sc_check
+
     - name: Assert if the value file exists or not
       assert:
         that: sc_check.stat.exists
+
     - name: Wait for the storage class to come up
       k8s_info:
         kind: "StorageClass"
@@ -18,6 +20,7 @@
       register: sc_status
       retries: 30
       delay: 30
+      
     - name: Assert for storageclass creation
       assert:
         that: sc_status.resources|length > 0
