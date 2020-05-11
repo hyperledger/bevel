@@ -25,5 +25,5 @@ This is applicable for automation using a CI tool.
 
 2. Execute the following command with an environment file
 ```
-newman run tests/SupplyChainTest.postman_collection.json -e tests/SupplychainDemoCorda.postman_environment.json
+newman run -k tests/SupplyChainTest.postman_collection.json -e tests/SupplychainDemoCorda.postman_environment.json
 ```
