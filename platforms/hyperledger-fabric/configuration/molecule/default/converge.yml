@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   vars:
-    privilege_escalate: true            #escalate root priviledge for default test
+    privilege_escalate: false            #escalate root priviledge for default test
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
     bin_install_dir:  "~/bin"           
@@ -11,119 +11,46 @@
     kubecontext: "kind"
     network:
       env:
-        retry_count: 20                 # Retry count for the checks
+        retry_count: 100                 # Retry count for the checks
+    kubernetes:
+      config_file: "/tmp/molecule/kind-default/kubeconfig"
+      context: kind
+      region: test
   roles:
     - role: create/storageclass
       vars:
-        component_type: "orderer"
-        release_dir: "{{ playbook_dir }}/../../../releases/dev"
-        sc_name: awsordererstorageclass
-        result:
-          resources: ""
-        item:
-          cloud_provider: aws
-          k8s:
-            config_file: "/tmp/molecule/kind-default/kubeconfig"
-            context: kind
-        network:
-          env:
-            retry_count: 100
-    - role: create/storageclass
-      vars:
         component_type: "peer"
-        release_dir: "{{ playbook_dir }}/../../../releases/dev"
+        release_dir: "{{ playbook_dir }}/test"
         sc_name: awspeerstorageclass
-        result:
-          resources: ""
-        kubernetes:
-          region: test
         item:
           cloud_provider: aws
-          k8s:
-            config_file: "/tmp/molecule/kind-default/kubeconfig"
-            context: kind
-        network:
-          env:
-            retry_count: 100
-    - role: create/storageclass
-      vars:
-        component_type: "orderer"
-        release_dir: "{{playbook_dir}}/../../../releases/dev"
-        sc_name: azureordererstorageclass
-        result:
-          resources: ""
-        item:
-          cloud_provider: azure
-          k8s:
-            config_file: "/tmp/molecule/kind-default/kubeconfig"
-            context: kind
-        network:
-          env:
-            retry_count: 100
-    - role: create/storageclass
-      vars:
-        component_type: "peer"
-        release_dir: "{{playbook_dir}}/../../../releases/dev"
-        sc_name: azurepeerstorageclass
-        result:
-          resources: ""
-        kubernetes:
-          region: test
-        item:
-          cloud_provider: azure
-          k8s:
-            config_file: "/tmp/molecule/kind-default/kubeconfig"
-            context: kind
-        network:
-          env:
-            retry_count: 100
     - role: create/namespace_vaultauth
       vars:
-        release_dir: "{{playbook_dir}}/../../../releases/dev"
+        release_dir: "{{ playbook_dir }}/test"
         component_type_name: test
         component_name: test-net
-        result:
-          resources: ""
-        org:
-          name: test
-          k8s:
-            config_file: "/tmp/molecule/kind-default/kubeconfig"
-            context: kind
 
   tasks:
     - name: Deploy the storageclass on cluster
       k8s:
         state: present
-        src: "{{ playbook_dir }}/../../../releases/dev/orderer/awsordererstorageclass.yaml"
-    - name: Deploy the storageclass on cluster
-      k8s:
-        state: present
-        src: "{{ playbook_dir }}/../../../releases/dev/peer/awspeerstorageclass.yaml"
-    - name: Deploy the storageclass on cluster
-      k8s:
-        state: present
-        src: "{{ playbook_dir }}/../../../releases/dev/orderer/azureordererstorageclass.yaml"
-    - name: Deploy the storageclass on cluster
-      k8s:
-        state: present
-        src: "{{ playbook_dir }}/../../../releases/dev/peer/azurepeerstorageclass.yaml"
+        src: "{{ playbook_dir }}/test/peer/awspeerstorageclass.yaml"
     - name: Deploy the namespace on cluster
       k8s:
         state: present
-        src: "{{ playbook_dir }}/../../../releases/dev/test/namespace.yaml"
+        src: "{{ playbook_dir }}/test/test/namespace.yaml"
 
     - name: Deploy vaultauth serviceaccount on cluster
       k8s:
         state: present
-        src: "{{ playbook_dir }}/../../../releases/dev/test/vaultAuth.yaml"
+        src: "{{ playbook_dir }}/test/test/vaultAuth.yaml"
 
     - name: Deploy vaultreviewer serviceaccount on cluster
       k8s:
         state: present
-        src: "{{ playbook_dir }}/../../../releases/dev/test/vault-reviewer.yaml"
+        src: "{{ playbook_dir }}/test/test/vault-reviewer.yaml"
 
     - name: Deploy clusterrolebinding on cluster
       k8s:
         state: present
-        src: "{{ playbook_dir }}/../../../releases/dev/test/reviewer_rbac.yaml"
-        
+        src: "{{ playbook_dir }}/test/test/reviewer_rbac.yaml"
