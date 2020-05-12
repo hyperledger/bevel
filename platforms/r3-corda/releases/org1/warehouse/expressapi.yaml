@@ -1,0 +1,35 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: warehouse-expressapi
+  namespace: warehouse-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  chart:
+    path: examples/supplychain-app/charts/expressapp
+    git: "ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git"
+    ref: "corda"
+  releaseName: warehouse-expressapi
+  values:
+    nodeName: warehouse-expressapi
+    metadata:
+      namespace: warehouse-ns
+    replicaCount: 1
+    expressapp:
+      serviceType: ClusterIP
+      image: index.docker.io/hyperledgerlabs/supplychain_corda:express_app_0.4.1.0
+      pullPolicy: Always
+      pullSecrets: regcred
+      nodePorts:
+        port: 3000
+        targetPort: 3000
+        name: tcp
+      env:
+        apiUrl: https://warehouse-springboot.warehouse-ns:20001/api/v1
+    proxy:
+      provider: ambassador
+      name: warehouse
+      type: corda
+      external_url_suffix: rc.demo.aws.blockchaincloudpoc.com
+      peer_name: warehouse
