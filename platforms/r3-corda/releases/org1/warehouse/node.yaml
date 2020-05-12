@@ -1,0 +1,131 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: warehouse
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: warehouse-ns
+spec:
+  releaseName: warehouse
+  chart:
+    path: platforms/r3-corda/charts/node
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: corda
+  values:
+    nodeName: warehouse
+    replicas: 1
+    metadata:
+      namespace: warehouse-ns
+    image:
+      containerName: index.docker.io/hyperledgerlabs/corda:4.4-linuxkit
+      initContainerName: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+      doormanCertAlias: doorman.rc.demo.aws.blockchaincloudpoc.com
+      networkmapCertAlias: networkmap.rc.demo.aws.blockchaincloudpoc.com
+    nodeConf:
+      p2p:
+        url: warehouse.warehouse-ns
+        port: 10002
+      ambassadorAddress: warehouse.rc.demo.aws.blockchaincloudpoc.com:15010
+      rpcSettings:
+        useSsl: false
+        standAloneBroker: false
+        address: "0.0.0.0:10003"
+        adminAddress: "0.0.0.0:10005"
+        ssl:
+          certificatesDirectory: na-ssl-false
+          sslKeystorePath: na-ssl-false
+          trustStoreFilePath: na-ssl-false
+      legalName: O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US #use peer-node level subject for legalName
+      messagingServerAddress:
+      jvmArgs:
+      systemProperties:
+      sshd:
+        port:
+      exportJMXTo:
+      transactionCacheSizeMegaBytes: 8
+      attachmentContentCacheSizeMegaBytes: 10
+      attachmentCacheBound: 1024
+       
+      detectPublicIp: false
+      database:
+        transactionIsolationLevel: READ_COMMITTED
+        exportHibernateJMXStatistics: false
+      dbUrl: warehousedb
+      dbPort: 9101
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      dataSourceUrl: "jdbc:h2:tcp://warehousedb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+      jarPath: "/data/corda-workspace/h2/bin"
+      networkMapURL: https://networkmap.rc.demo.aws.blockchaincloudpoc.com:8443
+      doormanURL: https://doorman.rc.demo.aws.blockchaincloudpoc.com:8443
+      compatibilityZoneURL:
+      jarVersion: 4.4
+      devMode: false
+      env:
+        - name: JAVA_OPTIONS
+          value: -Xmx512m
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: BASE_DIR
+          value: /base/corda
+    credentials:
+      dataSourceUser: sa
+      rpcUser:
+        - name: warehouseoperations
+          permissions: [ALL]
+
+    cordapps:
+      getcordapps: true
+      jars:
+        - url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/4.4/cordapp-supply-chain-4.4.jar
+        - url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.4/cordapp-contracts-states-4.4.jar
+        
+    volume:
+      baseDir: /base/corda
+    resources:
+      limits: "1Gi"
+      requests: "1Gi" 
+    pvc:
+      name: warehouse-pvc
+      annotations: {}
+      memory: 512Mi
+      storageClassName: awsstorageclass
+
+    service:
+      name: warehouse
+      type: ClusterIP
+      p2p:
+        port: 10002
+        targetPort: 10002
+      rpc:
+        port: 10003
+        targetPort: 10003 
+      rpcadmin:
+        port: 10005
+        targetPort: 10005
+         
+    deployment:
+      annotations: {}
+    vault:
+      address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9000
+      role: vault-role
+      authpath: cordawarehouse
+      serviceaccountname: vault-auth
+      dbsecretprefix: warehouse/credentials/database
+      rpcusersecretprefix: warehouse/credentials/rpcusers
+      tokensecretprefix: warehouse/credentials/vaultroottoken
+      keystoresecretprefix: warehouse/credentials/keystore
+      certsecretprefix: warehouse/certs
+      networkmapsecretprefix: warehouse/credentials/networkmappassword
+      cordappsreposecretprefix: warehouse/credentials/cordapps
+
+          
+    healthcheck:
+      readinesscheckinterval: 20
+      readinessthreshold: 20
+    ambassador:
+      component_name: warehouse
+      external_url_suffix: rc.demo.aws.blockchaincloudpoc.com
+      p2p_ambassador: 15010
+      
