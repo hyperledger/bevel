@@ -78,3 +78,11 @@
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ component_name }}-ambassador-certs --cert={{ ambassadortls }}/ambassador.crt --key={{ ambassadortls }}/ambassador.key -n default
   when: get_ambassador_secret.resources|length == 0
+
+# Copy generated crt to build location for doorman and networkmap
+- name: Copy generated ambassador tls certs to given build location
+  copy:
+    src: "{{ ambassadortls }}/ambassador.crt"
+    dest: "{{ cert_file }}"
+    follow: yes
+  when: cert_file is defined
