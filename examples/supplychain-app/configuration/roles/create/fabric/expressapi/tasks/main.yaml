@@ -32,3 +32,18 @@
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "Pushing deployment files for fabric expressapi"
   when: component_type == 'peer'
+
+# Wait for express-api Pod to run
+- name: "Waiting for express-api pod in {{ component_ns }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ organization_data.name | lower }}-expressapi"
+    kubernetes: "{{ organization_data.k8s }}"
+    check: "app"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: organization_data.type == 'peer' and peer_data.expressapi is defined
