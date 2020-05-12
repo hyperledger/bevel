@@ -17,7 +17,7 @@ spec:
     metadata:
       namespace: {{ component_ns }}
     image:
-      containerName: {{ network.docker.url }}/supplychain_corda:springboot_latest
+      containerName: {{ network.docker.url }}/supplychain_corda:{{ image_tag }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       imagePullSecret: regcred
       privateCertificate: true
