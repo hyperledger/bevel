@@ -32,6 +32,8 @@ pipeline {
     KUBE_CREDS="aws_demo_kubeconfig"
     //Secret which contains Jenkins gitops private key
     GITOPS_CREDS="jenkins_gitops_key"
+    //Secret which contains username and password for Nexus repo for Corda jars
+    NEXUS_CREDS="nexus_user"
     //Secret which contains vault private key
     VAULT_CREDS="aws_demo_vault_key"
     //Secret which contains Vault token
@@ -137,7 +139,7 @@ pipeline {
     }
     stage('indy-settings'){
       when {
-        branch 'corda';
+        branch 'indy';
       }
       steps {
         script {
@@ -245,6 +247,18 @@ pipeline {
                   sed -i -e 's*GMAPS_TOKEN*${KEY}*g' build/network.yaml
                   sed -i -e 's*GMAPS_TOKEN*${KEY}*g' build/addorg.yaml
                   sed -i -e 's*GMAPS_TOKEN*${KEY}*g' build/application.yaml
+              """
+          }
+          withCredentials([
+              usernamePassword(credentialsId: "${NEXUS_CREDS}", 
+              usernameVariable: 'USERNAME', 
+              passwordVariable: 'PASSWORD'
+            )]) {
+              sh """
+                  sed -i -e 's*NEXUS_USER*${USERNAME}*g' build/network.yaml
+                  sed -i -e 's*NEXUS_USER*${USERNAME}*g' build/network.yaml
+                  sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/addorg.yaml
+                  sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/addorg.yaml
               """
           }
       }
