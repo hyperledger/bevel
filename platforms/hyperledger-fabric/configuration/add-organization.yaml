@@ -12,6 +12,12 @@
   gather_facts: no
   tasks:
 
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+        
     # Create Namespaces and Vault-rbac kubernetes-value files for new organization
     - include_role:
         name: "create/namespace_vaultauth"
@@ -21,7 +27,7 @@
         kubernetes: "{{ item.k8s }}"
         release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.org_status == 'new'
+      when: item.org_status == 'new'
     
     #Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
     - include_role: 
@@ -33,7 +39,7 @@
         component_type: "{{ item.type | lower }}"
         auth_path: "{{ item.name | lower }}-net-auth"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.org_status == 'new'
+      when: item.org_status == 'new'
 
     # Create Storageclass for new organization
     - include_role:
@@ -44,7 +50,7 @@
         kubernetes: "{{ item.k8s }}"
         release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.org_status == 'new'
+      when: item.org_status == 'new'
         
     # Create CA Server value files and check-in for new organization
     - include_role:
@@ -61,7 +67,7 @@
         gitops: "{{ item.gitops }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.services.ca is defined and item.org_status == 'new'
+      when: item.services.ca is defined and item.org_status == 'new'
         
     # Create CA Tools value files and check-in for new organization
     - include_role:
@@ -77,7 +83,7 @@
         gitops: "{{ item.gitops }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.org_status == 'new'
+      when: item.org_status == 'new'
 
     # Create generate_crypto script for new organization
     - include_role:
@@ -86,7 +92,7 @@
         component_type: "{{ item.type | lower}}"
         orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.org_status == 'new'
+      when: item.org_status == 'new'
     
     # Generate script to modify the fetched configuration block
     - include_role:
@@ -96,7 +102,6 @@
         participants: "{{ item.participants }}"
         channel_name: "{{ item.channel_name | lower}}"
       loop: "{{ network['channels'] }}"
-      when: network.type == 'fabric' 
 
     #Creating a pause so that the client certificates are valid
     # You can continue if the CA-server pods are running for more than 5 minutes
@@ -117,7 +122,7 @@
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer' and item.org_status == 'new'
+      when: item.type == 'peer' and item.org_status == 'new'
 
     # Creating channel artifacts and putting them in vault
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
@@ -126,7 +131,6 @@
         name: "create/configtx"
       vars:
         config_file: "./build/configtx.yaml"
-      when: network.type == 'fabric'
 
     # This role generate genesis block and channeltx
     # Generates the config.json from the configtx.yaml for new organization
@@ -138,7 +142,6 @@
         channel_name: "{{ item.channel_name | lower}}"
         profile_name: "{{ item.channel_name }}"
       loop: "{{ network['channels'] }}"
-      when: network.type == 'fabric'
 
     # This role is to start the existing peer cli
     # Fetch the configuration block and modify the block
@@ -166,7 +169,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer' and item.org_status == 'new'
+      when: item.type == 'peer' and item.org_status == 'new'
 
     # This role fetch the block from the ansible host and get it signed from each existing organization admin
     - include_role:
@@ -186,11 +189,6 @@
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
 
-    # delete build directory
-    - name: Remove build directory
-      file:
-        path: "./build"
-        state: absent
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS

@@ -1,11 +1,11 @@
 # Charts for Quorum components
 
 ## About
-This folder contains helm charts which are used by the ansible playbooks for the deployment of the component. Each chart folder contain a folder for templates, chart file and the corresponding value file. 
+This folder contains helm charts which are used by the ansible playbooks for the deployment of the Quorum components. Each chart folder contain a folder for templates, chart file and the corresponding value file. 
 
 ## Example Folder Structure ###
 ```
-/raft_constellation
+/node_constellation
 |-- templates
 |   |-- _helpers.tpl
 |   |-- configmap.yaml
@@ -23,5 +23,7 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Charts description ##
 
-### 1. raft_constellation ###
-- This folder contains chart templates and default values for deploying a RAFT node with Constellation Transaction Manager.
+### 1. node_constellation ###
+- This folder contains chart templates and default values for deploying a node with Constellation transaction manager.
+### 2. node_tessera ###
+- This folder contains chart templates and default values for deploying a node with Tessera transaction manager.

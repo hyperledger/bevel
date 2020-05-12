@@ -8,7 +8,7 @@ Quickstart Guides
    :maxdepth: 1
    
    developer/dev_prereq
-   developer/mac_minikube_setup
+   developer/baf_minikube_setup
    developer/docker-build
 
 Additional Developer prerequisites
@@ -78,6 +78,7 @@ Ansible Roles and Playbooks
    developer/corda-ansible
    developer/fabric-ansible
    developer/indy-ansible
+   developer/quorum-ansible
 
 Helm Charts 
 ---------------------------
@@ -89,6 +90,7 @@ Helm Charts
    developer/corda-helmcharts
    developer/fabric-helmcharts
    developer/indy-helmcharts
+   developer/quorum-helmcharts
 
 Jenkins 
 ---------------------------

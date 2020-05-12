@@ -23,8 +23,6 @@
       - aws_auth
 
   - name: Install aws-authenticator
-    become: "{{ privilege_escalate }}"
-    become_user: root
     get_url:
       url: "https://amazon-eks.s3-us-west-2.amazonaws.com/{{ aws_authenticator.version }}/{{ aws_authenticator.release_date }}\
       /bin/{{ aws_authenticator.os }}/{{ aws_authenticator.arch }}/aws-iam-authenticator"
@@ -36,7 +34,7 @@
       - aws_auth
 
   - name: Test Kubernetes connection
-    k8s_facts:
+    k8s_info:
       kind: Pod
       namespace: default
       kubeconfig: "{{ kubeconfig_path }}"

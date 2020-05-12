@@ -1,11 +1,12 @@
 Certificate Paths on Vault for Indy Network
 ---------------------------------------------
 
-### For each organization
-| Path                                                                                 | Key (for Vault)                        | Type             |
-|--------------------------------------------------------------------------------------|----------------------------------------|------------------|
-| /`org_name_lowercase`/role (trustees / stewards / endorsers)/`identity_name_lowercase`/identity/private/            | seed                                   | String           |
-| /`org_name_lowercase`/role (trustees / stewards / endorsers)/`identity_name_lowercase`/identity/public/             | did                                    | String           |
+### For each organization 
+
+| Path                | Key (for Vault)                        | Type             |
+|-----------------------------------|--------------------------|------------------|
+| /`org_name_lowercase`/role (trustees / stewards / endorsers)/`identity_name_lowercase`/identity/private/            | seed                | String           |
+| /`org_name_lowercase`/role (trustees / stewards / endorsers)/`identity_name_lowercase`/identity/public/             | did                 | String           |
 | /`org_name_lowercase`/role (trustees / stewards / endorsers)/`identity_name_lowercase`/node/private/private_keys/   | `steward_name_lowercase`.key_secret    | Private Key      |
 | /`org_name_lowercase`/role (trustees / stewards / endorsers)/`identity_name_lowercase`/node/private/bls_keys/       | bls_sk                                 | Secret Key       |
 | /`org_name_lowercase`/role (trustees / stewards / endorsers)/`identity_name_lowercase`/node/private/sig_keys/       | `steward_name_lowercase`.key_secret    | Private Key      |

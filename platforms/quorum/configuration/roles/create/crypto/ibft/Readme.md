@@ -1,11 +1,20 @@
 ## ROLE: create/crypto/ibft
 This role generates the crypto material for ibft consensus
+### main.yaml
+### Tasks
 
-### Tasks of nested_main.yaml
+#### 1. Create crypto material for each peer with IBFT consensus
+**include_tasks**: It includes the name of intermediary task nested_main.yaml, which is required for creating crypto materials
+**loop**: loops over all the peers in the organisation
+**loop_control**: Specified the condition for controlling the loop.
 
-#### A. Create crypto material for each peer with ibft consensus
-This task calls in nested_main.yaml which generates crypto material for each peer with RAFT consensus.
+    loop_var: loop variable used for iterating over the loop.
 
+-----------------------
+
+### nested_main.yaml
+
+### Tasks
 #### 1. Check if nodekey already present in the vault
 This tasks checks if nodekey is already present in the vault
 

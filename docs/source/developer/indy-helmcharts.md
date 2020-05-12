@@ -1,5 +1,4 @@
-# Indy Charts
-
+# Indy Charts  
 The structure below represents the Chart structure for Hyperledger Indy components in the Blockchain Automation Framework 
 implementation.
 
@@ -201,5 +200,3 @@ This folder consists of pool genesis helm chart which is used to generate the po
 - This file contains the information about the chart such as apiversion, appversion ,name etc.
 #### values.yaml
 - This file contains the default configuration values for the chart.
-
-----------

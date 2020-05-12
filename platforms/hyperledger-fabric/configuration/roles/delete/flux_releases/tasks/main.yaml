@@ -3,76 +3,24 @@
 #############################################################################################
 
 #############################################################################################
-- name: Deletes the CA server helmrelease
-  k8s_raw:
-    kind: Helmrelease
-    namespace: "{{ component_name }}"
-    name: "{{ component_name }}-ca"
-    state: absent
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  ignore_errors: yes
-
-- name: Deletes the CA tools helmrelease
-  k8s_raw:
-    kind: Helmrelease
-    namespace: "{{ component_name }}"
-    name: "{{ component_name }}-ca-tools"
-    state: absent
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  ignore_errors: yes
-
-- name: Remove CA Helm releases
+- name: Deletes all the helmreleases CRD
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge "{{ component_name }}-ca" "{{ component_name }}-ca-tools"
+    KUBECONFIG={{ kubernetes.config_file }} kubectl delete --all helmrelease -n "{{ component_name }}"
   ignore_errors: yes
 
-- name: Deletes the Orderer helmrelease
-  k8s_raw:
-    kind: Helmrelease
-    namespace: "{{ component_name }}"
-    name: "{{ org_name }}-{{ orderer.name }}"
-    state: absent
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  loop: "{{ component_services.orderers }}"
-  loop_control:
-    loop_var: orderer
-  when: component_type == 'orderer'
-  ignore_errors: yes
-
-- name: Remove Helm releases for orderer
+- name: Remove all Helm releases
+  args:
+    executable: /bin/bash
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge "zkkafka-{{ org_name }}-orderer" "{{ org_name }}-{{ orderer.name}}"
-  loop: "{{ component_services.orderers }}"
-  loop_control:
-    loop_var: orderer
-  when: component_type == 'orderer'
-  ignore_errors: yes
-
-- name: Remove Helm releases for peers
-  shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge "{{ org_name }}-peer0" "join-allchannel-{{ org_name }}-peer0" "channel-{{ org_name }}"
-  when: component_type == 'peer'
-  ignore_errors: yes
-
-- name: Remove Helm releases for channels
-  shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge "chaincode-install-{{ org_name }}-peer0-1" instantiate-{{ org_name }}-peer0-allchannel-supplychain1
-  when: component_type == 'peer'
-  ignore_errors: yes
-
-# Uninstalling Flux is needed so that everything is clean
-# remove this if not needed
-- name: Uninstall flux
-  shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux-{{ network.env.type }}
+    helm_releases=($(KUBECONFIG={{ kubernetes.config_file }} helm ls -a | grep "{{ org_name }}" | awk '{print $1}'))
+    for helm_release in "${helm_releases[@]}"
+    do
+      KUBECONFIG={{ kubernetes.config_file }} helm delete ${helm_release} --purge
+    done
   ignore_errors: yes
 
 - name: Deletes namespaces
-  k8s_raw:
+  k8s:
     kind: Namespace
     name: "{{ component_name }}"
     state: absent

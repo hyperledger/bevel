@@ -1,0 +1,191 @@
+---
+# Travis CI file for automated test, build and release-artifact creation
+# Base machine is linux, xenial with openjdk8
+dist: xenial
+os: linux
+language: java
+jdk: 
+  - openjdk8
+
+# This starts the docker daemon and services
+services:
+  - docker
+
+# The following tags (staring with _ ) are private aliases which are used to group same stages like a function
+
+# _molecule is used to run molecule test jobs
+# ENV Vars are DIR and the molecule SCENARIO
+_molecule: &molecule
+  stage: Unit Tests
+  language: python
+  python:
+    - "3.6"
+  install:
+    - pip install molecule yamllint ansible-lint docker openshift
+  script:
+    - cd $DIR
+    - molecule test -s $SCENARIO
+
+# _node_build is used for maven build and upload to dockerhub
+# ENV Vars are DIR and the docker IMAGE_NAME and the docker_build ARGS
+_node_build: &node_build
+  stage: Build
+  install:
+    - curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+    - sudo apt-get install -y nodejs
+  script:
+    - cd $DIR
+    - mvn clean install       
+    - |           # Docker is being repeated because TravisCI does not allow sharing of cache
+        echo $TRAVIS_BRANCH
+        echo $TRAVIS_TAG
+        if [[ $TRAVIS_BRANCH == "master" ]]; then
+          local_tag="stable"
+        elif [[ ${TRAVIS_TAG:0:1} == "v" ]]; then
+          local_tag=$TAG_PREFIX${TRAVIS_TAG:1}
+        else
+          local_tag=$TAG_PREFIX"latest"
+        fi
+    - echo $local_tag
+    - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+    - docker build $ARGS -t $IMAGE_NAME:$local_tag .
+    - docker push $IMAGE_NAME:$local_tag 
+
+# _docker_push is used for build image and upload to dockerhub
+# ENV Vars are DIR and the docker IMAGE_NAME and the docker_build ARGS
+_docker_push: &docker_push
+  stage: Build
+  install: skip
+  script:
+    - cd $DIR
+    - |
+        echo $TRAVIS_BRANCH
+        echo $TRAVIS_TAG
+        if [[ $TRAVIS_BRANCH == "master" ]]; then
+          local_tag="stable"
+        elif [[ ${TRAVIS_TAG:0:1} == "v" ]]; then
+          local_tag=$TAG_PREFIX${TRAVIS_TAG:1}
+        else
+          local_tag=$TAG_PREFIX"latest"
+        fi
+    - echo $local_tag
+    - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+    - docker build $ARGS -t $IMAGE_NAME:$local_tag .
+    - docker push $IMAGE_NAME:$local_tag          
+
+stages:
+  - name: Unit Tests
+    # the if condition specifies that this stage will run only if tag is blank
+    if: tag IS blank
+  - name: Build
+    # the if condition specifies all build jobs run only for master and develop branch and for tags starting with v
+    if: (branch IN ("master", "develop") AND type != pull_request) OR tag =~ /^(v)/
+
+# The actual job definition starts from here
+jobs:
+  fast_finish: true
+  include:
+    - stage: Unit Tests       # Test the cordapps
+      name: Test Cordapps
+      install: skip
+      script:
+        - cd examples/supplychain-app/corda/cordApps_springBoot
+        - ./gradlew test
+    - <<: *molecule       # use _molecule alias to run molecule test for shared dir
+      name: Shared test
+      env: 
+        - DIR: platforms/shared/configuration
+        - SCENARIO: default
+    - <<: *molecule       # use _molecule alias to run molecule test for Corda shared dir
+      name: Corda test
+      env:
+        - DIR: platforms/shared/configuration
+        - SCENARIO: kubernetes-corda
+    - <<: *molecule
+      name: Fabric test   # use molecule alias to run molecule test for Fabric shared dir
+      env: 
+        - DIR: platforms/shared/configuration
+        - SCENARIO: kubernetes-fabric
+    - <<: *molecule
+      name: Indy test     # use molecule alias to run molecule test for Indy shared dir
+      env: 
+        - DIR: platforms/shared/configuration
+        - SCENARIO: kubernetes-indy
+    #TODO Add platforms/..corda molecule test(s) 
+    #TODO Add platforms/..fabric molecule test(s)
+    #TODO Add platforms/..indy molecule test(s)
+    #TODO Add platforms/..quorum molecule test(s)
+    #TODO Add fabric chaincode test(s)
+    #TODO Add quorum smartcontract test(s)
+    #TODO Add application molecule test(s)
+    - <<: *node_build           # use node_build alias to run doorman build
+      name: Corda Doorman build
+      env: 
+        - DIR: platforms/r3-corda/images/doorman
+        - IMAGE_NAME: "hyperledgerlabs/doorman-linuxkit"
+    - <<: *node_build           # use node_build alias to run networkmap build
+      name: Corda Networkmap build
+      env:
+        - DIR: platforms/r3-corda/images/networkmap
+        - IMAGE_NAME: "hyperledgerlabs/networkmap-linuxkit"
+    #TODO Add corda (specific version) image build
+    #TODO Add baf-build image build
+    #TODO Add Indy image build job
+    - stage: Build
+      name: Build Corda springboot-web and release Cordapps # Build cordapps and push corda springboot image
+      install: skip
+      env:
+        - IMAGE_NAME: "hyperledgerlabs/supplychain_corda"
+        - TAG_PREFIX: "springboot_"
+      script:
+        - |
+            echo $TRAVIS_TAG
+            if [[ -z $TRAVIS_TAG ]]; then
+              VERSION="0.1"
+            elif [[ ${TRAVIS_TAG:0:1} == "v" ]]; then
+              VERSION=${TRAVIS_TAG:1}
+            else
+              VERSION="0.1"
+            fi
+        - cd examples/supplychain-app/corda/cordApps_springBoot
+        - echo $VERSION
+        - ./gradlew -Pversion=$VERSION deployWebapps
+        - ./gradlew -Pversion=$VERSION build
+        - |           # Docker is being repeated because TravisCI does not allow sharing of cache
+            echo $TRAVIS_BRANCH
+            echo $TRAVIS_TAG
+            if [[ $TRAVIS_BRANCH == "master" ]]; then
+              local_tag="stable"
+            elif [[ ${TRAVIS_TAG:0:1} == "v" ]]; then
+              local_tag=$TAG_PREFIX${TRAVIS_TAG:1}
+            else
+              local_tag=$TAG_PREFIX"latest"
+            fi
+        - echo $local_tag
+        - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+        - docker build --build-arg var_WEBAPP_NAME=webserver-supply-chain-$VERSION.jar -t $IMAGE_NAME:$local_tag .
+        - docker push $IMAGE_NAME:$local_tag
+    - <<: *docker_push
+      name: Build Corda express_app image     # use docker_push alias to create corda express_app image
+      env:
+        - DIR: "examples/supplychain-app/corda/express_nodeJS"
+        - IMAGE_NAME: "hyperledgerlabs/supplychain_corda"
+        - TAG_PREFIX: "express_app_" 
+    - <<: *docker_push
+      name: Build Supplychain frontend image       # use docker_push alias to create supplychain frontend image
+      env:
+        - DIR: "examples/supplychain-app/supplychain-frontend"
+        - IMAGE_NAME: "hyperledgerlabs/supplychain_frontend"
+    - <<: *docker_push
+      name: Build Fabric rest_server image        # use docker_push alias to create fabric restserver image
+      env:
+        - DIR: "examples/supplychain-app/fabric/chaincode_rest_server/rest-server"
+        - IMAGE_NAME: "hyperledgerlabs/supplychain_fabric"
+        - TAG_PREFIX: "rest_server_"
+    - <<: *docker_push
+      name: Build Fabric express_app image        # use docker_push alias to create fabric express_app image
+      env:
+        - DIR: "examples/supplychain-app/fabric/express_nodeJs"
+        - IMAGE_NAME: "hyperledgerlabs/supplychain_fabric"
+        - TAG_PREFIX: "express_app_"
+    #TODO Add quorum express_app image build

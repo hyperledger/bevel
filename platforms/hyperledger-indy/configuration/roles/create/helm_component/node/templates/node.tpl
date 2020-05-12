@@ -26,7 +26,7 @@ spec:
         repository: alpine:3.9.4
       indyNode:
         name: {{ component_name }}
-        repository: {{ network.docker.url }}/indy-node:0.3.0.0
+        repository: {{ network.docker.url }}/indy-node:{{ network.version }}
     node:
       name: {{ stewardItem.name }}
       ip: 0.0.0.0
@@ -35,6 +35,11 @@ spec:
       ip: 0.0.0.0
       port: {{ stewardItem.client.port }}
     service:
+{% if organizationItem.cloud_provider != 'minikube' %}
+      type: ClusterIP
+{% else %}
+      type: NodePort
+{% endif %}
       ports:
         nodePort: {{ stewardItem.node.port }}
         nodeTargetPort: {{ stewardItem.node.targetPort }}
@@ -61,6 +66,7 @@ spec:
         # Directory to store node info.
         NODE_INFO_DIR = '/var/lib/indy/data'
     ambassador:
+{% if organizationItem.cloud_provider != 'minikube' and network.env.proxy == 'ambassador' %}
       annotations: |-
         ---
         apiVersion: ambassador/v1
@@ -74,6 +80,9 @@ spec:
         name: {{ component_name|e }}-client-mapping
         port: {{ stewardItem.client.ambassador }}
         service: {{ component_name|e }}.{{ component_ns }}:{{ stewardItem.client.targetPort }}
+{% else %}
+      disabled: true
+{% endif %}
     vault:
       address: {{ vault.url }}
       serviceAccountName: {{ organizationItem.name }}-{{ stewardItem.name }}-vault-auth

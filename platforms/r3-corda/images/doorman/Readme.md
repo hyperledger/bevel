@@ -40,6 +40,6 @@ Example: To run using env variables
 ```
 2. The above command will create an image with tag *doorman:1.0*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command below:
 ```
-	sudo docker tag doorman:1.0 adopblockchaincloud0502.azurecr.io/doorman:latest
-	sudo docker push adopblockchaincloud0502.azurecr.io/doorman:latest
+	sudo docker tag doorman:1.0 hyperledgerlabs/doorman-linuxkit:latest
+	sudo docker push hyperledgerlabs/doorman-linuxkit:latest
 ```

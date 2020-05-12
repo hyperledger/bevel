@@ -21,12 +21,6 @@ metadata:
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
       ---
       apiVersion: ambassador/v1
-      kind: TCPMapping
-      name: {{ .Values.node.name }}-raft
-      port: {{ .Values.proxy.portRaft }}
-      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.raft }}
-      ---
-      apiVersion: ambassador/v1
       kind: Mapping
       name: {{ .Values.node.name }}-tm      
       host: {{ .Values.proxy.external_url }}:{{ .Values.proxy.portTM }}
@@ -41,6 +35,14 @@ metadata:
       hosts:
       - {{ .Values.proxy.external_url }}
       secret: {{ .Values.node.name }}-ambassador-certs
+      {{- if eq $.Values.node.consensus "raft" }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.node.name }}-raft
+      port: {{ .Values.proxy.portRaft }}
+      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.raft }}
+      {{- end }}
     {{- end }}
   creationTimestamp: null
   labels:
@@ -57,10 +59,12 @@ spec:
     protocol: TCP
     port: {{ .Values.node.ports.rpc }}
     targetPort: {{ .Values.node.ports.rpc }}
+{{- if eq $.Values.node.consensus "raft" }}
   - name: raft
     protocol: TCP
     port: {{ .Values.node.ports.raft }}
     targetPort: {{ .Values.node.ports.raft }}
+{{- end }}
   - name: tm-manager
     protocol: TCP
     port: {{ .Values.node.ports.tm }}
@@ -73,5 +77,9 @@ spec:
     protocol: TCP
     port: 9080
     targetPort: 9080
+  - name: mysql-db
+    protocol: TCP
+    port: {{ .Values.node.ports.db }}
+    targetPort: {{ .Values.node.ports.db }}
   selector:
     service.rpc: {{ .Values.node.name }}

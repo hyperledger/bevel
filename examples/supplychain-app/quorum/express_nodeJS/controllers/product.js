@@ -1,284 +1,213 @@
-/* This file contains all routes and API calls for the Product Smart Contract
-*/
+var express = require('express')
+  , router = express.Router();
 
-var Web3 = require("web3");
-var express = require("express"),
-  router = express();
-var bodyParser = require("body-parser");
-require('dotenv').config(".env");
+const { productContract, fromAddress, fromNodeSubject } = require('../web3services');
+var multer = require('multer'); // v1.0.5
+var upload = multer(); // for parsing multipart/form-data
+var bodyParser = require('body-parser');
 
-const web3Host = process.env['WEB3_LOCAL_HOST'];
-const port = process.env['PORT'];
-
-web3 = new Web3(new Web3.providers.HttpProvider(web3Host));
-
-//set up the express router
 router.use(bodyParser.json()); // for parsing application/json
-// const port = 8000;
-router.get("/", (req, res) => res.send("You have reached the correct endpoint, please use complete API paths for requests"));
-router.listen(port, () =>
-  console.log(`App listening on port ${port}!`)
-);
 
-/* address of smart contract
-*/ 
-var address = process.env['TOADDRESS'];
-var fromAddress = process.env['FROMADDRESS'];
+// Get products not assigned to a container
 
-/* ABI generated from smart contract
-* has definition for all methods and variables in contract
-*/
-var abi = [
-	{
-		"inputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "ID",
-				"type": "string"
-			}
-		],
-		"name": "productAdded",
-		"type": "event"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_productName",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_health",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_misc",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_trackingID",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_lastScannedAt",
-				"type": "string"
-			}
-		],
-		"name": "addProduct",
-		"outputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "count",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "counterparties",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "getAllProducts",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"name": "miscellaneous",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "supplyChain",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "productName",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "health",
-				"type": "string"
-			},
-			{
-				"internalType": "bool",
-				"name": "sold",
-				"type": "bool"
-			},
-			{
-				"internalType": "bool",
-				"name": "recalled",
-				"type": "bool"
-			},
-			{
-				"internalType": "string",
-				"name": "custodian",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "trackingID",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "lastScannedAt",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"name": "transactionHistory",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "containerID",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	}
-];
+router.get('/containerless', function (req, res) {
+  var productCount;
+  var containerlessArray = [];
+  productContract.methods
+    .getProductsLength()
+    .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
+    .then(async response => {
+      productCount = response;
+      console.log("LENGTH ", response);
+      for (var i = 1; i <= productCount; i++) {
+        var toPush = await productContract.methods
+          .getContainerlessAt(i - 1)
+          .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
+        var product = {};
+        if (toPush.trackingID != 0) {
+          product.trackingID = toPush.trackingID;
+          product.productName = toPush.productName;
+          product.health = toPush.health;
+          product.sold = toPush.sold;
+          product.recalled = toPush.recalled;
+          product.custodian = toPush.custodian;
+          product.custodian = product.custodian + "," + toPush.lastScannedAt;
+          product.time = (new Date(toPush.timestamp * 1000)).getTime();
+          product.lastScannedAt = toPush.lastScannedAt;
+          product.containerID = toPush.containerID;
+          product.misc = {};
+          for (var j = 0; j < toPush.misc.length; j++) {
+            var json = JSON.parse(toPush.misc[j]);
+            var key = Object.keys(json);
+            product.misc[key] = json[key];
+          }
+          product.linearId = {
+            "externalId": null,
+            "id": toPush.trackingID
+          };
+          product.participants = toPush.participants;
+          containerlessArray.push(product);
+        }
+      }
+      res.send(containerlessArray)
+    })
+});
 
-//instantiate the product smartcontract 
-var productContract = new web3.eth.Contract(abi, address);
+//GET product with or without trackingID
+// Get single product
+router.get('/:trackingID?', function (req, res) {
+  if (req.params.trackingID != null) {
+    const trackingID = req.params.trackingID;
+    console.log(trackingID, "***");
+    productContract.methods
+      .getSingleProduct(req.params.trackingID)
+      .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
+      .then(response => {
+        var newProduct = response;
+        var product = {};
+        product.productName = newProduct.productName;
+        product.health = newProduct.health;
+        product.sold = false;
+        product.recalled = false;
+        product.misc = {};
 
-//POST METHODS
+        for (var j = 0; j < newProduct.misc.length; j++) {
+          var json = JSON.parse(newProduct.misc[j]);
+          var key = Object.keys(json);
+          product.misc[key] = json[key];
+        }
 
-//Post New Product Method 
-router.post("/api/v1/product", function(req, res) {
+        product.custodian = newProduct.custodian;
+          product.custodian = product.custodian + "," + newProduct.lastScannedAt;
+          product.trackingID = newProduct.trackingID;
+          product.timestamp = (new Date(newProduct.timestamp * 1000)).getTime();
+          product.containerID = newProduct.containerID;
+          product.linearId = {
+            "externalId": null,
+            "id": newProduct.trackingID
+          };
+          product.participants = newProduct.participants;
+        res.send(product);
+
+      })
+      .catch(error => {
+        console.log(error);
+        res.send("error");
+      });
+  } else {
+    // TODO: Get all products
+    var arrayLength;
+    var displayArray = [];
+    productContract.methods
+      .getProductsLength()
+      .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
+      .then(async response => {
+        arrayLength = response;
+        console.log("LENGTH ", response);
+        for (var i = 1; i <= arrayLength; i++) {
+          var toPush = await productContract.methods
+            .getProductAt(i)
+            .call({ from: fromAddress, gas: 6721975, gasPrice: "0" })
+          var product = {};
+          product.productName = toPush.productName;
+          product.health = toPush.health;
+          product.sold = false;
+          product.recalled = false;
+          product.misc = {};
+          for (var j = 0; j < toPush.misc.length; j++) {
+            var json = JSON.parse(toPush.misc[j]);
+            var key = Object.keys(json);
+            product.misc[key] = json[key];
+          }
+
+
+          product.custodian = toPush.custodian;
+            product.custodian = product.custodian + "," + toPush.lastScannedAt;
+            product.trackingID = toPush.trackingID;
+            product.timestamp = (new Date(toPush.timestamp * 1000)).getTime();
+            product.containerID = toPush.containerID;
+            product.linearId = {
+              "externalId": null,
+              "id": toPush.trackingID
+            };
+            product.participants = toPush.participants;
+          displayArray.push(product);
+        }
+        res.send(displayArray)
+      })
+      .catch(err => {
+        res.send(err.message);
+        console.log(err);
+      })
+  }
+})
+
+//POST for new product
+router.post('/', upload.array(), function (req, res) {
+  // TODO: Create product
   let newProduct = {
     productName: req.body.productName,
-    misc: { name: req.body.misc.name },
+    misc: req.body.misc,
     trackingID: req.body.trackingID,
-    counterparties: req.body.counterparties
+    counterparties: req.body.counterparties,
+    lastScannedAt: fromNodeSubject
   };
+  var misc = [];
+  var keys = Object.keys(newProduct.misc);
 
+  for (var i = 0; i < keys.length; i++) {
+    var x = "{ \"" + keys[i] + '\": ' + JSON.stringify(newProduct.misc[keys[i]]) + "}";
+    misc.push(x);
+  }
+  console.log(misc);
   productContract.methods
     .addProduct(
+      newProduct.trackingID,
       newProduct.productName,
       "health",
-      JSON.stringify(newProduct.misc),
-      newProduct.trackingID,
-      ""
+      misc,
+      newProduct.lastScannedAt,
+      newProduct.counterparties,
     )
-    .send({ from: fromAddress })
-    .on("receipt", function(receipt) {
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
+    .on("receipt", function (receipt) {
       // receipt example
-      console.log(receipt);
       if (receipt.status === true) {
-        res.send("Transaction successful");
+        res.send({ generatedID: newProduct.trackingID });
+        console.log(receipt.events.productHistoryEvent.returnValues)
+
       }
       if (receipt.status === false) {
+        console.log("Request error");
         res.send("Transaction not successful");
       }
     })
-    .on("error", function(error, receipt) {
-      res.send("Error! "+ JSON.stringify(error, null, 4));
+    .on("error", function (error) {
+      res.send("Error! " + error);
       console.log("error" + JSON.stringify(error, null, 4));
       console.log(error);
     });
+})
+
+//PUT for updating custodian
+router.put('/:trackingID/custodian', function (req, res) {
+  // TODO: Implement change custodian functionality
+  var identityArray = fromNodeSubject.split(',');
+  var trackingID = req.params.trackingID;
+  var longLatCoordinates = identityArray[3];
+  var lastScannedAt = fromNodeSubject;
+  console.log(trackingID);
+  console.log(longLatCoordinates);
+  productContract.methods
+    .updateCustodian(trackingID, lastScannedAt)
+    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
+    .then(response => {
+      res.send(response)
+    })
+    .catch(error => {
+      console.log(error)
+      res.send(error.message)
+    })
 });
 
-
-
-module.exports = router;
+module.exports = router

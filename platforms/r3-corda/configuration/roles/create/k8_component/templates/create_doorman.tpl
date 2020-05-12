@@ -64,7 +64,12 @@ spec:
     service:
       port: {{ services.doorman.ports.servicePort }}
       targetPort: {{ services.doorman.ports.targetPort }}
+{% if services.doorman.ports.nodePort is defined %}
+      type: NodePort
+      nodePort: {{ services.doorman.ports.nodePort }}
+{% else %}
       type: ClusterIP
+{% endif %}
       annotations: {}
     deployment:
       annotations: {}

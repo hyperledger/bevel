@@ -31,7 +31,9 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.todo',
-    'sphinx_markdown_tables'
+    'sphinx_markdown_tables',
+    'recommonmark',
+    'sphinxcontrib.mermaid'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -42,11 +44,10 @@ templates_path = ['_templates']
 # for Sphinx-1.3 ###MARKDOWN
 from recommonmark.parser import CommonMarkParser
 
-source_parsers = {
-    '.md': CommonMarkParser,
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
 }
-
-source_suffix = ['.rst', '.md']
 #source_suffix = '.rst'
 
 # The master toctree document.
@@ -187,3 +188,7 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
+
+html_css_files = [
+    'custom.css',
+]

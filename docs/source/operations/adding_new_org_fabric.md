@@ -1,5 +1,5 @@
 <a name = "adding-new-org-to-existing-network-in-fabric"></a>
-# Adding new organization to existing network in Hyperledger Fabric
+# Adding a new organization in Hyperledger Fabric
 
 - [Prerequisites](#prerequisites)
 - [Modifying configuration file](#create_config_file)
@@ -8,8 +8,12 @@
 
 <a name = "prerequisites"></a>
 ## Prerequisites
-To add a new organization a fully configured Fabric network must be present already, i.e. a Fabric network which has Orderers, Peers, Channels (with all Peers already in the channels). The corresponding crypto materials should also be present in their respective Hashicorp Vault. Addition of a new organization has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
+To add a new organization a fully configured Fabric network must be present already, i.e. a Fabric network which has Orderers, Peers, Channels (with all Peers already in the channels). The corresponding crypto materials should also be present in their respective Hashicorp Vault. 
 
+---
+**NOTE**: Addition of a new organization has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
+
+---
 
 <a name = "create_config_file"></a>
 ## Modifying Configuration File

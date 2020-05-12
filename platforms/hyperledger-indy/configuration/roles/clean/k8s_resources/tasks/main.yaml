@@ -1,12 +1,19 @@
 # Remove all Helm releases of organization
 - name: Remove all Helm releases of organization {{ organization }}
+  args:
+    executable: /bin/bash
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} helm ls | grep {{ organization }}- | awk '{print $1}' | xargs --no-run-if-empty helm delete --purge
+    helm_releases=($(KUBECONFIG={{ kubernetes.config_file }} helm ls -a | grep {{ organization }}- | awk '{print $1}'))
+    for helm_release in "${helm_releases[@]}"
+    do
+      KUBECONFIG={{ kubernetes.config_file }} helm delete ${helm_release} --purge
+    done
 
 # Get all existing Cluster Role Bindings of organization
 - name: Get all existing Cluster Role Bindings of organization {{ organization }}
   k8s_facts:
     kind: ClusterRoleBinding
+    kubeconfig: "{{ kubernetes.config_file }}"
     namespace: "default"
     label_selectors:
       - organization = {{ organization }}
@@ -17,6 +24,7 @@
   k8s:
     state: absent
     kind : ClusterRoleBinding
+    kubeconfig: "{{ kubernetes.config_file }}"
     namespace: "default"
     name: "{{ item.metadata.name }}"
   loop: "{{ rolelist.resources }}"
@@ -29,6 +37,7 @@
   k8s:
     state: absent
     kind: Namespace
+    kubeconfig: "{{ kubernetes.config_file }}"
     namespace: "{{ organization_ns }}"
     name: "{{ organization_ns }}"
 
@@ -41,5 +50,6 @@
   k8s:
     state: absent
     kind: StorageClass
+    kubeconfig: "{{ kubernetes.config_file }}"
     namespace: "default"
     name: "{{ component_name }}"

@@ -1,4 +1,4 @@
-## ROLE: node-component
+## ROLE: create/node-component
 This role creates the job value file for notaries and nodes
 
 ### Tasks
@@ -42,4 +42,4 @@ This task tests the value file for syntax errors/ missing values by calling role
 **when**:  It runs when *helm_lint*==true, i.e. the check for syntax needs to be done for generated value file .
 
 #### Note:
- Var folder has enviornment variable for node_component role. Templates folder has tpl files for h2, node and job. Any change to be reflected in the final value file then these tpl files inside template folder needs to be updated accordingly.
+ vars folder has enviornment variable for node_component role. Templates folder has tpl files for h2, node and job. Any change to be reflected in the final value file then these tpl files inside template folder needs to be updated accordingly.

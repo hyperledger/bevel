@@ -52,6 +52,8 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
+          if [ {{ $.Values.consensus.name }} == kafka ]
+          then
           COUNTER=1
           FLAG=true
           KAFKACOUNT=0
@@ -93,6 +95,7 @@ spec:
              exit 1
              break
 
+          fi
           fi
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -182,7 +185,7 @@ spec:
       - name: {{ $.Values.orderer.name }}
         image: {{ $.Values.metadata.images.orderer }}
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric
-        command: ["sh", "-c", "cat /var/hyperledger/orderer/genesis/genesis.block.base64 | base64 --decode > /var/hyperledger/orderer/orderer.genesis.block && orderer"]
+        command: ["sh", "-c", "cat /var/hyperledger/orderer/genesis/genesis.block.base64 | base64 -d > /var/hyperledger/orderer/orderer.genesis.block && orderer"]
         ports:
         - containerPort: 7050
         envFrom:

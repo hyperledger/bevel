@@ -19,6 +19,7 @@ Hyperledger Fabric image versions, which are compatible with the target fabric v
 
 ---
 **NOTE:** This change only upgrades the docker images, any other configuration changes is not covered by this guide. Please refer to Fabric documentation for any specific configuration changes.
+
 ---
 
 <a name = "modify_image_version"></a>
@@ -38,3 +39,8 @@ For example:
 | [orderer vars](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/orderers/vars/main.yaml) | zookeeper     | zookeeper_image_version |
 | [peer vars](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/peers/vars/main.yaml)       | couchDB       | couchdb_image_version   |
 
+## Executing Ansible playbook
+The playbook [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/)) can be run after the configuration file (for example: [network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) for Fabric) has been updated.
+```
+ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
+``

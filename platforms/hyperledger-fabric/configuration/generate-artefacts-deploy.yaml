@@ -18,8 +18,9 @@
         name: "create/crypto_script"
       vars:
         component_type: "{{ item.type | lower}}"
+        orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric'
+
     # Create Orderer crypto materials
     - include_role:
         name: "create/crypto/orderer"
@@ -33,7 +34,7 @@
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'orderer'
+      when: item.type == 'orderer'
     
     # Create Organization crypto materials
     - include_role:
@@ -48,7 +49,7 @@
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer'
+      when: item.type == 'peer'
 
     #Creating channel artifacts and putting them in vault
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
@@ -57,7 +58,6 @@
         name: "create/configtx"
       vars:
         config_file: "./build/configtx.yaml"
-      when: network.type == 'fabric'
 
     # This role generate genesis block and channel
     - include_role:
@@ -68,41 +68,41 @@
         channel_name: "{{ item.channel_name | lower}}"
         profile_name: "{{ item.channel_name }}"
       loop: "{{ network['channels'] }}"
-      when: network.type == 'fabric'
    
-    # This role creates value file for zkKafka and orderer
+    # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
     - include_role:
         name: "create/orderers"
       vars:
-        build_path: "./build"        
+        build_path: "./build"
         namespace: "{{ item.name | lower}}-net"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
         vault: "{{ item.vault }}"
         git_url: "{{ item.gitops.git_ssh }}"
         git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'orderer'
+      when: item.type == 'orderer'
 
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
     - include_role:
         name: "create/peers"
       vars:
-        build_path: "./build"        
+        build_path: "./build"
         namespace: "{{ item.name | lower}}-net"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
-        kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         git_url: "{{ item.gitops.git_ssh }}"
         git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer'
+      when: item.type == 'peer'
     
     # delete build directory
     - name: Remove build directory
@@ -113,5 +113,5 @@
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "/bin"            #Default to /bin install directory for binaries
-
+    bin_install_dir:  "~/bin"            #Default to ~/bin install directory for binaries
+    add_new_org: "false"

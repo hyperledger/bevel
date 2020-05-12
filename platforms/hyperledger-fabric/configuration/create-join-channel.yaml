@@ -21,7 +21,7 @@
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'orderer'
+      when: item.type == 'orderer'
     
     # Create or get Organization crypto materials
     - include_role:
@@ -34,8 +34,9 @@
         subject: "{{ item.subject }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
+        add_new_org: "false"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer'
+      when: item.type == 'peer'
 
     #Creating channel artifacts
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
@@ -44,7 +45,6 @@
         name: "create/configtx"
       vars:
         config_file: "./build/configtx.yaml"
-      when: network.type == 'fabric'
 
     # This role generate channeltx
     - include_role:
@@ -54,8 +54,8 @@
         genesis: "{{ item.genesis }}"
         channel_name: "{{ item.channel_name | lower}}"
         profile_name: "{{ item.channel_name }}"
+        add_new_org: 'false'
       loop: "{{ network['channels'] }}"
-      when: network.type == 'fabric'
 
     # This role creates the value file for creating channel from one organization
     # to the vault.
@@ -64,6 +64,7 @@
       vars:
         build_path: "./build"
         participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
 
     # This role creates the value file for joining channel from each participating peer
@@ -72,6 +73,7 @@
         name: "create/channels_join"
       vars:
         build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
         participants: "{{ item.participants }}"
       loop: "{{ network['channels'] }}"
       
@@ -84,4 +86,4 @@
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "/bin"            #Default to /bin install directory for binaries
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

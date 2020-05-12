@@ -11,12 +11,19 @@
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+        
     - include_role:
         name: "create/chaincode/install"
       vars:
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['organizations'] }}"
-      when: network.type == 'fabric' and item.type == 'peer' and item.org_status == 'new'
+      when: item.type == 'peer' and item.org_status == 'new'
 
     - include_role:
         name: "create/chaincode/instantiate"
@@ -36,13 +43,9 @@
       loop: "{{ network['channels'] }}"
       when: add_new_org == 'true'
     
-    # delete build directory
-    - name: Remove build directory
-      file:
-        path: "./build"
-        state: absent
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: 'false'

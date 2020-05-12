@@ -15,7 +15,7 @@ mv bin/configtxlator ../
 cd ../
 rm -r temp
 echo "converting the channel_config_block.pb to channel_config.json using configtxlator and jq"
-./configtxlator proto_decode --input {{ channel_name }}_config_block.pb --type common.Block | jq .data.data[0].payload.data.config > {{ channel_name }}_config.json
+configtxlator proto_decode --input {{ channel_name }}_config_block.pb --type common.Block | jq .data.data[0].payload.data.config > {{ channel_name }}_config.json
 echo "adding new organization crypto material from config.json to the channel_config.json to make channel_modified_config.json"
 jq -s '.[0] * {"channel_group":{"groups":{"Application":{"groups": {"{{ component_name }}MSP":.[1]}}}}}' {{ channel_name }}_config.json ./config.json > {{ channel_name }}_modified_config_without_anchorpeer.json
 echo "adding anchor peer information to the block"
@@ -31,5 +31,5 @@ echo "wrapping the headers arround the channel_update.json file and create chann
 echo '{"payload":{"header":{"channel_header":{"channel_id":"{{ channel_name }}", "type":2}},"data":{"config_update":'$(cat {{ channel_name }}_update.json)'}}}' | jq . > {{ channel_name }}_update_in_envelope.json
 echo "converting the channel_update_in_envelope.json to channel_update_in_envelope.pb"
 configtxlator proto_encode --input {{ channel_name }}_update_in_envelope.json --type common.Envelope --output {{ channel_name }}_update_in_envelope.pb
-
+mv {{ channel_name }}_config_block.pb {{ channel_name }}_config_block_old.pb
 cd ${CURRENT_DIR}

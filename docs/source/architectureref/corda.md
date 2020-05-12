@@ -26,15 +26,15 @@ The following diagram shows how the Corda Support Services (**Doorman**, **Netwo
 1. All storage uses a Kubernetes Persistent Volume.
 
 ## Components
-![Figure: Corda Components](../_static/corda-components.png)
+![Figure: Corda Components](../../images/blockchain-automation-framework-corda.png)
 
 ### Docker Images
 
-The Blockchain Automation Framework creates/provides a set of Corda Docker images that can be found in the [BAF repository](https://portal.azure.com/#@accenture.onmicrosoft.com/resource/subscriptions/305ae9c0-f4f6-4870-91e2-4c2f10d10ddd/resourcegroups/ADOPBlockchainCloud0502_Rg/providers/Microsoft.ContainerRegistry/registries/ADOPBlockchainCloud0502/overview) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
+The Blockchain Automation Framework creates/provides a set of Corda Docker images that can be found in the [Hyperledger-Labs repository](https://hub.docker.com/u/hyperledgerlabs) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
 The following Corda Docker Images are used and needed by the Blockchain Automation Framework.
-* Corda Network Map Service (adopblockchaincloud0502.azurecr.io/nms:latest) 
-* Corda Doorman Service (adopblockchaincloud0502.azurecr.io/doorman:latest) - 
-* Corda Node (adopblockchaincloud0502.azurecr.io/corda:4.0-linuxkit or /corda:4.1-linuxkit )
+* Corda Network Map Service (hyperledgerlabs/networkmap-linuxkit:latest) 
+* Corda Doorman Service (hyperledgerlabs/doorman-linuxkit:latest) - 
+* Corda Node (hyperledgerlabs/corda:4.0-linuxkit or hyperledgerlabs/corda:4.1-linuxkit )
 
 ### Ansible Playbooks
 

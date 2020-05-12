@@ -1,4 +1,4 @@
-## ROLE: storageclass
+## ROLE: create/storageclass
 This role creates the storageclass value file for nodes
 
 ### Tasks
@@ -7,9 +7,10 @@ This role creates the storageclass value file for nodes
 This task check if the storageclass exists.
 ##### Input Variables
 
+    kind: StorageClass
+    *name: storageclass name
     *kubeconfig: The kubernetes config file
     *context: The kubernetes current context
-    *storageclass_name: The name of storageclass to be created.
 
 ##### Output Variables
 
@@ -20,9 +21,9 @@ This task creates value file for storageclass by calling create/k8_component rol
 ##### Input Variables
 
     *component_name: The storageclass name.
-    component_type: It specifies the type of deployment to be created. In this case it is "<cloudprovider>-storageclass"
+    *component_type: It specifies the type of deployment to be created. In this case it is "<cloudprovider>-storageclass"
     helm_lint: This is a flag to run helm_list module. "false" in this case because storageclass is not a helm chart.
-    release_dir: absolute path for release git directory
+    *release_dir: absolute path for release git directory
 
 **when**:  It runs when *storageclass_state.resources|length* == 0, i.e. storageclass doen not exists .
 
@@ -40,8 +41,9 @@ This task pushes the generated value file to gitops repository by calling shared
 This task checks storageclass is created or not by calling role check/k8_component role. 
 ##### Input Variables
 
-    storageclass_name: The storageclass resource name.
-    kubernetes.config_file: The kubernetes config file.
-    kubernetes.context: The kubernetes current context.
+    component_type: The storageclass name.
+    *component_name: The storageclass resource name.
+    *kubeconfig: The kubernetes config file.
+    *context: The kubernetes current context.
 
 **when**:  It runs when *storageclass_state.resources|length* == 0, i.e. storageclass did not exists before.

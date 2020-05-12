@@ -3,6 +3,8 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ component_name }}-cluster-admin-role-binding
   namespace: {{ component_namespace }}
+  labels:
+    organization: {{ organization }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

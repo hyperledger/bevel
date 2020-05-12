@@ -1,0 +1,76 @@
+# Default values for nodechart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# This one is just a demo file, the file to install the helm chart will be created through
+# ANSIBLE with the values.tpl file that is in the same folder that this file. 
+
+# This will be the name of the node to create
+nodeName:
+metadata:
+    namespace:
+
+# The number of replicas the node will have
+replicaCount: 1
+
+deployment:
+    #   annotations:
+    #     key: "value"
+    annotations: {}
+vault:
+    #Provide the Vault Address from where secrets will be read
+    #Eg. address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9000
+    address: 
+    #Provide the Vault secret path from where secrets will be read
+    #Eg. secretprefix: secret/org1/smartContracts/ 
+    secretprefix: 
+    #Provide the serviceaccount which is verified with Vault
+    #Eg. serviceaccountname: vault-auth
+    serviceaccountname: 
+    #Provide the key name from where quorum secrets will be read
+    #Eg. keyname: General
+    keyname: 
+    #Provide the service role which is verified with Vault
+    #Eg. role: vault-role
+    role: 
+    #Provide the Vault auth-path which is created for the namespace
+    #Eg. authpath: quorumorg1
+    authpath:
+images:
+    alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+# This will group the values of the expressapp
+expressapp:
+    #This defines the service type of the node
+    serviceType: ClusterIP
+    # The image that will be pulled from docker url
+    image: index.docker.io/hyperledgerlabs/supplychain_quorum:express_app_latest
+    # The pull policy
+    pullPolicy: Always
+    # The node ports to be used
+    pullSecrets: regcred
+    nodePorts:
+        port: 3000
+        targetPort: 3000
+        name: tcp
+    # The environment variables that will store the port to be working on and the end point to ask for requests
+    #Eg. apiUrl: api.blockchaincloudpoc.com
+    env:
+        geth_address: "http://manufacturer.org1.blockchaincloudpoc.com:15021"
+        node_subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
+        node_organization: "Manufacturer"
+        node_organization_unit: "manufacturer"
+proxy:
+    #This will be the proxy/ingress provider. Can have values "ambassador" or "haproxy"
+    #Eg. provider: "haproxy"
+    provider: ambassador
+    #This will be the name of the organization
+    #Eg. name: carrier
+    name: manufacturer
+    #Type can be fabric/corda
+    #Eg. type: fabric
+    type: test
+    #External URL of the organization
+    #Eg. external_url_suffix: org1.blockchaincloudpoc.com
+    external_url_suffix:
+    #Name of the peer
+    #Eg. peer_name: manufacturer
+    peer_name: manufacturer

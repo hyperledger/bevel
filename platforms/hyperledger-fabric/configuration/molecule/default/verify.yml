@@ -1,0 +1,126 @@
+---
+  - name: Verify
+    hosts: localhost
+    tasks:
+    - name: Check if the storage class value file is created
+      stat:
+        path: "{{ playbook_dir }}/test/peer/awspeerstorageclass.yaml"
+      register: sc_check
+
+    - name: Assert if the value file exists or not
+      assert:
+        that: sc_check.stat.exists
+
+    - name: Wait for the storage class to come up
+      k8s_info:
+        kind: "StorageClass"
+        name: "awspeerstorageclass"
+        kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+        context: "kind"
+      register: sc_status
+      retries: 30
+      delay: 30
+      
+    - name: Assert for storageclass creation
+      assert:
+        that: sc_status.resources|length > 0
+
+  # ########################################################################################################
+
+    - name: Check if the namespace value file is created
+      stat:
+        path: "{{ playbook_dir }}/test/test/namespace.yaml"
+      register: ns_check
+  
+    - name: Assert if the value file exists or not
+      assert:
+        that: ns_check.stat.exists
+    
+    - name: Wait for the namespace to come up
+      k8s_info:
+        kind: "Namespace"
+        name: "test-net"
+        kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+        context: "kind"
+      register: ns_status
+      retries: 30
+      delay: 30
+  
+    - name: Assert for namespace creation
+      assert:
+        that: ns_status.resources|length > 0
+  
+  # ###################################################################################
+    - name: Check if the vault-auth serviceaccount value file is created
+      stat:
+        path: "{{ playbook_dir }}/test/test/vaultAuth.yaml"
+      register: va_sa_check
+  
+    - name: Assert if the value file exists or not
+      assert:
+        that: va_sa_check.stat.exists
+    
+    - name: Wait for the vault-auth service account to come up
+      k8s_info:
+        kind: "ServiceAccount"
+        name: "vault-auth"
+        namespace: "test-net"
+        kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+        context: "kind"
+      register: va_sa_status
+      retries: 30
+      delay: 30
+  
+    - name: Assert for vault-auth service account creation
+      assert:
+        that: va_sa_status.resources|length > 0
+  
+  # ###################################################################################
+    - name: Check if the vault-reviewer serviceaccount value file is created
+      stat:
+        path: "{{ playbook_dir }}/test/test/vault-reviewer.yaml"
+      register: vr_sa_check
+  
+    - name: Assert if the value file exists or not
+      assert:
+        that: vr_sa_check.stat.exists
+    
+    - name: Wait for the vault-reviewer service account to come up
+      k8s_info:
+        kind: "ServiceAccount"
+        name: "vault-reviewer"
+        namespace: "test-net"
+        kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+        context: "kind"
+      register: vr_sa_status
+      retries: 30
+      delay: 30
+  
+    - name: Assert for vault-reviewer service account creation
+      assert:
+        that: vr_sa_status.resources|length > 0
+  
+  # ###################################################################################
+    - name: Check if the clusterrolebinding value file is created
+      stat:
+        path: "{{ playbook_dir }}/test/test/reviewer_rbac.yaml"
+      register: rbac_check
+  
+    - name: Assert if the value file exists or not
+      assert:
+        that: rbac_check.stat.exists
+    
+    - name: Wait for the clusterrolebinding to come up
+      k8s_info:
+        kind: "ClusterRoleBinding"
+        name: "test-net-role-tokenreview-binding"
+        namespace: "test-net"
+        kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+        context: "kind"
+      register: rbac_status
+      retries: 30
+      delay: 30
+  
+    - name: Assert for clusterrolebinding creation
+      assert:
+        that: rbac_status.resources|length > 0

@@ -526,7 +526,7 @@ func TestProduct(t *testing.T) {
 				json.Unmarshal(response.Payload, &results)
 
 				Expect(response.Status).To(BeEquivalentTo(403))
-				Expect(response.Message).To(Equal("You are not authorized to perform this transaction"))
+				Expect(response.Message).To(Equal("You are not authorized to perform this transaction, product not accesible by identity"))
 
 			})
 			g.It("current custodian cannot claim ", func() {
