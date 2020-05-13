@@ -45,17 +45,3 @@
     GIT_BRANCH: "{{ component_gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
     msg: "[ci skip] Pushing deployment files for supplychain frontend"
-
-# Wait for frontend Pod to run
-- name: "Waiting for frontend pod in {{ component_ns }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
-  vars:
-    component_type: "Pod"
-    namespace: "{{ component_ns }}"
-    component_name: "{{ peer_data.name }}-frontend"
-    kubernetes: "{{ organization_data.k8s }}"
-    check: "app"
-  loop: "{{ organization_data.services.peers }}"
-  loop_control:
-    loop_var: peer_data
