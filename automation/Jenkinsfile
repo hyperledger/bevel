@@ -8,6 +8,7 @@
 */
 def userInput = true
 def didTimeout = false
+def shouldBuild = true
 pipeline {
   agent { label 'ansible' } //use slave with ansible
   
@@ -58,8 +59,19 @@ pipeline {
     choice(choices: '1_9_2\n1_11_0', description: 'What is the Indy version?', name: 'INDY_VERSION')    
   }
 
-
-  stages {            
+  stages {
+    stage ("Checkout SCM") {
+      steps {
+        script {
+            checkout scm
+            result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true) 
+            if (result == 0) {
+                echo ("'ci skip' spotted in git commit. Aborting.")
+                shouldBuild = false
+            }
+        }
+      }
+    }
     stage('Prepare build environment') {
       when {
         not {
@@ -100,7 +112,7 @@ pipeline {
         """
       }
     }
-
+    
     stage('fabric-settings'){
       when {
         branch 'fabric';
@@ -273,6 +285,7 @@ pipeline {
         }
         expression { params.RESET_ACTION == 'yes' }
         expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild }
       }
       steps {              
         sh """
@@ -292,6 +305,7 @@ pipeline {
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild }
       }
       steps {        
         sh """
@@ -312,6 +326,7 @@ pipeline {
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild }
       }
       steps {        
         sh """
@@ -332,6 +347,7 @@ pipeline {
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild }
       }
       steps {        
         sh """
@@ -349,6 +365,7 @@ pipeline {
           }
         }
         expression { params.RESET_ACTION == 'yes' }
+        expression { shouldBuild }
       }
       steps {              
         sh """
