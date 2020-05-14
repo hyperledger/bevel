@@ -16,6 +16,8 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '15'))
     // either use this with polling method, or use webhooks to trigger builds
     disableConcurrentBuilds()
+    //Skip the default checkout as we are manually checking out in the first stage.
+    skipDefaultCheckout(true)
   }
     
   environment {
@@ -57,10 +59,6 @@ pipeline {
     choice(choices: 'ibft\nraft', description: 'What is the Quorum Consensus?', name: 'QUORUM_CONSENSUS')
     choice(choices: 'tessera\nconstellation', description: 'What is the Quorum TM?', name: 'QUORUM_TM')
     choice(choices: '1_9_2\n1_11_0', description: 'What is the Indy version?', name: 'INDY_VERSION')    
-  }
-
-  options {
-    skipDefaultCheckout(true)
   }
 
   stages {
