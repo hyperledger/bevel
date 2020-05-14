@@ -6,18 +6,15 @@ Roadmap
     title BAF current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    R3 Corda Enterprise Version  :a1, 20-03-15  , 90d
-    Besu Provisioning       :active, a2, 20-03-15  , 90d
-    Key Storage & Management     :done, a3, 20-03-15  , 90d
-    Sawtooth Provisioning     :after b1, 90d
-    Couch DB     :after b1  , 90d
+    R3 Corda Enterprise Version  :a1, 20-05-15  , 90d
+    Besu Provisioning       :a2, 20-06-08  , 90d
+    Couch DB     :after a1  , 60d
     
     section Application
-    Quorum Ref App      :active, b1, 20-03-01, 90d
-    Indy Ref App      : after b1, 90d
+    Quorum Ref App      :done, b1, 20-03-10, 60d
+    Indy Ref App      :active, b2, after b1, 90d
     
     section Architecture
-    Quorum Blueprint      :done,c1, 20-02-01, 60d
-    Besu Blueprint      : 20-05-01, 60d
-    Corda vEnterprise Blueprint : 20-05-01, 60d
+    Besu Blueprint      : 20-06-01, 60d
+    Corda vEnterprise Blueprint : 20-06-01, 60d
     

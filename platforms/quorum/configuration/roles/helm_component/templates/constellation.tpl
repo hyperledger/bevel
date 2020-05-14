@@ -50,9 +50,16 @@ spec:
     genesis: {{ genesis }}
     staticnodes:
 {% if network.config.consensus == 'ibft' %}
+{% if network.config.genesis | default('', true) | trim == '' %}
 {% for enode in enode_data_list %}
       - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0
 {% endfor %}
+{% endif %}
+{% if network.config.genesis | default('', true) | trim != '' %}
+{% for enode in network.config.staticnodes %}
+      - {{ enode }}
+{% endfor %}
+{% endif %}
 {% endif %}
 {% if network.config.consensus == 'raft' %}
 {% if network.config.genesis | default('', true) | trim == '' %}

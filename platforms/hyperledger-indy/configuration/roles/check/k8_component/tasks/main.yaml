@@ -1,20 +1,4 @@
 ---
-# Task to check if Namespace, Clusterrolebinding or StorageClass is created
-# This task will try for a maximum of 10 times with an interval of
-# 35 seconds between each try
-- name: Wait for {{ component_type }} {{ component_name }}
-  k8s_facts:
-    kind: "{{ component_type }}"
-    name: "{{ component_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: component_data
-  retries: "{{ network.env.retry_count}}"
-  delay: 35
-  until: component_data.resources|length > 0
-  when: component_type == "Namespace" or component_type == "ClusterRoleBinding" or component_type == "StorageClass"
-
-
 # Task to check if ServiceAccount or configmap is created
 # This task will try for a maximum of 10 times with an interval of
 # 35 seconds between each try
@@ -29,27 +13,7 @@
   retries: "{{ network.env.retry_count}}"
   delay: 35
   until: component_data.resources|length > 0
-  when: component_type == "ServiceAccount" or component_type == "ConfigMap"
-
-
-# Task to check if Pod is running
-# This task will try for a maximum of 10 times with an interval of
-# 35 seconds between each try
-- name: Wait for {{ component_type }} {{ component_name }}
-  k8s_facts:
-    kind: "{{ component_type }}"
-    namespace: "{{ component_ns }}"
-    label_selectors:
-    - app={{ component_name }}
-    field_selectors:
-    - status.phase=Running
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: result
-  until: result.resources|length > 0
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
-  when: component_type == "Pod"
+  when: component_type == "ConfigMap"
 
 # Get a service account token
 - name: "Get a ServiceAccount token for {{ component_name }}"
@@ -58,7 +22,7 @@
     role: "ro"
   shell: |
     secret="$(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount {{ service_account }} -n {{ component_ns }} -o go-template={% raw %}'{{ (index .secrets 0).name }}'{% endraw %})"
-    kube_token="$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret ${secret} -n {{ component_ns }} -o go-template={% raw %}'{{ .data.token }}'{% endraw %} | base64 --decode)"
+    kube_token="$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret ${secret} -n {{ component_ns }} -o go-template={% raw %}'{{ .data.token }}'{% endraw %} | base64 -d)"
     vault_token=$(curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/kubernetes-{{ organization }}-baf-ac-auth/login | jq -j '.auth.client_token')
     echo ${vault_token}
   register: token_output
