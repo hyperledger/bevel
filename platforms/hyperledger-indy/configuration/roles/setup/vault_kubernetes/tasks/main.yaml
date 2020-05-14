@@ -5,33 +5,35 @@
 
 # Check if namespace created
 - name: Check namespace is created
-  k8s_facts:
-    kind: Namespace
-    name: "{{ component_ns }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: get_namespace
-  until: get_namespace.resources|length > 0
-  retries: "{{ network.env.retry_count}}"
-  delay: 35
+  include_role: 
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_name: "{{ component_ns }}"
+    component_type: Namespace
+    type: "retry"
 
 ############################################################################################
 # This task creates the build temp direcotry
 - name: Ensures build dir exists
-  file:
+  include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
     path: "./build"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
 
 # This task checks if the vault path already exists
 - name: Check if Kubernetes-auth already created for Organization
-  shell: |
-    vault auth list
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: auth_list
+  include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
+    check: "vault_auth"
 
+# This task sets the result of the k8s auth path check to a local variable
+- name: "Set the result of vault auth check to a local variable"
+  set_fact:
+    auth_list: "{{ auth_lists }}"
+
+   
 ############################################################################################
 # This task enables the path for the organizations and orderers on vault
 # This task runs only when {{auth_path}} is not already created
