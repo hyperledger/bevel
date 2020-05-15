@@ -24,8 +24,15 @@
 
 # This task adds a new node to the existing network
 - name: Adds a new node to the existing network
-  shell: |
-    curl -X POST http://{{ geth_data.url }}:{{ geth_data.rpcport }} --data '{"jsonrpc":"2.0","method":"raft_addPeer","params": ["enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}"], "id":{{ geth_data.nodeid }} }' --header "Content-Type: application/json"
+  uri:
+    url: "http://{{ geth_data.url }}:{{ geth_data.rpcport }}"
+    method: POST
+    validate_certs: no
+    return_content: yes
+    body_format: json
+    body: '{"jsonrpc":"2.0","method":"raft_addPeer","params": ["enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ enode.external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}"], "id":{{ geth_data.nodeid }} }'
+    headers:
+      Content-Type: "application/json"
   loop: "{{ enode_data_list }}"
   loop_control:
     loop_var: enode
@@ -35,7 +42,7 @@
 # This task fetches the peer_id 
 - name: Get peer_id
   set_fact:
-    peer_id: "{{ peer_id.results[0].stdout | from_json | json_query('result') }}"
+    peer_id: "{{ peer_id.results[0].json.result }}"
   when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
 
 
