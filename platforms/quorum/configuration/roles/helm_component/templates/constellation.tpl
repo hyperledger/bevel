@@ -64,7 +64,7 @@ spec:
 {% if network.config.consensus == 'raft' %}
 {% if network.config.genesis | default('', true) | trim == '' %}
 {% for enode in enode_data_list %}
-      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
+      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ enode.external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
 {% endfor %}
 {% endif %}
 {% if network.config.genesis | default('', true) | trim != '' %}
