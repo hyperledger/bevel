@@ -8,7 +8,13 @@ network:
   version: 2.5.0  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
 
   frontend: enabled #Flag for frontend to enabled for nodes/peers
-
+  #Environment section for Kubernetes setup
+  env:
+    type: demo-quorum               # tag for the environment. Important to run multiple flux on single cluster
+    proxy: ambassador                  # values can be 'haproxy' or 'ambassador'
+    ambassadorPorts: 15010,15020    # is valid only if proxy='ambassador'
+    retry_count: 20                 # Retry count for the checks
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
@@ -90,6 +96,11 @@ network:
         password: "git_access_token"          # Git Server user password
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+      
+      #variables for frontend application
+      app:
+        google_maps_api: "api_key"
+      
       # The participating nodes are named as peers
       services:
         peers:
@@ -112,11 +123,19 @@ network:
             ambassador: 15013
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
-           
+          expressapi:
+            port: 3000
+            targetPort: 3000
+          frontend:
+            targetPort: 80
+            port: 8080
+          geth_url: "http://carrier.test.corda.blockchaincloudpoc.com:15011" # Geth url for the carrier
+          
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: manufacturer
+      unit: Manufacturer
       external_url_suffix: test.corda.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -145,6 +164,10 @@ network:
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
+      #variables for frontend application
+      app:
+        google_maps_api: "api_key"
+      
       # The participating nodes are named as peers 
       services:
         peers:
@@ -167,16 +190,24 @@ network:
             ambassador: 15023
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
+          expressapi:
+            port: 3000
+            targetPort: 3000
+          frontend:
+            targetPort: 80
+            port: 8080
+          geth_url: "http://manufacturer.test.corda.blockchaincloudpoc.com:15021" 
           smart_contract:
             name: "General"           # Name of the smart contract or Name of the main Smart contract Class
             contract_path: "./contracts"       # Path of the smart contract folder
             deployjs_path: "blockchain-automation-framework/examples/supplychain-app/quorum/smartContracts" 
             iterations: 200           # Number of Iteration of execution to which the gas and the code is optimised
             entrypoint: "General.sol" # Main entrypoint solidity file of the contract 
-            geth_url: "http://manufacturer.test.corda.blockchaincloudpoc.com:15021" 
+            private_for: "FxaY4uzuyaFoQrEdrC6glrIwmEUcQQFh+XEB7N1QcDo=,CXtt5UNdZkJyA2CYWBhjmTSmyhMqjWGq4CBMKijhYFQ=" #Public keys for the privateFor
 
     - organization:
       name: store
+      unit: Store
       external_url_suffix: test.corda.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -205,6 +236,10 @@ network:
         password: "git_access_token"          # Git Server user password
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+
+      #variables for frontend application
+      app:
+        google_maps_api: "api_key"
 
       services:
         peers:
@@ -227,9 +262,17 @@ network:
             ambassador: 15033
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
+          expressapi:
+            port: 3000
+            targetPort: 3000
+          frontend:
+            targetPort: 80
+            port: 8080
+          geth_url: "http://store.test.corda.blockchaincloudpoc.com:15031" 
 
     - organization:
       name: warehouse
+      unit: Warehouse
       external_url_suffix: test.corda.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -259,6 +302,10 @@ network:
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
+      #variables for frontend application
+      app:
+        google_maps_api: "api_key"
+
       services:
         peers:
         - peer:
@@ -280,3 +327,10 @@ network:
             ambassador: 15043
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
+          expressapi:
+            port: 3000
+            targetPort: 3000
+          frontend:
+            targetPort: 80
+            port: 8080
+          geth_url: "http://warehouse.test.corda.blockchaincloudpoc.com:15041" 

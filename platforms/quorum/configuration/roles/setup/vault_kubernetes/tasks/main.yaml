@@ -47,14 +47,14 @@
 # This task get the certificate for the cluster mentioned in k8 secret
 - name: "Get Kubernetes cert files for organizations"
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 --decode > "./build/{{ component_ns }}.ca.cert"
+    KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ component_ns }}.ca.cert"
   when: auth_list.stdout.find(component_auth) == -1
 
 ################################################################################################
 # This task writes the Service Account token to the vault for various Quorum entity
 - name: Write reviewer token
   shell: |
-    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_ns }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 --decode)
+    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_ns }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 -d)
     vault write auth/{{ component_auth }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_ns }}.ca.cert"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
@@ -77,6 +77,9 @@
   shell: |
     cd ./build    
     echo "path \"secret/{{ component_ns }}/crypto/*\" {
+        capabilities = [\"read\", \"list\"]
+    }
+    path \"secret/{{ component_ns }}/smartContracts/*\" {
         capabilities = [\"read\", \"list\"]
     }"  >>  vault-crypto-{{ component_name }}-ro.hcl
     vault write sys/policy/vault-crypto-{{ component_name }}-ro policy="@vault-crypto-{{ component_name }}-ro.hcl"

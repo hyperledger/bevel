@@ -11,7 +11,7 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   register: result
-  when: (component_type == "Namespace" and type == "no_retry") or ( component_type == "StorageClass" and type == "no_retry" )
+  when: (component_type == "Namespace" and type == "no_retry") or ( component_type == "StorageClass" and type == "no_retry" ) or (component_type == "ClusterRoleBinding" and type == "no_retry")
 
 # Check if a component is created with retry
 - name: Wait for {{ component_type }} {{ component_name }}
@@ -24,8 +24,20 @@
   retries: "{{ network.env.retry_count}}"
   delay: 35
   until: component_data.resources|length > 0
-  when: ( component_type == "Namespace" and type == "retry" ) or component_type == "ClusterRoleBinding" or ( component_type == "StorageClass" and type == "retry" )
+  when: ( component_type == "Namespace" and type == "retry" ) or (component_type == "ClusterRoleBinding" and (type is undefined or type == "retry")) or ( component_type == "StorageClass" and type == "retry" )
 
+# Task to check if ServiceAccount is created
+# This task will try for a maximum number of iterations defined in env.retry_count of network.yaml with an interval of
+# 35 seconds between each try
+- name: Wait for {{ component_type }} {{ component_name }}
+  k8s_info:
+    kind: "{{ component_type }}"
+    name: "{{ component_name }}"
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: serviceAccount_data
+  when: (component_type == "ServiceAccount" and type == "no_retry")
 
 # Task to check if ServiceAccount is created
 # This task will try for a maximum number of iterations defined in env.retry_count of network.yaml with an interval of
@@ -41,4 +53,4 @@
   retries: "{{ network.env.retry_count}}"
   delay: 35
   until: component_data.resources|length > 0
-  when: component_type == "ServiceAccount"
+  when: (component_type == "ServiceAccount" and (type is undefined or type == 'retry'))

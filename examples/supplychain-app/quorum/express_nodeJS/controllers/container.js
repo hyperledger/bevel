@@ -102,7 +102,6 @@ router.get("/:trackingID?", function(req, res) {
 
 //POST for new container
 router.post("/", upload.array(), function(req, res) {
-  res.setTimeout(15000);
   // TODO: Implement new container functionality
   let newContainer = {
     misc: req.body.misc,
@@ -149,7 +148,6 @@ router.post("/", upload.array(), function(req, res) {
 
 //PUT for updating custodian
 router.put("/:trackingID/custodian", function(req, res) {
-  res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var trackingID = req.params.trackingID;
   var lastScannedAt = fromNodeSubject;
@@ -168,7 +166,6 @@ router.put("/:trackingID/custodian", function(req, res) {
 
 //PUT for removing contents
 router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res) {
-  res.setTimeout(15000);
   // TODO: Implement remove content from container
   var containerTrackingID = req.params.containerTrackingID;
   var trackableID = req.body.contents;
