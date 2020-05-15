@@ -1,0 +1,30 @@
+# This playbook deploys the identity app to an existing DLT network
+# The DLT network should already be created using the same configuration file as that
+# used for running this playbook.
+---
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+
+    - name: "Create a value file to deploy Indy Web Server"
+      include_role:
+        name: "create/webserver"
+      vars:
+        component_name: "webserver"
+        component_ns: "{{ organization.name | lower }}-ns"
+        gitops: "{{ organization.gitops }}"
+        vault: "{{ organization.vault }}"
+        kubernetes: "{{ organization.k8s }}"
+        services: "{{ organization.services }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ organization.gitops.release_dir }}/{{ organization.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: organization
+      when: network['type'] == 'indy'
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
