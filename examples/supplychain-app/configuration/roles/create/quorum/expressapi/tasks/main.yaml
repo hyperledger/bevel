@@ -1,4 +1,18 @@
 ############################################################################################
+#Check if the pods for the organizations are up and running
+- name: "Waiting for peer pod {{ peer_data.name }} in {{ component_ns }}-quo"
+  include_role:
+    name: "../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer_data.name }}"
+    kubernetes: "{{ organization_data.k8s }}"
+    check: "name"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+    
 # Create express-api value file for the peer nodes
 - name: "Create express-api values file for peer organizations"
   include_role:

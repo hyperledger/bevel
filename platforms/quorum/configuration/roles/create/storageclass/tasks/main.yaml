@@ -2,13 +2,18 @@
 # This role creates value files for storage class
 #############################################################################################
 # Check storageclass exists already
-- name: Check if storageclass exists
-  k8s_facts:
-    kind: StorageClass
-    name: "{{ storageclass_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: storageclass_state
+- name: "Checking if the storage class {{ storageclass_name }} already exists"
+  include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "StorageClass"
+    component_name: "{{ storageclass_name }}"
+    type: "no_retry"
+
+#set variable storageclass_state
+- name: "Set Variable"
+  set_fact:
+    storageclass_state: "{{ result }}"
 
 - name: Create storageclass
   include_role:
@@ -35,12 +40,12 @@
     msg: "[ci skip] Pushing deployment file for storageclass"
   when: storageclass_state.resources|length == 0
 
-- name: "Wait for Storageclass creation for {{ component_name }}"
+#Wait for the creation of storage class
+- name: "Waiting for the creation of {{ storageclass_name }} storage class for {{ component_name }}"
   include_role:
-    name: check/k8_component
+    name: "../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "StorageClass"
     component_name: "{{ storageclass_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
+    type: "retry"
   when: storageclass_state.resources|length == 0

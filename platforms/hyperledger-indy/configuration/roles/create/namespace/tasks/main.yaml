@@ -4,12 +4,16 @@
 
 # Check if namespace created
 - name: Check namespace is created
-  k8s_facts:
-    kind: Namespace
-    name: "{{ component_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: get_namespace
+  include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    type: "no_retry"
+
+# Assign the result of check namespace task to a local variable
+- name: "Set Variable"
+  set_fact:
+    get_namespace: "{{ result }}"
 
 ############################################################################################
 # This task creates the value file of Namespace for Organizations
