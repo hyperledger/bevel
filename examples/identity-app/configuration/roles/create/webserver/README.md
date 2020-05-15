@@ -30,7 +30,7 @@ This task calls role from: *{{ playbook_dir }}/../../shared/configuration/roles/
  - GIT_PASSWORD: User's password of git repository. It uses a variable *{{ gitops.password }}*
  - GIT_BRANCH: A name of branch, where are pushed Helm releases. It uses a variable *{{ gitops.branch }}*
  - GIT_RESET_PATH: A path of git directory, which is reseted for committing. Default value is *platforms/hyperledger-indy/configuration*
- - msg: A message, which is printed, when the role is running.
+ - msg: A commit message.
 ### 5. Wait until Indy WebServer will be up
 This task is waiting until Indy WebServer pods will be up.
 This task calls role *{{ playbook_dir }}/../../../platforms/hyperledger-indy/configuration/roles/check/k8_component*
