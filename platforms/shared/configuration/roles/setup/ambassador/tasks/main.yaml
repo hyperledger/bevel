@@ -80,17 +80,14 @@
 
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up
-  k8s_info:
-    kind: Pod
+  include_role:
+    name: "check/helm_component"
+  vars:
     namespace: default
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kubecontext }}"
-    label_selectors:
+    component_name: ambassador
+    component_type: "Pod"
+    label_selectors: 
       - service = ambassador
-    field_selectors:
-      - status.phase=Running
-  register: kubectl_get_pods
-  until: kubectl_get_pods.resources|length > 0
-  retries: "{{ network.env.retry_count}}"
-  delay: 15
   when: (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
