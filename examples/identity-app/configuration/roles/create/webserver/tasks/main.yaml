@@ -1,0 +1,54 @@
+- name: "Check if Indy node are running"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/hyperledger-indy/configuration/roles/check/k8_component"
+  vars:
+    component_name: "{{ organization.name }}-{{ steward.name }}-node"
+    component_type: "Pod"
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: steward
+  when: services.stewards is defined
+
+- name: "Create Indy WebServer value file"
+  include_role:
+    name: create/helm_component
+  vars:
+    type: "webserver"
+    charts_dir: "examples/identity-app/charts"
+    component_name: "{{ organization.name }}-{{ type }}"
+    component_port: "{{ trustee.server.port }}"
+    trustee_name: "{{ trustee.name }}"
+    service_account: "{{ organization.name }}-{{ trustee_name }}-vault-auth"
+    auth_method_path: "kubernetes-{{ organization.name }}-{{ trustee_name }}-auth"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trustee
+  when: services.trustees is defined
+
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_EMAIL: "{{ gitops.email }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "[ci skip] Pushing deployment files for indy webserver"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trustee
+  when: services.trustees is defined
+
+- name: "Wait until Indy WebServer will be up"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/hyperledger-indy/configuration/roles/check/k8_component"
+  vars:
+    component_name: "{{ organization.name }}-webserver"
+    component_type: "Pod"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trustee
+  when: services.trustees is defined

@@ -30,41 +30,20 @@
   register: result
   when: component_type == "OneTimeJob"
 
-
 # Task to check if Pod is deployed and running
 # This task will try for a maximum of 10 times with an interval of
-# 60 seconds between each try when the label name is used
+# 60 seconds between each try
 - name: 'Wait for {{ component_type }} {{ component_name }} in {{ namespace }}'
   k8s_info:
     kind: "Pod"
     namespace: "{{ namespace }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    label_selectors:
-      - name = {{ component_name }}
+    kubeconfig: "{{ kubeconfig | default(kubernetes.config_file) }}"
+    context: "{{ context | default(kubernetes.context) }}"
+    label_selectors: "{{ label_selectors }}"
     field_selectors:
       - status.phase=Running
   register: component_data
   retries: "{{ network.env.retry_count}}"
-  delay: 30
+  delay: "{{ delay | default(30) }}"
   until: component_data.resources|length > 0
-  when: component_type == "Pod" and check == "name"
-
-# Task to check if Pod is deployed and running
-# This task will try for a maximum of 10 times with an interval of
-# 60 seconds between each try when the label app is used
-- name: 'Wait for {{ component_type }} {{ component_name }} in {{ namespace }}'
-  k8s_info:
-    kind: "Pod"
-    namespace: "{{ namespace }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    label_selectors:
-      - app = {{ component_name }}
-    field_selectors:
-      - status.phase=Running
-  register: component_data
-  retries: "{{ network.env.retry_count}}"
-  delay: 30
-  until: component_data.resources|length > 0
-  when: component_type == "Pod" and check == "app"
+  when: component_type == "Pod"
