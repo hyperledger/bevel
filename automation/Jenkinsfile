@@ -16,6 +16,8 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '15'))
     // either use this with polling method, or use webhooks to trigger builds
     disableConcurrentBuilds()
+    //Skip the default checkout as we are manually checking out in the first stage.
+    skipDefaultCheckout(true)
   }
     
   environment {
@@ -48,6 +50,7 @@ pipeline {
   }
 
   parameters {
+    choice(choices: 'no\nyes', description: 'Force rebuild? To force building [ci skip] commits', name: 'FORCE_ACTION')
     choice(choices: 'yes\nno', description: 'Reset Network at start?', name: 'RESET_ACTION')
     choice(choices: 'no\nyes', description: 'Only API Test? This skips all other deployment steps.', name: 'APIONLY_ACTION')
     choice(choices: '1_4_4\n2_0_0', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
@@ -178,9 +181,9 @@ pipeline {
         dir('baf-configuration') {
           git credentialsId: "${GIT_CREDS}", url: 'https://innersource.accenture.com/scm/blockofz/baf-configuration.git'
           sh """#!/bin/bash
-            cp demo/${env.GIT_BRANCH}/${env.CONSENSUS}*${env.VERSION}.yaml ../build/network.yaml
-            cp demo/${env.GIT_BRANCH}/${env.CONSENSUS}*${env.VERSION}addorg.yaml ../build/addorg.yaml
-            cp demo/${env.GIT_BRANCH}/supplychain.yaml ../build/application.yaml
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}.yaml ../build/network.yaml
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}addorg.yaml ../build/addorg.yaml
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*supplychain.yaml ../build/application.yaml
           """
         }
         //WithCredentials to get the username and password for GIT user
@@ -226,7 +229,7 @@ pipeline {
         //WithCredentials to get the username and password for AWS Account
           withCredentials([[
               $class: 'AmazonWebServicesCredentialsBinding',
-              credentialsId: 'terraform_user',
+              credentialsId: 'aws_jenkins',
               accessKeyVariable: 'AWS_ACCESS_KEY_ID',
               secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
           ]]) {
@@ -285,7 +288,7 @@ pipeline {
         }
         expression { params.RESET_ACTION == 'yes' }
         expression { params.APIONLY_ACTION != 'yes' }
-        expression { shouldBuild }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {              
         sh """
@@ -305,7 +308,7 @@ pipeline {
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
-        expression { shouldBuild }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {        
         sh """
@@ -326,7 +329,7 @@ pipeline {
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
-        expression { shouldBuild }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {        
         sh """
@@ -347,10 +350,12 @@ pipeline {
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
-        expression { shouldBuild }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {        
         sh """
+          curl -sL https://deb.nodesource.com/setup_10.x | bash -
+          apt-get install -y nodejs
           ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@./build/application.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
@@ -365,15 +370,12 @@ pipeline {
           }
         }
         expression { params.RESET_ACTION == 'yes' }
-        expression { shouldBuild }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {              
         sh """
-          curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-          sudo apt-get install -y nodejs
           npm install -g newman
-          cd examples/supplychain-app/tests
-          newman run -k SupplyChainTest.postman_collection.json -e SupplychainDemo_${env.GIT_BRANCH}.postman_environment.json
+          newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json
         """            
       }
     }
@@ -386,6 +388,7 @@ pipeline {
             branch 'develop' 
           }
         }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {
           script {
@@ -416,6 +419,7 @@ pipeline {
             branch 'develop' 
           }
         }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
         script {

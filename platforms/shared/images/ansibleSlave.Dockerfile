@@ -22,6 +22,7 @@ RUN apt-get update -y && \
     libffi-dev \
     libssl-dev \
     libxml2-utils \
+    libdb-dev libleveldb-dev libsodium-dev zlib1g-dev libtinfo-dev \
     locales \
     make \
     mercurial \

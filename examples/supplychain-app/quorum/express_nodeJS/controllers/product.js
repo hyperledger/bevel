@@ -152,6 +152,8 @@ router.post('/', upload.array(), function (req, res) {
     counterparties: req.body.counterparties,
     lastScannedAt: fromNodeSubject
   };
+  // Add this.address in the counterparties list
+  newProduct.counterparties.push(fromAddress+","+fromNodeSubject);
   var misc = [];
   var keys = Object.keys(newProduct.misc);
 
