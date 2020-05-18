@@ -7,13 +7,13 @@
 - name: Set node status
   set_fact:
     node_status: default
-  when: network.config.genesis | default('', true) | trim == ''
+  when: not add_new_org
 
 # Set node status
 - name: Set node status
   set_fact:
     node_status: additional
-  when: network.config.genesis | default('', true) | trim != ''
+  when: add_new_org
 
 # Get enode data for all orgs
 - name: Get enode data for each node of all organization
@@ -21,6 +21,13 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org
+
+# This task creates the staticnodes file from the template
+- name: Create staticnodes file
+  template:
+    src: "staticnodes.tpl"
+    dest: "{{ network.config.staticnodes }}"
+  when: not add_new_org
 
 # This task adds a new node to the existing network
 - name: Adds a new node to the existing network
@@ -37,13 +44,13 @@
   loop_control:
     loop_var: enode
   register: peer_id
-  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
+  when: add_new_org and network.config.consensus == 'raft'
 
-# This task fetches the peer_id 
+# This task fetches the new peer_id 
 - name: Get peer_id
   set_fact:
     peer_id: "{{ peer_id.results[0].json.result }}"
-  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
+  when: add_new_org and network.config.consensus == 'raft'
 
 # This task creates the Tessera Transaction Manager value files for each node of organization
 - name: Create value file for Tessera TM for each node
@@ -52,39 +59,12 @@
   vars:
     component_name: "{{ name }}{{ peer.name }}tessera"
     type: "tessera"
-    genesis: "{{ lookup('file', '{{ build_path }}/genesis.json') | b64encode }}"
+    genesis: "{{ lookup('file', '{{ network.config.genesis }}') | b64encode }}"
+    staticnodes: "{{ lookup('file', '{{ network.config.staticnodes }}') | from_yaml | to_nice_json }}"
   loop: "{{ peers }}"
   loop_control:
     loop_var: peer
-  when: network.config.genesis | default('', true) | trim == ''
-
-# This task creates the Tessera Transaction Manager value files for each node of organization
-- name: Create value file for Tessera TM for each node
-  include_role:
-    name: helm_component
-  vars:
-    component_name: "{{ name }}{{ peer.name }}tessera"
-    type: "tessera"
-    genesis: "{{ network.config.genesis }}"
-  loop: "{{ peers }}"
-  loop_control:
-    loop_var: peer
-  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'raft'
-
-# This task creates the Tessera Transaction Manager value files for each node of organization
-- name: Create value file for Tessera TM for each node
-  include_role:
-    name: helm_component
-  vars:
-    component_name: "{{ name }}{{ peer.name }}tessera"
-    type: "tessera"
-    genesis: "{{ network.config.genesis }}"
-  loop: "{{ peers }}"
-  loop_control:
-    loop_var: peer
-  when: network.config.genesis | default('', true) | trim != '' and network.config.consensus == 'ibft'
-
-
+  
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 

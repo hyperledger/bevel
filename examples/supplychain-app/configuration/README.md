@@ -133,9 +133,10 @@ network:
               smart_contract:
                 name: "General"           
                 contract_path: "./contracts"  
-                deployjs_path: "blockchain-automation-framework/examples/supplychain-app/quorum/smartContracts"    
+                deployjs_path: "examples/supplychain-app/quorum/smartContracts"    
                 iterations: 200           
-                entrypoint: "General.sol"  
+                entrypoint: "General.sol"
+                private_for: ""   # Add comma separated list of public tm keys
                 geth_url: "http://manufacturer.test.corda.blockchaincloudpoc.com:15021"          
 ```
 
