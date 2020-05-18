@@ -3,6 +3,9 @@
   hosts: localhost
   connection: local
   vars:
+    network:
+      env:
+        proxy: haproxy
     kubernetes: 
       config_file: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
@@ -147,3 +150,25 @@
             name: testorderer1
           - orderer: 
             name: testorderer2
+
+
+#####################################################################################
+    # Testing create/crypto/peer
+    - name: "Include create/crypto/peer"
+      include_role:
+        name: "peer"
+      vars:
+        component_name: testpeer
+        item:
+          external_url_suffix: "test.url.com"
+        vault_peer_ambassador:
+          failed: True
+        peer:
+          name: testpeer
+        cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
+        services:
+          peers:
+          - peer:
+            name: testpeer0
+          - peer:
+            name: testpeer1
