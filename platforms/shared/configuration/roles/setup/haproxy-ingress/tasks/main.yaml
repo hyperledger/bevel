@@ -30,16 +30,13 @@
 
 # Wait for HAProxy pods to start running
 - name: wait for pods to come up
-  k8s_info:
-    kind: Pod
+  include_role:
+    name: "check/helm_component"
+  vars:
     namespace: ingress-controller
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kubecontext }}"
+    component_name: flux
+    component_type: "Pod"
     label_selectors:
       - run = haproxy-ingress
-    field_selectors:
-      - status.phase=Running
-  register: kubectl_get_pods
-  until: kubectl_get_pods.resources|length > 0
-  retries: "{{ network.env.retry_count }}"
-  delay: 15
