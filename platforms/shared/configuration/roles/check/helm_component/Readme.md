@@ -37,7 +37,7 @@ Task to check if Job deployed and completed without the retry.
     result: This variable stores the output whether the job is deployed and completed.
 
 #### 3. Wait for {{ component_type }} {{ component_name }} in {{ namespace }}
-Task to check if Pod deployed and running . This task will try for a maximum number of times as described in network.yaml or defined the role calling with an interval of 30 seconds between each try. Any role calling this task needs have a variable called label_selectors. An implementation of label_selectors could be as follows  
+Task to check if Pod deployed and running . This task will try for a maximum number of times as described in network.yaml or defined by the role calling it with an interval of 30 seconds between each try. Any role calling this task needs to have a variable called label_selectors. An implementation of label_selectors could be as follows  
 
 ```yaml
 label_selectors:
