@@ -16,6 +16,7 @@ RUN apt-get update -y && \
 	    openssh-client \
         gcc \
         git \
+        libdb-dev libleveldb-dev libsodium-dev zlib1g-dev libtinfo-dev \
         jq \
         python \
         python3-dev \
