@@ -34,6 +34,7 @@ spec:
       imagepullsecret: regcred
       keystore: keystore_1
       servicetype: ClusterIP
+      lock: {{ peer.lock }}
       ports:
         rpc: {{ peer.rpc.port }}
         raft: {{ peer.raft.port }}
