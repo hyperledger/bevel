@@ -6,6 +6,12 @@
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
+  - name: Copy test env files to build directory
+    copy:
+      src: "{{ item }}"
+      dest: "{{ playbook_dir }}/../../../build/"
+    with_fileglob:
+      - "{{ playbook_dir }}/../tests/SupplychainDemo_*"
   ############################################################################################
   # Create restserver value file for the peer nodes
   - include_role:
@@ -108,7 +114,7 @@
     include_role:
       name: "deploy/quorum/smartContract"
     vars:
-      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_ns: "{{ organization_data.name | lower }}-quo"
       component_vault: "{{ organization_data.vault }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
@@ -120,7 +126,7 @@
     include_role:
       name: "setup/smartContractAddress"
     vars:
-      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_ns: "{{ organization_data.name | lower }}-quo"
       component_vault: "{{ organization_data.vault }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
@@ -133,7 +139,7 @@
       name: "create/quorum/expressapi"
     vars:
       component_name: "expressapi"
-      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_ns: "{{ organization_data.name | lower }}-quo"
       component_type: "{{ organization_data.type | lower }}"
       component_gitops: "{{ organization_data.gitops }}"
       component_vault: "{{ organization_data.vault }}"
@@ -148,7 +154,7 @@
       name: "create/quorum/frontend"
     vars:
       component_name: "frontend"
-      component_ns: "{{ organization_data.name | lower }}-ns"
+      component_ns: "{{ organization_data.name | lower }}-quo"
       component_type: "{{ organization_data.type | default(' ', true) | lower }}"
       component_gitops: "{{ organization_data.gitops }}"
       component_vault: "{{ organization_data.vault }}"

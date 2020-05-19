@@ -10,7 +10,7 @@ spec:
     path: {{ component_gitops.chart_source }}/expressapp
     git: "{{ component_gitops.git_ssh }}"
     ref: "{{ component_gitops.branch }}"
-  releaseName: {{ peer_name }}-expressapi
+  releaseName: {{ peer_name }}{{ network.type }}-expressapi
   values:
     nodeName: {{ peer_name }}-expressapi
     metadata:
