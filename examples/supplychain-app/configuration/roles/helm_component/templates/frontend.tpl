@@ -10,7 +10,7 @@ spec:
     path: {{ component_gitops.chart_source }}/frontend
     git: "{{ component_gitops.git_ssh }}"
     ref: "{{ component_gitops.branch }}"
-  releaseName: {{ peer_name }}-frontend
+  releaseName: {{ peer_name }}{{ network.type }}-frontend
   values:
     nodeName: {{ peer_name }}-frontend
     metadata:

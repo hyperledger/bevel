@@ -28,7 +28,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum, here in the example its **quorum**.
 
-`version` defines the version of platform being used. The current Quorum version support is **2.5.0** and **2.1.1**
+`version` defines the version of platform being used. The current Quorum version support is only for **2.5.0**
 
 ---
 **NOTE**: Use Quorum Version 2.5.0 if you are deploying Supplychain smartcontracts from examples.
@@ -40,7 +40,7 @@ The sections in the sample configuration file are
 The snapshot of the `env` section with example value is below
 ```yaml 
   env:
-    type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Quorum
     ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
@@ -91,7 +91,11 @@ The snapshot of the `config` section with example values is below
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
     transaction_manager: "tessera"    # Options are "tessera" and "constellation"
-    tm_version: "0.9.2"               # This is the version of "tessera" and "constellation" docker image that will be deployed
+    # This is the version of "tessera" or "constellation" docker image that will be deployed
+    # Supported versions #
+    # constellation: 0.3.2 (For all versions of quorum)
+    # tessera: 0.11 (for quorum 2.5.0)
+    tm_version: "0.11"               # This is the version of "tessera" and "constellation" docker image that will be deployed
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
@@ -107,6 +111,19 @@ The snapshot of the `config` section with example values is below
       - "https://manufacturer.test.quorum.blockchaincloudpoc.com:8443"
       - "https://store.test.quorum.blockchaincloudpoc.com:8443"
       - "https://warehouse.test.quorum.blockchaincloudpoc.com:8443"
+    staticnodes: "/home/user/blockchain-automation-framework/build/quorum_staticnodes" # Location where staticnodes will be saved
+    genesis: "/home/user/blockchain-automation-framework/build/quorum_genesis"   # Location where genesis file will be saved
+    # NOTE for the above paths, the directories should exist
+    ##### Following keys are only used when adding new Node(s) to existing network and should NOT be used to create new network.
+    bootnode:
+      #name of the bootnode that matches one from existing node
+      name: carrier
+      #ambassador url of the bootnode
+      url: carrier.test.quorum.blockchaincloudpoc.com
+      #rpc port of the bootnode
+      rpcport: 15011
+      #id of the bootnode
+      nodeid: 1
 ```
 The fields under `config` are
 
@@ -119,6 +136,9 @@ The fields under `config` are
 | tm_tls | Options are `strict` and `off`. This enables TLS for the transaction managers, and is not related to the actual Quorum network. `off` is not recommended for production. |
 | tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for tessera]( https://github.com/jpmorganchase/tessera/wiki/TLS) and [for consellation](https://github.com/jpmorganchase/constellation/blob/master/sample.conf).|
 | tm_nodes | The Transaction Manager nodes public addresses should be provided. For `tessera`, all participating nodes should be provided, for `constellation`, only one bootnode should be provided. NOTE The difference in the addresses for Tessera and Constellation. |
+| staticnodes | This is the path where staticnodes will be stored for a new network; for adding new node, the existing network's staticnodes should be available in yaml format in this file.|
+| genesis | This is the path where genesis.json will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file.|
+| bootnode | This is only applicable when adding a new node to existing network and contains the boot node rpc details |
 
 
 The `organizations` section contains the specifications of each organization.  

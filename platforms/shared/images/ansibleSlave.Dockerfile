@@ -22,6 +22,7 @@ RUN apt-get update -y && \
     libffi-dev \
     libssl-dev \
     libxml2-utils \
+    libdb-dev libleveldb-dev libsodium-dev zlib1g-dev libtinfo-dev \
     locales \
     make \
     mercurial \
@@ -60,7 +61,7 @@ RUN apt-get update && \
     apt-get update && \
     apt-get -y install docker-ce
 
-ENV PATH=~/bin:$PATH
+ENV PATH=/root/bin:/root/.local/bin/:$PATH
 RUN mkdir /etc/ansible/
 RUN /bin/echo -e "[ansible_provisioners:children]\nlocal\n[local]\nlocalhost ansible_connection=local" > /etc/ansible/hosts
 RUN locale-gen en_US.UTF-8
