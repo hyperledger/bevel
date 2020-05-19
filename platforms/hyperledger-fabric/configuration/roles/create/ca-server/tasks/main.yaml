@@ -11,6 +11,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_ca_result
   ignore_errors: yes
+  tags:
+    - notest
 
 ############################################################################################
 # This task creates the folder to store crypto material
@@ -31,6 +33,15 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_ca_result.failed == False
+  tags:
+    - notest
+
+#####################################################################################
+  #This task checks if the CA key is already present or not
+- name: "Check if the CA.key is already present"
+  stat:
+    path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key"
+  register: ca_key_check
 
 ############################################################################################
 # This task generates initial CA certificates
@@ -39,7 +50,7 @@
     cd "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
     openssl ecparam -name prime256v1 -genkey -noout -out {{ component_name }}-CA.key
     openssl req -x509 -config "{{playbook_dir}}/openssl.conf" -new -nodes -key {{ component_name }}-CA.key -days 1024 -out ca.{{ component_name }}-cert.pem -extensions v3_req -subj "{{ ca.subject }}"
-  when: vault_ca_result.failed == True
+  when: vault_ca_result.failed == True and  not ca_key_check.stat.exists
 
 ############################################################################################
 # This task copy the CA certificates generated above, to the Vault
@@ -50,6 +61,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_ca_result.failed == True
+  tags:
+    - notest
 
 - name: Check if ca admin credentials already created
   shell: |
@@ -59,6 +72,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_caadmin_result
   ignore_errors: yes
+  tags:
+    - notest
 
 ############################################################################################
 # This task write the CA server admin credentials to Vault
@@ -69,10 +84,12 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_caadmin_result.failed == True  # run only when vault_caadmin_result failed
+  tags:
+    - notest
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
-  k8s_facts:
+  k8s_info:
     kind: Secret
     namespace: default
     name: ca-{{ component_name }}-ambassador-certs
@@ -130,3 +147,5 @@
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing CA server files"
+  tags:
+    - notest
