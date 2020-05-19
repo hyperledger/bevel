@@ -18,8 +18,8 @@ We don't maintain of this Docker image so we need clone from GitHub repository.
 3. Push Docker image into Docker repository: `docker push <DOCKER_IMAGE_NAME>`
 
 ## Run demo
-1. Start "Faber" agent: `LEDGER_URL=http://192.168.99.204:18005 ./run faber --events --no-auto --bg`
-2. Start "Alice" agent: `LEDGER_URL=http://192.168.99.204:18005 ./run alice --events --no-auto --bg`
+1. Start "Faber" agent: `LEDGER_URL=http://<WEB_SERVER_URL>>:<WEB_SERVER_PORT> ./run faber --events --no-auto --bg`
+2. Start "Alice" agent: `LEDGER_URL=http://<WEB_SERVER_URL>>:<WEB_SERVER_PORT> ./run alice --events --no-auto --bg`
 
 ## What is the "run" file
 This file is from the Demo with which is able to run demo as Docker container. In the script is inserted "ENDORSER_SEED" at the line 173. This script will be removed by Helm Release and "ENDORSER_SEED" variable will be fill up by init container.
