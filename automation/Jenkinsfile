@@ -318,9 +318,9 @@ pipeline {
       steps {
         // Get Ambassador IP and update in network.yaml for indy
         sh """
-          ambassadordns=$(kubectl get service ambassador -o json | jq '.status.loadBalancer.ingress[0].hostname'| tr -d '"')
-          ambassador_ip=$(host $ambassadordns | awk '{print $4}')
-          sed -i -e 's*AMBASSADOR_IP*${ambassador_ip}*g' build/network.yaml
+          ambassadordns=\$(kubectl get service ambassador -o json | jq '.status.loadBalancer.ingress[0].hostname'| tr -d '"')
+          ambassador_ip=\$(host \$ambassadordns | awk '{print \$4}')
+          sed -i -e "s*AMBASSADOR_IP*\$ambassador_ip*g" build/network.yaml
         """
         sh """
           ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
