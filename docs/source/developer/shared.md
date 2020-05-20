@@ -32,4 +32,4 @@ All the common Ansible roles can be found at [platforms/shared/configuration/rol
 * setup/tiller
 * setup/vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/roles/README.md) for detailed information on each of these roles.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/roles/) for detailed information on each of these roles.

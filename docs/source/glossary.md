@@ -245,7 +245,7 @@ Each identity has a specific role in Indy described by one of four roles in Indy
 The special type of cryptographic key necessary for an Issuer to issue a Claim that supports Zero Knowledge Proofs.
 
 ### Ledger
-The ledger in Indy is Indy-plenum based. Provides a simple, python-based, immutable, ordered log of transactions backed by a merkle tree. For more details, refer [Indy-plenum](https://github.com/hyperledger/indy-plenum/blob/master/README.md)
+The ledger in Indy is Indy-plenum based. Provides a simple, python-based, immutable, ordered log of transactions backed by a merkle tree. For more details, refer [Indy-plenum](https://github.com/hyperledger/indy-plenum/)
 
 ### NYM Transaction
 NYM record is created for a specific user, Trust Anchor, Sovrin Stewards or trustee. The transaction can be used for creation of new DIDs, setting and Key Rotation of verification key, setting and changing of roles.
