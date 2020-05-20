@@ -1,21 +1,21 @@
 apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
-  name: notarykd-initial-registration
+  name: notarykd
   annotations:
     flux.weave.works/automated: "false"
   namespace: supplychainkd-ns
 spec:
-  releaseName: notarykd-initial-registration
+  releaseName: notarykd
   chart:
-    path: platforms/r3-corda/charts/notary-initial-registration
+    path: platforms/r3-corda/charts/notary
     git: git@github.com:deepakkumardbd/blockchain-automation-framework.git
     ref: corda-checks-test
   values:
     nodeName: notarykd
     replicas: 1
     metadata:
-      namespace: supplychainkd-ns  
+      namespace: supplychainkd-ns
     image:
       containerName: adopblockchaincloud0502.azurecr.io/corda:4.1-linuxkit
       initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
@@ -78,22 +78,35 @@ spec:
         - name: notarykdoperations
           permissions: [ALL]
 
+    cordapps:
+      getcordapps: false
+
     volume:
       baseDir: /base/corda
     resources:
-      limits: "512Mi"
-      requests: "512Mi"
-    
+      limits: "1Gi"
+      requests: "1Gi" 
+    pvc:
+      name: notarykd-pvc
+      annotations: {}
+      memory: 512Mi
+      storageClassName: awsstorageclass
+
     service:
+      name: notarykd
       type: ClusterIP
       p2p:
         port: 10002
         targetPort: 10002
       rpc:
         port: 10003
+        targetPort: 10003 
       rpcadmin:
         port: 10005
-
+        targetPort: 10005
+         
+    deployment:
+      annotations: {}
     vault:
       address: http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200
       role: vault-role
@@ -104,7 +117,15 @@ spec:
       tokensecretprefix: notarykd/credentials/vaultroottoken
       keystoresecretprefix: notarykd/credentials/keystore
       certsecretprefix: notarykd/certs
-        
+      networkmapsecretprefix: notarykd/credentials/networkmappassword
+      cordappsreposecretprefix: notarykd/credentials/cordapps
+
+          
     healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 15
+      readinesscheckinterval: 20
+      readinessthreshold: 20
+    ambassador:
+      component_name: notarykd
+      external_url_suffix: rc.dev.aws.blockchaincloudpoc-develop.com
+      p2p_ambassador: 10010
+      
