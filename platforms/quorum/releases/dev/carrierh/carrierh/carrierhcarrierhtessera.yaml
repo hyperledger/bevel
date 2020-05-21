@@ -1,0 +1,80 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: carrierhcarrierhtessera
+  namespace: carrierh-quo
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: carrierhcarrierhtessera
+  chart:
+    git: git@github.com:himanshulalarya/blockchain-automation-framework.git
+    ref: quorum
+    path: platforms/quorum/charts/node_tessera  
+  values:
+    replicaCount: 1
+    metadata:
+      namespace: carrierh-quo
+      labels:
+    images:
+      node: quorumengineering/quorum:2.5.0
+      alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      tessera: quorumengineering/tessera:0.11
+      busybox: busybox
+      mysql: mysql/mysql-server:5.7
+    node:
+      name: carrierh
+      status: default
+      consensus: ibft
+      subject: O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB
+      mountPath: /etc/quorum/qdata
+      imagePullSecret: regcred
+      keystore: keystore_1
+      
+      servicetype: ClusterIP
+      lock: true
+      ports:
+        rpc: 8546
+        raft: 50401
+        tm: 8443
+        quorum: 21000
+        db: 3306
+      dbname: demodb
+      mysqluser: demouser
+    vault:
+      address: http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200
+      secretprefix: secret/carrierh-quo/crypto/carrierh
+      serviceaccountname: vault-auth
+      keyname: quorum
+      tm_keyname: transaction
+      role: vault-role
+      authpath: quorumcarrierh
+    tessera:
+      dburl: "jdbc:mysql://carrierh:3306/demodb"
+      dbusername: demouser
+      url: "https://carrierh.rc.dev.aws.blockchaincloudpoc-develop.com:8443"
+      othernodes:
+        - url: https://carrierh.rc.dev.aws.blockchaincloudpoc-develop.com:8443
+        - url: https://manufacturerh.rc.dev.aws.blockchaincloudpoc-develop.com:8443
+        - url: https://storeh.rc.dev.aws.blockchaincloudpoc-develop.com:8443
+        - url: https://warehouseh.rc.dev.aws.blockchaincloudpoc-develop.com:8443
+      tls: "STRICT"
+      trust: "TOFU"
+    genesis: ewogICAgImNvbmZpZyI6IHsKICAgICAgICAiY2hhaW5JZCI6IDEwLAogICAgICAgICJob21lc3RlYWRCbG9jayI6IDAsCiAgICAgICAgImVpcDE1MEJsb2NrIjogMCwKICAgICAgICAiZWlwMTUwSGFzaCI6ICIweDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLAogICAgICAgICJlaXAxNTVCbG9jayI6IDAsCiAgICAgICAgImVpcDE1OEJsb2NrIjogMCwKICAgICAgICAiYnl6YW50aXVtQmxvY2siOiAxLAogICAgICAgICJjb25zdGFudGlub3BsZUJsb2NrIjogMCwKICAgICAgICAiaXN0YW5idWwiOiB7CiAgICAgICAgICAgICJlcG9jaCI6IDMwMDAwLAogICAgICAgICAgICAicG9saWN5IjogMCwKICAgICAgICAgICAgImNlaWwyTmJ5M0Jsb2NrIjogMAogICAgICAgIH0sCiAgICAgICAgInR4blNpemVMaW1pdCI6IDEyOCwKICAgICAgICAibWF4Q29kZVNpemUiOiAxMjgsCiAgICAgICAgImlzUXVvcnVtIjogdHJ1ZQogICAgfSwKICAgICJub25jZSI6ICIweDAiLAogICAgInRpbWVzdGFtcCI6ICIweDVlYzY2OTMyIiwKICAgICJleHRyYURhdGEiOiAiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwZjg5YWY4NTQ5NGIxNmYwN2U3MWViNDJkMjIyYmU4YzkxNzk0YTNhNjk1NTNlYTI2YzM5NDBiZTM3YjY5NjUzYTA3MmI4MzM4YzBjYzFjNWU0NDhmYjZjYjNjZTg5NGQ3YjNkODE2MjJkN2I0M2ZiNTJiNDU0NmIyNmExOWY4MDM0NzNlZjE5NDNjOGIwMTM4ZjI5MmVlYjkxNzdjMGYyYmQxZTU2NWJhOWU5N2IzNmRiODQxMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGMwIiwKICAgICJnYXNMaW1pdCI6ICIweGUwMDAwMDAwIiwKICAgICJkaWZmaWN1bHR5IjogIjB4MSIsCiAgICAibWl4SGFzaCI6ICIweDYzNzQ2OTYzNjE2YzIwNjI3OTdhNjE2ZTc0Njk2ZTY1MjA2NjYxNzU2Yzc0MjA3NDZmNmM2NTcyNjE2ZTYzNjUiLAogICAgImNvaW5iYXNlIjogIjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgICAiYWxsb2MiOiB7CiAgICAgICAgIjBiZTM3YjY5NjUzYTA3MmI4MzM4YzBjYzFjNWU0NDhmYjZjYjNjZTgiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjB4NDQ2YzNiMTVmOTkyNjY4N2QyYzQwNTM0ZmRiNTY0MDAwMDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgIjNjOGIwMTM4ZjI5MmVlYjkxNzdjMGYyYmQxZTU2NWJhOWU5N2IzNmQiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjB4NDQ2YzNiMTVmOTkyNjY4N2QyYzQwNTM0ZmRiNTY0MDAwMDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImIxNmYwN2U3MWViNDJkMjIyYmU4YzkxNzk0YTNhNjk1NTNlYTI2YzMiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjB4NDQ2YzNiMTVmOTkyNjY4N2QyYzQwNTM0ZmRiNTY0MDAwMDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImQ3YjNkODE2MjJkN2I0M2ZiNTJiNDU0NmIyNmExOWY4MDM0NzNlZjEiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjB4NDQ2YzNiMTVmOTkyNjY4N2QyYzQwNTM0ZmRiNTY0MDAwMDAwMDAwMDAwIgogICAgICAgIH0KICAgIH0sCiAgICAibnVtYmVyIjogIjB4MCIsCiAgICAiZ2FzVXNlZCI6ICIweDAiLAogICAgInBhcmVudEhhc2giOiAiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIgp9
+    staticnodes: 
+      [
+    "enode://2fd2ae80598b1bfa5f369ca6aed3510d2a64039816b06a755d9ac28711892615a2b915a8d04091c109a2b16c08afefa2d46f3394de73b6d558c90735f233cc81@carrierh.rc.dev.aws.blockchaincloudpoc-develop.com:15010?discport=0",
+    "enode://5f34b25ecb96cb2ecb7b77a9a771bbe3ad9ba8deea3aabd7f2a9a5b3f2b2c53796ac71090b560a0ff08cf685aa58bb00c471eb00cb5be2f440d7a401c168c440@manufacturerh.rc.dev.aws.blockchaincloudpoc-develop.com:15020?discport=0",
+    "enode://04805a084eb3c8765125fa837a406812a3b4c093dee4ed107257623794f67768afbe4cfacd6423418e5a8af7cf259287c7ab500c8f9fa0c450d2faee3aa20563@storeh.rc.dev.aws.blockchaincloudpoc-develop.com:15030?discport=0",
+    "enode://b9e1f621b3dc40b4b1b66b482b6fed9741d5ba1cdd1900866cc2ff461d8372fcf6293cad3b70ef022cac8db1fca6b41843c4e0ab8fe342f3e4790c1cb2ac056e@warehouseh.rc.dev.aws.blockchaincloudpoc-develop.com:15040?discport=0"
+]
+    proxy:
+      provider: "ambassador"
+      external_url: carrierh.rc.dev.aws.blockchaincloudpoc-develop.com
+      portTM: 8443
+      rpcport: 15011
+      quorumport: 15010
+    storage:
+      storageclassname: awsstorageclass
+      storagesize: 1Gi
+      dbstorage: 1Gi
