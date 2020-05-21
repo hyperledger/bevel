@@ -2,11 +2,10 @@
 # Adding a new storageclass
 As storageclass templates vary as per requirements and cloud provider specifications, this guide will help in using a new storageclass which is not supported by Blockchain Automation Framework (BAF)
 
-- [Adding a new storageclass](#adding-a-new-storageclass)
-  - [## Adding a new storage class for Hyperledger Fabric](#h2-id%22adding-a-new-storage-class-for-hyperledger-fabric-605%22adding-a-new-storage-class-for-hyperledger-fabrich2)
-  - [## Adding a new storage class for R3-Corda](#h2-id%22adding-a-new-storage-class-for-r3-corda-247%22adding-a-new-storage-class-for-r3-cordah2)
-  - [## Adding a new storage class for Hyperledger Indy](#h2-id%22adding-a-new-storage-class-for-hyperledger-indy-126%22adding-a-new-storage-class-for-hyperledger-indyh2)
-  - [## Adding a new storage class for Quorum](#h2-id%22adding-a-new-storage-class-for-quorum-22%22adding-a-new-storage-class-for-quorumh2)
+  - [Adding a new storage class for Hyperledger Fabric](#fabric)
+  - [Adding a new storage class for R3-Corda](#corda)
+  - [Adding a new storage class for Hyperledger Indy](#indy)
+  - [Adding a new storage class for Quorum](#quorum)
 
 
 <a name = "fabric"></a>
