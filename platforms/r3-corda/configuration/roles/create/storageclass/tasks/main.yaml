@@ -7,17 +7,12 @@
 
 # Check storageclass exists already
 - name: Check if storageclass exists
-  include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: StorageClass
-    component_name: "{{ org.cloud_provider }}storageclass"
-    kubernetes: "{{ org.k8s }}"
-    type: "no_retry"
-
-- name: Set the storageclass check result to a local variable
-  set_fact:
-    storageclass_state: "{{ result }}"
+  k8s_facts:
+    kind: StorageClass
+    name: "{{ org.cloud_provider }}storageclass"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+  register: storageclass_state
 
 - name: Create storageclass
   include_role:
@@ -47,12 +42,12 @@
 
 - name: "Wait for Storageclass creation for {{ component_name }}"
   include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
+    name: check/k8_component
   tags:
     - notest
   vars:
     component_type: "StorageClass"
     component_name: "{{ org.cloud_provider }}-storageclass"
-    kubernetes: "{{ org.k8s }}"
-    type: "retry"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
   when: storageclass_state.resources|length == 0

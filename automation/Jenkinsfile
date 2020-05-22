@@ -112,11 +112,6 @@ pipeline {
           echo "127.0.0.1 ${VAULT_SERVER}" > /etc/hosts
           ssh -i ${VAULT_FILE} -f -q -N -L ${VAULT_PORT}:${VAULT_PRIVATE_IP}:${VAULT_PORT} devinstance@${VAULT_BASTION}
           ps -aux | grep ssh
-          echo 'Install nodejs'
-          curl -sL https://deb.nodesource.com/setup_10.x | bash -
-          apt-get install -y nodejs
-          echo 'Copy test files to build folder'
-          cp examples/supplychain-app/tests/SupplychainDemo_*.json build/
         """
       }
     }
@@ -280,7 +275,7 @@ pipeline {
                   sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/network.yaml
                   sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/addorg.yaml
               """
-          }          
+          }
       }
     }
     stage('Reset existing network') {
@@ -315,13 +310,7 @@ pipeline {
         expression { params.APIONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
-      steps {
-        // Get Ambassador IP and update in network.yaml for indy
-        sh """
-          ambassadordns=\$(kubectl get service ambassador -o json | jq '.status.loadBalancer.ingress[0].hostname'| tr -d '"')
-          ambassador_ip=\$(host \$ambassadordns | awk '{print \$4}')
-          sed -i -e "s*AMBASSADOR_IP*\$ambassador_ip*g" build/network.yaml
-        """
+      steps {        
         sh """
           ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
@@ -365,6 +354,8 @@ pipeline {
       }
       steps {        
         sh """
+          curl -sL https://deb.nodesource.com/setup_10.x | bash -
+          apt-get install -y nodejs
           ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@./build/application.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
@@ -381,17 +372,11 @@ pipeline {
         expression { params.RESET_ACTION == 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
-      steps {   
-        script {
-          try {           
-            sh """
-              npm install -g newman
-              newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json
-            """ 
-          } catch(err) {
-            echo "API test failed. Try to run manually via Postman."
-          }
-        }        
+      steps {              
+        sh """
+          npm install -g newman
+          newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json
+        """            
       }
     }
 
@@ -408,7 +393,7 @@ pipeline {
       steps {
           script {
             try {
-              timeout(time: 20, unit: 'MINUTES') {
+              timeout(time: 55, unit: 'MINUTES') {
                 userInput = input(id: 'Proceed1', message: 'Reset the network?',
                   parameters: [ [$class: 'BooleanParameterDefinition',
                   defaultValue: true, description: '', name: 'Please confirm you want to reset. Abort if you want to keep the network.'] ])
