@@ -1,0 +1,69 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: warehousehwarehousehconstellation
+  namespace: warehouseh-quo
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: warehousehwarehousehconstellation
+  chart:
+    git: git@github.com:himanshulalarya/blockchain-automation-framework.git
+    ref: quorum-final
+    path: platforms/quorum/charts/node_constellation
+  values:
+    replicaCount: 1
+    metadata:
+      namespace: warehouseh-quo
+      labels: 
+    images:
+      node: quorumengineering/quorum:2.5.0
+      alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      constellation: quorumengineering/constellation:0.3.2
+    node:
+      name: warehouseh
+      status: default
+      consensus: ibft
+      subject: O=Warehouseh,OU=Warehouseh,L=42.36/-71.06/Boston,C=US
+      mountPath: /etc/quorum/qdata
+      imagepullsecret: regcred
+      keystore: keystore_1
+      servicetype: ClusterIP
+      lock: false
+      ports:
+        rpc: 8546
+        raft: 50401
+        constellation: 9001
+        quorum: 21000
+    vault:
+      address: http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200
+      secretprefix: secret/warehouseh-quo/crypto/warehouseh
+      serviceaccountname: vault-auth
+      keyname: quorum
+      tm_keyname: transaction
+      role: vault-role
+      authpath: quorumwarehouseh
+    genesis: ewogICAgImNvbmZpZyI6IHsKICAgICAgICAiY2hhaW5JZCI6IDEwLAogICAgICAgICJob21lc3RlYWRCbG9jayI6IDAsCiAgICAgICAgImVpcDE1MEJsb2NrIjogMCwKICAgICAgICAiZWlwMTUwSGFzaCI6ICIweDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLAogICAgICAgICJlaXAxNTVCbG9jayI6IDAsCiAgICAgICAgImVpcDE1OEJsb2NrIjogMCwKICAgICAgICAiYnl6YW50aXVtQmxvY2siOiAxLAogICAgICAgICJjb25zdGFudGlub3BsZUJsb2NrIjogMCwKICAgICAgICAiaXN0YW5idWwiOiB7CiAgICAgICAgICAgICJlcG9jaCI6IDMwMDAwLAogICAgICAgICAgICAicG9saWN5IjogMCwKICAgICAgICAgICAgImNlaWwyTmJ5M0Jsb2NrIjogMAogICAgICAgIH0sCiAgICAgICAgInR4blNpemVMaW1pdCI6IDEyOCwKICAgICAgICAibWF4Q29kZVNpemUiOiAxMjgsCiAgICAgICAgImlzUXVvcnVtIjogdHJ1ZQogICAgfSwKICAgICJub25jZSI6ICIweDAiLAogICAgInRpbWVzdGFtcCI6ICIweDVlYzdjYjk4IiwKICAgICJleHRyYURhdGEiOiAiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwZjg5YWY4NTQ5NGExMDBhNzE3YTMwMDYxOWMxZWFhZDQ3NmQ5YjZjYzVhNWM5YjdkMjk5NGUxMDM3YzhkNDE5MmEwNjhkZWMzMjc0YjAxOWVkZjRjNGNhY2RlYzA5NGJiMzI3OGEyZGQzZDAxOTUwOWZiZWE2YWY3MjBiNzEwZTgxMTYxNTI5NDA0ODkxYTAyZjNhZWQ1YmI0YjI2ZWI0Y2NlNTNjMmU4NGNhZjhkYjhiODQxMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGMwIiwKICAgICJnYXNMaW1pdCI6ICIweGUwMDAwMDAwIiwKICAgICJkaWZmaWN1bHR5IjogIjB4MSIsCiAgICAibWl4SGFzaCI6ICIweDYzNzQ2OTYzNjE2YzIwNjI3OTdhNjE2ZTc0Njk2ZTY1MjA2NjYxNzU2Yzc0MjA3NDZmNmM2NTcyNjE2ZTYzNjUiLAogICAgImNvaW5iYXNlIjogIjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgICAiYWxsb2MiOiB7CiAgICAgICAgIjA0ODkxYTAyZjNhZWQ1YmI0YjI2ZWI0Y2NlNTNjMmU4NGNhZjhkYjgiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjB4NDQ2YzNiMTVmOTkyNjY4N2QyYzQwNTM0ZmRiNTY0MDAwMDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImExMDBhNzE3YTMwMDYxOWMxZWFhZDQ3NmQ5YjZjYzVhNWM5YjdkMjkiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjB4NDQ2YzNiMTVmOTkyNjY4N2QyYzQwNTM0ZmRiNTY0MDAwMDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImJiMzI3OGEyZGQzZDAxOTUwOWZiZWE2YWY3MjBiNzEwZTgxMTYxNTIiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjB4NDQ2YzNiMTVmOTkyNjY4N2QyYzQwNTM0ZmRiNTY0MDAwMDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImUxMDM3YzhkNDE5MmEwNjhkZWMzMjc0YjAxOWVkZjRjNGNhY2RlYzAiOiB7CiAgICAgICAgICAgICJiYWxhbmNlIjogIjB4NDQ2YzNiMTVmOTkyNjY4N2QyYzQwNTM0ZmRiNTY0MDAwMDAwMDAwMDAwIgogICAgICAgIH0KICAgIH0sCiAgICAibnVtYmVyIjogIjB4MCIsCiAgICAiZ2FzVXNlZCI6ICIweDAiLAogICAgInBhcmVudEhhc2giOiAiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIgp9
+    staticnodes: 
+      [
+    "enode://3d374231c1e3596accbd588d6fc3236ac4136f6782921a0ad4630a8c0c288e45f953a49a706644859e7f9276054f87884f8787023c6cb01d955639a4b34c2de1@carrierh.rc.dev.aws.blockchaincloudpoc-develop.com:15010?discport=0",
+    "enode://3c41cf79ba968c97ae4bcd1fb6f9346629e19ccddcf4514c6b96c874ea9c39af9acd83da5ac48c4bc27c76c83019d22b4b2a93c382accd901ec913ca327314eb@manufacturerh.rc.dev.aws.blockchaincloudpoc-develop.com:15020?discport=0",
+    "enode://99bd3b7401afdaefabbc4deaf81e6b435fa9c486088620184ef6b9c466bda6006c2f3dffc6bad10955d77da402051c49cc2c7d6e1ee130ad9ef59fc0b5e83ee0@storeh.rc.dev.aws.blockchaincloudpoc-develop.com:15030?discport=0",
+    "enode://d3deda96a17c1b372da6f0a8a941a90c79c6333f269d4b19fd68dd46ecfd102a456900633fc903e22ab9d789cdf528122416335c1249f371111bb1c0aa6f4dbc@warehouseh.rc.dev.aws.blockchaincloudpoc-develop.com:15040?discport=0"
+]
+    constellation:
+      url: https://warehouseh.rc.dev.aws.blockchaincloudpoc-develop.com:15042/
+      storage: "bdb:/etc/quorum/qdata/database"
+      tls: "strict"
+      othernodes: http://carrierh.rc.dev.aws.blockchaincloudpoc-develop.com:15012/
+      trust: "tofu"
+    proxy:
+      provider: "ambassador"
+      external_url_suffix: rc.dev.aws.blockchaincloudpoc-develop.com
+      rpcport: 15041
+      quorumport: 15040
+      portConst: 15042
+      portRaft: 15043
+    storage:
+      storageclassname: awsstorageclass
+      storagesize: 1Gi
