@@ -319,7 +319,7 @@ pipeline {
         // Get Ambassador IP and update in network.yaml for indy
         sh """
           ambassadordns=\$(kubectl get service ambassador -o json | jq '.status.loadBalancer.ingress[0].hostname'| tr -d '"')
-          ambassador_ip=\$(host \$ambassadordns | awk '{print \$4}')
+          ambassador_ip=\$(host \$ambassadordns | awk '/has address/ { print \$4 ; exit }')
           sed -i -e "s*AMBASSADOR_IP*\$ambassador_ip*g" build/network.yaml
         """
         sh """
