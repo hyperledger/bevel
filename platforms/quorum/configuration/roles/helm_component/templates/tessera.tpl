@@ -40,6 +40,7 @@ spec:
 {% else %}      
       servicetype: ClusterIP
 {% endif %}
+      lock: {{ peer.lock | lower }}
       ports:
         rpc: {{ peer.rpc.port }}
         raft: {{ peer.raft.port }}
