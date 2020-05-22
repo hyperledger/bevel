@@ -280,7 +280,7 @@ pipeline {
                   sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/network.yaml
                   sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/addorg.yaml
               """
-          }
+          }          
       }
     }
     stage('Reset existing network') {
@@ -315,7 +315,13 @@ pipeline {
         expression { params.APIONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
-      steps {        
+      steps {
+        // Get Ambassador IP and update in network.yaml for indy
+        sh """
+          ambassadordns=\$(kubectl get service ambassador -o json | jq '.status.loadBalancer.ingress[0].hostname'| tr -d '"')
+          ambassador_ip=\$(host \$ambassadordns | awk '{print \$4}')
+          sed -i -e "s*AMBASSADOR_IP*\$ambassador_ip*g" build/network.yaml
+        """
         sh """
           ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
@@ -402,7 +408,7 @@ pipeline {
       steps {
           script {
             try {
-              timeout(time: 55, unit: 'MINUTES') {
+              timeout(time: 20, unit: 'MINUTES') {
                 userInput = input(id: 'Proceed1', message: 'Reset the network?',
                   parameters: [ [$class: 'BooleanParameterDefinition',
                   defaultValue: true, description: '', name: 'Please confirm you want to reset. Abort if you want to keep the network.'] ])
