@@ -5,6 +5,12 @@
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:    
+  # Delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
   # ----------------------------------------------------------------------
   # Create Storageclass
   - name: Create Storage Class
@@ -99,9 +105,3 @@
       gitops: "{{ item.gitops }}" 
     loop: "{{ network['organizations'] }}"  
     when: network['type'] == 'corda' and item.type == 'node'
-
-  # delete build directory
-  - name: Remove build directory
-    file:
-      path: "./build"
-      state: absent

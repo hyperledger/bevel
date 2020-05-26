@@ -22,6 +22,7 @@ RUN apt-get update -y && \
     libffi-dev \
     libssl-dev \
     libxml2-utils \
+    libdb-dev libleveldb-dev libsodium-dev zlib1g-dev libtinfo-dev \
     locales \
     make \
     mercurial \
@@ -50,6 +51,8 @@ RUN pip3 install ansible && \
 RUN apt-get update && \
     apt-get -y install apt-transport-https \
     ca-certificates \
+    jq \
+    dnsutils \
     gnupg2 \
     software-properties-common && \
     curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg > /tmp/dkey; apt-key add /tmp/dkey && \
