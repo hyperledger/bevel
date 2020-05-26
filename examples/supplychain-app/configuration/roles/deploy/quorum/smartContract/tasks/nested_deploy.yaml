@@ -1,20 +1,33 @@
 ############################################################################################
+# Check if the peer is up
+- name: "Waiting for peer pod {{ peer.name }} in {{ organization_data.name | lower }}-quo"
+  include_role:
+    name: "../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ organization_data.name | lower }}-quo"
+    component_name: "{{ peer.name }}"
+    kubernetes: "{{ organization_data.k8s }}"
+    label_selectors:
+      - name = {{ component_name }}
+
 # install the required packages listed in package.json
 - name: Installing the required packages listed in package.json
-  shell: |
-    cd ../../../../{{ smart_contract.deployjs_path }} && npm install
+  npm:
+    path: "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}"
 
 # create build directory directory
-- name: Remove node_module directory 
+- name: create build directory 
   file:
-    path: "../../../../{{ smart_contract.deployjs_path }}/build"
+    path: "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}/build"
     state: directory
 
 ############################################################################################
 # Run deploy.js to to install smart contract
 - name: Run deploy.js for "{{ organization_data.name | lower }}"
   shell: |
-    cd ../quorum/smartContracts && node ./deploy.js "{{ URL }}" "{{ contract_path }}" "{{ entrypoint }}" "{{ contract }}" {{ privateFor }}
+    cd "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}"
+    node ./deploy.js "{{ URL }}" "{{ contract_path }}" "{{ entrypoint }}" "{{ contract }}" {{ privateFor }}
   vars:
     URL: "{{ peer.geth_url }}"
     contract_path: "{{ smart_contract.contract_path }}"
@@ -45,6 +58,6 @@
 # delete node_module directory
 - name: Remove node_module directory 
   file:
-    path: "../../../../{{ smart_contract.deployjs_path }}/node_modules"
+    path: "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}/node_modules"
     state: absent
 

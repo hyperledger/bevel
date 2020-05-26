@@ -4,32 +4,32 @@
 #################################################################################################
 
 # Check if namespace created
-- name: Check namespace is created
-  k8s_facts:
-    kind: Namespace
-    name: "{{ component_ns }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: get_namespace
-  until: get_namespace.resources|length > 0
-  retries: "{{ network.env.retry_count }}"
-  delay: 35
+- name: "Waiting for the namespace {{ component_ns }} to be created"
+  include_role:
+    name: "../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+    type: "retry"
 
-# This tasks ensures the directory existance, if not exits it creates a new one
-- name: "Ensures build dir exists"
-  file:
+# Ensures the build directory
+- name: "Creating the build directory"
+  include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
     path: "./build"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
 
 # This task checks if the vault path already exists
-- name: Check if Kubernetes-auth already created for Organization
-  shell: |
-    vault auth list
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: auth_list
+- name: "Checking if the vault path already exists"
+  include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
+    check: "vault_auth"
+
+- name: "Set Variable"
+  set_fact:
+    auth_list: "{{ auth_lists }}"
 
 ###############################################################################################
 # This task enables the path for the nodes on vault
@@ -61,13 +61,12 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: auth_list.stdout.find(component_auth) == -1
 
-# This task checks if the vault-ro policy already exists
-- name: Check if policy exists
-  shell: |
-    vault policy read vault-crypto-{{ component_name }}-ro
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
+# This task checks if the vault-ro polict already exists
+- name: "Checking if the vault policies already exists"
+  include_role:
+    name: "../../shared/configuration/roles/check/setup"
+  vars:
+    check: "vault_policies"
   register: vault_policy_result
   ignore_errors: yes
 
