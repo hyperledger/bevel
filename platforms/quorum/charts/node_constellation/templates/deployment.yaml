@@ -205,6 +205,12 @@ spec:
             args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
           fi;
 
+          LOCK_STATUS={{ .Values.node.lock }}
+          if [ $LOCK_STATUS = false ]
+          then
+            args=" ${args} --unlock 0 " 
+          fi
+
           /usr/local/bin/geth \
            --datadir $QUORUM_DATA_DIR \
            $args \
@@ -220,8 +226,8 @@ spec:
            --rpcport {{ .Values.node.ports.rpc }} \
            --rpcvhosts=* \
            --port {{ .Values.node.ports.quorum }} \
-           --unlock 0 \
            --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
+
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
           - containerPort: {{ .Values.node.ports.quorum }}
