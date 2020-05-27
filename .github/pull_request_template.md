@@ -12,12 +12,3 @@
 
 **Linked issue**
 #issue_number
-
- 
-
- 
-
-
-Commit message
--------------
-Add/fix/update issue_description
