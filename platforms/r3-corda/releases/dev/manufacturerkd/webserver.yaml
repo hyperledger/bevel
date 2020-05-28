@@ -1,0 +1,77 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: manufacturerkd-springboot
+  namespace: manufacturerkd-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: manufacturerkd-springboot
+  chart:
+    path: platforms/r3-corda/charts/springbootwebserver
+    git: "git@github.com:deepakkumardbd/blockchain-automation-framework.git"
+    ref: "corda-checks-test"
+  values:
+    nodeName: manufacturerkd-springboot
+    replicas: 1
+    metadata:
+      namespace: manufacturerkd-ns
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/supplychain_corda:springboot_0.4.1.0
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+    smartContract:
+      JAVA_OPTIONS : -Xmx512m
+    volume:
+      mountPath: /opt/corda
+    nodeConf:
+      node: manufacturerkd
+      nodeRpcPort: 10003
+      nodeRpcAdminPort: 10005
+      controllerName: Controller
+      trustStorePath: /opt/corda/certificates/sslkeystore.jks
+      trustStoreProvider: jks
+      legalName: O=Manufacturer,OU=Manufacturer,L=Zurich,C=CH
+      devMode: false
+      useHTTPS: true
+      useSSL: false
+      tlsAlias: cordaclienttls
+      ssl:
+        certificatesDirectory: na-ssl-false
+        sslKeystoreFileName: na-ssl-false
+        ssltruststore: na-ssl-false
+    credentials:
+      rpcUser: manufacturerkdoperations
+    resources:
+      limits: "512Mi"
+      requests: "512Mi"
+    storage:
+      provisioner: kubernetes.io/aws-ebs
+      memory: 512Mi
+      name: awsstorageclass
+      parameters:
+        type: gp2
+        encrypted: "true"
+      annotations: {}
+    web:
+      targetPort: 20001
+      port: 20001
+    service:
+      type: NodePort
+      annotations: {}
+    vault:
+      address: "http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200"
+      role: vault-role
+      authpath: cordamanufacturerkd
+      serviceaccountname: vault-auth
+      rpcusersecretprefix: manufacturerkd/credentials/rpcusers
+      keystoresecretprefix: manufacturerkd/credentials/keystore
+      certsecretprefix: manufacturerkd/certs
+    node:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
