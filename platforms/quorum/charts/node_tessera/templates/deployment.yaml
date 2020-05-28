@@ -297,26 +297,32 @@ spec:
             args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --mine --minerthreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+            args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
           fi;
 
+          LOCK_STATUS={{ .Values.node.lock }}
+          if [ $LOCK_STATUS = false ]
+          then
+            args=" ${args} --unlock 0 " 
+          fi
+
           /usr/local/bin/geth \
-          --datadir $QUORUM_DATA_DIR \
-          $args \
-          --identity {{ .Values.node.subject | quote }} \
-          --vmdebug \
-          --gcmode archive \
-          --nodiscover \
-          --nat=none \
-          --verbosity 9 \
-          --emitcheckpoints \
-          --rpc \
-          --rpcaddr 0.0.0.0 \
-          --rpcport {{ .Values.node.ports.rpc }} \
-          --rpcvhosts=* \
-          --port {{ .Values.node.ports.quorum }} \
-          --unlock 0 \
-          --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log; 
+           --datadir $QUORUM_DATA_DIR \
+           $args \
+           --identity {{ .Values.node.subject | quote }} \
+           --vmdebug \
+           --gcmode=archive \
+           --nodiscover \
+           --nat=none \
+           --verbosity 9 \
+           --emitcheckpoints \
+           --rpc \
+           --rpcaddr 0.0.0.0 \
+           --rpcport {{ .Values.node.ports.rpc }} \
+           --rpcvhosts=* \
+           --port {{ .Values.node.ports.quorum }} \
+           --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
+           
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
           - containerPort: {{ .Values.node.ports.quorum }}
