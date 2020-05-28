@@ -1,0 +1,35 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: manufacturerkd-expressapi
+  namespace: manufacturerkd-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  chart:
+    path: platforms/r3-corda/charts/expressapp
+    git: "git@github.com:deepakkumardbd/blockchain-automation-framework.git"
+    ref: "corda-checks-test"
+  releaseName: manufacturerkdcorda-expressapi
+  values:
+    nodeName: manufacturerkd-expressapi
+    metadata:
+      namespace: manufacturerkd-ns
+    replicaCount: 1
+    expressapp:
+      serviceType: ClusterIP
+      image: adopblockchaincloud0502.azurecr.io/supplychain_corda:express_app_0.4.1.0
+      pullPolicy: Always
+      pullSecrets: regcred
+      nodePorts:
+        port: 3000
+        targetPort: 3000
+        name: tcp
+      env:
+        apiUrl: https://manufacturerkd-springboot.manufacturerkd-ns:20001/api/v1
+    proxy:
+      provider: ambassador
+      name: manufacturerkd
+      type: corda
+      external_url_suffix: rc.dev.aws.blockchaincloudpoc-develop.com
+      peer_name: manufacturerkd
