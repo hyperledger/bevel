@@ -64,8 +64,9 @@ spec:
           image: "{{ $.Values.image.agent.repository }}"
           imagePullPolicy: Always
           ports:
-            - containerPort: 8020
-            - containerPort: 8021
+            - containerPort: {{ $.Values.service.ports.service }}
+            - containerPort: {{ $.Values.service.ports.endpoint }}
+            - containerPort: {{ $.Values.service.ports.webhook }}
           env:
             - name: LEDGER_URL
               value: "{{ $.Values.service.ledger }}"
@@ -85,7 +86,7 @@ spec:
             rm -rf /keys/seed;
             cd demo;
 
-            python -m demo.runners.faber -p 8020;
+            python -m demo.runners.faber --no-auto -p {{ $.Values.service.ports.service }} --url {{ $.Values.service.address }};
       imagePullSecrets:
         - name: "{{ $.Values.image.pullSecret }}"
   volumeClaimTemplates:

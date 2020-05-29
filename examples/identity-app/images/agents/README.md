@@ -6,7 +6,7 @@ The base image is used from Github. In our case we just update "Faber" and updat
 ## Build a base image
 We don't maintain of this Docker image so we need clone from GitHub repository.
 1. Open terminal/console
-2. Clone repository to this directory: `https://github.com/hyperledger/aries-cloudagent-python.git`
+2. Clone repository to this directory: `git clone https://github.com/hyperledger/aries-cloudagent-python.git`
 3. Go to repository: `cd aries-cloudagent-python`
 4. Build image: `docker build -t faber-alice-demo -f ./docker/Dockerfile.demo .`
 5. (Optional) Tag docker image to own name: `docker tag faber-alice-demo <YOUR_NAME_WITH_VERSION>`
