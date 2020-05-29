@@ -1,0 +1,135 @@
+# This role generates certificates for rootca and ambassador
+# and places them in vault. Certificates are created using openssl
+
+---
+# Ensures the rootca dir directory
+- name: "Ensure rootca dir exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ rootca }}"
+    check: "ensure_dir"
+
+# Ensures the ambassador tls directory
+- name: "Ensure rootca dir exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ ambassadortls }}"
+    check: "ensure_dir"
+
+# Checks if certificates for root are already created and stored in vault.
+- name: Check if certs already created
+  shell: |
+    vault kv get -format=yaml secret/{{ component_ns }}/crypto/{{ node_name }}/certs
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: root_certs
+  ignore_errors: yes
+
+# Gets the existing root certificates if any.
+- name: Get root certs
+  include_role: 
+    name: "{{ playbook_dir }}/roles/setup/get_crypto"
+  vars:
+    vault_output: "{{ root_certs.stdout | from_yaml }}"
+    type: "rootca"
+    cert_path: "{{ rootca }}"
+  when: root_certs.failed == False
+
+# Stores the exisiting key.jks file
+- name: check root certs
+  stat:
+    path: "{{ rootca }}/rootca.jks"
+  register: rootca_stat_result
+
+# generation of CA Root certificates
+- name: Generate CAroot certificate
+  shell: |
+    cd {{ rootca }}
+    eval "keytool -genkeypair -alias rootca -dname {{ root_subject | quote }} -keyalg DSA -keystore rootca.jks -storepass hyperledgerbesu -keypass hyperledgerbesu"
+    eval "openssl ecparam -name prime256v1 -genkey -noout -out rootca.key"
+    eval "openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -nodes -key rootca.key -days 1024 -out rootca.pem -extensions v3_ca -subj '/{{ cert_subject }}'"
+    eval "openssl pkcs12 -export -name cert -inkey rootca.key -in rootca.pem -out rootcacert.pkcs12 -cacerts -passin pass:'hyperledgerbesu' -passout pass:'hyperledgerbesu'"
+    eval "openssl pkcs12 -export -name key -inkey rootca.key -in rootca.pem -out rootcakey.pkcs12 -passin pass:'hyperledgerbesu' -passout pass:'hyperledgerbesu'"
+    eval "yes | keytool -importkeystore -srckeystore rootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass hyperledgerbesu -destkeystore rootca.jks -deststorepass hyperledgerbesu"
+    eval "yes | keytool -importkeystore -srckeystore rootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass hyperledgerbesu -destkeystore rootca.jks -deststorepass hyperledgerbesu"
+  when: root_certs.failed == True and rootca_stat_result.stat.exists == False
+ 
+# Check ambassador tls certs already created
+- name: Check if ambassador tls already created
+  shell: |
+    vault kv get -format=yaml secret/{{ component_ns }}/crypto/{{ node_name }}/certs
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: ambassador_tls_certs
+  ignore_errors: yes
+
+# Gets the existing ambassador tls certs
+- name: Get ambassador tls certs
+  include_role: 
+    name: "{{ playbook_dir }}/roles/setup/get_crypto"
+  vars:
+    vault_output: "{{ ambassador_tls_certs.stdout | from_yaml }}"
+    type: "ambassador"
+    cert_path: "{{ ambassadortls }}"
+  when: ambassador_tls_certs.failed == False
+
+# Generates the openssl file for domain
+- name: Generate openssl conf file
+  shell: |
+    cd {{ambassadortls}}
+    cat <<EOF >openssl{{ node_name }}.conf
+    [dn]
+    CN={{ domain_name }}
+    [req]
+    distinguished_name = dn
+    [EXT]
+    subjectAltName=DNS:{{ domain_name }}
+    keyUsage=digitalSignature
+    extendedKeyUsage=serverAuth
+    EOF
+  vars:
+    domain_name: "{{ node_name }}.{{ item.external_url_suffix }}"
+  when: ambassador_tls_certs.failed == True
+
+# Generates the ambassador tls certificates if already not generated
+- name: Generate ambassador tls certs
+  shell: |
+    cd {{ ambassadortls }}
+    openssl ecparam -name prime256v1 -genkey -noout -out {{ node_name }}.key
+    openssl req -new -nodes -key {{node_name}}.key -days 1000 -out {{ node_name }}.csr \
+    -extensions EXT -subj "/CN={{domain_name}}" -config "{{ambassadortls}}/openssl{{node_name}}.conf"
+    openssl x509 -extfile {{ playbook_dir }}/openssl.conf -req -days 1000 -in {{ node_name }}.csr -CA {{ rootca }}/rootca.pem -CAkey {{ rootca }}/rootca.key -out {{node_name}}.pem -set_serial 01 -extensions v3_nonca
+    cat {{ node_name }}.pem > {{node_name}}-certchain.pem
+    cat {{ rootca }}/rootca.pem >> {{ node_name }}-certchain.pem
+  vars:
+    domain_name: "{{ node_name }}.{{ item.external_url_suffix }}"
+  when: ambassador_tls_certs.failed == True
+
+# Stores the genreated ambassador tls certificates to vault
+- name: Putting certs to vault
+  shell: |
+    vault kv put secret/{{component_ns}}/crypto/{{node_name}}/certs rootca="$(cat {{rootca}}/rootca.jks | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: ambassador_tls_certs.failed == True
+
+# Check if Ambassador credentials exist already
+- name: Check Ambassador cred exists
+  k8s_facts:
+    kind: Secret
+    namespace: default
+    name: "{{ node_name }}-ambassador-certs"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_ambassador_secret
+
+# This task creates the Ambassador TLS credentials for ambassador
+- name: Create the Ambassador credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert={{ ambassadortls }}/{{ node_name }}-certchain.pem --key={{ ambassadortls }}/{{node_name}}.key -n default
+  when: get_ambassador_secret.resources|length == 0
