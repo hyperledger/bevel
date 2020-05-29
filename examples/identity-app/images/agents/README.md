@@ -1,7 +1,7 @@
 # Docker image for Indy Web Server
 Docker image contains prerequisites for Indy and also scripts for running Agents like "Faber" or "Alice" of demo. For more information follow [GitHub](https://github.com/hyperledger/aries-cloudagent-python).
 
-The base image is used from Github. In our case we just update "Faber" and update base Docker image.
+The base image is used from Github. In our case we just update "faber.py", "alice.py" and "agent.py" scripts which override a base Docker image.
 
 ## Build a base image
 We don't maintain of this Docker image so we need clone from GitHub repository.
@@ -20,6 +20,3 @@ We don't maintain of this Docker image so we need clone from GitHub repository.
 ## Run demo
 1. Start "Faber" agent: `LEDGER_URL=http://<WEB_SERVER_URL>>:<WEB_SERVER_PORT> ./run faber --events --no-auto --bg`
 2. Start "Alice" agent: `LEDGER_URL=http://<WEB_SERVER_URL>>:<WEB_SERVER_PORT> ./run alice --events --no-auto --bg`
-
-## What is the "run" file
-This file is from the Demo with which is able to run demo as Docker container. In the script is inserted "ENDORSER_SEED" at the line 173. This script will be removed by Helm Release and "ENDORSER_SEED" variable will be fill up by init container.
