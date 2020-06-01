@@ -19,5 +19,9 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Charts description
 
-### 1. webserver
-- This folder contains chart templates and default values for creation of Indy WebServer.
+### 1. alice
+- This folder contains chart templates and default values for creation of student agent "Alice" for Aries Demo.
+### 2. faber
+- This folder contains chart templates and default values for creation of university agent "Faber" for Aries Demo with Endorser permissions.
+### 3. webserver
+- This folder contains chart templates and default values for creation of Indy WebServer with Trustee permission.

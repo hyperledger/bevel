@@ -33,12 +33,13 @@ TAILS_FILE_COUNT = int(os.getenv("TAILS_FILE_COUNT", 20))
 
 class FaberAgent(DemoAgent):
     def __init__(
-        self, http_port: int, admin_port: int, no_auto: bool = False, **kwargs
+        self, http_port: int, admin_port: int, service_addr: str, no_auto: bool = False, **kwargs
     ):
         super().__init__(
             "Faber.Agent",
             http_port,
             admin_port,
+            external_host=service_addr,
             prefix="Faber",
             extra_args=[]
             if no_auto
@@ -137,6 +138,7 @@ class FaberAgent(DemoAgent):
 
 async def main(
     start_port: int,
+    service_addr: str,
     no_auto: bool = False,
     revocation: bool = False,
     show_timing: bool = False,
@@ -154,6 +156,7 @@ async def main(
         agent = FaberAgent(
             start_port,
             start_port + 1,
+            service_addr=service_addr,
             genesis_data=genesis,
             no_auto=no_auto,
             timing=show_timing,
@@ -405,6 +408,7 @@ if __name__ == "__main__":
         metavar=("<port>"),
         help="Choose the starting port number to listen on",
     )
+    parser.add_argument("--address", type=str, default="localhost", help="IP address of this agent")
     parser.add_argument(
         "--revocation", action="store_true", help="Enable credential revocation"
     )
@@ -445,7 +449,7 @@ if __name__ == "__main__":
 
     try:
         asyncio.get_event_loop().run_until_complete(
-            main(args.port, args.no_auto, args.revocation, args.timing)
+            main(args.port, args.address, args.no_auto, args.revocation, args.timing)
         )
     except KeyboardInterrupt:
         os._exit(1)
