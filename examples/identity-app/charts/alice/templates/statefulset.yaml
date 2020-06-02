@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
+spec:
+  serviceName: "{{ $.Values.metadata.name }}"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ $.Values.metadata.name }}"
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}"
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: "{{ $.Values.image.agent.name }}"
+          image: "{{ $.Values.image.agent.repository }}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ $.Values.service.ports.service }}
+            - containerPort: {{ $.Values.service.ports.endpoint }}
+          env:
+            - name: LEDGER_URL
+              value: "{{ $.Values.service.ledger }}"
+            - name: GENESIS_URL
+              value: "{{ $.Values.service.genesis }}"
+            - name: EVENTS
+              value: "1"
+          tty: true
+          command:
+          - "bash"
+          - "-c"
+          - >
+            cd demo;
+
+            python -m demo.runners.alice --no-auto -p {{ $.Values.service.ports.service }} --address {{ $.Values.service.address }};
+      imagePullSecrets:
+        - name: "{{ $.Values.image.pullSecret }}"

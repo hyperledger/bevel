@@ -1,0 +1,37 @@
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:      
+  # delete build directory 
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
+  # Generate Ambassador certificate for nodes
+  - name: "Create ambassador certificates for Nodes" 
+    include_role: 
+      name: create/certificates/ambassador
+    vars:
+      root_subject: "{{ network.config.subject }}"
+      cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+      services: "{{ item.services }}"
+      organisation: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-bes"
+      component_name: "{{ item.name | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+    loop: "{{ network['organizations']}}"
+
+  vars: #These variables can be overriden from the command line
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: false
