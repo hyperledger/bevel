@@ -15,6 +15,16 @@
       path: "./build"
       state: absent
 
+  - name: "Create namespace and service account"
+    include_role: 
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ item.name | lower }}-besu"
+      organisation: "{{ item.name | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      gitops: "{{ item.gitops }}"
+    loop: "{{ network['organizations'] }}"
+
   # Generate Ambassador certificate for nodes
   - name: "Create ambassador certificates for Nodes" 
     include_role: 
