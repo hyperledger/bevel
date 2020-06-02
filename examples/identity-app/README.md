@@ -32,14 +32,14 @@ Please follow [Documentation](./images/agents/README.md)
 ### Step 3
 Prepare a network.yaml file for your demo or you can use this sample for [AWS](../../platforms/hyperledger-indy/configuration/samples/network-indyv3-aries.yaml) or [Minikube](../../platforms/hyperledger-indy/configuration/samples/network-minikube-aries.yaml) and update for your case.
 ### Step 4
-Run Ansible Playbook by these [steps](../../platforms/hyperledger-indy/configuration/README.md)
+Run Ansible Playbook by following these [steps](../../platforms/hyperledger-indy/configuration/README.md)
 Can be started also via Docker container:
 1. Go to root directory of this git repository.
 2. Run command: `docker run -it -v $(pwd):/home/blockchain-automation-framework/ --entrypoint bash hyperledgerlabs/baf-build`
 3. When are you entered into Docker container console, use command:
 `./run.sh`
 ### Step 5
-After Blockchain Automation Framework setup can be deployed Identity App via Ansible playbook:
+After Indy network has been set up, Identity App can be deployed via Ansible playbook:
 
 - Be sure that you are in Docker container (BAF), if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
 - Update Trustee service in your `network.yaml` file to add port of Indy WebServer, which will run with trustee role.
@@ -56,7 +56,7 @@ example of trustee:
 - Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -e "ansible_python_interpreter=/usr/local/bin/python3" -i ./blockchain-automation-framework/platforms/shared/inventory/ansible_provisoners ./blockchain-automation-framework/examples/identity-app/configuration/deploy-identity-app.yaml -e "@./blockchain-automation-framework/build/network.yaml"`
 
 ### Step 6
-Agents for University Faber and Student Alice have no Ansible roles created yet. These agents have to be run manualy:
+Agents for Faber University and Student Alice don't have Ansible roles created yet. These agents have to be run manually:
 - Be sure that you are in Docker container (BAF), if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
 - Create environment variable for kubernetes config: `export KUBECONFIG=/home/blockchain-automation-framework/build/config`
 - Fill all variables in `value.yaml` file in helm [chart of faber](./charts/faber)
@@ -65,7 +65,7 @@ Agents for University Faber and Student Alice have no Ansible roles created yet.
 - Create Helm release for Student Alice with command: `helm install --name alice /home/blockchain-automation-framework/examples/identity-app/charts/alice/`
 
 ### Step 7
-Now the Identity App si running and agents API via Swagger are available on IP address of your cluster with ports which you defined for your agents in `value.yaml` file.
+Identity App is running and agents API via Swagger are available on IP address of your cluster with ports which you defined for your agents in `value.yaml` file.
 
 ### Step 8
 Follow these [steps](https://github.com/hyperledger/aries-cloudagent-python/blob/master/demo/AriesOpenAPIDemo.md#using-the-openapiswagger-user-interface) for using Aries Demo on this Identity App.
