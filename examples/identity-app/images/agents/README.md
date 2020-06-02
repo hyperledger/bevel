@@ -16,7 +16,3 @@ We don't maintain of this Docker image so we need clone from GitHub repository.
 1. Build image from this directory: `docker build -t aries-agents .`
 2. (Optional) Tag docker image to own name: `docker tag aries-agents <YOUR_NAME_WITH_VERSION>`
 3. Push Docker image into Docker repository: `docker push <DOCKER_IMAGE_NAME>`
-
-## Run demo
-1. Start "Faber" agent: `LEDGER_URL=http://<WEB_SERVER_URL>>:<WEB_SERVER_PORT> ./run faber --events --no-auto --bg`
-2. Start "Alice" agent: `LEDGER_URL=http://<WEB_SERVER_URL>>:<WEB_SERVER_PORT> ./run alice --events --no-auto --bg`
