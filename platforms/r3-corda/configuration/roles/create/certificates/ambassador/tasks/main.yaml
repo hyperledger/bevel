@@ -18,6 +18,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: ambassador_tls_certs
   ignore_errors: yes
+  tags:
+  - notest
 
 # Gets the existing ambassador tls certs
 - name: Get ambassador tls certs
@@ -46,6 +48,8 @@
   vars:
     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
   when: ambassador_tls_certs.failed == True
+  tags:
+    - molecule-idempotence-notest  
 
 # Generates the ambassador tls certificates if already not generated
 - name: Generate ambassador tls certs
@@ -54,6 +58,8 @@
   vars:
     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
   when: ambassador_tls_certs.failed == True
+  tags:
+  - molecule-idempotence-notest
 
 # Stores the genreated ambassador tls certificates to vault
 - name: Putting tls certs to vault
@@ -63,6 +69,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: ambassador_tls_certs.failed == True
+  tags:
+  - notest  
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
