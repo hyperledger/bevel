@@ -1,0 +1,11 @@
+# This tasks copy the crypto material to the vault
+- name: Copy the crypto material to Vault
+  shell: |
+    vault kv put secret/{{ component_ns }}/crypto/{{ peer.name }}/data key="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/key)" key.pub="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/key.pub)" nodeAddress="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/nodeAddress)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  vars:
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
