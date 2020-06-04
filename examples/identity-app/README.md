@@ -53,7 +53,7 @@ example of trustee:
           server:
             port: 8000
 ```
-- Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -e "ansible_python_interpreter=/usr/local/bin/python3" -i ./blockchain-automation-framework/platforms/shared/inventory/ansible_provisoners ./blockchain-automation-framework/examples/identity-app/configuration/deploy-identity-app.yaml -e "@./blockchain-automation-framework/build/network.yaml"`
+- Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -i ./blockchain-automation-framework/platforms/shared/inventory/ansible_provisoners ./blockchain-automation-framework/examples/identity-app/configuration/deploy-identity-app.yaml -e "@./blockchain-automation-framework/build/network.yaml"`
 
 ### Step 6
 Agents for Faber University and Student Alice don't have Ansible roles created yet. These agents have to be run manually:
