@@ -1,0 +1,17 @@
+
+# This tasks checks for the crypto material to the vault
+- name: Check the crypto material to Vault
+  shell: |
+    vault read -field=key secret/{{ component_ns }}/crypto/{{ item.name }}/data
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  vars:
+  with_items: "{{ peers }}"
+  register: vault_result
+  ignore_errors: yes
+
+# This sets a fact vault_result
+- set_fact:
+    generate_crypto: True
+  when: vault_result.failed is defined and vault_result.failed == True
