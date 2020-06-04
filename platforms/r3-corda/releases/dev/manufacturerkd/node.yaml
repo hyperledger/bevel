@@ -1,21 +1,21 @@
 apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
-  name: manufacturerkd-initial-registration
+  name: manufacturerkd
   annotations:
     flux.weave.works/automated: "false"
   namespace: manufacturerkd-ns
 spec:
-  releaseName: manufacturerkd-initial-registration
+  releaseName: manufacturerkd
   chart:
-    path: platforms/r3-corda/charts/node-initial-registration
+    path: platforms/r3-corda/charts/node
     git: git@github.com:deepakkumardbd/blockchain-automation-framework.git
     ref: corda-checks-test
   values:
     nodeName: manufacturerkd
     replicas: 1
     metadata:
-      namespace: manufacturerkd-ns  
+      namespace: manufacturerkd-ns
     image:
       containerName: adopblockchaincloud0502.azurecr.io/corda:4.1-linuxkit
       initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
@@ -75,22 +75,38 @@ spec:
         - name: manufacturerkdoperations
           permissions: [ALL]
 
+    cordapps:
+      getcordapps: true
+      jars:
+        - url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
+        - url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
+        
     volume:
       baseDir: /base/corda
     resources:
-      limits: "512Mi"
-      requests: "512Mi"
-    
+      limits: "1Gi"
+      requests: "1Gi" 
+    pvc:
+      name: manufacturerkd-pvc
+      annotations: {}
+      memory: 512Mi
+      storageClassName: awsstorageclass
+
     service:
+      name: manufacturerkd
       type: ClusterIP
       p2p:
         port: 10002
         targetPort: 10002
       rpc:
         port: 10003
+        targetPort: 10003 
       rpcadmin:
         port: 10005
-
+        targetPort: 10005
+         
+    deployment:
+      annotations: {}
     vault:
       address: http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200
       role: vault-role
@@ -101,7 +117,15 @@ spec:
       tokensecretprefix: manufacturerkd/credentials/vaultroottoken
       keystoresecretprefix: manufacturerkd/credentials/keystore
       certsecretprefix: manufacturerkd/certs
-        
+      networkmapsecretprefix: manufacturerkd/credentials/networkmappassword
+      cordappsreposecretprefix: manufacturerkd/credentials/cordapps
+
+          
     healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 15
+      readinesscheckinterval: 20
+      readinessthreshold: 20
+    ambassador:
+      component_name: manufacturerkd
+      external_url_suffix: rc.dev.aws.blockchaincloudpoc-develop.com
+      p2p_ambassador: 15012
+      
