@@ -40,6 +40,22 @@
     loop_control:
       loop_var: organizationItem
 
+  # Setup Vault-Kubernetes accesses and Regcred for docker registry
+  - name: "Setup vault"   
+    include_role: 
+      name: "setup/vault_kubernetes"
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-quo"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      component_name: "{{ organizationItem.name | lower}}"
+      component_path: "{{ organizationItem.name | lower }}/"
+      component_auth: "besu{{ organizationItem.name | lower }}"
+      component_type: "organization"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
   # Generate Ambassador certificate for nodes
   - name: "Create ambassador certificates for Nodes" 
     include_role: 
@@ -56,7 +72,6 @@
     loop: "{{ network['organizations']}}"
     loop_control:
       loop_var: organizationItem
-
 
   # This role generates the genesis.json and nodekey/enode for all orgs of the network
   - name: "Generate crypto for the IBFT network"

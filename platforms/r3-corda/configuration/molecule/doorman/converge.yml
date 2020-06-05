@@ -1,0 +1,93 @@
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    privilege_escalate: true            #escalate root priviledge for default test
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"
+    kubernetes: 
+      config_file: "/tmp/molecule/kind-default/kubeconfig"
+      context: "kind"
+    network:
+      type: "corda"
+      docker:
+        url: "test_url"
+        username: "test_username"
+        password: "test_password"
+      orderers:
+      - orderer:
+        type: doorman
+        uri: test-url
+        certificate: "{{ playbook_dir }}/build/ambassador.crt"
+      env:
+        type: test               # tag for the environment. Important to run multiple flux on single cluster
+        proxy: ambassador                  # values can be 'haproxy' or 'ambassador'
+        external_dns: disabled
+        retry_count: 20
+
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration" 
+
+    # Copying openssl.conf to molecule playbook directory
+    - name: "Copy openssl.conf to molecule directory"
+      copy:
+        src: "{{ playbook_dir }}/../../openssl.conf"
+        dest: "{{ playbook_dir }}"
+
+  tasks:
+    - name: "Test setup/doorman role"
+      include_role:
+        name: "setup/doorman"
+      vars:
+        auth_lists:
+          stdout: "abc"
+        vault_policy_result:
+          failed: True
+        root_certs:
+          failed: True
+        doorman_certs:
+          failed: True
+        mongoCA_certs:
+          failed: True
+        mongodb_certs:
+          failed: True
+        ambassador_tls_certs:
+          failed: True 
+        services:
+          doorman:
+            name: testdoorman
+            subject: "CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE"
+            db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
+            type: doorman
+            ports:
+              servicePort: 8080
+              targetPort: 8080
+            tls: "on"
+        organisation: testsupplychain
+        component_ns: "default"          # namespace where docker creds are checked only for testing
+        gitops:
+          git_ssh: test_git_ssh
+          branch: test_branch
+          chart_source: "charts"
+          release_dir: configuration/molecule/doorman/test
+        vault:
+          url: test_url
+          root_token: test_token
+        item:
+          subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+          external_url_suffix: test_url
+          gitops:
+            git_ssh: test_git_ssh
+            branch: test_branch
+            chart_source: test_chart_source
+          cloud_provider: aws
