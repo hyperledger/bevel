@@ -1,0 +1,131 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: manufacturerkd
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: manufacturerkd-ns
+spec:
+  releaseName: manufacturerkd
+  chart:
+    path: platforms/r3-corda/charts/node
+    git: git@github.com:deepakkumardbd/blockchain-automation-framework.git
+    ref: corda-checks-test
+  values:
+    nodeName: manufacturerkd
+    replicas: 1
+    metadata:
+      namespace: manufacturerkd-ns
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/corda:4.1-linuxkit
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+      doormanCertAlias: doormankd.rc.dev.aws.blockchaincloudpoc-develop.com
+      networkmapCertAlias: networkmapkd.rc.dev.aws.blockchaincloudpoc-develop.com
+    nodeConf:
+      p2p:
+        url: manufacturerkd.manufacturerkd-ns
+        port: 10002
+      ambassadorAddress: manufacturerkd.rc.dev.aws.blockchaincloudpoc-develop.com:15012
+      rpcSettings:
+        useSsl: false
+        standAloneBroker: false
+        address: "0.0.0.0:10003"
+        adminAddress: "0.0.0.0:10005"
+        ssl:
+          certificatesDirectory: na-ssl-false
+          sslKeystorePath: na-ssl-false
+          trustStoreFilePath: na-ssl-false
+      legalName: O=Manufacturer,OU=Manufacturer,L=Zurich,C=CH #use peer-node level subject for legalName
+      messagingServerAddress:
+      jvmArgs:
+      systemProperties:
+      sshd:
+        port:
+      exportJMXTo:
+      transactionCacheSizeMegaBytes: 8
+      attachmentContentCacheSizeMegaBytes: 10
+      attachmentCacheBound: 1024
+       
+      detectPublicIp: false
+      database:
+        transactionIsolationLevel: READ_COMMITTED
+        exportHibernateJMXStatistics: false
+      dbUrl: manufacturerkddb
+      dbPort: 9101
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      dataSourceUrl: "jdbc:h2:tcp://manufacturerkddb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+      jarPath: "/data/corda-workspace/h2/bin"
+      networkMapURL: https://networkmapkd.rc.dev.aws.blockchaincloudpoc-develop.com:8443
+      doormanURL: https://doormankd.rc.dev.aws.blockchaincloudpoc-develop.com:8443
+      compatibilityZoneURL:
+      jarVersion: 4.1
+      devMode: false
+      env:
+        - name: JAVA_OPTIONS
+          value: -Xmx512m
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: BASE_DIR
+          value: /base/corda
+    credentials:
+      dataSourceUser: sa
+      rpcUser:
+        - name: manufacturerkdoperations
+          permissions: [ALL]
+
+    cordapps:
+      getcordapps: true
+      jars:
+        - url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
+        - url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
+        
+    volume:
+      baseDir: /base/corda
+    resources:
+      limits: "1Gi"
+      requests: "1Gi" 
+    pvc:
+      name: manufacturerkd-pvc
+      annotations: {}
+      memory: 512Mi
+      storageClassName: awsstorageclass
+
+    service:
+      name: manufacturerkd
+      type: ClusterIP
+      p2p:
+        port: 10002
+        targetPort: 10002
+      rpc:
+        port: 10003
+        targetPort: 10003 
+      rpcadmin:
+        port: 10005
+        targetPort: 10005
+         
+    deployment:
+      annotations: {}
+    vault:
+      address: http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200
+      role: vault-role
+      authpath: cordamanufacturerkd
+      serviceaccountname: vault-auth
+      dbsecretprefix: manufacturerkd/credentials/database
+      rpcusersecretprefix: manufacturerkd/credentials/rpcusers
+      tokensecretprefix: manufacturerkd/credentials/vaultroottoken
+      keystoresecretprefix: manufacturerkd/credentials/keystore
+      certsecretprefix: manufacturerkd/certs
+      networkmapsecretprefix: manufacturerkd/credentials/networkmappassword
+      cordappsreposecretprefix: manufacturerkd/credentials/cordapps
+
+          
+    healthcheck:
+      readinesscheckinterval: 20
+      readinessthreshold: 20
+    ambassador:
+      component_name: manufacturerkd
+      external_url_suffix: rc.dev.aws.blockchaincloudpoc-develop.com
+      p2p_ambassador: 15012
+      
