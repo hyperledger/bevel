@@ -5,12 +5,18 @@
 
 #################################################################################################
 # This tasks ensures the directory existance, if not exits it creates a new one
+- name: "check if dir exists or not"
+  stat:
+    path: "./build"
+  register: dir_check
+
 - name: "Ensures build dir exists"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     path: "./build"
     check: "ensure_dir"
+  when: not dir_check.stat.exists
 
 # This task checks if the vault path already exists
 - name: Check if Kubernetes-auth already created for Organization
@@ -23,9 +29,7 @@
 
 - name: Setting the k8s-auth check result to a local variable
   set_fact:
-    auth_list: "{{ auth_lists }}"
-  tags:
-    - notest    
+    auth_list: "{{ auth_lists }}"    
 
 ###############################################################################################
 # This task enables the path for the nms,doorman,notaries and nodes on vault
@@ -40,14 +44,18 @@
   tags:
     - notest  
 
+# This tasks checks if the kubeconfig cert is there or not 
+- name: "check if dir exists or not"
+  stat:
+    path: "./build/{{ component_ns }}.ca.cert"
+  register: kubeconfig_check
+
 ############################################################################################
 # This task get the certificate for the cluster mentioned in k8 secret
 - name: "Get Kubernetes cert files for organizations"
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ component_ns }}.ca.cert"
-  when: auth_list.stdout.find(component_auth) == -1
-  tags:
-    - notest  
+  when: auth_list.stdout.find(component_auth) == -1 and (not kubeconfig_check.stat.exists)
 
 ################################################################################################
 # This task writes the Service Account token to the vault for various corda entity(nms,doorman,notary,nodes)
@@ -96,6 +104,11 @@
   tags:
     - notest  
 
+- name: "check if file exists or not"
+  stat:
+    path: "./build/vault-crypto-{{ component_name }}-ro.hcl"
+  register: policy_check
+
 #####################################################################################################################
 # This task creates the access policy for various corda entity(nms,doorman,notary,nodes)
 - name: Create policy for Access Control
@@ -107,11 +120,8 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True    # Run if policy check failed
-  tags:
-  - molecule-idempotence-notest
+  when: vault_policy_result.failed == True and ( not policy_check.stat.exists )    # Run if policy check failed
  
-
 # This task writes the access policy to the vault
 - name: Write policy to the vault
   shell: |
