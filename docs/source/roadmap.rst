@@ -7,7 +7,7 @@ Roadmap
     dateFormat  YY-MM-DD
     section Platform
     R3 Corda Enterprise Version  :a1, 20-05-15  , 90d
-    Besu Provisioning       :a2, 20-06-08  , 90d
+    Besu Provisioning       :a2, 20-05-20  , 90d
     Couch DB     :after a1  , 60d
     
     section Application
@@ -18,38 +18,67 @@ Roadmap
     Besu Blueprint      : 20-06-01, 60d
     Corda vEnterprise Blueprint : 20-06-01, 60d
 
-## Blockchain automation framework roadmap for the release v0.5 and v0.6 broadly covers the following
+BAF current roadmap 
+--------------------
+.. |pin| image:: _static/pin.png
+    :width: 15pt
+    :height: 15pt
+.. |tick| image:: _static/tick.png
+    :width: 15pt
+    :height: 15pt
+.. |run| image:: _static/run.png
+    :width: 15pt
+    :height: 15pt
+.. |muscle| image:: _static/muscle.png
+    :width: 15pt
+    :height: 15pt
+.. |hand| image:: _static/hand.png
+    :width: 15pt
+    :height: 15pt
 
 Legend of annotations:
 
-| Mark | Description |
-| ------------- | ------------- |
-| :pushpin: | work to do |
-| :heavy_check_mark: | work completed |
-| :runner: | on-going work |
-| :muscle: | stretch goal |
-| :hand: | on hold |
++------------------------+------------------+
+| Mark                   | Description      |
++========================+==================+
+| |pin|                  | work to do       |
++------------------------+------------------+
+| |tick|                 | work completed   |
++------------------------+------------------+
+| |run|                  | on-going work    |
++------------------------+------------------+
+| |muscle|               | stretch goal     |
++------------------------+------------------+
+| |hand|                 | on hold          |
++------------------------+------------------+
 
-## General
-- :heavy_check_mark: Minikube support for existing platforms
-- :runner: Improve the existing `readthedocs` documentations
+General
+-------
 
-## Platforms
-- :runner: Besu network provisioning
-- :pushpin: Support for R3 Corda Enterprise Version
-- :heavy_check_mark: Hyperledger Indy network provisioning
-- :heavy_check_mark: Quorum network provisioning
-- :heavy_check_mark:  Support for Hyperledger Fabric v2.0
-- :heavy_check_mark:  Key storage and management
-- :hand: Implementing couch DB
+-  |tick| Minikube support for existing platforms
+-  |run| Improve the existing ``readthedocs`` documentations
 
-## Application
-- :pushpin: Hyperledger Besu reference application
-- :heavy_check_mark: Quorum supplychain application integration
-- :heavy_check_mark: Hyperledger Indy reference application
+Platforms
+---------
 
-## Architecture
-- :pushpin: Besu architecture blueprint
-- :pushpin: R3 Corda Enterprise Version architecture blueprint
-- :hand: Couch DB architecture blueprint
- 
+-  |run| Besu network provisioning
+-  |pin| Support for R3 Corda Enterprise Version
+-  |tick| Hyperledger Indy network provisioning
+-  |tick| Quorum network provisioning
+-  |tick| Support for Hyperledger Fabric v2.0
+-  |tick| Key storage and management
+-  |hand| Implementing couch DB
+
+Application
+-----------
+
+-  |pin| Hyperledger Besu reference application
+-  |tick| Quorum supplychain application integration
+-  |tick| Hyperledger Indy reference application
+
+Architecture
+------------
+
+-  |pin| Besu architecture blueprint
+-  |pin| R3 Corda Enterprise Version architecture blueprint
+-  |hand| Couch DB architecture blueprint
