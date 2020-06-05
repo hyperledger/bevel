@@ -7,7 +7,7 @@ This folder contains ansible playbooks and their corresponding roles which are u
 ## Prerequisites
 
 To run the playbooks, following are the pre-requisites.
-1. Ansible 2.8.2 with jmespath installed (a docker image can be made from this [Dockerfile](../../shared/images/ansibleSlave.Dockerfile)).
+1. Ansible 2.8.2 with jmespath installed (a docker image can be made from this [Dockerfile](../../shared/images/ansibleSlave.Dockerfile)), or use the dockerfile given in the root.
 2. Ansible controller configured like this [sample](../../shared/inventory) inventory settings.
 3. One Managed Kubernetes cluster for each organization (currently tested on EKS so you need **AWS cli** credentials).
 4. A Hashicorp Vault installation for each organization which is initiated and unsealed. The Vault Address should be accessible from this machine (where the playbook is run) and the Kubernetes cluster, and also, the Vault root token is available.
