@@ -1,4 +1,4 @@
-# Docker image for Indy Web Server
+# Docker image for Aries Agents
 Docker image contains prerequisites for Indy and also scripts for running Agents like "Faber" or "Alice" of demo. For more information follow [GitHub](https://github.com/hyperledger/aries-cloudagent-python).
 
 The base image is used from Github. In our case we just update "faber.py", "alice.py" and "agent.py" scripts which override a base Docker image.
