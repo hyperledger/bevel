@@ -1,4 +1,4 @@
-Roadmap
+BAF current roadmap
 =======
 .. mermaid::
 
@@ -18,8 +18,6 @@ Roadmap
     Besu Blueprint      : 20-06-01, 60d
     Corda vEnterprise Blueprint : 20-06-01, 60d
 
-BAF current roadmap 
---------------------
 .. |pin| image:: _static/pin.png
     :width: 15pt
     :height: 15pt
