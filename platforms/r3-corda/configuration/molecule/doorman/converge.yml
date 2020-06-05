@@ -19,12 +19,13 @@
       orderers:
       - orderer:
         type: doorman
-        uri: https://doormankd.rc.dev.aws.blockchaincloudpoc-develop.com:8443
-        certificate: /home/deepak/BFA/blockchain-automation-framework/platforms/r3-corda/configuration/molecule/doorman/build/corda/testdoorman/tls/ambassador.crt        
+        uri: test-url
+        certificate: "{{ playbook_dir }}/build/ambassador.crt"
       env:
         type: test               # tag for the environment. Important to run multiple flux on single cluster
         proxy: ambassador                  # values can be 'haproxy' or 'ambassador'
         external_dns: disabled
+        retry_count: 20
 
   pre_tasks:
     - name: Create temp roles dir folder
@@ -44,10 +45,12 @@
         dest: "{{ playbook_dir }}"
 
   tasks:
-    - name: "Include configuration/roles/setup/doorman"
+    - name: "Test setup/doorman role"
       include_role:
-        name: "configuration/roles/setup/doorman"
+        name: "setup/doorman"
       vars:
+        auth_lists:
+          stdout: "abc"
         vault_policy_result:
           failed: True
         root_certs:
@@ -75,7 +78,7 @@
         gitops:
           git_ssh: test_git_ssh
           branch: test_branch
-          chart_source: test_chart_source
+          chart_source: "charts"
           release_dir: configuration/molecule/doorman/test
         vault:
           url: test_url
@@ -87,5 +90,5 @@
             git_ssh: test_git_ssh
             branch: test_branch
             chart_source: test_chart_source
-          cloud_provider: aws          
-            
+          cloud_provider: aws
+ 
