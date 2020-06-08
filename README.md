@@ -11,6 +11,8 @@
   - [Documentation](#documentation)
   - [Hyperledger Fabric](#hyperledger-fabric)
   - [Corda](#corda)
+  - [Hyperledger Indy](#hyperledger-indy)
+  - [Quorum](#quorum)
 - [Contact](#contact)
 - [Contributing](#contributing)
 - [Initial Committers](#initial-committers)
@@ -59,7 +61,7 @@ We welcome your questions & feedback on our [Rocketchat channel](https://chat.hy
 ## Contributing
 We welcome contributions to BAF in many forms, and there’s always plenty to do!
 
-First things first, please review the [Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct) before participating. 
+First things first, please review the [Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct) before participating.
 
 There are many ways to contibute to BAF, both as a user and as a developer.
 
@@ -72,7 +74,7 @@ As a developer:
 * If you can commit to full-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework) to work through logistics
 
 # Build
-If you are not using the provided Jeknins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster. 
+If you are not using the provided Jeknins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster.
 ```
 # Build provisioning image
 docker build . -t hyperledgerlabs/baf-build
