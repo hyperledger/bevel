@@ -2,12 +2,19 @@
 # and places them in vault. Certificates are created using openssl
 # This also creates the Kubernetes secrets
 ---
+# check if ambassadortls dir is there
+- name: "check if dir exists or not"
+  stat:
+    path: "{{ ambassadortls }}"
+  register: ambassadortlsdir_check
+
 - name: Ensure ambassador tls dir exists
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     check: "ensure_dir"
     path: "{{ ambassadortls }}"
+  when: not ambassadortlsdir_check.stat.exists
 
 # Check ambassador tls certs already created
 - name: Check if ambassador tls already created
@@ -18,6 +25,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: ambassador_tls_certs
   ignore_errors: yes
+  tags:
+  - notest
 
 # Gets the existing ambassador tls certs
 - name: Get ambassador tls certs
@@ -28,6 +37,13 @@
     type: "ambassador"
     cert_path: "{{ ambassadortls }}"
   when: ambassador_tls_certs.failed == False
+
+
+# check if ambassadortls dir is there
+- name: "check if openssl conf file exists or not"
+  stat:
+    path: "./build/openssl{{ component_name }}.conf"
+  register: openssl_conf_check
 
 # Generates the openssl file for domain
 - name: Generate openssl conf file
@@ -45,7 +61,7 @@
     EOF
   vars:
     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
-  when: ambassador_tls_certs.failed == True
+  when: ambassador_tls_certs.failed == True  and (not openssl_conf_check.stat.exists)
 
 # Generates the ambassador tls certificates if already not generated
 - name: Generate ambassador tls certs
@@ -53,7 +69,7 @@
     openssl req -x509 -out {{ ambassadortls }}/ambassador.crt -keyout {{ ambassadortls }}/ambassador.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ domain_name }}" -extensions EXT -config "{{playbook_dir}}/build/openssl{{ component_name }}.conf" 
   vars:
     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
-  when: ambassador_tls_certs.failed == True
+  when: ambassador_tls_certs.failed == True and (not openssl_conf_check.stat.exists)
 
 # Stores the genreated ambassador tls certificates to vault
 - name: Putting tls certs to vault
@@ -63,6 +79,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: ambassador_tls_certs.failed == True
+  tags:
+  - notest  
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
