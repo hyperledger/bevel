@@ -6,7 +6,7 @@
 # Check if namespace created
 - name: "Waiting for the namespace {{ component_ns }} to be created"
   include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "Namespace"
     component_name: "{{ component_ns }}"
@@ -15,7 +15,7 @@
 # Ensures the build directory
 - name: "Creating the build directory"
   include_role:
-    name: "../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     path: "./build"
     check: "ensure_dir"
@@ -23,7 +23,7 @@
 # This task checks if the vault path already exists
 - name: "Checking if the vault path already exists"
   include_role:
-    name: "../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     check: "vault_auth"
 
@@ -64,7 +64,7 @@
 # This task checks if the vault-ro polict already exists
 - name: "Checking if the vault policies already exists"
   include_role:
-    name: "../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     check: "vault_policies"
   register: vault_policy_result
@@ -80,8 +80,8 @@
     }
     path \"secret/{{ component_ns }}/smartContracts/*\" {
         capabilities = [\"read\", \"list\"]
-    }"  >>  vault-crypto-{{ component_name }}-ro.hcl
-    vault write sys/policy/vault-crypto-{{ component_name }}-ro policy="@vault-crypto-{{ component_name }}-ro.hcl"
+    }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
+    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -90,7 +90,7 @@
 # This task creates the vault auth
 - name: Create Vault auth role
   shell: |
-    vault write auth/{{ component_auth }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_ns }} policies=vault-crypto-{{ component_name }}-ro ttl=120s
+    vault write auth/{{ component_auth }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_ns }} policies=vault-crypto-{{ component_type }}-{{ component_name }}-ro ttl=120s
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

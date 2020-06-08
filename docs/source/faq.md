@@ -43,7 +43,7 @@ Unfortunately, there are no existing training for using the Blockchain Automatio
 Yes, you can add additional nodes to a running DLT network using the Blockchain Automation Framework (BAF). Unfortunately, BAF does not support removing nodes in a running DLT network, but this significant feature is in our future roadmap, and we will add this feature in a future release.
 
 ### Does the Blockchain Automation Framework support multiple versions of Fabric and Corda? What are the minimum versions for Fabric and Corda supported in the Blockchain Automation Framework?
-No, unfortunatley, the Blockchain Automation Framework currently only supports version 1.4.0 & 1.4.4 for Fabric and version 4.1 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda.
+No, unfortunatley, the Blockchain Automation Framework currently only supports version 1.4.0, 1.4.4 & 2.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda.
 
 ## 2.FAQs for Operators Guide
 
@@ -107,10 +107,11 @@ kubectl apply -f https://raw.githubusercontent.com/fluxcd/flux/helm-0.10.1/deplo
 ## 3.FAQs for Developer Guide
 
 ### How do I contribute to this project?
-If you think you can add new features to this project, please clone the Github repository and create a new branch and put your code in that branch and then send a pull request. Details can be found in this link: https://help.github.com/en/articles/about-pull-requests.
+- Guide on BAF [contribution](https://blockchain-automation-framework.readthedocs.io/en/latest/contributing.html)  
+- Details on creating pull request on github can be found in this [link.](https://help.github.com/en/articles/about-pull-requests)
 
 ### Where can I find the Blockchain Automation Framework's coding standards?
 TBD
 
 ### How can I engage in the Blockchain Automation Framework community for any events?
-TBD
+Connect us on [Rocket Chat](https://chat.hyperledger.org/channel/blockchain-automation-framework)

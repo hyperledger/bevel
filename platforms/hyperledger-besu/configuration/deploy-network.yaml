@@ -1,0 +1,88 @@
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:      
+  # delete build directory 
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+  # Create namespaces and service accounts
+  - name: "Create namespace and service account"
+    include_role: 
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-besu"
+      organisation: "{{ organizationItem.name | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      gitops: "{{ item.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
+  # Create Storageclass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "{{ organizationItem.cloud_provider }}storageclass"
+      git_dir: "{{ organizationItem.gitops.release_dir }}"
+      org: "{{ organizationItem }}"
+      kubernetes: "{{ item.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
+  # Setup Vault-Kubernetes accesses and Regcred for docker registry
+  - name: "Setup vault"   
+    include_role: 
+      name: "setup/vault_kubernetes"
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-quo"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      component_name: "{{ organizationItem.name | lower}}"
+      component_path: "{{ organizationItem.name | lower }}/"
+      component_auth: "besu{{ organizationItem.name | lower }}"
+      component_type: "organization"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
+  # Generate Ambassador certificate for nodes
+  - name: "Create ambassador certificates for Nodes" 
+    include_role: 
+      name: create/certificates/ambassador
+    vars:
+      root_subject: "{{ network.config.subject }}"
+      cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+      services: "{{ organizationItem.services }}"
+      organisation: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-besu"
+      component_name: "{{ organizationItem.name | lower }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations']}}"
+    loop_control:
+      loop_var: organizationItem
+
+  # This role generates the genesis.json and nodekey/enode for all orgs of the network
+  - name: "Generate crypto for the IBFT network"
+    include_role:
+      name: create/crypto/ibft  
+    vars:
+      build_path: "{{ playbook_dir }}/build"    
+    when: network.config.consensus == 'ibft'
+
+  vars: #These variables can be overriden from the command line
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: false

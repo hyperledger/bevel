@@ -30,7 +30,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric, here in example its Corda
 
-`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 is also supported and should be used.
+`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 and 4.4 is also supported and should be used.
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 

@@ -8,10 +8,10 @@
 # Check storageclass exists already
 - name: Check if storageclass exists
   include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: StorageClass
-    component_name: "{{ org.cloud_provider }}storageclass"
+    component_name: "{{ cloud_provider }}storageclass"
     kubernetes: "{{ org.k8s }}"
     type: "no_retry"
 
@@ -47,12 +47,12 @@
 
 - name: "Wait for Storageclass creation for {{ component_name }}"
   include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   tags:
     - notest
   vars:
     component_type: "StorageClass"
-    component_name: "{{ org.cloud_provider }}-storageclass"
+    component_name: "{{ cloud_provider }}storageclass"
     kubernetes: "{{ org.k8s }}"
     type: "retry"
   when: storageclass_state.resources|length == 0
