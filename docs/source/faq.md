@@ -107,8 +107,8 @@ kubectl apply -f https://raw.githubusercontent.com/fluxcd/flux/helm-0.10.1/deplo
 ## 3.FAQs for Developer Guide
 
 ### How do I contribute to this project?
-Guide on BAF [contribution](https://blockchain-automation-framework.readthedocs.io/en/latest/contributing.html)  
-Details on creating pull request on github can be found in this [link.](https://help.github.com/en/articles/about-pull-requests)
+- Guide on BAF [contribution](https://blockchain-automation-framework.readthedocs.io/en/latest/contributing.html)  
+- Details on creating pull request on github can be found in this [link.](https://help.github.com/en/articles/about-pull-requests)
 
 ### Where can I find the Blockchain Automation Framework's coding standards?
 TBD
