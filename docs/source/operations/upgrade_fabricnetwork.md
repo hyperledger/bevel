@@ -28,7 +28,7 @@ And, for Fabric v2.0.0, these are the image tags of the supporting docker images
 | couchDB          | 0.4.18           |
 | orderer          | 2.0.0            |
 | peer             | 2.0.0            |
-| ca               | 2.0.0            |
+| ca               | 1.4.5            |
 
 ---
 **NOTE:** This change only upgrades the docker images, any other configuration changes is not covered by this guide. Please refer to Fabric documentation for any specific configuration changes.
