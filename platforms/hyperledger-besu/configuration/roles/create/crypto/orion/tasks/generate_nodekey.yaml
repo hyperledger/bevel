@@ -1,0 +1,32 @@
+# Ensure the directories exists
+- name: Ensure the folder structure exists
+  file:
+    path: "{{ build_path }}/crypto/{{ org.name }}-bes/{{ peer.name }}"
+    state: directory
+    recurse: yes
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+
+# This tasks create orion nodeKey for every peer
+- name: create orion nodeKey
+  shell: |
+    echo {{ peer.geth_passphrase }} > {{ build_path }}/crypto/{{ org.name }}-bes/{{ peer.name }}/password
+    {{ bin_install_dir }}/orion/orion-{{ network.config.tm_version }}/orion -g {{ build_path }}/crypto/{{ org.name }}-bes/{{ peer.name }}/nodeKey < {{ build_path }}/crypto/{{ org.name }}-bes/{{ peer.name }}/password
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+
+# This tasks copy the crypto material to the vault
+- name: Copy the crypto material to Vault
+  shell: |
+    vault kv put secret/{{ component_ns }}/crypto/{{ peer.name }}/orion key="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/nodeKey.key)" key.pub="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/nodeKey.pub)" password="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/password)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer

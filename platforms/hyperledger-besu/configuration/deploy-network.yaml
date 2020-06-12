@@ -14,6 +14,7 @@
     file:
       path: "./build"
       state: absent
+
   # Create namespaces and service accounts
   - name: "Create namespace and service account"
     include_role: 
@@ -80,6 +81,13 @@
     vars:
       build_path: "{{ playbook_dir }}/build"    
     when: network.config.consensus == 'ibft'
+
+  # This role generates the crypto materials for orion tm
+  - name: "Generate crypto for the Orion transaction manager"
+    include_role:
+      name: create/crypto/orion  
+    vars:
+      build_path: "{{ playbook_dir }}/build"   
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS
