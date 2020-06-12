@@ -6,7 +6,9 @@
 
 <a name = "pre_req"></a>
 ## Pre-requisites
-Hyperledger Fabric image versions, which are compatible with the target fabric version need to be known. For example, for Fabric v1.4.4, these are the image tags of the supporting docker images 
+Hyperledger Fabric image versions, which are compatible with the target fabric version need to be known. 
+
+For example, for Fabric v1.4.4, these are the image tags of the supporting docker images 
 
 | Fabric component | Fabric image tag |
 |------------------|------------------|
@@ -16,6 +18,17 @@ Hyperledger Fabric image versions, which are compatible with the target fabric v
 | orderer          | 1.4.4            |
 | peer             | 1.4.4            |
 | ca               | 1.4.4            |
+
+And, for Fabric v2.0.0, these are the image tags of the supporting docker images 
+
+| Fabric component | Fabric image tag |
+|------------------|------------------|
+| kafka            | 0.4.18           |
+| zookeeper        | 0.4.18           |
+| couchDB          | 0.4.18           |
+| orderer          | 2.0.0            |
+| peer             | 2.0.0            |
+| ca               | 1.4.5            |
 
 ---
 **NOTE:** This change only upgrades the docker images, any other configuration changes is not covered by this guide. Please refer to Fabric documentation for any specific configuration changes.

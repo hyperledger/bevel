@@ -32,7 +32,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric, here in the example its Fabric
 
-`version` defines the version of platform being used. The current Fabric version support is 1.4.0 and 1.4.4
+`version` defines the version of platform being used. The current Fabric version support is 1.4.0, 1.4.4 and 2.0.0
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
