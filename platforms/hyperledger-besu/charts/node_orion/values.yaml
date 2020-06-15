@@ -1,0 +1,144 @@
+# This is a YAML-formatted file.
+#Declare variables to be passed into your templates.
+
+# This section contains the Hyperledger-Besu node metadata
+metadata:
+  # Provide the namespace for the Hyperledger-Besu node
+  # Eg. namespace: example-bes
+  namespace: 
+
+# Provide the number of replicas for your pods
+# Eg. replicaCount: 1
+replicaCount: 
+
+# Provide the static-nodes as a list
+# The url is formed by "enode://<node_public_key>@<ambassador_ip>:<ambassador_p2p_port>"
+#Eg. staticnodes:
+#      - "enode://b10c149738b331c185bd0a08d5095ae95efad95361791c2b1e73e971016e25fa30cc5230ce9111db1f7d955cf1f4f5ef3d402ac4adae6416235088cda07f7ee2@1.2.3.4:15010"
+#      - "enode://052e4dcc58e6e1a5180554a69346cf5c3ffbc7015a334a54d508f30fb94ca173f0d0d7424891f418222eea37bc98e2aab89b847abdba1f4af34ca1b0a55faa7f@1.2.3.4:15020"
+#      - "enode://065f23647d6b36cfe3e708798c523db322a8a35c955f4272965d0967deb861dab662c1fc25cfaa642f89e65043f3b3a12ac6f198ce6f5471ce452f3c61ea0487@1.2.3.4:15030"
+staticnodes:
+
+# Liveliness check is done for nodes, which should wait until the bootnode is up
+liveliness_check:
+  # Set this field as true/false to turn the liveliness check on/off.
+  # NOTE: If this field is set to false, the url and port field content wont be used
+  # in the deployment. In case, there is no bootnode & peer discovery enabled,
+  # set this field to false.
+  # Eg. enabled: true
+  enabled:
+  # Provide the bootnode URL.
+  # This field is used only when the bootnode & peer discovery is enabled
+  # and static-nodes.json isnt used.
+  # Eg. url: store.test.com
+  url:
+  # Provide the rpc port of the bootnode.
+  # This field is used only when the bootnode & peer discovert is enabled
+  # and the static-nodes.json isnt used.
+  # Eg. port: 12345
+  port:
+
+# This section contains the healthcheck parameters required for bootnode liveliness check.
+healthcheck:
+  # Mention the number of retries to check the bootnode liveliness.
+  # NOTE: This field is not consumed if 'liveliness_check.enabled' is set to false
+  # Eg. readinessthreshold: 100
+  readinessthreshold:
+  # Mention the retry interval (in seconds) for bootnode liveliness check.
+  # NOTE: This field is not consumed if 'liveliness_check.enabled' is set ot false
+  # Eg. readinesscheckinterval: 5
+  readinesscheckinterval:
+
+# This section contains the proxy ports.
+proxy:
+  # Mention the proxy provider. Currently Ambassador is supported.
+  # Eg. provider: ambassador
+  provider: 
+  # Mention the p2p port configured on proxy.
+  # NOTE: Make sure that the port is enabled and not binded on the proxy.
+  # Eg. p2p: 15010
+  p2p: 
+  # Mention the rpc port configured on proxy.
+  # NOTE: Make sure that the port is enabled and not binded on the proxy.
+  # Eg. rpc: 15011
+  rpc: 
+  # Mention the websocket port configured on proxy.
+  # NOTE: Make sure that the port is enabled and not binded on the proxy.
+  # Eg. ws: 15012
+  ws: 
+
+# This section contains the images used in the deployment.
+images:
+  # Provide the alpine utils image.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. alpineutils: hyperledgerlabs/alpine-utils:1.0
+  alpineutils: 
+  # Provide the Hyperledger-Besu node image.
+  # Eg. node: hyperledger/besu:latest
+  node: 
+
+# This section contains the Hyperledger-Besu details.
+node:
+  # Provide the name of the node.
+  # Eg. example
+  name: 
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecret: regcred
+  imagePullSecret: 
+  # Provide the mountpath.
+  # This path is used to store the genesis file.
+  # Eg. mountPath: /etc/genesis
+  mountPath: 
+  # Provide the serviceType
+  # Eg. servicetype: ClusterIP
+  servicetype: 
+  # This sections contains the node port information.
+  ports:
+    # Provide the p2p port.
+    # Eg. p2p: 30303
+    p2p: 
+    # Provide the rpc port.
+    # Eg. rpc: 8545
+    rpc: 
+    # Provide the ws port.
+    # Eg. ws: 8546
+    ws: 
+
+# This section contains the storage information.
+storage:
+  # Provide the name of the storageclass.
+  # NOTE: Make sure that the storageclass exist prior to this deployment as
+  # this chart doesn't create the storageclass.
+  # Eg. storageclassname: awsstorageclass
+  storageclassname: 
+  # Provide the size of the volume
+  # Eg. storagesize: 1Gi
+  storagesize: 
+
+# This section contains the vault related information.
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to
+# use the Kubernetes service account token based authentication.
+vault:
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceAccountName: vault-auth
+  serviceAccountName: 
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address: 
+  # Provide the vault path where the nodekey is stored
+  # Eg. secretprefix: secret/warehouse-bes/crypto/warehouse
+  secretPrefix: 
+  # Provide the name of the folder containing the nodekey
+  # Eg. keyname: data
+  keyname: 
+  # Provide the authpath configured to be used.
+  # Eg. authpath: besuwarehouse
+  authpath: 
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role: 
+
+# Mention the genesis file in base64 format.
+# Eg. genesis: ewogICJjb25maWciIDogewogICAgb2NrIiA6IDAsCiAgICAiaWJmdDIiIDogewogICAgICAiYmxvY2twZXJpb2RzZWNvbmRzIiA6IDIsCiAgICAgICJlcG9jaGxlbmd0aCIgOiAzMDAwMCwKICAgICAgInJlcXVlc3R0aW1lb3V0c2Vjb25kcyIgOiAxMAogICAgfQogIH0sCiAgIm5vbmNlIiA6ICIweDAiLAogICJ0aW1lc3RhbXAiIDogIjB4NThlZTQwYmEiLAogICJnYXNMaW1pdCIgOiAiMHg0N2I3NjAiLAogICJkaWZmaWN1bHR5IiA6ICIwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGY4M2Y5NDM4NDljZGYzZmYyZjY0ZDc1NDYwNTM1NmUzZjFkMTUwMzYxZTAzZjE5NGZlZTMyNjcwZTc1N2U2OGI5NGFjNTEyNTlmY2YxMDlmNTU0MTZhMzI5NGU0NTkxNzQ3YzEyNTgzMjBhNjQzY2QzMjM2MDIwOWRkYTViYzVmZTk4MDg0MDAwMDAwMDBjMdfsgQ==
+genesis: 

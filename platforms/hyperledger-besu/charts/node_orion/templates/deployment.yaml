@@ -1,0 +1,186 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Values.metadata.namespace }}
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: {{ .Values.node.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+  name: {{ .Values.node.name }}
+spec:
+  serviceName: {{ .Values.node.name }}
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: consortiumchain
+        name: {{ .Values.node.name }}
+        service.rpc: {{ .Values.node.name }}
+    spec:
+      serviceAccountName: {{ .Values.vault.serviceaccountname }}
+      imagePullSecrets:
+          - name: {{ .Values.node.imagePullSecret }}
+      volumes:
+        - name: certificates
+          emptyDir:
+            medium: Memory
+        - name: {{ .Values.node.name }}-genesis-volume
+          configMap:
+            name: genesis-{{ .Values.node.name }}
+            items:
+              - key: genesis.json.base64
+                path: genesis.json.base64
+      initContainers:
+      - name: certificates-init
+        image: {{ .Values.images.alpineutils }}
+        imagePullPolicy: Always
+        env:
+        - name: VAULT_ADDR
+          value: {{ .Values.vault.address }}
+        - name: VAULT_SECRET_PREFIX
+          value: {{ .Values.vault.secretprefix }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ .Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ .Values.vault.role }}
+        - name: MOUNT_PATH
+          value: "/secret"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          
+          validateVaultResponse () {
+          if echo ${2} | grep "errors"; then
+           echo "ERROR: unable to retrieve ${1}: ${2}"
+           exit 1
+           fi
+          }
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          #Login to Vault and to get an approle token
+          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+            -H "Content-Type: application/json" \
+            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+            jq -r 'if .errors then . else .auth.client_token end')
+          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+
+          mkdir -p ${MOUNT_PATH}
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
+          echo "Getting 3 keys from $vault_secret_key"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS \
+            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+            ${VAULT_ADDR}/v1/${vault_secret_key} | \
+            jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]')                 
+             
+          echo "${nodekey}" > ${MOUNT_PATH}/nodekey
+
+        volumeMounts:
+        - name: certificates
+          mountPath: /secret
+      - name: liveliness-check
+        image: "{{ .Values.images.alpineutils }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+{{- if .Values.liveliness_check.enabled }}
+          COUNTER=1
+          while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+          do
+              # get truststore from vault to see if registration is done or not
+              LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
+              if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
+              then
+                sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+              else
+                break
+              fi 
+              COUNTER=`expr "$COUNTER" + 1`
+          done
+{{- end }}
+        volumeMounts:
+        - name: {{ .Values.node.name }}-pv
+          mountPath: {{ .Values.node.mountPath }}
+      containers:
+      - name: besu
+        image: "{{ .Values.images.node }}"
+        command:
+          - /bin/sh
+          - -c
+        args:
+          - |
+            echo -n {{ .Values.staticnodes | toJson | quote }} > /opt/besu/static-nodes.json
+            mkdir -p $BESU_GENESIS_DIR;
+            cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $BESU_GENESIS_DIR/genesis.json
+
+            args="--rpc-http-enabled --rpc-http-api=ETH,NET,IBFT,DEBUG,ADMIN,WEB3 --rpc-ws-enabled --rpc-ws-api=ETH,NET,WEB3 --p2p-port {{ .Values.node.ports.p2p }} --rpc-http-port {{ .Values.node.ports.rpc }} --rpc-ws-port={{ .Values.node.ports.ws }}"
+            exec /opt/besu/bin/besu \
+            --discovery-enabled=false \
+            --node-private-key-file=/secrets/nodekey \
+            --genesis-file=/etc/genesis/genesis.json \
+            --logging=DEBUG \
+            --nat-method=MANUAL \
+            --tx-pool-retention-hours=999 \
+            --tx-pool-max-size=1024 \
+            --p2p-enabled=true \
+            --p2p-host=0.0.0.0 \
+            --max-peers=25 \
+            --host-whitelist="*" \
+            --rpc-http-host=0.0.0.0 \
+            --rpc-http-cors-origins="all" \
+            --rpc-ws-host=0.0.0.0 \
+            $args \
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: 8545
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        ports:
+          - name: json-rpc
+            containerPort: {{ .Values.node.ports.rpc}}
+            protocol: TCP
+          - name: ws
+            containerPort: {{ .Values.node.ports.ws }}
+            protocol: TCP
+          - name: rlpx
+            containerPort: {{ .Values.node.ports.p2p }}
+            protocol: TCP
+        env:
+          - name: BESU_GENESIS_DIR
+            value: {{ .Values.node.mountPath }}
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+        volumeMounts:
+        - name: {{ .Values.node.name }}-genesis-volume
+          mountPath: {{ .Values.node.mountPath }}/genesis
+        - name: certificates
+          mountPath: /secrets
+        - name: {{ .Values.node.name }}-pv
+          mountPath: {{ .Values.node.mountPath }}
+      restartPolicy: Always
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.node.name }}-pv
+      spec:
+        storageClassName: {{ .Values.storage.storageclassname }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.storagesize }}
