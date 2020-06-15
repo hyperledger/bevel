@@ -1,6 +1,6 @@
 # Configuration file specification: Hyperledger Besu
 A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Hyperledger Besu DLT network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
-![](./../_static/TopLevelClass-Besu.png)
+![](./../_static/TopLevelClass-Besu.PNG)
 
 Before setting up a Hyperledger Besu DLT network, this file needs to be updated with the required specifications.  
 A sample configuration file is provided in the repo path:  
