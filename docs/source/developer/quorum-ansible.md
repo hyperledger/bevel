@@ -29,7 +29,7 @@ Some of the common roles and playbooks between Quorum, Hyperledger-Indy, Hyperle
 Roles in ansible are a combination of logically inter-related tasks.
 
 To deploy the quorum network, run the deploy-network.yaml in `blockchain-automation-framework\platforms\quorum\configuration\`
-The roles included in the file are as follows.
+The roles included in the file are as follows:
 
 ## **check/k8_component
 
