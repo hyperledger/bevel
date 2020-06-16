@@ -1,0 +1,75 @@
+# This tasks checks the crypto material in the vault
+- name: Check for the crypto material in the vault
+  include_tasks: check_vault.yaml
+  vars:
+    component_ns: "{{ org.name }}-bes"
+    vault: "{{ org.vault }}"
+    peers: "{{ org.services.peers }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+
+# This task creates the bin directory, if it doesn't exist, for storing the geth binary
+- name: Create bin directory
+  file:
+    path: "{{ bin_install_dir }}/orion/orion-{{ network.config.tm_version }}"
+    state: directory
+    recurse: yes
+  when: generate_crypto_orion is defined and generate_crypto_orion == True
+
+# Check if orion binary already exists
+- name: check orion binary
+  stat:
+    path: "{{ bin_install_dir }}/orion/orion-{{ network.config.tm_version }}/orion"
+  register: orion_stat_result
+  when: generate_crypto_orion is defined and generate_crypto_orion == True
+
+# Create a temporary directory to download and extract orion tar
+- name: register temporary directory
+  tempfile:
+    state: directory
+  register: tmp_directory
+  when: generate_crypto_orion is defined and generate_crypto_orion == True and orion_stat_result.stat.exists == False
+
+# This task fetches the orion tar file from the mentioned URL
+- name: "Geting the orion binary tar"
+  get_url:
+    url: https://bintray.com/consensys/binaries/download_file?file_path=orion-{{ network.config.tm_version }}-SNAPSHOT.tar.gz
+    dest: "{{ tmp_directory.path }}"
+  when: generate_crypto_orion is defined and generate_crypto_orion == True and orion_stat_result.stat.exists == False
+
+
+# This task unzips the above downloaded tar file
+- name: "Unziping the downloaded file"
+  unarchive:
+    src: "{{ tmp_directory.path }}/orion-{{ network.config.tm_version }}-SNAPSHOT.tar.gz"
+    dest: "{{ tmp_directory.path }}"
+  when: generate_crypto_orion is defined and generate_crypto_orion == True and orion_stat_result.stat.exists == False
+
+# This task extracts the orion binary and place it at appropriate path
+- name: "Moving the orion from the extracted folder and place in it path"
+  copy:
+    src: "{{ tmp_directory.path }}/orion-{{ network.config.tm_version }}-SNAPSHOT/bin/orion"
+    dest: "{{ bin_install_dir }}/orion/orion-{{ network.config.tm_version }}"
+    mode: 0755
+  when: generate_crypto_orion is defined and generate_crypto_orion == True and orion_stat_result.stat.exists == False
+
+# This task extracts the supporting orion lib and place it at appropriate path
+- name: "Moving the orion dependencies from the extracted folder and place in it path"
+  copy:
+    src: "{{ tmp_directory.path }}/orion-{{ network.config.tm_version }}-SNAPSHOT/lib"
+    dest: "{{ bin_install_dir }}/orion"
+    mode: 0755
+  when: generate_crypto_orion is defined and generate_crypto_orion == True and orion_stat_result.stat.exists == False
+
+# This tasks generates nodekey for each peer
+- name: Generate orion nodekey for every node
+  include_tasks: generate_nodekey.yaml
+  vars:
+    component_ns: "{{ org.name }}-bes"
+    vault: "{{ org.vault }}"
+    peers: "{{ org.services.peers }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: generate_crypto_orion is defined and generate_crypto_orion == True
