@@ -1,4 +1,4 @@
-# Hyperledger Fabric Charts
+# Hyperledger Besu Charts
 
 The structure below represents the Chart structure for Hyperledger Besu components in the Blockchain Automation Framework implementation.
 
