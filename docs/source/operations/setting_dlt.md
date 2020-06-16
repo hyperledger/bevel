@@ -3,7 +3,7 @@
 To create a Production DLT network, ensure you have the following:
 
 1. One running Kubernetes Cluster and the Config file (kubeconfig.yaml) per Organization.
-2. One running Hashicorp Vault server per Organization. Unsealed and configured as per [guidance here](https://blockchain-automation-framework.readthedocs.io/en/latest/operations/configure_prerequisites.html#vaultunseal).
+2. Two running Hashicorp Vault server per Organization. Unsealed and configured as per [guidance here](https://blockchain-automation-framework.readthedocs.io/en/latest/operations/configure_prerequisites.html#vaultunseal).
 3. Domain Name(s) configured as per [guidance here](./configure_prerequisites.html#ambassador).
 4. Private key file per Organization for GitOps with write-access to the Git repo as per [guidance here](./configure_prerequisites.html#privatekey).
 5. Git user details per Organization as per [pre-requisites](../prerequisites).
