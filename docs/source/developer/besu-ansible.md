@@ -17,7 +17,7 @@ Ansible playbooks contains a series of roles and tasks which run in sequential o
 |-- scripts
 ```
 
-For Hyperledger Besu, the ansible roles and playbooks are located at `/platforms/hyperledger-besu/configuration/`. Some of the common roles and playbooks between hyperledger-besu, Hyperledger-Indy, Hyperledger-Fabirc, Hyperledger-Besu and R3-Corda are located at `/platforms/shared/configurations/`
+For Hyperledger Besu, the ansible roles and playbooks are located at `/platforms/hyperledger-besu/configuration/`. Some of the common roles and playbooks between Hyperledger-Fabric, Hyperledger-Indy, Hyperledger-Besu, R3 Corda and Quorum are located at `/platforms/shared/configurations/`
 
 -------------
 
