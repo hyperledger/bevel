@@ -73,7 +73,7 @@ The fields under `docker` section are
 | password   | Password credential required for login      |
 
 ---
-**NOTE:** Please follow [these instructions](../operations/configure_prerequisites.md#docker) to build and store the docker images before running the Ansible playbooks.
+**NOTE:** Please follow [these instructions](../operations/configure_prerequisites.html#docker) to build and store the docker images before running the Ansible playbooks.
 
 ---
 
