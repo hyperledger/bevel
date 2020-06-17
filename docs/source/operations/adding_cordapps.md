@@ -34,7 +34,7 @@ repoPassword=repository_user_password
 ```
 Add the appropriate jar information as artifacts in `example\supplychain-app\corda\build.gradle` file, change this file only if you need to add or remove jars other that the ones mentioned below
 
-```java
+```ruby
 publishing{
     publications {
     maven1(MavenPublication) {

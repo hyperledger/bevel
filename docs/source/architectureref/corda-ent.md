@@ -1,40 +1,46 @@
-# Corda Opensource Architecture Reference
+# Corda Enterprise Architecture Reference
 
 ## Kubernetes
 ### Peer Nodes
 The following diagram shows how Corda peer nodes will be deployed on your Kubernetes instance.
 
-![Figure: R3 Corda Kubernetes Deployment - Peers](../_static/corda-kubernetes-node.png)
+![Figure: R3 Corda Enterprise Kubernetes Deployment - Peers](../_static/corda-ent-node.png)
 
 **Notes:**
 1. Pods are shown in blue in the diagram.
-1. Certificates are mounted as in-memory volumes from the [vault](#vault-config).
-1. The node-pod runs corda.jar.
-1. The h2 database is a separate pod running in the same namespace
+1. Certificates are mounted as in-memory volumes from the [Vault](#vault-config).
+1. The h2 database is a separate pod running in the same namespace. In future release, PostgreSQL will be implemented as well.
 1. All storage uses a Kubernetes Persistent Volume.
 
 ### Support Services
-The following diagram shows how the Corda Support Services (**Doorman**, **Networkmap** and **Notary**) will be deployed on your Kubernetes instance.
+The following diagram shows how the Corda Enterprise Network Map Services (**Identity Manager**, **Networkmap**, **Signer** and **Notary**) will be deployed on your Kubernetes instance(s).
 
-![Figure: R3 Corda Kubernetes Deployment - Support Services](../_static/corda-support-services.png)
+![Figure: R3 Corda Kubernetes Deployment - CENM Services](../_static/corda-ent-support-services.png)
 
 **Notes:**
 1. Pods are shown in blue in the diagram.
-1. Certificates are mounted as in-memory volumes from the [vault](#vault-config).
-1. Doorman and Networkmap services have a separate MongoDB pod for data storage.
-1. Notary service has a separate H2 pod for data storage.
+1. Certificates are mounted as in-memory volumes from the [Vault](#vault-config).
+1. All CENM pods (except Notary) have separate H2 volume for data storage. In future release, PostgreSQL will be implemented as well.
+1. Notary service has a separate H2 pod for data storage. In future release, PostgreSQL will be implemented as well.
 1. All storage uses a Kubernetes Persistent Volume.
 
 ## Components
-![Figure: Corda Components](../../images/blockchain-automation-framework-corda.png)
+![Figure: Corda Enterprise Components](../../images/blockchain-automation-framework-corda-ent.png)
 
 ### Docker Images
 
-The Blockchain Automation Framework creates/provides a set of Corda Docker images that can be found in the [Hyperledger-Labs repository](https://hub.docker.com/u/hyperledgerlabs) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
-The following Corda Docker Images are used and needed by the Blockchain Automation Framework.
-* [Corda Network Map Service](https://hub.docker.com/r/hyperledgerlabs/networkmap-linuxkit) 
-* [Corda Doorman Service](https://hub.docker.com/r/hyperledgerlabs/doorman-linuxkit)
-* [Corda Node](https://hub.docker.com/r/hyperledgerlabs/corda)
+For Corda Enterprise, the *corda_ent_node* and *corda_ent_firewall* docker images should be built and put in a private docker registry. Please follow [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images) to build docker images for Corda Enterprise. 
+
+The official Corda images are available on [Docker Hub](https://hub.docker.com/u/corda). These are evaluation only, for production implementation, please aquire licensed images from R3 and update the tags accordingly.
+
+Following Corda Docker Images are used and needed by the Blockchain Automation Framework.
+* [Corda Network Map Service](https://hub.docker.com/r/corda/enterprise-networkmap) 
+* [Corda Identity Manager Service](https://hub.docker.com/r/corda/enterprise-identitymanager)
+* [Corda Signer](https://hub.docker.com/r/corda/enterprise-signer)
+* [Corda PKITool](https://hub.docker.com/r/corda/enterprise-pkitool)
+* [Corda Notary](https://hub.docker.com/r/corda/notary)
+* Corda Node (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images/))
+* Corda Firewall (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images))
 
 ### Ansible Playbooks
 
@@ -52,27 +58,6 @@ The Blockchain Automation Framework stores their `crypto` and `credentials` imme
 |----------------------|----------------------|
 | `secret/<servicename>`      | `secret/<servicename>/credentials` |
 
-*  `secrets/doorman/credentials/mongodb` - Contains password for doorman mongodb database.
-
-```
-mongodbPassword="admin"
-```
-
-*  `secrets/doorman/credentials/userpassword` - Contains password for doorman mongodb database user:
-
-```
-sa="newdbnm"
-```
-*  `secrets/networkmap/credentials/mongodb` - Contains password for networkmap mongodb database:
-
-```
-mongodbPassword="newdbnm"
-```
-*  `secrets/networkmap/credentials/userpassword` - Contains password for networkmap mongodb database user:
-
-```
-sa="admin"
-```
 *  `secrets/notary/credentials/database` - Contains password for notary database for admin and user:
 
 ```
@@ -123,4 +108,4 @@ sa="admin"
 rootToken="<vault.root_token>"
 ```
 
-The complete Certificate and key paths in the vault can be referred [here](certificates_path_list_corda)
+The complete Corda Enterprise Certificate and key paths in the vault can be referred [here](certificates_path_list_corda_ent).
