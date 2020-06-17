@@ -51,7 +51,7 @@
   when: auth_list.stdout.find(component_auth) == -1
 
 ################################################################################################
-# This task writes the Service Account token to the vault for various Quorum entity
+# This task writes the Service Account token to the vault for various besu entity
 - name: Write reviewer token
   shell: |
     export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_ns }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 -d)
@@ -71,7 +71,7 @@
   ignore_errors: yes
 
 #####################################################################################################################
-# This task creates the access policy for various quorum entity
+# This task creates the access policy for various besu entity
 - name: Create policy for Access Control
   shell: |
     cd ./build    
@@ -81,7 +81,8 @@
     path \"secret/{{ component_ns }}/smartContracts/*\" {
         capabilities = [\"read\", \"list\"]
     }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
-    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"  environment:
+    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"  
+  environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_policy_result.failed == True    # Run if policy check failed
@@ -90,6 +91,7 @@
 - name: Create Vault auth role
   shell: |
     vault write auth/{{ component_auth }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_ns }} policies=vault-crypto-{{ component_type }}-{{ component_name }}-ro ttl=120s
+  environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: auth_list.stdout.find(component_auth) == -1     # Run when auth_path is not found
