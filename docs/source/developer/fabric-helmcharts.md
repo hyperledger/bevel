@@ -1,7 +1,6 @@
-# Fabric Charts
+# Hyperledger Fabric Charts
 
-The structure below represents the Chart structure for Hyperledger fabric components in the Blockchain Automation Framework 
-implementation.
+The structure below represents the Chart structure for Hyperledger fabric components in the Blockchain Automation Framework implementation.
 
 ```
 /hyperledger-fabric
@@ -28,13 +27,13 @@ implementation.
 ## CA (certification authority)
 
 ### About
-This folder consists CA helm charts which are used by the ansible playbooks for the deployment of the CA component. The folder contains a templates folder,a chart file and a value file. 
+This folder consists CA helm charts which are used by the ansible playbooks for the deployment of the CA component. The folder contains a templates folder, a chart file and a value file. 
 
 ### Folder Structure
 ```
 /ca
 |-- templates
-|   |--_helpers.tpl
+|   |-- _helpers.tpl
 |   |-- volumes.yaml
 |   |-- deployment.yaml
 |   |-- service.yaml
@@ -45,15 +44,15 @@ This folder consists CA helm charts which are used by the ansible playbooks for 
 ### Charts description
 
 #### templates
-- This folder contains template structures which when combined with values ,will generate valid Kubernetes manifest files for CA implementation.
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for CA implementation.
 - This folder contains following template files for CA implementation
   
   - _helpers.tpl 
-      This fie doesnt output a Kubernetes manifest file as it begins with underscore (_) .And its a place to put template helpers that we can re-use throughout the chart.
+      This file doesnt output a Kubernetes manifest file as it begins with underscore (_). And its a place to put template helpers that we can re-use throughout the chart.
 	  That file is the default location for template partials ,as we have defined a template to encapsulate a Kubernetes block of labels for CA.
 	  
   - deployment.yaml
-      This file is used as a basic manifest for creating a Kubernetes deployment.For the ca node, this file creates a ca deployment.The file defines conatainers where ca conatainer is defined with fabric image and CA client and CA server onfiguration details and 
+      This file is used as a basic manifest for creating a Kubernetes deployment. For the ca node, this file creates a ca deployment. The file defines where ca container is defined with fabric image and CA client and CA server onfiguration details and 
 	  the init container basically configures the vault with various vault parameters.Certificates and CA server database are defined on the volume mount paths.
 	  
   - service.yaml
