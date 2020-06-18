@@ -1,0 +1,215 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.nodeName }}-setup
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Values.nodeName }}-setup
+    app.kubernetes.io/name: {{ .Values.nodeName }}-setup
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+    backoffLimit: 6
+    template:
+      metadata:
+        labels:
+          app: {{ .Values.nodeName }}-setup
+          app.kubernetes.io/name: {{ .Values.nodeName }}-setup
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        restartPolicy: "OnFailure"
+        serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+        hostname: {{ .Values.nodeName }}
+        securityContext:
+          fsGroup: 1000
+        containers:
+        - name: pki
+          image: "{{ required "signer[pki]: missing value for .Values.dockerImagePki.name" .Values.dockerImagePki.name }}:{{ required "signer[pki]: missing value for .Values.dockerImagePki.tag" .Values.dockerImagePki.tag }}"
+          env:
+            - name: ACCEPT_LICENSE
+              value: {{ .Values.acceptLicense }}
+          imagePullPolicy: {{ .Values.dockerImagePki.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            rm -rF DATA/done.txt
+
+            cp CM-FILES/pki.conf etc/pki.conf
+            cp CM-FILES/signer.conf etc/signer.conf;
+            mkdir DATA/key-stores DATA/trust-stores DATA/crl-files
+            time java -Xmx{{ .Values.cordaJarMx }}G -jar {{ .Values.jarPath }}/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf
+
+            #creating a dummy file to perform check if last line is executed or not.
+            touch DATA/done.txt
+          volumeMounts:
+          - name: pkitool-certs-keys
+            mountPath: /opt/corda/DATA
+          - name: pkitool-signer-etc
+            mountPath: /opt/corda/etc
+          - name: pkitool-conf
+            mountPath: /opt/corda/CM-FILES/pki.conf
+            subPath: pki.conf
+          - name: signer-conf
+            mountPath: /opt/corda/CM-FILES/signer.conf
+            subPath: signer.conf
+          resources:
+            requests:
+              memory: {{ .Values.cordaJarMx }}G
+            limits:
+              memory: {{ add .Values.cordaJarMx 2 }}G
+        - name: store-certs-in-vault
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+             - name: VAULT_ADDR
+               value: {{ $.Values.vault.address }}
+             - name: KUBERNETES_AUTH_PATH
+               value: {{ $.Values.vault.authpath }}
+             - name: VAULT_APP_ROLE
+               value: {{ $.Values.vault.role }}
+             - name: BASE_DIR
+               value: {{ $.Values.volume.baseDir }}
+             - name: RT_SECRET_PREFIX
+               value: {{ .Values.vault.tokensecretprefix }}
+             - name: CERTS_SECRET_PREFIX
+               value: {{ .Values.vault.certsecretprefix }}
+             - name: JAVA_OPTIONS
+               value: -Xmx512m
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+
+            OUTPUT_PATH=${BASE_DIR}
+
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+
+            # get the root token from the vault, to upload secrets on vault
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${RT_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+            ROOT_TOKEN=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["rootToken"]')
+
+            # perform check if crl certificates are ready or not, and upload certificate into vault when ready
+            COUNTER=1
+            cd ${BASE_DIR}/DATA/crl-files
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                if [ -e tls.crl ] && [ -e root.crl ] && [ -e ssl.crl ] && [ -e ../done.txt ]
+                then
+                  echo "found crl certificates, performing vault put"
+                  (echo '{'
+                  for FILE in *;
+                  do
+                  echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
+                  done;
+                  ) >> ../temp_crl.json
+                  sed -i '$ s/.$//' ../temp_crl.json
+                  echo '}' >> ../temp_crl.json
+                  cat ../temp_crl.json | tr -d '\n' >> ../crl.json
+                  echo "before curl"
+
+                  curl \
+                   --header "X-Vault-Token: ${ROOT_TOKEN}" \
+                   --request POST \
+                   --data @../crl.json \
+                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/crls
+                   echo "after curl"
+                  break;
+                else
+                  echo "certificates are not ready, sleeping for 10s"
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  COUNTER=`expr "$COUNTER" + 1`
+                fi
+            done
+
+            # perform check if trust-store certificates are ready or not, and upload certificate into vault when ready
+            COUNTER=1
+            cd ${BASE_DIR}/DATA/trust-stores
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                if [ -e ../done.txt ]
+                then
+                  echo "found trust-store certificates, performing vault put"
+                  (echo '{'
+                  for FILE in *;
+                  do
+                  echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
+                  done;
+                  ) >> ../temp_truststore.json
+                  sed -i '$ s/.$//' ../temp_truststore.json
+                  echo '}' >> ../temp_truststore.json
+                  cat ../temp_truststore.json | tr -d '\n' >> ../truststore.json
+                  echo "before curl"
+
+                  curl \
+                   --header "X-Vault-Token: ${ROOT_TOKEN}" \
+                   --request POST \
+                   --data @../truststore.json \
+                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststores
+                   echo "after curl"
+                  break;
+                else
+                  echo "certificates are not ready, sleeping for 10s"
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  COUNTER=`expr "$COUNTER" + 1`
+                fi
+            done
+
+            # perform check if key-stores certificates are ready or not, and upload certificate into vault when ready
+            COUNTER=1
+            cd ${BASE_DIR}/DATA/key-stores
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                if [ -e ../done.txt ]
+                then
+                  echo "found key-stores certificates, performing vault put"
+                  (echo '{'
+                  for FILE in *;
+                  do
+                  echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
+                  done;
+                  ) >> ../temp_keystore.json
+                  sed -i '$ s/.$//' ../temp_keystore.json
+                  echo '}' >> ../temp_keystore.json
+                  cat ../temp_keystore.json | tr -d '\n' >> ../keystore.json
+                  echo "before curl"
+
+                  curl \
+                   --header "X-Vault-Token: ${ROOT_TOKEN}" \
+                   --request POST \
+                   --data @../keystore.json \
+                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/keystores
+                   echo "after curl"
+                  break;
+                else
+                  echo "certificates are not ready, sleeping for 10s"
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  COUNTER=`expr "$COUNTER" + 1`
+                fi
+            done
+            echo "completed"
+          volumeMounts:
+          - name: pkitool-certs-keys
+            mountPath: /opt/corda/DATA
+            readOnly: false
+        imagePullSecrets:
+          - name: {{ .Values.image.imagePullSecret }}
+        volumes:
+          - name: pkitool-conf
+            configMap:
+              name: {{ .Values.nodeName }}-pkitool-conf
+          - name: signer-conf
+            configMap:
+              name: {{ .Values.nodeName }}-cenm-conf
+          - name: pkitool-signer-etc
+            emptyDir:
+              medium: Memory
+          - name: signer-logs
+            emptyDir:
+              medium: Memory
+          - name: pkitool-certs-keys
+            emptyDir:
+              medium: Memory
