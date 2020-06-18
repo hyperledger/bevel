@@ -10,7 +10,8 @@
 - [Scope of Lab](#scope-of-lab)
   - [Documentation](#documentation)
   - [Hyperledger Fabric](#hyperledger-fabric)
-  - [Corda](#corda)
+  - [Corda Enterprise](#corda-enterprise)
+  - [Corda Opensource](#corda-opensource)
   - [Hyperledger Indy](#hyperledger-indy)
   - [Quorum](#quorum)
 - [Contact](#contact)
@@ -40,8 +41,13 @@ For Hyperledger Fabric, we use the official Docker containers provided by that p
 
 ![Blockchain Automation Framework - Fabric](./docs/images/blockchain-automation-framework-fabric.png "Blockchain Automation Framework for Hyperledger Fabric")
 
-### Corda
-For Corda, we build Docker containers from the Corda source. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
+### Corda Enterprise
+For Corda Enterprise, we build Docker containers from the Corda source with licensed jars. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
+
+![Blockchain Automation Framework - Corda Enterprise](./docs/images/blockchain-automation-framework-corda-ent.png "Blockchain Automation Framework for Corda Enterprise")
+
+### Corda Opensource
+For Corda Opensource, we build Docker containers from the Corda source. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
 
 ![Blockchain Automation Framework - Corda](./docs/images/blockchain-automation-framework-corda.png "Blockchain Automation Framework for Corda")
 
