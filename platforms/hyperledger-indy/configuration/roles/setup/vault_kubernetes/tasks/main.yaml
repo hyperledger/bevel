@@ -33,6 +33,16 @@
   set_fact:
     auth_list: "{{ auth_lists }}"
 
+# Set vault_auth_status variable to false initially
+- set_fact:
+    vault_auth_status: false
+    component_auth_temp: "\"{{ auth_path }}/\""
+
+# Set vault_auth_status variable to true if found
+- set_fact:
+    vault_auth_status: true
+  loop: "{{ auth_lists.stdout_lines }}"
+  when: item == component_auth_temp
    
 ############################################################################################
 # This task enables the path for the organizations and orderers on vault
@@ -43,7 +53,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(auth_path) == -1  # Only when auth_path is NOT in the output of auth_list
+  when: not vault_auth_status  # Only when auth_path is NOT in the output of auth_list
   ignore_errors: yes
 
 ############################################################################################
