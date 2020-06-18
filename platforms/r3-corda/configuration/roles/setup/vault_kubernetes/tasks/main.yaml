@@ -29,7 +29,18 @@
 
 - name: Setting the k8s-auth check result to a local variable
   set_fact:
-    auth_list: "{{ auth_lists }}"    
+    auth_list: "{{ auth_lists }}"   
+
+# Set vault_auth_status variable to false initially
+- set_fact:
+    vault_auth_status: false
+    component_auth_temp: "\"{{ component_auth }}/\""
+
+# Set vault_auth_status variable to true if found
+- set_fact:
+    vault_auth_status: true
+  loop: "{{ auth_lists.stdout_lines }}"
+  when: item == component_auth_temp 
 
 ###############################################################################################
 # This task enables the path for the nms,doorman,notaries and nodes on vault
@@ -39,7 +50,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(component_auth) == -1   # Only when component_auth is NOT in the output of auth_list
+  when: not vault_auth_status   # Only when component_auth is NOT in the output of auth_list
   ignore_errors: yes
   tags:
     - notest  
@@ -55,7 +66,7 @@
 - name: "Get Kubernetes cert files for organizations"
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ component_ns }}.ca.cert"
-  when: auth_list.stdout.find(component_auth) == -1 and (not kubeconfig_check.stat.exists)
+  when: not vault_auth_status and (not kubeconfig_check.stat.exists)
 
 ################################################################################################
 # This task writes the Service Account token to the vault for various corda entity(nms,doorman,notary,nodes)
@@ -66,7 +77,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(component_auth) == -1
+  when: not vault_auth_status
   tags:
     - notest  
 
@@ -88,7 +99,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: secrets_list.stdout.find(component_path) == -1
+  when: not vault_auth_status
   tags:
     - notest  
 
@@ -141,6 +152,6 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(component_auth) == -1     # Run when auth_path is not found
+  when: not vault_auth_status    # Run when auth_path is not found
   tags:
     - notest  

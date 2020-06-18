@@ -19,10 +19,10 @@
 # This task checks if the vault path already exists
 - name: Check if Kubernetes-auth already created for Organization
   shell: |
-    vault auth list
+    vault auth list --format json | jq "to_entries[] | select(.value.restricted|not) | .key"
   environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
+    VAULT_ADDR: "http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200"
+    VAULT_TOKEN: "s.A8iSUYGGzCFypyoF5kKuoTLv"
   register: auth_lists
   when: check == "vault_auth"
 
