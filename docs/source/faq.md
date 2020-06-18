@@ -25,7 +25,7 @@ The Blockchain Automation Framework provisions its **unique values** to the deve
 Furthermore, the developer could even show the maturity of skills to contribute back to this project. Contributions can include but not limited to (1) suggest or add new functionalities (2) fix various bugs and (3) organize hackthon or developer events for the Blockchain Automation Framework in the future.
 
 ### What is the Blockchain Automation Framework and how could it help me?
-In simple words, the Blockchain Automation Framework works as an accelerator to help organizations set up a production-scale DLT network (currently supports Fabric and Corda only) with a single network.yaml file used for [Fabric](./operations/fabric_networkyaml.md) or [Corda](./operations/corda_networkyaml.md) or [Quorum](./operations/quorum_networkyaml.md) to be configured in this project. It can work in managed Kubernetes Clusters which has been fully tested in AWS Elastic Kubernetes Services (EKS), and should also work in a non-managed Kubernetes Cluster in theory. For detailed information, please see the [Welcome page](index).
+In simple words, the Blockchain Automation Framework works as an accelerator to help organizations set up a production-scale DLT network (currently supports Corda, Fabric, Indy, Besu and Quorum) with a single network.yaml file used for [Fabric](./operations/fabric_networkyaml.md) or [Corda](./operations/corda_networkyaml.md) or [Quorum](./operations/quorum_networkyaml.md) to be configured in this project. It can work in managed Kubernetes Clusters which has been fully tested in AWS Elastic Kubernetes Services (EKS), and should also work in a non-managed Kubernetes Cluster in theory. For detailed information, please see the [Welcome page](index).
 
 ### How do I find more about the Blockchain Automation Framework?
 Normally, when a user sees information in this section, it means that s/he has already known the existence of the Blockchain Automation Framework project, at least this readthedocs website. Basically, this website provisions a high-level background information of how to use the Blockchain Automation Framework GitHub repository. For detailed step-by-step instructions, one should go to the Blockchain Automation Framework's GitHub repository and find the readme files for a further reading. Upon finishing reading the tutorials in this website, one should be able to analyse whether the Blockchain Automation Framework would be the right solution in your case and reach a decision to use it or not.
@@ -43,7 +43,7 @@ Unfortunately, there are no existing training for using the Blockchain Automatio
 Yes, you can add additional nodes to a running DLT network using the Blockchain Automation Framework (BAF). Unfortunately, BAF does not support removing nodes in a running DLT network, but this significant feature is in our future roadmap, and we will add this feature in a future release.
 
 ### Does the Blockchain Automation Framework support multiple versions of Fabric and Corda? What are the minimum versions for Fabric and Corda supported in the Blockchain Automation Framework?
-No, unfortunatley, the Blockchain Automation Framework currently only supports version 1.4.0, 1.4.4 & 2.0.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda.
+The Blockchain Automation Framework currently only supports version 1.4.0, 1.4.4 & 2.0.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda. Corda Enterprise 4.4 is in progress.
 
 ## 2.FAQs for Operators Guide
 
@@ -63,7 +63,7 @@ Yes, you can find them on this [page](./operations/configure_prerequisites.md).
 Please see this [page](./developerguide.md) for details.
 
 ### I'm using Windows machine, can I run the Blockchain Automation Framework on it?
-The Blockchain Automation Framework repository relies a lot on using [Ansible](./gettingstarted.md#ansible), which might not work in Windows machines. Please check Ansible website for more information.
+The Blockchain Automation Framework repository relies a lot on using [Ansible](./gettingstarted.html#ansible), which might not work in Windows machines. Please check Ansible website for more information.
 
 ### How do I configure a DLT network?
 The network.yaml file is the main file to be configured to set up a DLT network. [This page](./operationalguide.md) gives the links for a user to pick up knowledge of how to configure this file for Fabric and Corda first (see the two "Configuration file specification" sections for each DLT platform). Having this knowledge will then enable a user to understand how to use this file in the "Setting up DLT network" section.
