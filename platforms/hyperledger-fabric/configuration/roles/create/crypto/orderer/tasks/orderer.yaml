@@ -191,10 +191,10 @@
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{orderer.name}}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/ordererOrganizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}-certchain.pem --key=./build/crypto-config/ordererOrganizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}.key -n default
-  when: get_orderer_secret.resources|length == 0
+  when: get_orderer_secret.resources|length == 0 and vault_orderer_ambassador.failed == True
   changed_when: false
   tags:
-    - notest
+    - molecule-idempotence-notest 
 
  # This task copy the orderer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
