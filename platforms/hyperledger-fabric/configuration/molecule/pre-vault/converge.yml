@@ -10,7 +10,7 @@
       config_file: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
     vault:
-      url: http://localhost:9090/
+      url: http://0.0.0.0:9090/
       root_token: root
 
   pre_tasks:
@@ -24,6 +24,65 @@
         src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
         dest: "{{ playbook_dir }}/../../shared/configuration"
 
+    - name: Delete any existing vault secret path
+      shell: |
+        vault secrets disable secret/
+      environment:
+        VAULT_ADDR: "{{ vault.url }}"
+        VAULT_TOKEN: "{{ vault.root_token }}"
+
+    - name: create/enable new vault secret path
+      shell: |
+        vault secrets enable -version=1 -path=secret kv
+      environment:
+        VAULT_ADDR: "{{ vault.url }}"
+        VAULT_TOKEN: "{{ vault.root_token }}"
+
+    - name: ca-server/ Write the ca server admin credentials to Vault
+      shell: |
+        vault write secret/credentials/testorderer/ca/testorderer user="testorderer-adminpw"
+      environment:
+        VAULT_ADDR: "{{ vault.url }}"
+        VAULT_TOKEN: "{{ vault.root_token }}"
+
+    - name: crypto/orderer/ Copy the crypto material for orderer
+      shell: |
+        vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls ca.crt="TEST CA CERTS"
+        vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp admincerts="Test Admin Certs" cacerts="Test CA Certs" keystore="Test Keystore"
+      environment:
+        VAULT_ADDR: "{{ vault.url }}"
+        VAULT_TOKEN: "{{ vault.root_token }}"
+
+    - name: crypto/orderer/ Copy the crypto material to Vault
+      shell: |
+        vault write secret/crypto/ordererOrganizations/testorderer/ambassador/testOrderer1 certificate="Test Certificate" key="Test Key"
+      environment:
+        VAULT_ADDR: "{{ vault.url }}"
+        VAULT_TOKEN: "{{ vault.root_token }}"
+
+    - name: crypto/peer/ Copy organization level certificates for orgs
+      shell: |
+        vault write secret/crypto/peerOrganizations/testpeer/users/admin/tls ca.crt="Test CA Cert" client.crt="Test Client cert" client.key="Test Client key"
+        vault write secret/crypto/peerOrganizations/testpeer/users/admin/msp admincerts="Test Admin Certs" cacerts="Test CA certs" keystore="Test keystore"
+      environment:
+        VAULT_ADDR: "{{ vault.url }}"
+        VAULT_TOKEN: "{{ vault.root_token }}"
+
+    - name: crypto/peer/ Copy organization level certificates for orgs
+      shell: |
+        vault write secret/crypto/peerOrganizations/testpeer/users/user1/tls ca.crt="Test CA cert" client.crt="Test Client Cert" client.key="Test Client Key"
+        vault write secret/crypto/peerOrganizations/testpeer/users/user1/msp admincerts="Test Admin CA Certs" cacerts="Test CA Certs" keystore="Test KEystore" signcerts="Test Sign Certs" tlscacerts="Test TLSCA Certs"
+      environment:
+        VAULT_ADDR: "{{ vault.url }}"
+        VAULT_TOKEN: "{{ vault.root_token }}"
+
+    - name: crypto/peer/ Copy the crypto material for peer
+      shell: |
+        vault write secret/crypto/peerOrganizations/testpeer/peers/testpeer1.testpeer/tls ca.crt="Test CA Certs" server.crt="Test Server Cert" server.key="Test Server Key"
+        vault write secret/crypto/peerOrganizations/testpeer/peers/testpeer1.testpeer/msp admincerts="Test Admin Certs" cacerts="Test CA Certs" keystore="Test Keystore" signcerts="Test Sign Certs" tlscacerts="Test TLS CACerts"
+      environment:
+        VAULT_ADDR: "{{ vault.url }}"
+        VAULT_TOKEN: "{{ vault.root_token }}"
   tasks:
 #####################################################################################
     # Copying openssl.conf to molecule playbook directory
@@ -62,17 +121,9 @@
             grpc:
               port: 7054
         vault:
-          url: http://localhost:9090/
+          url: http://0.0.0.0:9090/
           root_token: root
-
-    # - name: Delete any existing vault secret path
-    #   shell: |
-    #     vault kv delete -versions=1 secret/
-    #     vault secrets disable secret/
-    #   environment:
-    #     VAULT_ADDR: "http://localhost:9090"
-    #     VAULT_TOKEN: "root"
-    #   changed_when: false
+        
 ####################################################################################
     # Testing CA server role for peer
     - name: "Include create/ca-server"
@@ -103,7 +154,7 @@
             grpc:
               port: 7054
         vault:
-          url: http://localhost:9090
+          url: http://0.0.0.0:9090
           root_token: root
 
 #####################################################################################
@@ -113,7 +164,7 @@
         name: "configuration/roles/create/crypto_script"
       vars:
         component_type: orderer
-        component_name: testorderer
+        component_name: test_component_name
         item:
           name: test_name
           country: test_country
@@ -125,23 +176,23 @@
             url: test_ca_data_url
         orderers:
           - orderer:
-            name: testorderer1
+            name: test_orderer
             type: orderer
             consensus: kafka
             grpc:
               port: 7050
         vault:
-          url: http://localhost:9090
+          url: http://0.0.0.0:9090
           root_token: root
 
-# #####################################################################################
+#####################################################################################
     # Testing create/crypto_script for peers
     - name: "Include configuration/roles/create/crypto_script"
       include_role:
         name: "configuration/roles/create/crypto_script"
       vars:
         component_type: peer
-        component_name: testpeer
+        component_name: test_component_name
         item:
           name: test_name
           country: test_country
@@ -154,21 +205,23 @@
           services:
             peers:
             - peer:
-              name: testpeer1
+            - peer:
         vault:
-          url: http://localhost:9090
+          url: http://0.0.0.0:9090
           root_token: root
 
-# # CREATE CRYPTO/ORDERER
-# #####################################################################################
+#####################################################################################
     # Testing create/crypto/orderer
     - name: "Include create/crypto/orderer"
       include_role:
         name: "orderer"
       vars:
-        org_name: testorg
         component_type: orderer
         component_name: testorderer
+        vault_tls_result:
+          failed: False
+        vault_orderer_ambassador:
+          failed: True
         cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
         item:
           external_url_suffix: "test.url.com"
@@ -176,8 +229,10 @@
           orderers:
           - orderer:
             name: testorderer1
+          - orderer: 
+            name: testorderer2
         vault:
-          url: http://localhost:9090
+          url: http://0.0.0.0:9090
           root_token: root
 
 
@@ -189,12 +244,10 @@
       vars:
         component_type: peer
         component_name: testpeer
-        orderers:
-          - orderer:
-            name: testorderer1
-            component_name: testorderer
         item:
           external_url_suffix: "test.url.com"
+        vault_peer_ambassador:
+          failed: True
         peer:
           name: testpeer
         cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
@@ -205,5 +258,5 @@
           - peer:
             name: testpeer1
         vault:
-          url: http://localhost:9090
+          url: http://0.0.0.0:9090
           root_token: root
