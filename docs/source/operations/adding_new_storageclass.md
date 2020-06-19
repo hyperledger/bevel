@@ -10,11 +10,11 @@ As storageclass templates vary as per requirements and cloud provider specificat
 
 <a name = "fabric"></a>
 ## Adding a new storage class for Hyperledger Fabric
----------------------------------------------------
+
 To add a new storageclass for Hyperledger Fabric, perform the following steps:
 
 1. Add the new storageclass template `sample_sc.tpl`, under `platforms/hyperledger-fabric/configuration/roles/create/storageclass/templates` with `metadata.name` (storageclass name) as the variable `sc_name`. For example,
-```
+```yaml
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
@@ -34,11 +34,11 @@ sc_templates:
 
 <a name = "corda"></a>
 ## Adding a new storage class for R3-Corda
----------------------------------------------------
+
 To add a new storageclass for R3-Corda, perform the following steps:
 
 1. Add the new storageclass template `sample_sc.tpl`, under `platforms/r3-corda/configuration/roles/create/k8_component/templates` with `metadata.name` (storageclass name) as the variable `component_name`. For example,
-```
+```yaml
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
@@ -59,11 +59,11 @@ dlt_templates:
 
 <a name = "indy"></a>
 ## Adding a new storage class for Hyperledger Indy
----------------------------------------------------
+
 To add a new storageclass for Hyplerledger Indy, perform the following steps:
 
 1. Add the new storageclass template `sample_sc.tpl`, under `platforms/hyperledger-indy/configuration/roles/create/k8_component/templates` with `metadata.name` (storageclass name) as the variable `component_name`. For example,
-```
+```yaml
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
@@ -83,11 +83,11 @@ k8_templates:
 
 <a name = "quorum"></a>
 ## Adding a new storage class for Quorum
----------------------------------------------------
+
 To add a new storageclass for Quorum, perform the following steps:
 
 1. Add the new storageclass template `sample_sc.tpl`, under `platforms/quorum/configuration/roles/create/k8_component/templates` with `metadata.name` (storageclass name) as the variable `component_name`. For example,
-```
+```yaml
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:

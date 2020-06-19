@@ -14,15 +14,16 @@
     file:
       path: "./build"
       state: absent
+
   # Create namespaces and service accounts
   - name: "Create namespace and service account"
     include_role: 
       name: create/namespace_serviceaccount
     vars:
-      component_ns: "{{ organizationItem.name | lower }}-besu"
+      component_ns: "{{ organizationItem.name | lower }}-bes"
       organisation: "{{ organizationItem.name | lower }}"
-      kubernetes: "{{ item.k8s }}"
-      gitops: "{{ item.gitops }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      gitops: "{{ organizationItem.gitops }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
@@ -35,7 +36,7 @@
       storageclass_name: "{{ organizationItem.cloud_provider }}storageclass"
       git_dir: "{{ organizationItem.gitops.release_dir }}"
       org: "{{ organizationItem }}"
-      kubernetes: "{{ item.k8s }}"
+      kubernetes: "{{ organizationItem.k8s }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
@@ -45,13 +46,13 @@
     include_role: 
       name: "setup/vault_kubernetes"
     vars:
-      component_ns: "{{ organizationItem.name | lower }}-quo"
+      component_ns: "{{ organizationItem.name | lower }}-bes"
       kubernetes: "{{ organizationItem.k8s }}"
       vault: "{{ organizationItem.vault }}"
       component_name: "{{ organizationItem.name | lower}}"
       component_path: "{{ organizationItem.name | lower }}/"
       component_auth: "besu{{ organizationItem.name | lower }}"
-      component_type: "organization"
+      component_type: "besu"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
@@ -65,7 +66,7 @@
       cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
       services: "{{ organizationItem.services }}"
       organisation: "{{ organizationItem.name | lower }}"
-      component_ns: "{{ organizationItem.name | lower }}-besu"
+      component_ns: "{{ organizationItem.name | lower }}-bes"
       component_name: "{{ organizationItem.name | lower }}"
       kubernetes: "{{ organizationItem.k8s }}"
       vault: "{{ organizationItem.vault }}"
@@ -80,6 +81,13 @@
     vars:
       build_path: "{{ playbook_dir }}/build"    
     when: network.config.consensus == 'ibft'
+
+  # This role generates the crypto materials for orion tm
+  - name: "Generate crypto for the Orion transaction manager"
+    include_role:
+      name: create/crypto/orion  
+    vars:
+      build_path: "{{ playbook_dir }}/build"   
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS

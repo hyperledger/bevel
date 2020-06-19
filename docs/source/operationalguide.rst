@@ -11,7 +11,8 @@ This section defines the pre-requisites installation and steps for setup of a DL
     operations/fabric_networkyaml
     operations/corda_networkyaml
     operations/indy_networkyaml
-    operations/quorum_networkyaml.md
+    operations/quorum_networkyaml
+    operations/besu_networkyaml
     operations/setting_dlt
     operations/adding_new_org_corda
     operations/adding_cordapps
