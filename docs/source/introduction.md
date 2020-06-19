@@ -33,4 +33,4 @@ The objective of BAF is to provide a consistent means by which developers can de
 - Provides a sample supply chain application which runs on multiple DLT platforms that can be used as a reference pattern for how to safely abstract application logic from the underlying DLT platform
 
 ### What next?
- We have been actively searching for partners who need  and undertstand the value of Blockchain Automation Framework, who share the vision of building and owning well architect-ed solutions . We wish to work together so as to identify the market needs for those partners, to further reduce the barriers in adoption.
+ We have been actively searching for partners who need  and understand the value of Blockchain Automation Framework, who share the vision of building and owning well architect-ed solutions . We wish to work together so as to identify the market needs for those partners, to further reduce the barriers in adoption.
