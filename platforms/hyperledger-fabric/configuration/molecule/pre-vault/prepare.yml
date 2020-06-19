@@ -33,6 +33,7 @@
     until: (result.status|default(-1)) == 200
     retries: 60
     delay: 5
+
   - name: Wait for the Vault API to become available (this could take a minute)   # Waits for vault to be ready
     uri:
       url: "http://localhost:9090/ui/"
@@ -41,6 +42,23 @@
     until: (_result.status|default(-1)) == 200
     retries: 7
     delay: 5
+    delegate_to: localhost
+  
+  - name: Delete any existing vault secret path
+    shell: |
+      vault secrets disable secret/
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    delegate_to: localhost
+
+  - name: create/enable new vault secret path
+    shell: |
+      vault secrets enable -version=1 -path=secret kv
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    changed_when: false
     delegate_to: localhost
 
 #####################################################################################
@@ -52,6 +70,18 @@
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
     delegate_to: localhost
+
+  - name: Check if ca certs already created
+    shell: |
+      vault kv get -field=ca.testorderer-cert.pem secret/crypto/ordererOrganizations/testorderer/ca
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_ca_result
+    delegate_to: localhost
+
+  - debug:
+      var: vault_ca_result
 
 ############################################################################################
   # This task write the CA server admin credentials to Vault
@@ -81,4 +111,29 @@
     environment:
         VAULT_ADDR: "http://localhost:9090"
         VAULT_TOKEN: "root"
+    delegate_to: localhost
+
+#####################################################################################
+  #This task checks if the orderer ambassador cert is created or not
+  - name: Write crypto material for orderer ambassador to Vault
+    shell: |
+      vault write secret/crypto/ordererOrganizations/testorderer/ambassador/testorderer1 certificate="TEST CERTIFICATE"
+      vault write secret/crypto/ordererOrganizations/testorderer/ambassador/testorderer1 key="12345"
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    delegate_to: localhost
+
+#####################################################################################
+  #This task checks if the orderer tls cert is created or not
+  - name: Write orderer certs to Vault
+    shell: |
+      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls ca.crt="TEST CA CERT"
+      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls server.crt="TEST SERVER CERT"
+      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp  admincerts="TEST ADMIN CERT"
+      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp cacert="TEST CA CERT"
+      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp keystore="TEST KEYSTORE"
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
     delegate_to: localhost
