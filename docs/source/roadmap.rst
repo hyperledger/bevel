@@ -59,7 +59,7 @@ Legend of annotations:
 +------------------------+------------------+
 | |depricated|           | depricated       |
 +------------------------+------------------+
-| |active|               | in use           |
+| |active|               | in use / valid   |
 +------------------------+------------------+
 
 General
