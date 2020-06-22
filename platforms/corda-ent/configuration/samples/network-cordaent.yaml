@@ -5,7 +5,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: corda
-  version: 4.1
+  version: 4.4-enterprise
 
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
 
@@ -25,19 +25,20 @@ network:
     username: "docker_username"
     password: "docker_password"
   
-  # Remote connection information for doorman and networkmap (will be blank or removed for hosting organization)
+  # Remote connection information for idman and networkmap (will be blank or removed for hosting organization)
   orderers:
     - orderer:
-      type: doorman
-      uri: https://doorman.test.corda.blockchaincloudpoc.com:8443
-      certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
+      type: idman
+      uri: https://idman.test.corda.blockchaincloudpoc.com:8443
+      certificate: home_dir/platforms/corda-ent/configuration/build/corda/idman/tls/ambassador.crt
+      crlissuer: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
     - orderer:
       type: networkmap
       uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
-      certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
+      certificate: home_dir/platforms/corda-ent/configuration/build/corda/networkmap/tls/ambassador.crt
   
   # Allows specification of one or many organizations that will be connecting to a network.
-  # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
+  # If an organization is also hosting the root of the network (e.g. idman, membership service, etc),
   # then these services should be listed in this section as well.
   organizations:
     # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
@@ -47,7 +48,7 @@ network:
       state: London
       location: London
       subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-      type: doorman-nms-notary
+      type: cenm-notary
       external_url_suffix: test.corda.blockchaincloudpoc.com
   
       cloud_provider: aws   # Options: aws, azure, gcp
@@ -72,15 +73,15 @@ network:
       gitops:
         git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        release_dir: "platforms/corda-ent/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/access token
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
 
-      # Cordapps Repository details (optional if cordapps jar are store in a repository)
+      # Cordapps Repository details (optional if cordapps jar are stored in a repository)
       cordapps:
         jars: 
         - jar:
@@ -93,25 +94,30 @@ network:
         password: "repository_password"
 
       # Services maps to the pods that will be deployed on the k8s cluster
-      # This sample has doorman, nms and notary on one cluster but different namespaces
+      # This sample has idman, networkmap, signer and notary on one cluster but different namespaces
       services:
-        doorman:
-          name: doorman
-          subject: "CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE"
-          type: doorman
+        idman:
+          name: idman
+          subject: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          crlissuer_subject: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
+          type: cenm
           ports:
             servicePort: 8080
             targetPort: 8080
-          tls: "on"                      # off/on based on TLS mode off/on for doorman
-        nms:
+        networkmap:
           name: networkmap
-          subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
-          db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
-          type: networkmap
+          subject: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          type: cenm
           ports:
             servicePort: 8080
             targetPort: 8080
-          tls: "on"                       # off/on based on TLS mode off/on for nms
+        signer:
+          name: signer
+          subject: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          type: cenm
+          ports:
+            servicePort: 8080
+            targetPort: 8080 
         # Currently only supporting a single notary cluster, but may want to expand in the future
         notary:
           name: notary
@@ -149,8 +155,7 @@ network:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
   
-      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
-      # the cluster has already been created.
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided.
       k8s:
         context: "cluster_context"
         config_file: "cluster_config"
@@ -166,8 +171,8 @@ network:
       gitops:
         git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        release_dir: "platforms/corda-ent/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/access token
@@ -193,6 +198,14 @@ network:
           name: manufacturer
           subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: node
+          firewall:
+            enabled: true                   # true if firewall components are to be deployed
+            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
+            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
+              context: "dmz_cluster_context"
+              config_file: "dmz_cluster_config"
+          hsm:                              # hsm support for future release
+            enabled: false 
           p2p:
             port: 10002
             targetPort: 10002
@@ -247,8 +260,8 @@ network:
       gitops:
         git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        release_dir: "platforms/corda-ent/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/access token
@@ -273,6 +286,14 @@ network:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
           type: node
+          firewall:
+            enabled: true                   # true if firewall components are to be deployed
+            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
+            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
+              context: "dmz_cluster_context"
+              config_file: "dmz_cluster_config"
+          hsm:                              # hsm support for future release
+            enabled: false 
           p2p:
             port: 10002
             targetPort: 10002
@@ -327,8 +348,8 @@ network:
       gitops:
         git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        release_dir: "platforms/corda-ent/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/access token
@@ -353,6 +374,14 @@ network:
           name: store
           subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: node
+          firewall:
+            enabled: true                   # true if firewall components are to be deployed
+            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
+            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
+              context: "dmz_cluster_context"
+              config_file: "dmz_cluster_config"
+          hsm:                              # hsm support for future release
+            enabled: false 
           p2p:
             port: 10002
             targetPort: 10002
@@ -407,8 +436,8 @@ network:
       gitops:
         git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        release_dir: "platforms/corda-ent/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/access token
@@ -433,6 +462,14 @@ network:
           name: warehouse
           subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: node
+          firewall:
+            enabled: true                   # true if firewall components are to be deployed
+            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
+            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
+              context: "dmz_cluster_context"
+              config_file: "dmz_cluster_config"
+          hsm:                              # hsm support for future release
+            enabled: false 
           p2p:
             port: 10002
             targetPort: 10002
