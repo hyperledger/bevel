@@ -58,7 +58,7 @@ The fields under `env` section are
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
 
-For Opensource Corda, please use the [NMS Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks.
+For Opensource Corda, the required images are found [here](../architectureref/corda.html#docker-images).
 
 For **Corda Enterprise**, all Docker images has to be built and stored in a private Docker registry before running the Ansible playbooks. The required images are found [here](../architectureref/corda-ent.html#docker-images).
 
@@ -449,9 +449,10 @@ For **Corda Enterprise**, following additional fields have been added under each
           hsm:                              # hsm support for future release
             enabled: false 
 ```
+
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| firewall.enabled  | Can be true/false. True, if Corda Firewall components are to be deployed. False, if Firewall is not needed. Corda recommends usage of Firewall for all production deployments.                                                                               |
-| firewall.dmz    | Can be true/false. True, if Corda Firewall components are to be deployed on a separate DMZ Kubernetes cluster. False, if Firewall components are to be deployed on same Kubernetes cluster as the Node. Corda recommends usage of separate DMS cluster for all production deployments. |
-| firewall.dmz_k8s    | This is used only id `dmz: true`. Contains the Kubernetes cluster context and config file path of the DMZ cluster. Note that the cluster should be in the same Cloud provider account as the Node cluster. |
+| firewall.enabled  | Can be true/false. True, if Corda Firewall components are to be deployed. False, if Firewall is not needed. Corda recommends usage of Firewall for all production deployments.|
+| firewall.dmz | Can be true/false. True, if Corda Firewall components are to be deployed on a separate DMZ Kubernetes cluster. False, if Firewall components are to be deployed on same Kubernetes cluster as the Node. Corda recommends usage of separate DMS cluster for all production deployments. |
+| firewall.dmz_k8s | This is used only id `dmz: true`. Contains the Kubernetes cluster context and config file path of the DMZ cluster. Note that the cluster should be in the same Cloud provider account as the Node cluster. |
 | hsm.enabled      | This is kept for future HSM integration  |
