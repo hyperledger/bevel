@@ -34,9 +34,11 @@ BAF current roadmap
     :width: 15pt
     :height: 15pt
 .. |depricated| image:: _static/depricated.png
+    :alt: depricated
     :width: 15pt
     :height: 15pt
 .. |active| image:: _static/active.png
+    :alt: in use
     :width: 15pt
     :height: 15pt
 
@@ -89,7 +91,7 @@ Architecture
 ------------
 
 -  |pin| Besu architecture blueprint
--  |pin| R3 Corda Enterprise Version architecture blueprint
+-  |tick| R3 Corda Enterprise Version architecture blueprint
 -  |hand| Couch DB architecture blueprint
 
 Histroic DLT support releases
