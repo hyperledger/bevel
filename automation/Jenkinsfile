@@ -309,21 +309,41 @@ pipeline {
         not {
           anyOf {
             branch 'master';
-            branch 'develop'
+            branch 'develop';
+            branch 'indy'
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {
+        sh """
+          ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+        """        
+      }
+    }
+    // the following is a hack because our current AWS EKS cluster does not support static IP for Kubernetes loadbalancer
+    //TODO remove this when AWS supports static IP address, in which case those IPs should be in the configuration network.yaml
+    stage('Deploy Indy network') {
+      when {
+        branch 'indy';
+        expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {
+        // Deploy shared playbooks, to deploy Ambassador so that the public IP is available
+        sh """
+          ansible-playbook platforms/shared/configuration/environment-setup.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook platforms/shared/configuration/kubernetes-env-setup.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"          
+        """
         // Get Ambassador IP and update in network.yaml for indy
         sh """
           ambassadordns=\$(kubectl get service ambassador -o json | jq '.status.loadBalancer.ingress[0].hostname'| tr -d '"')
-          ambassador_ip=\$(host \$ambassadordns | awk '{print \$4}')
+          ambassador_ip=\$(host \$ambassadordns | awk '/has address/ { print \$4 ; exit }')
           sed -i -e "s*AMBASSADOR_IP*\$ambassador_ip*g" build/network.yaml
         """
         sh """
-          ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook platforms/hyperledger-indy/configuration/deploy-network.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
     }

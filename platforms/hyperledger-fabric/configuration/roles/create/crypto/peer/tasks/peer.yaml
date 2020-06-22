@@ -7,8 +7,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_msp_result.failed == True
-  tags:
-    - notest
+
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
@@ -39,8 +38,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_peer_ambassador
   ignore_errors: yes
-  tags:
-    - notest
+  changed_when: false
 
 - name: Get peer ambassador info
   include_role: 
@@ -51,7 +49,7 @@
     peer_ambassador_path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}"
   when: vault_peer_ambassador.failed == False
   tags:
-    - notest
+  - notest
 
 #Check if the openssl file is created or not
 - name: Check if the openssl file is created or not
@@ -79,13 +77,14 @@
   vars:
     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
   when: vault_peer_ambassador.failed == True and not openssl_file_check.stat.exists
+  changed_when: false
 
 #Check if the key exist or not
 - name: Check if the key exist or not
   stat:
     path: "./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key"
   register: peer_key_check
-
+    
 # This task generates peer certificates
 - name: Generate the peer certificate
   shell: |
@@ -96,21 +95,21 @@
     cat {{ peer.name }}-{{ component_name }}.pem > {{ peer.name }}-{{ component_name }}-certchain.pem
     cat ./ca/ca.{{ component_name }}-cert.pem >> {{ peer.name }}-{{ component_name }}-certchain.pem
   when:  get_peer_secret.resources|length == 0 and vault_peer_ambassador.failed == True and not peer_key_check.stat.exists
-  
+
 # This task creates the Ambassador TLS credentials for peer
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ peer.name }}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem --key=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key -n default
-  when: get_peer_secret.resources|length == 0
+  when: get_peer_secret.resources|length == 0 and vault_peer_ambassador.failed == True
   tags:
-    - notest
+  - molecule-idempotence-notest 
 
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ peer.name }}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}-certchain.pem --key=./build/crypto-config/peerOrganizations/{{ component_name }}/{{ peer.name }}-{{ component_name }}.key -n {{ component_name }}
-  when: get_peer_secret_haproxy.resources|length == 0 and network.env.proxy == 'haproxy'
+  when: get_peer_secret_haproxy.resources|length == 0 and network.env.proxy == 'haproxy' and vault_peer_ambassador.failed == True
   tags:
-    - notest
+    - molecule-idempotence-notest 
 
  # This task copy the peer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
@@ -120,5 +119,3 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_peer_ambassador.failed == True
-  tags:
-    - notest

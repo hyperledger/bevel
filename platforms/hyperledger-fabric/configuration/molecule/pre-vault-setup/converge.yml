@@ -1,0 +1,141 @@
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    network:
+      env:
+        proxy: haproxy
+    kubernetes: 
+      config_file: "/tmp/molecule/kind-default/kubeconfig"
+      context: "kind"
+    vault:
+      url: http://0.0.0.0:9090/
+      root_token: root
+
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+        
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+
+  tasks:
+#####################################################################################
+    # Copying openssl.conf to molecule playbook directory
+    - name: "Copy openssl.conf to molecule directory"
+      copy:
+        src: "{{ playbook_dir }}/../../openssl.conf"
+        dest: "{{ playbook_dir }}"
+
+####################################################################################
+    # Testing CA server role for orderer
+    - name: "Include create/ca-server"
+      include_role:
+        name: "configuration/roles/create/ca-server"
+      vars:    
+        network:
+          version: 1.4.4
+          env:
+            proxy: testproxy
+        component_type: orderer
+        values_dir: test
+        component_name: testorderer
+        component: testorderer
+        ca:
+          name: test_ca
+          subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.sj-net"
+        docker_url: test_docker_url
+        gitops:
+          git_ssh: test_git_ssh
+          branch: test_branch
+          chart_source: test_chart_source
+        vault_ca_result:
+          failed: True
+        component_services:
+          ca:
+            name: ca
+            grpc:
+              port: 7054
+        vault:
+          url: http://localhost:9090/
+          root_token: root
+        
+####################################################################################
+    # Testing CA server role for peer
+    - name: "Include create/ca-server"
+      include_role:
+        name: "configuration/roles/create/ca-server"
+      vars:    
+        network:
+          version: 1.4.4
+          env:
+            proxy: testproxy
+        component_type: peer
+        values_dir: test
+        component_name: testpeer
+        component: testpeer
+        ca:
+          name: test_ca
+          subject: "/C=GB/ST=London/L=London/O=Peer/CN=ca.sj-net"
+        docker_url: test_docker_url
+        gitops:
+          git_ssh: test_git_ssh
+          branch: test_branch
+          chart_source: test_chart_source
+        vault_ca_result:
+          failed: True
+        component_services:
+          ca:
+            name: ca
+            grpc:
+              port: 7054
+        vault:
+          url: http://localhost:9090
+          root_token: root
+
+#####################################################################################
+    # Testing create/crypto/orderer
+    - name: "Include create/crypto/orderer"
+      include_role:
+        name: "orderer"
+      vars:
+        component_type: orderer
+        component_name: testorderer
+        cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
+        item:
+          external_url_suffix: "test.url.com"
+        services:
+          orderers:
+          - orderer:
+            name: testorderer1
+        vault:
+          url: http://localhost:9090
+          root_token: root
+
+
+#####################################################################################
+    # Testing create/crypto/peer
+    - name: "Include create/crypto/peer"
+      include_role:
+        name: "peer"
+      vars:
+        component_type: peer
+        component_name: testpeer
+        item:
+          external_url_suffix: "test.url.com"
+        peer:
+          name: testpeer
+        cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
+        services:
+          peers:
+          - peer:
+            name: testpeer0
+
+        vault:
+          url: http://localhost:9090
+          root_token: root

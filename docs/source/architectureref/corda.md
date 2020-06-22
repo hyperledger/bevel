@@ -1,4 +1,4 @@
-# Corda Architecture Reference
+# Corda Opensource Architecture Reference
 
 ## Kubernetes
 ### Peer Nodes
@@ -21,7 +21,7 @@ The following diagram shows how the Corda Support Services (**Doorman**, **Netwo
 **Notes:**
 1. Pods are shown in blue in the diagram.
 1. Certificates are mounted as in-memory volumes from the [vault](#vault-config).
-1. Doorman and Netrokmap services have a separate MongoDB pod for data storage.
+1. Doorman and Networkmap services have a separate MongoDB pod for data storage.
 1. Notary service has a separate H2 pod for data storage.
 1. All storage uses a Kubernetes Persistent Volume.
 
@@ -32,9 +32,9 @@ The following diagram shows how the Corda Support Services (**Doorman**, **Netwo
 
 The Blockchain Automation Framework creates/provides a set of Corda Docker images that can be found in the [Hyperledger-Labs repository](https://hub.docker.com/u/hyperledgerlabs) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
 The following Corda Docker Images are used and needed by the Blockchain Automation Framework.
-* Corda Network Map Service (hyperledgerlabs/networkmap-linuxkit:latest) 
-* Corda Doorman Service (hyperledgerlabs/doorman-linuxkit:latest) - 
-* Corda Node (hyperledgerlabs/corda:4.0-linuxkit or hyperledgerlabs/corda:4.1-linuxkit )
+* [Corda Network Map Service](https://hub.docker.com/r/hyperledgerlabs/networkmap-linuxkit) 
+* [Corda Doorman Service](https://hub.docker.com/r/hyperledgerlabs/doorman-linuxkit)
+* [Corda Node](https://hub.docker.com/r/hyperledgerlabs/corda)
 
 ### Ansible Playbooks
 

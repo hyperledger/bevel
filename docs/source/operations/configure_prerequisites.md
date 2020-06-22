@@ -16,7 +16,7 @@ If not done already, configure the Ansible controller with this sample inventory
 
 Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
 
-Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html)
+Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html).
 
 <a name = "privatekey"></a>
 ## Private Key for GitOps
@@ -42,6 +42,8 @@ And add the public key contents (starts with **ssh-rsa**) as an Access Key (with
 ## Docker Images
 
 The Blockchain Automation Framework provides pre-built docker images which are available on [Docker Hub](https://hub.docker.com/u/hyperledgerlabs). Ensure that the versions/tags you need are available. If not, raise it on our [RocketChat Channel](https://chat.hyperledger.org/channel/blockchain-automation-framework).
+
+For Corda Enterprise, the docker images should be built and put in a private docker registry. Please follow [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images) to build docker images for Corda Enterprise.
 
 ---
 **NOTE:** The Blockchain Automation Framework recommends use of private docker registry for production use. The username/password for the docker registry can be provided in a **network.yaml** file so that the Kubernetes cluster can access the registry.
