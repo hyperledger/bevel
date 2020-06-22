@@ -1,6 +1,6 @@
 #Provide the nodeName for node
 #Eg. nodeName: bank1
-nodeName: notarykd
+nodeName:
 
 #Provide the replica set for node deployed
 #Eg. replicas: 1
@@ -8,102 +8,107 @@ replicas:
 
 metadata:
   #Provide the namespace
-  #Eg. namespace: default
+  #Eg. namespace: cenm
   namespace:
 
-#provide the pki image repo name, tag and specify pullpolicy
+# This section contains the name of the image used in the deployment for pki tool.
 dockerImagePki:
-  name: 
-  tag:
+  # Ex. name: corda/enterprise-pkitool
+  name:
+  # Ex. tag: 1.2-zulu-openjdk8u242
+  tag: 
+  # Ex. pullPolicy: Always
   pullPolicy:
 
-#initcontainer image specification
+# Provide image for init container
 image:
+  # Provide the alpine utils image.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
   initContainerName:
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecret: regcred
   imagePullSecret:
 
 #base directory ex. /opt/corda
 volume:
   baseDir:
 
-#vault related specifications
+# This section contains the vault related information.
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to
+# use the Kubernetes service account token based authentication.
 vault:
-  address: 
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address:
+  # Provide the vault role used.
+  # Eg. role: vault-role
   role:
+  # Provide the authpath configured to be used.
+  # Eg. authpath: entcordacenm
   authpath:
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
   serviceaccountname:
-  tokensecretprefix: 
+  tokensecretprefix:
+  # Provide the vault path where the  certificates are stored
+  # Eg. certsecretprefix: secret/cenm-ns/signer/certs
   certsecretprefix: 
     
 healthcheck:
-  #Provide the interval in seconds you want to iterate till db to be ready
-  #Eg. readinesscheckinterval: 5
-  readinesscheckinterval: 10
-  #Provide the threshold till you want to check if specified db up and running
-  #Eg. readinessthreshold: 2
-  readinessthreshold: 15
+  #Provide the interval in seconds you want to iterate after for checking certificates
+  #Eg. readinesscheckinterval: 10
+  readinesscheckinterval:
+  # Provide this to iterate till this to check for the certificates
+  # readinessthreshold: 20
+  readinessthreshold:
 
-# signer service specifications
-serviceSsh:
-  type: ClusterIP
-  port:
-  targetPort:
-  nodePort:
-  
-shell:
-  user: signer
-  password: signerP
+# required parameter public Ip of idman
+idmanPublicIP:
 
-#required parameter IP of idman and port
-idmanPublicIP: 
+# port number where idman is available
 idmanPort:
 
-serviceLocations:
-  identityManager:
-    host: idman-internal
-    port: 5052
-  networkMap:
-    host: nmap-internal
-    port: 5050
-  revocation:
-    port: 5053
 
-signers:
-  CSR:
-    schedule:
-      interval: 1m
-  CRL:
-    schedule:
-      interval: 1d
-  NetworkMap:
-    schedule:
-      interval: 1m
-  NetworkParameters:
-    schedule:
-      interval: 1m
+# Provide the JVM for jar
+# cordaJarMx: 1
+cordaJarMx:
 
-cordaJarMx: 1
-
+# Ex healthCheckNodePort: 0
 healthCheckNodePort: 0
 
 # where is CENM service jar file stored
-jarPath: bin
+# Ex. jarPath: bin
+jarPath:
 
 # where is CENM service configuration file stored
-configPath: etc
+# Ex. configPath: etc
+configPath:
 
-# certificates subjects specification
+# certificates subjects specification for generating certificates for network entity
 pki:
   certificates:
+    # tlscrlsigner details 
     tlscrlsigner:
-      subject: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      # EX. subject: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      subject:
       crl:
-        issuer: "CN=Corda TLS Signer Certificate, OU=Corda, O=R3 HoldCo LLC, L=New York, C=US"
+        # Ex. issuer: "CN=Corda TLS Signer Certificate, OU=Corda, O=R3 HoldCo LLC, L=New York, C=US"
+        issuer: 
+    # cordarootca certificates specificataions
     cordarootca:
-      subject: "CN=Test Root CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      # subject: "CN=Test Root CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      subject: 
+    # subordinateca certificates specificataions  
     subordinateca:
-      subject: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      # subject: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      subject: 
+    # identitymanagerca specifications
     identitymanagerca:
-      subject: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      # subject: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      subject: 
+    # networkmap certificate specifications  
     networkmap:
-      subject: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      # subject: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      subject:
