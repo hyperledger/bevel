@@ -9,6 +9,9 @@
     kubernetes: 
       config_file: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
+    vault:
+      url: http://localhost:9090/
+      root_token: root
 
   pre_tasks:
     - name: Create temp roles dir folder
@@ -20,7 +23,7 @@
       copy:
         src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
         dest: "{{ playbook_dir }}/../../shared/configuration"
-        
+
   tasks:
 #####################################################################################
     # Copying openssl.conf to molecule playbook directory
@@ -58,9 +61,7 @@
             name: ca
             grpc:
               port: 7054
-        vault:
-          url: test_url
-        
+
 ####################################################################################
     # Testing CA server role for peer
     - name: "Include create/ca-server"
@@ -90,8 +91,6 @@
             name: ca
             grpc:
               port: 7054
-        vault:
-          url: test_url
 
 #####################################################################################
     # Testing create/crypto_script role for orderer
@@ -100,7 +99,7 @@
         name: "configuration/roles/create/crypto_script"
       vars:
         component_type: orderer
-        component_name: test_component_name
+        component_name: testorderer
         item:
           name: test_name
           country: test_country
@@ -112,20 +111,20 @@
             url: test_ca_data_url
         orderers:
           - orderer:
-            name: test_orderer
+            name: testorderer1
             type: orderer
             consensus: kafka
             grpc:
               port: 7050
 
-#####################################################################################
+# #####################################################################################
     # Testing create/crypto_script for peers
     - name: "Include configuration/roles/create/crypto_script"
       include_role:
         name: "configuration/roles/create/crypto_script"
       vars:
         component_type: peer
-        component_name: test_component_name
+        component_name: testpeer
         item:
           name: test_name
           country: test_country
@@ -138,20 +137,18 @@
           services:
             peers:
             - peer:
-            - peer:
+              name: testpeer1
 
-
-#####################################################################################
+# # CREATE CRYPTO/ORDERER
+# #####################################################################################
     # Testing create/crypto/orderer
     - name: "Include create/crypto/orderer"
       include_role:
         name: "orderer"
       vars:
+        org_name: testorg
+        component_type: orderer
         component_name: testorderer
-        vault_tls_result:
-          failed: False
-        vault_orderer_ambassador:
-          failed: True
         cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
         item:
           external_url_suffix: "test.url.com"
@@ -159,9 +156,6 @@
           orderers:
           - orderer:
             name: testorderer1
-          - orderer: 
-            name: testorderer2
-
 
 #####################################################################################
     # Testing create/crypto/peer
@@ -169,11 +163,14 @@
       include_role:
         name: "peer"
       vars:
+        component_type: peer
         component_name: testpeer
+        orderers:
+          - orderer:
+            name: testorderer1
+            component_name: testorderer
         item:
           external_url_suffix: "test.url.com"
-        vault_peer_ambassador:
-          failed: True
         peer:
           name: testpeer
         cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"

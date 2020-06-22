@@ -33,3 +33,12 @@
     until: (result.status|default(-1)) == 200
     retries: 60
     delay: 5
+  - name: Wait for the Vault API to become available (this could take a minute)   # Waits for vault to be ready
+    uri:
+      url: "http://localhost:9090/ui/"
+      status_code: 200
+    register: _result
+    until: (_result.status|default(-1)) == 200
+    retries: 7
+    delay: 5
+    delegate_to: localhost

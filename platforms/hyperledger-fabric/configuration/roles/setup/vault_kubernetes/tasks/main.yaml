@@ -33,6 +33,17 @@
   set_fact:
     auth_list: "{{ auth_lists }}"
 
+# Set vault_auth_status variable to false initially
+- set_fact:
+    vault_auth_status: false
+    component_auth_temp: "\"{{ auth_path }}/\""
+
+# Set vault_auth_status variable to true if found
+- set_fact:
+    vault_auth_status: true
+  loop: "{{ auth_lists.stdout_lines }}"
+  when: item == component_auth_temp
+
 ############################################################################################
 # This task enables the path for the organizations and orderers on vault
 # This task runs only when {{auth_path}} is not already created
@@ -42,7 +53,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(auth_path) == -1  # Only when auth_path is NOT in the output of auth_list
+  when: not vault_auth_status  # Only when auth_path is NOT in the output of auth_list
   ignore_errors: yes
 
 ############################################################################################
@@ -51,7 +62,7 @@
 - name: Get Kubernetes cert files for organizations
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ component_name }}.ca.cert"
-  when: auth_list.stdout.find(auth_path) == -1
+  when: not vault_auth_status
 
 #####################################################################################################################
 # This task writes the Service Account token to the vault for Organisations
@@ -63,7 +74,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(auth_path) == -1 
+  when: not vault_auth_status
 
 # This task checks if the vault-ro polict already exists
 - name: "Checking if the vault policies already exists"
@@ -113,7 +124,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(auth_path) == -1     # Run when auth_path is not found
+  when: not vault_auth_status     # Run when auth_path is not found
 
 # Check if Docker credentials exist already
 - name: "Checking if the docker credentials already exists"
