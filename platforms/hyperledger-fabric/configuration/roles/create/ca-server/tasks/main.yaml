@@ -10,9 +10,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_ca_result
+  changed_when: false
   ignore_errors: yes
-  tags:
-    - notest
 
 ############################################################################################
 # This task creates the folder to store crypto material
@@ -33,8 +32,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_ca_result.failed == False
-  tags:
-    - notest
+
 
 #####################################################################################
   #This task checks if the CA key is already present or not
@@ -61,8 +59,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_ca_result.failed == True
-  tags:
-    - notest
+  changed_when: false
+
 
 - name: Check if ca admin credentials already created
   shell: |
@@ -72,8 +70,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_caadmin_result
   ignore_errors: yes
-  tags:
-    - notest
+  changed_when: false
 
 ############################################################################################
 # This task write the CA server admin credentials to Vault
@@ -84,8 +81,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_caadmin_result.failed == True  # run only when vault_caadmin_result failed
-  tags:
-    - notest
+
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists

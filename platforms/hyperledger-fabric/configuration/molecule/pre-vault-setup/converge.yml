@@ -10,7 +10,7 @@
       config_file: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
     vault:
-      url: http://localhost:9090/
+      url: http://0.0.0.0:9090/
       root_token: root
 
   pre_tasks:
@@ -61,7 +61,10 @@
             name: ca
             grpc:
               port: 7054
-
+        vault:
+          url: http://localhost:9090/
+          root_token: root
+        
 ####################################################################################
     # Testing CA server role for peer
     - name: "Include create/ca-server"
@@ -91,62 +94,16 @@
             name: ca
             grpc:
               port: 7054
+        vault:
+          url: http://localhost:9090
+          root_token: root
 
 #####################################################################################
-    # Testing create/crypto_script role for orderer
-    - name: "Include configuration/roles/create/crypto_script"
-      include_role:
-        name: "configuration/roles/create/crypto_script"
-      vars:
-        component_type: orderer
-        component_name: testorderer
-        item:
-          name: test_name
-          country: test_country
-          subject: test_subject
-          state: test_state
-          location: test_location
-          external_url_suffix: test_url
-          ca_data:
-            url: test_ca_data_url
-        orderers:
-          - orderer:
-            name: testorderer1
-            type: orderer
-            consensus: kafka
-            grpc:
-              port: 7050
-
-# #####################################################################################
-    # Testing create/crypto_script for peers
-    - name: "Include configuration/roles/create/crypto_script"
-      include_role:
-        name: "configuration/roles/create/crypto_script"
-      vars:
-        component_type: peer
-        component_name: testpeer
-        item:
-          name: test_name
-          country: test_country
-          subject: test_subject
-          state: test_state
-          location: test_location
-          external_url_suffix: test_url
-          ca_data:
-            url: test_ca_data_url
-          services:
-            peers:
-            - peer:
-              name: testpeer1
-
-# # CREATE CRYPTO/ORDERER
-# #####################################################################################
     # Testing create/crypto/orderer
     - name: "Include create/crypto/orderer"
       include_role:
         name: "orderer"
       vars:
-        org_name: testorg
         component_type: orderer
         component_name: testorderer
         cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
@@ -156,6 +113,10 @@
           orderers:
           - orderer:
             name: testorderer1
+        vault:
+          url: http://localhost:9090
+          root_token: root
+
 
 #####################################################################################
     # Testing create/crypto/peer
@@ -165,10 +126,6 @@
       vars:
         component_type: peer
         component_name: testpeer
-        orderers:
-          - orderer:
-            name: testorderer1
-            component_name: testorderer
         item:
           external_url_suffix: "test.url.com"
         peer:
@@ -178,5 +135,7 @@
           peers:
           - peer:
             name: testpeer0
-          - peer:
-            name: testpeer1
+
+        vault:
+          url: http://localhost:9090
+          root_token: root

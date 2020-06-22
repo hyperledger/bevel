@@ -36,6 +36,12 @@ spec:
             items:
               - key: genesis.json.base64
                 path: genesis.json.base64
+        - name: {{ .Values.node.name }}-orion-volume
+          configMap:
+            name: genesis-{{ .Values.node.name }}
+            items:
+              - key: orion.conf
+                path: orion.conf
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
@@ -74,15 +80,30 @@ spec:
           mkdir -p ${MOUNT_PATH}
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
-          echo "Getting 3 keys from $vault_secret_key"
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]')                 
-             
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.oriondir }}" 
+          LOOKUP_SECRET_RESPONSE=$(curl -sS \
+            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+            ${VAULT_ADDR}/v1/${vault_secret_key} | \
+            jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]')  
+          orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key.pub"]')    
+          orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]')          
+
+          echo "orion_key: ${orion_key}"
+          echo "orion_key_pub: ${orion_key_pub}"
+          echo "orion_key: ${orion_password}"
+          echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key
+          echo "${orion_key_pub}" > ${MOUNT_PATH}/orion_key.pub
+          echo "${orion_password}" > ${MOUNT_PATH}/passwordFile
 
         volumeMounts:
         - name: certificates
@@ -112,6 +133,44 @@ spec:
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
       containers:
+      - name: orion
+        image: "{{ .Values.images.orion }}"
+        command:
+          - /bin/sh
+          - -c
+        args:
+          - |
+            exec /opt/orion/bin/orion $ORION_CONF_DIR/config/orion.conf
+            
+        ports:
+          - name: nodeport
+            containerPort: {{ .Values.orion.ports.nodeport }}
+            protocol: TCP
+          - name: clientport
+            containerPort: {{ .Values.orion.ports.clientport }}
+            protocol: TCP
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: ORION_CONF_DIR
+            value: {{ .Values.orion.confdir }}
+          - name: MOUNT_PATH
+            value: "/secrets"
+        volumeMounts:
+        - name: certificates
+          mountPath: /secrets
+        - name: {{ .Values.node.name }}-orion-volume
+          mountPath: {{ .Values.orion.confdir }}/config
       - name: besu
         image: "{{ .Values.images.node }}"
         command:
@@ -140,12 +199,6 @@ spec:
             --rpc-http-cors-origins="all" \
             --rpc-ws-host=0.0.0.0 \
             $args \
-        livenessProbe:
-          httpGet:
-            path: /liveness
-            port: 8545
-          initialDelaySeconds: 60
-          periodSeconds: 30
         ports:
           - name: json-rpc
             containerPort: {{ .Values.node.ports.rpc}}
