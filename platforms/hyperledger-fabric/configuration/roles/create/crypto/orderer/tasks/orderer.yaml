@@ -7,8 +7,9 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_msp_result
   ignore_errors: yes
+  changed_when: false
   tags:
-    - notest
+    - no-idempotence-test
 
 - name: Get MSP info
   include_role: 
@@ -21,6 +22,7 @@
   tags:
     - notest
 
+
 - name: Check if orderer tls already created
   shell: |
     vault kv get -field=ca.crt secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
@@ -29,8 +31,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_tls_result
   ignore_errors: yes
-  tags:
-    - notest
+  changed_when: false
 
 # Ensure tls directory is present in build
 - name: "create directory ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls"
@@ -49,8 +50,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_tls_result.failed == False
-  tags:
-    - notest
+  changed_when: false
 
 ############################################################################################
 # This task creates directory path on CA Tools CLI
@@ -60,6 +60,7 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p /root/ca-tools/{{org_name|lower}}
   when: vault_msp_result.failed == True
+  changed_when: false
   tags:
     - notest
 
@@ -78,7 +79,6 @@
   when: vault_msp_result.failed == True
   tags:
     - notest
-
 ############################################################################################
 # This task changes the permissions for msp
 - name: Changing the permission of msp files
@@ -139,8 +139,9 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_msp_result.failed == True
+  changed_when: false
   tags:
-    - notest
+  - notest
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
@@ -161,9 +162,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_orderer_ambassador
   ignore_errors: yes
-  tags:
-    - notest
-
+  changed_when: false
 
 - name: Get Orderer ambassador info
   include_role: 
@@ -186,14 +185,16 @@
     cat {{ orderer.name }}-{{ component_name }}.pem > {{ orderer.name }}-{{ component_name }}-certchain.pem
     cat ./ca/ca.{{ component_name }}-cert.pem >> {{ orderer.name }}-{{ component_name }}-certchain.pem
   when: get_orderer_secret.resources|length == 0 and vault_orderer_ambassador.failed == True
-
+  changed_when: false
 
 # This task creates the Ambassador TLS credentials for orderer
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{orderer.name}}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/ordererOrganizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}-certchain.pem --key=./build/crypto-config/ordererOrganizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}.key -n default
-  when: get_orderer_secret.resources|length == 0
-
+  when: get_orderer_secret.resources|length == 0 and vault_orderer_ambassador.failed == True
+  changed_when: false
+  tags:
+    - molecule-idempotence-notest 
 
  # This task copy the orderer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
@@ -203,5 +204,3 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_orderer_ambassador.failed == True
-  tags:
-    - notest

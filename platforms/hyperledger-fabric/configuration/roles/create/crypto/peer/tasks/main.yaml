@@ -33,8 +33,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  tags:
-    - notest
+  changed_when: false
 
 # Check if CA key exists in vault, if not this should fail. If yes, get the certificate
 - name: Check if ca key already created
@@ -44,16 +43,13 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  tags:
-    - notest
+  changed_when: false
 
 - name: Call peercheck.yaml for each peer
   include_tasks: peercheck.yaml
   loop: "{{ services.peers }}"
   loop_control:
     loop_var: peer
-  tags:
-    - notest
 
 - name: Call common.yaml for each peer
   include_tasks: common.yaml
@@ -94,6 +90,7 @@
         OrganizationalUnitIdentifier: peer
     EOF
   when: not msp_file_status.stat.exists
+  changed_when: false
 
 # Check orderer-certificate file exists
 - name: Check that orderer-certificate file exists
@@ -146,6 +143,7 @@
     loop_var: orderer
   register: orderer_certs_result
   ignore_errors: yes
+  changed_when: false
   tags:
     - notest
 
@@ -181,8 +179,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_admin_result
   ignore_errors: yes
-  tags:
-    - notest
+  changed_when: false
 
 - name: Copy organization level certificates for orgs
   shell: |
@@ -192,8 +189,6 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_admin_result.failed == True
-  tags:
-    - notest
 
 # Check user msp already created
 - name: Check if user msp already created
@@ -204,8 +199,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_user_result
   ignore_errors: yes
-  tags:
-    - notest
+  changed_when: False
 
 - name: Copy user certificates for orgs
   shell: |
@@ -215,5 +209,3 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_user_result.failed == True
-  tags:
-    - notest

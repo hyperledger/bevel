@@ -1,0 +1,167 @@
+---
+- name: Verify
+  hosts: localhost
+  tasks:
+
+#####################################################################################
+  #This task checks if the ca.key is created for orderers or not
+  - name: Check if the ca.key is created for orderers or not
+    stat:
+      path: "./build/crypto-config/ordererOrganizations/testorderer/ca/testorderer-CA.key"
+    register: ca_key_orderer_check
+  
+#####################################################################################
+  #This task assert if the ca.key exists for orderers
+  - name: Assert if the ca.key exists for orderers
+    assert:
+      that: ca_key_orderer_check.stat.exists
+
+#####################################################################################
+  #This task checks if the ca.pem is created for orderers or not
+  - name: Check if the ca.pem is created for orderers or not
+    stat:
+      path: "./build/crypto-config/ordererOrganizations/testorderer/ca/ca.testorderer-cert.pem"
+    register: ca_pem_orderer_check
+  
+#####################################################################################
+  #This task assert if the ca.pem exists for orderers
+  - name: Assert if the ca.pem exists for orderers
+    assert:
+      that: ca_pem_orderer_check.stat.exists
+
+#####################################################################################
+  #This task checks if the crypto material are written to Vault for orderer
+  - name: Check if the crypto material are written to Vault for orderer
+    shell: |
+      vault kv get -field=ca.testorderer-cert.pem secret/crypto/ordererOrganizations/testorderer/ca
+      vault kv get -field=testorderer-CA.key secret/crypto/ordererOrganizations/testorderer/ca
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_orderer_CA_cert_key
+    delegate_to: localhost
+  
+#####################################################################################
+  #This task assert if the orderer tls certs is created or not
+  - name: Assert if the orderer tls cert are present in the Vault
+    assert:
+      that: vault_orderer_CA_cert_key.failed == False
+
+#####################################################################################
+  #This task checks if the ca server admin credentials is created or not
+  - name: Check if the ca server admin credentials are written to Vault for orderer
+    shell: |
+      vault kv get secret/credentials/testorderer/ca/testorderer
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_caadmin_result
+    delegate_to: localhost
+  
+#####################################################################################
+  #This task assert if the ca server admin credentials is created or not
+  - name: Assert if the ca server admin credentials are written to Vault for orderer
+    assert:
+      that: vault_caadmin_result.failed == False
+
+# ################# peers ##########################################
+#####################################################################################
+  #This task checks if the ca.key is created for peers or not
+  - name: Check if the ca.key is created for peers or not
+    stat:
+      path: "./build/crypto-config/peerOrganizations/testpeer/ca/testpeer-CA.key"
+    register: ca_key_peer_check
+  
+#####################################################################################
+  #This task assert if the ca.key exists for peers
+  - name: Assert if the ca.key exists for peers
+    assert:
+      that: ca_key_peer_check.stat.exists
+
+#####################################################################################
+  #This task checks if the ca.pem is created for peers or not
+  - name: Check if the ca.pem is created for peers or not
+    stat:
+      path: "./build/crypto-config/peerOrganizations/testpeer/ca/ca.testpeer-cert.pem"
+    register: ca_pem_peer_check
+  
+#####################################################################################
+  #This task assert if the ca.pem exists for peers
+  - name: Assert if the ca.pem exists for peers
+    assert:
+      that: ca_pem_peer_check.stat.exists
+
+#####################################################################################
+  #This task checks if the crypto material are written to Vault for peers
+  - name: Check if the crypto material are written to Vault for peers
+    shell: |
+      vault kv get -field=ca.testpeer-cert.pem secret/crypto/peerOrganizations/testpeer/ca
+      vault kv get -field=testpeer-CA.key secret/crypto/peerOrganizations/testpeer/ca
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_peer_CA_cert_key
+    delegate_to: localhost
+  
+#####################################################################################
+  #This task assert if the orderer tls certs is created or not
+  - name: Assert if the orderer tls cert are present in the Vault
+    assert:
+      that: vault_peer_CA_cert_key.failed == False
+
+#####################################################################################
+  #This task checks if the ca server admin credentials is created or not
+  - name: Check if the ca server admin credentials are written to Vault for peers
+    shell: |
+      vault kv get secret/credentials/testpeer/ca/testpeer
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_caadmin_result
+    delegate_to: localhost
+  
+#####################################################################################
+  #This task assert if the ca server admin credentials is created or not
+  - name: Assert if the ca server admin credentials are written to Vault for peers
+    assert:
+      that: vault_caadmin_result.failed == False
+
+# #####################################################################################
+# #####################################################################################
+  #This task checks if the orderer tls cert is created or not
+  - name: Check if the orderer certs are written to Vault
+    shell: |
+      vault kv get -field=ca.crt secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls 
+      vault kv get -field=server.crt secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls 
+      vault kv get -field=admincerts secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp  
+      vault kv get -field=cacert secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp  
+      vault kv get -field=keystore secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp 
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_Ord_tls_result
+    delegate_to: localhost
+
+  
+#####################################################################################
+  #This task assert if orderer tls is created or not
+  - name: Assert if the orderer tls cert are present in the Vault
+    assert:
+      that: vault_Ord_tls_result.failed == False
+
+#####################################################################################
+  #This task checks if the orderer ambassador cert is created or not
+  - name: Check if the crypto material for orderer ambassador are written to Vault
+    shell: |
+      vault kv get -field=certificate secret/crypto/ordererOrganizations/testorderer/ambassador/testorderer1
+      vault kv get -field=key secret/crypto/ordererOrganizations/testorderer/ambassador/testorderer1
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_orderer_ambassador
+  
+#####################################################################################
+  #This task assert if the orderer tls certs is created or not
+  - name: Assert if the orderer tls cert are present in the Vault
+    assert:
+      that: vault_orderer_ambassador.failed == False
