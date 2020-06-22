@@ -12,3 +12,15 @@ metadata:
     {{- include "labels.custom" . | nindent 2 }}
 data:
   genesis.json.base64: {{ .Values.genesis | quote }}
+  orion.conf: |-
+    nodeurl = "{{ .Values.orion.url }}:{{ .Values.proxy.nodeport }}/"
+    nodeport = {{ .Values.orion.ports.nodeport }}
+    nodenetworkinterface = "0.0.0.0"
+    clientnetworkinterface = "0.0.0.0"
+    clienturl = "{{ .Values.orion.url }}:{{ .Values.proxy.clientport }}/"
+    clientport = {{ .Values.orion.ports.clientport }}
+    publickeys = ["/secrets/orion_key.pub"]
+    privatekeys = ["/secrets/orion_key.key"]
+    passwords = "/secrets/passwordFile"
+    othernodes = [{{ .Values.orion.nodelist }}]
+    tls = "off"
