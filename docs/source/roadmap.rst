@@ -33,6 +33,14 @@ BAF current roadmap
 .. |hand| image:: _static/hand.png
     :width: 15pt
     :height: 15pt
+.. |depricated| image:: _static/depricated.png
+    :alt: depricated
+    :width: 15pt
+    :height: 15pt
+.. |active| image:: _static/active.png
+    :alt: in use
+    :width: 15pt
+    :height: 15pt
 
 Legend of annotations:
 
@@ -49,12 +57,17 @@ Legend of annotations:
 +------------------------+------------------+
 | |hand|                 | on hold          |
 +------------------------+------------------+
+| |depricated|           | depricated       |
++------------------------+------------------+
+| |active|               | in use / valid   |
++------------------------+------------------+
 
 General
 -------
 
 -  |tick| Minikube support for existing platforms
 -  |run| Improve the existing ``readthedocs`` documentations
+-  |run| BAF software tools upgrade
 
 Platforms
 ---------
@@ -78,5 +91,36 @@ Architecture
 ------------
 
 -  |pin| Besu architecture blueprint
--  |pin| R3 Corda Enterprise Version architecture blueprint
+-  |tick| R3 Corda Enterprise Version architecture blueprint
 -  |hand| Couch DB architecture blueprint
+
+Histroic DLT support releases
+-----------------------------
+
++-------------------------------------------+-----------+--------------+
+| Feature Name                              | Release   | Status       |
++===========================================+===========+==============+
+| Hyperledger Fabric v2.0                   | 0.5.0     | |active|     |
++-------------------------------------------+-----------+--------------+
+| R3 Corda v4.4                             | 0.5.0     | |active|     |
++-------------------------------------------+-----------+--------------+
+| Hyperledger Indy v1.11.0                  | 0.5.0     | |active|     |
++-------------------------------------------+-----------+--------------+
+| Quorum v2.5.0                             | 0.4.1     | |active|     |
++-------------------------------------------+-----------+--------------+
+| Quorum v2.1.1                             | 0.4.0     | |depricated| |
++-------------------------------------------+-----------+--------------+
+| Quorum Architecture blueprint             | 0.4.0     | |active|     |
++-------------------------------------------+-----------+--------------+
+| Hyperledger Indy v1.9.0                   | 0.4.0     | |depricated| |
++-------------------------------------------+-----------+--------------+
+| Hyperledger Fabric v1.4.4                 | 0.3.1     | |active|     |
++-------------------------------------------+-----------+--------------+
+| Hyperledger Indy Architecture blueprint   | 0.3.0     | |active|     |
++-------------------------------------------+-----------+--------------+
+| R3 Corda v4.1                             | 0.3.0     | |active|     |
++-------------------------------------------+-----------+--------------+
+| Hyperledger Fabric v1.4.0                 | 0.2.0     | |depricated| |
++-------------------------------------------+-----------+--------------+
+| R3 Corda v4.0                             | 0.2.0     | |depricated| |
++-------------------------------------------+-----------+--------------+
