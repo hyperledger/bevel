@@ -28,9 +28,9 @@ Here is the snapshot from the sample configuration file
 
 The sections in the sample configuration file are  
 
-`type` defines the platform choice like corda/fabric, here in example its Corda
+`type` defines the platform choice like corda/fabric/quorum, here in example its `corda`.
 
-`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 and 4.4 is also supported and should be used.
+`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 and 4.4 is also supported and should be used. For **Corda Enterprise**, use like `4.4-enterprise`.
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -39,7 +39,7 @@ The sections in the sample configuration file are
 The snapshot of the `env` section with example values is below
 ```yaml
   env:
-    type: "env_type"                # tag for the environment. Important to run multiple flux on single cluster
+    type: "env-type"                # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
     ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
@@ -52,12 +52,15 @@ The fields under `env` section are
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Corda |
 | ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`     |
-| retry_count       | Retry count for the checks.|
+| retry_count       | Retry count for the checks. Use a large number if your kubernetes cluster is slow. |
 | external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
-(Note: Please use the [NMS Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks)
+
+For Opensource Corda, please use the [NMS Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks.
+
+For **Corda Enterprise**, all Docker images has to be built and stored in a private Docker registry before running the Ansible playbooks. The required images are found [here](../architectureref/corda-ent.html#docker-images).
 
 The snapshot of the `docker` section with example values is below
 ```yaml
@@ -72,7 +75,7 @@ The fields under `docker` section are
 
 | Field      | Description                                 |
 |------------|---------------------------------------------|
-| url        | Docker registry url                         | 
+| url        | Docker registry url. Must be private registry for **Corda Enterprise**    | 
 | username   | Username credential required for login      |
 | password   | Password credential required for login      |
 
@@ -83,7 +86,7 @@ The fields under `docker` section are
 
 The snapshot of the `orderers` section with example values is below
 ```yaml
-  # Remote connection information for doorman and networkmap (will be blank or removed for hosting organization)
+  # Remote connection information for doorman/idman and networkmap (will be blank or removed for hosting organization)
   orderers:
     - orderer:
       type: doorman
@@ -98,9 +101,10 @@ The `orderers` section contains a list of doorman/networkmap which is exposed to
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| type        | For Corda, `networkmap` and `doorman` are the only valid type of orderers.    |
-| uri         | Doorman/Networkmap external URL. This should be reachable from all nodes.     | 
-| certificate | Directory path of public certificates for Doorman and Networkmap.             |
+| type        | For Corda, `networkmap` and `doorman` (`idman` for **Corda Enterprise**) are the only valid type of orderers.    |
+| uri         | Doorman/IDman/Networkmap external URL. This should be reachable from all nodes.     | 
+| certificate | Directory path of public certificates for Doorman/IDman and Networkmap.             |
+| crlissuer | Only for **Corda Enterprise**. Subject of the CRL Issuer.|
 
 
 The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. doorman, membership service, etc), then these services should be listed in this section as well.
@@ -163,7 +167,6 @@ The `k8s` field under each organisation contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| region                                  | Region where the Kubernetes cluster is deployed, e.g : eu-west-1        |
 | context                                 | Context/Name of the cluster where the organization entities should be deployed                                   |
 | config_file                             | Path to the kubernetes cluster configuration file                                                                |
 
@@ -219,7 +222,7 @@ The `cordapps` optional field under each organization contains
 | username                             | Cordapps Repository username |
 | password                             | Cordapps Repository password |
 
-The services field for each organization under `organizations` section of Corda contains list of `services` which could be doorman/nms/notary/peers
+The services field for each organization under `organizations` section of Corda contains list of `services` which could be doorman/idman/nms/notary/peers for opensource, and additionally idman/networkmap/signer for **Corda Enterprise**.
 
 The snapshot of doorman service with example values is below
 ```yaml
@@ -271,6 +274,75 @@ The fields under `nms` service are
 | ports.targetPort        | HTTP target port number of the NetworkMap docker-container                                  |
 | tls                     | On/off based on whether we want TLS on/off for nms
 
+For **Corda Enterprise**, following services must be added to CENM Support.
+
+The snapshot of idman service with example values is below
+```yaml
+      services:
+        idman:
+          name: idman
+          subject: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          crlissuer_subject: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
+          type: cenm
+          ports:
+            servicePort: 8080
+            targetPort: 8080
+```
+
+The fields under `idman` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the IDman service                                                                                 |
+| subject                    | Certificate Subject for Idman service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| crlissuer_subject                 | Certificate subject for CRL Issuer service |
+| type                       | Service type must be `cenm`                                                                             |
+| ports.servicePort          | HTTP port number where idman service is accessible                                       |
+| ports.targetPort           | HTTP target port number of the idman docker-container                                       |
+
+The snapshot of networkmap service with example values is below
+```yaml
+      services:
+        networkmap:
+          name: networkmap
+          subject: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          type: cenm
+          ports:
+            servicePort: 8080
+            targetPort: 8080
+```
+
+The fields under `networkmap` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the Networkmap service                                                                                 |
+| subject                    | Certificate Subject for Networkmap service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| type                       | Service type must be `cenm`                                                                             |
+| ports.servicePort          | HTTP port number where networkmap service is accessible                                       |
+| ports.targetPort           | HTTP target port number of the networkmap docker-container                                       |
+
+The snapshot of signer service with example values is below
+```yaml
+      services:
+        signer:
+          name: signer
+          subject: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          type: cenm
+          ports:
+            servicePort: 8080
+            targetPort: 8080 
+```
+
+The fields under `signer` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the Signer service                                                                                 |
+| subject                    | Certificate Subject for Signer service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| type                       | Service type must be `cenm`                                                                             |
+| ports.servicePort          | HTTP port number where signer service is accessible                                       |
+| ports.targetPort           | HTTP target port number of the signer docker-container                                       |
 
 The snapshot of notary service with example values is below
 ```yaml
@@ -365,3 +437,21 @@ The fields under each `peer` service are
 | springboot.targetPort         | Springboot server  target port. Port where the springboot services are running                               |
 | expressapi.port               | Expressapi port. Used to expose expressapi to other services                                                     |
 | expressapi.targetPort         | Expressapi target port. Port where the expressapi services are running                                        |
+
+For **Corda Enterprise**, following additional fields have been added under each `peer`.
+```yaml
+          firewall:
+            enabled: true                   # true if firewall components are to be deployed
+            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
+            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
+              context: "dmz_cluster_context"
+              config_file: "dmz_cluster_config"
+          hsm:                              # hsm support for future release
+            enabled: false 
+```
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| firewall.enabled  | Can be true/false. True, if Corda Firewall components are to be deployed. False, if Firewall is not needed. Corda recommends usage of Firewall for all production deployments.                                                                               |
+| firewall.dmz    | Can be true/false. True, if Corda Firewall components are to be deployed on a separate DMZ Kubernetes cluster. False, if Firewall components are to be deployed on same Kubernetes cluster as the Node. Corda recommends usage of separate DMS cluster for all production deployments. |
+| firewall.dmz_k8s    | This is used only id `dmz: true`. Contains the Kubernetes cluster context and config file path of the DMZ cluster. Note that the cluster should be in the same Cloud provider account as the Node cluster. |
+| hsm.enabled      | This is kept for future HSM integration  |
