@@ -25,6 +25,18 @@ metadata:
       name: {{ .Values.node.name }}-rlpx
       port: {{ .Values.proxy.p2p }}
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.p2p }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.node.name }}-nodeport
+      port: {{ .Values.proxy.nodeport }}
+      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.orion.ports.nodeport }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.node.name }}-clientport
+      port: {{ .Values.proxy.clientport }}
+      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.orion.ports.clientport }}
     {{- end }}
   creationTimestamp: null
   labels:
@@ -49,5 +61,13 @@ spec:
     protocol: TCP
     port: {{ .Values.node.ports.p2p }}
     targetPort: rlpx
+  - name: nodeport
+    protocol: TCP
+    port: {{ .Values.orion.ports.nodeport }}
+    targetPort: nodeport
+  - name: clientport
+    protocol: TCP
+    port: {{ .Values.orion.ports.clientport }}
+    targetPort: clientport
   selector:
     service.rpc: {{ .Values.node.name }}
