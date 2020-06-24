@@ -1,11 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Values.nodeName }}-setup
+  name: {{ .Values.nodeName }}-generate-pki
   namespace: {{ .Values.metadata.namespace }}
   labels:
-    app: {{ .Values.nodeName }}-setup
-    app.kubernetes.io/name: {{ .Values.nodeName }}-setup
+    app: {{ .Values.nodeName }}-generate-pki
+    app.kubernetes.io/name: {{ .Values.nodeName }}-generate-pki
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -15,8 +15,8 @@ spec:
     template:
       metadata:
         labels:
-          app: {{ .Values.nodeName }}-setup
-          app.kubernetes.io/name: {{ .Values.nodeName }}-setup
+          app: {{ .Values.nodeName }}-generate-pki
+          app.kubernetes.io/name: {{ .Values.nodeName }}-generate-pki
           app.kubernetes.io/instance: {{ .Release.Name }}
       spec:
         restartPolicy: "OnFailure"
@@ -43,6 +43,7 @@ spec:
 
             #creating a dummy file to perform check if last line is executed or not.
             touch DATA/done.txt
+            tail -f /dev/null
           volumeMounts:
           - name: pkitool-certs-keys
             mountPath: /opt/corda/DATA
@@ -68,8 +69,6 @@ spec:
                value: {{ $.Values.vault.role }}
              - name: BASE_DIR
                value: {{ $.Values.volume.baseDir }}
-             - name: RT_SECRET_PREFIX
-               value: {{ .Values.vault.tokensecretprefix }}
              - name: CERTS_SECRET_PREFIX
                value: {{ .Values.vault.certsecretprefix }}
              - name: JAVA_OPTIONS
@@ -84,6 +83,27 @@ spec:
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                if [ -e ../done.txt ]
+                then
+                  echo "found root certificates, performing vault put"
+
+                  curl \
+                   --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                   --request POST \
+                   --data @../crl.json \
+                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs
+                   echo "after curl"
+                  break;
+                else
+                  echo "certificates are not ready, sleeping for 10s"
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  COUNTER=`expr "$COUNTER" + 1`
+                fi
+            done
+
+
 
             # get the root token from the vault, to upload secrets on vault
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${RT_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
