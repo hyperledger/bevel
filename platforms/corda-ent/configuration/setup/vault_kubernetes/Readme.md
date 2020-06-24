@@ -54,7 +54,7 @@ This task get the certificate for the cluster mentioned in k8 secret
 **when**: It runs only when the *component_auth* is not created
 
 #### 6. Write reviewer token
-This task writes the Service Account token to the vault for various Quorum entity
+This task writes the Service Account token to the vault for various Corda Enterprise entity
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
