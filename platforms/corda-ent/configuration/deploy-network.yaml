@@ -15,14 +15,25 @@
       path: "./build"
       state: absent
 
-  # Create ambassador certs for each organization
-  - name: "Create ambassador certificates for each organization"
+  # Create ambassador certs for CENM and notary
+  - name: "Create ambassador certificates for CENM and notary"
     include_role: 
-      name: create/certificates/ambassador
+      name: create/certificates/ambassador/cenm-notary
     vars:
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
+    when: org.type == 'cenm' or org.type == 'notary'
+
+  # Create ambassador certs for each organization
+  - name: "Create ambassador certificates for each organization"
+    include_role: 
+      name: create/certificates/ambassador/nodes
+    vars:
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'node'
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS

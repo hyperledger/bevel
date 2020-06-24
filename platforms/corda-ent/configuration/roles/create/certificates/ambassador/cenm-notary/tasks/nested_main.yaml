@@ -1,0 +1,229 @@
+# This role generates certificates for rootca and ambassador
+# and places them in vault. Certificates are created using openssl
+
+---
+# Set ambassador and rootca folder variables
+- name: "Set ambassador and rootca folder variables"
+  set_fact:
+    ambassadortls: "{{ playbook_dir }}/build/{{ org.name | lower }}/{{ peer.name | lower }}"
+    rootca: "{{ playbook_dir }}/build/cordaentrootca"
+
+############################################################################################
+########################### CREATE DIRECTORIES, IF ABSENT ##################################
+
+# Ensure the rootca directory exists
+- name: "Ensure rootca dir exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ rootca }}"
+    check: "ensure_dir"
+
+# Ensures the ambassador tls directory exists
+- name: "Ensure ambassador dir exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ ambassadortls }}"
+    check: "ensure_dir"
+
+############################################################################################
+###################### CHECK IF ROOT CERTIFICATES ARE PRESENT IN VAULT #####################
+
+# Checks if root certs are already created and stored in vault for CENM
+- name: Check if root certs are already created and stored in the vault for CENM
+  shell: |
+    vault kv get -format=yaml secret/cenm/{{ peer.name | lower }}/tlscerts
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: root_certs_cenm
+  ignore_errors: yes
+  when: org.type == 'cenm'
+
+# Checks if root certs are already created and stored in vault for notary
+- name: Check if root certs are already created and stored in vault for notary
+  shell: |
+    vault kv get -format=yaml secret/{{ peer.name }}/tlscerts
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: root_certs_notary
+  ignore_errors: yes
+  when: org.type == 'notary'
+
+
+############################################################################################
+###################### FETCH ROOT CERTIFICATES FROM VAULT, IF PRESENT ######################
+
+# Get the existing root certs for CENM from vault, if any
+- name: Get the existing root certs for CENM from vault, if any
+  include_role: 
+    name: "{{ playbook_dir }}/roles/setup/get_crypto"
+  vars:
+    vault_output: "{{ root_certs_cenm.stdout | from_yaml }}"
+    type: "rootca"
+    cert_path: "{{ rootca }}"
+  when: root_certs_cenm.failed | default(True) == False
+
+# Gets the existing root certs for notary from vault, if any
+- name: Get the existing root certs for notary from vault, if any
+  include_role: 
+    name: "{{ playbook_dir }}/roles/setup/get_crypto"
+  vars:
+    vault_output: "{{ root_certs_notary.stdout | from_yaml }}"
+    type: "rootca"
+    cert_path: "{{ rootca }}"
+  when: root_certs_notary.failed | default(True) == False
+
+############################################################################################
+############################## STORE THE KEYSTORE IN A VARIABLE  ###########################
+
+# Store the exisiting key.jks file in a variable
+- name: Store the existing key.jks file in a variable
+  stat:
+    path: "{{ rootca }}/rootca.jks"
+  register: rootca_stat_result
+
+############################################################################################
+#################### GENERATE ROOT CA CERTIFICATES, IF ABSENT IN VAULT #####################
+
+# Generate Root CA certificates
+- name: Generate Root CA certificates
+  shell: |
+    cd {{ rootca }}
+    eval "keytool -genkey -alias rootca -dname {{ org.subject | quote }} -keystore rootca.jks -storepass cordaent -keypass cordaent"
+    eval "openssl ecparam -name prime256v1 -genkey -noout -out rootca.key"
+    eval "openssl req -x509 -config {{ playbook_dir }}/openssl.conf -new -nodes -key rootca.key -days 1024 -out rootca.pem -extensions v3_ca -subj '/{{ org.subject | regex_replace(',', '/') }}'"
+    eval "openssl pkcs12 -export -name cert -inkey rootca.key -in rootca.pem -out rootcacert.pkcs12 -cacerts -passin pass:'cordaent' -passout pass:'cordaent'"
+    eval "openssl pkcs12 -export -name key -inkey rootca.key -in rootca.pem -out rootcakey.pkcs12 -passin pass:'cordaent' -passout pass:'cordaent'"
+    eval "yes | keytool -importkeystore -srckeystore rootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass cordaent -destkeystore rootca.jks -deststorepass cordaent"
+    eval "yes | keytool -importkeystore -srckeystore rootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass cordaent -destkeystore rootca.jks -deststorepass cordaent"
+  when: ( root_certs_cenm.failed | default(False) == True or root_certs_notary.failed | default(False) == True ) and rootca_stat_result.stat.exists == False
+
+############################################################################################
+###################### CHECK IF TLS CERTIFICATES ARE ALREADY IN VAULT ######################
+
+# Check if the ambassador tls certs are already created and stored in the vault for CENM
+- name: Check if the ambassador tls certs are already created and stored in the vault for CENM
+  shell: |
+    vault kv get -format=yaml secret/cenm/{{ peer.name | lower }}/tlscerts
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: ambassador_tls_certs_cenm
+  ignore_errors: yes
+  when: org.type == 'cenm'
+
+# Check if the ambassador tls certs are already created and stored in the vault for notary
+- name: Check if the ambassador tls certs are already created and stored in the vault for notary
+  shell: |
+    vault kv get -format=yaml secret/{{ peer.name }}/tlscerts
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: ambassador_tls_certs_notary
+  ignore_errors: yes
+  when: org.type == 'notary'
+
+############################################################################################
+###################### FETCH TLS CERTIFICATES FROM VAULT, IF PRESENT #######################
+
+# Get the existing ambassador tls certs for CENM
+- name: Get the existing ambassador tls certs for CENM
+  include_role: 
+    name: "{{ playbook_dir }}/roles/setup/get_crypto"
+  vars:
+    vault_output: "{{ ambassador_tls_certs_cenm.stdout | from_yaml }}"
+    type: "ambassador"
+    cert_path: "{{ ambassadortls }}"
+  when: ambassador_tls_certs_cenm.failed | default(True) == False
+
+# Get the existing ambassador tls certs for notary
+- name: Get the existing ambassador tls certs for CENM
+  include_role: 
+    name: "{{ playbook_dir }}/roles/setup/get_crypto"
+  vars:
+    vault_output: "{{ ambassador_tls_certs_notary.stdout | from_yaml }}"
+    type: "ambassador"
+    cert_path: "{{ ambassadortls }}"
+  when: ambassador_tls_certs_notary.failed | default(True) == False
+
+############################################################################################
+###################### CREATE OPENSSL FILE, FOR TLS CERTS GENERATION #######################
+
+# Generate the openssl file for domain
+- name: Generate openssl conf file
+  shell: |
+    cd {{ambassadortls}}
+    cat <<EOF >openssl{{ peer.name }}.conf
+    [dn]
+    CN={{ domain_name }}
+    [req]
+    distinguished_name = dn
+    [EXT]
+    subjectAltName=DNS:{{ domain_name }}
+    keyUsage=digitalSignature
+    extendedKeyUsage=serverAuth
+    EOF
+  vars:
+    domain_name: "{{ peer.name }}.{{ org.external_url_suffix }}"
+  when: ambassador_tls_certs_cenm.failed | default(False) == True or ambassador_tls_certs_notary.failed | default(False) == True
+
+############################################################################################
+#################### GENERATE TLS CERTIFICATES, IF ABSENT IN VAULT #########################
+
+# Generate the ambassador tls certificates for CENM if already not generated
+- name: Generate ambassador tls certs for CENM
+  shell: |
+    cd {{ ambassadortls }}
+    openssl ecparam -name prime256v1 -genkey -noout -out {{ peer.name }}.key
+    openssl req -new -nodes -key {{ peer.name }}.key -days 1000 -out {{ peer.name }}.csr \
+    -extensions EXT -subj "/CN={{domain_name}}" -config "{{ ambassadortls }}/openssl{{ peer.name }}.conf"
+    openssl x509 -extfile {{ playbook_dir }}/openssl.conf -req -days 1000 -in {{ peer.name }}.csr -CA {{ rootca }}/rootca.pem -CAkey {{ rootca }}/rootca.key -out {{ peer.name }}.pem -set_serial 01 -extensions v3_nonca
+    cat {{ peer.name }}.pem > {{ peer.name }}-certchain.pem
+    cat {{ rootca }}/rootca.pem >> {{ peer.name }}-certchain.pem
+  vars:
+    domain_name: "{{ peer.name }}.{{ org.external_url_suffix }}"
+  when:  ambassador_tls_certs_cenm.failed | default(False) == True or ambassador_tls_certs_notary.failed | default(False) == True
+
+
+############################################################################################
+############################## STORE TLS CERTS IN VAULT ####################################
+
+# Store the generated ambassador tls certificates in vault for CENM
+- name: Store the generated ambassador tls certificates in vault for CENM
+  shell: |
+    vault kv put secret/cenm/{{ peer.name | lower }}/tlscerts rootca="$(cat {{ rootca }}/rootca.jks | base64)" ambassadorcrt="$(cat {{ ambassadortls }}/{{ peer.name }}-certchain.pem | base64)" ambassadorkey="$(cat {{ ambassadortls }}/{{ peer.name }}.key | base64)"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  when: ambassador_tls_certs_cenm.failed | default(False) == True and org.type == 'cenm'
+
+# Stores the generated ambassador tls certificates in vault for Notary
+- name: Stores the generated ambassador tls certificates in vault for Notary
+  shell: |
+    vault kv put secret/{{ peer.name }}/tlscerts rootca="$(cat {{ rootca }}/rootca.jks | base64)" ambassadorcrt="$(cat {{ ambassadortls }}/{{ peer.name }}-certchain.pem | base64)" ambassadorkey="$(cat {{ ambassadortls }}/{{ peer.name }}.key | base64)"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  when: ambassador_tls_certs_notary.failed | default(False) == True and org.type == 'notary'
+
+############################################################################################
+#################### CHECK AND CREATE AMBASSADOR CERTS, IF ABSENT ##########################
+
+# Check if Ambassador credentials exist already
+- name: Check if the Ambassador credentials already exist or not
+  k8s_info:
+    kind: Secret
+    namespace: default
+    name: "{{ peer.name }}-ambassador-certs"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+  register: get_ambassador_secret
+
+# This task creates the Ambassador TLS credentials for ambassador if they dont exist
+- name: Create the Ambassador credentials
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} kubectl create secret tls {{ peer.name }}-ambassador-certs --cert={{ ambassadortls }}/{{ peer.name }}-certchain.pem --key={{ ambassadortls }}/{{ peer.name }}.key -n default
+  when: get_ambassador_secret.resources|length == 0
