@@ -12,7 +12,7 @@ This task deletes all the files from the release directory
 #### 2. Delete release files
 This task deletes all the files from the release directory
 ##### Input Variables
-    *release_dir_ns: The release directory path with -quo suffix
+    *release_dir_ns: The release directory path with -bes suffix
     state: absent ( This deletes any found result)
 
 #### 2. Git Push
