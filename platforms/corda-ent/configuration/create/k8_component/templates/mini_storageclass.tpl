@@ -6,4 +6,4 @@ provisioner: k8s.io/minikube-hostpath
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 parameters:
-  encrypted: "true"  
+  encrypted: "true"
