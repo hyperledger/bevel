@@ -17,35 +17,41 @@
     include_role: 
       name: create/namespace_serviceaccount
     vars:
-      component_ns: "{{ item.name | lower }}-ent"
-      organisation: "{{ item.name | lower }}"
-      kubernetes: "{{ item.k8s }}"
-      gitops: "{{ item.gitops }}"
+      component_ns: "{{ org.name | lower }}-ent"
+      organisation: "{{ org.name | lower }}"
+      kubernetes: "{{ org.k8s }}"
+      gitops: "{{ org.gitops }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
 
   # Create Storageclass
   - name: Create Storage Class
     include_role:
       name: create/storageclass
     vars:
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
-      git_dir: "{{ item.gitops.release_dir }}"
-      org: "{{ item }}"
-      kubernetes: "{{ item.k8s }}"
+      storageclass_name: "{{ org.cloud_provider }}storageclass"
+      git_dir: "{{ org.gitops.release_dir }}"
+      org: "{{ org }}"
+      kubernetes: "{{ org.k8s }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
   
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
   - name: "Setup vault"   
     include_role: 
       name: "setup/vault_kubernetes"
     vars:
-      component_ns: "{{ item.name | lower }}-ent"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      component_name: "{{ item.name | lower}}"
-      component_path: "{{ item.name | lower }}/"
-      component_auth: "cordaent{{ item.name | lower }}"
-      component_type: "organization"
+      component_ns: "{{ org.name | lower }}-ent"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      component_name: "{{ org.name | lower}}"
+      component_path: "{{ org.name | lower }}/"
+      component_auth: "cordaent{{ org.name | lower }}"
+      component_type: "{{ org.type | lower }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
 
   # ---------------------------------------------------------------------- 

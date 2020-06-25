@@ -87,20 +87,38 @@
 - name: Create policy for Access Control
   shell: |
     cd ./build    
-    echo "path \"secret/{{ component_ns }}/*\" {
-        capabilities = [\"read\", \"list\", \"create\"]
-    }
-    path \"secret/cenm/*\" {
-        capabilities = [\"read\", \"list\", \"create\"]
-    }
-    path \"secret/notary/*\" {
+    echo "path \"secret/cenm/*\" {
         capabilities = [\"read\", \"list\", \"create\"]
     }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
     vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True    # Run if policy check failed
+  when: vault_policy_result.failed == True and {{ component_type }} == 'cenm'    # Run if policy check failed
+
+- name: Create policy for Access Control
+  shell: |
+    cd ./build    
+    echo "path \"secret/notary/*\" {
+        capabilities = [\"read\", \"list\", \"create\"]
+    }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
+    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_policy_result.failed == True and {{ component_type }} == 'notary'   # Run if policy check failed
+
+- name: Create policy for Access Control
+  shell: |
+    cd ./build    
+    echo "path \"secret/{{ component_ns }}/*\" {
+        capabilities = [\"read\", \"list\", \"create\"]
+    }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
+    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_policy_result.failed == True and {{ component_type }} == 'node'   # Run if policy check failed
 
 # This task creates the vault auth
 - name: Create Vault auth role
