@@ -1,0 +1,52 @@
+# This playbook deletes the DLT network on existing Kubernetes clusters which has been created
+#  using the Blockchain Automation Framework.
+# Please use the same network.yaml to run this playbook as used for deploy-network.yaml
+###########################################################################################
+# THIS PLAYBOOK DELETES EVERYTHING, EVEN NAMESPACES and FLUX
+###########################################################################################
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+    # Delete Vault and Kubernetes secrets.
+    - include_role: 
+        name: "delete/vault_secrets"
+      vars:
+        org_namespace: "{{ item.name | lower }}-bes"
+        org_name: "{{ item.name | lower}}"
+        services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+
+    # Delete Helmreleases and uninstall flux
+    # Change this rile if you have new Helreleases to delete 
+    - include_role:
+        name: "delete/flux_releases"
+      vars:
+        org_name: "{{ item.name | lower}}"
+        org_namespace: "{{ item.name | lower }}-bes"
+        component_type: "{{ item.type | lower}}"
+        services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+        
+    # Delete Gitops file and check-in
+    - include_role:
+        name: "delete/gitops_files"
+      vars:
+        gitops: "{{ item.gitops }}"
+        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name|lower }}"
+        release_dir_ns: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name|lower }}-bes"
+      loop: "{{ network['organizations'] }}"
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
