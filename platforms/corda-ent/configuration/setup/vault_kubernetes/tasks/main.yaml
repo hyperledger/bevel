@@ -82,6 +82,9 @@
   register: vault_policy_result
   ignore_errors: yes
 
+- debug:
+    msg: "{{ component_type }}"
+
 #####################################################################################################################
 # This task creates the access policy for various corda-ent entity
 - name: Create policy for Access Control
@@ -94,7 +97,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True and {{ component_type }} == 'cenm'    # Run if policy check failed
+  when: vault_policy_result.failed == True and component_type  == "cenm"    # Run if policy check failed
 
 - name: Create policy for Access Control
   shell: |
@@ -106,7 +109,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True and {{ component_type }} == 'notary'   # Run if policy check failed
+  when: vault_policy_result.failed == True and component_type == 'notary'   # Run if policy check failed
 
 - name: Create policy for Access Control
   shell: |
@@ -118,7 +121,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True and {{ component_type }} == 'node'   # Run if policy check failed
+  when: vault_policy_result.failed == True and  component_type == 'node'   # Run if policy check failed
 
 # This task creates the vault auth
 - name: Create Vault auth role
