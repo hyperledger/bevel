@@ -34,11 +34,11 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            rm -rF DATA/done.txt
+            rm -r DATA/done.txt
 
             cp CM-FILES/pki.conf etc/pki.conf
             cp CM-FILES/signer.conf etc/signer.conf;
-            mkdir DATA/signer DATA/root DATA/networkmap DATA/idman/crls DATA/idman/certs
+            mkdir DATA/signer DATA/root DATA/networkmap DATA/idman DATA/idman/crls DATA/idman/certs
             time java -Xmx{{ .Values.cordaJarMx }}G -jar {{ .Values.jarPath }}/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf
 
             #creating a dummy file to perform check if last line is executed or not.
@@ -87,7 +87,6 @@ spec:
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-            
             cd ${BASE_DIR}/DATA
             # putting certificate for cenm root 
             COUNTER=1
@@ -96,7 +95,6 @@ spec:
                 if [ -e done.txt ]
                 then
                   cd ${BASE_DIR}/DATA/root
-                  # cp ${BASE_DIR}/DATA/key-stores/root-key-store.jks ${BASE_DIR}/DATA/trust-stores/corda-ssl-trust-store.jks ${BASE_DIR}/DATA/trust-stores/network-root-truststore.jks ${BASE_DIR}/DATA/key-stores/corda-ssl-root-keys.jks ${BASE_DIR}/DATA/key-stores/tls-crl-signer-key-store.jks ${BASE_DIR}/DATA/key-stores/subordinate-key-store.jks ${BASE_DIR}/DATA/root;
                   echo "found root certificates, performing vault put for root path"
                   (echo '{'
                   for FILE in *;
@@ -129,7 +127,6 @@ spec:
                 if [ -e done.txt ]
                 then
                   cd ${BASE_DIR}/DATA/signer
-                  # cp ${BASE_DIR}/DATA/key-stores/network-map-key-store.jks ${BASE_DIR}/DATA/key-stores/identity-manager-key-store.jks ${BASE_DIR}/DATA/key-stores/corda-ssl-signer-keys.jks ${BASE_DIR}/DATA/signer;
                   echo "found signer certificates, performing vault put for signer path"
                   (echo '{'
                   for FILE in *;
@@ -156,14 +153,13 @@ spec:
             done
 
             # putting idman certificate for cenm idman
-            cd ${BASE_DIR}/DATA/idman/crls
+            cd ${BASE_DIR}/DATA
             COUNTER=1
             while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
             do
                 if [ -e done.txt ]
                 then
-                  cd ${BASE_DIR}/DATA/idman
-                  # cp ${BASE_DIR}/DATA/crl-files/root.crl ${BASE_DIR}/DATA/crl-files/ssl.crl ${BASE_DIR}/DATA/crl-files/subordinate.crl ${BASE_DIR}/DATA/crl-files/tls.crl ${BASE_DIR}/DATA/crls;
+                  cd ${BASE_DIR}/DATA/idman/crls
                   echo "found idman certificates, performing vault put for idman path"
                   (echo '{'
                   for FILE in *;
@@ -182,7 +178,6 @@ spec:
                   ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/idman/crls
                   echo "After curl"
 
-                  # cd ${BASE_DIR}/DATA/idman/certs
                   # putting certs for idman at certs path
                   (echo '{"corda-ssl-identity-manager-keys.jks": "'; base64 ${BASE_DIR}/DATA/idman/certs/corda-ssl-identity-manager-keys.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/idman/certs
                   # putting certs for networkmap at certs path
