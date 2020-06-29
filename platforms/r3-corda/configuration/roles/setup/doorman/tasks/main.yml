@@ -1,34 +1,44 @@
 ##############################################################################################
 # This role creates the value file for doorman
 ##############################################################################################
-
+    
 - name: "Wait for namespace creation for {{ organisation }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "Namespace"
     component_name: "{{ component_ns }}"
+    type: "retry"
 
 - name: "Wait for vault-auth creation for {{ organisation }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
     component_name: "vault-auth"
+    type: "retry"
+  tags:
+    - notest    
 
 - name: "Wait for vault-reviewer creation for {{ organisation }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
     component_name: "vault-reviewer"
+    type: "retry"
+  tags:
+    - notest    
 
 - name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ClusterRoleBinding"
     component_name: "{{ component_ns }}-role-tokenreview-binding"
+    type: "retry"
+  tags:
+    - notest    
 
 # ----------------------------------------------------------------------  
 # create vault access policies
@@ -67,7 +77,7 @@
     component_type: "mongodb"
     helm_lint: "true"
     nodename: "{{ services.doorman.name }}"
-    charts_dir: "{{ gitops.chart_source}}"
+    charts_dir: "{{ gitops.chart_source }}"
     component_auth: "corda{{ services.doorman.name | lower }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
@@ -83,7 +93,7 @@
     component_type: "mongodb"
     helm_lint: "true"
     nodename: "{{ services.doorman.name }}"
-    charts_dir: "{{ gitops.chart_source}}"
+    charts_dir: "{{ gitops.chart_source }}"
     component_auth: "corda{{ services.doorman.name | lower }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
@@ -122,7 +132,6 @@
     chart_tls: "true"
   when: services.doorman.tls == 'on'
 
-
 # Push the doorman deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role: 
@@ -135,5 +144,6 @@
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
-    msg: "Pushing deployment files for doorman node and doorman mongodb node"
-    
+    msg: "[ci skip] Pushing deployment files for doorman node and doorman mongodb node"
+  tags:
+    - notest

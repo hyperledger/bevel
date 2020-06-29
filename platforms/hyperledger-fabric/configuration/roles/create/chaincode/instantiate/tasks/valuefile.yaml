@@ -5,7 +5,7 @@
 # Check or Wait if install-chaincode is already run
 - name: "Waiting for chaincode to be installed on {{ peer.name }}"
   include_role:
-    name: "../../shared/configuration/roles/check/helm_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Job"
     namespace: "{{ org.name |lower }}-net"
@@ -56,7 +56,7 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: instantiate_chaincode.results[0].resources|length == 0 and peer.chaincode is defined
+  when: peer.chaincode is defined and instantiate_chaincode.results[0].resources|length == 0
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -70,5 +70,5 @@
     GIT_PASSWORD: "{{ org.gitops.password }}"
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
-    msg: "Pushing chaincode instantiation files"
+    msg: "[ci skip] Pushing chaincode instantiation files"
   when: instantiate_chaincode.results[0].resources|length == 0

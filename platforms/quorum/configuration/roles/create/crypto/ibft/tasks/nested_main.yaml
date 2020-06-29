@@ -9,12 +9,12 @@
   ignore_errors: yes
 
 # This task creates the build directory if it does not exist
-- name: Create build directory if it does not exist
-  file:
-    path: build/{{ component_name }}/{{ peer.name }}
-    state: directory
-    mode: '0755'
-    recurse: yes
+- name: "Creating the build directory"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "build/{{ component_name }}/{{ peer.name }}"
+    check: "ensure_dir"
   when: vault_nodekey_result.failed == True
 
 - name: Generate enode url for each node and create a geth account and keystore

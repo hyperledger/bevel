@@ -1,64 +1,70 @@
 # This role creates the deployment files for namespaces, vault-auth, vault-reviewer and clusterrolebinding for each node
 # Check Namespace exists already
 - name: Check if namespace exists
-  k8s_facts:
-    kind: Namespace
-    name: "{{ component_ns }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: get_namespace
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: Namespace
+    component_name: "{{ org.name }}-ns"
+    kubernetes: "{{ org.k8s }}"
+    type: "no_retry"
+    
+- name: Set the result of namespace check to a local variable
+  set_fact:
+    get_namespace: "{{ result }}"
 
 # Create namespace
-- name: Create namespace for {{ organisation }}
+- name: Create namespace for {{ org.name }}
   include_role:
     name: create/k8_component
   vars:
-    component_name: "{{ component_ns }}"
+    component_name: "{{ org.name }}-ns"
     component_type: "namespace"
     helm_lint: "false"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
   when: get_namespace.resources|length == 0
 
 # Create vault auth service account for NMS
-- name: Create vault auth service account for {{ organisation }}
+- name: Create vault auth service account for {{ org.name }}
   include_role:
     name: create/k8_component
   vars:
-    component_name: "{{ component_ns }}"
+    component_name: "{{ org.name }}-ns"
     component_type: "vaultAuth"
     helm_lint: "false"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
 
 #   Create vault reviewer service account for NMS
-- name: Create vault reviewer for {{ organisation }}
+- name: Create vault reviewer for {{ org.name }}
   include_role:
     name: create/k8_component
   vars:
-    component_name: "{{ component_ns }}"
+    component_name: "{{ org.name }}-ns"
     component_type: "vault-reviewer"
     helm_lint: "false"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
 
 #   # Create clusterrolebinding
-- name: Create clusterrolebinding for {{ organisation }}
+- name: Create clusterrolebinding for {{ org.name }}
   include_role:
     name: create/k8_component
   vars:
-    component_name: "{{ component_ns }}"
+    component_name: "{{ org.name }}-ns"
     component_type: "reviewer_rbac"
     helm_lint: "false"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
 
 - name: "Push the created deployment files to repository"
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  tags:
+    - notest
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_REPO: "{{ gitops.git_push_url }}"
-    GIT_USERNAME: "{{ gitops.username }}"
-    GIT_EMAIL: "{{ gitops.email }}"
-    GIT_PASSWORD: "{{ gitops.password }}"
-    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
-    msg: "Pushing deployment files for namespace and service accounts"
-    
+    msg: "[ci skip] Pushing deployment files for namespace and service accounts"

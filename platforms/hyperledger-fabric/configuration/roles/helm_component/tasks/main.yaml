@@ -11,6 +11,13 @@
     recurse: yes
     state: directory
 
+#####################################################################################
+  #This task checks if the value file is already present or not
+- name: "Check if the value file is already present"
+  stat:
+    path: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"
+  register: value_file_check
+
 ############################################################################################
 # This task creates the value file for the helm release
 # This is done by consuming a template file which is passes as a variable by the role
@@ -19,6 +26,7 @@
   template:
     src: "{{ helm_templates[type] | default('helm_component.tpl') }}"
     dest: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"
+  when: not value_file_check.stat.exists
 
 ############################################################################################
 # This task tests the value file for syntax errors/ missing values
@@ -31,4 +39,5 @@
     helmtemplate_type: "{{ type }}"
     chart_path: "{{ charts_dir }}"
     value_file: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"
-
+  tags:
+    - notest

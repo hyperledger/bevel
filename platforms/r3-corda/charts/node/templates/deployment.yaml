@@ -108,6 +108,56 @@ spec:
             mountPath: "{{ $.Values.volume.baseDir }}"
             readOnly: false
         initContainers:
+        - name: init-checkregistration
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+           - name: VAULT_ADDR
+             value: {{ $.Values.vault.address }}
+           - name: KUBERNETES_AUTH_PATH
+             value: {{ $.Values.vault.authpath }}
+           - name: CERTS_SECRET_PREFIX
+             value: {{ .Values.vault.certsecretprefix }}
+          command: ["sh", "-c"]
+          args:
+          - |-
+              #!/usr/bin/env sh
+               validateVaultResponse () {
+                 if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                 fi
+               }
+
+              # setting up env to get secrets from vault
+              echo "Getting secrets from Vault Server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "logged into vault"
+               
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              do
+                  # get truststore from vault to see if registration is done or not
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  else
+                    break
+                  fi 
+                  COUNTER=`expr "$COUNTER" + 1`
+              done
+
+              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+              then
+                # printing number of trial done before giving up
+                echo "$COUNTER"
+                echo "Node registration might not have been done."
+                exit 1
+              fi
+              echo "Done"
         - name: init-nodeconf
           image : {{ .Values.image.initContainerName }}
           imagePullPolicy: Always

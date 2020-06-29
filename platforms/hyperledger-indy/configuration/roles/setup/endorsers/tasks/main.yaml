@@ -4,13 +4,14 @@
 
   - name: "Wait for namespace creation for identities"
     include_role:
-      name: check/k8_component
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
     vars:
       component_type: "Namespace"
       component_name: "{{ component_ns }}"
+      type: "retry"
 
-# # ---------------------------------------------------------------------
-# # create image pull secrets
+# ---------------------------------------------------------------------
+# create image pull secrets
   - name: "Create image pull secret for identities"
     include_role:
       name: create/imagepullsecret
@@ -33,8 +34,12 @@
 # Wait until identities are creating
   - name: "Wait until identities are creating"
     include_role:
-      name: check/endorser
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
     vars:
-      component_name: "{{ organizationItem.name }}"
-      endorsers: "{{ organizationItem.services.endorsers }}"
+      component_type: "Job"
+      namespace: "{{ component_ns }}"
+      component_name: "{{ organizationItem.name }}-{{ endorserItem.name }}-transaction"
+    loop: "{{ organizationItem.services.endorsers }}"
     when: organizationItem is defined and organizationItem.services.endorsers is defined
+    loop_control:
+      loop_var: endorserItem

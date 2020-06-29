@@ -5,12 +5,14 @@
 # Check if namespace created
 - name: "Checking if the namespace {{ item.name | lower }}-net already exists"
   include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "Namespace"
     component_name: "{{ item.name | lower }}-net"
     type: "no_retry"
   register: get_namespace
+  tags:
+    - notest
 
 - name: "Set Variable"
   set_fact:
@@ -80,31 +82,43 @@
     GIT_PASSWORD: "{{ item.gitops.password }}"
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
-    msg: "Pushing deployment files for namespace, service accounts and clusterrolebinding"
+    msg: "[ci skip] Pushing deployment files for namespace, service accounts and clusterrolebinding"
+  tags:
+    - notest
 
 # Check if ClusterRoleBinding created
-- name: "Checking for the {{ item.name | lower }}-net-role-tokenreview-bindin"
+- name: "Checking for the {{ item.name | lower }}-net-role-tokenreview-binding"
+  tags:
+    - notest
   include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ClusterRoleBinding"
     component_name: "{{ item.name | lower }}-net-role-tokenreview-binding"
+    type: "retry"
   when: get_namespace.resources|length == 0
+  
 
 # Check if ServiceAccount is created for vault-reviwer
 - name: "Including the check for ServiceAccount vault-reviewer in {{ item.name | lower }}-net "
   include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
     component_ns: "{{ item.name | lower }}-net"
     component_name: "vault-reviewer"
+    type: "retry"
+  tags:
+    - notest
 
 # Check if ServiceAccount is created for vault-auth
 - name: "Including the check for ServiceAccount vault-auth in {{ item.name | lower }}-net "
   include_role:
-    name: "../../shared/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
     component_ns: "{{ item.name | lower }}-net"
     component_name: "vault-auth"
+    type: "retry"
+  tags:
+    - notest

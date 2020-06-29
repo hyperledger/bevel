@@ -4,12 +4,16 @@
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/blockchain-automation-framework/badge/?version=latest)](https://blockchain-automation-framework.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
+[![Build Status](https://travis-ci.com/hyperledger-labs/blockchain-automation-framework.svg?branch=master)](https://travis-ci.com/hyperledger-labs/blockchain-automation-framework)
 
 - [Short Description](#short-description)
 - [Scope of Lab](#scope-of-lab)
   - [Documentation](#documentation)
   - [Hyperledger Fabric](#hyperledger-fabric)
-  - [Corda](#corda)
+  - [Corda Enterprise](#corda-enterprise)
+  - [Corda Opensource](#corda-opensource)
+  - [Hyperledger Indy](#hyperledger-indy)
+  - [Quorum](#quorum)
 - [Contact](#contact)
 - [Contributing](#contributing)
 - [Initial Committers](#initial-committers)
@@ -37,8 +41,13 @@ For Hyperledger Fabric, we use the official Docker containers provided by that p
 
 ![Blockchain Automation Framework - Fabric](./docs/images/blockchain-automation-framework-fabric.png "Blockchain Automation Framework for Hyperledger Fabric")
 
-### Corda
-For Corda, we build Docker containers from the Corda source. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
+### Corda Enterprise
+For Corda Enterprise, we build Docker containers from the Corda source with licensed jars. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
+
+![Blockchain Automation Framework - Corda Enterprise](./docs/images/blockchain-automation-framework-corda-ent.png "Blockchain Automation Framework for Corda Enterprise")
+
+### Corda Opensource
+For Corda Opensource, we build Docker containers from the Corda source. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
 
 ![Blockchain Automation Framework - Corda](./docs/images/blockchain-automation-framework-corda.png "Blockchain Automation Framework for Corda")
 
@@ -58,7 +67,7 @@ We welcome your questions & feedback on our [Rocketchat channel](https://chat.hy
 ## Contributing
 We welcome contributions to BAF in many forms, and there’s always plenty to do!
 
-First things first, please review the [Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct) before participating. 
+First things first, please review the [Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct) before participating.
 
 There are many ways to contibute to BAF, both as a user and as a developer.
 
@@ -71,13 +80,13 @@ As a developer:
 * If you can commit to full-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework) to work through logistics
 
 # Build
-If you are not using the provided Jeknins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster. 
+If you are not using the provided Jeknins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster.
 ```
 # Build provisioning image
 docker build . -t hyperledgerlabs/baf-build
 
 # Run the provisioning scripts
-docker run -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
 ```
 
 ## Initial Committers

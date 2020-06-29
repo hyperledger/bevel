@@ -259,7 +259,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"misc\": {\n        \"name\": \"Medicine Container\"\n    },\n    \"trackingID\": \"{{containerID}}\",\n    \"counterparties\": [\n    \t\"{{carrierID}}\",\n    \t\"{{warehouseID}}\"\n    ]\n}",
+					"raw": "{\n    \"misc\": {\n        \"name\": \"Medicine Container\"\n    },\n    \"trackingID\": \"{{containerID}}\",\n    \"counterparties\": [\n    \t\"{{carrierID}}\",\n    \t\"{{warehouseID}}\",\n    \t\"{{storeID}}\"\n    ]\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -351,11 +351,11 @@
 							"});",
 							"const manufacturer = pm.environment.get(\"manufacturerID\");",
 							"pm.test(\"Check Custodian\", function () {",
-							"    pm.expect(jsonData.custodian).to.contain(manufacturer);",
+							"    pm.expect(jsonData.custodian.toLowerCase()).to.contain(manufacturer.toLowerCase());",
 							"});",
 							"pm.test(\"Check participants contain counterparties\", function () {",
 							"    var parties = jsonData.participants;",
-							"    pm.expect(parties.length).to.eql(3);",
+							"    pm.expect(parties.length).to.eql(4);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -481,7 +481,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"productName\": \"Dextrose\",\n    \"misc\": {\n        \"name\": \"Expensive Dextrose\"\n    },\n    \"trackingID\": \"{{productID}}\",\n    \"counterparties\": [\n    \t\"{{carrierID}}\",\n    \t\"{{warehouseID}}\"\n    ]\n}"
+					"raw": "{\n    \"productName\": \"Dextrose\",\n    \"misc\": {\n        \"name\": \"Expensive Dextrose\"\n    },\n    \"trackingID\": \"{{productID}}\",\n    \"counterparties\": [\n    \t\"{{storeID}}\",\n    \t\"{{carrierID}}\",\n    \t\"{{warehouseID}}\"\n    ]\n}"
 				},
 				"url": {
 					"raw": "https://{{manufacturer-host}}/api/v1/product",
@@ -568,11 +568,11 @@
 							"});",
 							"const manufacturer = pm.environment.get(\"manufacturerID\");",
 							"pm.test(\"Check Custodian\", function () {",
-							"    pm.expect(jsonData.custodian).to.contain(manufacturer);",
+							"    pm.expect(jsonData.custodian.toLowerCase()).to.contain(manufacturer.toLowerCase());",
 							"});",
 							"pm.test(\"Check participants contain counterparties\", function () {",
 							"    var parties = jsonData.participants;",
-							"    pm.expect(parties.length).to.eql(3);",
+							"    pm.expect(parties.length).to.eql(4);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -658,6 +658,87 @@
 					],
 					"cookie": [],
 					"body": "[\n    {\n        \"productName\": \"Product\",\n        \"health\": \"String\",\n        \"sold\": false,\n        \"recalled\": false,\n        \"otherData\": \"String\",\n        \"custodian\": \"O=PartyA, L=London, C=GB\",\n        \"trackingID\": \"9e029d9d-c3e8-4b74-96e9-14250aecdf2f\",\n        \"containerID\": null,\n        \"timestamp\": 1549565435354,\n        \"linearId\": {\n            \"externalId\": null,\n            \"id\": \"5409f3d8-6ebb-4ec9-bf06-c21f61b1f55e\"\n        },\n        \"participants\": [\n            \"O=PartyB, L=New York, C=US\",\n            \"O=PartyA, L=London, C=GB\"\n        ]\n    }\n]"
+				}
+			]
+		},
+		{
+			"name": "Check Containerless products",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7899d4fc-29e5-4304-9f14-85a62ca0964e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"const product = pm.environment.get(\"productID\");",
+							"pm.test(\"Check correct product is fetched\", function () {",
+							"    pm.expect(pm.response.text()).to.include(product);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{manufacturer-host}}/api/v1/product/containerless",
+					"protocol": "https",
+					"host": [
+						"{{manufacturer-host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"product",
+						"containerless"
+					]
+				},
+				"description": "Method to see tracking history of an item as it was modified and what time ownership changed (in milliseconds from some root time like Jan 1990 or something)"
+			},
+			"response": [
+				{
+					"name": "History of item created at A, moved to B, and moved to A again",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/v1/9e029d9d-c3e8-4b74-96e9-14250aecdf2f/history",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"9e029d9d-c3e8-4b74-96e9-14250aecdf2f",
+								"history"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json;charset=UTF-8"
+						},
+						{
+							"key": "Content-Length",
+							"value": "214"
+						},
+						{
+							"key": "Date",
+							"value": "Thu, 07 Feb 2019 18:52:46 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "[\n    {\n        \"party\": \"O=PartyA, L=London, C=GB\",\n        \"time\": 1549565435354\n    },\n    {\n        \"party\": \"O=PartyB, L=New York, C=US\",\n        \"time\": 1549565524382\n    },\n    {\n        \"party\": \"O=PartyA, L=London, C=GB\",\n        \"time\": 1549565561769\n    }\n]"
 				}
 			]
 		},
@@ -784,11 +865,11 @@
 							"});",
 							"const manufacturer = pm.environment.get(\"manufacturerID\");",
 							"pm.test(\"Check Custodian\", function () {",
-							"    pm.expect(jsonData.custodian).to.contain(manufacturer);",
+							"    pm.expect(jsonData.custodian.toLowerCase()).to.contain(manufacturer.toLowerCase());",
 							"});",
 							"pm.test(\"Check participants contain counterparties\", function () {",
 							"    var parties = jsonData.participants;",
-							"    pm.expect(parties.length).to.eql(3);",
+							"    pm.expect(parties.length).to.eql(4);",
 							"});",
 							"var container = pm.environment.get(\"containerID\");",
 							"pm.test(\"Check product is in correct container\", function () {",
@@ -895,7 +976,7 @@
 							"});",
 							"const container = pm.environment.get(\"containerID\");",
 							"pm.test(\"Response has containerID\", function () {",
-							"    pm.response.to.have.body(container);",
+							"    pm.expect(pm.response.text()).to.include(container);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -1001,7 +1082,7 @@
 							"});",
 							"const container = pm.environment.get(\"containerID\");",
 							"pm.test(\"Response has containerID\", function () {",
-							"    pm.response.to.have.body(container);",
+							"    pm.expect(pm.response.text()).to.include(container);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -1095,12 +1176,118 @@
 			"response": []
 		},
 		{
-			"name": "Warehouse checks Product is owned",
+			"name": "Store claims Container",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c9ada31d-7848-4a51-b41c-0dee374ce3db",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"const container = pm.environment.get(\"containerID\");",
+							"pm.test(\"Response has containerID\", function () {",
+							"    pm.expect(pm.response.text()).to.include(container);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://{{store-host}}/api/v1/container/{{containerID}}/custodian",
+					"protocol": "https",
+					"host": [
+						"{{store-host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"container",
+						"{{containerID}}",
+						"custodian"
+					]
+				},
+				"description": "Claims custondianship of container and all products inside"
+			},
+			"response": []
+		},
+		{
+			"name": "Warehouse checks Container is not owned",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"id": "351b4f10-b093-49ad-a9fc-2083f613cb1c",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Check Product is owned\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.status).to.eql(\"unowned\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n \"health\": \"String\",\n \"contents\": [],\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"Manufacturer\"]\n}"
+				},
+				"url": {
+					"raw": "https://{{warehouse-host}}/api/v1/{{containerID}}/scan",
+					"protocol": "https",
+					"host": [
+						"{{warehouse-host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"{{containerID}}",
+						"scan"
+					]
+				},
+				"description": "Get container states"
+			},
+			"response": []
+		},
+		{
+			"name": "Store checks Container is owned",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "490b7f30-8d33-43b6-af00-c312fa00ea54",
 						"exec": [
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1132,10 +1319,64 @@
 					"raw": "{\n \"health\": \"String\",\n \"contents\": [],\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"Manufacturer\"]\n}"
 				},
 				"url": {
-					"raw": "https://{{warehouse-host}}/api/v1/{{productID}}/scan",
+					"raw": "https://{{store-host}}/api/v1/{{containerID}}/scan",
 					"protocol": "https",
 					"host": [
-						"{{warehouse-host}}"
+						"{{store-host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"{{containerID}}",
+						"scan"
+					]
+				},
+				"description": "Get container states"
+			},
+			"response": []
+		},
+		{
+			"name": "Store checks Product is owned",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6b6957c7-dd9b-4390-ab7a-b91c1668f9a5",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Check Product is owned\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.status).to.eql(\"owned\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n \"health\": \"String\",\n \"contents\": [],\n \"otherData\": \"String\",\n \"trackingID\": \"2c8750c0-5395-4069-971b-0ff97dc9c76d\",\n \"containerID\": null,\n \"counterparties\": [\"Manufacturer\"]\n}"
+				},
+				"url": {
+					"raw": "https://{{store-host}}/api/v1/{{productID}}/scan",
+					"protocol": "https",
+					"host": [
+						"{{store-host}}"
 					],
 					"path": [
 						"api",
@@ -1163,17 +1404,20 @@
 							"var array = pm.response.json();",
 							"console.log(array);",
 							"pm.test(\"Check there are 3 timestamps\", function () {",
-							"    pm.expect(array.length).to.eql(3);",
+							"    pm.expect(array.length).to.eql(4);",
 							"});",
 							"",
 							"pm.test(\"Check for Manufacturer\", function () {",
-							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"manufacturerID\"));",
+							"    pm.expect(pm.response.text().toLowerCase()).to.include(pm.environment.get(\"manufacturerID\").toLowerCase());",
 							"});",
 							"pm.test(\"Check for Carrier\", function () {",
-							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"carrierID\"));",
+							"    pm.expect(pm.response.text().toLowerCase()).to.include(pm.environment.get(\"carrierID\").toLowerCase());",
 							"});",
 							"pm.test(\"Check for Warehouse\", function () {",
-							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"warehouseID\"));",
+							"    pm.expect(pm.response.text().toLowerCase()).to.include(pm.environment.get(\"warehouseID\").toLowerCase());",
+							"});",
+							"pm.test(\"Check for Store\", function () {",
+							"    pm.expect(pm.response.text().toLowerCase()).to.include(pm.environment.get(\"storeID\").toLowerCase());",
 							"});"
 						],
 						"type": "text/javascript"
@@ -1184,10 +1428,10 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "https://{{manufacturer-host}}/api/v1/{{containerID}}/history",
+					"raw": "https://{{store-host}}/api/v1/{{containerID}}/history",
 					"protocol": "https",
 					"host": [
-						"{{manufacturer-host}}"
+						"{{store-host}}"
 					],
 					"path": [
 						"api",
@@ -1256,17 +1500,20 @@
 							"var array = pm.response.json();",
 							"console.log(array);",
 							"pm.test(\"Check there are 3 timestamps\", function () {",
-							"    pm.expect(array.length).to.eql(3);",
+							"    pm.expect(array.length).to.eql(4);",
 							"});",
 							"",
 							"pm.test(\"Check for Manufacturer\", function () {",
-							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"manufacturerID\"));",
+							"    pm.expect(pm.response.text().toLowerCase()).to.include(pm.environment.get(\"manufacturerID\").toLowerCase());",
 							"});",
 							"pm.test(\"Check for Carrier\", function () {",
-							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"carrierID\"));",
+							"    pm.expect(pm.response.text().toLowerCase()).to.include(pm.environment.get(\"carrierID\").toLowerCase());",
 							"});",
 							"pm.test(\"Check for Warehouse\", function () {",
-							"    pm.expect(pm.response.text()).to.include(pm.environment.get(\"warehouseID\"));",
+							"    pm.expect(pm.response.text().toLowerCase()).to.include(pm.environment.get(\"warehouseID\").toLowerCase());",
+							"});",
+							"pm.test(\"Check for Store\", function () {",
+							"    pm.expect(pm.response.text().toLowerCase()).to.include(pm.environment.get(\"storeID\").toLowerCase());",
 							"});"
 						],
 						"type": "text/javascript"

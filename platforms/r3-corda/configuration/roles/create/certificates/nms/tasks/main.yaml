@@ -3,29 +3,33 @@
 ---
 # create the root directory where CA root certificates and key will be placed
 - name: Ensure rootca dir exists
-  file:
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
     path: "{{ rootca }}"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
 
 - name: Ensure nmsca dir exists
-  file:
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
     path: "{{ nmsca }}"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
 
 - name: Ensure mongorootca dir exists
-  file:
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars: 
     path: "{{ mongorootca }}"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
   when: services.nms.tls == 'on'
 
 - name: Ensure mongodbca dir exists
-  file:
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars: 
     path: "{{ mongodbca }}"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
   when: services.nms.tls == 'on'
 
 - name: Check if root certs already created
@@ -156,4 +160,6 @@
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"
+  vars:
+    cert_file: "{{ network | json_query('orderers[?type==`networkmap`].certificate') | first }}"
     

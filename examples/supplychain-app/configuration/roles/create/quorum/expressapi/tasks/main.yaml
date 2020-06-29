@@ -1,0 +1,95 @@
+############################################################################################
+#Check if the pods for the organizations are up and running
+- name: "Waiting for peer pod {{ peer_data.name }} in {{ component_ns }}-quo"
+  include_role:
+    name: "../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer_data.name }}"
+    kubernetes: "{{ organization_data.k8s }}"
+    label_selectors:
+      - name = {{ component_name }}
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+    
+# Create express-api value file for the peer nodes
+- name: "Create express-api values file for peer organizations"
+  include_role:
+    name: helm_component
+  vars:
+    type: "expressapi-quorum"
+    name: "{{ peer_data.name }}"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    expressapi_image: "supplychain_quorum:express_app_latest"
+    geth_address: "{{ peer_data.geth_url }}"
+    peer_expressapi_port: "{{ peer_data.expressapi.port }}"
+    peer_expressapi_targetport: "{{ peer_data.expressapi.targetPort }}"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: peer_data.expressapi is defined
+
+# Push the express-api deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ component_gitops.git_push_url }}"
+    GIT_USERNAME: "{{ component_gitops.username }}"
+    GIT_EMAIL: "{{ component_gitops.email }}"
+    GIT_PASSWORD: "{{ component_gitops.password }}"
+    GIT_BRANCH: "{{ component_gitops.branch }}"
+    GIT_RESET_PATH: "platforms/quorum/configuration"
+    msg: "[ci skip] Pushing deployment files for quorum expressapi"
+
+# Wait for express-api Pod to run
+- name: "Waiting for express-api pod in {{ component_ns }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer_data.name }}-expressapi"
+    kubernetes: "{{ organization_data.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: peer_data.expressapi is defined
+
+## Update the postman json file with account ids
+# This task gets the account address
+- name: Get geth account 
+  uri:
+    url: "{{ peer_data.geth_url }}"
+    method: POST
+    validate_certs: no
+    return_content: yes
+    body_format: json
+    body: '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}'
+    headers:
+      Content-Type: "application/json"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  register: account_id
+  until: account_id.status == 200
+  retries: "{{ network.env.retry_count }}"
+  delay: 50
+  when: peer_data.geth_url is defined
+
+# This task fetches the eth acoount 
+- name: Get eth accounts
+  set_fact:
+    account: "{{ account_id.results[0].content | from_json | json_query('result') }}"
+
+# Replace accountid in postman env file
+- name: Replace accountid in postman env file
+  replace:
+    path: "{{ playbook_dir }}/../../../build/SupplychainDemo_quorum.postman_environment.json"
+    regexp: "{{ organization_data.name | lower }}_account"
+    replace: "{{ account[0] }}"

@@ -144,7 +144,6 @@ router.get('/:trackingID?', function (req, res) {
 
 //POST for new product
 router.post('/', upload.array(), function (req, res) {
-  res.setTimeout(15000);
   // TODO: Create product
   let newProduct = {
     productName: req.body.productName,
@@ -153,6 +152,8 @@ router.post('/', upload.array(), function (req, res) {
     counterparties: req.body.counterparties,
     lastScannedAt: fromNodeSubject
   };
+  // Add this.address in the counterparties list
+  newProduct.counterparties.push(fromAddress+","+fromNodeSubject);
   var misc = [];
   var keys = Object.keys(newProduct.misc);
 
@@ -192,7 +193,6 @@ router.post('/', upload.array(), function (req, res) {
 
 //PUT for updating custodian
 router.put('/:trackingID/custodian', function (req, res) {
-  res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var identityArray = fromNodeSubject.split(',');
   var trackingID = req.params.trackingID;

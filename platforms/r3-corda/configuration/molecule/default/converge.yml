@@ -1,0 +1,83 @@
+---
+- name: Converge
+  hosts: localhost                      # This is executed on localhost because our code executes on localhost
+  connection: local
+  vars:
+    privilege_escalate: true            #escalate root priviledge for default test
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"           
+    kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
+    kubecontext: "kind"
+
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+
+  roles:
+    - role: create/storageclass
+      vars:
+        org:
+          name: test
+          cloud_provider: aws
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: kind
+          gitops:
+            release_dir: "test"
+            git_push_url: testurl
+            username: testusername
+            email: testemail
+            password: testpassword
+            branch: testbranch
+        network:
+          env:
+            retry_count: 100
+
+    - role: create/namespace_serviceaccount
+      vars:
+        org:
+          name: test
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: kind
+          gitops:
+            release_dir: "test"
+            git_push_url: testurl
+            username: testusername
+            email: testemail
+            password: testpassword
+            branch: testbranch
+
+  tasks:
+    - name: Deploy the storageclass on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../test/awsstorageclass/awsstorageclass.yaml"
+
+    - name: Deploy the namespace on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../test/test-ns/namespace.yaml"
+
+    - name: Deploy vaultauth serviceaccount on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../test/test-ns/vaultAuth.yaml"
+
+    - name: Deploy vaultreviewer serviceaccount on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../test/test-ns/vault-reviewer.yaml"
+
+    - name: Deploy clusterrolebinding on cluster
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/../../../test/test-ns/reviewer_rbac.yaml"

@@ -22,16 +22,6 @@
     tags:
       - aws_cli
 
-  - name: install unzip
-    become: "{{ privilege_escalate }}"
-    become_user: root
-    package:
-      name: unzip
-      state: present
-    when: not aws_cli_stat_result.stat.exists
-    tags:
-      - aws_cli
-
   - name: extract aws cli
     unarchive:
       src: "{{ tmp_directory.path }}/awscli-bundle.zip"
@@ -42,17 +32,16 @@
       - aws_cli
 
   - name: create bin directory
-    file:
+    include_role:
+      name: "check/setup"
+    vars:
       path: "{{ aws_cli.bin_directory }}"
-      state: directory
-      recurse: yes
+      check: "ensure_dir"
     when: not aws_cli_stat_result.stat.exists
     tags:
       - aws_cli
 
   - name: install aws cli
-    become: "{{ privilege_escalate }}"
-    become_user: root
     shell: |
       cd "{{ tmp_directory.path }}"
       ./awscli-bundle/install -b {{ aws_cli.bin_directory }}/aws
@@ -65,7 +54,6 @@
       cd {{ aws_cli.bin_directory }}/
       ./aws configure set aws_access_key_id {{ aws_access_key }}
       ./aws configure set aws_secret_access_key {{ aws_secret_key }}
-    when: not aws_cli_stat_result.stat.exists or aws_cli_stat_result.stat.exists
+    changed_when: false
     tags:
       - notest
-      - molecule-idempotence-notest

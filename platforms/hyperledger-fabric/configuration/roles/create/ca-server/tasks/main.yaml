@@ -10,13 +10,14 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_ca_result
+  changed_when: false
   ignore_errors: yes
 
 ############################################################################################
 # This task creates the folder to store crypto material
 - name: "creating the directory ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
   include_role:
-    name: "../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
     check: "ensure_dir"
@@ -32,6 +33,14 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_ca_result.failed == False
 
+
+#####################################################################################
+  #This task checks if the CA key is already present or not
+- name: "Check if the CA.key is already present"
+  stat:
+    path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key"
+  register: ca_key_check
+
 ############################################################################################
 # This task generates initial CA certificates
 - name: Generate the CA certificate
@@ -39,7 +48,7 @@
     cd "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
     openssl ecparam -name prime256v1 -genkey -noout -out {{ component_name }}-CA.key
     openssl req -x509 -config "{{playbook_dir}}/openssl.conf" -new -nodes -key {{ component_name }}-CA.key -days 1024 -out ca.{{ component_name }}-cert.pem -extensions v3_req -subj "{{ ca.subject }}"
-  when: vault_ca_result.failed == True
+  when: vault_ca_result.failed == True and  not ca_key_check.stat.exists
 
 ############################################################################################
 # This task copy the CA certificates generated above, to the Vault
@@ -50,6 +59,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_ca_result.failed == True
+  changed_when: false
+
 
 - name: Check if ca admin credentials already created
   shell: |
@@ -59,6 +70,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_caadmin_result
   ignore_errors: yes
+  changed_when: false
 
 ############################################################################################
 # This task write the CA server admin credentials to Vault
@@ -70,9 +82,10 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_caadmin_result.failed == True  # run only when vault_caadmin_result failed
 
+
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
-  k8s_facts:
+  k8s_info:
     kind: Secret
     namespace: default
     name: ca-{{ component_name }}-ambassador-certs
@@ -95,7 +108,7 @@
   vars:
     name: "{{ ca.name }}"
     type: "ca-orderer"
-    ca_image: "hyperledger/fabric-ca:{{ network.version }}"
+    ca_image: "hyperledger/fabric-ca:{{ ca_image_version[network.version] }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     git_url: "{{ gitops.git_ssh }}"
     git_branch: "{{ gitops.branch }}"
@@ -110,7 +123,7 @@
   vars:
     name: "{{ ca.name }}"
     type: "ca-peer"
-    ca_image: "hyperledger/fabric-ca:{{ network.version }}"
+    ca_image: "hyperledger/fabric-ca:{{ ca_image_version[network.version] }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     git_url: "{{ gitops.git_ssh }}"
     git_branch: "{{ gitops.branch }}"
@@ -129,4 +142,6 @@
     GIT_PASSWORD: "{{ item.gitops.password }}"
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
-    msg: "Pushing CA server files"
+    msg: "[ci skip] Pushing CA server files"
+  tags:
+    - notest

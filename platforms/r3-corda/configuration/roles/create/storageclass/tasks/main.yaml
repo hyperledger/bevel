@@ -1,21 +1,30 @@
 #############################################################################################
 # This role creates value files for storage class
 #############################################################################################
+
+- set_fact:
+    cloud_provider: "{{ org.cloud_provider }}"
+
 # Check storageclass exists already
 - name: Check if storageclass exists
-  k8s_facts:
-    kind: StorageClass
-    name: "{{ storageclass_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: storageclass_state
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: StorageClass
+    component_name: "{{ cloud_provider }}storageclass"
+    kubernetes: "{{ org.k8s }}"
+    type: "no_retry"
+
+- name: Set the storageclass check result to a local variable
+  set_fact:
+    storageclass_state: "{{ result }}"
 
 - name: Create storageclass
   include_role:
     name: create/k8_component
   vars:
-    component_type: "{{ org.cloud_provider}}-storageclass"
-    component_name: "{{ storageclass_name }}"
+    component_type: "{{ cloud_provider }}storageclass"
+    component_name: "{{ cloud_provider }}storageclass"
     helm_lint: "false"
     release_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
   when: storageclass_state.resources|length == 0
@@ -24,6 +33,8 @@
 - name: "Push the created deployment files to repository"
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  tags:
+    - notest
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     GIT_REPO: "{{ org.gitops.git_push_url }}"
@@ -32,14 +43,16 @@
     GIT_PASSWORD: "{{ org.gitops.password }}"
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
-    msg: "Pushing deployment file for storageclass"
+    msg: "[ci skip] Pushing deployment file for storageclass"
 
 - name: "Wait for Storageclass creation for {{ component_name }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  tags:
+    - notest
   vars:
     component_type: "StorageClass"
-    component_name: "{{ storageclass_name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
+    component_name: "{{ cloud_provider }}storageclass"
+    kubernetes: "{{ org.k8s }}"
+    type: "retry"
   when: storageclass_state.resources|length == 0

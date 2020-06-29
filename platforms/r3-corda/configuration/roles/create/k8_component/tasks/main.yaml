@@ -7,12 +7,20 @@
 ################################################################################################
 
 ---
+# Task to check if values file are already created or not
+- stat: 
+    path: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+  register: value_file_exist
+
 # Task to create and/or check if the target directory exists
 - name: "Ensures {{ release_dir }}/{{ component_name }} dir exists"
-  file:
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
     path: "{{ release_dir }}/{{ component_name }}"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
+  when: not value_file_exist.stat.exists
+  
 
 # Task to create deployment file from a template
 - name: "create {{ component_type }} file for {{ component_name }}"
@@ -21,6 +29,7 @@
     dest: "{{ values_file }}"
   vars:
     values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+  when: not value_file_exist.stat.exists
 
 ################################################################################################
 # This task tests the value file for syntax errors/ missing values
@@ -33,5 +42,4 @@
     helmtemplate_type: "{{ component_type }}"
     chart_path: "{{ charts_dir }}"
     value_file: "{{ release_dir }}/{{ component_name }}/{{ helmtemplate_type }}.yaml"
-  when: helm_lint=="true" 
-
+  when: helm_lint=="true" and (not value_file_exist.stat.exists)

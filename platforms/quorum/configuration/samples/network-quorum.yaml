@@ -38,7 +38,6 @@ network:
     # Supported versions #
     # constellation: 0.3.2 (For all versions of quorum)
     # tessera: 0.11 (for quorum 2.5.0)
-    # tessera: 0.9.2 (for quorum 2.1.1)
     tm_version: "0.11"               
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
@@ -55,17 +54,10 @@ network:
       - "https://manufacturer.test.quorum.blockchaincloudpoc.com:8443"
       - "https://store.test.quorum.blockchaincloudpoc.com:8443"
       - "https://warehouse.test.quorum.blockchaincloudpoc.com:8443"
-    ##### Following keys are used only to add new Node(s) to existing network.
-    staticnodes:                # Existing network static nodes need to be provided like below
-    # The below urls are formed by the enode://(peerid)@(peer.name).(org.external_url_suffix):(ambassador p2p port)?discport=0&raftport=(ambassador RAFT port)
-    # peerid is generated in the automation
-      - enode://293ce022bf114b14520ad97349a1990180973885cc2afb6f4196b490397e164fabc87900736e4b685c5f4cf31479021ba0d589e58bd0ea6792ebbfd5eb0348af@carrier.test.quorum.blockchaincloudpoc.com:15011?discport=0&raftport=15012
-      - enode://4e7a1a15ef6a9bbf30f8b2a6b927f4941c9e80aeeeed14cfeeea619f93256b41ef9994b9a8af371f394c2a6de9bc6930e142c0350399a22081c518ab2d27f92a@manufacturer.test.quorum.blockchaincloudpoc.com:15021?discport=0&raftport=15022
-    genesis:                    # Existing network's genesis.json file in base64 format like below
-    #     ewogICAgImFsbG9jIjogewogICAgICAgICIwOTg2Nzk2ZjM0ZDhmMWNkMmI0N2M3MzQ2YTUwYmY2
-    #     OWFhOWM1NzcyIjogewogICAgICAgICAgICAiYmFsYW5jZSI6ICIxMDAwMDAwMDAwMDAwMDAwMDAw
-    #     MDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImY2MjkyNTQ1YWVjNTkyMDU4MzQ
 
+    staticnodes: "/home/user/blockchain-automation-framework/build/quorum_staticnodes" # Location where staticnodes will be saved
+    genesis: "/home/user/blockchain-automation-framework/build/quorum_genesis"   # Location where genesis file will be saved
+    # NOTE for the above paths, the directories should exist
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -107,6 +99,7 @@ network:
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          lock: true/false        # Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -162,6 +155,7 @@ network:
           subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          lock: true/false        # Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -215,6 +209,7 @@ network:
           subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          lock: true/false        # Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -268,6 +263,7 @@ network:
           subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          lock: true/false        # Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)

@@ -4,12 +4,16 @@
 
 # Check service account exists already
 - name: Check if service account for {{ component_name }} exists
-  k8s_facts:
-    kind: ServiceAccount
-    name: "{{ component_name }}"
-    namespace: "{{ component_namespace }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-  register: serviceaccount_state
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    type: "no_retry"
+
+# Sets the result of service account check to a local variable
+- name: "Set Variable"
+  set_fact:
+    serviceaccount_state: "{{ serviceAccount_data }}"
 
 # Create service account
 - name: Create service account for {{ component_name }}
@@ -22,12 +26,17 @@
 
 # Check cluster role binding
 - name : Check cluster role binding for {{ component_name }}
-  k8s_facts:
-    kind: ClusterRoleBinding
-    name: "{{ component_name }}"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:  
     namespace: "{{ component_namespace }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-  register: clusterrolebinding_state
+    component_type: "ClusterRoleBinding"
+    type: "no_retry"
+
+# Sets the result of cluster role binding check result to a local variable
+- name: "Set Variable"
+  set_fact:
+    clusterrolebinding_state: "{{ result }}"
 
 # Get component_name to var
 - name: Get component_name to var

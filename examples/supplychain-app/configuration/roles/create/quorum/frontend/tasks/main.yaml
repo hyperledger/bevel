@@ -1,0 +1,48 @@
+############################################################################################
+# Create secret for gmaps key
+- name: "Check for Gmaps_key secret for {{ organisation }}"
+  k8s_facts:
+    kind: "Secret"
+    namespace: "{{ component_ns }}"
+    name: "gmaps-key"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"  
+  register: secret_present
+
+- name: Create the gmaps key secret for {{ component_ns }}
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_ns }} generic gmaps-key --from-literal=gmapskeyvalue='{{ organization_data.app.google_maps_api }}'
+  when: secret_present.resources|length == 0
+
+############################################################################################
+# Create frontend value file
+- name: "Create frontend values file"
+  include_role:
+    name: helm_component
+  vars:
+    type: "frontend"
+    name: "{{ peer_data.name }}"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    peer_name: "{{ peer_data.name }}"
+    peer_frontend_port: "{{ peer_data.frontend.port }}"
+    peer_expressapi_port: "{{ peer_data.expressapi.port }}"
+    peer_frontend_targetport: "{{ peer_data.frontend.targetPort }}"
+    ambassador_secret: "{{ peer_data.name }}-ambassador-certs"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+
+# Push the frontend deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ component_gitops.git_push_url }}"
+    GIT_USERNAME: "{{ component_gitops.username }}"
+    GIT_EMAIL: "{{ component_gitops.email }}"
+    GIT_PASSWORD: "{{ component_gitops.password }}"
+    GIT_BRANCH: "{{ component_gitops.branch }}"
+    GIT_RESET_PATH: "platforms/quorum/configuration"
+    msg: "[ci skip] Pushing deployment files for supplychain frontend"
+

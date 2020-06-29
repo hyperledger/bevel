@@ -24,12 +24,23 @@ spec:
       mysql: mysql/mysql-server:5.7
     node:
       name: {{ peer.name }}
+{% if add_new_org %}
+{% if network.config.consensus == 'raft' %}
+      peer_id: {{ peer_id | int }}
+{% endif %}
+{% endif %}
+      status: {{ node_status }}
       consensus: {{ consensus }}
       subject: {{ peer.subject }}
       mountPath: /etc/quorum/qdata
       imagePullSecret: regcred
       keystore: keystore_1
+{% if item.cloud_provider == 'minikube' %}     
+      servicetype: NodePort
+{% else %}      
       servicetype: ClusterIP
+{% endif %}
+      lock: {{ peer.lock | lower }}
       ports:
         rpc: {{ peer.rpc.port }}
         raft: {{ peer.raft.port }}
@@ -61,17 +72,8 @@ spec:
       tls: "{{ network.config.tm_tls | upper }}"
       trust: "{{ network.config.tm_trust | upper }}"
     genesis: {{ genesis }}
-    staticnodes:
-{% if network.config.consensus == 'ibft' %}
-{% for enode in enode_data_list %}
-      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0
-{% endfor %}
-{% endif %}
-{% if network.config.consensus == 'raft' %}
-{% for enode in enode_data_list %}
-      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
-{% endfor %}
-{% endif %}
+    staticnodes: 
+      {{ staticnodes }}
     proxy:
       provider: "ambassador"
       external_url: {{ name }}.{{ external_url }}

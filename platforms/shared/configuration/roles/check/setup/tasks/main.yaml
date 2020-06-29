@@ -1,24 +1,32 @@
 ---
+# This tasks ensures the directory existance and registers the result essential for idempotence test
+- name: "check if dir exists or not"
+  stat:
+    path: "{{ path }}"
+  register: dir_check
+  when: check == "ensure_dir"
+
 # Check if directory is created
-# This task creates the direcotry
+# This task creates the directory
 - name: Ensures dir exists
   file:
     path: "{{ path }}"
     recurse: yes
+    mode: '0755'
     state: directory
-  when: check == "ensure_dir" 
-
+  when: check == "ensure_dir" and (not dir_check.stat.exists)
+  
 # This task checks if the vault path already exists
 - name: Check if Kubernetes-auth already created for Organization
   shell: |
-    vault auth list
+    vault auth list --format json | jq "to_entries[] | select(.value.restricted|not) | .key"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: auth_lists
   when: check == "vault_auth"
 
-# This task checks if the vault-ro polict already exists
+# This task checks if the vault-ro policy already exists
 - name: Check if policy exists
   shell: |
     vault policy read vault-crypto-{{ component_type }}-{{ component_name }}-ro
@@ -39,4 +47,3 @@
     context: "{{ kubernetes.context }}"
   register: get_regcred
   when: check == "docker_credentials"
-

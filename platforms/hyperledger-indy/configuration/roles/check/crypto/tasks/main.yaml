@@ -3,22 +3,19 @@
 ##############################################################################################
 
 ##############################################################################################
+
+- name: "Set component_name to a temporary variable for later use"
+  set_fact: 
+    temp_component_name: "{{ component_name }}"
+
 # Check if Indy Key management pod for trustee is completed
 - name: Check if Indy Key management pod for trustee is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
-    identity_name: "{{ trusteeItem.name }}"
-  k8s_facts:
-    kind: Pod
+    component_name: "{{ temp_component_name }}-{{ trusteeItem.name }}"
+    component_type: Job
     namespace: "{{ component_ns }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    label_selectors:
-      - app={{ component_name }}-{{ identity_name }}
-    field_selectors:
-      - status.phase=Succeeded
-  register: result
-  until: result.resources|length > 0
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trusteeItem
@@ -27,20 +24,12 @@
 ##############################################################################################
 # Check if Indy Key management pod for stewards is completed
 - name: Check if Indy Key management pod for stewards is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
-    identity_name: "{{ stewardItem.name }}"
-  k8s_facts:
-    kind: Pod
+    component_name: "{{ temp_component_name }}-{{ stewardItem.name }}"
+    component_type: Job
     namespace: "{{ component_ns }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    label_selectors:
-      - app={{ component_name }}-{{ identity_name }}
-    field_selectors:
-      - status.phase=Succeeded
-  register: result
-  until: result.resources|length > 0
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
   loop: "{{ services.stewards }}"
   loop_control:
     loop_var: stewardItem
@@ -49,20 +38,12 @@
 ##############################################################################################
 # Check if Indy Key management pod for endorser is completed
 - name: Check if Indy Key management pod for endorser is completed
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
-    identity_name: "{{ endorserItem.name }}"
-  k8s_facts:
-    kind: Pod
+    component_name: "{{ temp_component_name }}-{{ endorserItem.name }}"
+    component_type: Job
     namespace: "{{ component_ns }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    label_selectors:
-      - app={{ component_name }}-{{ identity_name }}
-    field_selectors:
-      - status.phase=Succeeded
-  register: result
-  until: result.resources|length > 0
-  retries: "{{ network.env.retry_count}}"
-  delay: 40
   loop: "{{ services.endorsers }}"
   loop_control:
     loop_var: endorserItem

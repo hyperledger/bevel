@@ -4,11 +4,19 @@
 
 # Check StorageClass exists already
 - name: Check if storageclass exists
-  k8s_facts:
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
     kind: StorageClass
     name: "{{ storageclass_name }}"
     kubeconfig: "{{ kubernetes.config_file }}"
-  register: storageclass_state
+    type: "no_retry"
+    component_type: StorageClass
+  # register: storageclass_state
+
+- name: "Set Variable"
+  set_fact:
+    storageclass_state: "{{ result }}"
 
 # Create StorageClass
 - name: Create storageclass
@@ -32,12 +40,13 @@
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
-    msg: "Pushing deployment file for storageclass"
+    msg: "[ci skip] Pushing deployment file for storageclass"
 
 - name: "Wait for Storageclass creation for {{ component_name }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "StorageClass"
     kubeconfig: "{{ kubernetes.config_file }}"
+    type: "retry"
   when: storageclass_state.resources|length == 0

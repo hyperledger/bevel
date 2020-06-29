@@ -102,7 +102,6 @@ router.get("/:trackingID?", function(req, res) {
 
 //POST for new container
 router.post("/", upload.array(), function(req, res) {
-  res.setTimeout(15000);
   // TODO: Implement new container functionality
   let newContainer = {
     misc: req.body.misc,
@@ -110,10 +109,9 @@ router.post("/", upload.array(), function(req, res) {
     lastScannedAt: fromNodeSubject,
     counterparties: req.body.counterparties
   };
-  var isInArray = false;
-  if (newContainer.counterparties.includes(fromAddress+","+fromNodeSubject)) {
-    isInArray = true;
-  }
+  // Add this.address in the counterparties list
+  newContainer.counterparties.push(fromAddress+","+fromNodeSubject);
+
   
   var misc = [];
   var keys = Object.keys(newContainer.misc);
@@ -123,33 +121,30 @@ router.post("/", upload.array(), function(req, res) {
     misc.push(x)
   }
 
+  productContract.methods
+    .addContainer(
+      "health",
+      misc,
+      newContainer.trackingID,
+      newContainer.lastScannedAt,
+      newContainer.counterparties,
+    )
+    .send({ from: fromAddress, gas: 6721900, gasPrice: "0" })
+    .on("receipt", function(receipt) {
 
-  if (isInArray) {
-    productContract.methods
-      .addContainer(
-        "health",
-        misc,
-        newContainer.trackingID,
-        newContainer.lastScannedAt,
-        newContainer.counterparties,
-      )
-      .send({ from: fromAddress, gas: 6721900, gasPrice: "0" })
-      .on("receipt", function(receipt) {
-
-        if (receipt.status === true) {
-          res.send({generatedID: newContainer.trackingID});
-        }
-      })
-      .catch(error => {
-        res.send(error.message);
-        console.log(error);
-      });
-  }
+      if (receipt.status === true) {
+        res.send({generatedID: newContainer.trackingID});
+      }
+    })
+    .catch(error => {
+      res.send(error.message);
+      console.log(error);
+    });
+  
 });
 
 //PUT for updating custodian
 router.put("/:trackingID/custodian", function(req, res) {
-  res.setTimeout(15000);
   // TODO: Implement change custodian functionality
   var trackingID = req.params.trackingID;
   var lastScannedAt = fromNodeSubject;
@@ -168,7 +163,6 @@ router.put("/:trackingID/custodian", function(req, res) {
 
 //PUT for removing contents
 router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res) {
-  res.setTimeout(15000);
   // TODO: Implement remove content from container
   var containerTrackingID = req.params.containerTrackingID;
   var trackableID = req.body.contents;

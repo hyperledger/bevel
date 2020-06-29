@@ -22,12 +22,19 @@ spec:
       constellation: quorumengineering/constellation:{{ network.config.tm_version }}
     node:
       name: {{ peer.name }}
+{% if add_new_org %}
+{% if network.config.consensus == 'raft' %}
+      peer_id: {{ peer_id | int }}
+{% endif %}
+{% endif %}
+      status: {{ node_status }}
       consensus: {{ consensus }}
       subject: {{ peer.subject }}
       mountPath: /etc/quorum/qdata
       imagepullsecret: regcred
       keystore: keystore_1
       servicetype: ClusterIP
+      lock: {{ peer.lock | lower }}
       ports:
         rpc: {{ peer.rpc.port }}
         raft: {{ peer.raft.port }}
@@ -42,17 +49,8 @@ spec:
       role: vault-role
       authpath: quorum{{ name }}
     genesis: {{ genesis }}
-    staticnodes:
-{% if network.config.consensus == 'ibft' %}
-{% for enode in enode_data_list %}
-      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0
-{% endfor %}
-{% endif %}
-{% if network.config.consensus == 'raft' %}
-{% for enode in enode_data_list %}
-      - enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ external_url }}:{{ enode.p2p_ambassador }}?discport=0&raftport={{ enode.raft_ambassador }}
-{% endfor %}
-{% endif %}
+    staticnodes: 
+      {{ staticnodes }}
     constellation:
 {% if network.config.tm_tls == 'strict' %}
       url: https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/

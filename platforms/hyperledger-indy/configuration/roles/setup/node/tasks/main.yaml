@@ -3,10 +3,11 @@
 ##############################################################################################
 - name: "Wait for namespace creation for stewards"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "Namespace"
     component_name: "{{ component_ns }}"
+    type: "retry"
 
 # ----------------------------------------------------------------------
 # create image pull secrets
@@ -42,7 +43,7 @@
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
-    msg: "Pushing deployment files for {{ organization }}-{{ stewardItem.name }}-node"
+    msg: "[ci skip] Pushing deployment files for {{ organization }}-{{ stewardItem.name }}-node"
   loop: "{{ services.stewards }}"
   when: services.stewards is defined
   loop_control:
@@ -52,10 +53,13 @@
 # wait until steward pods are running
 - name: "Wait until steward pods are running"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
+    namespace: "{{ component_ns }}"
     component_type: "Pod"
     component_name: "{{ organization }}-{{ stewardItem.name }}-node"
+    label_selectors:
+      - app = {{ component_name }}
   loop: "{{ services.stewards }}"
   when: services.stewards is defined
   loop_control:

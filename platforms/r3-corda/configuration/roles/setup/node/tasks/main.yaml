@@ -3,31 +3,35 @@
 ##############################################################################################
 - name: "Wait for namespace creation for nodes"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "Namespace"
     component_name: "{{ component_ns }}"
+    type: "retry"
 
 - name: "Wait for vault-auth creation for nodes"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
     component_name: "vault-auth"
+    type: "retry"
 
 - name: "Wait for vault-reviewer creation for nodes"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
     component_name: "vault-reviewer"
+    type: "retry"
 
 - name: "Wait for ClusterRoleBinding creation for nodes"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ClusterRoleBinding"
     component_name: "{{ component_ns }}-role-tokenreview-binding"
+    type: "retry"
 
 # ----------------------------------------------------------------------  
 # create vault access policies
@@ -120,32 +124,11 @@
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
-    msg: "Pushing db and job deployment files for {{ node.name }}"
+    msg: "[ci skip] Pushing db and job deployment files for {{ node.name }}"
   loop: "{{ services.peers }}"
   loop_control:
     loop_var: node
-
-- name: "Wait for node db pod creation"
-  include_role:
-    name: check/node_component
-  vars:
-    component_type: "Pod"
-    component_name: "{{ node.name }}db"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-
-- name: "Wait for node job completion"
-  include_role:
-    name: check/node_component
-  vars:
-    component_type: "Job"
-    component_name: "{{ node.name }}-registration"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-  when: nodekeystore_result.results[0].failed == True
-
+    
 #----------------------------------------------------------------------  
 # create deployment file for node node
 - name: 'Create node deployment file'
@@ -179,7 +162,7 @@
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
     GIT_BRANCH: "{{ gitops.branch }}"
-    msg: "Creating node deployment file for {{ node.name }}"
+    msg: "[ci skip] Pushing node deployment file for {{ node.name }}"
   loop: "{{ services.peers }}"
   loop_control:
     loop_var: node

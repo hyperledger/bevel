@@ -2,13 +2,15 @@
 # This role creates the docker pull registry secret within each namespace
 ##########################################################################################
 - name: "Check for ImagePullSecret for {{ organisation }}"
-  k8s_facts:
-    kind: "Secret"
-    namespace: "{{ component_ns }}"
-    name: "regcred"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"  
-  register: secret_present
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    component_name: "{{ component_ns }}"
+    check: "docker_credentials"
+  
+- name: Setting the docker cred check task output to the local variable
+  set_fact:
+    secret_present: "{{ get_regcred }}"
 
 - name: Create the docker pull registry secret for {{ component_ns }}
   shell: |

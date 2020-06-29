@@ -102,7 +102,7 @@ spec:
           tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.key"]')
           echo "${tmpub}" > ${OUTPUT_PATH}/tm.pub
           echo "${tmkey}" > ${OUTPUT_PATH}/tm.key
-          
+
         volumeMounts:
         - name: certificates
           mountPath: /secret
@@ -134,6 +134,7 @@ spec:
         args:
         - "-cx"
         - "chmod 600 $QUORUM_HOME/crypto/keys/tm.key;
+
            mkdir -p $QUORUM_HOME/logs;
            mkdir -p $QUORUM_HOME/database;
            DDIR=$QUORUM_HOME/tm;
@@ -174,6 +175,7 @@ spec:
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
+
           cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
           cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
           cp $QUORUM_HOME/crypto/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
@@ -189,12 +191,25 @@ spec:
           echo slept for 5 to give transaction manager time to start;
 
           args=""
+          NODE_STATUS=""
           if [ $CONSENSUS == 'raft' ]; then
-            args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft "
+            NODE_STATUS={{ .Values.node.status }}
+          fi;
+          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'additional' ]; then
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft --raftjoinexisting {{ .Values.node.peer_id }}"
+          fi;
+          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'default' ]; then
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft"
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --mine --minethreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+            args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
           fi;
+
+          LOCK_STATUS={{ .Values.node.lock }}
+          if [ $LOCK_STATUS = false ]
+          then
+            args=" ${args} --unlock 0 " 
+          fi
 
           /usr/local/bin/geth \
            --datadir $QUORUM_DATA_DIR \
@@ -211,8 +226,8 @@ spec:
            --rpcport {{ .Values.node.ports.rpc }} \
            --rpcvhosts=* \
            --port {{ .Values.node.ports.quorum }} \
-           --unlock 0 \
            --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
+
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
           - containerPort: {{ .Values.node.ports.quorum }}

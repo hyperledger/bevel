@@ -3,11 +3,11 @@
 To create a Production DLT network, ensure you have the following:
 
 1. One running Kubernetes Cluster and the Config file (kubeconfig.yaml) per Organization.
-1. One running Hashicorp Vault server per Organization. Unsealed and configured as per [guidance here](./configure_prerequisites#vaultunseal).
-1. Domain Name(s) configured as per [guidance here](./configure_prerequisites#ambassador).
-1. Private key file per Organization for GitOps with write-access to the Git repo as per [guidance here](./configure_prerequisites#privatekey).
+1. One running Hashicorp Vault server per Organization. Unsealed and configured as per [guidance here](./configure_prerequisites.html#vaultunseal).
+1. Domain Name(s) configured as per [guidance here](./configure_prerequisites.html#ambassador).
+1. Private key file per Organization for GitOps with write-access to the Git repo as per [guidance here](./configure_prerequisites.html#privatekey).
 1. Git user details per Organization as per [pre-requisites](../prerequisites).
-1. Ansible controller configured as per [guidance here](./configure_prerequisites#Ansible_Inventory).
+1. Ansible controller configured as per [guidance here](./configure_prerequisites.html#Ansible_Inventory).
 
 ---
 **NOTE**: All commands are executed from the `blockchain-automation-framework` directory which is the default directory created when you clone our Git repo.
@@ -42,6 +42,7 @@ Open and update the `network.yaml` according to the following Platform specific 
 | [R3-Corda](./corda_networkyaml.md) 
 | [ Hyperledger-Indy](./indy_networkyaml.md)
 | [Quorum](./quorum_networkyaml.md) |
+| [Hyperledger-Besu](./besu_networkyaml.md)
 
 In summary, you will need to update the following:
 1. `docker` url, username and password.
@@ -81,7 +82,7 @@ For a successful setup of DLT Network all the pods should be in running state.
 
 
 ## Deleting an existing DLT network
-The above mentioned playbook [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/README.md)) can be run to reset the network using the network configuration file having the specifications which was used to setup the network using the following command:
+The above mentioned playbook [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/)) can be run to reset the network using the network configuration file having the specifications which was used to setup the network using the following command:
 ```
 ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "reset=true"
 ```

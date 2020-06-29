@@ -6,11 +6,12 @@
 # This task ensures directory existance, if not creates a new one
 ---
 - name: "Ensure build dir exists"
-  file:
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
     path: "{{ notary_certs }}"
-    recurse: yes
-    state: directory
-
+    check: "ensure_dir"
+    
 - name: Check if truststore already created
   shell: |
     vault kv get -field=network-map-truststore {{ component_name }}/certs/networkmaptruststore

@@ -1,0 +1,90 @@
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"           
+    kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
+    kubecontext: "kind"
+    network:
+      type: "corda"
+      docker:
+        url: "index.docker.io/hyperledgerlabs"
+      env:
+        type: test               # tag for the environment. Important to run multiple flux on single cluster
+        proxy: ambassador                  # values can be 'haproxy' or 'ambassador'
+        ambassadorPorts: 15010,15020    # is valid only if proxy='ambassador'
+        retry_count: 20                 # Retry count for the checks
+        external_dns: disabled
+  pre_tasks:
+    - name: Create temp chart folder
+      file:
+        path: ../../../platforms/shared
+        state: directory
+    - name: Copy the charts
+      copy:
+        src: ../../../../../platforms/shared/charts
+        dest: ../../../platforms/shared
+        remote_src: yes
+        follow: yes
+    - name: Create secret
+      shell: |
+        ssh-keygen -q -N "" -f test_rsa.pem
+      changed_when: false
+      tags:
+        - molecule-idempotence-notest
+  roles:
+    - role: setup/flux
+      vars:
+        item:
+          cloud_provider: "aws"
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+        git_url: "ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_key: "test_rsa.pem"
+        git_branch: "develop"
+        git_path: "platforms/r3-corda/releases/test"
+        git_host: "github.com"        
+    - role: setup/ambassador
+      vars:
+        item:
+          cloud_provider: "aws"
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+        aws:
+          access_key: test
+          secret_key: test
+        ambassador:
+          version: "2.1.0"
+          targetPort: "443"
+          port: "8443"
+          image: quay.io/datawire/ambassador
+          tag: "0.53.1"
+    - role: setup/haproxy-ingress
+      vars:
+        item:
+          cloud_provider: "aws"
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+        aws:
+          access_key: test
+          secret_key: test
+  post_tasks:
+    - name: Delete the temp secret file
+      file:
+        path: test_rsa.pem
+        state: absent
+      tags:
+        - molecule-idempotence-notest
+    - name: Delete the temp secret file
+      file:
+        path: test_rsa.pem.pub
+        state: absent
+      tags:
+        - molecule-idempotence-notest

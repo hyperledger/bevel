@@ -233,7 +233,7 @@ spec:
           cat  ${DDIR}/tessera-config-with-hosts.json;
 
           TESSERA_MAIN=com.quorum.tessera.Launcher;
-          if [[ \"${Tess_Ver_Second}\" -g \"9\" ]]; then
+          if [[ \"${Tess_Ver_Second}\" -ge \"10\" ]]; then
             TESSERA_MAIN=com.quorum.tessera.launcher.Main;
           fi;
           java -Xms128M -Xmx128M -cp $SQL_JAR:$TESSERA_JAR:. $TESSERA_MAIN -configfile ${DDIR}/tessera-config-with-hosts.json --jdbc.password $PASSWORD;
@@ -286,30 +286,43 @@ spec:
           echo transaction manager is up;
 
           args=""
+          NODE_STATUS=""
           if [ $CONSENSUS == 'raft' ]; then
-            args=" --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
+            NODE_STATUS={{ .Values.node.status }}
+          fi;
+          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'additional' ]; then
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft --raftjoinexisting {{ .Values.node.peer_id }}";
+          fi;
+          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'default' ]; then
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --mine --minerthreads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+            args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
           fi;
 
+          LOCK_STATUS={{ .Values.node.lock }}
+          if [ $LOCK_STATUS = false ]
+          then
+            args=" ${args} --unlock 0 " 
+          fi
+
           /usr/local/bin/geth \
-          --datadir $QUORUM_DATA_DIR \
-          $args \
-          --identity {{ .Values.node.subject | quote }} \
-          --vmdebug \
-          --gcmode archive \
-          --nodiscover \
-          --nat=none \
-          --verbosity 9 \
-          --emitcheckpoints \
-          --rpc \
-          --rpcaddr 0.0.0.0 \
-          --rpcport {{ .Values.node.ports.rpc }} \
-          --rpcvhosts=* \
-          --port {{ .Values.node.ports.quorum }} \
-          --unlock 0 \
-          --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log; 
+           --datadir $QUORUM_DATA_DIR \
+           $args \
+           --identity {{ .Values.node.subject | quote }} \
+           --vmdebug \
+           --gcmode=archive \
+           --nodiscover \
+           --nat=none \
+           --verbosity 9 \
+           --emitcheckpoints \
+           --rpc \
+           --rpcaddr 0.0.0.0 \
+           --rpcport {{ .Values.node.ports.rpc }} \
+           --rpcvhosts=* \
+           --port {{ .Values.node.ports.quorum }} \
+           --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
+           
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
           - containerPort: {{ .Values.node.ports.quorum }}

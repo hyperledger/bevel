@@ -4,32 +4,36 @@
 
 - name: "Wait for namespace creation for {{ organisation }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "Namespace"
     component_name: "{{ component_ns }}"
+    type: "retry"
 
 - name: "Wait for vault-auth creation for {{ organisation }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
-    component_name: "vault-auth"    
+    component_name: "vault-auth"
+    type: "retry"    
 
 - name: "Wait for vault-reviewer creation for {{ organisation }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ServiceAccount"
     component_name: "vault-reviewer"
+    type: "retry"
 
 - name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
   include_role:
-    name: check/k8_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "ClusterRoleBinding"
     component_name: "{{ component_ns }}-role-tokenreview-binding"
-
+    type: "retry"
+    
 # ----------------------------------------------------------------------  
 # create vault access policies
 - name: "Setup vault for nms"
@@ -136,5 +140,5 @@
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda/configuration"
-    msg: "Pushing deployment files for networkmap node and networkmapmongodb node"
+    msg: "[ci skip] Pushing deployment files for networkmap node and networkmapmongodb node"
     

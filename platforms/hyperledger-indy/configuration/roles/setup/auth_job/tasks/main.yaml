@@ -2,11 +2,12 @@
 # This role generates Helm releases of kubernetes jobs, which create Auth Methods into HashiCorp Vault for getting Vault token by Kubernetes Service Accounts
 #############################################################################################################################################################
 - name: "Wait for namespace creation for stewards"
-  include_role:
-    name: check/k8_component
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "Namespace"
     component_name: "{{ component_ns }}"
+    type: "retry"
 
 # ---------------------------------------------------------------------
 # generate indy auth_job
@@ -32,10 +33,59 @@
     GIT_PASSWORD: "{{ gitops.password }}"
     GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
-    msg: "Pushing deployment files for {{ organization }}"
+    msg: "[ci skip] Pushing deployment files for {{ organization }}"
 
 #---------------------------------------------------------------------
-# Check if auth job finished correctly
+
+# Set component_name to a temporary variable
+- name: "Set component_name to a temporary variable"
+  set_fact: 
+    temp_component_name: "{{ component_name }}"
+
+# Check if Indy  auth job pod for trustee is completed
 - name: "Check if auth job finished correctly"
   include_role:
-    name: check/auth_job
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars: 
+    namespace: "{{ component_ns }}"
+    component_type: Job 
+    component_name: "{{ temp_component_name }}-{{ trusteeItem.name }}-auth-job"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trusteeItem
+  when: services.trustees is defined
+
+  # Check if  auth job pod for stewards is completed
+- name: "Check if auth job finished correctly"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars: 
+    namespace: "{{ component_ns }}"
+    component_type: Job
+    component_name: "{{ temp_component_name }}-{{ stewardItem.name }}-auth-job"
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined
+
+    # Check if Indy  auth job pod for endorser is completed
+- name: "Check if auth job finished correctly"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars: 
+    namespace: "{{ component_ns }}"
+    component_type: Job
+    component_name: "{{ temp_component_name }}-{{ endorserItem.name }}-auth-job"
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorserItem
+  when: services.endorsers is defined
+
+# Check if Indy  auth job pod for baf-ac is completed
+- name: "Check if auth job finished correctly"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars: 
+    namespace: "{{ component_ns }}"
+    component_type: Job
+    component_name: "{{ temp_component_name }}-baf-ac-auth-job"

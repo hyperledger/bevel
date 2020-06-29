@@ -1,0 +1,35 @@
+---
+- name: Prepare for Molecule Test                       # This is a test scenario preparation file
+  hosts: k8s                                            # refers to the inventory group we defined in molecule.yml
+  gather_facts: no
+  vars:                                                     # reads the KUBECONFIG variable from molecule.yml and creates a local var
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') }}"
+  tasks:           
+  - name: delete the kubeconfig if present                  # deletes old kubeconfig file
+    file:
+      path: '{{ kubeconfig }}'
+      state: absent
+    delegate_to: localhost
+ 
+  - name: Fetch the kubeconfig                              # Gets the kubeconfig file from that src path in the docker container
+    fetch:
+      dest: '{{ kubeconfig }}'
+      flat: yes
+      src: /root/.kube/config
+ 
+  - name: Change the kubeconfig port to the proper value    # Updates the file with exposed ports (10443 in this case)
+    replace:
+      regexp: '8443'
+      replace: "{{ lookup('env', 'KIND_PORT') }}"
+      path: '{{ kubeconfig }}'
+    delegate_to: localhost
+ 
+  - name: Wait for the Kubernetes API to become available (this could take a minute)    # Waits for kind to be ready
+    uri:
+      url: "http://localhost:10080/kubernetes-ready"
+      status_code: 200
+      validate_certs: no
+    register: result
+    until: (result.status|default(-1)) == 200
+    retries: 60
+    delay: 5

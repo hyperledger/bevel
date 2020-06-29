@@ -5,33 +5,45 @@
 
 # Check if namespace created
 - name: Check namespace is created
-  k8s_facts:
-    kind: Namespace
-    name: "{{ component_ns }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: get_namespace
-  until: get_namespace.resources|length > 0
-  retries: "{{ network.env.retry_count}}"
-  delay: 35
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_name: "{{ component_ns }}"
+    component_type: Namespace
+    type: "retry"
 
 ############################################################################################
 # This task creates the build temp direcotry
 - name: Ensures build dir exists
-  file:
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
     path: "./build"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
 
 # This task checks if the vault path already exists
 - name: Check if Kubernetes-auth already created for Organization
-  shell: |
-    vault auth list
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: auth_list
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    check: "vault_auth"
 
+# This task sets the result of the k8s auth path check to a local variable
+- name: "Set the result of vault auth check to a local variable"
+  set_fact:
+    auth_list: "{{ auth_lists }}"
+
+# Set vault_auth_status variable to false initially
+- set_fact:
+    vault_auth_status: false
+    component_auth_temp: "\"{{ auth_path }}/\""
+
+# Set vault_auth_status variable to true if found
+- set_fact:
+    vault_auth_status: true
+  loop: "{{ auth_lists.stdout_lines }}"
+  when: item == component_auth_temp
+   
 ############################################################################################
 # This task enables the path for the organizations and orderers on vault
 # This task runs only when {{auth_path}} is not already created
@@ -41,7 +53,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(auth_path) == -1  # Only when auth_path is NOT in the output of auth_list
+  when: not vault_auth_status  # Only when auth_path is NOT in the output of auth_list
   ignore_errors: yes
 
 ############################################################################################
@@ -49,7 +61,7 @@
 # This task runs only when {{auth_path}} is not already created
 - name: Get Kubernetes cert files for organizations
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 --decode > "./build/{{ organization }}.ca.cert"
+    KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ organization }}.ca.cert"
 #  when: auth_list.stdout.find(auth_path) == -1
 
 #####################################################################################################################
@@ -57,7 +69,7 @@
 # This task runs only when {{auth_path}} is not already created
 - name: Write reviewer token for Organizations
   shell: |
-    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount {{ organization }}-admin-vault-auth -n {{ component_ns }} -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 --decode)
+    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount {{ organization }}-admin-vault-auth -n {{ component_ns }} -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 -d)
     vault write auth/{{ auth_path }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host="$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " ")" kubernetes_ca_cert=@"./build/{{ organization }}.ca.cert"
   environment:
     VAULT_ADDR: "{{ vault.url }}"

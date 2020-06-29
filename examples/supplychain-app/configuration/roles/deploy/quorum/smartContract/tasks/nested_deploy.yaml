@@ -1,0 +1,63 @@
+############################################################################################
+# Check if the peer is up
+- name: "Waiting for peer pod {{ peer.name }} in {{ organization_data.name | lower }}-quo"
+  include_role:
+    name: "../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ organization_data.name | lower }}-quo"
+    component_name: "{{ peer.name }}"
+    kubernetes: "{{ organization_data.k8s }}"
+    label_selectors:
+      - name = {{ component_name }}
+
+# install the required packages listed in package.json
+- name: Installing the required packages listed in package.json
+  npm:
+    path: "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}"
+
+# create build directory directory
+- name: create build directory 
+  file:
+    path: "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}/build"
+    state: directory
+
+############################################################################################
+# Run deploy.js to to install smart contract
+- name: Run deploy.js for "{{ organization_data.name | lower }}"
+  shell: |
+    cd "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}"
+    node ./deploy.js "{{ URL }}" "{{ contract_path }}" "{{ entrypoint }}" "{{ contract }}" {{ privateFor }}
+  vars:
+    URL: "{{ peer.geth_url }}"
+    contract_path: "{{ smart_contract.contract_path }}"
+    entrypoint: "{{ smart_contract.entrypoint}}"
+    contract: "{{ smart_contract.name}}"
+    privateFor: "{{ smart_contract.private_for | default('0', true) }}"
+  environment:
+    ITERATIONS: "{{ smart_contract.iterations }}"
+  register: address
+  retries: "{{ network.env.retry_count}}"
+  delay: 5
+  until: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
+
+- debug:
+    msg: 
+      - "{{address['cmd']}}"
+      - "{{address['stdout_lines']}}"
+    verbosity: 2
+
+- set_fact:
+    contract_address: "{{ address['stdout_lines'][1].split(':')[1] | trim }}"
+    contract_name: "{{ address['stdout_lines'][2].split(':')[1] | trim }}"
+    check: address['stdout_lines'][1]
+    when: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
+
+############################################################################################
+
+# delete node_module directory
+- name: Remove node_module directory 
+  file:
+    path: "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}/node_modules"
+    state: absent
+

@@ -1,7 +1,7 @@
 # Charts for R3 Corda components
 
 ## About
-This folder contains helm charts which are used by the ansible playbooks for the deployment of the component. Each chart folder contain a folder for templates, chart file and the corresponding value file. 
+This folder contains helm charts which are used by the ansible playbooks for the deployment of the R3-Corda components. Each chart folder contain a folder for templates, chart file and the corresponding value file. 
 
 ## Example Folder Structure ###
 ```
@@ -23,23 +23,29 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ### 1. doorman ###
 - This folder contains chart templates and default values for doorman servers.
-### 2. h2 ###
+### 2. doorman-tls ###
+- This folder contains chart templates and default values for doorman-tls servers.
+### 3. h2 ###
 - This folder contains chart templates and default values for creation of h2 database.
-### 3. h2-adduser ###
+### 4. h2-adduser ###
 - This folder contains chart templates and default values for adding new user into h2 database.
-### 4. h2-password-change ###
+### 5. h2-password-change ###
 - This folder contains chart templates and default values for changing the password for h2 database user. 
-### 5. mongodb ###
+### 6. mongodb ###
 - This folder contains chart templates and default values for mongodb node
-### 6. networkMap ###
-- This folder contains chart templates and default values for networkmap
-### 7. nms ###
+### 7. mongodb-tls ###
+- This folder contains chart templates and default values for mongodb node with tls=on.
+### 8. nms ###
 - This folder contains chart templates and default values for nms
-### 8. node ###
+### 9. nms-tls ###
+- This folder contains chart templates and default values for nms with tls=on.
+### 10. node ###
 - This folder contains chart templates and default values for node
-### 9. node-initial-registration ###
+### 11. node-initial-registration ###
 - This folder contains chart templates and default values for registering node with notary
-### 10. notary ###
-- This folder contains chart templates and default values for notary and also registering notary with nms
-### 11. notary-initial-registration ###
-- This folder contains chart templates and default values for initializing notary
+### 12. notary ###
+- This folder contains chart templates and default values for notary.
+### 13. notary-initial-registration ###
+- This folder contains chart templates and default values for registering notary with nms.
+### 14. storage ###
+- This folder contains chart templates and default values for StorageClass

@@ -55,10 +55,13 @@
 - name: "Creating genesis block"
   shell: |
     cd {{ build_path }}
+    {% if '2.' in network.version %}
+    ./configtxgen -profile {{ genesis.name }} -channelID syschannel  -outputBlock ./channel-artifacts/genesis.block
+    {% else %}
     ./configtxgen -profile {{ genesis.name }} -outputBlock ./channel-artifacts/genesis.block
+    {% endif %}
     cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
   when: add_new_org == 'false'
-
 
 - name: remove old channel block
   file:
@@ -88,7 +91,7 @@
   when: add_new_org == 'false'
 
 # This task creates the channel by consuming the configtx.yaml file
-- name: "Creating JSON configration for new organization"
+- name: "Creating JSON configuration for new organization"
   shell: |
     cd {{ build_path }}
     export FABRIC_CFG_PATH=$PWD
@@ -96,4 +99,5 @@
   loop: "{{ item.participants }}"
   loop_control:
     loop_var: participant
+  register: result
   when: participant.org_status == 'new' and add_new_org == 'true'

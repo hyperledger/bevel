@@ -1,33 +1,64 @@
 # This role generates certificates for doorman and rootca
 # and places them in vault. Certificates are created using openssl
 ---
+
+# check if rootca dir is there
+- name: "check if file exists or not"
+  stat:
+    path: "{{ rootca }}"
+  register: rootcadir_check
+
 # create the root directory where CA root certificates and key will be placed
 - name: Ensure rootca dir exists
-  file:
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
     path: "{{ rootca }}"
-    recurse: yes
-    state: directory
+    check: "ensure_dir"
+  when: not rootcadir_check.stat.exists
 
-# create the doorman root directory where doorman root certificates and key will be placed
-- name: Ensure doormanca dir exists
-  file:
+# check if doormanca dir is there
+- name: "check if file exists or not"
+  stat:
     path: "{{ doormanca }}"
-    recurse: yes
-    state: directory
+  register: doormancadir_check
+
+# create the doormanca  directory where doorman root certificates and key will be placed
+- name: Ensure doormanca dir exists
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ doormanca }}"
+    check: "ensure_dir"
+  when: not doormancadir_check.stat.exists
+
+# check if mongorootca dir is there
+- name: "check if file exists or not"
+  stat:
+    path: "{{ mongorootca }}"
+  register: mongorootcadir_check
 
 - name: Ensure mongorootca dir exists
-  file:
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:  
     path: "{{ mongorootca }}"
-    recurse: yes
-    state: directory
-  when: services.doorman.tls == 'on'
+    check: "ensure_dir"
+  when: services.doorman.tls == 'on' and (not mongorootcadir_check.stat.exists)
+
+# check if mongodbtca dir is there
+- name: "check if file exists or not"
+  stat:
+    path: "{{ mongodbca }}"
+  register: mongodbcadir_check
 
 - name: Ensure mongodbca dir exists
-  file:
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars: 
     path: "{{ mongodbca }}"
-    recurse: yes
-    state: directory
-  when: services.doorman.tls == 'on'
+    check: "ensure_dir"
+  when: services.doorman.tls == 'on' and (not mongodbcadir_check.stat.exists)
 
 # Checks if certificates for doorman are already created and stored in vault or not
 - name: Check if root certs already created
@@ -38,6 +69,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: root_certs
   ignore_errors: yes
+  tags:
+  - notest
 
 # Gets the existing root certificates if any.
 - name: Get root certs
@@ -48,6 +81,8 @@
     type: "rootca"
     cert_path: "{{ rootca }}"
   when: root_certs.failed == False
+  tags:
+    - notest
 
 # Stores the exisiting key.jks file
 - name: check root certs
@@ -76,6 +111,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: doorman_certs
   ignore_errors: yes
+  tags:
+  - notest  
 
 # creating doorman certificates
 - name: Generate DoormanCA from generated root CA certificate
@@ -90,7 +127,7 @@
     eval "openssl pkcs12 -export -name key -inkey cordadoormanca.key -in cordadoormanca.pem -out cordadoormancakey.pkcs12 -passin pass:'changeme' -passout pass:'changeme'"
     eval "yes | keytool -importkeystore -srckeystore cordadoormancacert.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
     eval "yes | keytool -importkeystore -srckeystore cordadoormancakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
-  when: doorman_certs.failed == True
+  when: doorman_certs.failed == True and rootca_stat_result.stat.exists == False
 
 # checking root certificates for mongodb
 - name: Check if mongoroot certs already created
@@ -101,7 +138,9 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: mongoCA_certs
   ignore_errors: yes
-  when: services.doorman.tls == 'on'
+  when: services.doorman.tls == 'on' 
+  tags:
+  - notest  
 
 # Generating mongoroot certificates
 - name: Generating Mongoroot certificates
@@ -109,7 +148,7 @@
     cd {{ mongorootca }}
     openssl genrsa -out mongoCA.key 3072
     openssl req -x509 -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '/{{ mongoroot_cert_subj }}'
-  when: services.doorman.tls == 'on' and mongoCA_certs.failed == True
+  when: services.doorman.tls == 'on' and mongoCA_certs.failed == True and rootca_stat_result.stat.exists == False
 
 # checking if mongodb certificate already created
 - name: Check if mongodb certs already created
@@ -121,6 +160,8 @@
   register: mongodb_certs
   ignore_errors: yes
   when: services.doorman.tls == 'on'
+  tags:
+  - notest  
 
 # Generating mongodb certificates.
 - name: Generating mongodb certificates
@@ -129,7 +170,7 @@
     openssl req -new -nodes -newkey rsa:4096 -keyout mongodb-{{ component_name}}.key -out mongodb-{{ component_name }}.csr -subj '/{{ mongoroot_cert_subj }}-{{component_name}}' 
     openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
-  when: services.doorman.tls == 'on' and mongodb_certs.failed == True
+  when: services.doorman.tls == 'on' and mongodb_certs.failed == True and rootca_stat_result.stat.exists == False
 
 
 - name: Putting certs to vault for root
@@ -139,6 +180,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: root_certs.failed == True
+  tags:
+  - notest  
 
 - name: Putting certs and credential to vault for doorman
   shell: |
@@ -149,8 +192,12 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: doorman_certs.failed == True
+  tags:
+  - notest  
 
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"
+  vars:
+    cert_file: "{{ network | json_query('orderers[?type==`doorman`].certificate') | first }}"
     

@@ -1,12 +1,13 @@
 - name: "Waiting for peer pod {{ peer_name }} in {{ org.name | lower }}-net"
   include_role:
-    name: "../../shared/configuration/roles/check/helm_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Pod"
     namespace: "{{ org.name | lower }}-net"
     component_name: "{{ peer_name }}"
     kubernetes: "{{ org.k8s }}"
-    check: "app"
+    label_selectors:
+      - app = {{ component_name }}
   loop: "{{ peers_data | from_yaml }}"
   loop_control:
     loop_var: peer_name

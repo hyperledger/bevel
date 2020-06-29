@@ -5,12 +5,13 @@
 # Check if CA server is available
 - name: "waiting for the CA server to be created in {{ item.name | lower }}-net"
   include_role:
-    name: "../../shared/configuration/roles/check/helm_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Pod"
     namespace: "{{ item.name | lower }}-net"
     component_name: "{{ component_services.ca.name }}"
-    check: "name"
+    label_selectors:
+      - name = {{ component_name }}
 
 ############################################################################################
 # This task creates the CA-tools value files
@@ -36,5 +37,4 @@
     GIT_PASSWORD: "{{ item.gitops.password }}"
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
-    msg: "Pushing CA-tools files"
-
+    msg: "[ci skip] Pushing CA-tools files"

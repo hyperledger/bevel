@@ -4,6 +4,7 @@
 #######################################
   - hosts: all
     gather_facts: no
+    no_log: True
   - import_playbook: environment-setup.yaml   # First setup environment for each organization
   - import_playbook: kubernetes-env-setup.yaml # Then deploy Flux for each organization
     when: reset is undefined or reset == 'false'
@@ -20,6 +21,8 @@
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-indy/configuration/deploy-network.yaml"
     when: network.type == 'indy' and (reset is undefined or reset == 'false')
   - import_playbook: "{{ playbook_dir }}/../../quorum/configuration/deploy-network.yaml"
+    vars:
+      add_new_org: false
     when: network.type == 'quorum' and (reset is undefined or reset == 'false')
     
 # Reseting the network

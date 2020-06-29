@@ -2,7 +2,7 @@
 - name: Check if nodekey is present in vault
   include_tasks: nodekey_vault_check.yaml
   vars:
-    component_ns: "{{ org.name }}-ns"
+    component_ns: "{{ org.name }}-quo"
     vault: "{{ org.vault }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
@@ -17,12 +17,12 @@
   when: vault_check|default(0)|int != 0
 
 # This task creates the build directory if it does not exist
-- name: Create build directory if it does not exist
-  file:
+- name: " Create build directory if it does not exist"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
     path: build
-    state: directory
-    mode: '0755'
-    recurse: yes
+    check: "ensure_dir"
   when: vault_check|default(0)|int != 0
 
 # This task generates the istanbul files
@@ -55,6 +55,15 @@
     regexp: '"byzantiumBlock":'
     line: '        "byzantiumBlock": 1,'   # 8 spaces necessary to keep format of json file
   when: vault_check|default(0)|int != 0  
+
+# This task copies the generated json file to the path provided in network.config
+- name: Copy genesis.json file
+  copy:
+    src: ./build/genesis.json
+    dest: "{{ network.config.genesis }}"
+    follow: yes
+    force: yes
+  when: vault_check|default(0)|int != 0 and ( not add_new_org )
 
 # This task rename the above created directories to the org_name/node_name 
 - name: Rename the directories created above with the elements of validator_node_list

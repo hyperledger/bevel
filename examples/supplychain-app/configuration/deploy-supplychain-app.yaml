@@ -6,6 +6,12 @@
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
+  - name: Copy test env files to build directory
+    copy:
+      src: "{{ item }}"
+      dest: "{{ playbook_dir }}/../../../build/"
+    with_fileglob:
+      - "{{ playbook_dir }}/../tests/SupplychainDemo_*"
   ############################################################################################
   # Create restserver value file for the peer nodes
   - include_role:
@@ -75,15 +81,15 @@
     vars:
       component_name: "frontend"
       component_ns: "{{ organization_data.name | lower }}-ns"
-      component_type: "{{ organization_data.type | lower }}"
+      component_type: "{{ organization_data.type | default(' ', true) | lower }}"
       component_gitops: "{{ organization_data.gitops }}"
       component_vault: "{{ organization_data.vault }}"
       kubernetes: "{{ organization_data.k8s }}"
       values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organization_data
-    when: network['type'] == 'corda' and network['frontend'] == 'enabled' and component_type == 'node' 
+      loop_var: organization_data 
+    when: network['type'] == 'corda' and network['frontend'] == 'enabled' and component_type == 'node'
 
   ############################################################################################
   # Create frontend value file for the corda nodes
@@ -92,7 +98,7 @@
     vars:
       component_name: "frontend"
       component_ns: "{{ organization_data.name | lower }}-net"
-      component_type: "{{ organization_data.type | lower }}"
+      component_type: "{{ organization_data.type | default(' ', true) | lower  }}"
       component_gitops: "{{ organization_data.gitops }}"
       component_vault: "{{ organization_data.vault }}"
       kubernetes: "{{ organization_data.k8s }}"
@@ -101,3 +107,60 @@
     loop_control:
       loop_var: organization_data
     when: network['type'] == 'fabric' and network['frontend'] == 'enabled' and component_type == 'peer' 
+  
+  ############################################################################################
+  # Deploy the Smart contract on Quorum node
+  - name: "Deploying smartcontract on quorum node"
+    include_role:
+      name: "deploy/quorum/smartContract"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-quo"
+      component_vault: "{{ organization_data.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'quorum'
+  
+  # Place the smart contract in the vault of the organization
+  - name: "Adding SmartContract address to the other organizations"
+    include_role:
+      name: "setup/smartContractAddress"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-quo"
+      component_vault: "{{ organization_data.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'quorum' and check != "Error"
+
+  ############################################################################################
+  # Create expressapi value file for the quorum nodes
+  - include_role:
+      name: "create/quorum/expressapi"
+    vars:
+      component_name: "expressapi"
+      component_ns: "{{ organization_data.name | lower }}-quo"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'quorum'
+  ############################################################################################
+  # Create frontend value file for the quorum nodes
+  - include_role:
+      name: "create/quorum/frontend"
+    vars:
+      component_name: "frontend"
+      component_ns: "{{ organization_data.name | lower }}-quo"
+      component_type: "{{ organization_data.type | default(' ', true) | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      kubernetes: "{{ organization_data.k8s }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data 
+    when: network['type'] == 'quorum' and network['frontend'] == 'enabled'

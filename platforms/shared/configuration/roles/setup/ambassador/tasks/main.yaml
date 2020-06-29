@@ -13,23 +13,23 @@
     do
       steward=$( echo ${json} | jq ".[${index}]")
       name=$(echo ${steward} | jq '.name' | tr -d '"')
-      ip=$(echo ${steward} | jq '.publicIp' | sed 's/\./_/g' | sed 's/"/ip/g')
       node_port=$(echo ${steward} | jq '.node.ambassador' | tr -d '"')
       client_port=$(echo ${steward} | jq '.client.ambassador' | tr -d '"')
       if [[ ${name} != null ]]
       then
-        if [[ ${ports["${ip}"]} != "" ]]
+        if [[ ${ports["{{ kubecontext }}"]} != "" ]]
         then
-          ports+=( ["${ip}"]+=, )
+          ports+=( ["{{ kubecontext }}"]+=, )
         fi
-        ports+=( ["${ip}"]+=${node_port},${client_port} )
+        ports+=( ["{{ kubecontext }}"]+=${node_port},${client_port} )
       fi
       index=$(( ${index} + 1 ))
     done
-    key=ip$(echo {{ item.services.stewards[0].publicIp }} | sed 's/\./_/g')ip
-    echo ${ports["${key}"]}
+    echo ${ports["{{ kubecontext }}"]}
   register: terminal
   when: network['type'] == 'indy' and item.services.stewards is defined
+  tags:
+    - molecule-idempotence-notest
 
 - name: Get Elastic IP
   environment:
@@ -43,12 +43,14 @@
     echo ${data} | tr -d '"' | sed 's/\ /\\,/g'
   register: allocation_ips
   when: network.type == 'indy' and item.services.stewards is defined and (item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal') #As this shell code is specific to AWS, cloud provider check has been added
-
+  tags:
+    - notest
 - name: Install Ambassador with EIP for Indy
   shell: |
     KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ terminal.stdout }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   tags:
     - ambassador
+    - molecule-idempotence-notest
   when: network.type == 'indy' and allocation_ips.stdout is defined
 
 - name: Install Ambassador for Corda/Quorum
@@ -56,6 +58,7 @@
     KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   tags:
     - ambassador
+    - molecule-idempotence-notest
   when: network.type == 'corda' or network.type == 'quorum'
 
 - name: Install Ambassador for Fabric
@@ -63,6 +66,7 @@
     KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.grpc=enabled --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   tags:
     - ambassador
+    - molecule-idempotence-notest
   when: network.type == 'fabric'
 
 - name: Enable external DNS
@@ -74,17 +78,14 @@
 
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up
-  k8s_info:
-    kind: Pod
+  include_role:
+    name: "check/helm_component"
+  vars:
     namespace: default
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kubecontext }}"
-    label_selectors:
+    component_name: ambassador
+    component_type: "Pod"
+    label_selectors: 
       - service = ambassador
-    field_selectors:
-      - status.phase=Running
-  register: kubectl_get_pods
-  until: kubectl_get_pods.resources|length > 0
-  retries: "{{ network.env.retry_count}}"
-  delay: 15
   when: (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'

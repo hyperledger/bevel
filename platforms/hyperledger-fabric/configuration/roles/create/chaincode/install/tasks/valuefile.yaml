@@ -3,7 +3,7 @@
 # 30 seconds between each try
 - name: "Waiting for the job anchorpeer-{{ channel.channel_name | lower }}-{{ name }}"
   include_role:
-    name: "../../shared/configuration/roles/check/helm_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Job"
     component_name: "anchorpeer-{{ channel.channel_name | lower }}-{{ name }}"
@@ -15,7 +15,7 @@
 # Check if install-chaincode is already run
 - name: "Checking for the install chaincode job is already done on {{ peer.name }}"
   include_role:
-    name: "../../shared/configuration/roles/check/helm_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     job_title: "install_chaincode"
     component_type: "OneTimeJob"
@@ -64,5 +64,5 @@
     GIT_PASSWORD: "{{ item.gitops.password }}"
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
-    msg: "Pushing chaincode installation files"
+    msg: "[ci skip] Pushing chaincode installation files"
   when: install_chaincode.resources|length == 0

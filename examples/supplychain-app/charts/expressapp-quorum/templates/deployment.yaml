@@ -1,0 +1,118 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{ .Values.nodeName }}
+  {{- if .Values.deployment.annotations }}
+    annotations:
+{{ toYaml .Values.deployment.annotations | indent 8 }}
+  {{- end }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.nodeName }}
+        app.kubernetes.io/name: {{ .Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:
+      serviceAccountName: {{ .Values.vault.serviceaccountname }}
+      hostname: {{ .Values.nodeName }}
+      imagePullSecrets:
+        - name: {{ .Values.expressapp.pullSecrets | default "regcred" }}
+      volumes:
+        - name: config
+          emptyDir:
+            medium: Memory
+      initContainers:
+        - name: config-init
+          image: {{ .Values.images.alpineutils }}
+          imagePullPolicy: Always
+          env:
+          - name: VAULT_ADDR
+            value: {{ .Values.vault.address }}
+          - name: VAULT_SECRET_PREFIX
+            value: {{ .Values.vault.secretprefix }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ .Values.vault.authpath }}
+          - name: VAULT_APP_ROLE
+            value: {{ .Values.vault.role }}
+          - name: MOUNT_PATH
+            value: "/secret"
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/bin/bash
+            
+            validateVaultResponse () {
+            if echo ${2} | grep "errors"; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+              fi
+            }
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+            #Login to Vault and so I can get an approle token
+            VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+              -H "Content-Type: application/json" \
+              -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+              jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+  
+            vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
+            echo "Getting the contract address from $vault_secret_key"          
+            LOOKUP_SECRET_RESPONSE=$(curl -sS \
+              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | \
+              jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
+            product_contract_address=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["address"]')
+
+            LOOKUP_SECRET_RESPONSE=$(curl -X POST \
+              --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":"*"}' -H "Content-Type: application/json" \
+              {{ .Values.expressapp.env.geth_address }} | \
+              jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
+            node_identity=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.result[0]')
+  
+            OUTPUT_PATH="${MOUNT_PATH}/keys"
+            mkdir -p ${OUTPUT_PATH}
+
+            echo -n "${product_contract_address}" > ${OUTPUT_PATH}/product_contract_address
+            echo -n "${node_identity}" > ${OUTPUT_PATH}/node_identity
+          volumeMounts:
+          - name: config
+            mountPath: /secret
+      containers:     
+        - name: expressapp
+          image: {{ .Values.expressapp.image }}
+          imagePullPolicy: {{ .Values.expressapp.pullPolicy }}
+          env:
+          - name: GANACHE_SERVER
+            value: "{{ .Values.expressapp.env.geth_address }}"
+          - name: NODE_SUBJECT
+            value: "{{ .Values.expressapp.env.node_subject }}"
+          - name: NODE_ORGANIZATION
+            value: "{{ .Values.expressapp.env.node_organization }}"
+          - name: NODE_ORGANIZATION_UNIT
+            value: "{{ .Values.expressapp.env.node_organization_unit }}"
+          command: ["sh"]
+          args:
+          - "-cx"
+          - "export PRODUCT_CONTRACT_ADDRESS=$(cat /secret/keys/product_contract_address);
+            export NODE_IDENTITY=$(cat /secret/keys/node_identity);
+            node app.js;"
+          ports:
+            - containerPort: {{ .Values.expressapp.nodePorts.targetPort }}
+              name: expressapp
+          volumeMounts:
+          - name: config
+            mountPath: /secret

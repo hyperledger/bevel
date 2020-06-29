@@ -1,57 +1,81 @@
 /* Pipeline to deploy DLT Platforms supported by BAF on a demo environment
 // In summary, this pipeline does the following
 //  1. Depending on the branch, merges the latest code from develop to the specific branches
-//  2. Builds and tests apps, binaries, chaincodes, smartcontracts
-//  3. Tests ansible roles
-//  4. Prepare deployment environment files
-//  5. Depending on the branch, deploys DLT network
-//  6. Depending on the branch, deploys Supply-chain application on DLT network
-//  7. Depending on the branch, tests Supply-chain APIs.
+//  2. Prepare deployment environment files
+//  3. Depending on the branch, deploys DLT network
+//  4. Depending on the branch, deploys Supply-chain application on DLT network
+//  5. Depending on the branch, tests Supply-chain APIs.
 */
+def userInput = true
+def didTimeout = false
+def shouldBuild = true
 pipeline {
-  agent any
+  agent { label 'ansible' } //use slave with ansible
   
   options {
     buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '15'))
     // either use this with polling method, or use webhooks to trigger builds
     disableConcurrentBuilds()
+    //Skip the default checkout as we are manually checking out in the first stage.
+    skipDefaultCheckout(true)
   }
     
   environment {
-      //Define common variables
-      //GIT repo links
-      GITOPS_REPO="github.com/hyperledger-labs/blockchain-automation-framework.git"
-      //SSH version is also needed
-      GITOPS_SSH="ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
-      //Release path for Fabric
-      REL_PATH="platforms/hyperledger-fabric/releases/dev"
-      //Path for charts that will be deployed
-      CHART_PATH="platforms/hyperledger-fabric/charts"
-      
-      //Store root directory
-      ROOT_DIR="${pwd()}"
-      //Docker registry address
-      DOCKER_REGISTRY = "adopblockchaincloud0502.azurecr.io"		    
-      //username for docker registry 
-      DOCKER_USERNAME = 'ADOPBlockchainCloud0502'
-      //password for docker registry taken from Jenkins credentials
-      DOCKER_PASSWORD = credentials('azure_container_password')
-
-      //KUBECONFIG file to connect to the single cluster. This file is replace when pipeline runs
-      // by the choice you make in the build/input parameters
-      KUBECONFIG="${pwd()}/build/kubeconfig.yaml"
-      CRED="jenkins"
-      //Service User credentials from Jenkins used to check-in to git
-      GIT_CREDS="sownak-innerource"
-      //GOPATH for build chaincode
-      GOPATH="${pwd()}/go"
-
+    //Define common variables
+    //KUBECONFIG file to connect to the single cluster. This file is replace when pipeline runs
+    // by the choice you make in the build/input parameters
+    KUBECONFIG="${pwd()}/build/kubeconfig.yaml"
+    // Default path where gitops key will be stored
+    LOCAL_BUILD_PATH="${pwd()}/build"
+    // Default path where vault key will be stored
+    VAULT_FILE="~/.ssh/devinstance.pem"
+    //Service User credentials from Jenkins used to check-in to git
+    GIT_CREDS="sownak-innersource"
+    //Secret file with Kubernetes config
+    KUBE_CREDS="aws_demo_kubeconfig"
+    //Secret which contains Jenkins gitops private key
+    GITOPS_CREDS="jenkins_gitops_key"
+    //Secret which contains username and password for Nexus repo for Corda jars
+    NEXUS_CREDS="nexus_user"
+    //Secret which contains vault private key
+    VAULT_CREDS="aws_demo_vault_key"
+    //Secret which contains Vault token
+    VAULT_TOKEN="aws_demo_vault_token"
+    VAULT_SERVER="vault.internal.demo.aws.blockchaincloudpoc.com"
+    VAULT_PORT="9000"
+    VAULT_BASTION="2.bastion.demo.aws.blockchaincloudpoc.com"
+    VAULT_PRIVATE_IP="10.1.3.11"
+    //Secret which contains google maps key
+    GMAPS_CREDS="gmaps_key"
   }
 
+  parameters {
+    choice(choices: 'no\nyes', description: 'Force rebuild? To force building [ci skip] commits', name: 'FORCE_ACTION')
+    choice(choices: 'yes\nno', description: 'Reset Network at start?', name: 'RESET_ACTION')
+    choice(choices: 'no\nyes', description: 'Only API Test? This skips all other deployment steps.', name: 'APIONLY_ACTION')
+    choice(choices: '1_4_4\n2_0_0', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
+    choice(choices: 'kafka\nraft', description: 'What is the Fabric Consensus?', name: 'FABRIC_CONSENSUS')
+    choice(choices: '4_1\n4_4', description: 'What is the Corda version?', name: 'CORDA_VERSION')
+    choice(choices: '2_5_0\n2_x_x', description: 'What is the Quorum version?', name: 'QUORUM_VERSION')
+    choice(choices: 'ibft\nraft', description: 'What is the Quorum Consensus?', name: 'QUORUM_CONSENSUS')
+    choice(choices: 'tessera\nconstellation', description: 'What is the Quorum TM?', name: 'QUORUM_TM')
+    choice(choices: '1_9_2\n1_11_0', description: 'What is the Indy version?', name: 'INDY_VERSION')    
+  }
 
   stages {
-    // Merge latest changes from develop branch 
-    stage('Merge develop branch') {
+    stage ("Checkout SCM") {
+      steps {
+        script {
+            checkout scm
+            result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true) 
+            if (result == 0) {
+                echo ("'ci skip' spotted in git commit. Aborting.")
+                shouldBuild = false
+            }
+        }
+      }
+    }
+    stage('Prepare build environment') {
       when {
         not {
           anyOf {
@@ -61,182 +85,389 @@ pipeline {
         }
       }
       steps {
-        sh 'printenv'
+        withCredentials([kubeconfigContent(credentialsId: "${KUBE_CREDS}", 
+          variable: 'KUBECONFIG_CONTENT')]) {
+          sh """
+            mkdir -p build
+            set +x
+            echo "${KUBECONFIG_CONTENT}" > ${KUBECONFIG}
+          """
+        }
+        withCredentials([sshUserPrivateKey(credentialsId: "${GITOPS_CREDS}", keyFileVariable: 'FILE', passphraseVariable: '', usernameVariable: '')]) {
+          sh """
+            cat "${FILE}" > ${LOCAL_BUILD_PATH}/gitops.pem
+          """
+        }
+        withCredentials([sshUserPrivateKey(credentialsId: "${VAULT_CREDS}", keyFileVariable: 'FILE', passphraseVariable: '', usernameVariable: '')]) {
+          sh """
+            cat "${FILE}" > ${VAULT_FILE}
+            set -x
+          """
+        }
+        sh """
+          chmod 400 ${LOCAL_BUILD_PATH}/gitops.pem
+          chmod 400 ${VAULT_FILE}
+          curl https://ipv4.icanhazip.com/
+          ssh-keyscan ${VAULT_BASTION} > ~/.ssh/known_hosts
+          echo "127.0.0.1 ${VAULT_SERVER}" > /etc/hosts
+          ssh -i ${VAULT_FILE} -f -q -N -L ${VAULT_PORT}:${VAULT_PRIVATE_IP}:${VAULT_PORT} devinstance@${VAULT_BASTION}
+          ps -aux | grep ssh
+          echo 'Install nodejs'
+          curl -sL https://deb.nodesource.com/setup_10.x | bash -
+          apt-get install -y nodejs
+          echo 'Copy test files to build folder'
+          cp examples/supplychain-app/tests/SupplychainDemo_*.json build/
+        """
+      }
+    }
+    
+    stage('fabric-settings'){
+      when {
+        branch 'fabric';
+      }
+      steps {
+        script {
+          env.CONSENSUS = "${params.FABRIC_CONSENSUS}"
+          env.VERSION = "${params.FABRIC_VERSION}"
+          env.TM = ""
+        }
+      }
+    }
+    stage('corda-settings'){
+      when {
+        branch 'corda';
+      }
+      steps {
+        script {
+          env.CONSENSUS = ""
+          env.VERSION = "${params.CORDA_VERSION}"
+          env.TM = ""
+        }
+      }
+    }
+    stage('quorum-settings'){
+      when {
+        branch 'quorum';
+      }
+      steps {
+        script {
+          env.CONSENSUS = "${params.QUORUM_CONSENSUS}"
+          env.VERSION = "${params.QUORUM_VERSION}"
+          env.TM = "${params.QUORUM_TM}"
+        }
+      }
+    }
+    stage('indy-settings'){
+      when {
+        branch 'indy';
+      }
+      steps {
+        script {
+          env.CONSENSUS = ""
+          env.VERSION = "${params.INDY_VERSION}"
+          env.TM = ""
+        }
+      }
+    }
+
+    /*
+    *  Create the configuration file
+    */
+    stage('Create Configuration File') {
+      when {
+        not {
+          anyOf {
+            branch 'master';
+            branch 'develop' 
+          }
+        }
+      }
+      steps {   
+        dir('baf-configuration') {
+          git credentialsId: "${GIT_CREDS}", url: 'https://innersource.accenture.com/scm/blockofz/baf-configuration.git'
+          sh """#!/bin/bash
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}.yaml ../build/network.yaml
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}addorg.yaml ../build/addorg.yaml
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*supplychain.yaml ../build/application.yaml
+          """
+        }
+        //WithCredentials to get the username and password for GIT user
         withCredentials([
-            usernamePassword(credentialsId: "${GIT_CREDS}", 
-            usernameVariable: 'USERNAME', 
-            passwordVariable: 'PASSWORD'
+              usernamePassword(credentialsId: "${GIT_CREDS}", 
+              usernameVariable: 'USERNAME', 
+              passwordVariable: 'PASSWORD'
         )]) {
-          script {
+            script {
               //encode the username and password
               env.encodedGitName=URLEncoder.encode(USERNAME, "UTF-8")
               env.encodedGitPass=URLEncoder.encode(PASSWORD, "UTF-8")
-          }
-          sh """
-            git config --global user.email "baf@accenture.com"
-            git config --global user.name ${USERNAME}
-            git config --global user.password ${PASSWORD}
-            git config --global push.default matching
-            git merge origin/develop
-          """
-        }
-      }
-    }
-    stage('Build and Test Fabric Chaincode') {
-      when {
-        branch 'fabric' 
-      }
-      steps {
-        script{
-          def root = tool name: 'Go 1.13', type: 'go'
-
-          dir('examples/supplychain-app/fabric/chaincode_rest_server/'){
-            withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin", "INSTALL_DIRECTORY=${root}/bin"]) {
-              sh 'go version'
-              sh """
-                apt-get update
-                apt-get install build-essential -y
-                curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-              """
-              sh """
-                echo 'copying chaincode folder'
-                mkdir -p ${GOPATH}/src/github.com/ && cp -r chaincode ${GOPATH}/src/github.com/
-                cd ${GOPATH}/src/github.com/chaincode
-                dep ensure
-              """
-            }
-          }
-            
-          dir('examples/supplychain-app/fabric/chaincode_rest_server/'){
-            withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin"]) {
-              sh 'go version'
-              sh """
-                  echo 'run go test' 
-                  go test github.com/chaincode/supplychain
-              """
-            }
-          }
-        }
-      }
-    }
-    stage('Test Ansible Roles') {
-      agent {
-        docker { // create an agent from the molecule docker image
-          image 'hyperledgerlabs/baf-build:jenkins'
-          args '-v /var/run/docker.sock:/var/run/docker.sock'
-          label 'docker-xlarge'
-        }
-      }
-      steps {
-        dir('platforms/shared/configuration/') {
+            }            
+            // Replace the sample network.yaml and fill in required parameters
             sh """
-              molecule test
+              git config --global user.email "baf@accenture.com"
+              git config --global user.name ${USERNAME}
+              git config --global user.password ${PASSWORD}
+              git config --global push.default matching
+              
+              sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/network.yaml
+              sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/network.yaml
+              sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/network.yaml
+              sed -i -e 's+PATH_TO_CONFIG_FILE+${KUBECONFIG}+g' build/network.yaml
+              sed -i -e 's+PATH_TO_GITOPS_FILE+${LOCAL_BUILD_PATH}+g' build/network.yaml
+
+              sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/addorg.yaml
+              sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/addorg.yaml
+              sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/addorg.yaml
+              sed -i -e 's+PATH_TO_CONFIG_FILE+${KUBECONFIG}+g' build/addorg.yaml
+              sed -i -e 's+PATH_TO_GITOPS_FILE+${LOCAL_BUILD_PATH}+g' build/addorg.yaml
+
+              sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/application.yaml
+              sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/application.yaml
+              sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/application.yaml
+              sed -i -e 's+PATH_TO_CONFIG_FILE+${KUBECONFIG}+g' build/application.yaml
+              sed -i -e 's+PATH_TO_GITOPS_FILE+${LOCAL_BUILD_PATH}+g' build/application.yaml
+
+              rm -rf baf-configuration
             """
+            
         }
+        //WithCredentials to get the username and password for AWS Account
+          withCredentials([[
+              $class: 'AmazonWebServicesCredentialsBinding',
+              credentialsId: 'aws_jenkins',
+              accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+              secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+          ]]) {
+              // Add AWS specific parameters
+              sh """
+                  sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/network.yaml
+                  sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/network.yaml
+
+                  sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/addorg.yaml
+                  sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/addorg.yaml
+
+                  sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/application.yaml
+                  sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/application.yaml
+              """
+          }
+          withCredentials([string(credentialsId: "${VAULT_TOKEN}", variable: 'VAULT_ROOT')]) {
+              sh """
+                  sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/network.yaml
+                  sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/network.yaml
+
+                  sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/addorg.yaml
+                  sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/addorg.yaml
+
+                  sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/application.yaml
+                  sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/application.yaml
+              """
+          }
+          withCredentials([string(credentialsId: "${GMAPS_CREDS}", variable: 'KEY')]) {
+              sh """
+                  sed -i -e 's*GMAPS_TOKEN*${KEY}*g' build/network.yaml
+                  sed -i -e 's*GMAPS_TOKEN*${KEY}*g' build/addorg.yaml
+                  sed -i -e 's*GMAPS_TOKEN*${KEY}*g' build/application.yaml
+              """
+          }
+          withCredentials([
+              usernamePassword(credentialsId: "${NEXUS_CREDS}", 
+              usernameVariable: 'USERNAME', 
+              passwordVariable: 'PASSWORD'
+            )]) {
+              sh """
+                  sed -i -e 's*NEXUS_USER*${USERNAME}*g' build/network.yaml
+                  sed -i -e 's*NEXUS_USER*${USERNAME}*g' build/addorg.yaml
+                  sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/network.yaml
+                  sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/addorg.yaml
+              """
+          }          
       }
     }
-
-    stage('Prepare build environment') {
-      //env.BRANCH_NAME
-      steps {
-        withCredentials([kubeconfigContent(credentialsId: 'aws_demo', 
-          variable: 'KUBECONFIG_CONTENT')]) {
-          sh '''echo "$KUBECONFIG_CONTENT" > ${KUBECONFIG} && cat ${KUBECONFIG}'''
+    stage('Reset existing network') {
+      when {
+        not {
+          anyOf {
+            branch 'master';
+            branch 'develop'
+          }
         }
-        withCredentials([file(credentialsId: '${CRED}', variable: 'FILE')]) {
-          sh 'cat $FILE'
-        }      
+        expression { params.RESET_ACTION == 'yes' }
+        expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {              
+        sh """
+          ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/application.yaml" -e "reset='true'" -e "ansible_python_interpreter=/usr/bin/python3"
+        """            
       }
     }
-
-  /*
-    *  Create the Fabric configuration file
-    */
-      stage('Create Fabric Configuration') {
-          steps {
-              //WithCredentials to get the username and password for GIT user
-              withCredentials([
-                    usernamePassword(credentialsId: "${GIT_CREDS}", 
-                    usernameVariable: 'USERNAME', 
-                    passwordVariable: 'PASSWORD'
-              )]) {
-                  script {
-                      //encode the username and password
-                      env.encodedGitName=URLEncoder.encode(USERNAME, "UTF-8")
-                      env.encodedGitPass=URLEncoder.encode(PASSWORD, "UTF-8")
-                  }
-                  // Replace the sample fabric network.yaml and fill in required parameters
-                  dir('platforms/hyperledger-fabric/configuration/') {
-                      sh """
-                          cp samples/network-fabricv2.yaml network.yaml
-                          sed -i -e 's*docker_url*${DOCKER_REGISTRY}*g' network.yaml
-                          sed -i -e 's*docker_username*${DOCKER_USERNAME}*g' network.yaml
-                          sed -i -e 's*docker_password*${DOCKER_PASSWORD}*g' network.yaml
-                          sed -i -e 's*vault_addr*${params.VAULT_ADDR}*g' network.yaml
-                          sed -i -e 's*vault_root_token*${params.VAULT_TOKEN}*g' network.yaml                            
-                          sed -i -e 's*gitops_ssh_url*${GITOPS_SSH}*g' network.yaml                            
-                          sed -i -e 's*gitops_branch*${params.RELEASE_BRANCH}*g' network.yaml
-                          sed -i -e 's*gitops_release_dir*${REL_PATH}*g' network.yaml
-                          sed -i -e 's*gitops_charts*${CHART_PATH}*g' network.yaml
-                          sed -i -e 's*gitops_push_url*${GITOPS_REPO}*g' network.yaml
-                          sed -i -e 's*git_username*${USERNAME}*g' network.yaml
-                          sed -i -e 's+git_password+${PASSWORD}+g' network.yaml
-                          sed -i -e 's*cluster_region*${params.REGION}*g' network.yaml
-                          sed -i -e 's*cluster_context*${params.CLUSTER_CONTEXT}*g' network.yaml
-                          sed -i -e 's*cluster_config*${KUBECONFIG}*g' network.yaml
-                      """
-                  }
-              }
-          }
-      }
-      stage('Add AWS Details to Configuration') {
-          steps {
-              //WithCredentials to get the username and password for AWS Account
-              //TODO: Use when statement when multiple cloud provider is available
-              withCredentials([[
-                  $class: 'AmazonWebServicesCredentialsBinding',
-                  credentialsId: 'terraform_user',
-                  accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                  secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-              ]]) {
-                  // Add AWS specific parameters
-                  dir('platforms/hyperledger-fabric/configuration/') {
-                      sh """
-                          sed -i -e 's+aws_access_key+${AWS_ACCESS_KEY_ID}+g' network.yaml
-                          sed -i -e 's+aws_secret_key+${AWS_SECRET_ACCESS_KEY}+g' network.yaml                           
-                      """
-                  }
-              }
-          }
-      }
-      /*
-    *  If RESET_ACTION is yes, delete the network
-        *  NOTE: The Flux installation is also deleted
-    */
-      stage('Reset existing network') {
-          when {
-              expression {
-                  params.RESET_ACTION.toLowerCase() == 'yes'
-              }
-          }
-          steps {
-                dir('platforms/hyperledger-fabric/configuration/') {
-                  echo 'Run ansible playbook'
-                  sh 'ansible-playbook reset-network.yaml -e "@./network.yaml"'
-              }
-          }    
-      }
-      /*
+    /*
     *  Execute site.yaml which will setup environment and deploy the network
     */
-      stage('Deploy Fabric Network and create channel') {
-          steps {
-              dir('platforms/hyperledger-fabric/configuration/') {
-                  sh """
-                      ansible-playbook ../../shared/configuration/site.yaml -e "@./network.yaml"
-                  """
+    stage('Deploy network') {
+      when {
+        not {
+          anyOf {
+            branch 'master';
+            branch 'develop';
+            branch 'indy'
+          }
+        }
+        expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {
+        sh """
+          ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+        """        
+      }
+    }
+    // the following is a hack because our current AWS EKS cluster does not support static IP for Kubernetes loadbalancer
+    //TODO remove this when AWS supports static IP address, in which case those IPs should be in the configuration network.yaml
+    stage('Deploy Indy network') {
+      when {
+        branch 'indy';
+        expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {
+        // Deploy shared playbooks, to deploy Ambassador so that the public IP is available
+        sh """
+          ansible-playbook platforms/shared/configuration/environment-setup.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook platforms/shared/configuration/kubernetes-env-setup.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"          
+        """
+        // Get Ambassador IP and update in network.yaml for indy
+        sh """
+          ambassadordns=\$(kubectl get service ambassador -o json | jq '.status.loadBalancer.ingress[0].hostname'| tr -d '"')
+          ambassador_ip=\$(host \$ambassadordns | awk '/has address/ { print \$4 ; exit }')
+          sed -i -e "s*AMBASSADOR_IP*\$ambassador_ip*g" build/network.yaml
+        """
+        sh """
+          ansible-playbook platforms/hyperledger-indy/configuration/deploy-network.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+        """        
+      }
+    }
+    /*
+    *  Execute add-new-organization.yaml which will add a new node to the network
+    */
+    stage('Add a new node') {
+      when {
+        not {
+          anyOf {
+            branch 'master';
+            branch 'develop';
+            branch 'indy'
+          }
+        }
+        expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {        
+        sh """
+          ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@./build/addorg.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+        """        
+      }
+    }
+    /*
+    *  Execute deploy-supplychain-app.yaml which deploy supplychain app on the network
+    */
+    stage('Deploy Supplychain-App') {
+      when {
+        not {
+          anyOf {
+            branch 'master';
+            branch 'develop';
+            branch 'indy'
+          }
+        }
+        expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {        
+        sh """
+          ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@./build/application.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+        """        
+      }
+    }
+    stage('Run SupplyChain API tests') {
+      when {
+        not {
+          anyOf {
+            branch 'master';
+            branch 'develop';
+            branch 'indy'
+          }
+        }
+        expression { params.RESET_ACTION == 'yes' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {   
+        script {
+          try {           
+            sh """
+              npm install -g newman
+              newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json
+            """ 
+          } catch(err) {
+            echo "API test failed. Try to run manually via Postman."
+          }
+        }        
+      }
+    }
+
+    stage('Manual Approval for resetting the deployment') {
+      when {
+        not {
+          anyOf {
+            branch 'master';
+            branch 'develop' 
+          }
+        }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {
+          script {
+            try {
+              timeout(time: 20, unit: 'MINUTES') {
+                userInput = input(id: 'Proceed1', message: 'Reset the network?',
+                  parameters: [ [$class: 'BooleanParameterDefinition',
+                  defaultValue: true, description: '', name: 'Please confirm you want to reset. Abort if you want to keep the network.'] ])
+              } 
+            } catch(err) { 
+              def user = err.getCauses()[0].getUser()   // This may cause script error in some Jenkins. Aprrove the script from 'Manage Jenkins'
+              if('SYSTEM' == user.toString()) { // SYSTEM means timeout.
+                  didTimeout = true
+              } else {
+                  userInput = false
+                  echo "Aborted by: [${user}]"
               }
+            }
           }
       }
+    }
+      
+    stage('Reset network again') {
+      when {
+        not {
+          anyOf {
+            branch 'master';
+            branch 'develop' 
+          }
+        }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {   
+        script {
+          if ( didTimeout || userInput ) {           
+            echo 'Resetting network'
+            sh """
+              ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/application.yaml" -e "reset='true'" -e "ansible_python_interpreter=/usr/bin/python3"
+            """   
+          } else {
+            echo "Network deployment successful and is live."
+          }  
+        }     
+      }    
+    }
   }
 }

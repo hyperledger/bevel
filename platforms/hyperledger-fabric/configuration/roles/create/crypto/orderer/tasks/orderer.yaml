@@ -7,6 +7,9 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_msp_result
   ignore_errors: yes
+  changed_when: false
+  tags:
+    - no-idempotence-test
 
 - name: Get MSP info
   include_role: 
@@ -16,6 +19,9 @@
     type: "orderer"
     msp_path: "./build/crypto-config/ordererOrganizations/{{ component_name }}/msp"
   when: vault_msp_result.failed == False
+  tags:
+    - notest
+
 
 - name: Check if orderer tls already created
   shell: |
@@ -25,11 +31,12 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_tls_result
   ignore_errors: yes
+  changed_when: false
 
 # Ensure tls directory is present in build
 - name: "create directory ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls"
   include_role:
-    name: "../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     path: "./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls"
     check: "ensure_dir"
@@ -38,10 +45,12 @@
 - name: Get Orderer tls crt
   shell: |
     vault kv get -field=ca.crt secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls > ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/ca.crt
+    vault kv get -field=server.crt secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls > ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/server.crt
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_tls_result.failed == False
+  changed_when: false
 
 ############################################################################################
 # This task creates directory path on CA Tools CLI
@@ -51,6 +60,9 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p /root/ca-tools/{{org_name|lower}}
   when: vault_msp_result.failed == True
+  changed_when: false
+  tags:
+    - notest
 
 ############################################################################################
 # Copy generate-crypto script from scrips directory
@@ -65,7 +77,8 @@
   loop_control:
     loop_var: files
   when: vault_msp_result.failed == True
-
+  tags:
+    - notest
 ############################################################################################
 # This task changes the permissions for msp
 - name: Changing the permission of msp files
@@ -78,6 +91,8 @@
   loop_control:
     loop_var: files
   when: vault_msp_result.failed == True
+  tags:
+    - notest
 
 ############################################################################################
 # This task copy the generate_crypto.sh and cert files in the respective CA Tools CLI
@@ -88,6 +103,8 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-user-crypto.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-user-crypto.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/crypto-config/{{component_type}}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem {{ component_name }}/${CA_TOOL_CLI}:crypto-config/{{component_type}}Organizations/{{ component_name }}/ca/
   when: vault_msp_result.failed == True
+  tags:
+    - notest
 
 ############################################################################################
 # This task generates the crypto material by executing the generate_crypto.sh script file
@@ -98,6 +115,8 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-crypto.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-user-crypto.sh {{ orderer.name }} {{component_name}} {{org_name|lower}} 1 {{org_name}} "{{subject}}"
   when: vault_msp_result.failed == True
+  tags:
+    - notest
 
 ############################################################################################
 # This task copies the generated crypto material from the respective CA Tools CLI
@@ -107,6 +126,8 @@
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
   when: vault_msp_result.failed == True
+  tags:
+    - notest
 
 ############################################################################################
 # These roles put the above created crypto material in the vault
@@ -118,6 +139,9 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_msp_result.failed == True
+  changed_when: false
+  tags:
+  - notest
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
@@ -138,7 +162,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_orderer_ambassador
   ignore_errors: yes
-
+  changed_when: false
 
 - name: Get Orderer ambassador info
   include_role: 
@@ -148,7 +172,8 @@
     type: "orderer"
     orderer_ambassador_path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}"
   when: vault_orderer_ambassador.failed == False
-  
+  tags:
+    - notest
 
 # This task generates orderer certificates
 - name: Generate the orderer certificate
@@ -160,14 +185,16 @@
     cat {{ orderer.name }}-{{ component_name }}.pem > {{ orderer.name }}-{{ component_name }}-certchain.pem
     cat ./ca/ca.{{ component_name }}-cert.pem >> {{ orderer.name }}-{{ component_name }}-certchain.pem
   when: get_orderer_secret.resources|length == 0 and vault_orderer_ambassador.failed == True
-    
+  changed_when: false
 
 # This task creates the Ambassador TLS credentials for orderer
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{orderer.name}}-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/ordererOrganizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}-certchain.pem --key=./build/crypto-config/ordererOrganizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}.key -n default
-  when: get_orderer_secret.resources|length == 0
-
+  when: get_orderer_secret.resources|length == 0 and vault_orderer_ambassador.failed == True
+  changed_when: false
+  tags:
+    - molecule-idempotence-notest 
 
  # This task copy the orderer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
@@ -176,4 +203,4 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_orderer_ambassador.failed == True 
+  when: vault_orderer_ambassador.failed == True
