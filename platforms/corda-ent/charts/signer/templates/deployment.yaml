@@ -64,7 +64,7 @@ spec:
               while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
               do
                   # get keystores from vault to see if certificates are created and put in vault
-                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/keystores | jq -r 'if .errors then . else . end')
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/signer/certs | jq -r 'if .errors then . else . end')
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
@@ -115,51 +115,27 @@ spec:
                validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
 
                mkdir -p ${MOUNT_PATH}
-               mkdir -p ${MOUNT_PATH}/crl-files;
-               mkdir -p ${MOUNT_PATH}/key-stores;
-               mkdir -p ${MOUNT_PATH}/trust-stores;
+               mkdir -p ${MOUNT_PATH}/signer;
+               mkdir -p ${MOUNT_PATH}/root;
+               
+               # signer-files from vault
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/signer/certs | jq -r 'if .errors then . else . end')
+               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/signer/certs)" "${LOOKUP_SECRET_RESPONSE}"
+               idm_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["identity-manager-key-store.jks"]')
+               echo "${idm_jks}" | base64 -d > ${MOUNT_PATH}/signer/identity-manager-key-store.jks
 
-               # crl-files from vault
-               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/crls | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/crls)" "${LOOKUP_SECRET_RESPONSE}"
-               root_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root.crl"]')
-               echo "${root_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/root.crl
-               ssl_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl.crl"]')
-               echo "${ssl_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/ssl.crl
-               subordinate_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["subordinate.crl"]')
-               echo "${subordinate_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/subordinate.crl
-               tls_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tls.crl"]')
-               echo "${tls_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/tls.crl
+               nms_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-map-key-store.jks"]')
+               echo "${nms_jks}" | base64 -d > ${MOUNT_PATH}/signer/network-map-key-store.jks
 
-               # trust-stores from vault
-               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststores | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/truststores)" "${LOOKUP_SECRET_RESPONSE}"
-               corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
-               echo "${corda_ssl_trust_store}" | base64 -d > ${MOUNT_PATH}/trust-stores/corda-ssl-trust-store.jks
-               network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
-               echo "${network_root_truststore}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
-
-               # getting key-stores from vault
-               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/keystores | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/keystores)" "${LOOKUP_SECRET_RESPONSE}"
-               corda_ssl_identity=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-identity-manager-keys.jks"]')
-               echo "${corda_ssl_identity}" | base64 -d > ${MOUNT_PATH}/key-stores/corda-ssl-identity-manager-keys.jks
-               corda_ssl_root=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-root-keys.jks"]')
-               echo "${corda_ssl_root}" | base64 -d > ${MOUNT_PATH}/key-stores/corda-ssl-root-keys.jks
-               identity_manager=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["identity-manager-key-store.jks"]')
-               echo "${identity_manager}" | base64 -d > ${MOUNT_PATH}/key-stores/identity-manager-key-store.jks
-               root_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root-key-store.jks"]')
-               echo "${root_key}" | base64 -d > ${MOUNT_PATH}/key-stores/root-key-store.jks
-               tls_crl_signer=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tls-crl-signer-key-store.jks"]')
-               echo "${tls_crl_signer}" | base64 -d > ${MOUNT_PATH}/key-stores/tls-crl-signer-key-store.jks
-               corda_ssl_network=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-network-map-keys.jks"]')
-               echo "${corda_ssl_network}" | base64 -d > ${MOUNT_PATH}/key-stores/corda-ssl-network-map-keys.jks
                corda_ssl_signer=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-signer-keys.jks"]')
-               echo "${corda_ssl_signer}" | base64 -d > ${MOUNT_PATH}/key-stores/corda-ssl-signer-keys.jks
-               network_map_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-map-key-store.jks"]')
-               echo "${network_map_key}" | base64 -d > ${MOUNT_PATH}/key-stores/network-map-key-store.jks
-               subordinate_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["subordinate-key-store.jks"]')
-               echo "${subordinate_key}" | base64 -d > ${MOUNT_PATH}/key-stores/subordinate-key-store.jks
+               echo "${corda_ssl_signer}" | base64 -d > ${MOUNT_PATH}/signer/corda-ssl-signer-keys.jks
+               
+               # ssl trust-stores from vault
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/root/certs)" "${LOOKUP_SECRET_RESPONSE}"
+
+               corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+               echo "${corda_ssl_trust_store}" | base64 -d > ${MOUNT_PATH}/root/corda-ssl-trust-store.jks
 
                echo "Done"
           volumeMounts:
