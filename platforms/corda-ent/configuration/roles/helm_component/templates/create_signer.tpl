@@ -1,18 +1,18 @@
 apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
-  name: {{ services.signer.name }}
+  name: {{ org.services.signer.name }}
   annotations:
     flux.weave.works/automated: "false"
   namespace: {{ component_ns }}
 spec:
-  releaseName: {{ services.signer.name }}
+  releaseName: {{ org.services.signer.name }}
   chart:
     path: {{ org.gitops.chart_source }}/{{ chart }}
     git: {{ org.gitops.git_ssh }}
     ref: {{ org.gitops.branch }}
   values:
-    nodeName: {{ services.signer.name }}
+    nodeName: {{ org.services.signer.name }}
     metadata:
       namespace: {{component_ns }}
     replicas: 1
@@ -31,22 +31,24 @@ spec:
       role: vault-role
       authpath: {{ component_auth }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ services.signer.name }}/certs
+      certsecretprefix: {{ org.services.signer.name }}/certs
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
     serviceSsh:
-      port: {{ services.signer.ports.servicePort }}
-      targetPort: {{ services.signer.ports.targetPort }}
+      port: {{ org.services.signer.ports.servicePort }}
+      targetPort: {{ org.services.signer.ports.targetPort }}
       type: ClusterIP
     service:
       type: ClusterIP
       port: 20003
+    volume:
+      baseDir: /opt/corda
     shell:
       user: signer
       password: signerP
 
-    idmanPublicIP: {{ services.signer.name }}.{{ item.external_url_suffix }}
+    idmanPublicIP: {{ org.services.signer.name }}.{{ org.external_url_suffix }}
     idmanPort: 10000
 
     serviceLocations:
@@ -61,17 +63,18 @@ spec:
     signers:
       CSR:
         schedule:
-        interval: 1m
+          interval: 1m
       CRL:
         schedule:
-        interval: 1d
+          interval: 1d
       NetworkMap:
         schedule:
-        interval: 1m
+          interval: 1m
       NetworkParameters:
         schedule:
-        interval: 1m
+          interval: 1m
     cordaJarMx: 1
     healthCheckNodePort: 0
     jarPath: bin
     configPath: etc
+    
