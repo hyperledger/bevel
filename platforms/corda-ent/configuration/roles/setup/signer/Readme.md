@@ -1,5 +1,5 @@
 ## ROLE: setup/signer
-This role creates namespace, vault-auth, vault-reviewer, ClusterRoleBinding, certificates, deployments file for signer and also pushes the generated value file into repository.
+This role creates deployment file for signer and also pushes the generated value file into repository.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
