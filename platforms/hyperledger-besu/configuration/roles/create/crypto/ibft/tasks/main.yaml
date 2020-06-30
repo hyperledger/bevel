@@ -144,3 +144,13 @@
   loop_control:
     loop_var: org
   when: generate_crypto is defined and generate_crypto == True
+
+# This task writes the genesis base64 data to the file
+- name: write the genesis file
+  copy:
+    content: "{{ genesis }}"
+    dest: "{{ network.config.genesis }}"
+  vars:
+    genesis: "{{ lookup('file', '{{ build_path }}/crypto/genesis.json') | b64encode }}"
+  when: generate_crypto is defined and generate_crypto == True
+ 
