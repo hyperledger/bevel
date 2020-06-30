@@ -29,4 +29,3 @@ This tasks push the created value files into repository by calling git_push role
     *GIT_BRANCH: Git branch where release is being made
     GIT_RESET_PATH: path to specific folder to ignore when pushing files
     msg: commit message
-  
