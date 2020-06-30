@@ -77,4 +77,3 @@ spec:
     healthCheckNodePort: 0
     jarPath: bin
     configPath: etc
-    
