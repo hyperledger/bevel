@@ -49,7 +49,7 @@ spec:
       password: signerP
 
     idmanPublicIP: {{ org.services.signer.name }}.{{ org.external_url_suffix }}
-    idmanPort: 10000
+    idmanPort: {{ org.services.idman.ports.proxy }}
 
     serviceLocations:
       identityManager:
