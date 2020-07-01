@@ -1,0 +1,48 @@
+# This role creates the the value file for pki-generator chart and pushes it to the vault
+
+# This task will loop over the network.yaml to fetch the cenm details
+- name: Create value file for pki generator
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ org.name | lower }}pkigenerator"
+    component_ns: "{{ org.name | lower }}-ent"
+    type: "pki-generator"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    node_name: "{{ org.name | lower }}-pki"
+    docker_url: "corda/enterprise-pkitool"
+    docker_tag: "1.2-zulu-openjdk8u242"
+    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    vault_address: "{{ org.vault.url }}"
+    authpath: "cordaent{{ org.name | lower }}"
+    certsecretprefix: "secret/{{ org.type }}"
+    username: "signer"
+    password: "signerP"
+    idman_ip: "{{ org.services.idman.name | lower }}.{{ org.external_url_suffix }}"
+    idman_proxy_port: "{{ org.services.idman.ports.proxy }}"
+    idman_host: "{{ org.services.idman.name }}-internal"
+    networkmap_host: "{{ org.services.networkmap.name }}-internal"
+    tls_crl_signer_subject: "{{ org.services.signer.subject }}"
+    tls_crl_signer_issuer: "{{ org.services.idman.crlissuer_subject }}"
+    corda_root_ca_subject: "{{ org.subject }}"
+    subordinate_ca_subject: "{{ org.subordinate_ca_subject }}"
+    idman_ca_subject: "{{ org.services.idman.subject }}"
+    networkmap_ca_subject: "{{  org.services.networkmap.subject }}"
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Pushing pki-generator files"
