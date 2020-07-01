@@ -1,44 +1,34 @@
-################################################################################################
-# This role creates deployment files for CENM components and Corda Nodes,
-# Deployment file for a node is created in a directory with name=nodeName
-# nodeName is stored in component_name
-# component_type specifies the type of deployment to be created
-################################################################################################
+#############################################################################################
+# This role generates the value file for the helm releases 
+#############################################################################################
 
----
-# Task to check if values file are already created or not
-- stat: 
-    path: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
-  register: value_file_exist
 
-# Task to create and/or check if the target directory exists
-- name: "Ensures {{ release_dir }}/{{ component_name }} dir exists"
+############################################################################################
+# This task ensures that the directory exists, and creates it, if it does not exist
+- name: "Ensures {{ values_dir }}/{{ name }} dir exists"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
-    path: "{{ release_dir }}/{{ component_name }}"
+    path: "{{ values_dir }}/{{ name }}"
     check: "ensure_dir"
-  when: not value_file_exist.stat.exists
-  
 
-# Task to create deployment file from a template
-- name: "create {{ component_type }} file for {{ component_name }}"
+############################################################################################
+# This task creates the value file for the helm release
+# This is done by consuming a template file which is passes as a variable by the role
+# including this helm_component role
+- name: "create value file for {{ component_name }}"
   template:
-    src: "{{ dlt_templates[component_type] }}"
-    dest: "{{ values_file }}"
-  vars:
-    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
-  when: not value_file_exist.stat.exists
-
-################################################################################################
+    src: "{{ helm_templates[type] | default('helm_component.tpl') }}"
+    dest: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"
+    
+############################################################################################
 # This task tests the value file for syntax errors/ missing values
 # This is done by calling the helm_lint role and passing the value file parameter
-# When a new k8_component is added, changes should be made in helm_lint role as well
-- name: "Helm lint"
+# When a new helm_component is added, changes should be made in helm_lint role as well
+- name: Helm lint
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
   vars:
-    helmtemplate_type: "{{ component_type }}"
+    helmtemplate_type: "{{ type }}"
     chart_path: "{{ charts_dir }}"
-    value_file: "{{ release_dir }}/{{ component_name }}/{{ helmtemplate_type }}.yaml"
-  when: helm_lint=="true" and (not value_file_exist.stat.exists)
+    value_file: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"
