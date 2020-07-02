@@ -1,0 +1,35 @@
+# Check if the keystore.json exist in build directory
+- name: Check if enode is present in the build directory or not
+  stat:
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/enode"
+  register: file_status
+
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  when: file_status.stat.exists == False
+
+
+# Fetch nodekey from vault
+- name: Get the nodekey from vault and generate the enode
+  shell: |
+    vault read -field=key.pub secret/{{ org.name }}-bes/crypto/{{ peer.name }}/data | sed -r 's/^.{2}//' > {{ build_path }}/{{ org.name }}/{{ peer.name }}/enode
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: file_status.stat.exists == False
+
+# Get enode data
+- name: Get enode_data
+  set_fact:
+    enode_data: "{{ lookup('file', '{{ build_path }}/{{ org.name }}/{{ peer.name }}/enode') }}"
+
+# Get information about each validator node present in network.yaml and store it as a list of org,node
+- name: Get validator node data
+  set_fact:
+    enode_data_list={{ enode_data_list|default([]) + [ {'peer_name':peer.name, 'enodeval':enode_data, 'external_url':org.external_url_suffix, 'p2p_ambassador':peer.p2p.ambassador,  'node_ambassador':peer.tm_nodeport.ambassador, 'peer_publicIP':org.publicIps[0] } ] }}
+
