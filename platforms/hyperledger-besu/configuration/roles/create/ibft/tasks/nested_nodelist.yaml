@@ -1,0 +1,30 @@
+# Check if the keystore.json exist in build directory
+- name: Check if enode is present in the build directory or not
+  stat:
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/nodelist"
+  register: file_status
+
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  when: file_status.stat.exists == False
+
+# creates a file if not exist
+- name: Touch nodelist file
+  file:
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/nodelist"
+    state: touch
+
+# Add othernodes data to the file
+- name: nodelist loop
+  lineinfile:
+    line: "\\\"http://{{enode_item.peer_name}}.{{enode_item.external_url}}:{{enode_item.node_ambassador}}\\\""
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/nodelist"
+  with_items: "{{enode_data_list}}"
+  loop_control:
+    loop_var: enode_item
+  when: enode_item.peer_name != peer.name

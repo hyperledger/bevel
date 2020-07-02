@@ -1,0 +1,178 @@
+---
+# This is a YAML-formatted file.
+#Declare variables to be passed into your templates.
+
+deployment:
+  annotations: 
+# Provide the name of the node
+# Eg. nodeName: signer
+nodeName:
+
+# This section contains the Enterprise-Corda node metadata.
+metadata:
+  # Provide the namespace for the Corda node.
+  # Eg. namespace: cenm
+  namespace:
+  # Provide the labels to the Corda node.
+  labels:
+
+# # This section contains the name of the image used in the deployment for pki tool.
+# dockerImagePki:
+#   # Ex. name: corda/enterprise-pkitool
+#   name:
+#   # Ex. tag: 1.2-zulu-openjdk8u242
+#   tag: 
+#   # Ex. pullPolicy: Always
+#   pullPolicy:
+
+# This section contains the storage information.
+storage:
+  # Provide the name of the storageclass.
+  # NOTE: Make sure that the storageclass exist prior to this deployment as
+  # this chart doesn't create the storageclass.
+  # Eg. name: cenm
+  name:
+
+# Provide the number of replicas for your pods
+# Eg. replicaCount: 1
+replicas:
+
+# Provide image for init container
+image:
+  # Provide the alpine utils image.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
+  initContainerName:
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecret: regcred
+  imagePullSecret:
+
+# Provide image for signer container
+dockerImageSigner:
+  # EX. name: corda/enterprise-signer
+  name:
+  # Ex tag: 1.2-zulu-openjdk8u242
+  tag:
+  # Ex. pullPolicy: Always
+  pullPolicy:
+
+# required parameter for using Enterprise-Corda
+# Accept license should be YES.
+acceptLicense: YES
+
+# Provide volume related specificateions
+volume:
+ # Ex baseDir: /opt/corda
+  baseDir:
+
+# This section contains the vault related information.
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to
+# use the Kubernetes service account token based authentication.
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address:
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role:
+  # Provide the authpath configured to be used.
+  # Eg. authpath: entcordacenm
+  authpath:
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceaccountname:
+  tokensecretprefix:
+  # Provide the vault path where the  certificates are stored
+  # Eg. certsecretprefix: secret/cenm-ns/signer/certs
+  certsecretprefix:
+
+healthcheck:
+  #Provide the interval in seconds you want to iterate after for checking certificates
+  #Eg. readinesscheckinterval: 10
+  readinesscheckinterval:
+  # Provide this to iterate till this to check for the certificates
+  # readinessthreshold: 20
+  readinessthreshold:
+
+# Provide the service details for setting up ssh
+serviceSsh:
+  # Eg. type: ClusterIP
+  type:
+  # Port where ssh is running Ex. port: 2222
+  port:
+  # target port fot the ssh Ex. port: 2222
+  targetPort:
+  nodePort:
+
+# Provide this for logging into signer using shell
+shell:
+  # Ex. user: signer
+  user:
+  # password: SignerP
+  password:
+
+# required parameter public Ip of idman
+idmanPublicIP:
+
+# port number where idman is available
+idmanPort:
+
+# provide the other cenm services details
+serviceLocations:
+ # Provide the idman service address
+  identityManager:
+    # Ex. host: idman-internal
+    host:
+    # Port at which idman service is accessible
+    # Ex. port: 5052
+    port:
+  # networkmap service details
+  networkMap:
+    # Ex host: nmap-internal
+    host:
+    # port: 5050
+    port:
+  # Details of service where certificate revocation list will be published by idman
+  revocation:
+    # port: 5053
+    port:
+
+# Provide signers variables that will go to the template file
+# Like the time interval for checking different tasks
+signers:
+  # For checking certificate signing request schedule
+  CSR:
+    schedule:
+      # Ex interval: 1m
+      interval:
+  # For checking certificate revocation list schedule
+  CRL:
+    schedule:
+      # Ex interval: 1d
+      interval:
+  NetworkMap:
+    # schedule for checking with nms
+    schedule:
+      # Ex interval: 1d
+      interval:
+  # For checking network parameters interval
+  NetworkParameters:
+    schedule:
+      # Ex interval: 1m
+      interval:
+
+
+# Provide the JVM for jar
+# cordaJarMx: 1
+cordaJarMx:
+
+healthCheckNodePort:
+
+# where is CENM service jar file stored
+# Ex. jarPath: bin
+jarPath:
+
+# where is CENM service configuration file stored
+# Ex. configPath: etc
+configPath:
