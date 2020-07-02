@@ -19,7 +19,8 @@
   tempfile:
     state: directory
   register: tmp_directory
-  changed_when: false
+  tags:
+    - molecule-idempotence-notest
 
 ############################################################################################
 # This task fetches the configtx gen tar file from the mentioned URL
@@ -71,7 +72,8 @@
     {% endif %}
     cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
   when: add_new_org == 'false'
-  changed_when: False
+  tags:
+    - molecule-idempotence-notest
 
 - name: remove old channel block
   file:
@@ -87,7 +89,8 @@
     ./configtxgen -profile {{ profile_name }} -outputCreateChannelTx ./channel-artifacts/{{channel_name}}.tx -channelID {{channel_name}}
     cat ./channel-artifacts/{{channel_name}}.tx | base64 > ./channel-artifacts/{{channel_name}}.tx.base64
   when: add_new_org == 'false'
-  changed_when: false
+  tags:
+    - molecule-idempotence-notest
 
 ############################################################################################
 # This task creates the anchortx files
@@ -100,7 +103,8 @@
   loop_control:
     loop_var: participant
   when: add_new_org == 'false'
-  changed_when: false 
+  tags:
+    - molecule-idempotence-notest
 
 # This task creates the channel by consuming the configtx.yaml file
 - name: "Creating JSON configuration for new organization"
