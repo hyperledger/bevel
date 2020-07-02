@@ -1,0 +1,59 @@
+---
+  - name: register temporary directory
+    tempfile:
+      state: directory
+    register: tmp_directory
+    tags:
+      - molecule-idempotence-notest
+
+  - name: check aws cli
+    stat:
+      path: "{{ aws_cli.bin_directory }}/aws"
+    register: aws_cli_stat_result
+    tags:
+      - aws_cli
+
+  - name: download aws cli
+    get_url:
+      url: "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip"
+      dest: "{{ tmp_directory.path }}"
+      checksum: ""
+    when: not aws_cli_stat_result.stat.exists
+    tags:
+      - aws_cli
+
+  - name: extract aws cli
+    unarchive:
+      src: "{{ tmp_directory.path }}/awscli-bundle.zip"
+      dest: "{{ tmp_directory.path }}"
+      remote_src: yes
+    when: not aws_cli_stat_result.stat.exists
+    tags:
+      - aws_cli
+
+  - name: create bin directory
+    include_role:
+      name: "check/setup"
+    vars:
+      path: "{{ aws_cli.bin_directory }}"
+      check: "ensure_dir"
+    when: not aws_cli_stat_result.stat.exists
+    tags:
+      - aws_cli
+
+  - name: install aws cli
+    shell: |
+      cd "{{ tmp_directory.path }}"
+      ./awscli-bundle/install -b {{ aws_cli.bin_directory }}/aws
+    when: not aws_cli_stat_result.stat.exists
+    tags:
+      - aws_cli
+
+  - name: configuring aws
+    shell: |
+      cd {{ aws_cli.bin_directory }}/
+      ./aws configure set aws_access_key_id {{ aws_access_key }}
+      ./aws configure set aws_secret_access_key {{ aws_secret_key }}
+    changed_when: false
+    tags:
+      - notest
