@@ -9,7 +9,7 @@ This is the list of maintainers, including their github profiles for direct comm
 | Jonathan M Hamilton    | @jonathan-m-hamilton     | Product vision                |
 | Tracy Kuhrt            | @tkuhrt                  | Architecture                  |
 | Sownak Roy             | @sownak                  | Architecture, Development     |
-| Juraj Durech           | @juraj-durech            | Architecture, Development     |
+| Suvajit Sarkar         | @suvajit-sarkar        | Development     |
 
 
 ## License <a name="license"></a>
