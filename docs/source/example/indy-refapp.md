@@ -1,4 +1,4 @@
-# Supplychain
+# Indy RefApp
 
 ## Use case description
 Welcome to the Indy Ref App which allows nodes to implement the concept of digital identities using blockchain.

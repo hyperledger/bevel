@@ -6,5 +6,5 @@ This section shows the sample applications that are provisioned by the Blockchai
 .. toctree::
    :maxdepth: 1
 
-   example/supplychain
-   example/indy-refapp
+   example/supplychain.md
+   example/indy-refapp.md
