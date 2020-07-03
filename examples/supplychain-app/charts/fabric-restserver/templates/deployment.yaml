@@ -1,4 +1,4 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ $.Values.server.name }}
@@ -14,6 +14,11 @@ spec:
     type: RollingUpdate 
   serviceName: "{{ $.Values.server.name }}"
   replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $.Values.server.name }}
+      app.kubernetes.io/name: {{ $.Values.server.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
