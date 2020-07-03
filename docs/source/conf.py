@@ -167,7 +167,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'BAFOpensource', u'Blockchain Automation Framework Documentation',
-     author, 'BAFOpensource', 'An automation framework for delivering consistent production ready DLT networks on cloud based infrastructures.',
+     author, 'BAFOpensource', 'An automation framework for delivering consistent production ready DLT/Blockchain networks on cloud based infrastructures.',
      'Miscellaneous'),
 ]
 
