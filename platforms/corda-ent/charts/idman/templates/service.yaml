@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.nodeName }}-internal
+  name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
     run: {{ .Values.nodeName }}
@@ -25,4 +25,14 @@ spec:
       targetPort: {{ .Values.serviceRevocation.port }}
       protocol: TCP
       name: revocation
-
+    - port: {{ .Values.shell.sshdPort }}
+      targetPort: {{ .Values.shell.sshdPort }}
+      protocol: TCP
+      {{- if .Values.shell.nodePort }}
+      nodePort: {{ .Values.shell.nodePort }}
+      {{- end }}
+      name: ssh
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+      protocol: TCP
+      name: main

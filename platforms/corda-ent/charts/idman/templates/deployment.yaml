@@ -44,15 +44,12 @@ spec:
           cp CM/run.sh bin/
           cp CM/idman.conf etc/
           chmod +x bin/*
+          echo "config setup done"
         volumeMounts:
         - name: idman-etc
           mountPath: /opt/corda/etc
         - name: idman-conf
           mountPath: /opt/corda/CM
-          # subPath: run.sh
-        # - name: idman-conf
-        #   mountPath: /opt/corda/CM/idman.conf
-        #   subPath: idman.conf
         resources:
           requests:
             memory: {{ .Values.cordaJarMx }}G
@@ -95,7 +92,7 @@ spec:
               # Creating dirs for storing certificates
               mkdir -p ${MOUNT_PATH}/idman;
               mkdir -p ${MOUNT_PATH}/root;
-              mkdir -p ${MOUNT_PATH}/root/crl-files;
+              mkdir -p ${MOUNT_PATH}/crl-files;
 
               # Fetching ssl-idman certificates from vault
               COUNTER=1
@@ -108,7 +105,7 @@ spec:
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   else
                     idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-identity-manager-keys.jks"]')
-                    echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/idman/identity-manager-key-store.jks
+                    echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/idman/corda-ssl-identity-manager-keys.jks
                     echo "Successfully got ssl idman certifcates"
                     break
                   fi 
@@ -206,9 +203,6 @@ spec:
         - name: idman-conf
           mountPath: /opt/corda/CM/run.sh
           subPath: run.sh
-        - name: idman-conf
-          mountPath: /opt/corda/CM/idman.conf
-          subPath: idman.conf
         - name: idman-logs
           mountPath: /opt/corda/logs
         - name: idman-h2
@@ -237,7 +231,7 @@ spec:
         - name: idman-logs
           mountPath: /opt/corda/logs
       imagePullSecrets:
-      - name: cenm-registry
+      - name: {{ .Values.dockerImage.imagePullSecret }}
       volumes:
         - name: idman-conf
           configMap:
