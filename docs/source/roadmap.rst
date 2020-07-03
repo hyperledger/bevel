@@ -94,7 +94,7 @@ Architecture
 -  |tick| R3 Corda Enterprise Version architecture blueprint
 -  |hand| Couch DB architecture blueprint
 
-Histroic DLT support releases
+Histroic DLT/Blockchain support releases
 -----------------------------
 
 +-------------------------------------------+-----------+--------------+

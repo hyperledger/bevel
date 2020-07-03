@@ -13,7 +13,7 @@ Fork or import the [BAF GitHub repo](https://github.com/hyperledger-labs/blockch
 The Operator should have a user created on this repo with full access to the Git Repository. 
 
 ## Kubernetes
-The Blockchain Automation Framework (BAF) deploys the DLT network on [Kubernetes](https://kubernetes.io/) clusters; so to use BAF, at least one Kubernetes cluster should be available.
+The Blockchain Automation Framework (BAF) deploys the DLT/Blockchain network on [Kubernetes](https://kubernetes.io/) clusters; so to use BAF, at least one Kubernetes cluster should be available.
 BAF recommends one Kubernetes cluster per organization for production-ready projects. 
 Also, a user needs to make sure that the Kubernetes clusters can support the number of pods and persistent volumes that will be created by BAF.
 
@@ -36,7 +36,7 @@ Follow [official instructions](https://www.vaultproject.io/docs/install/) to dep
 ---
 ## Ansible
 
-The Blockchain Automation Framework configuration is essentially Ansible scripts, so install Ansible on the machine from which you will deploy the DLT network. This can be a local machine as long as Ansible commands can run on it.
+The Blockchain Automation Framework configuration is essentially Ansible scripts, so install Ansible on the machine from which you will deploy the DLT/Blockchain network. This can be a local machine as long as Ansible commands can run on it.
 
 Please note that this machine (also called **Ansible Controller**) should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s). And it is essential to install the [git client](https://git-scm.com/download) on the Ansible Controller. 
 
@@ -73,7 +73,7 @@ For storing private docker images, a private docker registry can be used. Inform
 
 ### Docker Build for dev environments
 
-The Blockchain Automation Framework is targetted for Production systems, but, in case, a developer environment is needed, you can create a containerized Ansible machine to deploy the dev DLT network using docker build.  
+The Blockchain Automation Framework is targetted for Production systems, but, in case, a developer environment is needed, you can create a containerized Ansible machine to deploy the dev DLT/Blockchain network using docker build.  
 
 The details on how to create a containerized Ansible machine is mentioned [here](./developer/docker-build.md).
 
