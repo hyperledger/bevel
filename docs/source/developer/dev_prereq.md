@@ -85,6 +85,26 @@ Complete the following steps to download and configure BAF repository on your lo
    git checkout develop
    ```
 
+---
+
+**NOTE:** If you have 2-Factor Authentication enabled on your GitHub account, you have to use GitHub token. Otherwise, password is fine.
+
+<details>
+  <summary>How To Generate GitHub Token</summary>
+  
+   1. On GitHub page, click your profile icon and then click **Settings**.
+   2. On the sidebar, click **Developer settings**.
+   3. On the sidebar, click **Personal access tokens**.
+   4. Click **Generate new token**.
+   5. Add a token description, enable suitable access and click **Generate token**.
+   6. Copy the token to a secure location or password management app.
+
+For security reasons, after you leave the page, you can no longer see the token again.
+
+</details>
+
+---
+
 ### Setting up Docker
 
 _Estimated Time: 10 minutes_

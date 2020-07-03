@@ -1,8 +1,8 @@
 # Configuration file specification: Hyperledger Besu
-A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Hyperledger Besu DLT network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
-![](./../_static/TopLevelClass-Besu.PNG)
+A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Hyperledger Besu DLT/Blockchain network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
+![](./../_static/TopLevelClass-Besu.png)
 
-Before setting up a Hyperledger Besu DLT network, this file needs to be updated with the required specifications.  
+Before setting up a Hyperledger Besu DLT/Blockchain network, this file needs to be updated with the required specifications.  
 A sample configuration file is provided in the repo path:  
 `platforms/hyperledger-besu/configuration/samples/network-besu.yaml` 
 
@@ -28,10 +28,10 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum/besu, here in the example its **besu**.
 
-`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.4.4**
+`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.4.4**.
 
 
-`env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' or 'haproxy'
+`env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
 
 The snapshot of the `env` section with example value is below
 ```yaml 
@@ -91,15 +91,19 @@ The snapshot of the `config` section with example values is below
     # Supported versions #
     # orion: 1.5.3 (for besu 1.4.4)
     tm_version: "1.5.3"               # This is the version of "orion" docker image that will be deployed
+    ## File location for saving the genesis file should be provided.
+    genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
+
 ```
 The fields under `config` are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| consensus   | Currently supports `ibft`. Please update the remaining items according to the consensus chosen as not all values are valid for both the consensus.                                 |
+| consensus   | Currently supports `ibft`.                                 |
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
-| transaction_manager    | Options is `orion`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. |
+| transaction_manager    | Currently supports `orion`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. |
 | tm_version         | This is the version of `orion` docker image that will be deployed. Supported versions: `1.5.3` for `orion`. |
+| genesis | This is the path where `genesis.json` will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file. |
 
 
 The `organizations` section contains the specifications of each organization.  
@@ -111,7 +115,12 @@ The snapshot of an organization field with sample values is below
     # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: carrier
-      external_url_suffix: test.besu.blockchaincloudpoc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
+      type: member
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
+      publicIps: ["3.221.78.194","21.23.74.154"] 
       cloud_provider: aws   # Options: aws, azure, gcp, minikube
 ```
 Each `organization` under the `organizations` section has the following fields. 
@@ -119,13 +128,15 @@ Each `organization` under the `organizations` section has the following fields.
 | Field                                    | Description                                 |
 |------------------------------------------|-----------------------------------------------------|
 | name                                        | Name of the organization     |
-| external_url_suffix                         | Public url suffix of the cluster.         |
+| type | Can be `member` for peer/member organization and `validator` for Validator organization.|
+| external_url_suffix                         | Public url suffix for the cluster. This is used to discover Orion nodes between different clusters.         |
+| publicIps | List of all public IP addresses of each availability zone from all organizations in the same k8s cluster. The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list. |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
-| aws                                         | When the organization cluster is on AWS |
+| aws                                         | Contains the AWS CLI credentials when the organization cluster is on AWS |
 | k8s                                         | Kubernetes cluster deployment variables.|
-| vault                                       | Contains Hashicorp Vault server address and root-token in the example |
+| vault                                       | Contains Hashicorp Vault server address and root-token |
 | gitops                                      | Git Repo details which will be used by GitOps/Flux. |
-| services                                    | Contains list of services which could ca/peer/orderers/concensus based on the type of organization |
+| services                                    | Contains list of services which could be validator/peer based on the type of organization |
 
 For the `aws` and `k8s` field the snapshot with sample values is below
 ```yaml
@@ -182,25 +193,30 @@ The gitops field under each organization contains
 | email                                | Email of the user to be used in git config                                                                       |
 | private_key                          | Path to the private key file which has write-access to the git repo                                              |
 
-The services field for each organization under `organizations` section of Hyperledger Besu contains list of `services` which could be ony peers as of now.
+The services field for each organization under `organizations` section of Hyperledger Besu contains list of `services` which could be peers or validators.
 
-Each organization with type as peer will have a peers service. The snapshot of peers service with example values is below
+Each organization with type as `member` will have a peers service. The snapshot of peers service with example values is below
 ```yaml
         peers:
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
-            port: 21000
+            port: 30303
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
-            port: 8546
+            port: 8545
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
-          transaction_manager:
-            port: 8443          
-            ambassador: 8443    
+          ws:
+            port: 8546
+            ambassador: 15012
+          tm_nodeport:
+            port: 8888         
+            ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
+          tm_clientport:
+            port: 8080         
+            ambassador: 15014    # Port exposed on ambassador service (Transaction manager client port)    
 ```
 The fields under `peer` service are
 
@@ -208,15 +224,46 @@ The fields under `peer` service are
 |-------------|----------------------------------------------------------|
 | name            | Name of the peer                |
 | subject     | This is the alternative identity of the peer node    |
-| type           | Type can be `validator` and `nonvalidator`. This is only applicable for `ibft` consensus. |
 | geth_passphrase | This is the passphrase used to generate the geth account. |
 | p2p.port   | P2P port for Besu|
 | p2p.ambassador | The P2P Port when exposed on ambassador service|
 | rpc.port   | RPC port for Besu|
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
-| transaction_manager.port   | Port used by Transaction manager `orion`. |
-| transaction_manager.ambassador | The tm port when exposed on ambassador service. |
+| ws.port   | Webservice port for Besu|
+| ws.ambassador | The Webservice Port when exposed on ambassador service|
+| tm_nodeport.port   | Port used by Transaction manager `orion`. |
+| tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
+| tm_clientport.port   | Client Port used by Transaction manager `orion`. |
+| tm_clientport.ambassador | The Client port when exposed on ambassador service. |
 
+Each organization with type as `validator` will have a validator service. The snapshot of validator service with example values is below
+```yaml
+      validators:
+        - validator:
+          name: validator1
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546          
+            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+            
+```
+The fields under `validator` service are
 
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name of the validator                |
+| bootnode     | `true` if the validator node is used also a bootnode for the network ***    |
+| p2p.port   | P2P port for Besu|
+| p2p.ambassador | The P2P Port when exposed on ambassador service|
+| rpc.port   | RPC port for Besu|
+| rpc.ambassador | The RPC Port when exposed on ambassador service|
+| ws.port   | Webservice port for Besu|
+| ws.ambassador | The Webservice Port when exposed on ambassador service|
 
 *** feature is in future scope

@@ -2,7 +2,7 @@
 A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
 ![](./../_static/TopLevelClass-Fabric.png)
 
-Before setting up a Fabric DLT network, this file needs to be updated with the required specifications.  
+Before setting up a Fabric DLT/Blockchain network, this file needs to be updated with the required specifications.  
 A sample configuration file is provided in the repo path:  
 `platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml` 
 
@@ -352,7 +352,7 @@ The fields under `peer` service are
 | chaincode.repository.branch   | Branch in the repository where the chaincode resides                                                             |
 | chaincode.repository.path     | Path of the chaincode in the repository branch                                                                   |
 | chaincode.arguments           | Arguments to the chaincode                                                                                       |
-| chaincode.endorsements        | This could be anchor/non-anchor ** |
+| chaincode.endorsements        | This could be anchor/non-anchor |
 
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 ```yaml
@@ -399,9 +399,8 @@ The fields under `orderer` service are
 | consensus                   | Consensus type, for example: kafka, raft                                                                               |
 | grpc.port                   | Grpc port of orderer                                                                                             |
 | ca_data.url                 | Orderer url                                                                                                      |
-| ca_data.certificate         | Path to CA certificate ***  |
+| ca_data.certificate         | Path to CA certificate **  |
 
 
-\* non-validating feature is in future scope  
-** non-anchor feature is in future scope  
-*** feature is in future scope
+\ 
+** feature is in future scope

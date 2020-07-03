@@ -10,4 +10,4 @@ Helm brings below features:
 5. Easier testing and QA.
 6. Rollbacks on an application level, not just an one-off pod level.
 
-The Blockchain Automation Framework uses Helm Charts for designing and configuring the architecture of each DLT platform for its own network set-up.
+The Blockchain Automation Framework uses Helm Charts for designing and configuring the architecture of each DLT/Blockchain platform for its own network set-up.
