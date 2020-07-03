@@ -1,0 +1,33 @@
+##############################################################################################
+# This role creates the value file for signer
+##############################################################################################
+
+# create deployment file for CENM signer service
+- name: "create signer"
+  include_role:
+    name: helm_component
+  vars:
+    type: "signer"
+    chart: "signer"
+    name: "{{ org.name | lower }}"
+    component_name: "{{ org.services.signer.name }}"
+    component_ns: "{{ org.name | lower }}-ent"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    component_auth: "cordaent{{ org.name | lower }}"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    helm_lint: "true"
+    
+# Push the signer deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Pushing deployment files for signer service"

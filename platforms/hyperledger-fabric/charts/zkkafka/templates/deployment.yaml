@@ -1,4 +1,4 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ $.Values.zookeeper.name }}
@@ -16,6 +16,11 @@ metadata:
 spec:
   serviceName: "{{ $.Values.zookeeper.peerservicename }}"
   replicas: {{ $.Values.zookeeper.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $.Values.zookeeper.name }}
+      app.kubernetes.io/name: {{ $.Values.zookeeper.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
@@ -42,7 +47,7 @@ spec:
           name: leader-election
        
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ $.Values.kafka.name }}
@@ -56,6 +61,11 @@ metadata:
 spec:
   serviceName: "{{ $.Values.kafka.brokerservicename }}"
   replicas: {{ $.Values.kafka.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $.Values.kafka.name }}
+      app.kubernetes.io/name: {{ $.Values.kafka.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
