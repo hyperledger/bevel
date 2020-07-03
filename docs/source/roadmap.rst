@@ -95,7 +95,7 @@ Architecture
 -  |hand| Couch DB architecture blueprint
 
 Histroic DLT/Blockchain support releases
------------------------------
+-----------------------------------------
 
 +-------------------------------------------+-----------+--------------+
 | Feature Name                              | Release   | Status       |

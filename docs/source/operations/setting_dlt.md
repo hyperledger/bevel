@@ -36,13 +36,12 @@ Depending on your choice of DLT/Blockchain Platform, select a network.yaml and c
 ```
 Open and update the `network.yaml` according to the following Platform specific guides.
 
-| Platform-specific configuration file|
-|---------------------------------|
-| [Hyperledger-Fabric](./fabric_networkyaml.md)|
-| [R3-Corda](./corda_networkyaml.md) 
-| [ Hyperledger-Indy](./indy_networkyaml.md)
-| [Quorum](./quorum_networkyaml.md) |
-| [Hyperledger-Besu](./besu_networkyaml.md)
+### Platform-specific configuration files
+- [Hyperledger-Fabric](./fabric_networkyaml.md)
+- [R3-Corda](./corda_networkyaml.md)    
+- [Hyperledger-Indy](./indy_networkyaml.md)
+- [Quorum](./quorum_networkyaml.md) 
+- [Hyperledger-Besu](./besu_networkyaml.md)
 
 In summary, you will need to update the following:
 1. `docker` url, username and password.

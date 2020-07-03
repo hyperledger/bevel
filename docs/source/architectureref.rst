@@ -188,6 +188,8 @@ Platform-Specific Reference Guides
    architectureref/certificates_path_list_indy
    architectureref/quorum
    architectureref/certificates_path_list_quorum
+   architectureref/hyperledger-besu
+   architectureref/certificates_path_list_besu
 
 .. _Corda: https://docs.corda.net/
 .. _Hyperledger Fabric: https://hyperledger-fabric.readthedocs.io
