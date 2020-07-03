@@ -180,3 +180,104 @@
             name: testpeer0
           - peer:
             name: testpeer1
+
+#####################################################################################
+    # Testing create/configtx
+
+    - name: "Include create/configtx"
+      include_role:
+        name: "configuration/roles/create/configtx"
+      vars:
+        config_file: "./build/configtx.yaml"
+        values_dir: "./"
+        name: build
+        network:
+          version: "1.4.4"
+          organizations:
+            - organization:
+              name: testorderer
+              type: orderer
+              cloud_provider: aws
+              external_url_suffix: test_url
+              services:
+                consensus:
+                  name: "raft"
+                  replicas: 3
+                orderers:
+                  - orderer:
+                    name: testorderer
+                    type: orderer
+                    consensus: kafka
+                    grpc:
+                      port: 7050
+            - organization:
+              name: testpeer
+              type: peer
+              cloud_provider: aws
+              external_url_suffix: test_url
+              services:
+                consensus:
+                  name: "raft"
+                  replicas: 3
+                peers:
+                - peer:
+                  name: testpeer
+                  type: anchor
+          channels:
+            - channel:
+              channel_name: test_channel
+              consortium: test_consortium
+              orderer:
+                name: testorderer
+              genesis:
+                name: testOrdererGenesis
+              participants:
+              - organization:
+                name: testorg1
+              - organization:
+                name: testorg2
+
+####################################################################################
+    # Testing create/channel_artifacts
+
+    - name: "Include create/channel_artifacts"
+      include_role:
+        name: "configuration/roles/create/channel_artifacts"
+      vars:
+        add_new_org: "false"
+        build_path: "./build"
+        values_dir: "."
+        name: build
+        install_os: "linux"                 #Default to linux OS
+        install_arch:  "amd64"  
+        genesis:
+          name: testOrdererGenesis
+        channel_name: "test_channel"
+        profile_name: "test_channel"
+        item:
+          participants:
+          - organization:
+            name: testorg1
+            org_status: old
+          - organization:
+            name: testorg2
+            org_status: new
+        network:
+          version: "1.4.4"
+          organizations:
+            - organization:
+              name: testorderer
+              type: orderer
+              cloud_provider: aws
+              external_url_suffix: test_url
+              services:
+                consensus:
+                  name: "raft"
+                  replicas: 3
+                orderers:
+                  - orderer:
+                    name: testorderer
+                    type: orderer
+                    consensus: kafka
+                    grpc:
+                      port: 7050
