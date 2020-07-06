@@ -1,4 +1,4 @@
-# DLT Network deployment using docker build
+# DLT Blockchain Network deployment using docker build
 
 ## Building the docker image
 

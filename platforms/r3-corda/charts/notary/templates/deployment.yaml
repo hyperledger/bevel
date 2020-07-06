@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: {{ .Values.nodeName }}
@@ -15,6 +15,11 @@ metadata:
       {{- include "labels.custom" . | nindent 2 }}
 spec:
     replicas: {{ .Values.replicas }}
+    selector:
+      matchLabels:
+        app: {{ .Values.nodeName }}
+        app.kubernetes.io/name: {{ .Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
     strategy:
       type: Recreate
       rollingUpdate: null

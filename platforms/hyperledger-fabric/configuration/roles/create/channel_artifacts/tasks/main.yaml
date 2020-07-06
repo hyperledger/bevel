@@ -2,6 +2,15 @@
 # This role generate genesis block and channel
 #############################################################################################
 
+############################################################################################
+# This task ensures that the directory exists, and creates it, if it does not exist
+############################################################################################
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+
 - name: check configtxgen
   stat:
     path: "{{ build_path }}/configtxgen"
@@ -11,10 +20,12 @@
   tempfile:
     state: directory
   register: tmp_directory
+  tags:
+    - molecule-idempotence-notest
 
 ############################################################################################
 # This task fetches the configtx gen tar file from the mentioned URL
-- name: "Geting the configtxgen binary tar"
+- name: "Getting the configtxgen binary tar"
   get_url:
     url: https://github.com/hyperledger/fabric/releases/download/v{{network.version}}/hyperledger-fabric-{{install_os}}-{{install_arch}}-{{network.version}}.tar.gz
     dest: "{{ tmp_directory.path }}"
@@ -62,6 +73,8 @@
     {% endif %}
     cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
   when: add_new_org == 'false'
+  tags:
+    - molecule-idempotence-notest
 
 - name: remove old channel block
   file:
@@ -77,6 +90,8 @@
     ./configtxgen -profile {{ profile_name }} -outputCreateChannelTx ./channel-artifacts/{{channel_name}}.tx -channelID {{channel_name}}
     cat ./channel-artifacts/{{channel_name}}.tx | base64 > ./channel-artifacts/{{channel_name}}.tx.base64
   when: add_new_org == 'false'
+  tags:
+    - molecule-idempotence-notest
 
 ############################################################################################
 # This task creates the anchortx files
@@ -89,6 +104,8 @@
   loop_control:
     loop_var: participant
   when: add_new_org == 'false'
+  tags:
+    - molecule-idempotence-notest
 
 # This task creates the channel by consuming the configtx.yaml file
 - name: "Creating JSON configuration for new organization"

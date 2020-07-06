@@ -9,7 +9,7 @@ network:
 
   #Environment section for Kubernetes setup
   env:
-    type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Besu
     ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
@@ -28,7 +28,7 @@ network:
   
   # Following are the configurations for the common Besu network
   config:    
-    consensus: "ibft"                 # Options are "ethash", "clique" and "ibft"
+    consensus: "ibft"                 # Options are "ibft". "ethash" and "clique" will be implemented in future release
     ## Certificate subject for the root CA of the network. 
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
@@ -36,15 +36,108 @@ network:
     transaction_manager: "orion"    # Transaction manager is "orion"
     # This is the version of "orion" docker image that will be deployed
     tm_version: "1.5.3"               
-    ## Transaction Manager nodes public addresses should be provided.
+    ## File location for saving the genesis file should be provided.
+    genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
     
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
     # Specification for the 1st organization. Each organization should map to a VPC and a separate k8s cluster for production deployments
     - organization:
+      name: supplychain
+      type: validator
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
+      publicIps: ["3.221.78.194","21.23.74.154"]               
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        context: "cluster_context"
+        config_file: "cluster_config"
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
+        branch: "develop"           # Git branch where release is being made
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
+        username: "git_username"          # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"          # Git Server user password
+        email: "git_email"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+      # As this is the validator org, it is hosting a few validators as services
+      services:
+        validators:
+        - validator:
+          name: validator1
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546          
+            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+        - validator:
+          name: validator2
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546          
+            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+        - validator:
+          name: validator3
+          bootnode: false          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546          
+            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+        - validator:
+          name: validator4
+          bootnode: false          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546          
+            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+
+    - organization:
       name: carrier
-      external_url_suffix: test.besu.blockchaincloudpoc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
+      type: member
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      # This is not used for Besu as Besu does not support DNS hostnames currently. Here for future use
+      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
+      publicIps: ["3.221.78.194","21.23.74.154"] 
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -77,25 +170,35 @@ network:
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           lock: true/false        # Sets Besu node to lock or unlock mode
-          bootnode: true          # true if the peer node is used as a bootnode for the network
           p2p:
-            port: 21000
+            port: 30303
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
-            port: 8546
+            port: 8545
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
-          transaction_manager:
-            port: 8443          
-            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+          ws:
+            port: 8546
+            ambassador: 15012
+          tm_nodeport:
+            port: 8888         
+            ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
+          tm_clientport:
+            port: 8080         
+            ambassador: 15014    # Port exposed on ambassador service (Transaction manager client port)
            
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: manufacturer
-      external_url_suffix: test.besu.blockchaincloudpoc.com      
+      type: member
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      # This is not used for Besu as Besu does not support DNS hostnames currently. Here for future use
+      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
+      publicIps: ["3.221.78.194","21.23.74.154"] 
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -129,23 +232,33 @@ network:
         - peer:
           name: manufacturer
           subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           lock: true/false        # Sets Besu node to lock or unlock mode
-          bootnode: false          # true if the peer node is used as a bootnode for the network
           p2p:
-            port: 21000
+            port: 30303
             ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
-            port: 8546
+            port: 8545
             ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
-          transaction_manager:
-            port: 8443          
-            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+          ws:
+            port: 8546
+            ambassador: 15022
+          tm_nodeport:
+            port: 8888         
+            ambassador: 15023   # Port exposed on ambassador service (Transaction manager node port)
+          tm_clientport:
+            port: 8080         
+            ambassador: 15024    # Port exposed on ambassador service (Transaction manager client port)
 
     - organization:
       name: store
-      external_url_suffix: test.besu.blockchaincloudpoc.com      
+      type: member        
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      # This is not used for Besu as Besu does not support DNS hostnames currently. Here for future use
+      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
+      publicIps: ["3.221.78.194","21.23.74.154"] 
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -179,23 +292,33 @@ network:
         - peer:
           name: store
           subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           lock: true/false        # Sets Besu node to lock or unlock mode
-          bootnode: false          # true if the peer node is used as a bootnode for the network
           p2p:
-            port: 21000
+            port: 30303
             ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
-            port: 8546
+            port: 8545
             ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
-          transaction_manager:
-            port: 8443          
-            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+          ws:
+            port: 8546
+            ambassador: 15032
+          tm_nodeport:
+            port: 8888         
+            ambassador: 15033   # Port exposed on ambassador service (Transaction manager node port)
+          tm_clientport:
+            port: 8080         
+            ambassador: 15034    # Port exposed on ambassador service (Transaction manager client port)
 
     - organization:
       name: warehouse
-      external_url_suffix: test.besu.blockchaincloudpoc.com      
+      type: member         
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      # This is not used for Besu as Besu does not support DNS hostnames currently. Here for future use
+      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
+      publicIps: ["3.221.78.194","21.23.74.154"] 
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -229,16 +352,20 @@ network:
         - peer:
           name: warehouse
           subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           lock: true/false        # Sets Besu node to lock or unlock mode
-          bootnode: false          # true if the peer node is used as a bootnode for the network
           p2p:
-            port: 21000
+            port: 30303
             ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
-            port: 8546
+            port: 8545
             ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
-          transaction_manager:
-            port: 8443              
-            ambassador: 8443        # Port exposed on ambassador service (Transaction manager port)
+          ws:
+            port: 8546
+            ambassador: 15042
+          tm_nodeport:
+            port: 8888         
+            ambassador: 15043   # Port exposed on ambassador service (Transaction manager node port)
+          tm_clientport:
+            port: 8080         
+            ambassador: 15044    # Port exposed on ambassador service (Transaction manager client port)
