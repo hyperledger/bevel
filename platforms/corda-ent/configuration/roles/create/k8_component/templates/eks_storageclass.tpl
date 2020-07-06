@@ -7,4 +7,3 @@ reclaimPolicy: Delete
 volumeBindingMode: WaitForFirstConsumer
 parameters:
   encrypted: "true"
- 
