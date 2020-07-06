@@ -17,6 +17,7 @@ spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
+      app: {{ .Values.nodeName }}
       app.kubernetes.io/name: {{ .Values.nodeName }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
@@ -88,7 +89,6 @@ spec:
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "logged into vault"
-
               # Creating dirs for storing certificates
               mkdir -p ${MOUNT_PATH}/idman;
               mkdir -p ${MOUNT_PATH}/root;
