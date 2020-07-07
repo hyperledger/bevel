@@ -1,0 +1,79 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: signer
+  annotations:
+    flux.weave.works/automated: "false"
+  namespace: supplychain-ent
+spec:
+  releaseName: signer
+  chart:
+    path: platforms/corda-ent/charts/signer
+    git: ssh://git@innersource.accenture.com/sow11/blockchain-automation-framework.git
+    ref: corda-ent
+  values:
+    nodeName: signer
+    metadata:
+      namespace: supplychain-ent
+    replicas: 1
+    image:
+      imagePullSecret: regcred
+      initContainerName: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+    storage:
+      name: awsstorageclass
+    dockerImageSigner:
+      name: corda/enterprise-signer
+      tag: 1.2-zulu-openjdk8u242
+      pullPolicy: Always
+    acceptLicense: YES
+    vault:
+      address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9000
+      role: vault-role
+      authpath: cordaentsupplychain
+      serviceaccountname: vault-auth
+      certsecretprefix: signer/certs
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
+    serviceSsh:
+      port: 8080
+      targetPort: 8080
+      type: ClusterIP
+    service:
+      type: ClusterIP
+      port: 20003
+    volume:
+      baseDir: /opt/corda
+    shell:
+      user: signer
+      password: signerP
+
+    idmanPublicIP: signer.rce.demo.aws.blockchaincloudpoc.com
+    idmanPort: 10001
+
+    serviceLocations:
+      identityManager:
+        host: idman-internal
+        port: 5052
+      networkMap:
+        host: nmap-internal
+        port: 5050
+      revocation:
+        port: 5053
+    signers:
+      CSR:
+        schedule:
+          interval: 1m
+      CRL:
+        schedule:
+          interval: 1d
+      NetworkMap:
+        schedule:
+          interval: 1m
+      NetworkParameters:
+        schedule:
+          interval: 1m
+    cordaJarMx: 1
+    healthCheckNodePort: 0
+    jarPath: bin
+    configPath: etc
