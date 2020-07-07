@@ -6,16 +6,28 @@
 # These tasks create the configtx.yaml file as the requirements mentioned in network.yaml 
 # file. The configtx.yaml file is consumed by the configtxgen binary to generate the 
 # genesis block and channels.
+
+############################################################################################
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+
 - name: "Remove old configtx file"
   file:
     path: "{{ config_file }}"
     state: absent
+  tags:
+    - molecule-idempotence-notest
 
 # The tasks add the required data patch by patch to the configtx.yaml file to generate it.
 - name: "create configtx.yaml file"
   file:
     path: "{{ config_file }}"
     state: touch
+  tags:
+    - molecule-idempotence-notest
 
 - name: "Adding init patch to configtx.yaml"
   blockinfile:
@@ -26,6 +38,8 @@
     consensus: "{{ item.services.consensus }}"
   loop: "{{ network['organizations'] }}"
   when: item.type == 'orderer'
+  tags:
+    - molecule-idempotence-notest
 
 - name: "Adding organization patch to configtx.yaml"
   blockinfile:
@@ -38,6 +52,8 @@
     component_type: "{{ item.type | lower }}"
     provider: "{{ item.cloud_provider }}"
   loop: "{{ network['organizations'] }}"
+  tags:
+    - molecule-idempotence-notest
 
 - name: "Adding orderer patch to configtx.yaml"
   blockinfile:
@@ -51,6 +67,8 @@
     provider: "{{ item.cloud_provider }}"
   loop: "{{ network['organizations'] }}"
   when: item.type == 'orderer'
+  tags:
+    - molecule-idempotence-notest
 
 - name: "Adding profile patch to configtx.yaml"
   blockinfile:
@@ -63,6 +81,8 @@
     component_ns: "{{ item.name | lower }}-net"
   loop: "{{ network['organizations'] }}"
   when: network.channels is defined and item.type == 'orderer'
+  tags:
+    - molecule-idempotence-notest
 
 - name: Display configtx file contents
   debug: 

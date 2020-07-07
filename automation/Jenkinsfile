@@ -44,7 +44,7 @@ pipeline {
     VAULT_SERVER="vault.internal.demo.aws.blockchaincloudpoc.com"
     VAULT_PORT="9000"
     VAULT_BASTION="2.bastion.demo.aws.blockchaincloudpoc.com"
-    VAULT_PRIVATE_IP="10.1.3.11"
+    VAULT_PRIVATE_IP="10.1.3.114"
     //Secret which contains google maps key
     GMAPS_CREDS="gmaps_key"
   }
@@ -53,9 +53,9 @@ pipeline {
     choice(choices: 'no\nyes', description: 'Force rebuild? To force building [ci skip] commits', name: 'FORCE_ACTION')
     choice(choices: 'yes\nno', description: 'Reset Network at start?', name: 'RESET_ACTION')
     choice(choices: 'no\nyes', description: 'Only API Test? This skips all other deployment steps.', name: 'APIONLY_ACTION')
-    choice(choices: '1_4_4\n2_0_0', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
+    choice(choices: '2_0_0\n1_4_4', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
     choice(choices: 'kafka\nraft', description: 'What is the Fabric Consensus?', name: 'FABRIC_CONSENSUS')
-    choice(choices: '4_1\n4_4', description: 'What is the Corda version?', name: 'CORDA_VERSION')
+    choice(choices: '4_4\n4_1', description: 'What is the Corda version?', name: 'CORDA_VERSION')
     choice(choices: '2_5_0\n2_x_x', description: 'What is the Quorum version?', name: 'QUORUM_VERSION')
     choice(choices: 'ibft\nraft', description: 'What is the Quorum Consensus?', name: 'QUORUM_CONSENSUS')
     choice(choices: 'tessera\nconstellation', description: 'What is the Quorum TM?', name: 'QUORUM_TM')
@@ -309,8 +309,7 @@ pipeline {
         not {
           anyOf {
             branch 'master';
-            branch 'develop';
-            branch 'indy'
+            branch 'develop'
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
@@ -322,31 +321,7 @@ pipeline {
         """        
       }
     }
-    // the following is a hack because our current AWS EKS cluster does not support static IP for Kubernetes loadbalancer
-    //TODO remove this when AWS supports static IP address, in which case those IPs should be in the configuration network.yaml
-    stage('Deploy Indy network') {
-      when {
-        branch 'indy';
-        expression { params.APIONLY_ACTION != 'yes' }
-        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
-      }
-      steps {
-        // Deploy shared playbooks, to deploy Ambassador so that the public IP is available
-        sh """
-          ansible-playbook platforms/shared/configuration/environment-setup.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
-          ansible-playbook platforms/shared/configuration/kubernetes-env-setup.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"          
-        """
-        // Get Ambassador IP and update in network.yaml for indy
-        sh """
-          ambassadordns=\$(kubectl get service ambassador -o json | jq '.status.loadBalancer.ingress[0].hostname'| tr -d '"')
-          ambassador_ip=\$(host \$ambassadordns | awk '/has address/ { print \$4 ; exit }')
-          sed -i -e "s*AMBASSADOR_IP*\$ambassador_ip*g" build/network.yaml
-        """
-        sh """
-          ansible-playbook platforms/hyperledger-indy/configuration/deploy-network.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
-        """        
-      }
-    }
+    
     /*
     *  Execute add-new-organization.yaml which will add a new node to the network
     */

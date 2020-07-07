@@ -2,7 +2,7 @@
 A network.yaml file is the base configuration file for setting up a Corda DLT network. This file contains all the information related to the infrastructure and network specifications. Here is the structure of it.
 ![](./../_static/TopLevelClass-Corda.png)
 
-Before setting up a Corda DLT network, this file needs to be updated with the required specifications.
+Before setting up a Corda DLT/Blockchain network, this file needs to be updated with the required specifications.
 A sample configuration file is provide in the repo path:  
 `platforms/r3-corda/configuration/samples/network-cordav2.yaml`  
 
@@ -30,7 +30,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/quorum, here in example its `corda`.
 
-`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 and 4.4 is also supported and should be used. For Corda enterprise, use like `4.4-enterprise`.
+`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 and 4.4 is also supported and should be used. For **Corda Enterprise**, use like `4.4-enterprise`.
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -58,9 +58,9 @@ The fields under `env` section are
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
 
-For Opensource Corda, please use the [NMS Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/NMS.Jenkinsfile) or/and [Doorman Jenkins file](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/automation/r3-corda/Doorman.Jenkinsfile) to build and store the docker images before running the Ansible playbooks.
+For Opensource Corda, the required images are found [here](../architectureref/corda.html#docker-images).
 
-For Corda Enterprise, all Docker images has to be built and stored in a private Docker registry before running the Ansible playbooks. The required images are found [here](../architectureref/corda-ent.html#docker-images).
+For **Corda Enterprise**, all Docker images has to be built and stored in a private Docker registry before running the Ansible playbooks. The required images are found [here](../architectureref/corda-ent.html#docker-images).
 
 The snapshot of the `docker` section with example values is below
 ```yaml
@@ -75,7 +75,7 @@ The fields under `docker` section are
 
 | Field      | Description                                 |
 |------------|---------------------------------------------|
-| url        | Docker registry url. Must be private registry for Corda Enterprise    | 
+| url        | Docker registry url. Must be private registry for **Corda Enterprise**    | 
 | username   | Username credential required for login      |
 | password   | Password credential required for login      |
 
@@ -101,10 +101,10 @@ The `orderers` section contains a list of doorman/networkmap which is exposed to
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| type        | For Corda, `networkmap` and `doorman` (`idman` for Enterprise) are the only valid type of orderers.    |
+| type        | For Corda, `networkmap` and `doorman` (`idman` for **Corda Enterprise**) are the only valid type of orderers.    |
 | uri         | Doorman/IDman/Networkmap external URL. This should be reachable from all nodes.     | 
 | certificate | Directory path of public certificates for Doorman/IDman and Networkmap.             |
-| crlissuer | Only for Enterprise. Subject of the CRL Issued.|
+| crlissuer | Only for **Corda Enterprise**. Subject of the CRL Issuer.|
 
 
 The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. doorman, membership service, etc), then these services should be listed in this section as well.
@@ -222,7 +222,7 @@ The `cordapps` optional field under each organization contains
 | username                             | Cordapps Repository username |
 | password                             | Cordapps Repository password |
 
-The services field for each organization under `organizations` section of Corda contains list of `services` which could be doorman/idman/nms/notary/peers for opensource, and additionally idman/networkmap/signer for Enterprise.
+The services field for each organization under `organizations` section of Corda contains list of `services` which could be doorman/idman/nms/notary/peers for opensource, and additionally idman/networkmap/signer for **Corda Enterprise**.
 
 The snapshot of doorman service with example values is below
 ```yaml
@@ -273,6 +273,8 @@ The fields under `nms` service are
 | ports.servicePort       | HTTP port number where NetworkMap service is accessible                                       |
 | ports.targetPort        | HTTP target port number of the NetworkMap docker-container                                  |
 | tls                     | On/off based on whether we want TLS on/off for nms
+
+For **Corda Enterprise**, following services must be added to CENM Support.
 
 The snapshot of idman service with example values is below
 ```yaml
@@ -436,7 +438,7 @@ The fields under each `peer` service are
 | expressapi.port               | Expressapi port. Used to expose expressapi to other services                                                     |
 | expressapi.targetPort         | Expressapi target port. Port where the expressapi services are running                                        |
 
-For Corda Enterprise, following additional fields have been added under each `peer`.
+For **Corda Enterprise**, following additional fields have been added under each `peer`.
 ```yaml
           firewall:
             enabled: true                   # true if firewall components are to be deployed
@@ -447,9 +449,10 @@ For Corda Enterprise, following additional fields have been added under each `pe
           hsm:                              # hsm support for future release
             enabled: false 
 ```
+
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| firewall.enabled  | Can be true/false. True, if Corda Firewall components are to be deployed. False, if Firewall is not needed. Corda recommends usage of Firewall for all production deployments.                                                                               |
-| firewall.dmz    | Can be true/false. True, if Corda Firewall components are to be deployed on a separate DMZ Kubernetes cluster. False, if Firewall components are to be deployed on same Kubernetes cluster as the Node. Corda recommends usage of separate DMS cluster for all production deployments. |
-| firewall.dmz_k8s    | This is used only id `dmz: true`. Contains the Kubernetes cluster context and config file path of the DMZ cluster. Note that the cluster should be in the same Cloud provider account as the Node cluster. |
+| firewall.enabled  | Can be true/false. True, if Corda Firewall components are to be deployed. False, if Firewall is not needed. Corda recommends usage of Firewall for all production deployments.|
+| firewall.dmz | Can be true/false. True, if Corda Firewall components are to be deployed on a separate DMZ Kubernetes cluster. False, if Firewall components are to be deployed on same Kubernetes cluster as the Node. Corda recommends usage of separate DMS cluster for all production deployments. |
+| firewall.dmz_k8s | This is used only id `dmz: true`. Contains the Kubernetes cluster context and config file path of the DMZ cluster. Note that the cluster should be in the same Cloud provider account as the Node cluster. |
 | hsm.enabled      | This is kept for future HSM integration  |

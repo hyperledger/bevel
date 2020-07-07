@@ -1,4 +1,4 @@
-# hyperledger-besu Configurations
+# Hyperledger Besu Configurations
 
 In the Blockchain Automation Framework project, ansible is used to automate the certificate generation, put them in the vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks.
 Ansible playbooks contains a series of roles and tasks which run in sequential order to achieve the automation.
@@ -21,7 +21,7 @@ For Hyperledger Besu, the ansible roles and playbooks are located at `/platforms
 
 -------------
 
-## Roles for setting up a Hyperledger-Besu Network
+## Roles for setting up a Hyperledger Besu Network
 
 Roles in ansible are a combination of logically inter-related tasks.
 

@@ -1,0 +1,77 @@
+###########################################################
+# Playbook to create deployment files for the following:
+# namespaces, service account and clusterrolebinding
+# CENM Signer
+# Playbook arguments: complete network.yaml
+###########################################################
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:    
+  # Delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
+  #----------------------------------------------------------------------
+  # create namespace, service account and clusterrolebinding
+  - name: "Create namespace and service account"
+    include_role: 
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ org.name | lower }}-ent"
+      organisation: "{{ org.name | lower }}"
+      kubernetes: "{{ org.k8s }}"
+      gitops: "{{ org.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+
+  # Create Storageclass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "{{ org.cloud_provider }}storageclass"
+      git_dir: "{{ org.gitops.release_dir }}"
+      org: "{{ org }}"
+      kubernetes: "{{ org.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+      
+  # ----------------------------------------------------------------------  
+  # Setup Vault-Kubernetes accesses and Regcred for docker registry
+  - name: "Setup vault"   
+    include_role: 
+      name: "setup/vault_kubernetes"
+    vars:
+      component_ns: "{{ org.name | lower }}-ent"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      component_name: "{{ org.name | lower}}"
+      component_path: "{{ org.name | lower }}/"
+      component_auth: "cordaent{{ org.name | lower }}"
+      component_type: "{{ org.type | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+
+  # ---------------------------------------------------------------------- 
+  # Generate pki-generator chart value file and push to repository
+  - name: "Setup pki-generator"   
+    include_role: 
+      name: "setup/pki-generator"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'
+  # ----------------------------------------------------------------------   
+  # Deploy Signer node
+  - name: Deploy Signer service node
+    include_role:
+      name: setup/signer
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: network['type'] == 'corda-enterprise' and org.type == 'cenm'

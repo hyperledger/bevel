@@ -1,6 +1,6 @@
 # Common Configurations
 The Blockchain Automation Framework installs the common pre-requisites when the `site.yaml` playbook is run. To read more about setting up
-DLT networks, refer [Setting up a Blockchain/DLT network](../operations/setting_dlt).
+DLT/Blockchain networks, refer [Setting up a Blockchain/DLT network](../operations/setting_dlt).
 
 Following playbooks can be executed independently to setup the enviornment and can be found [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration)
 
