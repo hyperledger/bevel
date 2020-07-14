@@ -17,10 +17,7 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-<<<<<<< HEAD
-=======
       app: {{ .Values.nodeName }}
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
       app.kubernetes.io/name: {{ .Values.nodeName }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
@@ -52,11 +49,8 @@ spec:
             value: {{ .Values.vault.certsecretprefix }}
           - name: MOUNT_PATH
             value: "/DATA"
-<<<<<<< HEAD
           - name: NODEINFO_MOUNT_PATH
             value: "/notary-nodeinfo"
-=======
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
         command: ["sh", "-c"]
         args:
         - |-
@@ -67,19 +61,11 @@ spec:
                     exit 1
                 fi
               }
-<<<<<<< HEAD
+
               # Setting up the environment to get secrets from Vault
               echo "Getting secrets from Vault Server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-=======
-
-              # setting up env to get secrets from vault
-              echo "Getting secrets from Vault Server"
-              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-            
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "logged into vault"
 
@@ -87,11 +73,13 @@ spec:
               mkdir -p ${MOUNT_PATH}/key-stores;
               mkdir -p ${MOUNT_PATH}/trust-stores;
               mkdir -p ${MOUNT_PATH}/crl-files;
-<<<<<<< HEAD
-=======
+
               # Creating dirs for network files
               mkdir -p ${MOUNT_PATH}/notary-nodeinfo;
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
+
+              # Creating dirs for network files
+              mkdir -p ${MOUNT_PATH}/notary-nodeinfo;
+
 
               # Getting intitial network parameters from Vault
               COUNTER=1
@@ -103,22 +91,13 @@ spec:
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   else
                    initial_param=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-parameters-initial"]')
-<<<<<<< HEAD
                    echo "${initial_param}" | base64 -d > ${NODEINFO_MOUNT_PATH}/network-parameters-initial.conf
-=======
-                   echo "${initial_param}" | base64 -d > ${MOUNT_PATH}/notary-nodeinfo/network-parameters-initial.conf
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
                    echo "Successfully got initial network parameters"
                    break
                 fi
                 COUNTER=`expr "$COUNTER" + 1`
-              done
-<<<<<<< HEAD
-              
-=======
+              done  
 
-
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
               # Getting node Info File from Vault
               COUNTER=1
               while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
@@ -129,11 +108,7 @@ spec:
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   else
                   notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
-<<<<<<< HEAD
                   echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/notary_nodeinfo
-=======
-                  echo "${notary_nodeinfo}" | base64 -d > ${MOUNT_PATH}/notary-nodeinfo/node_info_file
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
                   echo "Successfully got node info file"
                   break
                 fi
@@ -235,11 +210,8 @@ spec:
         volumeMounts:
         - name: certificates
           mountPath: /DATA
-<<<<<<< HEAD
         - name: notary-nodeinfo
           mountPath: /notary-nodeinfo
-=======
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
       - name: setnparam
         image: "{{ required "nmap[setnparam]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}:{{ required "nmap[setnparam]: missing value for .Values.dockerImage.tag" .Values.dockerImage.tag }}"
         imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
@@ -250,10 +222,6 @@ spec:
         args:
         - |-
           cp -r CM-FILES/*.conf etc/
-<<<<<<< HEAD
-=======
-          cp -r DATA/notary-nodeinfo/* notary-nodeinfo/
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
           cp -r CM-FILES/*.sh bin/
           chmod +x bin/*
           if [ ! -f {{ .Values.configPath }}/network-parameters-initial-set-succesfully ]
@@ -274,11 +242,8 @@ spec:
           mountPath: /opt/corda/etc
         - name: certificates
           mountPath: /opt/corda/DATA
-<<<<<<< HEAD
         - name: nmap-logs
           mountPath: /opt/corda/logs
-=======
->>>>>>> b5d6dec... [Corda-ENT] Added Networkmap service
         - name: nmap-h2
           mountPath: /opt/corda/h2
         resources:
