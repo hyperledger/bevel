@@ -65,7 +65,7 @@
 # Get the subordinate-ca keystore from the vault
 # This task should end the playbook as failed if the certificate isn't present,
 # as this certificate is created by the generate-pki chart
-- name: Get the ambassador certs if they exist in the vault
+- name: Get the subordinateCA certs if they exist in the vault
   shell: |
     vault read -field=subordinate-key-store.jks secret/cenm/root/certs
   environment:
@@ -96,6 +96,7 @@
     openssl ecparam -name prime256v1 -genkey -noout -out ambassador.key
     openssl req -new -nodes -key ambassador.key -days 1000 -out ambassador.csr -extensions EXT -subj "/CN={{ org.services.idman.name}}.{{ org.external_url_suffix }}" -config "openssl{{ org.services.idman.name }}.conf"
     openssl x509 -extfile {{ playbook_dir }}/openssl.conf -req -days 1000 -in ambassador.csr -CA rootca.pem -CAkey key.pem -out ambassador.pem -set_serial 01 -extensions v3_nonca
+  when: ambassador_tls_certs.failed == True
 
 # Store the ambassador certificates into the vault
 - name: Store the ambassador certs to vault
