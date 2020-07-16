@@ -74,7 +74,6 @@ spec:
            fi
           }
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
           #Login to Vault and to get an approle token
           VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
             -H "Content-Type: application/json" \
@@ -101,14 +100,27 @@ spec:
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
           orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]')  
           orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key.pub"]')    
-          orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]')          
-
-          echo "orion_key: ${orion_key}"
-          echo "orion_key_pub: ${orion_key_pub}"
-          echo "orion_key: ${orion_password}"
+          orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]') 
           echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key
           echo "${orion_key_pub}" > ${MOUNT_PATH}/orion_key.pub
-          echo "${orion_password}" > ${MOUNT_PATH}/passwordFile
+          echo "${orion_password}" > ${MOUNT_PATH}/passwordFile 
+        
+          if [ {{ $.Values.orion.tls }} == "true" ]
+          then
+            vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
+            LOOKUP_SECRET_RESPONSE=$(curl -sS \
+              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | \
+              jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+            orion_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["orion_ca.pem"]')  
+            orion_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["orion_cer.pem"]')    
+            orion_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["orion_cer.key"]') 
+            echo "${orion_ca}" > ${MOUNT_PATH}/orion_ca.pem
+            echo "${orion_cer_pem}" > ${MOUNT_PATH}/orion_cer.pem
+            echo "${orion_cer_key}" > ${MOUNT_PATH}/orion_cer.key
+          fi 
+
 
         volumeMounts:
         - name: certificates

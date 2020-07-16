@@ -61,8 +61,13 @@ spec:
 
     orion:
       name: orion
+      tls: {{ network.config.tm_tls }}
       confdir: /etc/config
+{% if network.config.tm_tls == True %}
+      url: "https://{{ name }}.{{ external_url }}"
+{% else %}
       url: "http://{{ name }}.{{ external_url }}"
+{% endif %}
       nodelist: "{{nodelist}}"
       ports:
         nodeport: {{ peer.tm_nodeport.port }}
@@ -78,6 +83,7 @@ spec:
       serviceaccountname: vault-auth
       keyname: data
       oriondir: orion
+      tlsdir: tls
       role: vault-role
       authpath: besu{{ name }}
 
