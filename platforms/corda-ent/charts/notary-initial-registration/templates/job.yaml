@@ -181,8 +181,9 @@ spec:
             do
                 if [ -e network-parameters-initial.conf ]
                 then
-                  echo "found nparms, performing vault put"
-                  (echo '{"nodeInfoFile": "'; base64 ${BASE_DIR}/additional-node-infos/nodeInfo*; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/nodeInfo
+                  # Encoding binary file and putting it in file, to make sure binary gets correctly put in Vault
+                  base64 ${BASE_DIR}/additional-node-infos/nodeInfo* > ${BASE_DIR}/file
+                  (echo '{"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/nodeInfo
                   (echo '{"network-parameters-initial": "'; base64 ${BASE_DIR}/additional-node-infos/network-parameters-initial.conf; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/nparam
                   break
                 else
