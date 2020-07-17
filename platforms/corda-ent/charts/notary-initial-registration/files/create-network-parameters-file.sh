@@ -5,15 +5,11 @@ pwd
 cat -n etc/notary.conf
 {{ end }}
 
-# we need just the filename without full path as this is going to be mounted under different folder in NM
-nodeInfoFile=$(basename $(ls additional-node-infos/nodeInfo*))
-export nodeInfoFile
-echo ${nodeInfoFile}
-
+# For now, we are using a 'hardcoded' nodeInfo filename, to avoid having to save the hash in Vault
 envsubst <<"EOF" > additional-node-infos/network-parameters-initial.conf.tmp
 notaries : [
   {
-    notaryNodeInfoFile: "notary-nodeinfo/${nodeInfoFile}"
+    notaryNodeInfoFile: "notary-nodeinfo/notary_nodeinfo"
     validating = true
   }
 ]
