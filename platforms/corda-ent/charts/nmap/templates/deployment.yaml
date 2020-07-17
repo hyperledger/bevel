@@ -49,6 +49,8 @@ spec:
             value: {{ .Values.vault.certsecretprefix }}
           - name: MOUNT_PATH
             value: "/DATA"
+          - name: NODEINFO_MOUNT_PATH
+            value: "/notary-nodeinfo"
         command: ["sh", "-c"]
         args:
         - |-
@@ -60,11 +62,10 @@ spec:
                 fi
               }
 
-              # setting up env to get secrets from vault
+              # Setting up the environment to get secrets from Vault
               echo "Getting secrets from Vault Server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-            
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "logged into vault"
 
@@ -72,8 +73,6 @@ spec:
               mkdir -p ${MOUNT_PATH}/key-stores;
               mkdir -p ${MOUNT_PATH}/trust-stores;
               mkdir -p ${MOUNT_PATH}/crl-files;
-              # Creating dirs for network files
-              mkdir -p ${MOUNT_PATH}/notary-nodeinfo;
 
               # Getting intitial network parameters from Vault
               COUNTER=1
@@ -85,13 +84,12 @@ spec:
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   else
                    initial_param=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-parameters-initial"]')
-                   echo "${initial_param}" | base64 -d > ${MOUNT_PATH}/notary-nodeinfo/network-parameters-initial.conf
+                   echo "${initial_param}" | base64 -d > ${NODEINFO_MOUNT_PATH}/network-parameters-initial.conf
                    echo "Successfully got initial network parameters"
                    break
                 fi
                 COUNTER=`expr "$COUNTER" + 1`
-              done
-
+              done  
 
               # Getting node Info File from Vault
               COUNTER=1
@@ -103,7 +101,7 @@ spec:
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   else
                   notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
-                  echo "${notary_nodeinfo}" | base64 -d > ${MOUNT_PATH}/notary-nodeinfo/node_info_file
+                  echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/notary_nodeinfo
                   echo "Successfully got node info file"
                   break
                 fi
@@ -205,6 +203,8 @@ spec:
         volumeMounts:
         - name: certificates
           mountPath: /DATA
+        - name: notary-nodeinfo
+          mountPath: /notary-nodeinfo
       - name: setnparam
         image: "{{ required "nmap[setnparam]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}:{{ required "nmap[setnparam]: missing value for .Values.dockerImage.tag" .Values.dockerImage.tag }}"
         imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
@@ -215,7 +215,6 @@ spec:
         args:
         - |-
           cp -r CM-FILES/*.conf etc/
-          cp -r DATA/notary-nodeinfo/* notary-nodeinfo/
           cp -r CM-FILES/*.sh bin/
           chmod +x bin/*
           if [ ! -f {{ .Values.configPath }}/network-parameters-initial-set-succesfully ]
@@ -236,6 +235,8 @@ spec:
           mountPath: /opt/corda/etc
         - name: certificates
           mountPath: /opt/corda/DATA
+        - name: nmap-logs
+          mountPath: /opt/corda/logs
         - name: nmap-h2
           mountPath: /opt/corda/h2
         resources:
@@ -315,4 +316,3 @@ spec:
         - name: notary-nodeinfo
           emptyDir:
             medium: Memory
-            
