@@ -23,8 +23,8 @@ spec:
       initContainerName: {{ init_container_name }}
       imagepullsecret: {{ image_pull_secret }}
     dockerImage:
-      name: {{ nmap_image_name }}
-      tag: {{ nmap_image_tag }}
+      name: {{ docker_image }}
+      tag: {{ network.version }}-zulu-openjdk8u242
       pullPolicy: Always
       imagePullSecret: {{ image_pull_secret }}
     acceptLicense: YES
