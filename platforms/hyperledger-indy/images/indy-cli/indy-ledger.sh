@@ -23,13 +23,13 @@ echo "{
 }]
 }" > admindid.txt;
 
-echo "wallet create myIndyWallet key=12345
-wallet open myIndyWallet key=12345
+echo "wallet create myIndyWallet1 key=12345
+wallet open myIndyWallet1 key=12345
 wallet list
 exit" > indy_txn.txt;
 
 indy-cli indy_txn.txt > txn_result.txt;
-if grep -q 'Wallet "myIndyWallet" has been opened' 'txn_result.txt'
+if grep -q 'Wallet "myIndyWallet1" has been opened' 'txn_result.txt'
 then
 	echo "Indy Wallet has been successfully opened.";
 else
@@ -37,7 +37,7 @@ else
 	exit 1
 fi
 
-echo "wallet open myIndyWallet key=12345
+echo "wallet open myIndyWallet1 key=12345
 did import ./admindid.txt
 exit" > indy_txn.txt;
 
@@ -50,7 +50,7 @@ else
 	exit 1
 fi
 
-echo "wallet open myIndyWallet key=12345
+echo "wallet open myIndyWallet1 key=12345
 did list
 did use $admin_did
 exit" > indy_txn.txt;
@@ -64,7 +64,7 @@ else
 	exit 1
 fi
 
-echo "wallet open myIndyWallet key=12345
+echo "wallet open myIndyWallet1 key=12345
 did use $admin_did
 pool create sandboxpool gen_txn_file=$pool_genesis_path
 pool connect sandboxpool
@@ -80,7 +80,7 @@ else
 	exit 1
 fi
 
-echo "wallet open myIndyWallet key=12345
+echo "wallet open myIndyWallet1 key=12345
 did use $admin_did
 pool connect sandboxpool
 ledger nym did=$identity_did verkey=$identity_verkey role=$identity_role
