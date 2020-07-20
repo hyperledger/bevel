@@ -50,7 +50,7 @@ spec:
       password: {{ db_password }}
       runMigration: "true"
     identityManager:
-      host: idman.{{ component_ns }}
+      host: {{ idman_name }}.{{ component_ns }}
       port: 5052
     revocation:
       port: 5053
