@@ -59,7 +59,7 @@
     EOF
   vars:
     domain_name: "{{ org.services.networkmap.name }}.{{ org.external_url_suffix }}"
-  when: not openssl_conf_check.stat.exists
+  when: not openssl_conf_check.stat.exists and ambassador_tls_certs.failed == True
 
 
 # Get the subordinate-ca keystore from the vault
@@ -72,6 +72,7 @@
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   register: subordinateca
+  when: ambassador_tls_certs.failed == True
 
 # Check if the rootca.jks is already present or not
 - name: Check if rootca.jks is present
@@ -84,7 +85,7 @@
   copy:
     content: "{{ subordinateca.stdout | b64decode }}"
     dest: "./build/ambassador/{{ org.services.networkmap.name }}/rootca.jks"
-  when: not check_rootcajks.stat.exists
+  when: not check_rootcajks.stat.exists and ambassador_tls_certs.failed == True
 
 # Create ambassador certificates
 - name: Create ambassador certificates
