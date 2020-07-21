@@ -24,7 +24,7 @@ spec:
       imagepullsecret: {{ image_pull_secret }}
     dockerImage:
       name: {{ docker_image }}
-      tag: {{ network.version }}-zulu-openjdk8u242
+      tag: {{ org.version }}-zulu-openjdk8u242
       pullPolicy: Always
       imagePullSecret: {{ image_pull_secret }}
     acceptLicense: YES
