@@ -1,0 +1,21 @@
+# This role calls for ambassador certificate creation for each node.
+---
+- name: Create Ambassador certificates for trustees
+  include_tasks: nested_main.yaml
+  vars:
+    node_name: "{{ node.name | lower }}"
+    type: "trustees"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: node
+  when: services.trustees is defined
+
+- name: Create Ambassador certificates for endorsers
+  include_tasks: nested_main.yaml
+  vars:
+    node_name: "{{ node.name | lower }}"
+    type: "endorsers"
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: node
+  when: services.endorsers is defined

@@ -53,16 +53,16 @@ example of trustee:
           server:
             port: 8000
 ```
-- Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -i ./blockchain-automation-framework/platforms/shared/inventory/ansible_provisoners ./blockchain-automation-framework/examples/identity-app/configuration/deploy-identity-app.yaml -e "@./blockchain-automation-framework/build/network.yaml"`
+- Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -i platforms/shared/inventory/ansible_provisoners examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/network.yaml"`
 
 ### Step 6
 Agents for Faber University and Student Alice don't have Ansible roles created yet. These agents have to be run manually:
 - Be sure that you are in Docker container (BAF), if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
 - Create environment variable for kubernetes config: `export KUBECONFIG=/home/blockchain-automation-framework/build/config`
 - Fill all variables in `value.yaml` file in helm [chart of faber](./charts/faber)
-- Create Helm release for University Faber with command: `helm install --name faber /home/blockchain-automation-framework/examples/identity-app/charts/faber/`
+- Create Helm release for University Faber with command: `helm install --name faber examples/identity-app/charts/faber/`
 - Fill all variables in `value.yaml` file in helm [chart of alice](./charts/alice)
-- Create Helm release for Student Alice with command: `helm install --name alice /home/blockchain-automation-framework/examples/identity-app/charts/alice/`
+- Create Helm release for Student Alice with command: `helm install --name alice examples/identity-app/charts/alice/`
 
 ### Step 7
 Identity App is running and agents API via Swagger are available on IP address of your cluster with ports which you defined for your agents in `value.yaml` file.

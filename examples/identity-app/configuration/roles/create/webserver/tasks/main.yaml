@@ -44,10 +44,13 @@
 
 - name: "Wait until Indy WebServer will be up"
   include_role:
-    name: "{{ playbook_dir }}/../../../platforms/hyperledger-indy/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
   vars:
-    component_name: "{{ organization.name }}-webserver"
+    namespace: "{{ component_ns }}"
     component_type: "Pod"
+    component_name: "{{ organization.name }}-webserver"
+    label_selectors:
+      - app = {{ component_name }}
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
