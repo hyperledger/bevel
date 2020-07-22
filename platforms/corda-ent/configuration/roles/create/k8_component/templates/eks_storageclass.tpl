@@ -4,7 +4,6 @@ metadata:
   name: {{ component_name }}
 provisioner: kubernetes.io/aws-ebs
 reclaimPolicy: Delete
-volumeBindingMode: Immediate
+volumeBindingMode: WaitForFirstConsumer
 parameters:
   encrypted: "true"
- 
