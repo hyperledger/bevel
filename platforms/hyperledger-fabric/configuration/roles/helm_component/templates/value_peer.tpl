@@ -30,6 +30,7 @@ spec:
       localmspid: {{ name }}MSP
       loglevel: info
       tlsstatus: true
+      builder: hyperledger/fabric-ccenv:{{ network.version }}
       couchdb:
         username: {{ name }}-user
 
