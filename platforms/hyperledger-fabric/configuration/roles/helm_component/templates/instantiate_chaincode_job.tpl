@@ -35,6 +35,7 @@ spec:
     orderer:
       address: {{ participant.ordererAddress }}
     chaincode:
+      builder: hyperledger/fabric-ccenv:{{ network.version }}
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
       instantiationarguments: {{ component_chaincode.arguments | quote}}
