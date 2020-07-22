@@ -10,11 +10,12 @@ spec:
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/idman
+    path: {{ charts_dir }}/nmap
   values:
     nodeName: {{ node_name }}
     metadata:
       namespace: {{ component_ns }}
+    notaryName: {{ notary_name }}
     storage:
       name: {{ storageclass }}
     replicas: 1
@@ -22,8 +23,7 @@ spec:
       initContainerName: {{ init_container_name }}
       imagepullsecret: {{ image_pull_secret }}
     dockerImage:
-      name: {{ idman_image_name }}
-      tag: {{ idman_image_tag }}
+      name: {{ docker_image }}
       pullPolicy: Always
       imagePullSecret: {{ image_pull_secret }}
     acceptLicense: YES
@@ -35,24 +35,28 @@ spec:
     volume:
       baseDir: /opt/corda
     service:
-      port: {{ idman_port }}
+      port: {{ nmap_port.servicePort }}
     serviceInternal:
-      port: 5052
-    serviceRevocation:
-      port: 5053
+      port: 5050
     shell:
       sshdPort: 2222
       user: {{ ssh_username }}
       password: {{ ssh_password }}
     database:
       driverClassName: "org.h2.Driver"
-      url: "jdbc:h2:file:./h2/identity-manager-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
+      url: "jdbc:h2:file:./h2/networkmap-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
       user: {{ db_username }}
       password: {{ db_password }}
       runMigration: "true"
+    identityManager:
+      host: {{ idman_name }}.{{ component_ns }}
+      port: 5052
+    revocation:
+      port: 5053
     cordaJarMx: 1
     healthCheckNodePort: 0
     jarPath: bin
+    bashDebug: false
     configPath: etc
     sleepTimeAfterError: 120
     healthcheck:
