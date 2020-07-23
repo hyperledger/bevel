@@ -154,7 +154,7 @@ This tasks checks if key is already present in the vault
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
 
 --------------------------
-### validator_node_data.yaml
+### node_data.yaml
 
 #### 1. Get validator node data
 This task fetch (org,node) pairs for each validating node present in all organizations of the network

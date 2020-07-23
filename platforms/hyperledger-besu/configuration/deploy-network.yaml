@@ -88,6 +88,28 @@
       name: create/crypto/orion  
     vars:
       build_path: "{{ playbook_dir }}/build"   
+  
+  # This role deploy validator nodes 
+  - name: "Deploy validator nodes"
+    include_role:
+      name: create/validator
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-bes"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.validators}}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_ssh }}"
+      git_branch: "{{ item.gitops.branch }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.consensus == 'ibft' and item.type == 'validator'
 
   # This role deploy nodes with Orion transaction manager and IBFT consensus
   - name: "Deploy nodes with orion Transaction Manager and IBFT consensus"
