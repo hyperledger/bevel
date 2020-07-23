@@ -18,7 +18,7 @@ then
     java -Xmx{{ .Values.cordaJarMx }}G -jar {{ .Values.jarPath }}/networkmap.jar -f {{ .Values.configPath }}/nmap.conf
     EXIT_CODE=${?}
 else
-    echo "Missing notary jar file in {{ .Values.jarPath }} folder:"
+    echo "Missing networkmap jar file in {{ .Values.jarPath }} folder:"
     ls -al {{ .Values.jarPath }}
     EXIT_CODE=110
 fi
