@@ -1,5 +1,5 @@
 ## ROLE: setup/notary
-This role creates namespace, vault-auth, vault-reviewer, ClusterRoleBinding, certificates, deployments file for notary and also pushes the generated value file into repository.
+This role creates deployments file for notary and also pushes the generated value file into repository.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
