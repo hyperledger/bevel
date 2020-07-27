@@ -47,11 +47,18 @@
       - "{{address['stdout_lines']}}"
     verbosity: 2
 
+# Set the variables
 - set_fact:
     contract_address: "{{ address['stdout_lines'][1].split(':')[1] | trim }}"
     contract_name: "{{ address['stdout_lines'][2].split(':')[1] | trim }}"
     check: address['stdout_lines'][1]
-    when: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
+  when: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
+
+############################################################################################
+# Fail the playbook if check is not defined
+- fail:
+    msg: Supplychain smartcontract is not deployed, make sure the account is unlocked and network is up.
+  when: check is not defined
 
 ############################################################################################
 
