@@ -9,6 +9,7 @@ identity-app
 |-- charts: this folder contains the Helm charts that are needed for the deployment of the Identity Application.
 |-- configuration: this folder contains the Ansible playbook and roles that are needed for the deployment of the Identity Application.
 |-- images: this folder contains the Docker images that are needed for running of the Identity Application.
+|-- tests: this folder contains the Postman suits and environment variables for testing the Identity Application.
 ```
 
 ## Pre-requisites

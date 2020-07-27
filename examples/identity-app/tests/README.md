@@ -26,5 +26,5 @@ This is applicable for automation using a CI tool.
 2. Execute the following command with an environment file
 ```
 cd examples/identity-app/tests
-newman run -k IdentityAppTest.postman_collection.json -e IdentityIndyDemo.postman_environment.json
+newman run -k IdentityAppTest.postman_collection.json -e IdentityIndyDemo.postman_environment.json --delay-request 150
 ```
