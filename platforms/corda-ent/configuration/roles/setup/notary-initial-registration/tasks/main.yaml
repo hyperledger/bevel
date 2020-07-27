@@ -6,7 +6,7 @@
 # Check if notary already registered or not
 - name: Check if nodekeystore already created
   shell: |
-    vault kv get -field=nodekeystore.jks secret/cenm/{{ org.services.notary.name }}/certs/nodekeystore
+    vault kv get -field=nodekeystore.jks secret/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/nodekeystore
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -36,7 +36,7 @@
     corda_service_version: cenm-notary-{{ org.version }}
     image_pull_secret: "regcred"
     vault_addr: "{{ org.vault.url }}"
-    vault_cert_secret_prefix: "secret/cenm"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
     networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
     idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
   when: nodekeystore_result.failed == True
