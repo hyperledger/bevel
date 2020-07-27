@@ -1,0 +1,868 @@
+{
+	"info": {
+		"_postman_id": "f778d6f5-e753-4c14-a781-62eda1f5db7b",
+		"name": "IdentityAppTest",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Faber creates an Invitation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "96a4c0aa-28e8-418a-887a-fa0afd1adf6a",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"var alias = pm.environment.get(\"invite-label\");\r",
+							"pm.test(\"Alias is correct\", function () {    \r",
+							"    pm.expect(jsonData.alias).to.eql(alias);\r",
+							"});\r",
+							"var url = pm.environment.get(\"university-host\");\r",
+							"pm.test(\"invitation url is correct\", function () {    \r",
+							"    pm.expect(jsonData.invitation_url).to.include(url);\r",
+							"});\r",
+							"var obj = jsonData.invitation;\r",
+							"pm.environment.set(\"alice-req-body\", JSON.stringify(obj));\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "32deb888-7366-4863-86e2-ee011dd6ab56",
+						"exec": [
+							"pm.environment.set(\"invite-label\", \"InviteAlice\"+ pm.variables.replaceIn('{{$randomInt}}'))\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/connections/create-invitation?alias={{invite-label}}",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"connections",
+						"create-invitation"
+					],
+					"query": [
+						{
+							"key": "alias",
+							"value": "{{invite-label}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber checks Invitation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d6071f05-706e-42d3-bd2e-bc0d8402609f",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json().results[0];\r",
+							"var alias = pm.environment.get(\"invite-label\");\r",
+							"pm.test(\"Alias is correct\", function () {    \r",
+							"    pm.expect(jsonData.alias).to.eql(alias);\r",
+							"});\r",
+							"pm.test(\"State is invitation\", function () {    \r",
+							"    pm.expect(jsonData.state).to.eql(\"invitation\");\r",
+							"});\r",
+							"pm.environment.set(\"university-conn-id\", jsonData.connection_id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/connections?alias={{invite-label}}",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"connections"
+					],
+					"query": [
+						{
+							"key": "alias",
+							"value": "{{invite-label}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice receives the invitation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "52470d52-181c-4544-aa2a-091398f03e35",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"var label = pm.environment.get(\"university-label\");\r",
+							"pm.test(\"Their Label is correct\", function () {    \r",
+							"    pm.expect(jsonData.their_label).to.eql(label);\r",
+							"});\r",
+							"pm.test(\"State is invitation\", function () {    \r",
+							"    pm.expect(jsonData.state).to.eql(\"invitation\");\r",
+							"});\r",
+							"pm.environment.set(\"alice-conn-id\", jsonData.connection_id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{{alice-req-body}}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{alice-host}}:{{alice-port}}/connections/receive-invitation",
+					"protocol": "http",
+					"host": [
+						"{{alice-host}}"
+					],
+					"port": "{{alice-port}}",
+					"path": [
+						"connections",
+						"receive-invitation"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice accepts invitation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6933d72d-ee2d-4429-bb9b-473ed56c3135",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"var label = pm.environment.get(\"university-label\");\r",
+							"pm.test(\"Their Label is correct\", function () {    \r",
+							"    pm.expect(jsonData.their_label).to.eql(label);\r",
+							"});\r",
+							"pm.test(\"State is request\", function () {    \r",
+							"    pm.expect(jsonData.state).to.eql(\"request\");\r",
+							"});\r",
+							"var conn_id = pm.environment.get(\"alice-conn-id\");\r",
+							"pm.test(\"Connection ID is correct\", function () {    \r",
+							"    pm.expect(jsonData.connection_id).to.eql(conn_id);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{alice-host}}:{{alice-port}}/connections/{{alice-conn-id}}/accept-invitation",
+					"protocol": "http",
+					"host": [
+						"{{alice-host}}"
+					],
+					"port": "{{alice-port}}",
+					"path": [
+						"connections",
+						"{{alice-conn-id}}",
+						"accept-invitation"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber accepts invitation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "cba28f19-4163-4598-a827-9fb1a4165ecb",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"var label = pm.environment.get(\"alice-label\");\r",
+							"pm.test(\"Their Label is correct\", function () {    \r",
+							"    pm.expect(jsonData.their_label).to.eql(label);\r",
+							"});\r",
+							"pm.test(\"State is response\", function () {    \r",
+							"    pm.expect(jsonData.state).to.eql(\"response\");\r",
+							"});\r",
+							"var conn_id = pm.environment.get(\"university-conn-id\");\r",
+							"pm.test(\"Connection ID is correct\", function () {    \r",
+							"    pm.expect(jsonData.connection_id).to.eql(conn_id);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/connections/{{university-conn-id}}/accept-request",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"connections",
+						"{{university-conn-id}}",
+						"accept-request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice checks connection active",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0d8bc93a-2233-436c-9722-05e2c9a6ef55",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"var label = pm.environment.get(\"university-label\");\r",
+							"pm.test(\"Their Label is correct\", function () {    \r",
+							"    pm.expect(jsonData.their_label).to.eql(label);\r",
+							"});\r",
+							"pm.test(\"State is active\", function () {    \r",
+							"    pm.expect(jsonData.state).to.eql(\"active\");\r",
+							"});\r",
+							"var conn_id = pm.environment.get(\"alice-conn-id\");\r",
+							"pm.test(\"Connection ID is correct\", function () {    \r",
+							"    pm.expect(jsonData.connection_id).to.eql(conn_id);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{alice-host}}:{{alice-port}}/connections/{{alice-conn-id}}",
+					"protocol": "http",
+					"host": [
+						"{{alice-host}}"
+					],
+					"port": "{{alice-port}}",
+					"path": [
+						"connections",
+						"{{alice-conn-id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice sends message",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a3f68465-29bb-42de-9f6b-0f977e4c1c5f",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"content\": \"Hello Faber\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{alice-host}}:{{alice-port}}/connections/{{alice-conn-id}}/send-message",
+					"protocol": "http",
+					"host": [
+						"{{alice-host}}"
+					],
+					"port": "{{alice-port}}",
+					"path": [
+						"connections",
+						"{{alice-conn-id}}",
+						"send-message"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber gets own DID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e7fba6fd-c649-4251-8201-84868da3fd24",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json().result;\r",
+							"pm.environment.set(\"university-did\", jsonData.did);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/wallet/did/public",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"wallet",
+						"did",
+						"public"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber gets own schema",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "22dc2640-af49-464b-b115-643db5f37889",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json().schema_ids[0];\r",
+							"pm.environment.set(\"university-schema\", jsonData);\r",
+							"var res = jsonData.split(\":\");\r",
+							"pm.environment.set(\"schema-name\", res[2]);\r",
+							"pm.environment.set(\"schema-version\", res[3]);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/schemas/created",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"schemas",
+						"created"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber gets cred definitions",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c84e8b23-e0fb-4bcc-809e-a889f29a6a68",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json().credential_definition_ids[0];\r",
+							"pm.environment.set(\"cred-def-id\", jsonData);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/credential-definitions/created",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"credential-definitions",
+						"created"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber issues credential",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "58da0ae7-5935-4c3f-abba-0176be321b64",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"pm.environment.set(\"faber-exc-id\", jsonData.credential_exchange_id);\r",
+							"pm.test(\"Role is issuer\", function () {\r",
+							"    pm.expect(jsonData.role).to.eql(\"issuer\");\r",
+							"});\r",
+							"pm.test(\"Check state\", function () {\r",
+							"    pm.expect(jsonData.state).to.eql(\"offer_sent\");\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"connection_id\": \"{{university-conn-id}}\",\r\n    \"issuer_did\": \"{{university-did}}\",\r\n    \"schema_id\": \"{{university-schema}}\",\r\n    \"schema_version\": \"{{schema-version}}\",\r\n    \"auto_remove\": true,\r\n    \"cred_def_id\": \"{{cred-def-id}}\",\r\n    \"revoc_red_id\": null,\r\n    \"comment\": \"Your exam credentials\",\r\n    \"schema_issuer_did\": \"{{university-did}}\",\r\n    \"schema_name\": \"{{schema-name}}\",\r\n    \"credential_proposal\": {\r\n        \"attributes\": [\r\n            {\r\n            \"name\": \"name\",\r\n            \"value\": \"Alice Smith\"\r\n        },\r\n        {\r\n            \"name\": \"timestamp\",\r\n            \"value\": \"1234567890\"\r\n        },\r\n        {\r\n            \"name\": \"date\",\r\n            \"value\": \"2018-05-28\"\r\n        },\r\n        {\r\n            \"name\": \"degree\",\r\n            \"value\": \"Maths\"\r\n        },\r\n        {\r\n            \"name\": \"age\",\r\n            \"value\": \"24\"\r\n        }\r\n        ]\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/issue-credential/send",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"issue-credential",
+						"send"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice receives credential",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4be9049e-3d91-4fea-a7e6-d1462a476ec9",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json().results[0];\r",
+							"pm.environment.set(\"alice-exc-id\", jsonData.credential_exchange_id);\r",
+							"pm.test(\"Role is holder\", function () {\r",
+							"    pm.expect(jsonData.role).to.eql(\"holder\");\r",
+							"});\r",
+							"pm.test(\"Check state\", function () {\r",
+							"    pm.expect(jsonData.state).to.eql(\"credential_received\");\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{alice-host}}:{{alice-port}}/issue-credential/records",
+					"protocol": "http",
+					"host": [
+						"{{alice-host}}"
+					],
+					"port": "{{alice-port}}",
+					"path": [
+						"issue-credential",
+						"records"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice store credential in wallet",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5bb71c95-07b4-4cd1-8a73-2df6027e4bab",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"pm.test(\"Role is holder\", function () {\r",
+							"    pm.expect(jsonData.role).to.eql(\"holder\");\r",
+							"});\r",
+							"pm.test(\"Check state\", function () {\r",
+							"    pm.expect(jsonData.state).to.eql(\"credential_acked\");\r",
+							"});\r",
+							"pm.environment.set(\"alice-cred-id\", jsonData.credential_id);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{alice-host}}:{{alice-port}}/issue-credential/records/{{alice-exc-id}}/store",
+					"protocol": "http",
+					"host": [
+						"{{alice-host}}"
+					],
+					"port": "{{alice-port}}",
+					"path": [
+						"issue-credential",
+						"records",
+						"{{alice-exc-id}}",
+						"store"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alice lists credential",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "399edc68-9f55-4b72-8f5d-94423904e0b9",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"var cred_id = pm.environment.get(\"alice-cred-id\");\r",
+							"pm.test(\"Cred Id is correct\", function () {\r",
+							"    pm.expect(jsonData.referent).to.eql(cred_id);\r",
+							"});\r",
+							"pm.test(\"Attribute degree matches\", function () {\r",
+							"    pm.expect(jsonData.attrs.degree).to.eql(\"Maths\");\r",
+							"});\r",
+							"pm.test(\"Attribute age matches\", function () {\r",
+							"    pm.expect(jsonData.attrs.age).to.eql(\"24\");\r",
+							"});\r",
+							"pm.test(\"Attribute name matches\", function () {\r",
+							"    pm.expect(jsonData.attrs.name).to.eql(\"Alice Smith\");\r",
+							"});\r",
+							"pm.test(\"Schema matches\", function () {\r",
+							"    pm.expect(jsonData.schema_id).to.eql(pm.environment.get(\"university-schema\"));\r",
+							"});\r",
+							"pm.test(\"Cred definition matches\", function () {\r",
+							"    pm.expect(jsonData.cred_def_id).to.eql(pm.environment.get(\"cred-def-id\"));\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{alice-host}}:{{alice-port}}/credential/{{alice-cred-id}}",
+					"protocol": "http",
+					"host": [
+						"{{alice-host}}"
+					],
+					"port": "{{alice-port}}",
+					"path": [
+						"credential",
+						"{{alice-cred-id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber checks no pending records",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d2c2763e-4f82-4192-99ab-faa60788dd4c",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"No pending credentials\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.results.length).to.eql(0);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/issue-credential/records",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"issue-credential",
+						"records"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber sends a Proof Request",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "737b7ea8-d12f-4c07-88d2-b940b46123cc",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"pm.environment.set(\"presentation-exc-id\", jsonData.presentation_exchange_id);\r",
+							"pm.test(\"State is request\", function () {    \r",
+							"    pm.expect(jsonData.state).to.eql(\"request_sent\");\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"connection_id\": \"{{university-conn-id}}\",\r\n  \"comment\": \"This is a comment about the reason for the proof\",\r\n  \"proof_request\": {\r\n    \"name\": \"Proof of Education\",\r\n    \"version\": \"1.0\",\r\n    \"requested_attributes\": {\r\n      \"0_name_uuid\": {\r\n        \"name\": \"name\",\r\n        \"restrictions\": [\r\n          {\r\n            \"cred_def_id\": \"{{cred-def-id}}\"\r\n          }\r\n        ]\r\n      },\r\n      \"0_date_uuid\": {\r\n        \"name\": \"date\",\r\n        \"restrictions\": [\r\n          {\r\n            \"cred_def_id\": \"{{cred-def-id}}\"\r\n          }\r\n        ]\r\n      },\r\n      \"0_degree_uuid\": {\r\n        \"name\": \"degree\",\r\n        \"restrictions\": [\r\n          {\r\n            \"cred_def_id\": \"{{cred-def-id}}\"\r\n          }\r\n        ]\r\n      },\r\n      \"0_self_attested_thing_uuid\": {\r\n        \"name\": \"self_attested_thing\"\r\n      }\r\n    },\r\n    \"requested_predicates\": {\r\n      \"0_age_GE_uuid\": {\r\n        \"name\": \"age\",\r\n        \"p_type\": \">=\",\r\n        \"p_value\": 18,\r\n        \"restrictions\": [\r\n          {\r\n            \"cred_def_id\": \"{{cred-def-id}}\"\r\n          }\r\n        ]\r\n      }\r\n    }\r\n  }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/present-proof/send-request",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"present-proof",
+						"send-request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Faber checks Proof Request",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "941aec4b-4fb1-45a6-a0a0-931090e4ae5e",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"pm.test(\"Proof is verified\", function () {    \r",
+							"    pm.expect(jsonData.verified).to.eql(\"true\");\r",
+							"});\r",
+							"pm.test(\"State is verified\", function () {    \r",
+							"    pm.expect(jsonData.state).to.eql(\"verified\");\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{university-host}}:{{university-port}}/present-proof/records/{{presentation-exc-id}}",
+					"protocol": "http",
+					"host": [
+						"{{university-host}}"
+					],
+					"port": "{{university-port}}",
+					"path": [
+						"present-proof",
+						"records",
+						"{{presentation-exc-id}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
