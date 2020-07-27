@@ -129,7 +129,8 @@ For the aws and k8s field the snapshot with sample values is below
         encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
         zone: "availability_zone"               # AWS availability zone
         region: "region"                        # AWS region
-        publicIps: []                           # List of all public IP addresses of each availability zone
+      
+      publicIps: ["1.1.1.1","2.2.2.2"]                           # List of all public IP addresses of each availability zone
 
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
@@ -148,9 +149,14 @@ The `aws` field under each organisation contains: (This will be ignored if cloud
 | encryption_key                              | AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.  |
 | zone                              | AWS availability zone  |
 | region                              | AWS region  |
-| publicIps                           | List of all public IP addresses of each availability zone from all organizations in the same k8s cluster |
 
-*NOTE*: Network.yaml file consists of more organizations, where each organization can be under different availability zone. It means, that each organization has different IP. The field `publicIps` holds list of all IPs of all organizations in the same cluster.
+The `publicIps` field under each organisation contains:
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| publicIps   | List of all public IP addresses of each availability zone from all organizations in the same k8s cluster |
+
+**NOTE**: Network.yaml file consists of more organizations, where each organization can be under different availability zone. It means, that each organization has different IP. The field `publicIps` holds list of all IPs of all organizations in the same cluster. This should be in JSON Array format like ["1.1.1.1","2.2.2.2"] and must contain different IP for each availability zone on the K8s cluster i.e. If the K8s cluster is in two AZ, then two IP addresses should be provided here.
 
 The `k8s` field under each organisation contains
 

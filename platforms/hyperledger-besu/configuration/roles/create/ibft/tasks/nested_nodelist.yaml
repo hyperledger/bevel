@@ -19,12 +19,22 @@
     path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/nodelist"
     state: touch
 
-# Add othernodes data to the file
-- name: nodelist loop
+# Add othernodes data to the file when tls is true
+- name: nodelist loop when tls is true
+  lineinfile:
+    line: "\\\"https://{{enode_item.peer_name}}.{{enode_item.external_url}}:{{enode_item.node_ambassador}}\\\""
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/nodelist"
+  with_items: "{{enode_data_list}}"
+  loop_control:
+    loop_var: enode_item
+  when: enode_item.peer_name != peer.name and network.config.tm_tls == True
+
+# Add othernodes data to the file when tls is false
+- name: nodelist loop when tls is false
   lineinfile:
     line: "\\\"http://{{enode_item.peer_name}}.{{enode_item.external_url}}:{{enode_item.node_ambassador}}\\\""
     path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/nodelist"
   with_items: "{{enode_data_list}}"
   loop_control:
     loop_var: enode_item
-  when: enode_item.peer_name != peer.name
+  when: enode_item.peer_name != peer.name and network.config.tm_tls == False

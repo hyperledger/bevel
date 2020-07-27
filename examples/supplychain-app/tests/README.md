@@ -5,7 +5,7 @@ This folder contains the files that are needed for the integration test of a Sup
 
 ## Pre-requisites
 
-* A DLT network with at least 3 participants: Manufacturer, Carrier and Warehouse. Built using BAF by following [these instructions](../../docs/source/operations/setting_dlt.md).
+* A DLT network with at least 3 participants: Manufacturer, Carrier and Warehouse. Built using BAF by following [these instructions](../../../docs/source/operations/setting_dlt.md).
 * The Supplychain Application is deployed and the API endpoints are accessible.
 
 ## Test Supplychain Application
