@@ -1,0 +1,55 @@
+##############################################################################################
+# This role creates the deployment files for node and pushes them to repository
+##############################################################################################
+
+# ----------------------------------------------------------------------  
+# Check if notary already registered or not
+- name: Check if nodekeystore already created
+  shell: |
+    vault kv get -field=nodekeystore.jks secret/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/nodekeystore
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: nodekeystore_result
+  ignore_errors: yes
+
+# ----------------------------------------------------------------------  
+# create deployment files for job for notaries
+- name: 'Create notary initial-registration job file'
+  include_role:
+    name: helm_component
+  vars:    
+    type: "notary-initial-registration"
+    component_name: "{{ org.name | lower }}notary-initial-registration"
+    component_ns: "{{ org.name | lower }}-ent"
+    name: "{{ org.name | lower }}"
+    notary_service: "{{ org.services.notary }}"
+    notary_legal_name: "{{ notary_service.subject }}"
+    is_validating: "{{ org.services.notary.validating }}"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    idman_name: "{{ org.services.idman.name }}"
+    networkmap_name: "{{ org.services.networkmap.name }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    corda_service_version: cenm-notary-{{ org.version }}
+    image_pull_secret: "regcred"
+    vault_addr: "{{ org.vault.url }}"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
+    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+  when: nodekeystore_result.failed == True
+
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_EMAIL: "{{ gitops.email }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Pushing registration job deployment files for {{ node.name }}"

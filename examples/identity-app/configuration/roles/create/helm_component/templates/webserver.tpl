@@ -40,9 +40,9 @@ spec:
 {% if organization.cloud_provider == 'minikube' %}     
       provider: "minikube"
       external_url: 
-      port: 30443
+      port: {{ trustee.server.ambassador }}
 {% else %}      
       provider: "ambassador"
       external_url: {{ component_name }}.{{ organization.external_url_suffix }}
-      port: 8443
+      port: {{ trustee.server.ambassador }}
 {% endif %}

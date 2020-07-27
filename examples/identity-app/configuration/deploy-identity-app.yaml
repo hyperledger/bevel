@@ -11,27 +11,28 @@
       file:
         path: "./build"
         state: absent
-    # Generate Ambassador certificate for orgs
-    - name: "Create ambassador certificates for orgs" 
-      include_role: 
-        name: create/certificates/ambassador
-      vars:
-        root_subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-        cert_subject: "{{ root_subject | regex_replace(',', '/') }}"       
-        component_name: "{{ organization.name | lower }}"
-        component_ns: "{{ organization.name | lower }}-ns"
-        kubernetes: "{{ organization.k8s }}"
-        vault: "{{ organization.vault }}"
-        services: "{{ organization.services }}"
-      loop: "{{ network['organizations']}}"
-      loop_control:
-        loop_var: organization
 
-    - name: "Create a value file to deploy Indy Web Server"
+    # Deploy the Indy Webserver for trustee orgs
+    - name: "Create a value file to deploy Indy WebServer"
       include_role:
         name: "create/webserver"
       vars:
-        component_name: "webserver"
+        component_ns: "{{ organization.name | lower }}-ns"
+        gitops: "{{ organization.gitops }}"
+        vault: "{{ organization.vault }}"
+        kubernetes: "{{ organization.k8s }}"
+        services: "{{ organization.services }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ organization.gitops.release_dir }}/{{ organization.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: organization
+      when: network['type'] == 'indy'
+    
+    # Deploy the Indy Clients for Endorser orgs
+    - name: "Create a value file to deploy Indy Web Server"
+      include_role:
+        name: "create/endorser"
+      vars:
         component_ns: "{{ organization.name | lower }}-ns"
         gitops: "{{ organization.gitops }}"
         vault: "{{ organization.vault }}"

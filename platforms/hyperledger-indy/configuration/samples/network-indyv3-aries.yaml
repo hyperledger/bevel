@@ -12,6 +12,9 @@ network:
   env:
     type: "baf"                     # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
+    # Any additional Ambassador ports can be given below, must be comma-separated without spaces. 
+    # Must be different from all stward ambassador ports specified in the rest of this network yaml
+    ambassadorPorts: 15010,15023,15024,15033,15034,15043,15044
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled          # Should be enabled if using external-dns for automatic route configuration
 
@@ -26,7 +29,7 @@ network:
   # It's used as the Indy network name (has impact e.g. on paths where the Indy nodes look for crypto files on their local filesystem)
   name: baf
 
-  # Informatio about pool transaction genesis and domain transactions genesis
+  # Information about pool transaction genesis and domain transactions genesis
   genesis:
     state: absent
     pool: genesis/pool_transactions_genesis
@@ -84,6 +87,7 @@ network:
           genesis: true
           server:
             port: 8000
+            ambassador: 15010
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -186,5 +190,11 @@ network:
         - endorser:
           name: university-endorser
           full_name: Faber university of the Demo.
-          avatar: https://faber.com/avatar.png
-          public_endpoint: https://faber.com/public
+          avatar: http://faber.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample http://university-endorser.indy.blockchaincloudpoc.com:15033/
+          # For minikube: http://<minikubeip>>:15033
+          server:
+            httpPort: 15033
+            apiPort: 15034
+          

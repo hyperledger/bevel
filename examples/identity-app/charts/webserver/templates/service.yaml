@@ -8,19 +8,11 @@ metadata:
     getambassador.io/config: |
       ---
       apiVersion: ambassador/v1
-      kind: Mapping
-      name: {{ .Values.metadata.name }}-
-      host: {{ .Values.proxy.external_url }}:{{ .Values.proxy.port }}
-      prefix: /
-      service: https://{{ .Values.metadata.name }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
-      tls: {{ .Values.metadata.name }}_mapping_tlscontext
-      ---
-      apiVersion: ambassador/v1
-      kind: TLSContext
-      name: {{ .Values.metadata.name }}_mapping_tlscontext
-      hosts:
-      - {{ .Values.proxy.external_url }}
-      secret: {{ .Values.organization.name }}-ambassador-certs
+      kind: TCPMapping
+      name: {{ .Values.metadata.name }}-tcp
+      host: {{ .Values.proxy.external_url }}
+      port: {{ .Values.proxy.port }}
+      service: {{ .Values.metadata.name }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
     {{- end }}
 spec:
 {{ if eq $.Values.proxy.provider "minikube" }}

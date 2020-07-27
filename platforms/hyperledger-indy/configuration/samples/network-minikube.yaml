@@ -69,6 +69,9 @@ network:
         - trustee:
           name: authority-trustee
           genesis: true
+          server:
+            port: 8000
+            ambassador: 15010
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -136,8 +139,13 @@ network:
         - endorser:
           name: provider-endorser
           full_name: Some Decentralized Identity Mobile Services Provider
-          avatar: https://provider.com/avatar.png
-          public_endpoint: https://provider.com/public
+          avatar: http://provider.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample http://provider-endorser.indy.blockchaincloudpoc.com:15023/
+          # For minikube: http://<minikubeip>>:15023
+          server:
+            httpPort: 15024
+            apiPort: 15024
 
     # Specification for the 3rd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -205,5 +213,10 @@ network:
         - endorser:
           name: partner-endorser
           full_name: Some Decentralized Identity Mobile Services Partner
-          avatar: https://partner.com/avatar.png
-          public_endpoint: https://partner.com/public
+          avatar: http://partner.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample http://provider-endorser.indy.blockchaincloudpoc.com:15033/
+          # For minikube: http://<minikubeip>>:15033
+          server:
+            httpPort: 15033
+            apiPort: 15034
