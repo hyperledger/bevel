@@ -6,9 +6,9 @@ metadata:
     flux.weave.works/automated: "false"
   namespace: {{ component_ns }}
 spec:
-  releaseName: {{ component_name }}
+  releaseName: {{ component_name }}-faber
   chart:
-    path: {{ chart_path }}/{{ chart }}
+    path: {{ chart_path }}/faber
     git: {{ gitops.git_ssh }}
     ref: {{ gitops.branch }}
   values:
@@ -20,18 +20,27 @@ spec:
     image:
       pullSecret: regcred
       init:
-        name: {{ component_name }}-init
+        name: certs-init
         repository: alpine:3.9.4
-      server:
+      agent:
         name: {{ component_name }}
-        repository: {{ network.docker.url }}/von-network-base:{{ network.version }}
+        repository: {{ network.docker.url }}/aries-agents:{{ network.version }}
     service:
-      port: {{ component_port }}
+      ports: 
+        service: {{ endorser.server.httpPort }}
+        endpoint: {{ endorser.server.apiPort }}
+{% if organization.cloud_provider == 'minikube' %}     
+      address: {{ minikube_ip }}
+{% else %}      
+      address: {{ component_name }}.{{ organization.external_url_suffix }}
+{% endif %}      
+      ledger: {{ trustee_url }}
+      genesis: {{ trustee_url }}/genesis
     vault:
       address: {{ vault.url }}
       serviceAccountName: {{ service_account }}
       authPath: {{ auth_method_path }}
-      trusteeName: {{ trustee_name }}
+      endorserName: {{ endorser.name }}
       role: ro
     storage:
       size: 128Mi
@@ -39,10 +48,6 @@ spec:
     proxy:
 {% if organization.cloud_provider == 'minikube' %}     
       provider: "minikube"
-      external_url: 
-      port: {{ trustee.server.ambassador }}
 {% else %}      
       provider: "ambassador"
-      external_url: {{ component_name }}.{{ organization.external_url_suffix }}
-      port: {{ trustee.server.ambassador }}
 {% endif %}

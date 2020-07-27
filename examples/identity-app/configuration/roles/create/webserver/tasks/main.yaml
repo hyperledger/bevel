@@ -1,9 +1,12 @@
-- name: "Check if Indy node are running"
+- name: "Check if Indy nodes are running"
   include_role:
-    name: "{{ playbook_dir }}/../../../platforms/hyperledger-indy/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
   vars:
+    namespace: "{{ component_ns }}"
     component_name: "{{ organization.name }}-{{ steward.name }}-node"
     component_type: "Pod"
+    label_selectors:
+      - app = {{ component_name }}
   loop: "{{ services.stewards }}"
   loop_control:
     loop_var: steward
@@ -25,6 +28,22 @@
     loop_var: trustee
   when: services.trustees is defined
 
+- name: "Set Variable"
+  set_fact:
+   trustee_url: "http://{{ minikube_ip }}:{{ trustee.server.ambassador }}"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trustee
+  when: services.trustees is defined and organization.cloud_provider == 'minikube'
+
+- name: "Set Variable"
+  set_fact:
+   trustee_url: "http://{{ organization.name }}-webserver.{{ organization.external_url_suffix }}:{{ trustee.server.ambassador }}"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trustee
+  when: services.trustees is defined and organization.cloud_provider != 'minikube'
+
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
@@ -44,10 +63,13 @@
 
 - name: "Wait until Indy WebServer will be up"
   include_role:
-    name: "{{ playbook_dir }}/../../../platforms/hyperledger-indy/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
   vars:
-    component_name: "{{ organization.name }}-webserver"
+    namespace: "{{ component_ns }}"
     component_type: "Pod"
+    component_name: "{{ organization.name }}-webserver"
+    label_selectors:
+      - app = {{ component_name }}
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee

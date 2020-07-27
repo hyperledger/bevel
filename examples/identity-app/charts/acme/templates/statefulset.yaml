@@ -29,7 +29,7 @@ spec:
             - name: VAULT_ROLE
               value: {{ $.Values.vault.role }}
           volumeMounts:
-            - name: ebs-indy-webserver-keys
+            - name: ebs-indy-faber-keys
               mountPath: /keys
           command:
             - "sh"
@@ -54,49 +54,43 @@ spec:
               curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "'"$VAULT_ROLE"'"}' $VAULT_ADDR/v1/auth/$VAULT_AUTH_PATH/login | jq -j '.auth.client_token' > token;
               X_VAULT_TOKEN=$(cat token);
 
-              LEDGER_SEED=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"{{ $.Values.organization.name }}"/trustees/{{ $.Values.vault.trusteeName }}/identity/private | jq -r 'if .errors then . else . end');
-              validateVaultResponse "secret ({{ $.Values.vault.trusteeName }}/identity/private)" "${LEDGER_SEED}";
-              echo ${LEDGER_SEED} | jq -j ".data.seed" > /keys/seed;
+              ENDORSER_SEED=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"{{ $.Values.organization.name }}"/endorsers/{{ $.Values.vault.endorserName }}/identity/private | jq -r 'if .errors then . else . end');
+              validateVaultResponse "secret ({{ $.Values.vault.trusteeName }}/identity/private)" "${ENDORSER_SEED}";
+              echo ${ENDORSER_SEED} | jq -j ".data.seed" > /keys/seed;
               chmod 644 /keys/seed;
 
       containers:
-        - name: "{{ $.Values.image.server.name }}"
-          image: "{{ $.Values.image.server.repository }}"
+        - name: "{{ $.Values.image.agent.name }}"
+          image: "{{ $.Values.image.agent.repository }}"
           imagePullPolicy: Always
           ports:
-            - containerPort: 8000
+            - containerPort: {{ $.Values.service.ports.service }}
+            - containerPort: {{ $.Values.service.ports.endpoint }}
           env:
-            - name: MAX_FETCH
-              value: "50000"
-            - name: RESYNC_TIME
-              value: "120"
-            - name: REGISTER_NEW_DIDS
-              value: "True"
-            - name: LEDGER_INSTANCE_NAME
-              value: "BAF Sample App"
+            - name: LEDGER_URL
+              value: "{{ $.Values.service.ledger }}"
+            - name: GENESIS_URL
+              value: "{{ $.Values.service.genesis }}"
+            - name: EVENTS
+              value: "1"
           volumeMounts:
-            - name: {{ $.Values.organization.name }}-pool-transactions-genesis
-              mountPath: /home/indy/ledger/sandbox/pool_transactions_genesis
-              subPath: pool_transactions_genesis
-            - name: ebs-indy-webserver-keys
+            - name: ebs-indy-faber-keys
               mountPath: /keys
           command:
           - "bash"
           - "-c"
           - >
-            export LEDGER_SEED=$(cat /keys/seed);
-            rm -rf /keys/seed;
-
-            ./scripts/start_webserver.sh;
+            cat /keys/seed;
+            chmod 644 /keys/seed;
+            export ENDORSER_SEED=$(cat /keys/seed);
+            
+            cd demo;
+            python -m demo.runners.acme -p {{ $.Values.service.ports.service }} --address {{ $.Values.service.address }};
       imagePullSecrets:
         - name: "{{ $.Values.image.pullSecret }}"
-      volumes:
-        - name: {{ $.Values.organization.name }}-pool-transactions-genesis
-          configMap:
-            name: {{ $.Values.organization.name }}-ptg
   volumeClaimTemplates:
     - metadata:
-        name: ebs-indy-webserver-keys
+        name: ebs-indy-faber-keys
       spec:
         accessModes: ["ReadWriteOnce"]
         storageClassName: "{{ $.Values.storage.className }}"

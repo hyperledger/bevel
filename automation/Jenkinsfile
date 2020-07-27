@@ -59,7 +59,7 @@ pipeline {
     choice(choices: '2_5_0\n2_x_x', description: 'What is the Quorum version?', name: 'QUORUM_VERSION')
     choice(choices: 'ibft\nraft', description: 'What is the Quorum Consensus?', name: 'QUORUM_CONSENSUS')
     choice(choices: 'tessera\nconstellation', description: 'What is the Quorum TM?', name: 'QUORUM_TM')
-    choice(choices: '1_9_2\n1_11_0', description: 'What is the Indy version?', name: 'INDY_VERSION')    
+    choice(choices: '1_11_0\n1_9_2', description: 'What is the Indy version?', name: 'INDY_VERSION')    
   }
 
   stages {
@@ -183,12 +183,12 @@ pipeline {
         }
       }
       steps {   
-        dir('baf-configuration') {
+        dir('build/baf-configuration') {
           git credentialsId: "${GIT_CREDS}", url: 'https://innersource.accenture.com/scm/blockofz/baf-configuration.git'
           sh """#!/bin/bash
-            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}.yaml ../build/network.yaml
-            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}addorg.yaml ../build/addorg.yaml
-            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*supplychain.yaml ../build/application.yaml
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}.yaml ../network.yaml
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}addorg.yaml ../addorg.yaml
+            cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*application.yaml ../application.yaml
           """
         }
         //WithCredentials to get the username and password for GIT user
@@ -226,8 +226,6 @@ pipeline {
               sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/application.yaml
               sed -i -e 's+PATH_TO_CONFIG_FILE+${KUBECONFIG}+g' build/application.yaml
               sed -i -e 's+PATH_TO_GITOPS_FILE+${LOCAL_BUILD_PATH}+g' build/application.yaml
-
-              rm -rf baf-configuration
             """
             
         }
@@ -364,6 +362,19 @@ pipeline {
         """        
       }
     }
+    stage('Deploy Identity-App') {
+      when {
+        branch 'indy';
+        expression { params.APIONLY_ACTION != 'yes' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {        
+        sh """
+          ansible-playbook examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/application.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          helm upgrade --install alice -f ./build/baf-configuration/demo/indy/alice.yaml examples/identity-app/charts/alice
+        """        
+      }
+    }
     stage('Run SupplyChain API tests') {
       when {
         not {
@@ -373,7 +384,7 @@ pipeline {
             branch 'indy'
           }
         }
-        expression { params.RESET_ACTION == 'yes' }
+        expression { params.RESET_ACTION == 'yes' || params.APIONLY_ACTION == 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
@@ -381,7 +392,26 @@ pipeline {
           try {           
             sh """
               npm install -g newman
-              newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json
+              newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json --delay-request 200
+            """ 
+          } catch(err) {
+            echo "API test failed. Try to run manually via Postman."
+          }
+        }        
+      }
+    }
+    stage('Run Identity API tests') {
+      when {
+        branch 'indy';
+        expression { params.RESET_ACTION == 'yes' || params.APIONLY_ACTION == 'yes'}
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {   
+        script {
+          try {           
+            sh """
+              npm install -g newman
+              newman run -k examples/identity-app/tests/IdentityAppTest.postman_collection.json -e examples/identity-app/tests/IdentityIndyDemo.postman_environment.json --delay-request 150
             """ 
           } catch(err) {
             echo "API test failed. Try to run manually via Postman."
