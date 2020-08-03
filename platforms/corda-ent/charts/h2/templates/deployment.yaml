@@ -1,0 +1,66 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ .Values.nodeName }}db
+    {{- if .Values.deployment.annotations }}
+    annotations:
+{{ toYaml .Values.deployment.annotations | indent 8 }}
+    {{- end }}
+    namespace: {{ .Values.metadata.namespace }}
+    labels:
+      app.kubernetes.io/name: {{ .Values.nodeName }}db
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/instance: {{ .Release.Name }} 
+spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: {{ .Values.nodeName }}db
+        app.kubernetes.io/name: {{ .Values.nodeName }}db
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    strategy:
+      type: Recreate
+      rollingUpdate: null
+    template:
+      metadata:
+        labels:
+          app: {{ .Values.nodeName }}db
+          app.kubernetes.io/name: {{ .Values.nodeName }}db
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        hostname: {{ .Values.nodeName }}db
+        securityContext:
+          fsGroup: 1000
+        containers:
+        - name: {{ .Values.nodeName }}db
+          image: {{ .Values.image.containerName }}
+          resources:
+            limits:
+              memory: {{ .Values.resources.limits }}
+            requests:
+              memory: {{ .Values.resources.requests }}
+          ports:
+            - containerPort: 1521
+              name: p2p
+            - containerPort: 81
+              name: web
+          env:
+            - name: JAVA_OPTIONS
+              value: -Xmx512m
+          volumeMounts:
+          - name: db
+            mountPath: "/opt/h2-data"
+            readOnly: false
+          livenessProbe:
+            tcpSocket:
+              port: 1521
+            initialDelaySeconds: 15
+            periodSeconds: 20
+        imagePullSecrets:
+          - name: {{ .Values.image.imagePullSecret }}
+        volumes:
+          - name: db
+            persistentVolumeClaim:
+              claimName: {{ .Values.nodeName }}db-pvc
