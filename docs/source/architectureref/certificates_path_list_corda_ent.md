@@ -36,7 +36,7 @@ All values are Base64 encoded files.
 | /secrets/`cenm_orgname_lowercase`/`notary_service_name`/tlscerts                          | tlscacerts                 | Notary Ambassador Certificate |
 | /secrets/`cenm_orgname_lowercase`/`notary_service_name`/tlscerts                          | tlskey                     | Notary Ambassador Private key |
 | /secrets/`cenm_orgname_lowercase`/`notary_service_name`/nodeInfo                          | nodeInfo                   | Notary node info              |
-| /secrets/`cenm_orgname_lowercase`/`notary_service_name`/nparm                             | network-parameters-initial | Network initial parameters    |
+| /secrets/`cenm_orgname_lowercase`/`notary_service_name`/nparam                             | network-parameters-initial | Network initial parameters    |
 
 -----
 

@@ -17,7 +17,7 @@ spec:
       namespace: {{ component_ns }}
     replicaCount: 1
     image:
-      conatinerName: {{ container_name }}
+      containerName: {{ container_name }}
       imagePullSecret: {{ image_pull_secret }}
     resources:
       limits: 512Mi

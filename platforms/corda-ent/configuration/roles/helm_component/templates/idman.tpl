@@ -30,6 +30,9 @@ spec:
     vault:
       address: {{ vault_addr }}
       certsecretprefix: {{ vault_cert_secret_prefix }}
+      role: {{ vault_role }}
+      authpath: {{ auth_path }}
+      serviceaccountname: {{ vault_serviceaccountname }}
     ambassador:
       external_url_suffix: {{ external_url_suffix }}
     volume:

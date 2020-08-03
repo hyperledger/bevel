@@ -2,14 +2,25 @@
 # This role creates the deployment files for node and pushes them to repository
 ##############################################################################################
 
+- name: "Waiting for idman pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ org.name | lower }}-ent"
+    component_name: "{{ org.services.idman.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
 # ----------------------------------------------------------------------  
 # Check if notary already registered or not
 - name: Check if nodekeystore already created
   shell: |
     vault kv get -field=nodekeystore.jks secret/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/nodekeystore
   environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
   register: nodekeystore_result
   ignore_errors: yes
 
@@ -33,12 +44,17 @@
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    docker_image: "corda/notary"
+    docker_image_tag: "1.2-zulu-openjdk8u242"
+    vault_authpath: "cordaent{{ org.name | lower }}"
+    ambassador_p2pPort: "{{ org.services.notary.p2p.ambassador }}"
     corda_service_version: cenm-notary-{{ org.version }}
+    notary_public_ip: "{{ org.services.notary.name }}.{{ org.external_url_suffix }}"
     image_pull_secret: "regcred"
     vault_addr: "{{ org.vault.url }}"
     vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
-    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
-    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    idman_url: "http://{{ org.services.idman.name }}.{{ org.name | lower }}-ent:{{ org.services.idman.port }}"
+    networkmap_url: "http://{{ org.services.networkmap.name }}.{{ org.name | lower }}-ent:{{ org.services.networkmap.ports.servicePort }}"
   when: nodekeystore_result.failed == True
 
 - name: "Push the created deployment files to repository"
@@ -46,10 +62,10 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_REPO: "{{ gitops.git_push_url }}"
-    GIT_USERNAME: "{{ gitops.username }}"
-    GIT_EMAIL: "{{ gitops.email }}"
-    GIT_PASSWORD: "{{ gitops.password }}"
-    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/corda-ent/configuration"
-    msg: "[ci skip] Pushing registration job deployment files for {{ node.name }}"
+    msg: "[ci skip] Pushing registration job deployment files for {{ org.services.notary.name }}"

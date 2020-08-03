@@ -165,9 +165,9 @@ spec:
                 if [ -e nodekeystore.jks ] && [ -e sslkeystore.jks ] && [ -e truststore.jks ]
                 then
                   echo "found certificates, performing vault put"
-                  (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/nodekeystore
-                  (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/sslkeystore
-                  (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/truststore
+                  (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore
+                  (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore
+                  (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
                   break
                 else
                   echo "certificates are not ready, sleeping for 10s"
@@ -183,8 +183,8 @@ spec:
                 then
                   # Encoding binary file and putting it in file, to make sure binary gets correctly put in Vault
                   base64 ${BASE_DIR}/additional-node-infos/nodeInfo* > ${BASE_DIR}/file
-                  (echo '{"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/nodeInfo
-                  (echo '{"network-parameters-initial": "'; base64 ${BASE_DIR}/additional-node-infos/network-parameters-initial.conf; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/nparam
+                  (echo '{"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nodeInfo
+                  (echo '{"network-parameters-initial": "'; base64 ${BASE_DIR}/additional-node-infos/network-parameters-initial.conf; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nparam
                   break
                 else
                   echo "node info not ready, sleeping for 10s"
