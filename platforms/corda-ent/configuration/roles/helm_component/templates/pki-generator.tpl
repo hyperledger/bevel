@@ -43,7 +43,7 @@ spec:
       user: {{ username }}
       password: {{ password }}
     idmanPublicIP: {{ idman_ip }}
-    idmanPort: {{ idman_proxy_port }}
+    idmanPort: 8443
     serviceLocations:
       identityManager:
         host: {{ idman_host }}

@@ -28,6 +28,9 @@ spec:
       imagePullSecret: {{ image_pull_secret }}
     acceptLicense: YES
     vault:
+      role: vault-role
+      authpath: {{ authpath }}
+      serviceaccountname: {{ serviceaccountname }}
       address: {{ vault_addr }}
       certsecretprefix: {{ vault_cert_secret_prefix }}
     ambassador:
