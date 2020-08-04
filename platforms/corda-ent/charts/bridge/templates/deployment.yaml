@@ -59,23 +59,16 @@ spec:
                     exit 1
                 fi
               }
-              
-              echo $(pwd)
+
               # setting up env to get secrets from vault
               echo "Getting secrets from Vault Server"
-              # TODO: Remove token + comment in 66&67
-              #KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              #VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-              VAULT_TOKEN=s.nzfMEvHNV8Iz60nRLFjspVVk
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "logged into vault"
 
               # Creating dirs for storing certificates
               mkdir -p /shared/certificates;
-              echo $(ls /shared/certificates)
-              # mkdir -p /shared/network-parameters;
-              #mkdir -p ${MOUNT_PATH}/trust-stores;
-              #mkdir -p ${MOUNT_PATH}/crl-files;
               
               # Fetching SSL Keystore certificate from vault
               COUNTER=1
@@ -109,6 +102,7 @@ spec:
               while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
               do
                   # get keystores from vault to see if certificates are created and put in vault
+                  # TODO: Change Vault path once we have dynamic generate-pki
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
@@ -162,54 +156,11 @@ spec:
               fi
               echo "Done"
 
-        
-              # # Fetching crl certificates from vault
-              # # TODO: Check if CRL certificates are required for NMS
-              # COUNTER=1
-              # while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-              # do
-              #     # get crls from vault to see if certificates are created and put in vault
-              #     LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/idman/crls | jq -r 'if .errors then . else . end')
-              #     if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-              #     then
-              #       sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-              #     else
-              #       tls_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tls.crl"]')
-              #       echo "${tls_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/tls.crl
-
-              #       root_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root.crl"]')
-              #       echo "${root_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/root.crl
-
-              #       subordinate_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["subordinate.crl"]')
-              #       echo "${subordinate_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/subordinate.crl
-
-              #       echo "Successfully got crl certifcates"
-              #       break
-              #     fi
-              #     COUNTER=`expr "$COUNTER" + 1`
-              # done
-
-              # if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
-              # then
-              #   # printing number of trial done before giving up
-              #   echo "$COUNTER"
-              #   echo "crl certificates might not have been put in vault. Giving up!!!"
-              #   exit 1
-              # fi
-              # echo "Done"
-              echo $(ls /shared)
-              echo "Network Parameters Encoded"
-              cat /shared/network-parameters_old | base64 -d > /shared/network-parameters
-              #cat /shared/network-parameters_old
-              # touch /shared/network-parameters
-              # curl {{ $.Values.nmap.name}}.{{ $.Values.nmap.namespace}}:{{ $.Values.nmap.port}}/network-map-user/network-parameters -o /shared/network-parameters
-              # cat /shared/network-parameters
+              # TODO: Get network-parameters from corresponding Node
+              echo "Done with init-certificates..."
         volumeMounts:
         - name: certificates
           mountPath: /shared
-        - name: bridge-conf
-          mountPath: /shared/network-parameters_old
-          subPath: network-parameters
       imagePullSecrets:
       - name: {{ .Values.image.pullSecret }}
       containers:
@@ -221,22 +172,12 @@ spec:
             memory: {{ .Values.cordaJarMx }}G
           limits:
             memory: {{ add .Values.cordaJarMx 2}}G
-        # ports:
-        # - containerPort: 39999 
-        # - containerPort: 40000
         volumeMounts:
-        # - mountPath: /opt/corda/workspace
-        #   name: {{ .Values.nodeName }}-pvc
-        # - mountPath: /opt/corda/workspace/network-parameters
-        #   name: float-config-volume
-        #   subPath: network-parameters.file
-        #   readOnly: true
         - name: certificates
           mountPath: /opt/corda/workspace/
         - name: bridge-conf
           mountPath: /opt/corda/workspace/firewall.conf
           subPath: firewall.conf
-      
       volumes:
         - name: certificates
           emptyDir:
