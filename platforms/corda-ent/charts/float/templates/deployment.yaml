@@ -1,0 +1,188 @@
+---  
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace}}
+  {{- if .Values.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 8 }}
+    {{- end }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.nodeName }}
+      app.kubernetes.io/name: {{ .Values.nodeName }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.nodeName }}
+        app.kubernetes.io/name: {{ .Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      initContainers:
+      - name: init-certificates
+        image: {{ .Values.initContainerImage.name }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: BASE_DIR
+            value: {{ $.Values.volume.baseDir }}
+          - name: CERTS_SECRET_PREFIX
+            value: {{ .Values.vault.certsecretprefix }}
+          - name: MOUNT_PATH
+            value: "/DATA"
+        command: ["sh", "-c"]
+        args:
+        - |-
+              #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                fi
+              }
+              
+              # setting up env to get secrets from vault
+              echo "Getting secrets from Vault Server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "logged into vault"
+
+              # Creating directory for storing certificates
+              mkdir -p /shared/certificates;
+              
+              # Fetching SSL Keystore certificate from vault
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              do
+                  # get keystores from vault to see if certificates are created and put in vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  else
+                    ssl_keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root-key-store.jks"]')
+                    echo "${ssl_keystore}" | base64 -d > /shared/certificates/sslkeystore.jks
+                    echo "Successfully got SSL Keystore certifcate"
+                    break
+                  fi
+                  COUNTER=`expr "$COUNTER" + 1`
+              done
+
+              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+              then
+                # printing number of trial done before giving up
+                echo "SSL Keystore certificates might not have been put in Vault. Giving up after $COUNTER tries!"
+                exit 1s
+              fi
+              echo "Done"
+
+              # Fetching Float Certificate from vault
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              do
+                  # get keystores from vault to see if certificates are created and put in vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  else
+                    float=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["float.jks"]')
+                    echo "${float}" | base64 -d > /shared/certificates/float.jks
+                    echo "Successfully got Float Certifcate"
+                    break
+                  fi
+                  COUNTER=`expr "$COUNTER" + 1`
+              done
+
+              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+              then
+                # printing number of trial done before giving up
+                echo "Float certificate might not have been put in Vault. Giving up after $COUNTER tries!"
+                exit 1s
+              fi
+              echo "Done"
+
+              # Fetching corda-ssl-trust-store certificates from vault
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              do
+                  # get keystores from vault to see if certificates are created and put in vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  else
+                    root_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+                    echo "${root_ssl}" | base64 -d > /shared/certificates/truststore.jks
+                    root_trust=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
+                    echo "${root_trust}" | base64 -d > /shared/certificates/trust.jks
+
+                    echo "Successfully got Root SSL and Truststore certifcates"
+                    break
+                  fi
+                  COUNTER=`expr "$COUNTER" + 1`
+              done
+
+              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+              then
+                # Printing number of trials done before giving up
+                echo "Root SSL or Truststore certificates might not have been put in Vault. Giving up after $COUNTER tries!"
+                exit 1
+              fi
+              # The general Firewall Docker image checks the existence network-parameters,
+              # both on Bridge + Float in it's startFirewall.sh script;
+              # while it is only required for Bridge. So, we have to create a dummy file to make the script work.
+              echo dummy_file > /shared/network-parameters
+              echo "Done"              
+        volumeMounts:
+        - name: certificates
+          mountPath: /shared
+      imagePullSecrets:
+      - name: {{ .Values.image.pullSecret }}
+      containers:
+      - name: main
+        image: "{{ required "float[main]: missing value for .Values.image.name" .Values.image.name }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          requests:
+            memory: {{ .Values.cordaJarMx }}G
+          limits:
+            memory: {{ add .Values.cordaJarMx 2}}G
+        volumeMounts:
+        - name: certificates
+          mountPath: /opt/corda/workspace/
+        - name: float-conf
+          mountPath: /opt/corda/workspace/firewall.conf
+          subPath: firewall.conf
+        - name: float-logs
+          mountPath: /opt/corda/workspace/logs
+      volumes:
+        - name: certificates
+          emptyDir:
+            medium: Memory
+        - name: float-conf
+          configMap:
+            name: {{ .Values.nodeName }}-conf
+        - name: float-logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-pvc-logs
