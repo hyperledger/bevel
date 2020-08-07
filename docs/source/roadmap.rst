@@ -9,9 +9,9 @@ BAF current roadmap
     R3 Corda Enterprise Version  :active, a1, 20-05-15  , 110d
     Besu Provisioning       :active, a2, 20-05-20  , 105d
     Couch DB     :a3, 20-09-15  , 60d
-    Helm 3 upgrade:active, 20-07-15, 30d
+    Helm 3 upgrade:active, 20-07-15, 45d
     EKS upgrade:a5, 20-08-10, 10d
-    HL-Fabric upgrade:a6, 20-09-01, 15d
+    HL-Fabric upgrade:a6, 20-09-01, 30d
     
     section Application
     Quorum Ref App      :done, b1, 20-03-10, 60d
