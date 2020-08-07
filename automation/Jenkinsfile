@@ -130,6 +130,7 @@ pipeline {
           env.CONSENSUS = "${params.FABRIC_CONSENSUS}"
           env.VERSION = "${params.FABRIC_VERSION}"
           env.TM = ""
+          env.JDK_VERSION = "8"
         }
       }
     }
@@ -142,6 +143,7 @@ pipeline {
           env.CONSENSUS = ""
           env.VERSION = "${params.CORDA_VERSION}"
           env.TM = ""
+          env.JDK_VERSION = "8"
         }
       }
     }
@@ -154,6 +156,7 @@ pipeline {
           env.CONSENSUS = "${params.QUORUM_CONSENSUS}"
           env.VERSION = "${params.QUORUM_VERSION}"
           env.TM = "${params.QUORUM_TM}"
+          env.JDK_VERSION = "14"
         }
       }
     }
@@ -166,6 +169,7 @@ pipeline {
           env.CONSENSUS = ""
           env.VERSION = "${params.INDY_VERSION}"
           env.TM = ""
+          env.JDK_VERSION = "8"
         }
       }
     }
@@ -315,6 +319,11 @@ pipeline {
       }
       steps {
         sh """
+          if [ ${env.JDK_VERSION} = "14" ]
+          then
+            PATH=/opt/jdk-14/bin:\$PATH
+          fi
+          java -version
           ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
@@ -337,6 +346,10 @@ pipeline {
       }
       steps {        
         sh """
+          if [ ${env.JDK_VERSION} = "14" ]
+          then
+            PATH=/opt/jdk-14/bin:\$PATH
+          fi
           ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@./build/addorg.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
@@ -411,7 +424,7 @@ pipeline {
           try {           
             sh """
               npm install -g newman
-              newman run -k examples/identity-app/tests/IdentityAppTest.postman_collection.json -e examples/identity-app/tests/IdentityIndyDemo.postman_environment.json --delay-request 150
+              newman run -k examples/identity-app/tests/IdentityAppTest.postman_collection.json -e examples/identity-app/tests/IdentityIndyDemo.postman_environment.json --delay-request 250
             """ 
           } catch(err) {
             echo "API test failed. Try to run manually via Postman."
