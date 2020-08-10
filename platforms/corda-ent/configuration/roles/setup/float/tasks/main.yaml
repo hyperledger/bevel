@@ -1,39 +1,14 @@
-# This role creates the the value file for bridge chart and pushes it to the git repository
+# This role creates the the value file for float chart and pushes it to the git repository
 
-# Wait for notary pod to come up
-- name: "Waiting for notary pod to come up"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-  vars:
-    component_type: "Pod"
-    namespace: "{{ org.name | lower }}-ent"
-    component_name: "{{ org.services.notary.name }}"
-    kubernetes: "{{ org.k8s }}"
-    label_selectors:
-      - app = {{ component_name }}
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'cenm'
+#TODO: CHECK for the previous entity to be running/completed
 
-# TODO: Change of this logic here and in the chart
-# Fetch the networkmap namespace and port
-- name: Get the networkmap namespace and port
-  set_fact:
-    networkmap_ns: "{{ org.name | lower }}-ent"
-    networkmap_port: "{{ org.services.networkmap.ports.servicePort }}"
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'cenm'
-
-# This task will will create the value file for bridge
-- name: Create value file for bridge
+# This task will will create the value file for float
+- name: Create value file for float
   include_role:
     name: helm_component
   vars:
-    component_name: "{{ peer.firewall.bridge.name }}"
-    type: bridge
+    component_name: "{{ peer.firewall.float.name }}"
+    type: float
     name: "{{ org.name | lower }}"
     corda_service_version: "firewall"
     component_ns: "{{ org.name | lower }}-ent"
@@ -41,7 +16,7 @@
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
-    networkmap_name: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
+    float_name: "{{ peer.firewall.float.name }}"
     init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
     image_pull_secret: "regcred"
     vault_addr: "{{ org.vault.url }}"
@@ -52,10 +27,10 @@
     storageclass: cenmsc
     float_address: "{{ peer.firewall.float.name | lower }}.{{ org.name | lower }}-ent"
     float_port: "{{ peer.firewall.float.port }}"
-    float_subject: "{{ peer.firewall.float.subject }}"
-    bridge_address: "{{ peer.firewall.bridge.name | lower }}.{{ org.name | lower }}-ent"
-    bridge_port: "{{ peer.firewall.bridge.port }}"
+    bridge_subject: "{{ peer.firewall.bridge.subject }}"
     bridge_tunnel_port: "{{ peer.firewall.bridge.tunnelport }}"
+    dmz_internal: "0.0.0.0"
+    dmz_external: "0.0.0.0"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
@@ -72,4 +47,4 @@
     GIT_PASSWORD: "{{ org.gitops.password }}"
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/corda-ent/configuration"
-    msg: "[ci skip] Pushing bridge files"
+    msg: "[ci skip] Pushing float files"
