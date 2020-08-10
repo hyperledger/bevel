@@ -1,6 +1,10 @@
 #Provide the nodeName for node
-#Eg. nodeName: bank1
+#Eg. nodeName: manufacturer
 nodeName:
+
+# Provide the name of the organization/peername for which certifiactes are being created
+# Eg. peerName: manufacturer
+peerName: 
 
 #Provide the replica set for node deployed
 #Eg. replicas: 1
@@ -8,19 +12,11 @@ replicas:
 
 metadata:
   #Provide the namespace
-  #Eg. namespace: cenm
+  #Eg. namespace: manufacturer-ent
   namespace:
 
-# This section contains the name of the image used in the deployment for pki tool.
-dockerImagePki:
-  # Ex. name: corda/enterprise-pkitool
-  name:
-  # Ex. tag: 1.2-zulu-openjdk8u242
-  tag: 
-  # Ex. pullPolicy: Always
-  pullPolicy:
 
-# Provide image for init container
+# Provide image names
 image:
   # Provide the alpine utils image.
   # NOTE: The alpine image used is the base alpine image with CURL installed.
@@ -29,6 +25,14 @@ image:
   # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
   # Eg. imagePullSecret: regcred
   imagePullSecret:
+  pullPolicy: Always
+
+  # This section contains the name of the image used in the deployment for pki tool.
+  dockerImagePki:
+    # Ex. name: corda/enterprise-pkitool
+    name:
+    # Ex. tag: 1.2-zulu-openjdk8u242
+    tag:
 
 #base directory ex. /opt/corda
 volume:
@@ -52,7 +56,7 @@ vault:
   # Eg. serviceaccountname: vault-auth
   serviceaccountname:
   # Provide the vault path where the  certificates are stored
-  # Eg. certsecretprefix: secret/cenm-org-name/signer/certs
+  # Eg. certsecretprefix: secret/manufacturer
   certsecretprefix: 
     
 healthcheck:
@@ -63,19 +67,12 @@ healthcheck:
   # readinessthreshold: 20
   readinessthreshold:
 
-# required parameter public Ip of idman
-idmanPublicIP:
-
-# port number where idman is available
-idmanPort:
-
-
 # Provide the JVM for jar
 # cordaJarMx: 1
 cordaJarMx:
 
 # Ex healthCheckNodePort: 0
-healthCheckNodePort: 0
+healthCheckNodePort:
 
 # where is CENM service jar file stored
 # Ex. jarPath: bin
@@ -88,26 +85,14 @@ configPath:
 # certificates subjects specification for generating certificates for network entity
 pki:
   certificates:
-    # tlscrlsigner details 
-    tlscrlsigner:
-      # EX. subject: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+    bridge:
+      # subject: "CN=Test Bridge Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
       subject:
-      crl:
-        # Ex. issuer: "CN=Corda TLS Signer Certificate, OU=Corda, O=R3 HoldCo LLC, L=New York, C=US"
-        issuer: 
-    # cordarootca certificates specificataions
-    cordarootca:
-      # subject: "CN=Test Root CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-      subject: 
-    # subordinateca certificates specificataions  
-    subordinateca:
-      # subject: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-      subject: 
-    # identitymanagerca specifications
-    identitymanagerca:
-      # subject: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-      subject: 
-    # networkmap certificate specifications  
-    networkmap:
-      # subject: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+    # Float certificate specifications
+    float:
+      # subject: "CN=Test Float Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      subject:
+    # Firewall CA certificate specifications
+    firewallca:
+      #subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"    
       subject:
