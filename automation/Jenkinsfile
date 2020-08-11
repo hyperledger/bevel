@@ -397,7 +397,6 @@ pipeline {
             branch 'indy'
           }
         }
-        expression { params.RESET_ACTION == 'yes' || params.APIONLY_ACTION == 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
@@ -405,7 +404,7 @@ pipeline {
           try {           
             sh """
               npm install -g newman
-              newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json --delay-request 200
+              newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json --delay-request 800
             """ 
           } catch(err) {
             echo "API test failed. Try to run manually via Postman."
@@ -416,7 +415,6 @@ pipeline {
     stage('Run Identity API tests') {
       when {
         branch 'indy';
-        expression { params.RESET_ACTION == 'yes' || params.APIONLY_ACTION == 'yes'}
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
@@ -424,7 +422,7 @@ pipeline {
           try {           
             sh """
               npm install -g newman
-              newman run -k examples/identity-app/tests/IdentityAppTest.postman_collection.json -e examples/identity-app/tests/IdentityIndyDemo.postman_environment.json --delay-request 250
+              newman run -k examples/identity-app/tests/IdentityAppTest.postman_collection.json -e examples/identity-app/tests/IdentityIndyDemo.postman_environment.json --delay-request 800
             """ 
           } catch(err) {
             echo "API test failed. Try to run manually via Postman."
