@@ -7,7 +7,7 @@ This role setups communication between the vault and kubernetes cluster and inst
 
 #### 1. Check namespace is created
 This task checks if the namespace is created or not
-**k8s_facts**: This module checks for the k8s resources in the cluster
+**k8s_info**: This module checks for the k8s resources in the cluster
 ##### Input Variables
     kind: name of the resources
     *name: namespace name

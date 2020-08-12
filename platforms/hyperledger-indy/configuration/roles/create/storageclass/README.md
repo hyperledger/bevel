@@ -4,7 +4,7 @@ This role creates a value file of StorageClass
 ## Tasks:
 ### 1. Check if storageclass exists
 This task check if StorageClass exists in Kubernetes Cluster.
-It uses *k8s_facts* Ansible role.
+It uses *k8s_info* Ansible role.
 
 #### Variables:
  - storageclass_name: A name of StorageClass.
