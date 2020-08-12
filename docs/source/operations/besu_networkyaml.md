@@ -89,8 +89,8 @@ The snapshot of the `config` section with example values is below
     transaction_manager: "orion"    # Option is orion only
     # This is the version of "orion" docker image that will be deployed
     # Supported versions #
-    # orion: 1.5.3 (for besu 1.4.4)
-    tm_version: "1.5.3"               # This is the version of "orion" docker image that will be deployed
+    # orion: 1.5.2 (for besu 1.4.4)
+    tm_version: "1.5.2"               # This is the version of "orion" docker image that will be deployed
     ## File location for saving the genesis file should be provided.
     genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
 
@@ -102,7 +102,7 @@ The fields under `config` are
 | consensus   | Currently supports `ibft`.                                 |
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
 | transaction_manager    | Currently supports `orion`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. |
-| tm_version         | This is the version of `orion` docker image that will be deployed. Supported versions: `1.5.3` for `orion`. |
+| tm_version         | This is the version of `orion` docker image that will be deployed. Supported versions: `1.5.2` for `orion`. |
 | genesis | This is the path where `genesis.json` will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file. |
 
 
@@ -143,7 +143,7 @@ For the `aws` and `k8s` field the snapshot with sample values is below
       aws:
         access_key: "<aws_access_key>"    # AWS Access key, only used when cloud_provider=aws
         secret_key: "<aws_secret>"        # AWS Secret key, only used when cloud_provider=aws
-  
+        region: "<aws_region>"                # AWS Region where cluster and EIPs are created
       # Kubernetes cluster deployment variables.
       k8s:
         context: "<cluster_context>"
@@ -156,6 +156,7 @@ The `aws` field under each organization contains: (This will be ignored if cloud
 |-------------|----------------------------------------------------------|
 | access_key                              | AWS Access key  |
 | secret_key                              | AWS Secret key  |
+| region            | The AWS region where K8s cluster and the EIPs reside |
 
 The `k8s` field under each organization contains
 
