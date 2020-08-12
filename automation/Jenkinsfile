@@ -37,6 +37,8 @@ pipeline {
     GITOPS_CREDS="jenkins_gitops_key"
     //Secret which contains username and password for Nexus repo for Corda jars
     NEXUS_CREDS="nexus_user"
+    //Secret which contains username and password for Docker repository for Corda Enterprise
+    DOCKER_CREDS="docker_user"
     //Secret which contains vault private key
     VAULT_CREDS="aws_demo_vault_key"
     //Secret which contains Vault token
@@ -173,6 +175,19 @@ pipeline {
         }
       }
     }
+    stage('corda-ent-settings'){
+      when {
+        branch 'corda-ent';
+      }
+      steps {
+        script {
+          env.CONSENSUS = ""
+          env.VERSION = "enterprise_4_4"
+          env.TM = ""
+          env.JDK_VERSION = "8"
+        }
+      }
+    }
 
     /*
     *  Create the configuration file
@@ -282,6 +297,20 @@ pipeline {
                   sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/network.yaml
                   sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/addorg.yaml
               """
+          }
+          withCredentials([
+              usernamePassword(credentialsId: "${DOCKER_CREDS}", 
+              usernameVariable: 'USERNAME', 
+              passwordVariable: 'PASSWORD'
+            )]) {
+              sh """
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/network.yaml
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/addorg.yaml
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/application.yaml
+                  sed -i -e 's*DOCkER_PASSWORD*${PASSWORD}*g' build/network.yaml
+                  sed -i -e 's*DOCkER_PASSWORD*${PASSWORD}*g' build/addorg.yaml
+                  sed -i -e 's*DOCkER_PASSWORD*${PASSWORD}*g' build/application.yaml
+              """
           }          
       }
     }
@@ -338,7 +367,8 @@ pipeline {
           anyOf {
             branch 'master';
             branch 'develop';
-            branch 'indy'
+            branch 'indy';
+            branch 'corda-ent'
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
@@ -363,7 +393,8 @@ pipeline {
           anyOf {
             branch 'master';
             branch 'develop';
-            branch 'indy'
+            branch 'indy';
+            branch 'corda-ent'
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
@@ -394,7 +425,8 @@ pipeline {
           anyOf {
             branch 'master';
             branch 'develop';
-            branch 'indy'
+            branch 'indy';
+            branch 'corda-ent'
           }
         }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
