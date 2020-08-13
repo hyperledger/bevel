@@ -1,5 +1,14 @@
 ---
 Capabilities:
+{% if '2.' in network.version %}
+  Global: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_0: true
+{% endif %}
+{% if '1.4' in network.version %}
 {% if consensus.name == 'kafka' %}
   Global: &ChannelCapabilities
     V1_1: true
@@ -15,6 +24,7 @@ Capabilities:
     V1_4_2: true
   Application: &ApplicationCapabilities
     V1_4_2: true
+{% endif %}
 {% endif %}
 
 Application: &ApplicationDefaults
