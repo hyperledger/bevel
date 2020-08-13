@@ -26,6 +26,7 @@
     KUBECONFIG={{ kubeconfig_path }} kubectl annotate service haproxy-ingress -n ingress-controller --overwrite "external-dns.alpha.kubernetes.io/hostname=*.{{ item.external_url_suffix }}."
   tags:
     - haproxy
+    - molecule-idempotence-notest
   when: network.env.external_dns is defined and network.env.external_dns == 'enabled'
 
 # Disable TLS1.0 for the AWS Loadbalancer
@@ -34,6 +35,7 @@
     KUBECONFIG={{ kubeconfig_path }} kubectl annotate service haproxy-ingress -n ingress-controller --overwrite "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy=ELBSecurityPolicy-TLS-1-2-2017-01"
   tags:
     - haproxy
+    - molecule-idempotence-notest
   when: item.cloud_provider == "aws"
 
 # Wait for HAProxy pods to start running
