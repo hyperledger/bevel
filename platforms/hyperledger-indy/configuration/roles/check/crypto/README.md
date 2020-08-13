@@ -4,7 +4,7 @@ This role is checking if all crypto jobs are completed and all crypto data are i
 ## Tasks:
 ### 1. Check if Indy Key management pod for trustee is completed
 This task is waiting until job for all trustees in organization are completed.
-It uses *k8s_facts* Ansible role.
+It uses *k8s_info* Ansible role.
 
 #### Variables:
  - component_ns: A name of namespace' organization.
@@ -19,7 +19,7 @@ It uses *k8s_facts* Ansible role.
 
 ### 2. Check if Indy Key management pod for stewards is completed
 This task is waiting until job for all stewards in organization are completed.
-It uses *k8s_facts* Ansible role.
+It uses *k8s_info* Ansible role.
 
 #### Variables:
  - component_ns: A name of namespace' organization.
@@ -34,7 +34,7 @@ It uses *k8s_facts* Ansible role.
 
 ### 3. Check if Indy Key management pod for endorser is completed
 This task is waiting until job for all endorsers in organization are completed.
-It uses *k8s_facts* Ansible role.
+It uses *k8s_info* Ansible role.
 
 #### Variables:
  - component_ns: A name of namespace' organization.

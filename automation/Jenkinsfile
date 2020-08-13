@@ -37,6 +37,8 @@ pipeline {
     GITOPS_CREDS="jenkins_gitops_key"
     //Secret which contains username and password for Nexus repo for Corda jars
     NEXUS_CREDS="nexus_user"
+    //Secret which contains username and password for Docker repository for Corda Enterprise
+    DOCKER_CREDS="docker_user"
     //Secret which contains vault private key
     VAULT_CREDS="aws_demo_vault_key"
     //Secret which contains Vault token
@@ -173,6 +175,32 @@ pipeline {
         }
       }
     }
+    stage('corda-ent-settings'){
+      when {
+        branch 'corda-ent';
+      }
+      steps {
+        script {
+          env.CONSENSUS = ""
+          env.VERSION = "enterprise_4_4"
+          env.TM = ""
+          env.JDK_VERSION = "8"
+        }
+      }
+    }
+    stage('besu-settings'){
+      when {
+        branch 'besu';
+      }
+      steps {
+        script {
+          env.CONSENSUS = "ibft"
+          env.VERSION = "1_4_4"
+          env.TM = "orion"
+          env.JDK_VERSION = "14"
+        }
+      }
+    }
 
     /*
     *  Create the configuration file
@@ -282,6 +310,20 @@ pipeline {
                   sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/network.yaml
                   sed -i -e 's*NEXUS_PASSWORD*${PASSWORD}*g' build/addorg.yaml
               """
+          }
+          withCredentials([
+              usernamePassword(credentialsId: "${DOCKER_CREDS}", 
+              usernameVariable: 'USERNAME', 
+              passwordVariable: 'PASSWORD'
+            )]) {
+              sh """
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/network.yaml
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/addorg.yaml
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/application.yaml
+                  sed -i -e 's*DOCkER_PASSWORD*${PASSWORD}*g' build/network.yaml
+                  sed -i -e 's*DOCkER_PASSWORD*${PASSWORD}*g' build/addorg.yaml
+                  sed -i -e 's*DOCkER_PASSWORD*${PASSWORD}*g' build/application.yaml
+              """
           }          
       }
     }
@@ -321,6 +363,7 @@ pipeline {
         sh """
           if [ ${env.JDK_VERSION} = "14" ]
           then
+            JAVA_HOME=/opt/jdk-14
             PATH=/opt/jdk-14/bin:\$PATH
           fi
           java -version
@@ -338,7 +381,9 @@ pipeline {
           anyOf {
             branch 'master';
             branch 'develop';
-            branch 'indy'
+            branch 'indy';
+            branch 'corda-ent';
+            branch 'besu'
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
@@ -348,6 +393,7 @@ pipeline {
         sh """
           if [ ${env.JDK_VERSION} = "14" ]
           then
+            JAVA_HOME=/opt/jdk-14
             PATH=/opt/jdk-14/bin:\$PATH
           fi
           ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@./build/addorg.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
@@ -363,7 +409,9 @@ pipeline {
           anyOf {
             branch 'master';
             branch 'develop';
-            branch 'indy'
+            branch 'indy';
+            branch 'corda-ent';
+            branch 'besu'
           }
         }
         expression { params.APIONLY_ACTION != 'yes' }
@@ -394,10 +442,11 @@ pipeline {
           anyOf {
             branch 'master';
             branch 'develop';
-            branch 'indy'
+            branch 'indy';
+            branch 'corda-ent';
+            branch 'besu'
           }
         }
-        expression { params.RESET_ACTION == 'yes' || params.APIONLY_ACTION == 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
@@ -405,7 +454,7 @@ pipeline {
           try {           
             sh """
               npm install -g newman
-              newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json --delay-request 200
+              newman run -k examples/supplychain-app/tests/SupplyChainTest.postman_collection.json -e build/SupplychainDemo_${env.BRANCH_NAME}.postman_environment.json --delay-request 800
             """ 
           } catch(err) {
             echo "API test failed. Try to run manually via Postman."
@@ -416,7 +465,6 @@ pipeline {
     stage('Run Identity API tests') {
       when {
         branch 'indy';
-        expression { params.RESET_ACTION == 'yes' || params.APIONLY_ACTION == 'yes'}
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
@@ -424,7 +472,7 @@ pipeline {
           try {           
             sh """
               npm install -g newman
-              newman run -k examples/identity-app/tests/IdentityAppTest.postman_collection.json -e examples/identity-app/tests/IdentityIndyDemo.postman_environment.json --delay-request 250
+              newman run -k examples/identity-app/tests/IdentityAppTest.postman_collection.json -e examples/identity-app/tests/IdentityIndyDemo.postman_environment.json --delay-request 800
             """ 
           } catch(err) {
             echo "API test failed. Try to run manually via Postman."

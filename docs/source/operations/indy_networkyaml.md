@@ -154,7 +154,7 @@ The `aws` field under each organisation contains: (This will be ignored if cloud
 | secret_key               | AWS Secret key  |
 | encryption_key           | (optional) AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.  |
 | zone              | (optional) AWS availability zone. Applicable for Multi-AZ deployments  |
-| region            | The AWS region where K8s cluster resides |
+| region            | The AWS region where K8s cluster and EIPs reside |
 
 The `publicIps` field under each organisation contains:
 
