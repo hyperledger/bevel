@@ -120,7 +120,7 @@ The snapshot of an organization field with sample values is below
       external_url_suffix: test.besu.blockchaincloudpoc.com
       # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
       # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
-      publicIps: ["3.221.78.194","21.23.74.154"] 
+      publicIps: ["3.221.78.194","21.23.74.154"] # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster        
       cloud_provider: aws   # Options: aws, azure, gcp, minikube
 ```
 Each `organization` under the `organizations` section has the following fields. 
