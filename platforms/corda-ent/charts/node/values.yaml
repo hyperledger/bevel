@@ -1,9 +1,9 @@
-# Default values for Node Registration job.
+# Default values for Node Setup.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 # Provide the name of the node
-# Eg. nodeName: carrier-registration
+# Eg. nodeName: carrier
 nodeName:
 
 # This section contains the Enterprise-Corda node metadata.
@@ -29,6 +29,14 @@ image:
   # Image pull policy
   # Eg. Always
   pullPolicy:
+
+# This section contains the storage information.
+storage:
+  # Provide the name of the storageclass.
+  # NOTE: Make sure that the storageclass exist prior to this deployment as
+  # this chart doesn't create the storageclass.
+  # Eg. name: cenm
+  name:
 
 # required parameter
 # Accept Corda Enterprise license should be YES.
@@ -85,11 +93,11 @@ tlsCertCrlIssuer:
 devMode: false
 
 networkServices:
-  # doormanURL defines the accesspoint for the Identity Manager server (protocol + domain name + port, eg. http://my-identity-manager:1000)
+  # doormanURL defines the accesspoint for the Identity Manager server (protocol + domain name + port, eg. http://my-identity-manager:10000)
   doormanURL: 
   # networkMapURL defines the accesspoint for the Network Map server (protocol + domain name + port, eg. http://my-network-map:10000)
   networkMapURL: 
-    
+
 service:
   # p2pPort defines the port number of inbound connections
   # Eg. p2pPort: 40000
@@ -132,7 +140,7 @@ dataSource:
   # Eg. url: "jdbc:h2:tcp://carrierdb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
   url: 
   # Eg. dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
-  dataSourceClassName: 
+  dataSourceClassName:
 
 monitoring:
   # enabled is a boolean value for the above parameter
@@ -155,7 +163,19 @@ volume:
 jarPath: bin
 # where service configuration files are stored
 configPath: etc
-
+# the node workspace folder name
+workspacePath: workspace
+pvc:
+  # annotations:
+  # key: "value"
+  annotations: {}
+deployment:
+  # annotations:
+  # key: "value"
+  annotations: {}
+# Provide the number of replicas for your pods
+# Eg. replicas: 1
+replicas:
 cordaJarMx: 3
 # sleep time in seconds when error while registration
 # Ex. sleepTimeAfterError: 120
