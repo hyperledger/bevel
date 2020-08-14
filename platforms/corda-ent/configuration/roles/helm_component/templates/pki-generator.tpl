@@ -13,6 +13,11 @@ spec:
     path: {{ charts_dir }}/generate-pki
   values:
     nodeName: {{ node_name }}
+    cenmServices:
+      signerName: {{ signerName }}
+      idmanName: {{ idmanName }}
+      networkmapName: {{ networkmapName }}
+      notaryName: {{ notaryName }}
     replicas: 1
     metadata:
       namespace: {{ component_ns }}

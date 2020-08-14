@@ -13,6 +13,7 @@ spec:
     path: {{ charts_dir }}/nmap
   values:
     nodeName: {{ node_name }}
+    idmanName: {{ idman_name }}
     metadata:
       namespace: {{ component_ns }}
     notaryName: {{ notary_name }}
