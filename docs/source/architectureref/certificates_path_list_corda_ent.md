@@ -53,5 +53,6 @@ All values are Base64 encoded files.
 | /secrets/`orgname_lowercase`/certs/nodekeystore         | nodekeystore.jks       | Certificate |
 | /secrets/`orgname_lowercase`/certs/sslkeystore          | sslkeystore.jks        | Certificate |
 | /secrets/`orgname_lowercase`/certs/truststore           | truststore.jks         | Certificate |
+| /secrets/`orgname_lowercase`/root/certs           | network-root-truststore.jks         | Certificate |
 | /secrets/`orgname_lowercase`/tlscerts                   | tlscacerts             | Node Ambassador Certificate |
 | /secrets/`orgname_lowercase`/tlscerts                   | tlskey                 | Node Ambassador Private key |
