@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.nodeName }}-reg-conf
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}-reg-conf
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  node-initial-registration.sh: |+
+{{ tpl (.Files.Get "files/node-initial-registration.sh") . | indent 4 }}
+
+  node.conf: |+
+{{ tpl (.Files.Get "files/node.conf") . | indent 4 }}
+

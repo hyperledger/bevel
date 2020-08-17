@@ -1,0 +1,129 @@
+# Default values for Float Firewall.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+deployment:
+  annotations: {}
+
+# Provide the name of the node.
+# e.g. nodeName: float
+nodeName:
+
+# Provide context for the chart
+metadata:
+  # Provide the namespace where the Float will be deployed.
+  # e.g. namespace: cenm
+  namespace:
+  # Provide any extra labels you wish to add to the charts, formatted as key-value pairs.
+  # e.g. key: "value" 
+  labels: 
+
+# Provide the amount of replicas you want to deploy of the Float.
+# e.g. replicas: 1
+replicas:
+
+pvc:
+  # Provide any annotations for the Persistent Volume Claims (PVC), formatted as key-value pairs. 
+  # e.g.  annotations:
+  #         key: "value"
+  annotations:
+
+# This section contains information about storage classes used in the Chart.
+storage:
+  # Provide the name of the storage class. 
+  # NOTE: Make sure that the storage class exists prior to manually running this deployment, 
+  # as this chart does not create the storage class itself.
+  # e.g. name: cenm
+  name: 
+
+# Information about the Docker container used for the init-containers.
+initContainerImage:
+  # Provide the name of the image, including the tag.
+  # e.g. name: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+  name:
+
+# Information about the main image used for the main Float firewall container.
+image:
+  # Provide the name of the image, including the tag
+  # e.g. name: adopblockchaincloud0502.azurecr.io/corda_image_firewall_4.4:latest
+  name:
+  # Provide the K8s secret that has rights for pulling the image off the registry.
+  # NOTE: Make sure the secret exists prior to manually running this deployment, 
+  # as this chart does not create the pull secret itself.
+  # e.g. pullSecret: regcred
+  pullSecret:   
+  # Provide the pull policy for Docker images, either Always or IfNotPresent.
+  # e.g. pullPolicy: Always
+  pullPolicy:
+
+# Information about the vault.
+# NOTE: Make sure that the vault is already unsealed, initialized and configured
+# to use the Kubernetes service account token based authentication.
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address:
+  # Provide the vault role used.
+  # Eg. role: vault-role 
+  role:
+  # Provide the authpath configured to be used.
+  # Eg. authpath: entcordacenm
+  authpath: 
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceaccountname:
+  # Provide the vault path where the  certificates are stored
+  # Eg. certsecretprefix: cenm/certs
+  certsecretprefix: 
+
+# Provide volume related specifications
+volume:
+  # E.g. baseDir: /opt/corda
+  baseDir:
+
+# Provide the maximum size of the memory allocation pool
+# e.g. cordaJarMx: 1
+cordaJarMx:
+
+# Information about the bridge - the other part of the Corda firewall.
+bridge:
+  # Provide the legal X500 name of the bridge. This is the same certificate subject as it is used in the generate-pki.
+  # E.g. "CN=Test Bridge Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  legalName:
+  # Provide the port number that the Bridge will connect to the Float on.
+  # e.g. tunnelPort: 39999
+  tunnelPort:
+
+
+float:
+  # Define the public STATIC IP address NUMBER of the Float, do NOT use a DNS name here!
+  # e.g. 123.456.789.001
+  loadBalancerIP: 
+
+# Information regarding the node which the Float is part of    
+node:
+  # Provide the port number where the peer to peer service is running on the node.
+  # e.g. p2pPort: 40000
+  p2pPort:
+
+# healthCheckNodePort set to get rid of logs pollution
+# Ex. healthCheckNodePort: 0
+healthCheckNodePort:
+
+healthcheck:
+  # Provide the interval in seconds you want to iterate till db to be ready
+  # E.g. readinesscheckinterval: 10
+  readinesscheckinterval:
+  # Provide the threshold till you want to check if specified db up and running
+  # E.g. readinessthreshold: 15
+  readinessthreshold:
+
+# DMZ related information to configure the Float within the network
+dmz:
+  # Provide the internal IP address (DNS name preferred) for the DMZ. This is used for the Float address.
+  # e.g. internal: "dmzinternal"
+  internal:
+  # Provide the external IP address (DNS name preferred) for the DMZ. This is used to reference the Node p2p address in the Float.
+  # e.g. external: "dmzexternal"
+  external:

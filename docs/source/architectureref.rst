@@ -23,7 +23,7 @@ Key Management
 
 Key Management is the process of overseeing the generation, exchange, storage, use and destruction of cryptographic keys. Key Management is an important consideration for blockchain as all transactions in blockchain are signed using digital keys. Loss of keys can lead to financial loss as well as brand impact to the organization conducting the transaction.
 
-The Blockchain Automation Framework uses `Hashicorp Vault`_ to hold secrets that are used by the DLT platform. A secret is anything that you want to tightly control access to (e.g. API keys, passwords, certificates). Vault provides a unified interface to any secret, while providing tight access control and recording a detailed audit log. `Hashicorp Vault`_ provides an abstraction on top of a Cloud KMS and does not create Cloud Platform lock-in.
+The Blockchain Automation Framework uses `Hashicorp Vault`_ to hold secrets that are used by the DLT/Blockchain platform. A secret is anything that you want to tightly control access to (e.g. API keys, passwords, certificates). Vault provides a unified interface to any secret, while providing tight access control and recording a detailed audit log. `Hashicorp Vault`_ provides an abstraction on top of a Cloud KMS and does not create Cloud Platform lock-in.
 See the `Platform-Specific Reference Guides`_ for specific details on the structure of the Vault. Vault is a pre-requisite for BAF and should be configured and available before the automation is triggered.
 
 Identity and Access Management (IAM)
@@ -63,7 +63,7 @@ The Blockchain Automation Framework utilizes Git as the version management tool.
 Configuration Management
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Configuration management involves automation of scripts and ad-hoc practices in a consistent, reliable and secure way. Configuration Management enables operators to set-up DLT networks idempotently by using minimum configuration changes.
+Configuration management involves automation of scripts and ad-hoc practices in a consistent, reliable and secure way. Configuration Management enables operators to set-up DLT/Blockchain networks idempotently by using minimum configuration changes.
 
 The Blockchain Automation Framework utilizes Ansible for configuration management. Ansible features a state driven, goal oriented resource model that describes the desired state of computer systems and services, not the paths to get them to this state. No matter what state a system is in, Ansible understands how to transform it to the desired state (and also supports a "dry run" mode to preview needed changes). This allows reliable and repeatable IT infrastructure configuration, avoiding the potential failures from scripting and script-based solutions that describe explicit and often irreversible actions rather than the end goal.
 
@@ -116,7 +116,7 @@ DLT Integration
 DLT integration refers to how the presentation services will talk to the DLT Platform. This will depend on the presentation service as such.
 
 The Blockchain Automation Framework provides a sample application :doc:`example/supplychain`, which uses Express Nodejs API as the integration layer to talk to the underlying DLT platform.
-Each DLT platform also enables this by providing SDKs or APIs themselves.
+Each DLT/Blockchain platform also enables this by providing SDKs or APIs themselves.
 
 Application Integration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -136,7 +136,7 @@ Distributed Data Platforms
 --------------------------
 
 Distributed Data Platforms form the core of any distributed architecture solution. The Blockchain Automation Framework (BAF) aims to support both Distributed Ledgers and Distributed Databases. 
-BAF currently supports DLT Platforms: `Corda`_, `Hyperledger Fabric`_, `Hyperledger Indy`_, `Hyperledger Besu`_, and `Quorum`_.
+BAF currently supports DLT/Blockchain Platforms: `Corda`_, `Hyperledger Fabric`_, `Hyperledger Indy`_, `Hyperledger Besu`_, and `Quorum`_.
 
 Infrastructure Services
 -----------------------
@@ -188,6 +188,8 @@ Platform-Specific Reference Guides
    architectureref/certificates_path_list_indy
    architectureref/quorum
    architectureref/certificates_path_list_quorum
+   architectureref/hyperledger-besu
+   architectureref/certificates_path_list_besu
 
 .. _Corda: https://docs.corda.net/
 .. _Hyperledger Fabric: https://hyperledger-fabric.readthedocs.io

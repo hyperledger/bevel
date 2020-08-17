@@ -3,16 +3,42 @@ kind: Service
 metadata:
   name: "{{ $.Values.metadata.name }}"
   namespace: "{{ $.Values.metadata.namespace }}"
+  {{- if eq $.Values.proxy.provider "ambassador" }}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.metadata.name }}-http
+      host: {{ .Values.service.address }}
+      port: {{ .Values.service.ports.service }}
+      service: {{ .Values.metadata.name }}.{{ .Values.metadata.namespace }}:{{ .Values.service.ports.service }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.metadata.name }}-api
+      host: {{ .Values.service.address }}
+      port: {{ .Values.service.ports.endpoint }}
+      service: {{ .Values.metadata.name }}.{{ .Values.metadata.namespace }}:{{ .Values.service.ports.endpoint }}
+    {{- end }}
 spec:
+{{ if eq $.Values.proxy.provider "minikube" }}
   type: NodePort
+{{ else }}
+  type: ClusterIP
+{{ end }}
   ports:
   - name: indy-faber-service
     port: {{ $.Values.service.ports.service }}
     targetPort: {{ $.Values.service.ports.service }}
+{{ if eq $.Values.proxy.provider "minikube" }}
     nodePort: {{ $.Values.service.ports.service }}
+{{ end }}
   - name: indy-faber-endpoint
     port: {{ $.Values.service.ports.endpoint }}
     targetPort: {{ $.Values.service.ports.endpoint }}
+{{ if eq $.Values.proxy.provider "minikube" }}
     nodePort: {{ $.Values.service.ports.endpoint }}
+{{ end }}
   selector:
     app: "{{ $.Values.metadata.name }}"

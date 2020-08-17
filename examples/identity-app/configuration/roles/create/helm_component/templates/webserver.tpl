@@ -36,3 +36,13 @@ spec:
     storage:
       size: 128Mi
       className: {{ organization.name }}-{{ organization.cloud_provider }}-storageclass
+    proxy:
+{% if organization.cloud_provider == 'minikube' %}     
+      provider: "minikube"
+      external_url: 
+      port: {{ trustee.server.ambassador }}
+{% else %}      
+      provider: "ambassador"
+      external_url: {{ component_name }}.{{ organization.external_url_suffix }}
+      port: {{ trustee.server.ambassador }}
+{% endif %}

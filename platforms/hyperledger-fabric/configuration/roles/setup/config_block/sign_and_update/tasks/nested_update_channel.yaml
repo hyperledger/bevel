@@ -8,7 +8,7 @@
 
 # waiting for fabric cli
 - name: "Check if fabric cli is present"
-  k8s_facts:
+  k8s_info:
     kind: Pod
     namespace: "{{ org.name }}-net"
     kubeconfig: "{{ org.k8s.config_file }}"
@@ -17,7 +17,7 @@
       - app = cli
   register: get_cli
   until: ("Running" in get_cli|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count}}"
+  retries: "{{ network.env.retry_count }}"
   delay: 40
 
 ############################################################################################
@@ -31,6 +31,7 @@
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
   vars: 
     kubernetes: "{{ org.k8s }}"
+  register: update_channel
 
 ############################################################################################
 # Delete the cli   

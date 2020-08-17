@@ -45,8 +45,7 @@ RUN apt-get update -y && \
     
 RUN pip3 install ansible && \
     pip3 install jmespath && \
-    pip3 install openshift && \
-    pip3 install molecule[docker]
+    pip3 install openshift
 
 RUN apt-get update && \
     apt-get -y install apt-transport-https \
@@ -70,6 +69,12 @@ RUN locale-gen en_US.UTF-8
 RUN ssh-keygen -q -t rsa -N '' -f /root/.ssh/id_rsa && \
     cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys && \
     for key in /etc/ssh/ssh_host_*_key.pub; do echo "localhost $(cat ${key})" >> /root/.ssh/known_hosts; done
+
+#Install jdk 14 in a separate directory
+RUN curl -O https://download.java.net/java/GA/jdk14/076bab302c7b4508975440c56f6cc26a/36/GPL/openjdk-14_linux-x64_bin.tar.gz && \
+    tar xvf openjdk-14_linux-x64_bin.tar.gz && \
+    mv jdk-14 /opt/ && \
+    rm openjdk-14_linux-x64_bin.tar.gz
 
 # CMD ["/sbin/init"]
 # default command: display Ansible version

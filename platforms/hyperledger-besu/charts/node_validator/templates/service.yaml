@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.metadata.namespace }}
+  annotations:
+    app: consortiumchain
+    version: '1'
+    {{- if eq $.Values.proxy.provider "ambassador" }}
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.node.name }}-json-rpc
+      port: {{ .Values.proxy.rpc }}
+      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.node.name }}-ws
+      port: {{ .Values.proxy.ws }}
+      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.ws }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.node.name }}-rlpx
+      port: {{ .Values.proxy.p2p }}
+      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.p2p }}
+    {{- end }}
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: {{ .Values.node.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+  name: {{ .Values.node.name }}
+spec:
+  type: {{ .Values.node.servicetype }}
+  ports:
+  - name: json-rpc
+    protocol: TCP
+    port: {{ .Values.node.ports.rpc }}
+    targetPort: json-rpc
+  - name: ws
+    protocol: TCP
+    port: {{ .Values.node.ports.ws }}
+    targetPort: ws
+  - name: rlpx
+    protocol: TCP
+    port: {{ .Values.node.ports.p2p }}
+    targetPort: rlpx
+  selector:
+    service.rpc: {{ .Values.node.name }}

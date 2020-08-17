@@ -5,7 +5,7 @@ This role creates secret in Kubernetes for pull docker images from repository.
 ## Tasks:
 ### 1. Check for ImagePullSecret for {{ organization }}
 This task check if secret of organization exists in Kubernetes.
-The task uses k8s_facts Ansible role.
+The task uses k8s_info Ansible role.
 
 #### Variables:
  - organization: A name of organization.

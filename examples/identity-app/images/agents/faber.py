@@ -106,9 +106,9 @@ class FaberAgent(DemoAgent):
                 rev_reg_id = cred_ex_rec.get("revoc_reg_id")
                 cred_rev_id = cred_ex_rec.get("revocation_id")
                 if rev_reg_id:
-                    self.log(f"Revocation registry id: {rev_reg_id}")
+                    self.log(f"Revocation registry ID: {rev_reg_id}")
                 if cred_rev_id:
-                    self.log(f"Credential revocation id: {cred_rev_id}")
+                    self.log(f"Credential revocation ID: {cred_rev_id}")
             except ClientError:
                 pass
 
@@ -166,8 +166,8 @@ async def main(
 
         with log_timer("Startup duration:"):
             await agent.start_process()
-        log_msg("Admin url is at:", agent.admin_url)
-        log_msg("Endpoint url is at:", agent.endpoint)
+        log_msg("Admin URL is at:", agent.admin_url)
+        log_msg("Endpoint URL is at:", agent.endpoint)
 
         # Create a schema
         with log_timer("Publish schema/cred def duration:"):
@@ -338,10 +338,11 @@ async def main(
                     f"/connections/{agent.connection_id}/send-message", {"content": msg}
                 )
             elif option == "4" and revocation:
-                rev_reg_id = await prompt("Enter revocation registry id: ")
-                cred_rev_id = await prompt("Enter credential revocation id: ")
+                rev_reg_id = (await prompt("Enter revocation registry ID: ")).strip()
+                cred_rev_id = (await prompt("Enter credential revocation ID: ")).strip()
                 publish = json.dumps(
-                    await prompt("Publish now? [Y/N]: ", default="N") in ("yY")
+                    (await prompt("Publish now? [Y/N]: ", default="N")).strip()
+                    in ("yY")
                 )
                 try:
                     await agent.admin_POST(

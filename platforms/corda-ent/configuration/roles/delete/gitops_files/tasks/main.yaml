@@ -1,0 +1,24 @@
+#############################################################################################
+# This role deletes all the gitops release files
+#############################################################################################
+
+############################################################################################
+# This task deletes all the files from the release directory
+- name: Delete release files
+  file:
+    path: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}/"
+    state: absent
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Deleting gitops release files"

@@ -4,7 +4,7 @@ This role checks HashiCorp Vault for existing of admin-vault-auth SA. When this 
 ## Tasks:
 ### 1. Check namespace is created
 This task checking if namespaces for stewards of organizations are created.
-It uses *k8s_facts* Ansible role.
+It uses *k8s_info* Ansible role.
 
 #### Variables:
  - component_ns: A name of namespace of organization.

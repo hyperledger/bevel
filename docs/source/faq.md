@@ -7,20 +7,20 @@ Frequently Asked Questions
 In this project, it is assumed that a user would fall into either a category of [Operators](./operationalguide.md) or [Developers](./developerguide.md). However, this is not saying that technicians such as Solution/Tech Archs who have more expertise in wider areas are not eligible users, e.g. Blockchain or Distributed Ledger Technology (DLT). On the contrary, a user who has proper technical knowledge on those areas will find the usage of the Blockchain Automation Framework (BAF) repository mentioned in the tutorial on this website to be more straightforward. For people new to these areas, they might find a deep learning curve before using or even contributing back to this repository. If a user is from a non-tech background, but would still like to find out how BAF could accelerate set-up of a new production-scale DLT network, the [Introduction](./introduction.md) section is the right start point.
 
 (1) **Operators**:
-An operator is a System Operator that would work as a Deployment Manager, who has strong technical knowledge on cloud architecture and DevOps but basic DLT. An operator might be a decision maker in a new DLT project, and would be responsible for the ongoing stability of the organization's resources and services as well as set-up and maintenance of one or more applications for the organization. 
+An operator is a System Operator that would work as a Deployment Manager, who has strong technical knowledge on cloud architecture and DevOps but basic DLT. An operator might be a decision maker in a new DLT/Blockchain project, and would be responsible for the ongoing stability of the organization's resources and services as well as set-up and maintenance of one or more applications for the organization. 
 
-A **common scenario** that an operator would like to leverage the Blockchain Automation Framework repository might be that s/he has been asked to use a DLT technology for a business case, but s/he does not know where/how to start. S/he might have limited budget, and might not have all the technical skills in the team and was overwhelmed by the time it would take for the solution to be created. 
+A **common scenario** that an operator would like to leverage the Blockchain Automation Framework repository might be that s/he has been asked to use a DLT/Blockchain technology for a business case, but s/he does not know where/how to start. S/he might have limited budget, and might not have all the technical skills in the team and was overwhelmed by the time it would take for the solution to be created. 
 
 **Unique values** in scenarios like this provisioned by the Blockchain Automation Framework repository are: (a) efficiency and rapid deployment (b) consistent quality (c) open-source (d) cloud infrastructure independence (e) optimization via scalability, modularity and security and (f) accelerated go-to-market. 
 
-Essentially, an operator would be able to set up a large-size DLT network in a production environment by using this repository as per the tutorials in this website along with the instructions in the readme files in the repository. The network requirements such as which DLT platform (e.g. Fabric/Corda) and which cloud platform (e.g. AWS/GCP/Azure etc) would be used should have been pre-determined already before using this repository. The operator would ensure that the Blockchain Automation Framework repo is set up and deployed properly. Eventually, BAF would speed up the whole DLT network set-up process and would require less DLT developers enabling the operator to retain the budgets and man-power for other activities. 
+Essentially, an operator would be able to set up a large-size DLT/Blockchain network in a production environment by using this repository as per the tutorials in this website along with the instructions in the readme files in the repository. The network requirements such as which DLT/Blockchain platform (e.g. Fabric/Corda) and which cloud platform (e.g. AWS/GCP/Azure etc) would be used should have been pre-determined already before using this repository. The operator would ensure that the Blockchain Automation Framework repo is set up and deployed properly. Eventually, BAF would speed up the whole DLT/Blockchain network set-up process and would require less DLT/Blockchain developers enabling the operator to retain the budgets and man-power for other activities. 
 
 (2) **Developers**:
-A developer can be a DevOps or Full Stack Developer who would have knowledge on multiple programming languages, basic knowledge of DLT networks and smart contracts, Ansible and DevOps. Daily work might include developing applications and using DevOps tools. 
+A developer can be a DevOps or Full Stack Developer who would have knowledge on multiple programming languages, basic knowledge of DLT/Blockchain networks and smart contracts, Ansible and DevOps. Daily work might include developing applications and using DevOps tools. 
 
-A **common scenario** that a developer would like to use this repo might be that s/he would like to gain knowledge on production-scale DLT development, but might not have enough technical skills and experiences yet. Learing knowledge from the existing poorly-designed architecture would be time-consuming and fruitless.
+A **common scenario** that a developer would like to use this repo might be that s/he would like to gain knowledge on production-scale DLT/Blockchain development, but might not have enough technical skills and experiences yet. Learing knowledge from the existing poorly-designed architecture would be time-consuming and fruitless.
 
-The Blockchain Automation Framework provisions its **unique values** to the developer that s/he now has an opportunity to learn how different sets of cutting-edge technologies leveraged in this repository are combined in use such as reusable architecture patterns, reusable assets including APIs or microservices design. The architecture design in this repository has been fully tested and demonstrated as a high-quality one known for a fact that it has been being improved continously through the technical experts' rich experiences. The developer could try to use this repository to set up a small-size DLT network to see how it works and gradually pick up new skills across Blockchain, DevOps etc.
+The Blockchain Automation Framework provisions its **unique values** to the developer that s/he now has an opportunity to learn how different sets of cutting-edge technologies leveraged in this repository are combined in use such as reusable architecture patterns, reusable assets including APIs or microservices design. The architecture design in this repository has been fully tested and demonstrated as a high-quality one known for a fact that it has been being improved continously through the technical experts' rich experiences. The developer could try to use this repository to set up a small-size DLT/Blockchain network to see how it works and gradually pick up new skills across Blockchain, DevOps etc.
 
 Furthermore, the developer could even show the maturity of skills to contribute back to this project. Contributions can include but not limited to (1) suggest or add new functionalities (2) fix various bugs and (3) organize hackthon or developer events for the Blockchain Automation Framework in the future.
 
@@ -39,8 +39,8 @@ One could raise questions in the Github repository and the Blockchain Automation
 ### Is there any training provided? If so, what kind of training will be included?
 Unfortunately, there are no existing training for using the Blockchain Automation Framework yet, because we are not sure about the potential size of the community and what types of training people would look forward to. However, we do aware that trainings could happen, if there would be a large number of same or similar questions or issues raised by new users, and if we would have a large amount of requests like this in the future.  
 
-### Can I add/remove one or more organisations as DLT nodes in a running DLT network by using the Blockchain Automation Framework?
-Yes, you can add additional nodes to a running DLT network using the Blockchain Automation Framework (BAF). Unfortunately, BAF does not support removing nodes in a running DLT network, but this significant feature is in our future roadmap, and we will add this feature in a future release.
+### Can I add/remove one or more organisations as DLT nodes in a running DLT/Blockchain network by using the Blockchain Automation Framework?
+Yes, you can add additional nodes to a running DLT/Blockchain network using the Blockchain Automation Framework (BAF). Unfortunately, BAF does not support removing nodes in a running DLT/Blockchain network, but this significant feature is in our future roadmap, and we will add this feature in a future release.
 
 ### Does the Blockchain Automation Framework support multiple versions of Fabric and Corda? What are the minimum versions for Fabric and Corda supported in the Blockchain Automation Framework?
 The Blockchain Automation Framework currently only supports version 1.4.0, 1.4.4 & 2.0.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda. Corda Enterprise 4.4 is in progress.
@@ -65,17 +65,17 @@ Please see this [page](./developerguide.md) for details.
 ### I'm using Windows machine, can I run the Blockchain Automation Framework on it?
 The Blockchain Automation Framework repository relies a lot on using [Ansible](./gettingstarted.html#ansible), which might not work in Windows machines. Please check Ansible website for more information.
 
-### How do I configure a DLT network?
-The network.yaml file is the main file to be configured to set up a DLT network. [This page](./operationalguide.md) gives the links for a user to pick up knowledge of how to configure this file for Fabric and Corda first (see the two "Configuration file specification" sections for each DLT platform). Having this knowledge will then enable a user to understand how to use this file in the "Setting up DLT network" section.
+### How do I configure a DLT/Blockchain network?
+The network.yaml file is the main file to be configured to set up a DLT/Blockchain network. [This page](./operationalguide.md) gives the links for a user to pick up knowledge of how to configure this file for Fabric and Corda first (see the two "Configuration file specification" sections for each DLT/Blockchain platform). Having this knowledge will then enable a user to understand how to use this file in the "Setting up DLT network" section.
 
-### How can I test whether my DLT network are configured and deployed correctly?
+### How can I test whether my DLT/Blockchain network are configured and deployed correctly?
 Please see this [page](./operations/setting_dlt.md) for detials.
 
 ### How/Where can I request for new features, bugs and get feedback?
 One could request a new feature on the Github repository for now. In the future, people might use Jira or Slack to do the same as well.
 
 ### Are CI/CD pipeline tools a mandatory to use the Blockchain Automation Framework?
-No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a user automate the set-up or testing of a new DLT network in different environments, once a user has a good understanding of using it.
+No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a user automate the set-up or testing of a new DLT/Blockchain network in different environments, once a user has a good understanding of using it.
 
 ### Is it required to run Ansible in a particular machine like AWS EC2?
 No, a user should be able to run the Ansible command on any machine as long as Ansible command CLI is installed.
