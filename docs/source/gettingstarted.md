@@ -30,4 +30,4 @@ cd blockchain-automation-framework
 ansible-playbook  platforms/shared/configuration/site.yaml -e "@/path/to/network.yaml" 
 ```
 
-For more detailed instructions to set up a network, read [Setting up a DLT network](./operations/setting_dlt.md).
+For more detailed instructions to set up a network, read [Setting up a DLT/Blockchain network](./operations/setting_dlt.md).

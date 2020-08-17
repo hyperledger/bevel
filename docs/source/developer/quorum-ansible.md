@@ -310,7 +310,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 ## **deploy-network.yaml**
 
- This playbook deploys a DLT network on existing Kubernetes clusters. The Kubernetes clusters should already be created and the infomation to connect to the clusters be updated in the network.yaml file that is used as an input to this playbook. It calls the following roles.
+ This playbook deploys a DLT/Blockchain network on existing Kubernetes clusters. The Kubernetes clusters should already be created and the infomation to connect to the clusters be updated in the network.yaml file that is used as an input to this playbook. It calls the following roles.
 
 
 * create/namespace_serviceaccount
@@ -330,7 +330,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 ## **reset-network.yaml**
 
-This playbook deletes the DLT network on existing Kubernetes clusters which has been created using the Blockchain Automation Framework. It calls the following roles. THIS PLAYBOOK DELETES EVERYTHING, EVEN NAMESPACES and FLUX.
+This playbook deletes the DLT/Blockchain network on existing Kubernetes clusters which has been created using the Blockchain Automation Framework. It calls the following roles. THIS PLAYBOOK DELETES EVERYTHING, EVEN NAMESPACES and FLUX.
 
 * delete/vault_secrets
 * delete/flux_releases

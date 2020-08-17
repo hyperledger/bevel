@@ -71,7 +71,7 @@ Unseal Key 1: << unseal key>>
 
 Initial Root Token: << root token>>
 ```
-Save the root token  and unseal key in a secure location. This root token is to be updated in the Blockchain Automation Framework's network.yaml file before running the Ansible playbook(s) to deploy the DLT network.
+Save the root token  and unseal key in a secure location. This root token is to be updated in the Blockchain Automation Framework's network.yaml file before running the Ansible playbook(s) to deploy the DLT/Blockchain network.
 
 * Unseal with the following command:
 ```

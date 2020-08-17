@@ -1,0 +1,38 @@
+# Set enode_data_list to empty
+- name: Set enode_data_list to []
+  set_fact:
+    enode_data_list: []
+
+# Get enode data for all orgs
+- name: Get enode data for each node of all organization
+  include_tasks: enode_data.yaml
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+
+# This task creates the Orion Transaction Manager value files for each node of organization
+- name: Create value file for validator for each node
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ name }}{{ peer.name }}ibft"
+    type: "validator"
+    genesis: "{{ lookup('file', '{{ network.config.genesis }}') }}"
+    nodelist: "{{lookup('file', '{{ build_path }}/{{ item.name }}/{{ peer.name }}/nodelist').split('\n')| join(',') }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ item.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ item.gitops.username }}"
+    GIT_EMAIL: "{{ item.gitops.email }}"
+    GIT_PASSWORD: "{{ item.gitops.password }}"
+    GIT_BRANCH: "{{ item.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-besu/configuration"
+    msg: "[ci skip] Pushing Peer files"

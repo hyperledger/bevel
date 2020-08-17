@@ -1,0 +1,58 @@
+- name: "Check if Indy nodes are running"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    namespace: "{{ component_ns }}"
+    component_name: "{{ organization.name }}-{{ steward.name }}-node"
+    component_type: "Pod"
+    label_selectors:
+      - app = {{ component_name }}
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: steward
+  when: services.stewards is defined
+
+- name: "Create Indy Endorser value file"
+  include_role:
+    name: create/helm_component
+  vars:
+    type: "{{ organization.name | lower }}"
+    charts_dir: "examples/identity-app/charts"
+    component_name: "{{ organization.name }}-endorser"
+    service_account: "{{ organization.name }}-{{ endorser.name }}-vault-auth"
+    auth_method_path: "kubernetes-{{ organization.name }}-{{ endorser.name }}-auth"
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorser
+  when: services.endorsers is defined
+
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_EMAIL: "{{ gitops.email }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "[ci skip] Pushing deployment files for indy endorsers"
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorser
+  when: services.endorsers is defined
+
+- name: "Wait until Indy Endorser is up"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    namespace: "{{ component_ns }}"
+    component_type: "Pod"
+    component_name: "{{ organization.name }}-endorser"
+    label_selectors:
+      - app = {{ component_name }}
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorser
+  when: services.endorsers is defined

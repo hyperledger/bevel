@@ -1,0 +1,116 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.nodeName }}-pki
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Values.nodeName }}-pki
+    app.kubernetes.io/name: {{ .Values.nodeName }}-pki
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+    backoffLimit: 10
+    template:
+      metadata:
+        labels:
+          app: {{ .Values.nodeName }}-pki
+          app.kubernetes.io/name: {{ .Values.nodeName }}-pki
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        restartPolicy: "OnFailure"
+        serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+        hostname: {{ .Values.nodeName }}
+        securityContext:
+          fsGroup: 1000
+        containers:
+        - name: pki
+          image: "{{ .Values.image.dockerImagePki.name }}:{{ .Values.image.dockerImagePki.tag }}"
+          env:
+            - name: ACCEPT_LICENSE
+              value: {{ .Values.acceptLicense }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            mkdir  DATA/node
+            time java -Xmx{{ .Values.cordaJarMx }}G -jar {{ .Values.jarPath }}/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf --ignore-missing-crl
+          volumeMounts:
+          - name: pkitool-certs-keys
+            mountPath: /opt/corda/DATA
+          - name: pkitool-conf
+            mountPath: /opt/corda/etc/pki.conf
+            subPath: pki.conf
+          resources:
+            requests:
+              memory: {{ .Values.cordaJarMx }}G
+            limits:
+              memory: {{ add .Values.cordaJarMx 2 }}G
+        - name: store-certs-in-vault
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+             - name: VAULT_ADDR
+               value: {{ $.Values.vault.address }}
+             - name: KUBERNETES_AUTH_PATH
+               value: {{ $.Values.vault.authpath }}
+             - name: VAULT_APP_ROLE
+               value: {{ $.Values.vault.role }}
+             - name: BASE_DIR
+               value: {{ $.Values.volume.baseDir }}
+             - name: CERTS_SECRET_PREFIX
+               value: {{ .Values.vault.certsecretprefix }}
+             - name: JAVA_OPTIONS
+               value: -Xmx512m
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                 echo "ERROR: unable to retrieve ${1}: ${2}"
+                 exit 1
+              fi
+            }
+
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+            cd ${BASE_DIR}/DATA/node
+            COUNTER=1
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                if [ -e bridge.jks ] && [ -e firewallca.jks ] && [ -e float.jks ]
+                then
+                  # putting certs for node's firewall at firewall path
+                  echo "found firewall certificates, performing vault put at node path"
+                  (echo '{"firewallca.jks": "'; base64 ${BASE_DIR}/DATA/node/firewallca.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.peerName }}/firewall
+                  # putting certs for node's bridge at bridge path
+                  echo "found bridge certificates, performing vault put at node path"
+                  (echo '{"bridge.jks": "'; base64 ${BASE_DIR}/DATA/node/bridge.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.peerName }}/bridge
+                  # putting certs for node's float at float path
+                  echo "found float certificates, performing vault put at node path"
+                  (echo '{"float.jks": "'; base64 ${BASE_DIR}/DATA/node/float.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.peerName }}/float
+                  break;
+                else
+                  echo "certificates are not ready, sleeping for 10s"
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  COUNTER=`expr "$COUNTER" + 1`
+                fi
+            done
+            echo "completed"
+          volumeMounts:
+          - name: pkitool-certs-keys
+            mountPath: /opt/corda/DATA
+            readOnly: false
+        imagePullSecrets:
+          - name: {{ .Values.image.imagePullSecret }}
+        volumes:
+          - name: pkitool-conf
+            configMap:
+              name: {{ .Values.nodeName }}-pkitool-conf
+          - name: pkitool-certs-keys
+            emptyDir:
+              medium: Memory

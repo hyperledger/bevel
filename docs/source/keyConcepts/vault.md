@@ -2,7 +2,7 @@
 
 [HashiCorp Vault](https://www.vaultproject.io/) provisions a secure approach to store and gain secret information such as tokens, passwords and certificates.
 
-The Blockchain Automation Framework relies on Vaults for managing certificates used in each node of a DLT network during the lifecycle of a deployment, and it is a prerequisite that the Vault is installed and unsealed prior to deployment of a DLT network.
+The Blockchain Automation Framework relies on Vaults for managing certificates used in each node of a DLT/Blockchain network during the lifecycle of a deployment, and it is a prerequisite that the Vault is installed and unsealed prior to deployment of a DLT/Blockchain network.
 
 ## Installation
 

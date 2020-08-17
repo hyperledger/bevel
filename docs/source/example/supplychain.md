@@ -2,7 +2,7 @@
 
 ## Use case description
 Welcome to the Supply Chain application which allows nodes to track products or goods along their chain of custody,
-providing everyone along the way with relevant data to their product. The implementation has been done for Hyperledger Fabric and R3 Corda. The two will slightly differ in behavior but follow the same principles. There are two types of items that can be tracked, products and containers. Products are defined as such:
+providing everyone along the way with relevant data to their product. The implementation has been done for Hyperledger Fabric, Quorum and R3 Corda. The three will slightly differ in behavior but follow the same principles. There are two types of items that can be tracked, products and containers. Products are defined as such:
 
 
 | Field       | Description                 |
@@ -104,7 +104,7 @@ Following are the required fields in the QR Code generation form for the product
 | Tracking ID | string | A predefined unique ID for product|
 | Type | string | Must match asset in /public , for misc argument |
 | Product Details | JSON key:value format | Used for misc argument, eg {"name":"Expensive Dextrose"} |
-| Counter Parties |  CSV, no spaces | Counter parties should be of the format that the DLT<br/>  network can identify. E.g. For Corda, these are the Node OUs, and<br/> for Fabric, these are the subjects of Anchor Peers. |
+| Counter Parties |  CSV, no spaces | Counter parties should be of the format that the DLT/Blockchain<br/>  network can identify. E.g. For Corda, these are the Node OUs, and<br/> for Fabric, these are the subjects of Anchor Peers. |
 
 
 The second section is provided for generating the QR code for the containers. Codes from this section are meant to be generated about a container and used to interact with a container. 
