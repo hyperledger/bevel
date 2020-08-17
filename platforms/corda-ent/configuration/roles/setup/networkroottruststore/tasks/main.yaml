@@ -1,0 +1,49 @@
+# This role pulls the networkroottruststore from the vault of CENM and pushes it to the vault of all other organizations
+
+# Store the networkroottruststore path in a variable
+- name: Store the networkroottruststore path in a variable
+  set_fact:
+    cert_path: "{{ orderer.certificate }}"
+  loop: "{{ network['orderers'] }}"
+  loop_control:
+    loop_var: orderer
+  when: orderer.type == 'networkroot'
+
+# Check if the networkroottruststore is already present in the build directory or not
+- name: Check if the networkroottruststore is already present in the build directory or not
+  stat:
+    path: "{{ cert_path }}"
+  register: file_status
+
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  when: file_status.stat.exists == False
+
+# Fetch networkroottruststore from vault
+- name: Get the networkroottruststore from vault
+  shell: |
+    vault read -field=network-root-truststore.jks secret/{{ org.name }}/root/certs > "{{ cert_path }}"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: file_status.stat.exists == False and org.type == 'cenm'
+
+# This task copies the networkroottruststore to each org vault
+- name: Copy the networkroottruststore to each org vault
+  shell: |
+    vault kv put secret/{{ org.name }}/root/certs network-root-truststore.jks="$(cat {{ cert_path }})"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'node'
