@@ -1,0 +1,48 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: anchorpeer-allchannel-manufacturer
+  namespace: manufacturer-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: anchorpeer-allchannel-manufacturer
+  chart:
+    git: git@github.com:JorellDacasin/blockchain-automation-framework.git
+    ref: local
+    path: platforms/hyperledger-fabric/charts/anchorpeer
+  values:
+    metadata:
+      namespace: manufacturer-net
+      images:
+        fabrictools: hyperledger/fabric-tools:1.4.4
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    peer:
+      name: peer0
+      address: peer0.manufacturer-net:7051
+      localmspid: manufacturerMSP
+      loglevel: debug
+      tlsstatus: true
+
+    vault:
+      role: vault-role
+      address: http://172.20.10.3:8200
+      authpath: manufacturer-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/manufacturer-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/manufacturer-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    channel:
+      name: allchannel      
+    orderer:
+      address: orderer1.supplychain-net:7050
+    anchorstx: |-
+      CqwCChAKDggCIgphbGxjaGFubmVsEpcCCpQCCgphbGxjaGFubmVsEl8SXQoLQXBwbGljYXRpb24S
+      TggBEkIKD21hbnVmYWN0dXJlck1TUBIvGgcKA01TUBIAIgsKB1JlYWRlcnMSACILCgdXcml0ZXJz
+      EgAiCgoGQWRtaW5zEgAqBkFkbWlucxqkARKhAQoLQXBwbGljYXRpb24SkQEIARKEAQoPbWFudWZh
+      Y3R1cmVyTVNQEnEIARoHCgNNU1ASABo2CgtBbmNob3JQZWVycxInEh0KGwoWcGVlcjAubWFudWZh
+      Y3R1cmVyLW5ldBCLNxoGQWRtaW5zIgsKB1JlYWRlcnMSACILCgdXcml0ZXJzEgAiCgoGQWRtaW5z
+      EgAqBkFkbWlucyoGQWRtaW5z
+
