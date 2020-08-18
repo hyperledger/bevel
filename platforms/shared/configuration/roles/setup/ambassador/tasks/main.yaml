@@ -89,7 +89,10 @@
   tags:
     - ambassador
     - molecule-idempotence-notest
-  when: network.env.external_dns is defined and network.env.external_dns == 'enabled'
+  when: 
+    - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
 
 # Disable TLS1.0 for the AWS Loadbalancer
 - name: Disable TLS1.0 for the AWS
@@ -98,7 +101,9 @@
   tags:
     - ambassador
     - molecule-idempotence-notest
-  when: item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal'
+  when: 
+    - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
+    - item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal'
 
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up

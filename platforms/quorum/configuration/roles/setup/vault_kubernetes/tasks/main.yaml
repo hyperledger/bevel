@@ -108,10 +108,18 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: not vault_auth_status     # Run when auth_path is not found
 
+# Check if Docker credentials exist already
+- name: "Checking if the docker credentials already exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    component_name: "{{ component_ns }}"
+    check: "docker_credentials"
+  register: get_regcred
+
 #####################################################################################################################
 # This task creates the docker pull credentials for image registry
 - name: Create the docker pull credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_ns }} docker-registry regcred --docker-server={{ network.docker.url }} --docker-username={{ network.docker.username }} --docker-password={{ network.docker.password }} --docker-email="test@abc.mail"
-  when: not vault_auth_status
-  ignore_errors: yes
+  when: get_regcred.resources|length == 0
