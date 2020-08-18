@@ -15,8 +15,11 @@ network:
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
+    # Any additional Ambassador ports can be given below, must be comma-separated without spaces. 
+    # Must be different from all other ports specified in the rest of this network yaml
+    ambassadorPorts: 15010,15023,15024,15033,15034,15043,15044
     retry_count: 20                 # Retry count for the checks
-    external_dns: disabled           # Should be enabled if using external-dns for automatic route configuration
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
 
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry.
@@ -29,7 +32,7 @@ network:
   # It's used as the Indy network name (has impact e.g. on paths where the Indy nodes look for crypto files on their local filesystem)
   name: baf 
 
-  # Informatio about pool transaction genesis and domain transactions genesis
+  # Information about pool transaction genesis and domain transactions genesis
   genesis:
     state: absent
     pool: genesis/pool_transactions_genesis
@@ -41,7 +44,8 @@ network:
     - organization:
       name: authority
       type: peer
-      cloud_provider: aws-baremetal             # Currently eks is not supported due to aws_authenticator
+      external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
+      cloud_provider: aws-baremetal             # Values can be 'aws-baremetal', 'aws' or 'minikube'
 
       aws:
         access_key: "aws_access_key"            # AWS Access key
@@ -50,7 +54,7 @@ network:
         zone: "availability_zone"               # AWS availability zone
         region: "region"                        # AWS region
 
-      publicIps: []                             # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+        publicIps: ["1.1.1.1","2.2.2.2"]        # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
 
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
@@ -84,12 +88,16 @@ network:
         - trustee:
           name: authority-trustee
           genesis: true
+          server:
+            port: 8000
+            ambassador: 15010
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: provider
       type: peer
       cloud_provider: aws-baremetal             # Currently eks is not supported due to aws_authenticator
+      external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
 
       aws:
         access_key: "aws_access_key"            # AWS Access key
@@ -163,15 +171,21 @@ network:
         - endorser:
           name: provider-endorser
           full_name: Some Decentralized Identity Mobile Services Provider
-          avatar: https://provider.com/avatar.png
-          public_endpoint: https://provider.com/public
+          avatar: http://provider.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample http://provider-endorser.indy.blockchaincloudpoc.com:15023/
+          # For minikube: http://<minikubeip>>:15023
+          server:
+            httpPort: 15023
+            apiPort: 15024
 
     # Specification for the 3rd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: partner
       type: peer
       cloud_provider: aws-baremetal             # Currently eks is not supported due to aws_authenticator
-
+      external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
+      
       aws:
         access_key: "aws_access_key"            # AWS Access key
         secret_key: "aws_secret_key"            # AWS Secret key
@@ -244,5 +258,10 @@ network:
         - endorser:
           name: partner-endorser
           full_name: Some Decentralized Identity Mobile Services Partner
-          avatar: https://partner.com/avatar.png
-          public_endpoint: https://partner.com/public
+          avatar: http://partner.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample http://partner-endorser.indy.blockchaincloudpoc.com:15033/
+          # For minikube: http://<minikubeip>>:15033
+          server:
+            httpPort: 15033
+            apiPort: 15034

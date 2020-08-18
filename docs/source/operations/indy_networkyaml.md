@@ -39,6 +39,9 @@ The snapshot of the `env` section with example values is below
   env:
     type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
+    # Any additional Ambassador ports can be given below, must be comma-separated without spaces. 
+    # Must be different from all steward ambassador ports specified in the rest of this network yaml
+    ambassadorPorts: 15010,15020,15030,15040 
     retry_count: 20                 # Retry count for the checks
     external_dns: disabled           # Should be enabled if using external-dns for automatic route configuration
 ```
@@ -48,8 +51,9 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Indy |
+|ambassadorPorts|Provide additional Ambassador ports for Identity sample app, must be comma-separated without spaces. These ports must be different from all steward ambassador ports specified in the rest of this network yaml |
 | retry_count       | Retry count for the checks.|
-| external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
+| external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. Must be `enabled` for Identity sample app.  |
 
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
@@ -68,7 +72,7 @@ The fields under `docker` section are
 
 | Field      | Description                                 |
 |------------|---------------------------------------------|
-| docker_url        | Docker registry url                         |
+| docker_url        | Docker registry url. Use private Docker registries for production network and for Identity sample app.            |
 | username   | Username credential required for login      |
 | password   | Password credential required for login      |
 
@@ -103,7 +107,8 @@ The snapshot of an organization field with sample values is below
     - organization:
       name: authority
       type: peer
-      cloud_provider: aws-baremetal             # Currently eks is not supported due to aws_authenticator
+      external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
+      cloud_provider: aws             # Values can be 'aws-baremetal', 'aws' or 'minikube'
 
 ```
 
@@ -113,7 +118,8 @@ Each organization under the `organizations` section has the following fields.
 |------------------------------------------|-----------------------------------------------------|
 | name                                        | Name of the organization                              |
 | type                                        | Type of organization. This field can be peer/              |
-| cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws_baremetal. Currently eks is not supported due to aws_authenticator |
+|external_url_suffix | Provide the external dns suffix. Only used when Indy webserver/Clients are deployed. external_dns should be enabled for this to work. |
+| cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws_baremetal, aws or minikube.  |
 | aws                                         | When the organization cluster is on AWS |
 | k8s                                         | Kubernetes cluster deployment variables.|
 | vault                                       | Contains Hashicorp Vault server address and root-token in the example |
@@ -144,11 +150,11 @@ The `aws` field under each organisation contains: (This will be ignored if cloud
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| access_key                              | AWS Access key  |
-| secret_key                              | AWS Secret key  |
-| encryption_key                              | AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.  |
-| zone                              | AWS availability zone  |
-| region                              | AWS region  |
+| access_key               | AWS Access key  |
+| secret_key               | AWS Secret key  |
+| encryption_key           | (optional) AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.  |
+| zone              | (optional) AWS availability zone. Applicable for Multi-AZ deployments  |
+| region            | The AWS region where K8s cluster and EIPs reside |
 
 The `publicIps` field under each organisation contains:
 
@@ -224,6 +230,9 @@ The snapshot of trustee service with example values is below
         - trustee:
           name: provider-trustee
           genesis: true
+          server:
+            port: 8000
+            ambassador: 15010
 ```
 
 The fields under `trustee` service are (find more about differences between trustee/steward/endorser [here](https://readthedocs.org/projects/indy-node/downloads/pdf/latest/))
@@ -231,7 +240,9 @@ The fields under `trustee` service are (find more about differences between trus
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | name            | Name for the trustee service                 |
-| genesis         | If using domain and pool transaction genesis  |
+| genesis         | If using domain and pool transaction genesis. `true` for current implementation  |
+| server.port  | Applicable for Identity Sample App. This is the Indy webserver container port |
+| server.ambassador  | Applicable for Identity Sample App. This is the Indy webserver ambassador port which will be exposed publicly using the external URL. |
 
 The snapshot of steward service example values is below
 ```yaml
@@ -275,7 +286,12 @@ The snapshot of endorser service with example values is below
           name: provider-endorser
           full_name: Some Decentralized Identity Mobile Services Provider
           avatar: https://provider.com/avatar.png
-          public_endpoint: https://provider.com/public
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample https://provider-endorser.indy.blockchaincloudpoc.com:15020/
+          # For minikube: http://<minikubeip>>:15020
+          server:
+            httpPort: 15020
+            apiPort: 15030
 ```
 The fields under `endorser` service are 
 
@@ -283,5 +299,6 @@ The fields under `endorser` service are
 |-------------|----------------------------------------------------------|
 | name                     | Name of the endorser service   |
 | full_name                   | Full name of endorser service |
-| avatar                      | Link to avatar  |
-| public_endpoint                 | Link to public endpoint |
+| avatar                      | Link to avatar. Not used now.  |
+| server.httpPort  | Applicable for Identity Sample App. This is the Endorser Agent's Web port which will be exposed publicly using the external URL.  |
+| server.apiPort  | Applicable for Identity Sample App. This is the Endorser Agent's API/Swagger port which will be exposed publicly using the external URL.  |

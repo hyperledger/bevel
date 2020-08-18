@@ -4,7 +4,7 @@ This role create value files for namespace.
 ## Tasks:
 ### 1. Check namespace is created
 This task check if namespace exists in Kubernetes cluster.
-It uses k8s_facts Ansible role.
+It uses k8s_info Ansible role.
 
 #### Variables:
  - component_name: A name of namespace.

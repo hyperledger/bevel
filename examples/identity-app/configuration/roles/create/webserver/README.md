@@ -4,10 +4,12 @@ This role generates Helm release of Indy WebServer, which is used for Identity A
 ## Tasks:
 ### 1. Check if Indy node are running
 This task checking if all of Indy nodes are running.
-This task calls role from *{{ playbook_dir }}/../../../platforms/hyperledger-indy/configuration/roles/check/k8_component*
+This task calls role from *{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component*
 #### Input Variables:
- - component_type: Set, which type of k8s component may be created. Default a value *Pod*.
+ - namespace: The namespace where this component will be searched.
+ - component_type: Set which type of k8s component needs to be checked. Default a value *Pod*.
  - component_name: Name of component, which it may check. It uses a {{ organization.name }}-{{ steward.name }}-node, which is represented of name of node
+ - label_selectors: Array of label_selectors that will be applied to the search.
 ### 2. Create Indy WebServer value file
 This task create a value file for Helm release of Indy WebServer.
 This task calls role from *create/helm_component*
@@ -33,7 +35,9 @@ This task calls role from: *{{ playbook_dir }}/../../shared/configuration/roles/
  - msg: A commit message.
 ### 5. Wait until Indy WebServer will be up
 This task is waiting until Indy WebServer pods will be up.
-This task calls role *{{ playbook_dir }}/../../../platforms/hyperledger-indy/configuration/roles/check/k8_component*
+This task calls role from *{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component*
 #### Input Variables:
+ - namespace: The namespace where this component will be searched.
  - component_name: Name of component, which it may check. It uses a {{ organization.name }}-webserver, which is represented of name of WebServer
  - component_type: Set, which type of k8s component may be created. Default a value *Pod*. 
+ - label_selectors: Array of label_selectors that will be applied to the search.

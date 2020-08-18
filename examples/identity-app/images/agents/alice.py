@@ -248,6 +248,9 @@ async def main(start_port: int, service_addr: str, no_auto: bool = False, show_t
             "   (X) Exit?\n"
             "[3/4/X]: "
         ):
+            if option is not None:
+                option = option.strip()
+
             if option is None or option in "xX":
                 break
             elif option == "3":

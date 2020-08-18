@@ -3,6 +3,24 @@ kind: Service
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
+  {{ if $.Values.ambassador }}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      name: {{ .Values.nodeName }}_context
+      hosts:
+      - {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
+      secret: {{ .Values.nodeName }}-ambassador-certs
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.nodeName }}_p2p_mapping
+      port: {{ .Values.ambassador.p2pPort }}
+      host: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
+      service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.p2pPort }}
+  {{ end }}  
   labels:
     run: {{ .Values.nodeName }}
     app.kubernetes.io/name: {{ .Values.nodeName }}

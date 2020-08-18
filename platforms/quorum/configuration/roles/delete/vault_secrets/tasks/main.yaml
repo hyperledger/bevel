@@ -49,10 +49,22 @@
     loop_var: peer
   ignore_errors: yes
 
+  # This task deletes application crypto material
+- name: Delete Application Crypto material 
+  shell: |
+    vault delete secret/{{ org_namespace }}/smartContracts/General
+  loop: "{{ services.peers }}"
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
+
 # This task deletes vault policies
 - name: Delete Access policies 
   shell: |
-    vault policy delete vault-crypto-{{ peer.name }}-ro
+    vault policy delete vault-crypto-organization-{{ peer.name }}-ro
   loop: "{{ services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"

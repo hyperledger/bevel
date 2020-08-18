@@ -1,0 +1,88 @@
+##############################################################################################
+# This role creates the value file for notary
+##############################################################################################
+
+# Wait till the nmap is running
+- name: "Waiting for nmap pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ org.name | lower }}-ent"
+    component_name: "{{ org.services.networkmap.name | lower }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
+# Create deployment file for CENM notary service db
+- name: "Create db for notary"
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ org.services.notary.name | lower }}db"
+    component_ns: "{{ org.name | lower }}-ent"
+    type: "db"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    node_name: "{{ org.services.notary.name | lower }}"
+    image_pull_secret: "regcred"
+    storageclass: "cenmsc"
+    container_name: "{{ network.docker.url }}/h2:2018"
+    tcp_port: "{{ org.services.notary.dbtcp.port }}"
+    tcp_targetport: "{{ org.services.notary.dbtcp.targetPort }}"
+    web_port: "{{ org.services.notary.dbweb.port }}"
+    web_targetport: "{{ org.services.notary.dbweb.targetPort }}"
+    helm_lint: "true"
+
+# Create deployment file for CENM notary service
+- name: "Create value file for notary"
+  include_role: 
+    name: helm_component
+  vars:
+    component_name: "{{ org.services.notary.name | lower }}"
+    component_ns: "{{ org.name | lower }}-ent"
+    type: "notary"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    notary_legal_name: "{{ org.services.notary.subject }}"
+    is_validating: "{{ org.services.notary.validating }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    node_name: "{{ org.services.notary.name }}"
+    storageclass: "cenmsc"
+    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    image_pull_secret: "regcred"
+    vault_addr: "{{ org.vault.url }}"
+    auth_path: "cordaent{{ org.name | lower }}"
+    vault_role: "vault-role"
+    vault_serviceaccountname: "vault-auth"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
+    external_url_suffix: "{{ org.external_url_suffix }}"
+    notary_public_ip: "{{ org.services.notary.name }}.{{ org.external_url_suffix }}"
+    ssh_username: "{{ org.services.notary.name }}"
+    ssh_password: "{{ org.services.notary.name }}P"
+    db_username: "{{ org.services.notary.name }}-db-user"
+    db_password: "{{ org.services.notary.name }}-db-password"
+    db_port: "{{ org.services.notary.dbtcp.port }}"
+    idman_url: "http://{{ org.services.idman.name }}.{{ org.name | lower }}-ent:{{ org.services.idman.port }}"
+    networkmap_url: "http://{{ org.services.networkmap.name }}.{{ org.name | lower }}-ent:{{ org.services.networkmap.ports.servicePort }}"
+    corda_service_version: cenm-notary-{{ org.version }}
+    p2p_port: "{{ org.services.notary.p2p.port }}"
+
+# Push the notary deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Pushing deployment files for notary service"

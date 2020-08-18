@@ -1,5 +1,16 @@
 # This role creates the the value file for idman chart and pushes it to the git repository
 
+- name: "Waiting for signer pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ org.name | lower }}-ent"
+    component_name: "{{ org.services.signer.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
 # This task will loop over the network.yaml to fetch the cenm details
 - name: Create value file for idman
   include_role:
@@ -14,13 +25,16 @@
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     node_name: "{{ org.services.idman.name }}"
-    storageclass: "awsstorageclass"
+    storageclass: "cenmsc"
     init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
     image_pull_secret: "regcred"
     idman_image_name: corda/enterprise-identitymanager
     idman_image_tag: "1.2-zulu-openjdk8u242"
     vault_addr: "{{ org.vault.url }}"
-    vault_cert_secret_prefix: "secret/cenm"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
+    vault_role: "vault-role"
+    auth_path: "cordaent{{ org.name | lower }}"
+    vault_serviceaccountname: "vault-auth"
     external_url_suffix: "{{ org.external_url_suffix }}"
     idman_port: "{{ org.services.idman.port }}"
     ssh_username: "{{ org.services.idman.name }}"

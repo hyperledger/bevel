@@ -4,14 +4,13 @@
   vars:
     component_ns: "{{ org.name }}-bes"
     vault: "{{ org.vault }}"
-    peers: "{{ org.services.peers }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org
 
 # This task fetch (org,node) pairs for each validating node present in all organizations of the network
 - name: Fetching data of validator nodes in the network from network.yaml
-  include_tasks: validator_node_data.yaml
+  include_tasks: node_data.yaml
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org
@@ -31,7 +30,6 @@
   file:
     path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
     state: directory
-    recurse: yes
   when: generate_crypto is defined and generate_crypto == True
 
 # Check if besu binary already exists
@@ -85,7 +83,7 @@
     src: "ibftConfigFile.tpl"
     dest: "{{ build_path }}/ibftConfigFile.json"
   vars:
-    total_peer_count: "{{ validator_node_list | length }}"
+    total_peer_count: "{{ node_list | length }}"
   when: generate_crypto is defined and generate_crypto == True
 
 # This task displays the ibftConfigFile file content
@@ -111,8 +109,8 @@
   when: generate_crypto is defined and generate_crypto == True
 
 # This task rename the above created directories to the org_name/node_name 
-- name: Rename the directories created above with the elements of validator_node_list
-  copy: src={{ file.path }}/ dest={{ build_path }}/crypto/{{validator_node_list[index].org}}-bes/{{validator_node_list[index].node}}/data
+- name: Rename the directories created above with the elements of node_list
+  copy: src={{ file.path }}/ dest={{ build_path }}/crypto/{{node_list[index].org}}-bes/{{node_list[index].node}}/data
   loop: "{{ folder.files }}"
   loop_control:
     loop_var: file
@@ -123,7 +121,7 @@
 - name: Generate the nodeAddress for each peer
   shell: |
     {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu --data-path {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data public-key export-address --to {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data/nodeAddress
-  with_indexed_items: "{{ validator_node_list }}"
+  with_indexed_items: "{{ node_list }}"
   when: generate_crypto is defined and generate_crypto == True
 
 ## Delete the keys directory

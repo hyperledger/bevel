@@ -65,7 +65,7 @@ spec:
               while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
               do
                   # get keystores from vault to see if certificates are created and put in vault
-                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/signer/certs | jq -r 'if .errors then . else . end')
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
@@ -120,8 +120,8 @@ spec:
                mkdir -p ${MOUNT_PATH}/root;
                
                # signer-files from vault
-               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/signer/certs | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/signer/certs)" "${LOOKUP_SECRET_RESPONSE}"
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
+               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs)" "${LOOKUP_SECRET_RESPONSE}"
                idm_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["identity-manager-key-store.jks"]')
                echo "${idm_jks}" | base64 -d > ${MOUNT_PATH}/signer/identity-manager-key-store.jks
 

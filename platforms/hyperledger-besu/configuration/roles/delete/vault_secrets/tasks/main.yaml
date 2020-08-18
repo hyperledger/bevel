@@ -22,7 +22,7 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
     state: absent
-  loop: "{{ services.peers }}"
+  loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   loop_control:
     loop_var: peer
   ignore_errors: yes
@@ -41,7 +41,8 @@
     vault delete secret/{{ org_namespace }}/crypto/{{ peer.name }}/data
     vault delete secret/{{ org_namespace }}/crypto/{{ peer.name }}/orion
     vault delete secret/{{ org_namespace }}/crypto/{{ peer.name }}/certs
-  loop: "{{ services.peers }}"
+    vault delete secret/{{ org_namespace }}/crypto/{{ peer.name }}/tls
+  loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
@@ -53,7 +54,7 @@
 - name: Delete Access policies 
   shell: |
     vault policy delete vault-crypto-besu-{{ item.name }}-ro
-  loop: "{{ services.peers }}"
+  loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"

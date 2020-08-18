@@ -1,0 +1,50 @@
+# This role creates the the value file for float chart and pushes it to the git repository
+
+#TODO: CHECK for the previous entity to be running/completed
+
+# This task will will create the value file for float
+- name: Create value file for float
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ peer.firewall.float.name }}"
+    type: float
+    name: "{{ org.name | lower }}"
+    corda_service_version: "firewall"
+    component_ns: "{{ org.name | lower }}-ent"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    float_name: "{{ peer.firewall.float.name }}"
+    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    image_pull_secret: "regcred"
+    vault_addr: "{{ org.vault.url }}"
+    vault_role: "vault-role"
+    auth_path: "cordaent{{ org.name | lower }}"
+    vault_serviceaccountname: "vault-auth"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
+    storageclass: cenmsc
+    float_address: "{{ peer.firewall.float.name | lower }}.{{ org.name | lower }}-ent"
+    float_port: "{{ peer.firewall.float.port }}"
+    bridge_subject: "{{ peer.firewall.bridge.subject }}"
+    bridge_tunnel_port: "{{ peer.firewall.bridge.tunnelport }}"
+    dmz_internal: "0.0.0.0"
+    dmz_external: "0.0.0.0"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+    
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Pushing float files"

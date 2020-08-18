@@ -13,6 +13,11 @@ spec:
     path: {{ charts_dir }}/generate-pki
   values:
     nodeName: {{ node_name }}
+    cenmServices:
+      signerName: {{ signerName }}
+      idmanName: {{ idmanName }}
+      networkmapName: {{ networkmapName }}
+      notaryName: {{ notaryName }}
     replicas: 1
     metadata:
       namespace: {{ component_ns }}
@@ -43,7 +48,7 @@ spec:
       user: {{ username }}
       password: {{ password }}
     idmanPublicIP: {{ idman_ip }}
-    idmanPort: {{ idman_proxy_port }}
+    idmanPort: {{ idman_port }}
     serviceLocations:
       identityManager:
         host: {{ idman_host }}

@@ -3,9 +3,6 @@
 set -x
 {{ end }}
 
-#
-# main run
-#
 if [ -f {{ .Values.jarPath }}/corda.jar ]
 then
 {{ if eq .Values.bashDebug true }}

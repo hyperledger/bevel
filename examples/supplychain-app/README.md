@@ -6,7 +6,6 @@ This folder contains the files that are needed for the deployment of a Supplycha
 ## Folder structure
 ```
 supplychain-app
-|-- automation: this folder contains sample Jenkins pipeline which can be used to design CI/CD.
 |-- charts: this folder contains the Helm charts that are needed for the deployment of the Supplychain Application.
 |-- configuration: this folder contains all the Ansible playbooks and roles needed for the deployment of the Supplychain Application.
 |-- corda: this folder contains the code for Corda CorDapps, Springboot and Express-API for the Supplychain Application.

@@ -142,7 +142,7 @@ spec:
                    --header "X-Vault-Token: ${VAULT_TOKEN}" \
                    --request POST \
                    --data @../signer.json \
-                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/signer/certs
+                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.signerName }}/certs
                    echo "after curl"
                   break;
                 else
@@ -175,13 +175,13 @@ spec:
                    --header "X-Vault-Token: ${VAULT_TOKEN}" \
                    --request POST \
                    --data @../crl.json \
-                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/idman/crls
+                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/crls
                   echo "After curl"
 
                   # putting certs for idman at certs path
-                  (echo '{"corda-ssl-identity-manager-keys.jks": "'; base64 ${BASE_DIR}/DATA/idman/certs/corda-ssl-identity-manager-keys.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/idman/certs
+                  (echo '{"corda-ssl-identity-manager-keys.jks": "'; base64 ${BASE_DIR}/DATA/idman/certs/corda-ssl-identity-manager-keys.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/certs
                   # putting certs for networkmap at certs path
-                  (echo '{"corda-ssl-network-map-keys.jks": "'; base64 ${BASE_DIR}/DATA/networkmap/corda-ssl-network-map-keys.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmap/certs
+                  (echo '{"corda-ssl-network-map-keys.jks": "'; base64 ${BASE_DIR}/DATA/networkmap/corda-ssl-network-map-keys.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.networkmapName }}/certs
                   break;
                 else
                   echo "certificates are not ready, sleeping for 10s"

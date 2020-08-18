@@ -45,7 +45,7 @@ spec:
     images:
       node: hyperledger/besu:{{ network.version }}
       alpineutils: hyperledgerlabs/alpine-utils:1.0
-      orion: pegasyseng/orion:{{ network.config.tm_image }}
+      orion: pegasyseng/orion:{{ network.config.tm_version }}
 
     node:
       name: {{ peer.name }}

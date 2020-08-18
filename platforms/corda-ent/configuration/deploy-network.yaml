@@ -1,7 +1,6 @@
 ###########################################################
 # Playbook to create deployment files for the following:
 # namespaces, service account and clusterrolebinding
-# CENM Signer
 # Playbook arguments: complete network.yaml
 ###########################################################
 - hosts: ansible_provisioners
@@ -31,7 +30,7 @@
     include_role:
       name: create/storageclass
     vars:
-      storageclass_name: "{{ org.cloud_provider }}storageclass"
+      storageclass_name: "cenmsc"
       git_dir: "{{ org.gitops.release_dir }}"
       org: "{{ org }}"
       kubernetes: "{{ org.k8s }}"
@@ -47,13 +46,14 @@
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
-      component_name: "{{ org.name | lower}}"
+      component_name: "{{ org.name | lower }}"
       component_path: "{{ org.name | lower }}/"
       component_auth: "cordaent{{ org.name | lower }}"
       component_type: "{{ org.type | lower }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
+
   # ---------------------------------------------------------------------- 
   # Generate pki-generator chart value file and push to repository
   - name: "Setup pki-generator"   
@@ -63,6 +63,7 @@
     loop_control:
       loop_var: org
     when: org.type == 'cenm'
+
   # ----------------------------------------------------------------------   
   # Deploy Signer node
   - name: Deploy Signer service node
@@ -72,6 +73,13 @@
     loop_control:
       loop_var: org
     when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Get networkroottruststore
+  - name: Fetch networkroottruststore from the vault
+    include_role:
+      name: setup/networkroottruststore
+
   # ----------------------------------------------------------------------   
   # Create ambassador certificates for idman
   - name: Create ambassador certificates for idman
@@ -81,7 +89,8 @@
     loop_control:
       loop_var: org
     when: org.type == 'cenm'
-    # ----------------------------------------------------------------------   
+
+  # ----------------------------------------------------------------------   
   # Create ambassador certificates for nmap
   - name: Create ambassador certificates for nmap
     include_role:
@@ -90,6 +99,17 @@
     loop_control:
       loop_var: org
     when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Create ambassador certificates for notary
+  - name: Create ambassador certificates for notary
+    include_role:
+      name: create/certificates/ambassador/notary
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'
+
   # ----------------------------------------------------------------------   
   # Create value file for idman
   - name: Create value file for idman
@@ -99,3 +119,63 @@
     loop_control:
       loop_var: org
     when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Create value file for notary-initial-registration 
+  - name: Create value file for notary registration job
+    include_role:
+      name: setup/notary-initial-registration
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Create value file for nmap
+  - name: Create value file for nmap
+    include_role:
+      name: setup/nmap
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Create value file for notary 
+  - name: Create value file for notary
+    include_role:
+      name: setup/notary
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Create value file for node registration
+  - name: Create value file for node registration
+    include_role:
+      name: setup/node_registration
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'node'
+
+  # ----------------------------------------------------------------------   
+  # Create value file for bridge 
+  - name: Create value file for bridge
+    include_role:
+      name: setup/bridge
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'node'
+
+  # ----------------------------------------------------------------------   
+  # Create value file for float 
+  - name: Create value file for float
+    include_role:
+      name: setup/float
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'node'
