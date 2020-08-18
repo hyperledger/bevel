@@ -1,0 +1,48 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: anchorpeer-allchannel-carrier
+  namespace: carrier-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: anchorpeer-allchannel-carrier
+  chart:
+    git: git@github.com:JorellDacasin/blockchain-automation-framework.git
+    ref: local
+    path: platforms/hyperledger-fabric/charts/anchorpeer
+  values:
+    metadata:
+      namespace: carrier-net
+      images:
+        fabrictools: hyperledger/fabric-tools:1.4.4
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    peer:
+      name: peer0
+      address: peer0.carrier-net:7051
+      localmspid: carrierMSP
+      loglevel: debug
+      tlsstatus: true
+
+    vault:
+      role: vault-role
+      address: http://172.20.10.3:8200
+      authpath: carrier-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/carrier-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/carrier-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    channel:
+      name: allchannel      
+    orderer:
+      address: orderer1.supplychain-net:7050
+    anchorstx: |-
+      CpwCChAKDggCIgphbGxjaGFubmVsEocCCoQCCgphbGxjaGFubmVsEloSWAoLQXBwbGljYXRpb24S
+      SQgBEj0KCmNhcnJpZXJNU1ASLxoHCgNNU1ASACILCgdSZWFkZXJzEgAiCwoHV3JpdGVycxIAIgoK
+      BkFkbWlucxIAKgZBZG1pbnMamQESlgEKC0FwcGxpY2F0aW9uEoYBCAESegoKY2Fycmllck1TUBJs
+      CAEaBwoDTVNQEgAaMQoLQW5jaG9yUGVlcnMSIhIYChYKEXBlZXIwLmNhcnJpZXItbmV0EIs3GgZB
+      ZG1pbnMiCwoHUmVhZGVycxIAIgsKB1dyaXRlcnMSACIKCgZBZG1pbnMSACoGQWRtaW5zKgZBZG1p
+      bnM=
+
