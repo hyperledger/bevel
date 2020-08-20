@@ -41,7 +41,7 @@ Can be started also via Docker container:
 ### Step 5
 After Indy network has been set up, Identity App can be deployed via Ansible playbook:
 
-- Be sure that you are in Docker container (BAF), if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
+- Make sure that you are in Docker container (BAF), if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
 - Update Trustee service in your `network.yaml` file to add port of Indy WebServer, which will run with trustee role.
 example of trustee: 
 ```yaml
@@ -52,8 +52,25 @@ example of trustee:
           genesis: true
           server:
             port: 8000
+            ambassador: 15010
 ```
-- Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -i ./blockchain-automation-framework/platforms/shared/inventory/ansible_provisioners ./blockchain-automation-framework/examples/identity-app/configuration/deploy-identity-app.yaml -e "@./blockchain-automation-framework/build/network.yaml"`
+- Update Endorser service in your `network.yaml` file to add port of Indy Client, which will run with endorser role.
+example of Endorser: 
+```yaml
+      endorsers:
+        - endorser:
+          name: university-endorser
+          full_name: Faber university of the Demo.
+          avatar: https://faber.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample https://university-endorser.indy.blockchaincloudpoc.com:15030/
+          # For minikube: http://<minikubeip>>:15030
+          server:
+            httpPort: 15023
+            apiPort: 15024
+```
+- Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -i platforms/shared/inventory/ansible_provisioners examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/network.yaml"`
+For minikube, pass additional parameter minikube_ip: `ansible-playbook examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/network.yaml" -e "minikube_ip='192.x.x.x'"`
 
 ### Step 6
 Agents for Faber University and Student Alice don't have Ansible roles created yet. These agents have to be run manually:
