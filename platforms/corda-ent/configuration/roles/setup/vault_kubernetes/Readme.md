@@ -93,10 +93,17 @@ This task create Vault secrets path.
 **shell**: enable the vault secret path
 **when**: It runs only when the *auth_list.stdout.find(component_auth)* does not exists i.e. auth path is not found
 
-#### 10.  Create the docker pull credentials
-This task creates the docker pull credentials for image registry
+#### 10.  Check docker cred exists
+This task checks if the docker credentials exists
 ##### Input Variables
-    *component_ns: name of the namespace
-
-**shell** : This command creates the vault auth.
-**when**: Condition is specified here, runs only when *auth_path* is not found.
+    check: This defines type of check; docker_credentials in this case
+##### Output Variables
+    get_regcred: This variable stores the output of docker credentials check query.
+    
+#### 12.  Create the docker pull credentials
+This task creates the docker pull credentials
+##### Input Variables
+    *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml
+    *component_name: The name of resource
+**shell** : This command creates the docker credentials.
+**when**: Condition is specified here, runs only when *get_regcred.resources* is not found.
