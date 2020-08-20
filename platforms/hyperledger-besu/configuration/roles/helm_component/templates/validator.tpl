@@ -38,7 +38,6 @@ spec:
       external_url: {{ name }}.{{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
       rpc: {{ peer.rpc.ambassador }}
-      ws: {{ peer.ws.ambassador }}
 
     images:
       node: hyperledger/besu:{{ network.version }}

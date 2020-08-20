@@ -113,15 +113,13 @@ spec:
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
               jq -r 'if .errors then . else . end')
             validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
-            orion_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["orion_ca.pem"]')  
-            orion_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["orion_cer.pem"]')    
-            orion_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["orion_cer.key"]') 
+            orion_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca_pem"]' | base64 -d)  
+            orion_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ambassadorcrt"]' | base64 -d)    
+            orion_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ambassadorkey"]' | base64 -d) 
             echo "${orion_ca}" > ${MOUNT_PATH}/orion_ca.pem
             echo "${orion_cer_pem}" > ${MOUNT_PATH}/orion_cer.pem
             echo "${orion_cer_key}" > ${MOUNT_PATH}/orion_cer.key
           fi 
-
-
         volumeMounts:
         - name: certificates
           mountPath: /secret
@@ -157,8 +155,7 @@ spec:
           - -c
         args:
           - |
-            exec /opt/orion/bin/orion $ORION_CONF_DIR/config/orion.conf
-            
+            exec /opt/orion/bin/orion $ORION_CONF_DIR/orion.conf                        
         ports:
           - name: nodeport
             containerPort: {{ .Values.orion.ports.nodeport }}
@@ -187,7 +184,7 @@ spec:
         - name: certificates
           mountPath: /secrets
         - name: {{ .Values.node.name }}-orion-volume
-          mountPath: {{ .Values.orion.confdir }}/config
+          mountPath: {{ .Values.orion.confdir }}
       - name: besu
         image: "{{ .Values.images.node }}"
         command:
@@ -201,6 +198,7 @@ spec:
             tr -d "\n\r" < /secrets/orion_key.pub > /secrets/nodekey.pub
             args="--rpc-http-enabled --rpc-http-api=ETH,NET,IBFT,DEBUG,ADMIN,WEB3,EEA,PRIV --rpc-ws-enabled --rpc-ws-api=ETH,NET,WEB3 --p2p-port {{ .Values.node.ports.p2p }} --rpc-http-port {{ .Values.node.ports.rpc }} --rpc-ws-port={{ .Values.node.ports.ws }}"
             exec /opt/besu/bin/besu \
+            --identity={{ .Values.node.name }} \
             --discovery-enabled=false \
             --node-private-key-file=/secrets/nodekey \
             --genesis-file=/etc/genesis/genesis.json \
@@ -217,7 +215,7 @@ spec:
             --rpc-ws-host=0.0.0.0 \
             --min-gas-price=0 \
             --privacy-enabled=true \
-            --privacy-url={{ .Values.orion.url }}:{{ .Values.proxy.clientport }} \
+            --privacy-url=http://{{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.orion.ports.clientport }} \
             --privacy-public-key-file=/secrets/nodekey.pub \
             $args \
         ports:
