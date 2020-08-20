@@ -19,5 +19,3 @@ RUN apt-get install curl -y
 COPY indy-ledger.sh /home/
 
 RUN chmod +x /home/indy-ledger.sh
-
-

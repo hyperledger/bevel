@@ -3,12 +3,29 @@ kind: Service
 metadata:
   name: "{{ $.Values.metadata.name }}"
   namespace: "{{ $.Values.metadata.namespace }}"
+  {{- if eq $.Values.proxy.provider "ambassador" }}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.metadata.name }}-tcp
+      host: {{ .Values.proxy.external_url }}
+      port: {{ .Values.proxy.port }}
+      service: {{ .Values.metadata.name }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
+    {{- end }}
 spec:
+{{ if eq $.Values.proxy.provider "minikube" }}
   type: NodePort
+{{ else }}
+  type: ClusterIP
+{{ end }}
   ports:
   - name: indy-webserver
     port: {{ $.Values.service.port }}
     targetPort: 8000
-    nodePort: {{ $.Values.service.port }}
+{{ if eq $.Values.proxy.provider "minikube" }}
+    nodePort: {{ $.Values.proxy.port }}
+{{ end }}
   selector:
     app: "{{ $.Values.metadata.name }}"

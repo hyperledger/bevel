@@ -42,24 +42,38 @@
     # format eip addresses list to string with comma separator (comma has to be escaped)
     echo ${data} | tr -d '"' | sed 's/\ /\\,/g'
   register: allocation_ips
-  when: network.type == 'indy' and item.services.stewards is defined and (item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal') #As this shell code is specific to AWS, cloud provider check has been added
+  when: 
+    - (network.type == 'indy' and item.services.stewards is defined ) or network['type'] == 'besu'
+    - item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal' #As this shell code is specific to AWS, cloud provider check has been added
   tags:
     - notest
 - name: Install Ambassador with EIP for Indy
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ terminal.stdout }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ terminal.stdout }},{{ network.env.ambassadorPorts }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   tags:
     - ambassador
     - molecule-idempotence-notest
-  when: network.type == 'indy' and allocation_ips.stdout is defined
+  when: 
+    - network.type == 'indy'
+    - allocation_ips.stdout is defined
 
-- name: Install Ambassador for Corda/Quorum/Besu
+- name: Install Ambassador with EIP for Besu
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+  tags:
+    - ambassador
+    - molecule-idempotence-notest
+  when: 
+    - network.type == 'besu'
+    - allocation_ips.stdout is defined
+
+- name: Install Ambassador for Corda/Quorum
   shell: |
     KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   tags:
     - ambassador
     - molecule-idempotence-notest
-  when: network.type == 'corda' or network.type == 'quorum' or network.type == 'besu'
+  when: network.type == 'corda' or network.type == 'quorum' or network.type == 'corda-enterprise'
 
 - name: Install Ambassador for Fabric
   shell: |
@@ -74,7 +88,22 @@
     KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "external-dns.alpha.kubernetes.io/hostname=*.{{ item.external_url_suffix }}."
   tags:
     - ambassador
-  when: network.env.external_dns is defined and network.env.external_dns == 'enabled'
+    - molecule-idempotence-notest
+  when: 
+    - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+
+# Disable TLS1.0 for the AWS Loadbalancer
+- name: Disable TLS1.0 for the AWS
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy=ELBSecurityPolicy-TLS-1-2-2017-01"
+  tags:
+    - ambassador
+    - molecule-idempotence-notest
+  when: 
+    - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
+    - item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal'
 
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up

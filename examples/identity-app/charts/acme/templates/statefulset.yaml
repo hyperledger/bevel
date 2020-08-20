@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
+spec:
+  serviceName: "{{ $.Values.metadata.name }}"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ $.Values.metadata.name }}"
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}"
+    spec:
+      securityContext:
+        fsGroup: 1000
+      serviceAccountName: "{{ $.Values.vault.serviceAccountName }}"
+      initContainers:
+        - name:  "{{ $.Values.image.init.name }}"
+          image:  "{{ $.Values.image.init.repository }}"
+          imagePullPolicy: Always
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_AUTH_PATH
+              value: {{ $.Values.vault.authPath }}
+            - name: VAULT_ROLE
+              value: {{ $.Values.vault.role }}
+          volumeMounts:
+            - name: ebs-indy-faber-keys
+              mountPath: /keys
+          command:
+            - "sh"
+            - "-c"
+            - >
+              apk update;
+              apk add curl jq;
+
+              validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+               echo "ERROR: unable to retrieve ${1}: ${2}"
+               exit 1
+               fi
+              }
+
+              KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
+              response=$(curl -s -o /dev/null -w "%{http_code}" $VAULT_ADDR/v1/sys/health);
+              if [ $response != 200 ]; then
+                exit 1
+              fi
+
+              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "'"$VAULT_ROLE"'"}' $VAULT_ADDR/v1/auth/$VAULT_AUTH_PATH/login | jq -j '.auth.client_token' > token;
+              X_VAULT_TOKEN=$(cat token);
+
+              ENDORSER_SEED=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"{{ $.Values.organization.name }}"/endorsers/{{ $.Values.vault.endorserName }}/identity/private | jq -r 'if .errors then . else . end');
+              validateVaultResponse "secret ({{ $.Values.vault.trusteeName }}/identity/private)" "${ENDORSER_SEED}";
+              echo ${ENDORSER_SEED} | jq -j ".data.seed" > /keys/seed;
+              chmod 644 /keys/seed;
+
+      containers:
+        - name: "{{ $.Values.image.agent.name }}"
+          image: "{{ $.Values.image.agent.repository }}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ $.Values.service.ports.service }}
+            - containerPort: {{ $.Values.service.ports.endpoint }}
+          env:
+            - name: LEDGER_URL
+              value: "{{ $.Values.service.ledger }}"
+            - name: GENESIS_URL
+              value: "{{ $.Values.service.genesis }}"
+            - name: EVENTS
+              value: "1"
+          volumeMounts:
+            - name: ebs-indy-faber-keys
+              mountPath: /keys
+          command:
+          - "bash"
+          - "-c"
+          - >
+            cat /keys/seed;
+            chmod 644 /keys/seed;
+            export ENDORSER_SEED=$(cat /keys/seed);
+            
+            cd demo;
+            python -m demo.runners.acme -p {{ $.Values.service.ports.service }} --address {{ $.Values.service.address }};
+      imagePullSecrets:
+        - name: "{{ $.Values.image.pullSecret }}"
+  volumeClaimTemplates:
+    - metadata:
+        name: ebs-indy-faber-keys
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "{{ $.Values.storage.className }}"
+        resources:
+          requests:
+            storage: "{{ $.Values.storage.size }}"

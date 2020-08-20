@@ -14,13 +14,13 @@ spec:
   values:
     nodeName: {{ org.services.signer.name }}
     metadata:
-      namespace: {{component_ns }}
+      namespace: {{ component_ns }}
     replicas: 1
     image:
       imagePullSecret: regcred
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
     storage:
-      name: {{ org.cloud_provider }}storageclass
+      name: cenmsc
     dockerImageSigner:
       name: corda/enterprise-signer
       tag: 1.2-zulu-openjdk8u242
@@ -31,13 +31,13 @@ spec:
       role: vault-role
       authpath: {{ component_auth }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ org.services.signer.name }}/certs
+      certsecretprefix: secret/{{ org.name | lower }}
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
     serviceSsh:
-      port: {{ org.services.signer.ports.servicePort }}
-      targetPort: {{ org.services.signer.ports.targetPort }}
+      port: 2222
+      targetPort: 2222
       type: ClusterIP
     service:
       type: ClusterIP
@@ -47,16 +47,14 @@ spec:
     shell:
       user: signer
       password: signerP
-
-    idmanPublicIP: {{ org.services.signer.name }}.{{ org.external_url_suffix }}
-    idmanPort: {{ org.services.idman.ports.proxy }}
-
+    idmanPublicIP: {{ org.services.idman.name }}.{{ org.external_url_suffix }}
+    idmanPort: 8443
     serviceLocations:
       identityManager:
-        host: idman-internal
+        host: {{ org.services.idman.name }}.{{ org.name | lower }}-ent
         port: 5052
       networkMap:
-        host: nmap-internal
+        host: {{ org.services.networkmap.name }}.{{ org.name | lower }}-ent
         port: 5050
       revocation:
         port: 5053

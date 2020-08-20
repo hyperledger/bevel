@@ -1,16 +1,21 @@
-# Default values for the Networkmap Service for  Registration job.
+# Default values for the Networkmap Service.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 # For each of the example values, the ` `-quotes are to be removed when filling them in,
 # these are only used to denote the example value.
 
 # Provide the name of the node
-# e.g. `nmap`
+# e.g. `networkmap`
 nodeName:
 
 # Provide the name of the corresponding notary; this is needed to get the correct node info files from Vault
 # e.g. `notary`
 notaryName:
+
+# Name of idman service
+# idmanName: idmankd
+idmanName: 
+
 
 deployment:
   annotations: {}
@@ -34,16 +39,17 @@ image:
   imagepullsecret:
 
 dockerImage:
-  # Name of the Docker image to use for the main Networkmap Service, e.g. corda/enterprise-networkmap
+  # Name of the Docker image to use for the main Networkmap Service, e.g. corda/enterprise-networkmap:1.2-zulu-openjdk8u24
   name:
-  # Tag to use of the Docker image, e.g. `1.2-zulu-openjdk8u242`
-  tag:
   # When to pull the image, e.g. `Always`
   pullPolicy:
 
 # required parameter
 acceptLicense:
 
+# required for exposing the service externally
+ambassador:
+  external_url_suffix:
 storage:
   # Name for the storage to use, e.g. `abcd`
   name:
@@ -92,7 +98,7 @@ database:
   runMigration:
 
 # Whether the NMS will check the certificate revocation list, e.g. `true`
-checkRevocation:
+checkRevocation: true
 
 # Values for the Identity Manager (idman)
 identityManager:
@@ -115,7 +121,7 @@ sleepTime:
 cordaJarMx:
 
 # Which port to use for health check, e.g. `0`
-healthCheckNodePort:
+healthCheckNodePort: 0
 
 healthcheck:
   # Provide the interval in seconds you want to iterate until DB is ready, e.g. `5`
@@ -129,9 +135,10 @@ vault:
   address:
   # Which role to use when connecting to vault, e.g. `vault-role`
   role:
-  # These two values will be used once Ansible is implemented
-  # authpath: 
-  # serviceaccountname: 
+  # Authpath created for networkmap, e.g. cordaentcenm
+  authpath: 
+  # Serviceaccount, eg. vault-auth
+  serviceaccountname: 
   # Prefix to use for secret engine for certificates, e.g. `cenm/certs`
   certsecretprefix: 
 

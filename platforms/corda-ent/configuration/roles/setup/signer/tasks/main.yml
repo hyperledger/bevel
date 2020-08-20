@@ -2,6 +2,16 @@
 # This role creates the value file for signer
 ##############################################################################################
 
+# Wait for the pki-generator job to get complete
+- name: "waiting for pki-generator job to get complete"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name | lower }}-ent"
+    component_name: "{{ org.name | lower }}-pki-generate-pki"
+    kubernetes: "{{ org.k8s }}"
+
 # create deployment file for CENM signer service
 - name: "create signer"
   include_role:

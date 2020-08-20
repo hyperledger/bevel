@@ -20,7 +20,7 @@
 # Check if the ambassador tls is already created
 - name: Check if the ambassador tls is already created
   shell: |
-    vault kv get -format=yaml secret/cenm/{{ org.services.networkmap.name }}/tlscerts
+    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ org.services.networkmap.name }}/tlscerts
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -67,7 +67,7 @@
 # as this certificate is created by the generate-pki chart
 - name: Get the subordinateCA certs if they exist in the vault
   shell: |
-    vault read -field=subordinate-key-store.jks secret/cenm/root/certs
+    vault read -field=subordinate-key-store.jks secret/{{ org.name | lower }}/root/certs
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -102,7 +102,7 @@
 # Store the ambassador certificates into the vault
 - name: Store the ambassador certs to vault
   shell: |
-    vault kv put secret/cenm/{{ org.services.networkmap.name }}/tlscerts tlscacerts="$(cat ./build/ambassador/{{ org.services.networkmap.name }}/ambassador.pem | base64)" tlskey="$(cat ./build/ambassador/{{ org.services.networkmap.name }}/ambassador.key | base64)"
+    vault kv put secret/{{ org.name | lower }}/{{ org.services.networkmap.name }}/tlscerts tlscacerts="$(cat ./build/ambassador/{{ org.services.networkmap.name }}/ambassador.pem | base64)" tlskey="$(cat ./build/ambassador/{{ org.services.networkmap.name }}/ambassador.key | base64)"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"

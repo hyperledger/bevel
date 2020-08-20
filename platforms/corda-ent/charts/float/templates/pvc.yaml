@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.nodeName }}-pvc-logs
+  namespace: {{ .Values.metadata.namespace }}
+    {{- if .Values.pvc.annotations }}
+  annotations:
+{{ toYaml .Values.pvc.annotations | indent 8 }}
+    {{- end }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}-pvc-logs
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.storage.name }}
+  resources:
+    requests:
+      storage: 256Mi

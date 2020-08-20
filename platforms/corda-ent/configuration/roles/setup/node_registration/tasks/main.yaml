@@ -1,0 +1,114 @@
+# This task creates the value file for the node registration as well the db required and push them to the git repository
+
+# Wait for notary pod to come up
+- name: "Waiting for notary pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ org.name | lower }}-ent"
+    component_name: "{{ org.services.notary.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'cenm'
+
+# Create value file for the db required alongside node registration
+- name: "Create value file of db for node registration"
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ peer.name | lower }}db"
+    component_ns: "{{ org.name | lower }}-ent"
+    type: "db"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    node_name: "{{ peer.name | lower }}"
+    image_pull_secret: "regcred"
+    storageclass: "cenmsc"
+    container_name: "{{ network.docker.url }}/h2:2018"
+    tcp_port: "{{ peer.dbtcp.port }}"
+    tcp_targetport: "{{ peer.dbtcp.targetPort }}"
+    web_port: "{{ peer.dbweb.port }}"
+    web_targetport: "{{ peer.dbweb.targetPort }}"
+    helm_lint: "true"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+
+- name: "Create value file for node registration"
+  include_role:
+    name: helm_component
+  vars:
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    component_name: "{{ peer.name | lower }}registration"
+    component_ns: "{{ org.name | lower }}-ent"
+    node_name: "{{ peer.name | lower }}"
+    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    corda_service_version: node
+    image_pull_secret: regcred
+    type: node_registration
+    vault_address: "{{ org.vault.url }}"
+    vault_role: vault-role
+    vault_auth_path:  "cordaent{{ org.name | lower }}"
+    vault_service_account_name: "vault-auth"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
+    vault_node_path: "{{ peer.name | lower }}"
+    legal_name: "{{ org.subject }}"
+    email_address: "dev-node@baf.com"
+    crl_check_soft_fail: true
+    tls_cert_crl_issuer: "{{ network | json_query('orderers[?type==`signer`].subject') | first }}"
+    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    dev_mode: false
+    p2p_port: "{{ peer.firewall.bridge.port }}"
+    p2p_address: "{{ peer.firewall.float.name }}.{{ org.name | lower }}-ent"
+    ssh_enabled: true
+    ssh_port: 2222
+    rpc_port: "{{ peer.rpc.port }}"
+    rpc_admin_port: "{{ peer.rpcadmin.port }}"
+    user_name: "{{ peer.name | lower }}"
+    user_password: "{{ peer.name | lower }}P"
+    user_permissions: ALL
+    datasource_user: "{{ peer.name | lower }}-db-user"
+    datasource_password: "{{ peer.name | lower }}-db-password"
+    datasource_url: "jdbc:h2:tcp://{{ peer.name | lower }}db:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+    datasource_class_name: org.h2.jdbcx.JdbcDataSource
+    monitoring_enabled: true
+    monitoring_port: 8090
+    allow_dev_cordapps: true
+    volume_base_dir: /opt/corda
+    java_path: bin
+    config_path: etc
+    corda_jar_mx: 3
+    sleep_time_after_error: 120
+    sleep_time: 0
+    readiness_check_interval: 10
+    readiness_threshold: 15
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Pushing node registartion and its db files"

@@ -1,0 +1,59 @@
+##############################################################################################
+# This role creates the value file for nmap
+##############################################################################################
+
+# Wait for the notary initial registration job to get complete
+- name: "waiting for notary initial registration job to get complete"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name | lower }}-ent"
+    component_name: "{{ org.services.notary.name | lower }}-initial-registration"
+    kubernetes: "{{ org.k8s }}"
+
+# create deployment file for CENM nmap service
+- name: "create nmap"
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ org.name | lower }}nmap"
+    component_ns: "{{ org.name | lower }}-ent"
+    type: "nmap"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    notary_name: "{{ org.services.notary.name }}"
+    idman_name: "{{ org.services.idman.name }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    node_name: "{{ org.services.networkmap.name | lower }}"
+    storageclass: "cenmsc"
+    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    image_pull_secret: "regcred"
+    corda_service_version: cenm-networkmap-{{ org.version }}
+    vault_addr: "{{ org.vault.url }}"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
+    authpath: "cordaent{{ org.name | lower }}"
+    serviceaccountname: "vault-auth"
+    external_url_suffix: "{{ org.external_url_suffix }}"
+    nmap_port: "{{ org.services.networkmap.ports }}"
+    ssh_username: "nmap"
+    ssh_password: "nmapP"
+    db_username: "{{ org.services.networkmap.name }}-db-user"
+    db_password: "{{ org.services.networkmap.name }}-db-password"
+    helm_lint: "true"
+    
+# Push the nmap deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Pushing deployment files for nmap service"

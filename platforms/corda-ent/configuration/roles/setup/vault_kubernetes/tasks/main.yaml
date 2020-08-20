@@ -82,42 +82,27 @@
   register: vault_policy_result
   ignore_errors: yes
 
-- debug:
-    msg: "{{ component_type }}"
-
 #####################################################################################################################
 # This task creates the access policy for various corda-ent entity
-- name: Create policy for Access Control
+- name: Create policy for Access Control for CENM
   shell: |
     cd ./build    
-    echo "path \"secret/cenm/*\" {
+    echo "path \"secret/{{ org.name | lower }}/*\" {
         capabilities = [\"read\", \"list\", \"create\"]
-    }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
-    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"
+    }"  >>  vault-crypto-{{ org.name | lower }}-ro.hcl
+    vault write sys/policy/vault-crypto-{{ org.name | lower }}-ro policy="@vault-crypto-{{ org.name | lower }}-ro.hcl"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_policy_result.failed == True and component_type  == "cenm"    # Run if policy check failed
 
-- name: Create policy for Access Control
+- name: Create policy for Access Control for nodes
   shell: |
     cd ./build    
-    echo "path \"secret/notary/*\" {
+    echo "path \"secret/{{ org.name | lower }}/*\" {
         capabilities = [\"read\", \"list\", \"create\"]
-    }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
-    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True and component_type == 'notary'   # Run if policy check failed
-
-- name: Create policy for Access Control
-  shell: |
-    cd ./build    
-    echo "path \"secret/{{ component_ns }}/*\" {
-        capabilities = [\"read\", \"list\", \"create\"]
-    }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
-    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"
+    }"  >>  vault-crypto-{{ org.name | lower }}-ro.hcl
+    vault write sys/policy/vault-crypto-{{ org.name | lower }}-ro policy="@vault-crypto-{{ org.name | lower }}-ro.hcl"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -126,7 +111,7 @@
 # This task creates the vault auth
 - name: Create Vault auth role
   shell: |
-    vault write auth/{{ component_auth }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_ns }} policies=vault-crypto-{{ component_type }}-{{ component_name }}-ro ttl=120s
+    vault write auth/{{ component_auth }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_ns }} policies=vault-crypto-{{ org.name | lower }}-ro ttl=120s
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

@@ -31,6 +31,17 @@
   set_fact:
     auth_list: "{{ auth_lists }}"
 
+# Set vault_auth_status variable to false initially
+- set_fact:
+    vault_auth_status: false
+    component_auth_temp: "\"{{ component_auth }}/\""
+
+# Set vault_auth_status variable to true if found
+- set_fact:
+    vault_auth_status: true
+  loop: "{{ auth_lists.stdout_lines }}"
+  when: item == component_auth_temp
+
 ###############################################################################################
 # This task enables the path for the nodes on vault
 # This task runs only when {{component_path}} is not already created
@@ -40,7 +51,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(component_auth) == -1   # Only when component_auth is NOT in the output of auth_list
+  when: not vault_auth_status   # Only when component_auth is NOT in the output of auth_list
   ignore_errors: yes
 
 ############################################################################################
@@ -48,7 +59,7 @@
 - name: "Get Kubernetes cert files for organizations"
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ component_ns }}.ca.cert"
-  when: auth_list.stdout.find(component_auth) == -1
+  when: not vault_auth_status
 
 ################################################################################################
 # This task writes the Service Account token to the vault for various besu entity
@@ -59,7 +70,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(component_auth) == -1
+  when: not vault_auth_status
 
 # This task checks if the vault-ro polict already exists
 - name: "Checking if the vault policies already exists"
@@ -94,12 +105,20 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: auth_list.stdout.find(component_auth) == -1     # Run when auth_path is not found
+  when: not vault_auth_status     # Run when auth_path is not found
+
+# Check if Docker credentials exist already
+- name: "Checking if the docker credentials already exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    component_name: "{{ component_ns }}"
+    check: "docker_credentials"
+  register: get_regcred
 
 #####################################################################################################################
 # This task creates the docker pull credentials for image registry
 - name: Create the docker pull credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_ns }} docker-registry regcred --docker-server={{ network.docker.url }} --docker-username={{ network.docker.username }} --docker-password={{ network.docker.password }} --docker-email="test@abc.mail"
-  when: auth_list.stdout.find(component_auth) == -1
-  ignore_errors: yes
+  when: get_regcred.resources|length == 0

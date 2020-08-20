@@ -6,12 +6,33 @@
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
 
-    - name: "Create a value file to deploy Indy Web Server"
+    # Deploy the Indy Webserver for trustee orgs
+    - name: "Create a value file to deploy Indy WebServer"
       include_role:
         name: "create/webserver"
       vars:
-        component_name: "webserver"
+        component_ns: "{{ organization.name | lower }}-ns"
+        gitops: "{{ organization.gitops }}"
+        vault: "{{ organization.vault }}"
+        kubernetes: "{{ organization.k8s }}"
+        services: "{{ organization.services }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ organization.gitops.release_dir }}/{{ organization.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: organization
+      when: network['type'] == 'indy'
+    
+    # Deploy the Indy Clients for Endorser orgs
+    - name: "Create value files to deploy Aries endorser endpoints"
+      include_role:
+        name: "create/endorser"
+      vars:
         component_ns: "{{ organization.name | lower }}-ns"
         gitops: "{{ organization.gitops }}"
         vault: "{{ organization.vault }}"
@@ -23,8 +44,3 @@
         loop_var: organization
       when: network['type'] == 'indy'
 
-    # delete build directory
-    - name: Remove build directory
-      file:
-        path: "./build"
-        state: absent

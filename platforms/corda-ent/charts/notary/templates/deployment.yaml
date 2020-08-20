@@ -60,7 +60,6 @@ spec:
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
             echo "logged into vault"
-            
             COUNTER=1
             while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
             do
@@ -114,22 +113,20 @@ spec:
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-
-              OUTPUT_PATH=${BASE_DIR}/certificates
-              
+              OUTPUT_PATH=${BASE_DIR}/certificates              
               # Getting intitial network parameters from Vault
               COUNTER=1
               while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
               do 
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.notaryName }}/nparam | jq -r 'if .errors then . else . end')
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/nparam | jq -r 'if .errors then . else . end')
                 if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   else
-                   initial_param=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-parameters-initial"]')
-                   echo "${initial_param}" | base64 -d > ${NODEINFO_MOUNT_PATH}/network-parameters-initial.conf
-                   echo "Successfully got initial network parameters"
-                   break
+                    initial_param=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-parameters-initial"]')
+                    echo "${initial_param}" | base64 -d > ${NODEINFO_MOUNT_PATH}/network-parameters-initial.conf
+                    echo "Successfully got initial network parameters"
+                    break
                 fi
                 COUNTER=`expr "$COUNTER" + 1`
               done
@@ -138,15 +135,15 @@ spec:
               COUNTER=1
               while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
               do 
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.notaryName }}/nodeInfo | jq -r 'if .errors then . else . end')
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/nodeInfo | jq -r 'if .errors then . else . end')
                 if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   else
-                  notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
-                  echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/notary_nodeinfo
-                  echo "Successfully got node info file"
-                  break
+                    notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
+                    echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/notary_nodeinfo
+                    echo "Successfully got node info file"
+                    break
                 fi
                 COUNTER=`expr "$COUNTER" + 1`
               done
@@ -174,9 +171,48 @@ spec:
           mountPath: {{ $.Values.volume.baseDir }}/certificates
         - name: notary-nodeinfo
           mountPath: /notary-nodeinfo
+      - name: db-healthcheck
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          COUNTER=1
+          FLAG=true
+          # perform health check if db is up and running before starting corda node
+          while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+          do
+            DB_NODE={{ .Values.dataSourceProperties.dbUrl }}:{{ .Values.dataSourceProperties.dbPort }}
+            STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
+            if [ "$STATUS" == 0 ]
+            then
+              FLAG=false
+            else
+              FLAG=true
+              echo "DB up and running"
+            fi
+            if [ "$FLAG" == false ]
+            then
+              echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+              COUNTER=`expr "$COUNTER" + 1`
+              sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+            else
+              echo "SUCCESS!"
+              echo "DB up and running!"
+              exit 0
+              break
+            fi
+          done
+          if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ]
+          then
+            echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
+            exit 1
+            break
+          fi
       containers:
       - name: notary
-        image: "{{ required "notary[main]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}:{{ required "notary[main]: missing value for .Values.dockerImage.tag" .Values.dockerImage.tag }}"
+        image: "{{ required "notary[main]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}"
         imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
         env:
           - name: ACCEPT_LICENSE
@@ -184,25 +220,16 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cp CM-FILES/notary.conf etc/
-          cp CM-FILES/*.sh bin/
+          cp etc/*.sh bin/
           chmod +x bin/*
           bin/run.sh
         volumeMounts:
         - name: notary-conf
-          mountPath: /opt/corda/CM-FILES/notary.conf
-          subPath: notary.conf
-        - name: notary-conf
-          mountPath: /opt/corda/CM-FILES/run.sh
-          subPath: run.sh
-        - name: notary-etc
           mountPath: /opt/corda/etc
         - name: notary-certificates
           mountPath: /opt/corda/certificates
         - name: notary-logs
           mountPath: /opt/corda/logs
-        - name: notary-h2
-          mountPath: /opt/corda/h2
         - name: notary-nodeinfo
           mountPath: /opt/corda/notary-nodeinfo
         resources:
@@ -211,7 +238,7 @@ spec:
           limits:
             memory: {{ add .Values.cordaJarMx 2 }}G
       - name: logs
-        image: "{{ required "notary[logs]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}:{{ required "notary[logs]: missing value for .Values.dockerImage.tag" .Values.dockerImage.tag }}"
+        image: "{{ required "notary[logs]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}"
         imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
         env:
           - name: ACCEPT_LICENSE
@@ -232,9 +259,6 @@ spec:
       - name: notary-conf
         configMap:
           name: {{ .Values.nodeName }}-conf
-      - name: notary-etc
-        persistentVolumeClaim:
-          claimName: {{ .Values.nodeName }}-etc
       - name: notary-certificates
         emptyDir:
           medium: Memory
@@ -244,6 +268,3 @@ spec:
       - name: notary-nodeinfo
         emptyDir:
           medium: Memory
-      - name: notary-h2
-        persistentVolumeClaim:
-          claimName: {{ .Values.nodeName }}-h2

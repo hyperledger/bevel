@@ -15,7 +15,7 @@
 # Install HAProxy ingress via helmchart
 - name: Install HAProxy Ingress controller
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set metadata.namespace="ingress-controller" --set service.ports.https=8443 --set image.version="v0.6-beta.2" haproxy {{ playbook_dir }}/../../../platforms/shared/charts/haproxy
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set metadata.namespace="ingress-controller" --set service.ports.https=8443 --set image.version="v0.9.1" haproxy {{ playbook_dir }}/../../../platforms/shared/charts/haproxy
   when: haproxy_status.resources|length == 0
   tags:
     - haproxy
@@ -26,7 +26,17 @@
     KUBECONFIG={{ kubeconfig_path }} kubectl annotate service haproxy-ingress -n ingress-controller --overwrite "external-dns.alpha.kubernetes.io/hostname=*.{{ item.external_url_suffix }}."
   tags:
     - haproxy
+    - molecule-idempotence-notest
   when: network.env.external_dns is defined and network.env.external_dns == 'enabled'
+
+# Disable TLS1.0 for the AWS Loadbalancer
+- name: Disable TLS1.0 for the AWS
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl annotate service haproxy-ingress -n ingress-controller --overwrite "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy=ELBSecurityPolicy-TLS-1-2-2017-01"
+  tags:
+    - haproxy
+    - molecule-idempotence-notest
+  when: item.cloud_provider == "aws"
 
 # Wait for HAProxy pods to start running
 - name: wait for pods to come up
