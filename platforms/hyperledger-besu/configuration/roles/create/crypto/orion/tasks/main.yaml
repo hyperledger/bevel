@@ -17,23 +17,6 @@
     state: directory
   when: generate_crypto_orion is defined and generate_crypto_orion == True
 
-# Ensure the directories exists for ca
-- name: Ensure the folder structure exists for tls 
-  file:
-    path: "{{ build_path }}/tls"
-    state: directory
-  when: generate_crypto_orion is defined and generate_crypto_orion == True and network.config.tm_tls == True
-
-# This tasks create tls certificates for CA
-- name: create tls certificates for CA
-  shell: |
-    cd {{ build_path }}/tls
-    eval "openssl genrsa -out orion_ca.key 2048"
-    eval "openssl req -x509 -new -nodes -key orion_ca.key -sha256 -days 1024 -out orion_ca.pem -subj '/{{ cert_subject }}'"
-  vars:
-    cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
-  when: generate_crypto_orion is defined and generate_crypto_orion == True and network.config.tm_tls == True
-
 # Check if orion binary already exists
 - name: check orion binary
   stat:
