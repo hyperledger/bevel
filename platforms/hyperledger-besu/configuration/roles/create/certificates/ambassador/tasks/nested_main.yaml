@@ -102,14 +102,40 @@
     domain_name: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
   when: root_certs.failed == True
 
-# Stores the genreated ambassador tls certificates to vault
-- name: Putting certs to vault
+# Generate crypto for besu nodes and knownserver file
+- name: create tls credentials for besu
   shell: |
-    vault kv put secret/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)"
+    cd {{ ambassadortls }}
+    eval "openssl genrsa -out {{ node_name }}-besu-node.key 2048"
+    eval "openssl req -new -key {{ node_name }}-besu-node.key -out {{ node_name }}-besu-node.csr -subj '/CN={{ common_name }}'"
+    eval "openssl x509 -req -in {{ node_name }}-besu-node.csr -CA {{ rootca }}/rootca.pem -CAkey {{ rootca }}/rootca.key -CAcreateserial -out {{ node_name }}-besu-node.pem -days 500 -sha256"
+    eval "cat {{ node_name }}-besu-node.key {{ node_name }}-besu-node.pem > {{ node_name }}_certificates.pem"
+    eval "openssl pkcs12 -export -in {{ node_name }}_certificates.pem -out {{ node_name }}-besu-node.pkcs12 -password pass:changeme -name myAlias -noiter -nomaciter"
+    eval "echo "changeme" > {{ node_name }}-password"
+    eval "openssl x509 -in {{node_name}}-certchain.pem -noout -fingerprint -sha256 > {{node_name}}-certchain-sha256"
+    eval "export DIGEST=$(awk '{print $2}' {{node_name}}-certchain-sha256 | sed -n 's/Fingerprint=\(.*\)/\1/p')"
+    eval "printf '%s\n' '{{ node_name }}.{{ component_ns }}:{{ node.tm_clientport.port | default('8888') }} $DIGEST' '{{ common_name }} $DIGEST' > {{ node_name }}-knownServer"
+  vars:
+    common_name: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
+  when: network.config.tm_tls == True and root_certs.failed == True
+
+# Stores the genreated ambassador tls certificates to vault if tls is off for network
+- name: Putting ambassador certs to vault
+  shell: |
+    vault kv put secret/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" 
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: root_certs.failed == True
+  when: root_certs.failed == True and network.config.tm_tls == False
+
+# Stores the genreated ambassador tls certificates to vault
+- name: Putting tls certs to vault
+  shell: |
+    vault kv put secret/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" keystore="$(cat {{ambassadortls}}/{{ node_name }}-besu-node.pkcs12 | base64)" password="$(cat {{ambassadortls}}/{{ node_name }}-password | base64)" knownServer="$(cat {{ambassadortls}}/{{ node_name }}-knownServer | base64)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: root_certs.failed == True and network.config.tm_tls == True
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists

@@ -45,6 +45,7 @@ spec:
 
     node:
       name: {{ peer.name }}
+      tls: {{ network.config.tm_tls }}
       consensus: {{ consensus }}
       mountPath: /etc/genesis
       servicetype: ClusterIP
@@ -63,6 +64,7 @@ spec:
       secretprefix: secret/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: data
+      tlsdir: tls
       role: vault-role
       authpath: besu{{ name }}
 

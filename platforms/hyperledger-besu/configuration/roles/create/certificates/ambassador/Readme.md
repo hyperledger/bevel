@@ -110,8 +110,16 @@ This task generates the ambassador tls certificates.
 **shell**: It generates ambassador.crt and ambassador.key.
 **when**:  It runs when *ambassador_tls_certs.failed* == True, i.e. ambassador certs are not present and are generated. 
 
+#### 11. create tls credentials for besu
+This task generates the tls keystore and files for besu node.
 
-#### 11. Putting certs to vault
+##### Input Variables
+    common_name: Contains component name and  external_url_suffix, Fetched using 'item.' from network.yaml
+
+**shell**: It generates ambassador.crt and ambassador.key.
+**when**:  It runs when *network.config.tm_tls* == True, i.e. ambassador certs are not present and are generated. 
+
+#### 12. utting ambassador certs to vault
 This task writes the root and ambassador tls certificates to Vault
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -120,9 +128,20 @@ This task writes the root and ambassador tls certificates to Vault
     *node_name: The name of the node in the organisation.
 
 **shell**: It writes the generated certificates to the vault.
-**when**:  It runs when *ambassador_tls_certs.failed* == True, i.e. ambassador certs are not present and are generated. 
+**when**:  It runs when *ambassador_tls_certs.failed* == True and *network.config.tm_tls* == False, i.e. ambassador certs are not present and the tls is off for the network. 
 
-#### 12. Check Ambassador cred exists
+#### 13. Putting tls certs to vault
+This task writes the root and ambassador tls certificates to Vault
+##### Input Variables
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+    *component_ns: The name of namespaces 
+    *node_name: The name of the node in the organisation.
+
+**shell**: It writes the generated certificates to the vault.
+**when**:  It runs when *ambassador_tls_certs.failed* == True and *network.config.tm_tls* == True, i.e. ambassador certs are not present and the tls is on for the network. 
+
+#### 14. Check Ambassador cred exists
 This tasks check if the Check Ambassador credentials exists or not.
 ##### Input Variables
 
@@ -135,7 +154,7 @@ This tasks check if the Check Ambassador credentials exists or not.
 
     get_ambassador_secret: This variable stores the output of Ambassador credentials check query.
     
-#### 13. Create the Ambassador credentials
+#### 15. Create the Ambassador credentials
 This task creates the Ambassador TLS credentials.
 ##### Input Variables
     *node_name: The name of resource
