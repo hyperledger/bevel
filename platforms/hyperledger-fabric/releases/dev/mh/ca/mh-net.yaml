@@ -1,0 +1,43 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: mh-net-ca
+  namespace: mh-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: mh-net-ca
+  chart:
+    git: git@github.com:himanshulalarya/blockchain-automation-framework.git
+    ref: new
+    path: platforms/hyperledger-fabric/charts/ca    
+  values:
+    metadata:
+      namespace: mh-net
+      images:
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+        ca: hyperledger/fabric-ca:1.4.4
+    server:
+      name: ca
+      tlsstatus: true
+      admin: mh-admin
+    storage:
+      storageclassname: mhsc
+      storagesize: 512Mi
+    vault:
+      role: vault-role
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      authpath: mh-net-auth
+      secretcert: secret/crypto/peerOrganizations/mh-net/ca?ca.mh-net-cert.pem
+      secretkey: secret/crypto/peerOrganizations/mh-net/ca?mh-net-CA.key
+      secretadminpass: secret/credentials/mh-net/ca/mh?user
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    service:
+      servicetype: ClusterIP
+      ports:
+        tcp:
+          port: 7054
+    proxy:
+      provider: haproxy
+      type: peer
