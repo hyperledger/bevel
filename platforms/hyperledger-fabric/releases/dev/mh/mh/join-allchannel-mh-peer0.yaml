@@ -1,0 +1,41 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: join-allchannel-mh-peer0
+  namespace: mh-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: join-allchannel-mh-peer0
+  chart:
+    git: git@github.com:himanshulalarya/blockchain-automation-framework.git
+    ref: new
+    path: platforms/hyperledger-fabric/charts/join_channel
+  values:
+    metadata:
+      namespace: mh-net
+      images:
+        fabrictools: hyperledger/fabric-tools:1.4.4
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    peer:
+      name: peer0
+      address: peer0.mh-net.hf.dev.aws.blockchaincloudpoc-develop.com:8443
+      localmspid: mhMSP
+      loglevel: debug
+      tlsstatus: true
+
+    vault:
+      role: vault-role
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      authpath: mh-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/mh-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/mh-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    channel:
+      name: allchannel      
+    orderer:
+      address: orderer3.hf.dev.aws.blockchaincloudpoc-develop.com:8443
+
