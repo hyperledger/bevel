@@ -20,5 +20,6 @@ This section defines the pre-requisites installation and steps for setup of a DL
     operations/upgrade_fabricnetwork.md
     operations/adding_new_org_fabric
     operations/indy_verify.md
+    operations/fabric_verify.md
     operations/adding_new_org_quorum
     operations/adding_new_storageclass.md
