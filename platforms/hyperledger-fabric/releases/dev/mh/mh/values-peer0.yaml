@@ -1,0 +1,63 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: mh-peer0
+  namespace: mh-net
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: mh-peer0
+  chart:
+    git: git@github.com:himanshulalarya/blockchain-automation-framework.git
+    ref: new
+    path: platforms/hyperledger-fabric/charts/peernode    
+  values:
+    metadata:
+      namespace: mh-net
+      images:
+        couchdb: hyperledger/fabric-couchdb:0.4.18
+        peer: hyperledger/fabric-peer:1.4.4
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+        
+    peer:
+      name: peer0
+      gossippeeraddress: peer0.mh-net.hf.dev.aws.blockchaincloudpoc-develop.com:8443
+      gossipexternalendpoint: peer0.mh-net.hf.dev.aws.blockchaincloudpoc-develop.com:8443
+      localmspid: mhMSP
+      loglevel: info
+      tlsstatus: true
+      builder: hyperledger/fabric-ccenv:1.4.4
+      couchdb:
+        username: mh-user
+
+    storage:
+      peer:
+        storageclassname: mhsc
+        storagesize: 512Mi
+      couchdb:
+        storageclassname: mhsc
+        storagesize: 1Gi
+
+    vault:
+      role: vault-role
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      authpath: mh-net-auth
+      secretprefix: secret/crypto/peerOrganizations/mh-net/peers/peer0.mh-net
+      secretambassador: secret/crypto/peerOrganizations/mh-net/ambassador
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      secretcouchdbpass: secret/credentials/mh-net/couchdb/mh?user
+
+    service:
+      servicetype: ClusterIP
+      ports:
+        grpc:
+          clusteripport: 7051
+        events:
+          clusteripport: 7053
+        couchdb:
+          clusteripport: 5984
+          
+    proxy:
+      provider: haproxy
+      external_url_suffix: hf.dev.aws.blockchaincloudpoc-develop.com
