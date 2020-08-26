@@ -221,6 +221,8 @@ spec:
           then
             echo "Setting network parameters for deployment..."
             bin/set-network-parameters.sh
+          else
+            echo "Already set, no need to set network parameters"
           fi
         volumeMounts:
         - name: nmap-conf
@@ -302,8 +304,8 @@ spec:
           emptyDir:
             medium: Memory
         - name: nmap-etc
-          emptyDir:
-            medium: Memory
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-etc
         - name: nmap-conf
           configMap:
             name: {{ .Values.nodeName }}-conf
