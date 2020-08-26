@@ -1,7 +1,7 @@
 ---
 Capabilities:
 {% if '2.' in network.version %}
-  Global: &ChannelCapabilities
+  Channel: &ChannelCapabilities
     V2_0: true
   Orderer: &OrdererCapabilities
     V2_0: true
