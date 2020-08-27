@@ -20,11 +20,13 @@ spec:
       initContainerName: {{ init_container_name }}
       imagepullsecret: {{ image_pull_secret }}
     dockerImage:
-      name: {{ docker_image }}
-      tag: {{ docker_image_tag }}
+      notaryContainerName: {{ docker_image }}
       pullPolicy: Always
       imagePullSecret: {{ image_pull_secret }}
     acceptLicense: YES
+    cenmServices:
+      idmanName: {{ idman_name }}
+      networkmapName: {{ networkmap_name }}
     vault:
       address: {{ vault_addr }}
       certsecretprefix: {{ vault_cert_secret_prefix }}

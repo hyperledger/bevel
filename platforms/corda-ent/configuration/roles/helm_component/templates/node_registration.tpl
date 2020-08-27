@@ -21,6 +21,11 @@ spec:
       nodeContainerName: {{ docker_image }}
       imagepullsecret: {{ image_pull_secret }}
       pullPolicy: Always
+    cenmServices:  
+      idmanName: {{ idman_name }}
+      networkmapName: {{ networkmap_name }}
+    truststorePassword: password
+    keystorePassword: password
     acceptLicence: true
     networkServices:
       doormanURL: {{ doorman_url }}

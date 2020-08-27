@@ -79,6 +79,7 @@ spec:
                     fi 
                     COUNTER=`expr "$COUNTER" + 1`
                 done
+
                 if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
                 then
                   # printing number of trial done before giving up
@@ -86,12 +87,23 @@ spec:
                   echo "network truststore certificates might not have been put in vault. Giving up!!!"
                   exit 1
                 fi
+                
+                mkdir -p ${MOUNT_PATH}/tlscerts
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.idmanName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+                IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+                echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/idman.crt
+
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+                NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+                echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
                 echo "Done"
           volumeMounts:
           - name: certificates
             mountPath: /DATA
         - name: registration
-          image: "{{ required "notary[registration]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}:{{ required "notary[registration]: missing value for .Values.dockerImage.tag" .Values.dockerImage.tag }}"
+          image: "{{ required "notary[main]: missing value for .Values.dockerImage.notaryContainerName" .Values.dockerImage.notaryContainerName }}"
           env:
             - name: ACCEPT_LICENSE
               value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
@@ -102,6 +114,8 @@ spec:
             cp CM-FILES/notary.conf etc/
             cp CM-FILES/*.sh bin/
             chmod +x bin/*
+            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias networkmap -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias idman -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
             bin/notary-initial-registration.sh
             bin/create-network-parameters-file.sh
           volumeMounts:

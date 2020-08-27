@@ -236,7 +236,7 @@ spec:
           # setting up env to get secrets from vault
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-
+          COUNTER=1
           # perform check if network-parameters are ready or not, and upload it into vault when ready
           cd ${BASE_DIR}/{{ .Values.workspacePath }}
           while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]

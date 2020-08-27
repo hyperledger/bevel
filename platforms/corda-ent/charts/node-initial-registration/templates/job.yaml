@@ -88,6 +88,17 @@ spec:
                   echo "network truststore certificates might not have been put in vault. Giving up!!!"
                   exit 1
                 fi
+
+                mkdir -p ${MOUNT_PATH}/tlscerts
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.idmanName }} | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.idmanName }})" "${LOOKUP_SECRET_RESPONSE}"
+                IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman.crt"]')
+                echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/idman.crt
+
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.networkmapName }} | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.networkmapName }})" "${LOOKUP_SECRET_RESPONSE}"
+                NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.crt"]')
+                echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
                 echo "Done"
           volumeMounts:
           - name: certificates
@@ -106,6 +117,8 @@ spec:
             cp CM-FILES/*.sh bin/
             cp corda.jar bin/
             chmod +x bin/*
+            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias networkmap -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias idman -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
             bin/node-initial-registration.sh
           volumeMounts:
           - name: node-conf

@@ -43,9 +43,7 @@
     networkmap_name: "{{ org.services.networkmap.name }}"
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
-    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
-    docker_image: "corda/notary"
-    docker_image_tag: "1.2-zulu-openjdk8u242"
+    init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
     vault_authpath: "cordaent{{ org.name | lower }}"
     ambassador_p2pPort: "{{ org.services.notary.p2p.ambassador }}"
     corda_service_version: cenm-notary-{{ org.version }}
@@ -53,8 +51,8 @@
     image_pull_secret: "regcred"
     vault_addr: "{{ org.vault.url }}"
     vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
-    idman_url: "http://{{ org.services.idman.name }}.{{ org.name | lower }}-ent:{{ org.services.idman.port }}"
-    networkmap_url: "http://{{ org.services.networkmap.name }}.{{ org.name | lower }}-ent:{{ org.services.networkmap.ports.servicePort }}"
+    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
   when: nodekeystore_result.failed == True
 
 - name: "Push the created deployment files to repository"

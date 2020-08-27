@@ -32,7 +32,7 @@
     node_name: "{{ peer.name | lower }}"
     image_pull_secret: "regcred"
     storageclass: "cenmsc"
-    container_name: "{{ network.docker.url }}/h2:2018"
+    container_name: "index.docker.io/hyperledgerlabs/h2:2018"
     tcp_port: "{{ peer.dbtcp.port }}"
     tcp_targetport: "{{ peer.dbtcp.targetPort }}"
     web_port: "{{ peer.dbweb.port }}"
@@ -51,8 +51,8 @@
     charts_dir: "{{ org.gitops.chart_source }}"
     component_name: "{{ peer.name | lower }}registration"
     component_ns: "{{ org.name | lower }}-ent"
-    node_name: "{{ peer.name | lower }}"
-    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    node_name: "{{ peer.name | lower }}registration"
+    init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
     values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"
     corda_service_version: node
@@ -70,6 +70,8 @@
     tls_cert_crl_issuer: "{{ network | json_query('orderers[?type==`signer`].subject') | first }}"
     networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
     doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    idman_name: "{{ network | json_query('orderers[?type==`idman`].name') | first }}"
+    networkmap_name: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
     dev_mode: false
     p2p_port: "{{ peer.firewall.bridge.port }}"
     p2p_address: "{{ peer.firewall.float.name }}.{{ org.name | lower }}-ent"
