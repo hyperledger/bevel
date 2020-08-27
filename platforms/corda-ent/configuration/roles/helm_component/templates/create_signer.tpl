@@ -18,7 +18,7 @@ spec:
     replicas: 1
     image:
       imagePullSecret: regcred
-      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
+      initContainerName: index.docker.io/hyperledgerlabs/alpine-utils:1.0
     storage:
       name: cenmsc
     dockerImageSigner:

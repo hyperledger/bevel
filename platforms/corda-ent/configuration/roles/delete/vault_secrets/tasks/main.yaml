@@ -105,12 +105,13 @@
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   when: org.type == 'cenm'
 
+
 # This task deletes crypto material
 - name: Delete Crypto material 
   shell: |
     vault delete secret/{{ org.name | lower }}/certs/customnodekeystore
-    vault delete secret/{{ org.name | lower }}/certs/idman
-    vault delete secret/{{ org.name | lower }}/certs/networkmap
+    vault delete secret/{{ org.name | lower }}/certs/{{ network | json_query('orderers[?type==`idman`].name') | first }}
+    vault delete secret/{{ org.name | lower }}/certs/{{ network | json_query('orderers[?type==`networkmap`].name') | first }}
     vault delete secret/{{ org.name | lower }}/certs/networkmaptruststore
     vault delete secret/{{ org.name | lower }}/certs/nodekeystore
     vault delete secret/{{ org.name | lower }}/certs/sslkeystore
@@ -118,6 +119,7 @@
     vault delete secret/{{ org.name | lower }}/tlscerts
     vault delete secret/{{ org.name | lower }}/certs
     vault delete secret/{{ org.name | lower }}/root/certs
+    vault delete secret/{{ org.name | lower }}/network-parameters
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
