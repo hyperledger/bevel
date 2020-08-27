@@ -12,7 +12,7 @@ spec:
     ref: {{ git_branch }}
     path: {{ charts_dir }}/node-initial-registration
   values:
-    nodeName: {{ node_name }}
+    nodeName: {{ node_name }}-registration
     metadata:
       namespace: {{ component_ns }}
       labels:
