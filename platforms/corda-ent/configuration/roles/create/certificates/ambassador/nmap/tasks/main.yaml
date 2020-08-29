@@ -2,10 +2,16 @@
 # and places them in vault. Certificates are created using openssl
 # This also creates the corresponding Kubernetes secret
 ---
+
+# Set variable for networkmap tls certificate path
+- name: Set variable for networkmap tls certificate path
+  set_fact:
+    nmap_tlscert_path: "{{ network | json_query('orderers[?type==`networkmap`].certificate') | first }}"
+
 # check if the ambassador tls directory exists
 - name: "Check if the ambassador directory exists or not"
   stat:
-    path: "./build/ambassador/{{ org.services.networkmap.name }}"
+    path: "{{ nmap_tlscert_path | dirname }}"
   register: ambassadordir_check
 
 # Create the ambassador directory if it doesn't exist
@@ -14,7 +20,7 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     check: "ensure_dir"
-    path: "./build/ambassador/{{ org.services.networkmap.name }}"
+    path: "{{ nmap_tlscert_path | dirname }}"
   when: not ambassadordir_check.stat.exists
 
 # Check if the ambassador tls is already created
@@ -34,7 +40,7 @@
   vars:
     vault_output: "{{ ambassador_tls_certs.stdout | from_yaml }}"
     type: "ambassador"
-    cert_path: "./build/ambassador/{{ org.services.networkmap.name }}"
+    cert_path: "{{ nmap_tlscert_path | dirname }}"
   when: ambassador_tls_certs.failed == False
 
 # Check if ambassadortls dir is there
@@ -46,7 +52,7 @@
 # Generates the openssl file for domain
 - name: Generate openssl conf file
   shell: |
-    cd ./build/ambassador/{{ org.services.networkmap.name }}
+    cd {{ nmap_tlscert_path | dirname }}
     cat <<EOF >openssl{{ org.services.networkmap.name }}.conf
     [dn]
     CN={{ domain_name }}
@@ -77,20 +83,20 @@
 # Check if the rootca.jks is already present or not
 - name: Check if rootca.jks is present
   stat:
-    path: "./build/ambassador/{{ org.services.networkmap.name }}/rootca.jks"
+    path: "{{ nmap_tlscert_path | dirname }}/rootca.jks"
   register: check_rootcajks
 
 # Store the rootca.jks in build folder if it doesn't exist
 - name: Store the keystore in a file
   copy:
     content: "{{ subordinateca.stdout | b64decode }}"
-    dest: "./build/ambassador/{{ org.services.networkmap.name }}/rootca.jks"
+    dest: "{{ nmap_tlscert_path | dirname }}/rootca.jks"
   when: not check_rootcajks.stat.exists and ambassador_tls_certs.failed == True
 
 # Create ambassador certificates
 - name: Create ambassador certificates
   shell: |
-    cd ./build/ambassador/{{ org.services.networkmap.name }}
+    cd {{ nmap_tlscert_path | dirname }}
     keytool -importkeystore -srckeystore rootca.jks -destkeystore rootca.p12 -deststoretype PKCS12 -srcalias subordinateca -deststorepass password -srcstorepass password
     keytool -export -alias subordinateca -keystore rootca.jks -rfc -file rootca.pem -storepass password
     openssl pkcs12 -in rootca.p12  -nodes -nocerts -out key.pem -passin pass:'password'
@@ -102,7 +108,7 @@
 # Store the ambassador certificates into the vault
 - name: Store the ambassador certs to vault
   shell: |
-    vault kv put secret/{{ org.name | lower }}/{{ org.services.networkmap.name }}/tlscerts tlscacerts="$(cat ./build/ambassador/{{ org.services.networkmap.name }}/ambassador.pem | base64)" tlskey="$(cat ./build/ambassador/{{ org.services.networkmap.name }}/ambassador.key | base64)"
+    vault kv put secret/{{ org.name | lower }}/{{ org.services.networkmap.name }}/tlscerts tlscacerts="$(cat {{ nmap_tlscert_path | dirname }}/ambassador.pem | base64)" tlskey="$(cat {{ nmap_tlscert_path | dirname }}/ambassador.key | base64)"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -121,5 +127,5 @@
 # Create the ambassador secret if it doesn't exist
 - name: Create the ambassador credentials
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} kubectl create secret tls {{ org.services.networkmap.name }}-ambassador-certs --cert="./build/ambassador/{{ org.services.networkmap.name }}/ambassador.pem" --key="./build/ambassador/{{ org.services.networkmap.name }}/ambassador.key" -n default
+    KUBECONFIG={{ org.k8s.config_file }} kubectl create secret tls {{ org.services.networkmap.name }}-ambassador-certs --cert="{{ nmap_tlscert_path | dirname }}/ambassador.pem" --key="{{ nmap_tlscert_path | dirname }}/ambassador.key" -n default
   when: get_ambassador_secret.resources|length == 0

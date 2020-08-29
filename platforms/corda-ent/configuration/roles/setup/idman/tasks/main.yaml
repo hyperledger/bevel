@@ -1,5 +1,6 @@
 # This role creates the the value file for idman chart and pushes it to the git repository
 
+# Waitin for the signer pod to come up
 - name: "Waiting for signer pod to come up"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -10,6 +11,11 @@
     kubernetes: "{{ org.k8s }}"
     label_selectors:
       - app = {{ component_name }}
+
+# Create ambassador certificates for idman
+- name: Create idman ambassador certificates
+  include_role:
+    name: create/certificates/ambassador/idman
 
 # This task will loop over the network.yaml to fetch the cenm details
 - name: Create value file for idman
@@ -25,7 +31,7 @@
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     node_name: "{{ org.services.idman.name }}"
-    storageclass: "cenmsc"
+    storageclass: "cordaentsc"
     init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
     image_pull_secret: "regcred"
     idman_image_name: corda/enterprise-identitymanager

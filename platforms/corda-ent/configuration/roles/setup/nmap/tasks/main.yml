@@ -2,6 +2,17 @@
 # This role creates the value file for nmap
 ##############################################################################################
 
+# Create ambassador certificates for networkmap
+- name: Create networkmap ambassador certificates
+  include_role:
+    name: create/certificates/ambassador/nmap
+
+# ----------------------------------------------------------------------   
+# Create value file for notary-initial-registration 
+- name: Create value file for notary registration job
+  include_role:
+    name: setup/notary-initial-registration
+
 # Wait for the notary initial registration job to get complete
 - name: "waiting for notary initial registration job to get complete"
   include_role:
@@ -28,7 +39,7 @@
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     node_name: "{{ org.services.networkmap.name | lower }}"
-    storageclass: "cenmsc"
+    storageclass: "cordaentsc"
     init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
     image_pull_secret: "regcred"
     corda_service_version: cenm-networkmap-{{ org.version }}

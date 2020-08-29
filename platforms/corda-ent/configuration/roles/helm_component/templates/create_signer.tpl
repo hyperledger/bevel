@@ -20,7 +20,7 @@ spec:
       imagePullSecret: regcred
       initContainerName: index.docker.io/hyperledgerlabs/alpine-utils:1.0
     storage:
-      name: cenmsc
+      name: cordaentsc
     dockerImageSigner:
       name: corda/enterprise-signer
       tag: 1.2-zulu-openjdk8u242
