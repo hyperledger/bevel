@@ -91,6 +91,10 @@ The snapshot of the `config` section with example values is below
     # Supported versions #
     # orion: 1.5.2 (for besu 1.4.4)
     tm_version: "1.5.2"               # This is the version of "orion" docker image that will be deployed
+    # TLS can be True or False for the orion tm
+    tm_tls: True
+    # Tls trust value
+    tm_trust: "ca-or-tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## File location for saving the genesis file should be provided.
     genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
 
@@ -103,6 +107,8 @@ The fields under `config` are
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
 | transaction_manager    | Currently supports `orion`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. |
 | tm_version         | This is the version of `orion` docker image that will be deployed. Supported versions: `1.5.2` for `orion`. |
+| tm_tls | Options are `True` and `False`. This enables TLS for the transaction manager and Besu node. `False` is not recommended for production. |
+| tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for orion]( https://docs.orion.pegasys.tech/en/latest/Tutorials/TLS/ ).|
 | genesis | This is the path where `genesis.json` will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file. |
 
 
@@ -211,13 +217,11 @@ Each organization with type as `member` will have a peers service. The snapshot 
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
-            ambassador: 15012
           tm_nodeport:
             port: 8888         
             ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
           tm_clientport:
-            port: 8080         
-            ambassador: 15014    # Port exposed on ambassador service (Transaction manager client port)    
+            port: 8080             
 ```
 The fields under `peer` service are
 
@@ -231,11 +235,9 @@ The fields under `peer` service are
 | rpc.port   | RPC port for Besu|
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
 | ws.port   | Webservice port for Besu|
-| ws.ambassador | The Webservice Port when exposed on ambassador service|
 | tm_nodeport.port   | Port used by Transaction manager `orion`. |
 | tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
 | tm_clientport.port   | Client Port used by Transaction manager `orion`. |
-| tm_clientport.ambassador | The Client port when exposed on ambassador service. |
 
 Each organization with type as `validator` will have a validator service. The snapshot of validator service with example values is below
 ```yaml
@@ -251,7 +253,6 @@ Each organization with type as `validator` will have a validator service. The sn
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546          
-            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
             
 ```
 The fields under `validator` service are
@@ -265,6 +266,5 @@ The fields under `validator` service are
 | rpc.port   | RPC port for Besu|
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
 | ws.port   | Webservice port for Besu|
-| ws.ambassador | The Webservice Port when exposed on ambassador service|
 
 *** feature is in future scope
