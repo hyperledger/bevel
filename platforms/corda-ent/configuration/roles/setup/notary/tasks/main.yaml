@@ -14,6 +14,11 @@
     label_selectors:
       - app = {{ component_name }}
 
+# Create notary ambassador certificates
+- name: Create ambassador certficates for notary
+  include_role:
+    name: create/certificates/ambassador/notary
+
 # Create deployment file for CENM notary service db
 - name: "Create db for notary"
   include_role:
@@ -29,7 +34,7 @@
     git_branch: "{{ org.gitops.branch }}"
     node_name: "{{ org.services.notary.name | lower }}"
     image_pull_secret: "regcred"
-    storageclass: "cenmsc"
+    storageclass: "cordaentsc"
     container_name: "index.docker.io/hyperledgerlabs/h2:2018"
     tcp_port: "{{ org.services.notary.dbtcp.port }}"
     tcp_targetport: "{{ org.services.notary.dbtcp.targetPort }}"
@@ -53,7 +58,7 @@
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     node_name: "{{ org.services.notary.name }}"
-    storageclass: "cenmsc"
+    storageclass: "cordaentsc"
     init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
     image_pull_secret: "regcred"
     vault_addr: "{{ org.vault.url }}"

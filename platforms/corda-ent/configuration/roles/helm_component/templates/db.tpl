@@ -20,11 +20,11 @@ spec:
       containerName: {{ container_name }}
       imagePullSecret: {{ image_pull_secret }}
     resources:
-      limits: 512Mi
-      requests: 512Mi
+      limits: 128Mi
+      requests: 128Mi
     storage:
       name: {{ storageclass }}
-      memory: 512Mi
+      memory: 128Mi
     service:
       type: NodePort
       tcp:
