@@ -64,6 +64,7 @@ spec:
       url: "http://{{ name }}.{{ external_url }}"
 {% endif %}
       nodelist: "{{nodelist}}"
+      trust: {{ network.config.tm_trust }}
       ports:
         nodeport: {{ peer.tm_nodeport.port }}
         clientport: {{ peer.tm_clientport.port }}
