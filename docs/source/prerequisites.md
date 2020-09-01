@@ -48,7 +48,7 @@ Please note that this machine (also called **Ansible Controller**) should have c
 ---
 ### Configuring Ansible Inventory file
 
-In the Blockchain Automation Framework, we connect to Kubernetes cluster through the **Ansible Controller** and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). 
+In the Blockchain Automation Framework, we connect to Kubernetes cluster through the **Ansible Controller** and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisioners). 
 
 Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
 
