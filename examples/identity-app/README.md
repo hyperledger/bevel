@@ -71,7 +71,7 @@ example of Endorser:
             httpPort: 15023
             apiPort: 15024
 ```
-- Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -i platforms/shared/inventory/ansible_provisoners examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/network.yaml"`
+- Run Ansible [playbook](./configuration/deploy-identity-app.yaml) with command: `ansible-playbook -i platforms/shared/inventory/ansible_provisioners examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/network.yaml"`
 For minikube, pass additional parameter minikube_ip: `ansible-playbook examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/network.yaml" -e "minikube_ip='192.x.x.x'"`
 
 ### Step 6
