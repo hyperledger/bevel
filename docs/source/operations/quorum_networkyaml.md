@@ -221,7 +221,7 @@ The gitops field under each organization contains
 | email                                | Email of the user to be used in git config                                                                       |
 | private_key                          | Path to the private key file which has write-access to the git repo                                              |
 
-The services field for each organization under `organizations` section of Quorum contains list of `services` which could be ony peers as of now.
+The services field for each organization under `organizations` section of Quorum contains list of `services` which could be only peers as of now.
 
 Each organization with type as peer will have a peers service. The snapshot of peers service with example values is below
 ```yaml
