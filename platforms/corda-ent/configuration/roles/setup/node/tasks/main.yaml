@@ -1,0 +1,92 @@
+#This task creates the value file for the node registration as well the db required and push them to the git repository
+
+# Create ambassador certificates for node
+- name: Create ambassador certificates for node
+  include_role:
+    name: create/certificates/ambassador/node
+
+# Get idman & networkmap tls certificates for nodes
+- name: Get idman & networkmap tls certificates for nodes
+  include_role:
+    name: setup/tlscerts
+
+# Create value file for node registration
+- name: Create value file for node registration
+  include_role:
+    name: setup/node_registration
+
+# Wait for node registration job to complete
+- name: "Waiting for node registration job to complete"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name | lower }}-ent"
+    component_name: "{{ peer.name }}-registration"
+    kubernetes: "{{ org.k8s }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+
+# Create value file for node
+- name: "Create value file for node"
+  include_role:
+    name: helm_component
+  vars:
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    component_name: "{{ peer.name | lower }}"
+    component_ns: "{{ org.name | lower }}-ent"
+    node_name: "{{ peer.name | lower }}"
+    init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    vault_address: "{{ org.vault.url }}"
+    vault_auth_path:  "cordaent{{ org.name | lower }}"
+    vault_cert_secret_prefix: "secret/{{ peer.name | lower }}"
+    vault_node_path: "{{ peer.name | lower }}"
+    legal_name: "{{ org.subject }}"
+    tls_cert_crl_issuer: "{{ network | json_query('orderers[?type==`signer`].subject') | first }}"
+    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    p2p_port: "{{ peer.firewall.bridge.port }}"
+    p2p_address: "{{ peer.firewall.float.name }}.{{ org.name | lower }}-ent"
+    rpc_port: "{{ peer.rpc.port }}"
+    rpc_admin_port: "{{ peer.rpcadmin.port }}"
+    user_name: "{{ peer.name | lower }}"
+    user_password: "{{ peer.name | lower }}P"
+    datasource_user: "{{ peer.name | lower }}-db-user"
+    datasource_password: "{{ peer.name | lower }}-db-password"
+    datasource_url: "jdbc:h2:tcp://{{ peer.name | lower }}db:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+    idman_name: "{{ network | json_query('orderers[?type==`idman`].name') | first }}"
+    networkmap_name: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
+    external_url_suffix: "{{ org.external_url_suffix }}"
+    ambassador_p2p_port: "{{ peer.p2p.ambassador }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+
+# Create value file for bridge 
+- name: Create value file for bridge
+  include_role:
+    name: setup/bridge
+
+# Create value file for float 
+- name: Create value file for float
+  include_role:
+    name: setup/float
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/corda-ent/configuration"
+    msg: "[ci skip] Pushing node"
