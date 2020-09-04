@@ -69,9 +69,9 @@ spec:
       cordaJar:
         memorySize: 512
         unit: M
+      pod:  
         resources:
           limits: 512M
           requests: 512M
       replicas: 1
-    healthCheck:
-      nodePort: 0
+

@@ -30,6 +30,8 @@ spec:
       role: {{ vault_role }}
       authPath: {{ auth_path }}
       serviceAccountName: {{ vault_serviceaccountname }}
+      retries: 10
+      sleepTimeAfterError: 15
     service:
       external:
         port: {{ idman_port }}
@@ -55,14 +57,11 @@ spec:
       cordaJar:
         memorySize: 512
         unit: M
+      pod:
         resources:
           limits: 512M
           requests: 512M
       replicas: 1
       sleepTimeAfterError: 120
-    healthCheck:
-      readinessCheckInterval: 10
-      readinessThreshold: 15
-      nodePort: 0
     ambassador:
       external_url_suffix: {{ external_url_suffix }}
