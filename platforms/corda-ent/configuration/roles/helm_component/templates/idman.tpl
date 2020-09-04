@@ -22,7 +22,7 @@ spec:
       imagePullSecret: {{ image_pull_secret }}
     storage:
       name: {{ storageclass }}
-      memory: 64Mi
+      memory: 700Mi
     acceptLicense: YES
     vault:
       address: {{ vault_addr }}

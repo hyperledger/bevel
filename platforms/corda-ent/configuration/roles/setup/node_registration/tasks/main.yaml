@@ -6,7 +6,7 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Pod"
-    namespace: "{{ org.name | lower }}-ent"
+    namespace: "{{ component_ns }}"
     component_name: "{{ org.services.notary.name }}"
     kubernetes: "{{ org.k8s }}"
     label_selectors:
@@ -22,7 +22,6 @@
     name: helm_component
   vars:
     component_name: "{{ peer.name | lower }}db"
-    component_ns: "{{ org.name | lower }}-ent"
     type: "db"
     values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"
@@ -50,7 +49,6 @@
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     component_name: "{{ peer.name | lower }}registration"
-    component_ns: "{{ org.name | lower }}-ent"
     node_name: "{{ peer.name | lower }}"
     init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
     values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
@@ -74,7 +72,7 @@
     networkmap_name: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
     dev_mode: false
     p2p_port: "{{ peer.firewall.bridge.port }}"
-    p2p_address: "{{ peer.firewall.float.name }}.{{ org.name | lower }}-ent"
+    p2p_address: "{{ peer.firewall.float.name }}.{{ component_ns }}"
     ssh_enabled: true
     ssh_port: 2222
     rpc_port: "{{ peer.rpc.port }}"

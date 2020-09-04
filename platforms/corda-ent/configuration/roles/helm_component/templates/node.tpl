@@ -76,7 +76,7 @@ spec:
       baseDir: /opt/corda
     jarPath: bin
     configPath: etc
-    cordaJarMx: 3
+    cordaJarMx: 1524
     sleepTimeAfterError: 120
     sleepTime: 0
     healthcheck:

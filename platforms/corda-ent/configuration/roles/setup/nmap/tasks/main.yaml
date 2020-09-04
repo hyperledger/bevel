@@ -2,34 +2,48 @@
 # This role creates the value file for nmap
 ##############################################################################################
 
-# Create ambassador certificates for networkmap
-- name: Create networkmap ambassador certificates
-  include_role:
-    name: create/certificates/ambassador/nmap
-
-# ----------------------------------------------------------------------   
-# Create value file for notary-initial-registration 
-- name: Create value file for notary registration job
-  include_role:
-    name: setup/notary-initial-registration
-
-# Wait for the notary initial registration job to get complete
-- name: "waiting for notary initial registration job to get complete"
+# Wait for the pki-generator job to get complete
+- name: "waiting for pki-generator job to get complete"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Job"
-    namespace: "{{ org.name | lower }}-ent"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ org.name | lower }}-generate-pki"
+    kubernetes: "{{ org.k8s }}"
+
+# Create ambassador certificates for networkmap
+- name: Create networkmap ambassador certificates
+  include_role:
+    name: create/certificates/cenm
+  vars:
+    tlscert_path: "./build/ambassador/{{ org.services.networkmap.name }}"
+    service_name: "{{ org.services.networkmap.name }}"
+    dest_path: "{{ network | json_query('orderers[?type==`networkmap`].certificate') | first }}"
+   
+# ----------------------------------------------------------------------   
+# Create value file for notary-initial-registration 
+# TODO this is a workaround. Ideally notary registration should be done from setup/notary
+- name: Create value file for notary registration job
+  include_role:
+    name: setup/notary-initial-registration
+
+# Wait for the notary initial registration job to complete
+- name: "waiting for notary initial registration job to complete"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ component_ns }}"
     component_name: "{{ org.services.notary.name | lower }}-initial-registration"
     kubernetes: "{{ org.k8s }}"
 
 # create deployment file for CENM nmap service
-- name: "create nmap"
+- name: "create nmap value files"
   include_role:
     name: helm_component
   vars:
     component_name: "{{ org.name | lower }}nmap"
-    component_ns: "{{ org.name | lower }}-ent"
     type: "nmap"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"

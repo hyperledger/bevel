@@ -2,14 +2,14 @@
 # This role creates the value file for signer
 ##############################################################################################
 
-# Wait for the pki-generator job to get complete
-- name: "waiting for pki-generator job to get complete"
+# Wait for the pki-generator job to complete
+- name: "waiting for pki-generator job to complete"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Job"
-    namespace: "{{ org.name | lower }}-ent"
-    component_name: "{{ org.name | lower }}-pki-generate-pki"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ org.name | lower }}-generate-pki"
     kubernetes: "{{ org.k8s }}"
 
 # create deployment file for CENM signer service
@@ -21,7 +21,6 @@
     chart: "signer"
     name: "{{ org.name | lower }}"
     component_name: "{{ org.services.signer.name }}"
-    component_ns: "{{ org.name | lower }}-ent"
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
     component_auth: "cordaent{{ org.name | lower }}"
