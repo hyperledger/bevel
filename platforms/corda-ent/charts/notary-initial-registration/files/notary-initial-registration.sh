@@ -53,7 +53,7 @@ do
         echo "Notary: running initial registration ..."
         echo
         pwd
-        java -Dcapsule.jvm.args='-Xmx{{ .Values.cordaJarMx }}G' -jar {{ .Values.jarPath }}/corda.jar \
+        java -Dcapsule.jvm.args='-Xmx{{ .Values.cordaJarMx }}M' -jar {{ .Values.jarPath }}/corda.jar \
           initial-registration \
         --config-file={{ .Values.configPath }}/notary.conf \
         --log-to-console \

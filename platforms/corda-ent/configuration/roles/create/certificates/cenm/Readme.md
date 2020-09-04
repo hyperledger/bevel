@@ -1,5 +1,5 @@
-## ROLE: create/certificates/ambassador/networkmap
-This role generates the ambassador certificates and Kubernetes secret required for networkmap communication.
+## ROLE: create/certificates/cenm
+This role generates the ambassador proxy certificates and Kubernetes secret required for inter cluster communication.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
@@ -42,19 +42,19 @@ This tasks fetches the ambassador certificates, if they are present in the vault
 **when**: It runs when **ambassador_tls_certs.failed** variable is False
 
 #### 5. Check if the openssl conf file exists or not
-This tasks check if the openssl file for the networkmap exists on the given path
+This tasks check if the openssl file for the idman exists on the given path
 ##### Input Variables
 
-    path: The path to the opensslnetworkmap.conf file
+    path: The path to the opensslidman.conf file
 ##### Output Variables
 
-    openssl_conf_check: Stores the status of the opensslnetworkmap.conf file
+    openssl_conf_check: Stores the status of the opensslidman.conf file
 
-#### 6. Generate openssl.conf file for networkmap
-This tasks creates the openssl.conf file for the networkmap if it does not exist
+#### 6. Generate openssl.conf file for idman
+This tasks creates the openssl.conf file for the idman if it does not exist
 ##### Input Variables
 
-    domain_name: Domain name of the networkmap, usually formed by IDMAN_NAME.EXTERNAL_URL_SUFFIX
+    domain_name: Domain name of the idman, usually formed by IDMAN_NAME.EXTERNAL_URL_SUFFIX
 
 **when**: It runs when **openssl_conf_check.stat.exists** variable is False
 

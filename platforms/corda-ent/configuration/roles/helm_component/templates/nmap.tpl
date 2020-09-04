@@ -57,12 +57,13 @@ spec:
       port: 5052
     revocation:
       port: 5053
-    cordaJarMx: 1
+    cordaJarMx: 300
     healthCheckNodePort: 0
     jarPath: bin
     bashDebug: false
     configPath: etc
     sleepTimeAfterError: 120
+    sleepTime: 0
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15

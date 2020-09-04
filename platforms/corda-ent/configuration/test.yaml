@@ -55,12 +55,48 @@
       loop_var: org
     when: org.type == 'cenm'
 
-  # ----------------------------------------------------------------------   
-  # Create value file for node
-  - name: Create value file for node
+# ----------------------------------------------------------------------   
+  # Deploy Signer node
+  - name: Deploy Signer service node
     include_role:
-      name: setup/node
+      name: setup/signer
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
-    when: org.type == 'node'
+    when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Get networkroottruststore
+  - name: Fetch networkroottruststore from the vault
+    include_role:
+      name: setup/networkroottruststore
+
+  # ----------------------------------------------------------------------   
+  # Create value file for idman
+  - name: Create value file for idman
+    include_role:
+      name: setup/idman
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Create value file for nmap
+  - name: Create value file for nmap
+    include_role:
+      name: setup/nmap
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'
+
+  # ----------------------------------------------------------------------   
+  # Create value file for notary 
+  - name: Create value file for notary
+    include_role:
+      name: setup/notary
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'

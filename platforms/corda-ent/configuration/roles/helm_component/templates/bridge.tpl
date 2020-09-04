@@ -41,7 +41,7 @@ spec:
       name: {{ storageclass }}
     pvc:
       annotations: {}
-    cordaJarMx: 1
+    cordaJarMx: 100
     healthCheckNodePort: 0
     healthcheck:
       readinesscheckinterval: 10

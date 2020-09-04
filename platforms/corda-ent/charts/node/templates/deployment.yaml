@@ -41,6 +41,8 @@ spec:
         env:
           - name: VAULT_ADDR
             value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
           - name: KUBERNETES_AUTH_PATH
             value: {{ $.Values.vault.authpath }}
           - name: CERTS_SECRET_PREFIX
@@ -59,7 +61,7 @@ spec:
             setting up env to get secrets from vault
             echo "Getting secrets from Vault Server"
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
             
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
             echo "logged into vault"
@@ -114,7 +116,7 @@ spec:
               # setting up env to get secrets from vault
               echo "Getting secrets from Vault Server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               
@@ -225,9 +227,9 @@ spec:
           mountPath: {{ .Values.volume.baseDir }}/{{ .Values.workspacePath }}/logs
         resources:
           requests:
-            memory: {{ .Values.cordaJarMx }}G
+            memory: {{ .Values.cordaJarMx }}M
           limits:
-            memory: {{ add .Values.cordaJarMx 2 }}G
+            memory: {{ add .Values.cordaJarMx 2 }}M
       - name: logs
         image: "{{ .Values.image.nodeContainerName }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}

@@ -26,7 +26,7 @@ spec:
     image:
       initContainerName: {{ init_container_name }}
       imagePullSecret: {{ image_pull_secret }}
-    cordaJarMx: 3
+    cordaJarMx: 1524
     devMode: false
     rpcSettingsAddress: "0.0.0.0"
     rpcSettingsAddressPort: 10003
@@ -36,7 +36,11 @@ spec:
     rpcSettingsUseSsl: false
     networkServices:
       doormanURL: {{ idman_url }}
+      idmanName: {{ org.services.idman.name }}
+      idmanDomain: {{ idman_domain }}
       networkMapURL: {{ networkmap_url }}
+      networkmapName: {{ org.services.networkmap.name }}
+      networkMapDomain: {{ networkmap_domain }}
     dataSourceProperties:
       dataSource:
         password: "{{ db_password }}"
@@ -71,3 +75,7 @@ spec:
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
+    nodeConf:
+      p2p:
+        url: {{ component_name }}.{{ component_ns }}
+      ambassadorAddress: {{ component_name|e }}.{{ org.external_url_suffix }}:{{ node.p2p.ambassador | default('10002') }}

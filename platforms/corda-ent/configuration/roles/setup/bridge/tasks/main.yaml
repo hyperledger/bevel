@@ -6,7 +6,7 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Pod"
-    namespace: "{{ org.name | lower }}-ent"
+    namespace: "{{ component_ns }}"
     component_name: "{{ org.services.notary.name }}"
     kubernetes: "{{ org.k8s }}"
     label_selectors:
@@ -20,7 +20,7 @@
 # Fetch the networkmap namespace and port
 - name: Get the networkmap namespace and port
   set_fact:
-    networkmap_ns: "{{ org.name | lower }}-ent"
+    networkmap_ns: "{{ component_ns }}"
     networkmap_port: "{{ org.services.networkmap.ports.servicePort }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
@@ -36,7 +36,7 @@
     type: bridge
     name: "{{ org.name | lower }}"
     corda_service_version: "firewall"
-    component_ns: "{{ org.name | lower }}-ent"
+    component_ns: "{{ component_ns }}"
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
@@ -50,10 +50,10 @@
     vault_serviceaccountname: "vault-auth"
     vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
     storageclass: cordaentsc
-    float_address: "{{ peer.firewall.float.name | lower }}.{{ org.name | lower }}-ent"
+    float_address: "{{ peer.firewall.float.name | lower }}.{{ component_ns }}"
     float_port: "{{ peer.firewall.float.port }}"
     float_subject: "{{ peer.firewall.float.subject }}"
-    bridge_address: "{{ peer.firewall.bridge.name | lower }}.{{ org.name | lower }}-ent"
+    bridge_address: "{{ peer.firewall.bridge.name | lower }}.{{ component_ns }}"
     bridge_port: "{{ peer.firewall.bridge.port }}"
     bridge_tunnel_port: "{{ peer.firewall.bridge.tunnelport }}"
   loop: "{{ org.services.peers }}"
