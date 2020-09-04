@@ -1,64 +1,49 @@
----
+# Default values for Signer service.
 # This is a YAML-formatted file.
-#Declare variables to be passed into your templates.
+# Declare variables to be passed into your templates.
 
-deployment:
-  annotations: 
+#############################################################
+#                   Basic Configuration                     #
+#############################################################
 # Provide the name of the node
 # Eg. nodeName: signer
 nodeName:
 
-# This section contains the Enterprise-Corda node metadata.
+# This section contains the Corda Enterprise Signer metadata.
 metadata:
-  # Provide the namespace for the Corda node.
+  # Provide the namespace for the Corda Enterprise Signer.
   # Eg. namespace: cenm
   namespace:
-  # Provide the labels to the Corda node.
+  # Provide any additional labels for the Corda Enterprise Signer.
   labels:
 
-# This section contains the storage information.
-storage:
-  # Provide the name of the storageclass.
-  # NOTE: Make sure that the storageclass exist prior to this deployment as
-  # this chart doesn't create the storageclass.
-  # Eg. name: cenm
-  name:
-
-# Provide the number of replicas for your pods
-# Eg. replicaCount: 1
-replicas:
-
-# Provide image for init container
+# Provide information regarding the Docker images used.
 image:
-  # Provide the alpine utils image.
+  # Provide the alpine utils image, which is used for all init-containers of deployments/jobs.
   # NOTE: The alpine image used is the base alpine image with CURL installed.
   # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
   initContainerName:
+  # Provide the image for the main Signer container.
+  # Eg. idmanContainerName: corda/enterprise-signer:1.2-zulu-openjdk8u242
+  signerContainerName:
   # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
   # Eg. imagePullSecret: regcred
   imagePullSecret:
-
-# Provide image for signer container
-dockerImageSigner:
-  # EX. name: corda/enterprise-signer
-  name:
-  # Ex tag: 1.2-zulu-openjdk8u242
-  tag:
-  # Ex. pullPolicy: Always
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: Always
   pullPolicy:
 
-# required parameter for using Enterprise-Corda
-# Accept license should be YES.
+# Required parameter to start any .jar files
+# e.g. acceptLicense: YES 
 acceptLicense: YES
 
-# Provide volume related specificateions
-volume:
- # Ex baseDir: /opt/corda
-  baseDir:
+#############################################################
+#               HashiCorp Vault Configuration               #
+#############################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication. 
+# For more info, see https://www.vaultproject.io/docs/auth/kubernetes
 
-# This section contains the vault related information.
-# NOTE: Make sure that the vault is already unsealed, intialized and configured to
-# use the Kubernetes service account token based authentication.
 vault:
   # Provide the vault address
   # Eg. address: http://vault.example.com:8200
@@ -68,55 +53,66 @@ vault:
   role:
   # Provide the authpath configured to be used.
   # Eg. authpath: entcordacenm
-  authpath:
+  authPath:
   # Provide the service account name autheticated to vault.
   # NOTE: Make sure that the service account is already created and autheticated to use the vault.
-  # Eg. serviceaccountname: vault-auth
-  serviceaccountname:
+  # Eg. serviceAccountName: vault-auth
+  serviceAccountName:
   # Provide the vault path where the  certificates are stored
   # Eg. certsecretprefix: secret/cenm-org-name/signer/certs
-  certsecretprefix:
+  certSecretPrefix:
+  # The amount of times to retry fetching from/writing to Vault before giving up.
+  # Eg. retries: 10
+  retries:
+  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
+  # Eg. sleepTimeAfterError: 15  
+  sleepTimeAfterError:
 
-healthcheck:
-  #Provide the interval in seconds you want to iterate after for checking certificates
-  #Eg. readinesscheckinterval: 10
-  readinesscheckinterval:
-  # Provide this to iterate till this to check for the certificates
-  # readinessthreshold: 20
-  readinessthreshold:
+
+#############################################################
+#                  Signer Configuration                     #
+#############################################################
 
 # Provide the service details for setting up ssh
-serviceSsh:
-  # Eg. type: ClusterIP
-  type:
-  # Port where ssh is running Ex. port: 2222
-  port:
-  # target port fot the ssh Ex. port: 2222
-  targetPort:
-  nodePort:
-
-# Provide this for logging into signer using shell
-shell:
-  # Ex. user: signer
-  user:
-  # password: SignerP
-  password:
-
-# required parameter public Ip of idman
-idmanPublicIP:
-
-# port number where idman is available
-idmanPort:
+service:
+  ssh:
+    # The type of the SSH service (among such ClusterIP, NodePort)
+    # Eg. type: ClusterIP
+    type:
+    # The port where the SSH service is running inside the cluster
+    # Eg. port: 2222
+    port:
+    # The port where the SSH service will be mapped to, to be accessed outside of the cluster.
+    # Eg. targetPort: 2222
+    targetPort:
+    # If filled, will set the SSH service to type NodePort.
+    # Eg. nodePort: 2223
+    nodePort:
+  # Provide the service details for setting up Shell access to the service.
+  shell:
+    # SSH username
+    # Eg. user: signer
+    user:
+    # SSH password
+    # Eg. password: signerP
+    password:
 
 # provide the other cenm services details
 serviceLocations:
  # Provide the idman service address
   identityManager:
-    # Ex. host: idman.namespace
+    # The internal hostname for the Idman service, inside the K8s cluster
+    # Eg. host: idman.namespace
     host:
-    # Port at which idman service is accessible
-    # Ex. port: 5052
+    # The public IP of the Idman service, accessible outside of the K8s cluster
+    # Eg. publicIp: idman.external-url-suffix.com
+    publicIp:
+    # Port at which idman service is accessible, inside the K8s cluster
+    # Eg. port: 5052
     port:
+    # Public port at which the Idman service is accessible outside the K8s cluster
+    # Eg. publicPort: 8443
+    publicPort:
   # networkmap service details
   networkMap:
     # Ex host: networkmap.namespace
@@ -131,38 +127,80 @@ serviceLocations:
 # Provide signers variables that will go to the template file
 # Like the time interval for checking different tasks
 signers:
-  # For checking certificate signing request schedule
+  # For checking Certificate Signing Request (CSR) schedule
   CSR:
     schedule:
-      # Ex interval: 1m
+      # Eg. interval: 1m
       interval:
-  # For checking certificate revocation list schedule
+  # For checking Certificate Revocation List (CRL) schedule
   CRL:
     schedule:
-      # Ex interval: 1d
+      # Eg. interval: 1d
       interval:
+  # For checking with NetworkMap (NMS)
   NetworkMap:
-    # schedule for checking with nms
     schedule:
-      # Ex interval: 1d
+      # Eg. interval: 1d
       interval:
   # For checking network parameters interval
   NetworkParameters:
     schedule:
-      # Ex interval: 1m
+      # Eg. interval: 1m
       interval:
 
 
-# Provide the JVM for jar
-# cordaJarMx: 1
-cordaJarMx:
+#############################################################
+#                       Settings                            #
+#############################################################
+# Provide volume related specifications
+config:
+  volume:
+  # Eg. baseDir: /opt/corda
+    baseDir:
 
-healthCheckNodePort:
+  # Provide the path where the CENM Signer .jar-file is stored
+  # Eg. jarPath: bin
+  jarPath:
 
-# where is CENM service jar file stored
-# Ex. jarPath: bin
-jarPath:
+  # Provide the path where the CENM Service configuration files are stored
+  # Eg. configPath: etc
+  configPath:
 
-# where is CENM service configuration file stored
-# Ex. configPath: etc
-configPath:
+  # Provide any extra annotations for the deployment
+  deployment:
+    #   annotations:
+    #     key: "value"
+    annotations: {}
+
+  # Provide configuration of the .jar files used in the Node
+  cordaJar:
+    # Provide the memory size.
+    # Eg. memorySize: 4096 (if using kilobytes)
+    # Eg. memorySize: 512 (if using megabytes)
+    # Eg. memorySize: 1 (if using gigabytes) 
+    memorySize:
+    # Provide the unit of greatness for the size, one of three options:
+    # - k or K for kilobytes
+    # - m or M for megabytes
+    # - g or G for gigabytes
+    # Eg. unit: M
+    unit:
+  
+  # Set memory limits of pod  
+  pod:  
+    resources:
+      # Provide the limit memory for node
+      # Eg. limits: 512M
+      limits:
+      # Provide the requests memory for node
+      # Eg. requests: 550M
+      requests:
+
+  # Provide the number of replicas for your pods
+  # Eg. replicas: 1
+  replicas:
+
+healthCheck:
+  # Health Check node port set to get rid of logs pollution
+  # Eg. nodePort: 0
+  nodePort: 

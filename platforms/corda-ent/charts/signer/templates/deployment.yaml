@@ -4,9 +4,9 @@ kind: Deployment
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{- if .Values.deployment.annotations }}
+  {{- if .Values.config.deployment.annotations }}
   annotations:
-{{ toYaml .Values.deployment.annotations | indent 8 }}
+{{ toYaml .Values.config.deployment.annotations | indent 8 }}
     {{- end }}
   labels:
     app.kubernetes.io/name: {{ .Values.nodeName }}
@@ -14,7 +14,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.config.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.nodeName }}
@@ -27,7 +27,7 @@ spec:
         app.kubernetes.io/name: {{ .Values.nodeName }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
-      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      serviceAccountName: {{ $.Values.vault.serviceAccountName }}
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
@@ -40,9 +40,9 @@ spec:
            - name: VAULT_ADDR
              value: {{ $.Values.vault.address }}
            - name: KUBERNETES_AUTH_PATH
-             value: {{ $.Values.vault.authpath }}
+             value: {{ $.Values.vault.authPath }}
            - name: CERTS_SECRET_PREFIX
-             value: {{ .Values.vault.certsecretprefix }}
+             value: {{ .Values.vault.certSecretPrefix }}
           command: ["sh", "-c"]
           args:
           - |-
@@ -54,32 +54,30 @@ spec:
                  fi
                }
 
-              # setting up env to get secrets from vault
-              echo "Getting secrets from Vault Server"
+              # Setting up the environment to get secrets/certificates from Vault
+              echo "Getting secrets/certificates from Vault server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-              echo "logged into vault"
+              echo "Logged into Vault"
                
               COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
               do
-                  # get keystores from vault to see if certificates are created and put in vault
+                  # Get keystores from Vault, to see if the certificates are created and have been put in Vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
-                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
                     break
                   fi 
                   COUNTER=`expr "$COUNTER" + 1`
               done
 
-              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+              if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
               then
-                # printing number of trial done before giving up
-                echo "$COUNTER"
-                echo "certificates might not have been put in vault."
+                echo "Certificates might not have been put in Vault. Giving up after $COUNTER tries!"
                 exit 1
               fi
               echo "Done"      
@@ -90,13 +88,13 @@ spec:
            - name: VAULT_ADDR
              value: {{ $.Values.vault.address }}
            - name: KUBERNETES_AUTH_PATH
-             value: {{ $.Values.vault.authpath }}
+             value: {{ $.Values.vault.authPath }}
            - name: VAULT_APP_ROLE
              value: {{ $.Values.vault.role }}
            - name: BASE_DIR
-             value: {{ $.Values.volume.baseDir }}
+             value: {{ $.Values.config.volume.baseDir }}
            - name: CERTS_SECRET_PREFIX
-             value: {{ .Values.vault.certsecretprefix }}
+             value: {{ .Values.vault.certSecretPrefix }}
            - name: MOUNT_PATH
              value: "/DATA"       
           command: ["sh", "-c"]
@@ -144,20 +142,16 @@ spec:
             mountPath: /DATA
       containers:
       - name: signer
-        image: "{{ required "signer[main]: missing value for .Values.dockerImageSigner.name" .Values.dockerImageSigner.name }}:{{ required "signer[main]: missing value for .Values.dockerImageSigner.tag" .Values.dockerImageSigner.tag }}"
+        image: "{{ required "signer[main]: missing value for .Values.iamage.signerContainerName" .Values.image.signerContainerName }}"
         env:
           - name: ACCEPT_LICENSE
             value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
-        imagePullPolicy: {{ .Values.dockerImageSigner.pullPolicy }}
-        lifecycle:
-          postStart:
-            exec:
-              command: ["/bin/sh", "-c", "touch DATA/PKITOOL-DONE"]
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/bin/bash", "-c"]
         args:
         - |-
           cp CM-FILES/signer.conf etc/signer.conf;
-          java -Xmx{{ .Values.cordaJarMx }}G -jar {{ .Values.jarPath }}/signer.jar --config-file {{ .Values.configPath }}/signer.conf
+          java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar {{ .Values.config.jarPath }}/signer.jar --config-file {{ .Values.config.configPath }}/signer.conf
         volumeMounts:
         - name: signer-conf
           mountPath: /opt/corda/CM-FILES/signer.conf
@@ -170,15 +164,15 @@ spec:
           mountPath: /opt/corda/DATA
         resources:
           requests:
-            memory: {{ .Values.cordaJarMx }}G
+            memory: {{ .Values.config.pod.resources.requests }}
           limits:
-            memory: {{ add .Values.cordaJarMx 2 }}G
+            memory: {{ .Values.config.pod.resources.limits }}
       - name: logs
-        image: "{{ required "signer[logs]: missing value for .Values.dockerImageSigner.name" .Values.dockerImageSigner.name }}:{{ required "signer[logs]: missing value for .Values.dockerImageSigner.tag" .Values.dockerImageSigner.tag }}"
+        image: "{{ required "signer[main]: missing value for .Values.iamage.signerContainerName" .Values.image.signerContainerName }}"
         env:
         - name: ACCEPT_LICENSE
           value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
-        imagePullPolicy: {{ .Values.dockerImageSigner.pullPolicy }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/bin/bash", "-c"]
         args:
         - |-

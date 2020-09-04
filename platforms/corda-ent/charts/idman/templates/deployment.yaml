@@ -4,9 +4,9 @@ kind: Deployment
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{- if .Values.deployment.annotations }}
+  {{- if .Values.config.deployment.annotations }}
   annotations:
-{{ toYaml .Values.deployment.annotations | indent 8 }}
+{{ toYaml .Values.config.deployment.annotations | indent 8 }}
     {{- end }}
   labels:
     app.kubernetes.io/name: {{ .Values.nodeName }}
@@ -14,7 +14,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.config.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.nodeName }}
@@ -27,49 +27,26 @@ spec:
         app.kubernetes.io/name: {{ .Values.nodeName }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
-      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      serviceAccountName: {{ $.Values.vault.serviceAccountName }}
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-      initContainers:
-      - name: config
-        image: "{{ required "idman[config]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}:{{ required "idman[config]: missing value for .Values.dockerImage.tag" .Values.dockerImage.tag }}"
-        imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
-        env:
-          - name: ACCEPT_LICENSE
-            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
-        command: ["/bin/bash", "-c"]
-        args:
-        - |-
-          cp CM/run.sh bin/
-          cp CM/idman.conf etc/
-          chmod +x bin/*
-          echo "config setup done"
-        volumeMounts:
-        - name: idman-etc
-          mountPath: /opt/corda/etc
-        - name: idman-conf
-          mountPath: /opt/corda/CM
-        resources:
-          requests:
-            memory: {{ .Values.cordaJarMx }}G
-          limits:
-            memory: {{ add .Values.cordaJarMx 2 }}G          
+      initContainers:      
       - name: init-certificates
-        image: {{ .Values.image.initContainerName }}
-        imagePullPolicy: Always
+        image: "{{ required "idman[config]: missing value for .Values.image.initContainerName" .Values.image.initContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: VAULT_ADDR
             value: {{ $.Values.vault.address }}
           - name: KUBERNETES_AUTH_PATH
-            value: {{ $.Values.vault.authpath }}
+            value: {{ $.Values.vault.authPath }}
           - name: VAULT_APP_ROLE
             value: {{ $.Values.vault.role }}
           - name: BASE_DIR
-            value: {{ $.Values.volume.baseDir }}
+            value: {{ $.Values.config.volume.baseDir }}
           - name: CERTS_SECRET_PREFIX
-            value: {{ .Values.vault.certsecretprefix }}
+            value: {{ .Values.vault.certSecretPrefix }}
           - name: MOUNT_PATH
             value: "/DATA"       
         command: ["sh", "-c"]
@@ -83,12 +60,12 @@ spec:
                 fi
               }
 
-              # setting up env to get secrets from vault
-              echo "Getting secrets from Vault Server"
+              # Setting up the environment to get secrets/certificates from Vault
+              echo "Getting certificates/secrets from Vault Server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-              echo "logged into vault"
+              echo "Logged into Vault"
               # Creating dirs for storing certificates
               mkdir -p ${MOUNT_PATH}/idman;
               mkdir -p ${MOUNT_PATH}/root;
@@ -96,67 +73,63 @@ spec:
 
               # Fetching ssl-idman certificates from vault
               COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
               do
-                  # get keystores from vault to see if certificates are created and put in vault
+                  # Get keystores from Vault, to see if certificates are created and have been put in Vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
-                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
                     idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-identity-manager-keys.jks"]')
                     echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/idman/corda-ssl-identity-manager-keys.jks
-                    echo "Successfully got ssl idman certifcates"
+                    echo "Successfully got SSL Idman certifcates"
                     break
                   fi 
                   COUNTER=`expr "$COUNTER" + 1`
               done
 
-              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+              if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
               then
-                # printing number of trial done before giving up
-                echo "$COUNTER"
-                echo "ssl idman certificates might not have been put in vault.  Giving up!!!"
+                echo "Idman SSL Certificates might not have been put in Vault. Giving up after $COUNTER tries!"
                 exit 1
               fi
               echo "Done"
 
               # Fetching corda-ssl-trust-store certificates from vault
               COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
               do
-                  # get keystores from vault to see if certificates are created and put in vault
+                  # Get keystores from Vault, to see if certificates are created and have been put in Vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
-                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
                     root_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
                     echo "${root_ssl}" | base64 -d > ${MOUNT_PATH}/root/corda-ssl-trust-store.jks
-                    echo "Successfully got root ssl certifcates"
+                    echo "Successfully got Root SSL certifcates"
                     break
                   fi 
                   COUNTER=`expr "$COUNTER" + 1`
               done
 
-              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+              if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
               then
-                # printing number of trial done before giving up
-                echo "$COUNTER"
-                echo "root ssl certificates might not have been put in vault. Giving up!!!"
+                echo "Root SSL Certificates might not have been put in Vault. Giving up after $COUNTER tries!"
                 exit 1
               fi
               echo "Done"
 
-              # Fetching crl certificates from vault
+              # Fetching CRL certificates from vault
               COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
               do
-                  # get crls from vault to see if certificates are created and put in vault
+                  # Get CRLs from vault to see if certificates are created, and have been put in Vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.nodeName }}/crls | jq -r 'if .errors then . else . end')
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
-                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
                     tls_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tls.crl"]')
                     echo "${tls_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/tls.crl
@@ -167,17 +140,15 @@ spec:
                     subordinate_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["subordinate.crl"]')
                     echo "${subordinate_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/subordinate.crl
 
-                    echo "Successfully got crl certifcates"
+                    echo "Successfully got CRL Certifcates"
                     break
                   fi 
                   COUNTER=`expr "$COUNTER" + 1`
               done
 
-              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+              if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
               then
-                # printing number of trial done before giving up
-                echo "$COUNTER"
-                echo "crl certificates might not have been put in vault. Giving up!!!"
+                echo "CRL Certificates might not have been put in Vault. Giving up after $COUNTER tries!"
                 exit 1
               fi
               echo "Done"
@@ -186,8 +157,8 @@ spec:
           mountPath: /DATA            
       containers:
       - name: idman
-        image: "{{ required "idman[main]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}:{{ required "idman[main]: missing value for .Values.dockerImage.tag" .Values.dockerImage.tag }}"
-        imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
+        image: "{{ required "idman[idman]: missing value for .Values.image.idmanContainerName" .Values.image.idmanContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: ACCEPT_LICENSE
             value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
@@ -195,14 +166,14 @@ spec:
         args:
         - |-
           cp CM/run.sh bin/
+          cp CM/idman.conf etc/
           chmod +x bin/*
           bin/run.sh
         volumeMounts:
         - name: idman-etc
           mountPath: /opt/corda/etc
         - name: idman-conf
-          mountPath: /opt/corda/CM/run.sh
-          subPath: run.sh
+          mountPath: /opt/corda/CM
         - name: idman-logs
           mountPath: /opt/corda/logs
         - name: idman-h2
@@ -211,12 +182,12 @@ spec:
           mountPath: /opt/corda/DATA
         resources:
           requests:
-            memory: {{ .Values.cordaJarMx }}G
+            memory: {{ .Values.config.pod.resources.requests}}
           limits:
-            memory: {{ add .Values.cordaJarMx 2 }}G
+            memory: {{ .Values.config.pod.resources.limits}}
       - name: logs
-        image: "{{ required "idman[logs]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}:{{ required "idman[logs]: missing value for .Values.dockerImage.tag" .Values.dockerImage.tag }}"
-        imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
+        image: "{{ required "idman[logs]: missing value for .Values.image.idmanContainerName" .Values.image.idmanContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
         - name: ACCEPT_LICENSE
           value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
@@ -231,7 +202,7 @@ spec:
         - name: idman-logs
           mountPath: /opt/corda/logs
       imagePullSecrets:
-      - name: {{ .Values.dockerImage.imagePullSecret }}
+      - name: {{ .Values.image.imagePullSecret }}
       volumes:
         - name: idman-conf
           configMap:
