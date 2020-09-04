@@ -15,44 +15,34 @@ spec:
     nodeName: {{ org.services.signer.name }}
     metadata:
       namespace: {{ component_ns }}
-    replicas: 1
     image:
+      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
+      signerContainerName: {{ network.docker.url }}/corda/enterprise-signer:1.2-zulu-openjdk8u242
       imagePullSecret: regcred
-      initContainerName: index.docker.io/hyperledgerlabs/alpine-utils:1.0
-    storage:
-      name: cordaentsc
-    dockerImageSigner:
-      name: corda/enterprise-signer
-      tag: 1.2-zulu-openjdk8u242
       pullPolicy: Always
     acceptLicense: YES
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: {{ component_auth }}
-      serviceaccountname: vault-auth
-      certsecretprefix: secret/{{ org.name | lower }}
-    healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 15
-    serviceSsh:
-      port: 2222
-      targetPort: 2222
-      type: ClusterIP
+      authPath: {{ component_auth }}
+      serviceAccountName: vault-auth
+      certSecretPrefix: secret/{{ org.name | lower }}
+      retries: 10
+      sleepTimeAfterError: 15
     service:
-      type: ClusterIP
-      port: 20003
-    volume:
-      baseDir: /opt/corda
-    shell:
-      user: signer
-      password: signerP
-    idmanPublicIP: {{ org.services.idman.name }}.{{ org.external_url_suffix }}
-    idmanPort: 8443
+      ssh:
+        port: 2222
+        targetPort: 2222
+        type: ClusterIP
+      shell:
+        user: signer
+        password: signerP
     serviceLocations:
       identityManager:
         host: {{ org.services.idman.name }}.{{ org.name | lower }}-ent
+        publicIp: {{ org.services.idman.name }}.{{ org.external_url_suffix }}
         port: 5052
+        publicPort: 8443
       networkMap:
         host: {{ org.services.networkmap.name }}.{{ org.name | lower }}-ent
         port: 5050
@@ -71,7 +61,17 @@ spec:
       NetworkParameters:
         schedule:
           interval: 1m
-    cordaJarMx: 1
-    healthCheckNodePort: 0
-    jarPath: bin
-    configPath: etc
+    config:
+      volume:
+        baseDir: /opt/corda
+      jarPath: bin
+      configPath: etc
+      cordaJar:
+        memorySize: 512
+        unit: M
+        resources:
+          limits: 512M
+          requests: 512M
+      replicas: 1
+    healthCheck:
+      nodePort: 0

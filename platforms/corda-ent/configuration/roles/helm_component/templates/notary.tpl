@@ -25,7 +25,7 @@ spec:
     replicas: 1
     image:
       initContainerName: {{ init_container_name }}
-      imagepullSecret: {{ image_pull_secret }}
+      imagePullSecret: {{ image_pull_secret }}
     cordaJarMx: 3
     devMode: false
     rpcSettingsAddress: "0.0.0.0"
