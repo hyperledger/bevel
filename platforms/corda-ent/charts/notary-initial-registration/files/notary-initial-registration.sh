@@ -60,6 +60,7 @@ do
         --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \
         --network-root-truststore-password ${NETWORK_ROOT_TRUSTSTOR_PASSWORD}
         # --logging-level=DEBUG
+        
         EXIT_CODE=${?}
     else
         echo

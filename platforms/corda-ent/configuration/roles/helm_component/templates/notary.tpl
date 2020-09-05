@@ -68,7 +68,7 @@ spec:
     healthCheckNodePort: 0
     bashDebug: false
     volume:
-      baseDir: /opt/corda
+      baseDir: /opt/corda/base
     service:
       p2pPort: {{ p2p_port }}
       sshdPort: 2222
@@ -78,4 +78,4 @@ spec:
     nodeConf:
       p2p:
         url: {{ component_name }}.{{ component_ns }}
-      ambassadorAddress: {{ component_name|e }}.{{ org.external_url_suffix }}:{{ node.p2p.ambassador | default('10002') }}
+      ambassadorAddress: {{ component_name|e }}.{{ org.external_url_suffix }}:{{ ambassador_p2pPort | default('10002') }}

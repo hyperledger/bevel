@@ -14,6 +14,7 @@ spec:
   values:
     nodeName: {{ node_name }}
     idmanName: {{ idman_name }}
+    idmanDomain: {{ idman_domain }}
     metadata:
       namespace: {{ component_ns }}
     notaryName: {{ notary_name }}
@@ -57,7 +58,7 @@ spec:
       port: 5052
     revocation:
       port: 5053
-    cordaJarMx: 300
+    cordaJarMx: 1024
     healthCheckNodePort: 0
     jarPath: bin
     bashDebug: false

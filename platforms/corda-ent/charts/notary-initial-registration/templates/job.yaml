@@ -150,10 +150,13 @@ spec:
           env:
             - name: ACCEPT_LICENSE
               value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+            - name: BASE_DIR
+              value: {{ $.Values.volume.baseDir }}
           imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
           command: ["/bin/bash", "-c"]
           args:
           - |-
+            rm -r ${BASE_DIR}/certificates/done.txt
             cp CM-FILES/notary.conf etc/
             cp CM-FILES/*.sh bin/
             chmod +x bin/*
@@ -161,6 +164,7 @@ spec:
             yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
             bin/notary-initial-registration.sh
             bin/create-network-parameters-file.sh
+            touch ${BASE_DIR}/certificates/done.txt
           volumeMounts:
           - name: notary-conf
             mountPath: /opt/corda/CM-FILES/notary.conf
@@ -205,7 +209,6 @@ spec:
           - |-
             #!/usr/bin/env sh
 
-
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
@@ -215,9 +218,9 @@ spec:
             cd ${BASE_DIR}/certificates
             while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
             do
-                if [ -e nodekeystore.jks ] && [ -e sslkeystore.jks ] && [ -e truststore.jks ]
-                then
-                  echo "found certificates, performing vault put"
+                if [ -e done.txt ]
+                then                  
+                  echo "certificates found, saving to vault"
                   (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore
                   (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore
                   (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
@@ -229,6 +232,7 @@ spec:
                 fi
             done
             # perform check if network-parameters are ready or not, and upload it into vault when ready
+            COUNTER=1
             cd ${BASE_DIR}/additional-node-infos
             while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
             do

@@ -76,4 +76,4 @@ spec:
     nodeConf:
       p2p:
         url: {{ db_name }}.{{ component_ns }}
-      ambassadorAddress: {{ db_name }}.{{ org.external_url_suffix }}:{{ node.p2p.ambassador | default('10002') }}
+      ambassadorAddress: {{ db_name }}.{{ org.external_url_suffix }}:{{ ambassador_p2pPort | default('10002') }}
