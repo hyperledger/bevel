@@ -29,8 +29,6 @@ spec:
     spec:
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
         fsGroup: 1000
       initContainers:
       - name: init-checkregistration
@@ -39,6 +37,8 @@ spec:
         env:
           - name: VAULT_ADDR
             value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
           - name: KUBERNETES_AUTH_PATH
             value: {{ $.Values.vault.authpath }}
           - name: CERTS_SECRET_PREFIX
@@ -57,7 +57,7 @@ spec:
             # setting up env to get secrets from vault
             echo "Getting secrets from Vault Server"
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
             echo "logged into vault"
             COUNTER=1
@@ -111,27 +111,11 @@ spec:
               # setting up env to get secrets from vault
               echo "Getting secrets from Vault Server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-              OUTPUT_PATH=${BASE_DIR}/certificates              
-              # Getting intitial network parameters from Vault
-              COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-              do 
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/nparam | jq -r 'if .errors then . else . end')
-                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                  then
-                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-                  else
-                    initial_param=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-parameters-initial"]')
-                    echo "${initial_param}" | base64 -d > ${NODEINFO_MOUNT_PATH}/network-parameters-initial.conf
-                    echo "Successfully got initial network parameters"
-                    break
-                fi
-                COUNTER=`expr "$COUNTER" + 1`
-              done
+              OUTPUT_PATH=${BASE_DIR}/certificates
 
-              # Getting node Info File from Vault
+              # Getting initial-node Info File from Vault
               COUNTER=1
               while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
               do 
@@ -164,7 +148,18 @@ spec:
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/truststore | jq -r 'if .errors then . else . end')
               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/truststore)" "${LOOKUP_SECRET_RESPONSE}"
               TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
-              echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks              
+              echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks
+
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+              echo "${IDMAN_CERT}" | base64 -d > ${OUTPUT_PATH}/idman.crt
+
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+              NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+              echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/networkmap.crt
+              
               echo "Done"
         volumeMounts:
         - name: notary-certificates
@@ -217,26 +212,40 @@ spec:
         env:
           - name: ACCEPT_LICENSE
             value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+          - name: BASE_DIR
+            value: {{ $.Values.volume.baseDir }}
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cp etc/*.sh bin/
+          cp ${BASE_DIR}/etc/*.sh bin/
           chmod +x bin/*
+
+          # to clean network-parameters on every restart
+          rm -rf ${BASE_DIR}/network-parameters
+
+          # add idman and networkmap certificates to java keystore
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts          
           bin/run.sh
+          tail -f /dev/null
         volumeMounts:
         - name: notary-conf
-          mountPath: /opt/corda/etc
+          mountPath: {{ $.Values.volume.baseDir }}/etc
+          readOnly: false
         - name: notary-certificates
-          mountPath: /opt/corda/certificates
-        - name: notary-logs
-          mountPath: /opt/corda/logs
+          mountPath: {{ $.Values.volume.baseDir }}/certificates
+          readOnly: false
+        - name: notary-volume
+          mountPath: {{ $.Values.volume.baseDir }}
+          readOnly: false
         - name: notary-nodeinfo
-          mountPath: /opt/corda/notary-nodeinfo
+          mountPath: {{ $.Values.volume.baseDir }}/additional-node-infos
+          readOnly: false
         resources:
           requests:
-            memory: {{ .Values.cordaJarMx }}G
+            memory: {{ .Values.cordaJarMx }}M
           limits:
-            memory: {{ add .Values.cordaJarMx 2 }}G
+            memory: {{ add .Values.cordaJarMx 2 }}M
       - name: logs
         image: "{{ required "notary[logs]: missing value for .Values.dockerImage.name" .Values.dockerImage.name }}"
         imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
@@ -246,13 +255,13 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cd /opt/corda/
+          cd {{ $.Values.volume.baseDir }}/
           while true; do tail -f logs/*.log 2>/dev/null; sleep 5; done
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
-        - name: notary-logs
-          mountPath: /opt/corda/logs
+        - name: notary-volume
+          mountPath: {{ $.Values.volume.baseDir }}
       imagePullSecrets:
       - name: {{ .Values.image.imagePullSecret }}
       volumes:
@@ -262,9 +271,9 @@ spec:
       - name: notary-certificates
         emptyDir:
           medium: Memory
-      - name: notary-logs
+      - name: notary-volume
         persistentVolumeClaim:
-          claimName: {{ .Values.nodeName }}-logs
+          claimName: {{ .Values.nodeName }}-volume
       - name: notary-nodeinfo
         emptyDir:
           medium: Memory

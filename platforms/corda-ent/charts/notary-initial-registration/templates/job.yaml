@@ -55,7 +55,7 @@ spec:
                 # setting up env to get secrets from vault
                 echo "Getting secrets from Vault Server"
                 KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                 validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
                 echo "logged into vault"
 
@@ -102,22 +102,69 @@ spec:
           volumeMounts:
           - name: certificates
             mountPath: /DATA
+        - name: db-healthcheck
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            COUNTER=1
+            FLAG=true
+            # perform health check if db is up and running before starting corda node
+            while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+              DB_NODE={{ .Values.dataSourceProperties.dbUrl }}:{{ .Values.dataSourceProperties.dbPort }}
+              STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
+
+              if [ "$STATUS" == 0 ]
+              then
+                  FLAG=false
+              else
+                  FLAG=true
+                  echo "DB up and running"
+              fi
+
+              if [ "$FLAG" == false ]
+              then
+                  echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+                  COUNTER=`expr "$COUNTER" + 1`
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+              else
+                  echo "SUCCESS!"
+                  echo "DB up and running!"
+                  exit 0
+                  break
+              fi
+            done
+
+            if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ]
+            then
+                echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
+                exit 1
+                break
+            fi
+        containers:
         - name: registration
           image: "{{ required "notary[main]: missing value for .Values.dockerImage.notaryContainerName" .Values.dockerImage.notaryContainerName }}"
           env:
             - name: ACCEPT_LICENSE
               value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+            - name: BASE_DIR
+              value: {{ $.Values.volume.baseDir }}
           imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
           command: ["/bin/bash", "-c"]
           args:
           - |-
+            rm -r ${BASE_DIR}/certificates/done.txt
             cp CM-FILES/notary.conf etc/
             cp CM-FILES/*.sh bin/
             chmod +x bin/*
-            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias networkmap -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
-            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias idman -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
             bin/notary-initial-registration.sh
             bin/create-network-parameters-file.sh
+            touch ${BASE_DIR}/certificates/done.txt
           volumeMounts:
           - name: notary-conf
             mountPath: /opt/corda/CM-FILES/notary.conf
@@ -128,9 +175,6 @@ spec:
           - name: notary-conf
             mountPath: /opt/corda/CM-FILES/create-network-parameters-file.sh
             subPath: create-network-parameters-file.sh
-          - name: notary-conf
-            mountPath: /opt/corda/CM-FILES/run.sh
-            subPath: run.sh
           - name: notary-etc
             mountPath: /opt/corda/etc
           - name: notary-nodeinfo
@@ -141,10 +185,9 @@ spec:
             mountPath: /opt/corda/DATA
           resources:
             requests:
-              memory: {{ .Values.cordaJarMx }}G
+              memory: {{ .Values.cordaJarMx }}M
             limits:
-              memory: {{ add .Values.cordaJarMx 2 }}G
-        containers:
+              memory: {{ add .Values.cordaJarMx 2 }}M
         - name: store-certs-in-vault
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
@@ -166,19 +209,18 @@ spec:
           - |-
             #!/usr/bin/env sh
 
-
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
             
             # perform check if certificates are ready or not, and upload certificate into vault when ready
             COUNTER=1
             cd ${BASE_DIR}/certificates
             while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
             do
-                if [ -e nodekeystore.jks ] && [ -e sslkeystore.jks ] && [ -e truststore.jks ]
-                then
-                  echo "found certificates, performing vault put"
+                if [ -e done.txt ]
+                then                  
+                  echo "certificates found, saving to vault"
                   (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore
                   (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore
                   (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
@@ -190,6 +232,7 @@ spec:
                 fi
             done
             # perform check if network-parameters are ready or not, and upload it into vault when ready
+            COUNTER=1
             cd ${BASE_DIR}/additional-node-infos
             while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
             do
@@ -215,9 +258,9 @@ spec:
             mountPath: /opt/corda/DATA
           resources:
             requests:
-              memory: {{ .Values.cordaJarMx }}G
+              memory: {{ .Values.cordaJarMx }}M
             limits:
-              memory: {{ add .Values.cordaJarMx 2 }}G
+              memory: {{ add .Values.cordaJarMx 2 }}M
         imagePullSecrets:
         - name: {{ .Values.dockerImage.imagePullSecret }}
         volumes:

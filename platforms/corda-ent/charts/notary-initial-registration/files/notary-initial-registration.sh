@@ -53,13 +53,14 @@ do
         echo "Notary: running initial registration ..."
         echo
         pwd
-        java -Dcapsule.jvm.args='-Xmx{{ .Values.cordaJarMx }}G' -jar {{ .Values.jarPath }}/corda.jar \
+        java -Dcapsule.jvm.args='-Xmx{{ .Values.cordaJarMx }}M' -jar {{ .Values.jarPath }}/corda.jar \
           initial-registration \
         --config-file={{ .Values.configPath }}/notary.conf \
         --log-to-console \
         --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \
         --network-root-truststore-password ${NETWORK_ROOT_TRUSTSTOR_PASSWORD}
         # --logging-level=DEBUG
+        
         EXIT_CODE=${?}
     else
         echo

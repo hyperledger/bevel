@@ -117,12 +117,14 @@ spec:
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
           env:
-           - name: VAULT_ADDR
-             value: {{ $.Values.vault.address }}
-           - name: KUBERNETES_AUTH_PATH
-             value: {{ $.Values.vault.authpath }}
-           - name: CERTS_SECRET_PREFIX
-             value: {{ .Values.vault.certsecretprefix }}
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certsecretprefix }}
           command: ["sh", "-c"]
           args:
           - |-
@@ -137,7 +139,7 @@ spec:
               # setting up env to get secrets from vault
               echo "Getting secrets from Vault Server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "logged into vault"
                
@@ -192,7 +194,7 @@ spec:
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             echo "Getting secrets from Vault Server"
-            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
 
             # save keyStorePassword & trustStorePassword from vault
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${KS_SECRET_PREFIX} | jq -r 'if .errors then . else . end')          
@@ -340,7 +342,7 @@ spec:
                # setting up env to get secrets from vault
                echo "Getting secrets from Vault Server"
                KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
                echo "logged into vault"
                
@@ -455,14 +457,16 @@ spec:
           imagePullPolicy: Always
           command: ["sh", "-c"]
           env:
-           - name: BASE_DIR
-             value: {{ $.Values.volume.baseDir }}
-           - name: VAULT_ADDR
-             value: {{ $.Values.vault.address }}
-           - name: KUBERNETES_AUTH_PATH
-             value: {{ $.Values.vault.authpath }}
-           - name: SECRET_PREFIX
-             value: {{ $.Values.vault.cordappsreposecretprefix }}
+            - name: BASE_DIR
+              value: {{ $.Values.volume.baseDir }}
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: SECRET_PREFIX
+              value: {{ $.Values.vault.cordappsreposecretprefix }}
           args:
             - |-
               # crearting cordapps dir in volume to keep jars
@@ -472,7 +476,7 @@ spec:
                 # setting up env to get secrets from vault
                 KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
                 echo "Getting secrets from Vault Server"
-                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                 
                 # save networkmap login password from vault
                 LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${SECRET_PREFIX} | jq -r 'if .errors then . else . end')                            

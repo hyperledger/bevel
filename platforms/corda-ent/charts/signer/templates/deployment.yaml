@@ -37,12 +37,14 @@ spec:
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
           env:
-           - name: VAULT_ADDR
-             value: {{ $.Values.vault.address }}
-           - name: KUBERNETES_AUTH_PATH
-             value: {{ $.Values.vault.authPath }}
-           - name: CERTS_SECRET_PREFIX
-             value: {{ .Values.vault.certSecretPrefix }}
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certsecretprefix }}
           command: ["sh", "-c"]
           args:
           - |-
@@ -57,7 +59,7 @@ spec:
               # Setting up the environment to get secrets/certificates from Vault
               echo "Getting secrets/certificates from Vault server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "Logged into Vault"
                
@@ -110,7 +112,7 @@ spec:
                # setting up env to get secrets from vault
                echo "Getting secrets from Vault Server"
                KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
                
                mkdir -p ${MOUNT_PATH}
