@@ -28,6 +28,8 @@ spec:
     networkServices:
       doormanURL: {{ doorman_url }}
       networkMapURL: {{ networkmap_url }}
+    firewall:
+      enabled: {{ firewall_enabled }}
     cenmServices:  
       idmanName: {{ idman_name }}
       networkmapName: {{ networkmap_name }}
