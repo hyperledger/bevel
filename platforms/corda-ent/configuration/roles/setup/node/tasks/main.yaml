@@ -3,7 +3,7 @@
 # Create ambassador certificates for node
 - name: Create ambassador certificates for node
   include_role:
-    name: create/certificates/ambassador/node
+    name: create/certificates/node
 
 # Get idman & networkmap tls certificates for nodes
 - name: Get idman & networkmap tls certificates for nodes
@@ -21,7 +21,7 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Job"
-    namespace: "{{ org.name | lower }}-ent"
+    namespace: "{{ component_ns }}"
     component_name: "{{ peer.name }}-registration"
     kubernetes: "{{ org.k8s }}"
   loop: "{{ org.services.peers }}"
@@ -37,7 +37,6 @@
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     component_name: "{{ peer.name | lower }}"
-    component_ns: "{{ org.name | lower }}-ent"
     node_name: "{{ peer.name | lower }}"
     init_container_name: "{{ network.docker.url }}/alpine-utils:1.0"
     values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
@@ -53,7 +52,7 @@
     networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
     doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
     p2p_port: "{{ peer.firewall.bridge.port }}"
-    p2p_address: "{{ peer.firewall.float.name }}.{{ org.name | lower }}-ent"
+    p2p_address: "{{ peer.firewall.float.name }}.{{ component_ns }}"
     rpc_port: "{{ peer.rpc.port }}"
     rpc_admin_port: "{{ peer.rpcadmin.port }}"
     user_name: "{{ peer.name | lower }}"

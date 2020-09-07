@@ -12,7 +12,7 @@ spec:
     ref: {{ git_branch }}
     path: {{ charts_dir }}/generate-pki
   values:
-    nodeName: {{ node_name }}
+    nodeName: {{ name }}
     cenmServices:
       signerName: {{ signerName }}
       idmanName: {{ idmanName }}
@@ -71,7 +71,7 @@ spec:
       NetworkParameters:
         schedule:
           interval: 1m
-    cordaJarMx: 1
+    cordaJarMx: 256
     healthCheckNodePort: 0
     jarPath: bin
     configPath: etc

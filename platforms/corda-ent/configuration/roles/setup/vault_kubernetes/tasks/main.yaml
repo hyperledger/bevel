@@ -3,15 +3,6 @@
 # neccessary configurations.
 #################################################################################################
 
-# Check if namespace created
-- name: "Waiting for the namespace {{ component_ns }} to be created"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "Namespace"
-    component_name: "{{ component_ns }}"
-    type: "retry"
-
 # Ensures the build directory
 - name: "Creating the build directory"
   include_role:
@@ -90,7 +81,7 @@
     echo "path \"secret/{{ org.name | lower }}/*\" {
         capabilities = [\"read\", \"list\", \"create\"]
     }"  >>  vault-crypto-{{ org.name | lower }}-ro.hcl
-    vault write sys/policy/vault-crypto-{{ org.name | lower }}-ro policy="@vault-crypto-{{ org.name | lower }}-ro.hcl"
+    vault write sys/policy/vault-crypto-{{ org.type }}-{{ org.name | lower }}-ro policy="@vault-crypto-{{ org.name | lower }}-ro.hcl"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -100,9 +91,9 @@
   shell: |
     cd ./build    
     echo "path \"secret/{{ org.name | lower }}/*\" {
-        capabilities = [\"read\", \"list\", \"create\"]
+        capabilities = [\"read\", \"list\"]
     }"  >>  vault-crypto-{{ org.name | lower }}-ro.hcl
-    vault write sys/policy/vault-crypto-{{ org.name | lower }}-ro policy="@vault-crypto-{{ org.name | lower }}-ro.hcl"
+    vault write sys/policy/vault-crypto-{{ org.type }}-{{ org.name | lower }}-ro policy="@vault-crypto-{{ org.name | lower }}-ro.hcl"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -111,7 +102,7 @@
 # This task creates the vault auth
 - name: Create Vault auth role
   shell: |
-    vault write auth/{{ component_auth }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_ns }} policies=vault-crypto-{{ org.name | lower }}-ro ttl=120s
+    vault write auth/{{ component_auth }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_ns }} policies=vault-crypto-{{ org.type }}-{{ org.name | lower }}-ro ttl=120s
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

@@ -15,7 +15,7 @@ then
     echo "CENM: starting Networkmap service ..."
     echo
     cat {{ .Values.configPath }}/nmap.conf
-    java -Xmx{{ .Values.cordaJarMx }}G -jar {{ .Values.jarPath }}/networkmap.jar -f {{ .Values.configPath }}/nmap.conf
+    java -Xmx{{ .Values.cordaJarMx }}M -jar {{ .Values.jarPath }}/networkmap.jar -f {{ .Values.configPath }}/nmap.conf
     EXIT_CODE=${?}
 else
     echo "Missing networkmap jar file in {{ .Values.jarPath }} folder:"

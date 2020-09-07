@@ -38,7 +38,7 @@ spec:
     pvc:
       annotations: {}
     sleepTime: 0
-    cordaJarMx: 1
+    cordaJarMx: 100
     bridge:
       legalName: {{ bridge_subject }}
       tunnelPort: {{ bridge_tunnel_port }}

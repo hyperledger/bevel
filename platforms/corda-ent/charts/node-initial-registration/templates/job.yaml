@@ -57,7 +57,7 @@ spec:
                 # setting up env to get secrets from vault
                 echo "Getting secrets from Vault Server"
                 KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                 validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
                 echo "logged into vault"
                 
@@ -102,7 +102,8 @@ spec:
                 echo "Done"
           volumeMounts:
           - name: certificates
-            mountPath: /DATA
+            mountPath: /DATA        
+        containers:
         - name: registration
           image: "{{ .Values.image.nodeContainerName }}"
           env:
@@ -137,10 +138,9 @@ spec:
             mountPath: /opt/corda/DATA
           resources:
             requests:
-              memory: {{ .Values.cordaJarMx }}G
+              memory: {{ .Values.cordaJarMx }}M
             limits:
-              memory: {{ add .Values.cordaJarMx 2 }}G
-        containers:
+              memory: {{ add .Values.cordaJarMx 2 }}M
         - name: store-certs-in-vault
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
@@ -164,7 +164,7 @@ spec:
 
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
 
             # perform check if certificates are ready or not, and upload certificate into vault when ready
             COUNTER=1
@@ -193,9 +193,9 @@ spec:
             mountPath: /opt/corda/DATA
           resources:
             requests:
-              memory: {{ .Values.cordaJarMx }}G
+              memory: {{ .Values.cordaJarMx }}M
             limits:
-              memory: {{ add .Values.cordaJarMx 2 }}G
+              memory: {{ add .Values.cordaJarMx 2 }}M
         volumes:
         - name: node-conf
           configMap:
