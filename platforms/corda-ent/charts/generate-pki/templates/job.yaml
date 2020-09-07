@@ -37,25 +37,24 @@ spec:
             rm -r DATA/done.txt
 
             cp CM-FILES/pki.conf etc/pki.conf
-            cp CM-FILES/signer.conf etc/signer.conf;
             mkdir DATA/signer DATA/root DATA/networkmap DATA/idman DATA/idman/crls DATA/idman/certs
-            time java -Xmx{{ .Values.cordaJarMx }}G -jar {{ .Values.jarPath }}/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf
+            time java -Xmx{{ .Values.cordaJarMx }}M -jar {{ .Values.jarPath }}/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf
 
             #creating a dummy file to perform check if last line is executed or not.
             touch DATA/done.txt
           volumeMounts:
           - name: pkitool-certs-keys
             mountPath: /opt/corda/DATA
-          - name: pkitool-signer-etc
+          - name: pkitool-etc
             mountPath: /opt/corda/etc
           - name: pkitool-conf
             mountPath: /opt/corda/CM-FILES/pki.conf
             subPath: pki.conf
           resources:
             requests:
-              memory: {{ .Values.cordaJarMx }}G
+              memory: {{ .Values.cordaJarMx }}M
             limits:
-              memory: {{ add .Values.cordaJarMx 2 }}G
+              memory: {{ add .Values.cordaJarMx 2 }}M
         - name: store-certs-in-vault
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
@@ -70,8 +69,6 @@ spec:
                value: {{ $.Values.volume.baseDir }}
              - name: CERTS_SECRET_PREFIX
                value: {{ .Values.vault.certsecretprefix }}
-             - name: JAVA_OPTIONS
-               value: -Xmx512m
           command: ["sh", "-c"]
           args:
           - |-
@@ -85,7 +82,7 @@ spec:
 
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
             cd ${BASE_DIR}/DATA
             # putting certificate for cenm root 
@@ -114,7 +111,7 @@ spec:
                    echo "after curl"
                   break;
                 else
-                  echo "certificates are not ready, sleeping for 10s"
+                  echo "certificates are not ready, sleeping ..."
                   sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
@@ -146,7 +143,7 @@ spec:
                    echo "after curl"
                   break;
                 else
-                  echo "certificates are not ready, sleeping for 10s"
+                  echo "certificates are not ready, sleeping ..."
                   sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
@@ -184,7 +181,7 @@ spec:
                   (echo '{"corda-ssl-network-map-keys.jks": "'; base64 ${BASE_DIR}/DATA/networkmap/corda-ssl-network-map-keys.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.networkmapName }}/certs
                   break;
                 else
-                  echo "certificates are not ready, sleeping for 10s"
+                  echo "certificates are not ready, sleeping ..."
                   sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
@@ -200,10 +197,7 @@ spec:
           - name: pkitool-conf
             configMap:
               name: {{ .Values.nodeName }}-pkitool-conf
-          - name: pkitool-signer-etc
-            emptyDir:
-              medium: Memory
-          - name: signer-logs
+          - name: pkitool-etc
             emptyDir:
               medium: Memory
           - name: pkitool-certs-keys

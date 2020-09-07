@@ -70,7 +70,7 @@ spec:
       baseDir: {{ volume_base_dir }}
     jarPath: {{ java_path }}
     configPath: {{ config_path }}
-    cordaJarMx: {{ corda_jar_mx }}
+    cordaJarMx: 1524
     sleepTimeAfterError: {{ sleep_time_after_error }}
     sleepTime: {{ sleep_time }}
     healthcheck:

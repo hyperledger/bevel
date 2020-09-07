@@ -36,7 +36,6 @@ spec:
     volume:
       baseDir: /opt/corda
     devMode: false
-    ambassador_p2pPort: {{ ambassador_p2pPort }}
     p2pPort: {{ notary_service.p2p.port }}
     rpcSettingsAddress: "0.0.0.0"
     rpcSettingsAddressPort: 10003
@@ -46,7 +45,17 @@ spec:
     rpcSettingsUseSsl: false
     networkServices:
       doormanURL: {{ idman_url }}
+      idmanDomain: {{ idman_domain }}
       networkMapURL: {{ networkmap_url }}
+      networkMapDomain: {{ networkmap_domain }}
+    dataSourceProperties:
+      dataSource:
+        password: "{{ db_password }}"
+        url: "jdbc:h2:tcp://{{ db_name }}db:{{ db_port }}/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+        user: "{{ db_username }}"
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      dbUrl: "{{ db_name }}db"
+      dbPort: {{ db_port }}
     notary:
       validating: {{ is_validating }}
     legalName: {{ notary_legal_name }}
@@ -57,9 +66,14 @@ spec:
       password: notaryP
     healthCheckNodePort: 0
     jarPath: bin
+    cordaJarMx: 1524
     bashDebug: false
     configPath: etc
     sleepTimeAfterError: 120
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
+    nodeConf:
+      p2p:
+        url: {{ db_name }}.{{ component_ns }}
+      ambassadorAddress: {{ db_name }}.{{ org.external_url_suffix }}:{{ ambassador_p2pPort | default('10002') }}

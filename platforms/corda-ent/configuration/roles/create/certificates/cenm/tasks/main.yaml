@@ -1,0 +1,105 @@
+# This role generates certificates for ambassador proxy
+# and places them in vault. Certificates are created using openssl
+# This also creates the corresponding Kubernetes secret
+---
+
+# check if the ambassador tls directory exists
+- name: "Check if the ambassador directory exists"
+  stat:
+    path: "{{ tlscert_path }}"
+  register: ambassadordir_check
+
+# Create the ambassador directory if it doesn't exist
+- name: "Create the ambassador directory if it doesn't exist"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    check: "ensure_dir"
+    path: "{{ tlscert_path }}"
+  when: not ambassadordir_check.stat.exists
+
+# Check if the ambassador tls is already created
+- name: Check if the ambassador tls is already created
+  shell: |
+    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ service_name }}/tlscerts
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: ambassador_tls_certs
+  ignore_errors: yes
+
+# Get the ambassador certs if they exist
+- name: Get the ambassador certs if they exist in the vault
+  include_role:
+    name: "setup/get_crypto"
+  vars:
+    vault_output: "{{ ambassador_tls_certs.stdout | from_yaml }}"
+    type: "ambassador"
+    cert_path: "{{ tlscert_path }}"
+  when: ambassador_tls_certs.failed == False
+
+# Check if openssl conf file exists
+- name: "check if openssl conf file exists"
+  stat:
+    path: "{{ tlscert_path }}/openssl.conf"
+  register: openssl_conf_check
+
+# Generates the openssl file for domain
+- name: Generate openssl conf file
+  shell: |
+    cd {{ tlscert_path }}
+    cat <<EOF >openssl.conf
+    [dn]
+    CN={{ domain_name }}
+    [req]
+    distinguished_name = dn
+    [EXT]
+    subjectAltName=DNS:{{ domain_name }}
+    keyUsage=digitalSignature
+    extendedKeyUsage=serverAuth
+    EOF
+  vars:
+    domain_name: "{{ service_name }}.{{ org.external_url_suffix }}"
+  when: not openssl_conf_check.stat.exists
+
+# Create ambassador certificates
+- name: Create ambassador certificates
+  shell: |
+    cd {{ tlscert_path }}
+    openssl req -x509 -out ambassador.pem -keyout ambassador.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ domain_name }}" -extensions EXT -config openssl.conf
+  vars:
+    domain_name: "{{ service_name }}.{{ org.external_url_suffix }}"
+  when: ambassador_tls_certs.failed == True
+
+# Store the ambassador certificates into the vault
+- name: Store the ambassador certs to vault
+  shell: |
+    vault kv put secret/{{ org.name | lower }}/{{ service_name }}/tlscerts tlscacerts="$(cat {{ tlscert_path }}/ambassador.pem | base64)" tlskey="$(cat {{ tlscert_path }}/ambassador.key | base64)"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  when: ambassador_tls_certs.failed == True
+
+# Check if the ambassador secret is created in the default namespace
+- name: Check Ambassador cred exists
+  k8s_info:
+    kind: Secret
+    namespace: default
+    name: "{{ service_name }}-ambassador-certs"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+  register: get_ambassador_secret
+
+# Create the ambassador secret if it doesn't exist
+- name: Create the ambassador credentials
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} kubectl create secret tls {{ service_name }}-ambassador-certs --cert="{{ tlscert_path }}/ambassador.pem" --key="{{ tlscert_path }}/ambassador.key" -n default
+  when: get_ambassador_secret.resources|length == 0
+
+# Copy generated crt to build location
+- name: Copy generated ambassador tls certs to given build location
+  copy:
+    src: "{{ tlscert_path }}/ambassador.pem"
+    dest: "{{ dest_path }}"
+    follow: yes
+  when: dest_path is defined

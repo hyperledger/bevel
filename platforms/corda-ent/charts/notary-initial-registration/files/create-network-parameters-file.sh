@@ -10,7 +10,7 @@ envsubst <<"EOF" > additional-node-infos/network-parameters-initial.conf.tmp
 notaries : [
   {
     notaryNodeInfoFile: "notary-nodeinfo/notary_nodeinfo"
-    validating = true
+    validating = "{{ .Values.notary.validating }}"
   }
 ]
 minimumPlatformVersion = 1

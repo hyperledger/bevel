@@ -1,19 +1,32 @@
 ###########################################################
 # Playbook to create deployment files for the following:
-# namespaces, service account and clusterrolebinding
+#  storageclass
+#  namespaces, service account and clusterrolebinding
 # Playbook arguments: complete network.yaml
 ###########################################################
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
-  # Delete build directory
+  # Delete build directory before start of play, can be commented if you do not want to delete it.
   - name: Remove build directory
     file:
       path: "./build"
       state: absent
-  #----------------------------------------------------------------------
+
+  # Create Storageclass that will be used for this deployment
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "cordaentsc"
+      git_dir: "{{ org.gitops.release_dir }}"
+      kubernetes: "{{ org.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+
   # create namespace, service account and clusterrolebinding
-  - name: "Create namespace and service account"
+  - name: "Create namespace, service accounts and clusterrolebinding"
     include_role: 
       name: create/namespace_serviceaccount
     vars:
@@ -25,87 +38,18 @@
     loop_control:
       loop_var: org
 
-  # Create Storageclass
-  - name: Create Storage Class
-    include_role:
-      name: create/storageclass
-    vars:
-      storageclass_name: "cordaentsc"
-      git_dir: "{{ org.gitops.release_dir }}"
-      org: "{{ org }}"
-      kubernetes: "{{ org.k8s }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-
-  # ----------------------------------------------------------------------  
-  # Setup Vault-Kubernetes accesses and Regcred for docker registry
-  - name: "Setup vault"   
+  # ---------------------------------------------------------------------- 
+  # Setup CENM services for the network
+  - name: "Setup cenm"   
     include_role: 
-      name: "setup/vault_kubernetes"
+      name: "setup/cenm"
     vars:
+      services: "{{ org.services }}"
+      organisation: "{{ org.name | lower }}"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
-      component_name: "{{ org.name | lower }}"
-      component_path: "{{ org.name | lower }}/"
-      component_auth: "cordaent{{ org.name | lower }}"
-      component_type: "{{ org.type | lower }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-
-  # ---------------------------------------------------------------------- 
-  # Generate pki-generator chart value file and push to repository
-  - name: "Setup pki-generator"   
-    include_role: 
-      name: "setup/pki-generator"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.type == 'cenm'
-
-  # ----------------------------------------------------------------------   
-  # Deploy Signer node
-  - name: Deploy Signer service node
-    include_role:
-      name: setup/signer
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.type == 'cenm'
-
-  # ----------------------------------------------------------------------   
-  # Get networkroottruststore
-  - name: Fetch networkroottruststore from the vault
-    include_role:
-      name: setup/networkroottruststore
-
-  # ----------------------------------------------------------------------   
-  # Create value file for idman
-  - name: Create value file for idman
-    include_role:
-      name: setup/idman
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.type == 'cenm'
-
-  # ----------------------------------------------------------------------   
-  # Create value file for nmap
-  - name: Create value file for nmap
-    include_role:
-      name: setup/nmap
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.type == 'cenm'
-
-  # ----------------------------------------------------------------------   
-  # Create value file for notary 
-  - name: Create value file for notary
-    include_role:
-      name: setup/notary
+      gitops: "{{ org.gitops }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
