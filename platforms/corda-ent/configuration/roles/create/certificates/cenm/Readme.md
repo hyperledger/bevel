@@ -8,19 +8,19 @@ This tasks checks if the ambassador tls directory exists or not
 ##### Input Variables
 
     path: The path to the directory is specified here.
-    recurse: Yes/No to recursively check inside the path specified.
+
 ##### Output Variables
 
     ambassadordir_check: Variable which stores the status of the directory presence
 
 #### 2. Create the ambassador directory if it doesn't exist
-This tasks create the ambassador directory if it doesn't exist
+This tasks create the ambassador directory if it doesn't exist. Calls common role in shared/configuration/roles/check/setup
 ##### Input Variables
 
     path: The path to the directory is specified here.
-    recurse: Yes/No to recursively check inside the path specified.
+    check: "ensure_dir"
 
-**when**: It runs when **ambassadordir_check** variable exists
+**when**: It runs when **ambassadordir_check** variable is false.
 
 #### 3. Check if the ambassador tls is already created
 This tasks checks if the ambassador tls is already created and stored in the vault
@@ -31,68 +31,41 @@ This tasks checks if the ambassador tls is already created and stored in the vau
 ##### Output Variables:
 
     ambassador_tls_certs: Stores the status of the ambassador tls certificates in the vault
+ignore_errors is yes because certificates are not created for a fresh network deployment and this command will fail.
 
 #### 4. Get the ambassador certs if they exist
-This tasks fetches the ambassador certificates, if they are present in the vault
+This tasks fetches the ambassador certificates, if they are present in the vault. Calls common role in setup/get_crypto
 ##### Input Variables
 
-    vault_output: Stores the vault output in yaml format
+    vault_output: result of the previous command
+    type: "ambassador"
     cert_path: Path where the ambassador certificates are fetched to
 
 **when**: It runs when **ambassador_tls_certs.failed** variable is False
 
 #### 5. Check if the openssl conf file exists or not
-This tasks check if the openssl file for the idman exists on the given path
+This tasks check if the openssl file exists on the given path
 ##### Input Variables
 
-    path: The path to the opensslidman.conf file
+    path: The path to the openssl.conf file
 ##### Output Variables
 
-    openssl_conf_check: Stores the status of the opensslidman.conf file
+    openssl_conf_check: Stores the status of the command
 
-#### 6. Generate openssl.conf file for idman
-This tasks creates the openssl.conf file for the idman if it does not exist
+#### 6. Generate openssl.conf file
+This tasks creates the openssl.conf file if it does not exist
 ##### Input Variables
 
-    domain_name: Domain name of the idman, usually formed by IDMAN_NAME.EXTERNAL_URL_SUFFIX
+    domain_name: Domain name of the service, usually formed by SERVICE_NAME.EXTERNAL_URL_SUFFIX
 
 **when**: It runs when **openssl_conf_check.stat.exists** variable is False
 
-#### 7. Get the subordinateCA certs if they exist in the vault
-##### Input Variables
+#### 7. Create ambassador certfiicates
+This tasks create ambassador certificates using the openssl file created above.
 
-    VAULT_ADDR: Address of the vault
-    VAULT_TOKEN: Token of the vault
-##### Output Variables
+**when**: It runs when **ambassador_tls_certs.failed** variable is true.
 
-    subordinateca: The variable stores the status of subordinateca cert in the vault
-
-#### 8. Check if rootca.jks is present
-This tasks checks if the rootca.jks is present in the ansible controller
-##### Input Variables
-
-    path: Path to the rootca.jks file
-##### Output Variables
-
-    check_rootcajks: This variable stores rootca.jks file status
-
-**when**: It runs when **ambassadordir_check** variable exists
-
-#### 9. Store the keystore in a file
-This tasks stores the keystore in a file
-##### Input Variables
-
-    content: This variable contains the keystore in base64 encoded format
-    dest: This variable has the path where the keystore will be stored
-
-**when**: It runs when **check_rootcajks.stat.exists** does not exist
-
-#### 10. Create ambassador certfiicates
-This tasks create ambassador certificates with SubordinateCA as the rootCA
-
-**when**: It runs when **ambassador_tls_certs.failed** variable is false
-
-#### 11. Store the ambassador certs to the vault
+#### 8. Store the ambassador certs to the vault
 This tasks stores the created/fetched ambassador certificates to the vault
 ##### Input Variables
 
@@ -101,7 +74,7 @@ This tasks stores the created/fetched ambassador certificates to the vault
 
 **when**: It runs when **ambassador_tls_certs.failed** variable is True
 
-#### 12. Check Ambassador creds exists
+#### 9. Check Ambassador creds exists
 This tasks checks if the ambassador secret is already created
 ##### Input Variables
 
@@ -112,7 +85,12 @@ This tasks checks if the ambassador secret is already created
 
     get_ambassador_secret: Status of the ambassador secret
 
-#### 3. Create the ambassador credentials
+#### 10. Create the ambassador credentials
 This tasks creates the ambassador credential secret if they dont exist
 
 **when**: It runs when **get_ambassador_secret** variable doesnt have the secret details (secret is not already created)
+
+#### 11. Copy generated crt to build location
+This tasks copies the public ambassador cert to the build location provided in network.yaml
+
+**when**: the dest_path variable is defined. (This is the location where the cert will be copied to).
