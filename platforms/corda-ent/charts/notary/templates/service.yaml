@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{ if $.Values.ambassador }}
+  {{ if $.Values.nodeConf.ambassador }}
   annotations:
     getambassador.io/config: |
       ---
@@ -11,14 +11,14 @@ metadata:
       kind: TLSContext
       name: {{ .Values.nodeName }}_context
       hosts:
-      - {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
+      - {{ .Values.nodeName }}.{{ .Values.nodeConf.ambassador.external_url_suffix }}
       secret: {{ .Values.nodeName }}-ambassador-certs
       ---
       apiVersion: ambassador/v1
       kind: TCPMapping
       name: {{ .Values.nodeName }}_p2p_mapping
-      port: {{ .Values.ambassador.p2pPort }}
-      host: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
+      port: {{ .Values.nodeConf.ambassador.p2pPort }}
+      host: {{ .Values.nodeName }}.{{ .Values.nodeConf.ambassador.external_url_suffix }}
       service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.p2pPort }}
   {{ end }}  
   labels:
@@ -42,8 +42,8 @@ spec:
       targetPort: {{ .Values.service.p2pPort }}
       protocol: TCP
       name: http
-    - port: {{ .Values.rpcSettingsAddressPort }} 
-      targetPort: {{ .Values.rpcSettingsAddressPort }}
+    - port: {{ .Values.service.rpc.addressPort }} 
+      targetPort: {{ .Values.service.rpc.addressPort }}
       protocol: TCP
       name: rpc
     - port: {{ .Values.service.sshdPort }} 
