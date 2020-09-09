@@ -133,13 +133,13 @@ spec:
               TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
               echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks
 
-              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.idmanName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
               IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
               echo "${IDMAN_CERT}" | base64 -d > ${OUTPUT_PATH}/idman.crt
 
-              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
               NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
               echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/networkmap.crt             
               echo "Done fetching all certificates from vault"
