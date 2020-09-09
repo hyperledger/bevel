@@ -102,7 +102,49 @@ spec:
                 echo "Done"
           volumeMounts:
           - name: certificates
-            mountPath: /DATA        
+            mountPath: /DATA   
+        - name: db-healthcheck
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            COUNTER=1
+            FLAG=true
+            # perform health check if db is up and running before starting corda node
+            while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+              DB_NODE={{ .Values.dataSource.dbUrl }}:{{ .Values.dataSource.dbPort }}
+              STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
+
+              if [ "$STATUS" == 0 ]
+              then
+                  FLAG=false
+              else
+                  FLAG=true
+                  echo "DB up and running"
+              fi
+
+              if [ "$FLAG" == false ]
+              then
+                  echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+                  COUNTER=`expr "$COUNTER" + 1`
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+              else
+                  echo "SUCCESS!"
+                  echo "DB up and running!"
+                  exit 0
+                  break
+              fi
+            done
+
+            if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ]
+            then
+                echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
+                exit 1
+                break
+            fi     
         containers:
         - name: registration
           image: "{{ .Values.image.nodeContainerName }}"
@@ -113,14 +155,16 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
+            rm -r certificates/done.txt
             mkdir bin
             cp CM-FILES/node.conf etc/
             cp CM-FILES/*.sh bin/
             cp corda.jar bin/
             chmod +x bin/*
-            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias networkmap -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias idman -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
             bin/node-initial-registration.sh
+            touch certificates/done.txt
           volumeMounts:
           - name: node-conf
             mountPath: /opt/corda/CM-FILES/node.conf
@@ -171,7 +215,7 @@ spec:
             cd ${BASE_DIR}/certificates
             while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
             do
-                if [ -e nodekeystore.jks ] && [ -e sslkeystore.jks ] && [ -e truststore.jks ]
+                if [ -e done.txt ]
                 then
                   echo "found certificates, performing vault put"
                   (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/nodekeystore

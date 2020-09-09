@@ -1,32 +1,5 @@
 # This role creates the the value file for bridge chart and pushes it to the git repository
 
-# Wait for notary pod to come up
-- name: "Waiting for notary pod to come up"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-  vars:
-    component_type: "Pod"
-    namespace: "{{ component_ns }}"
-    component_name: "{{ org.services.notary.name }}"
-    kubernetes: "{{ org.k8s }}"
-    label_selectors:
-      - app = {{ component_name }}
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'cenm'
-
-# TODO: Change of this logic here and in the chart
-# Fetch the networkmap namespace and port
-- name: Get the networkmap namespace and port
-  set_fact:
-    networkmap_ns: "{{ component_ns }}"
-    networkmap_port: "{{ org.services.networkmap.ports.servicePort }}"
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'cenm'
-
 # This task will will create the value file for bridge
 - name: Create value file for bridge
   include_role:
@@ -48,7 +21,7 @@
     vault_role: "vault-role"
     auth_path: "cordaent{{ org.name | lower }}"
     vault_serviceaccountname: "vault-auth"
-    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}/{{ peer.name }}"
     storageclass: cordaentsc
     float_address: "{{ peer.firewall.float.name | lower }}.{{ component_ns }}"
     float_port: "{{ peer.firewall.float.port }}"
@@ -56,10 +29,6 @@
     bridge_address: "{{ peer.firewall.bridge.name | lower }}.{{ component_ns }}"
     bridge_port: "{{ peer.firewall.bridge.port }}"
     bridge_tunnel_port: "{{ peer.firewall.bridge.tunnelport }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: peer.firewall.enabled
     
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push

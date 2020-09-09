@@ -37,26 +37,8 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
-
-  # ---------------------------------------------------------------------- 
-  # Setup CENM services for the network
-  - name: "Setup cenm"   
-    include_role: 
-      name: "setup/cenm"
-    vars:
-      services: "{{ org.services }}"
-      organisation: "{{ org.name | lower }}"
-      component_ns: "{{ org.name | lower }}-ent"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.type == 'cenm'
-
   # ----------------------------------------------------------------------  
-  # Wait for cenm services to respond  
+  # Check that cenm services are reachable
   - name: Check that CENM uri are reachable
     uri:
       url: "{{ item.uri }}/status"
@@ -66,7 +48,7 @@
     loop: "{{ network['orderers'] }}"
     retries: "{{ network.env.retry_count}}"
     delay: 50
- 
+
   # ----------------------------------------------------------------------   
   # Setup Corda Node services for the network
   - name: Setup Corda Node services

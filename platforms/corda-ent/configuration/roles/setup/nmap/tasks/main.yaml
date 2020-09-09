@@ -31,6 +31,16 @@
     tlscert_path: "./build/ambassador/{{ org.services.networkmap.name }}"
     service_name: "{{ org.services.networkmap.name }}"
     dest_path: "{{ network | json_query('orderers[?type==`networkmap`].certificate') | first }}"
+
+# Get the network-root-truststore and save locally
+- name: Get the network-root-truststore
+  shell: |
+    vault read -field=network-root-truststore.jks secret/{{ org.name | lower }}/root/certs > "{{ cert_path }}"
+  vars:
+    cert_path: "{{ network | json_query('orderers[?type==`networkmap`].truststore') | first }}"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
    
 # Check if the notary-registration is already completed
 - name: Check if the notary-registration is already completed

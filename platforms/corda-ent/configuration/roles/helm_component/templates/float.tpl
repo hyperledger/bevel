@@ -10,7 +10,7 @@ spec:
   chart:
     git: "{{ git_url }}"
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/idman
+    path: {{ charts_dir }}/float
   values:
     deployment:
       annotations: {}

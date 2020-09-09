@@ -5,7 +5,7 @@
 #############################################################################################
 # This task deletes the Docker credentials
 - name: Delete docker creds
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: "{{ org.name | lower }}"
     name: "regcred"
@@ -17,7 +17,7 @@
 ############################################################################################
 # Delete the Ambassador Creds for idman
 - name: Delete Ambassador creds for idman
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: default
     name: "{{ org.services.idman.name }}-ambassador-certs"
@@ -29,7 +29,7 @@
 
 # Delete the Ambassador Creds for networkmap
 - name: Delete Ambassador creds for networkmap
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: default
     name: "{{ org.services.networkmap.name }}-ambassador-certs"
@@ -41,7 +41,7 @@
 
 # Delete the Ambassador Creds for notary
 - name: Delete Ambassador creds for notary
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: default
     name: "{{ org.services.notary.name }}-ambassador-certs"
@@ -53,7 +53,7 @@
 
 # Delete the Ambassador Creds for each peer of all nodes
 - name: Delete Ambassador creds for each peer of all nodes
-  k8s_raw:
+  k8s:
     kind: Secret
     namespace: default
     name: "{{ peer.name }}-ambassador-certs"
@@ -109,32 +109,32 @@
 # This task deletes crypto material
 - name: Delete Crypto material 
   shell: |
-    vault delete secret/{{ org.name | lower }}/certs/customnodekeystore
-    vault delete secret/{{ org.name | lower }}/certs/{{ network | json_query('orderers[?type==`idman`].name') | first }}
-    vault delete secret/{{ org.name | lower }}/certs/{{ network | json_query('orderers[?type==`networkmap`].name') | first }}
-    vault delete secret/{{ org.name | lower }}/certs/networkmaptruststore
-    vault delete secret/{{ org.name | lower }}/certs/nodekeystore
-    vault delete secret/{{ org.name | lower }}/certs/sslkeystore
-    vault delete secret/{{ org.name | lower }}/certs/truststore
-    vault delete secret/{{ org.name | lower }}/tlscerts
-    vault delete secret/{{ org.name | lower }}/certs
-    vault delete secret/{{ org.name | lower }}/root/certs
-    vault delete secret/{{ org.name | lower }}/network-parameters
-  environment:
-    VAULT_ADDR: "{{ org.vault.url }}"
-    VAULT_TOKEN: "{{ org.vault.root_token }}"
-  when: org.type == 'node'
-
-# This task deletes crypto materials from vault for nodes
-- name: Delete Crypto for nodes
-  shell: |
-    vault secrets disable secret/{{ peer.name | lower }}
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/customnodekeystore
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/{{ network | json_query('orderers[?type==`idman`].name') | first }}
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/{{ network | json_query('orderers[?type==`networkmap`].name') | first }}
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/networkmaptruststore
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/nodekeystore
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/sslkeystore
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/truststore
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/tlscerts
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/root/certs
+    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/network-parameters
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
+  when: org.type == 'node'
+
+# This task deletes crypto materials from vault for nodes
+- name: Delete Crypto for nodes
+  shell: |
+    vault secrets disable secret/{{ org.name | lower }}
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
   when: org.type == 'node'
 
 ############################################################################################

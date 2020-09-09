@@ -10,15 +10,11 @@ spec:
   chart:
     git: "{{ git_url }}"
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/idman
+    path: {{ charts_dir }}/bridge
   values:
     deployment:
       annotations: {}
     nodeName: bridge
-    nmap:
-      name: {{ networkmap_name }}
-      port: {{ networkmap_port }}
-      namespace: {{ networkmap_ns }}
     metadata:
       namespace: {{ component_ns }}
       labels: {}

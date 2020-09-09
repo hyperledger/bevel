@@ -30,9 +30,6 @@ spec:
       authPath: cordaent{{ org.name | lower }}
       retries: 30
       retryInterval: 10
-    cenmServices:
-      idmanName: {{ org.services.idman.name }}
-      networkmapName: {{ org.services.networkmap.name }}
     service:
       p2pPort: {{ notary_service.p2p.port }}
       rpc:
@@ -51,6 +48,8 @@ spec:
       idmanDomain: {{ idman_domain }}
       networkMapURL: {{ networkmap_url }}
       networkMapDomain: {{ networkmap_domain }}
+      idmanName: {{ org.services.idman.name }}
+      networkmapName: {{ org.services.networkmap.name }}
     dataSourceProperties:
       dataSource:
         password: "{{ notary_service.name }}-db-password"
