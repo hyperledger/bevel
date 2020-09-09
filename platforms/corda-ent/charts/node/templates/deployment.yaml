@@ -58,7 +58,7 @@ spec:
                 fi
               }
 
-            setting up env to get secrets from vault
+            # setting up env to get secrets from vault
             echo "Getting secrets from Vault Server"
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
@@ -209,8 +209,10 @@ spec:
           cp CM-FILES/*.sh bin/
           cp corda.jar bin/
           chmod +x bin/*
-          yes | keytool -importcert -file {{ .Values.workspacePath }}/certificates/tlscerts/networkmap.crt -storepass changeit -alias networkmap -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-          yes | keytool -importcert -file {{ .Values.workspacePath }}/certificates/tlscerts/idman.crt -storepass changeit -alias idman -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+          # to clean network-parameters on every restart
+          rm -rf {{ .Values.workspacePath }}/network-parameters
+          yes | keytool -importcert -file {{ .Values.workspacePath }}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+          yes | keytool -importcert -file {{ .Values.workspacePath }}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
           bin/run.sh
         volumeMounts:
         - name: node-conf

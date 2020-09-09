@@ -4,7 +4,8 @@ then
     echo
     echo "Starting Node node ..."
     echo
-    java -jar {{ .Values.jarPath }}/corda.jar -f {{ .Values.workspacePath }}/node.conf --base-directory {{ .Values.workspacePath }}
+    # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
+    java -Djavax.net.ssl.keyStore={{ .Values.workspacePath }}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=password -jar {{ .Values.jarPath }}/corda.jar -f {{ .Values.workspacePath }}/node.conf --base-directory {{ .Values.workspacePath }}
     EXIT_CODE=${?}
 else
     echo "Missing node jar file in {{ .Values.jarPath }} folder:"

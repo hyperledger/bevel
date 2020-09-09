@@ -1,38 +1,84 @@
-#This task creates the value file for the node registration as well the db required and push them to the git repository
+##############################################################################################
+# This role sets up all Corda node services
+##############################################################################################
+
+- name: "Wait for namespace creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+    type: "retry"
+
+- name: "Wait for vault-auth creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-auth"
+    type: "retry"
+  tags:
+    - notest    
+
+- name: "Wait for vault-reviewer creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-reviewer"
+    type: "retry"
+  tags:
+    - notest    
+
+- name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ component_ns }}-role-tokenreview-binding"
+    type: "retry"
+  tags:
+    - notest
+# ----------------------------------------------------------------------  
+# create vault access policies
+- name: "Setup vault access for nodes"
+  include_role: 
+    name: setup/vault_kubernetes
+  vars:
+    component_name: "{{ org.name | lower }}"
+    component_path: "{{ org.name | lower }}/"
+    component_auth: "cordaent{{ org.name | lower }}"
+    component_type: "{{ org.type | lower }}"
 
 # Create ambassador certificates for node
 - name: Create ambassador certificates for node
   include_role:
     name: create/certificates/node
+  vars:
+    node_name: "{{ peer.name | lower }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
 
-# Get idman & networkmap tls certificates for nodes
-- name: Get idman & networkmap tls certificates for nodes
+# Save tls certificates for orderers to Vault
+- name: Save tls certificates for orderers to Vault
   include_role:
     name: setup/tlscerts
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
 
 # Create value file for node registration
 - name: Create value file for node registration
   include_role:
     name: setup/node_registration
 
-# Wait for node registration job to complete
-- name: "Waiting for node registration job to complete"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-  vars:
-    component_type: "Job"
-    namespace: "{{ component_ns }}"
-    component_name: "{{ peer.name }}-registration"
-    kubernetes: "{{ org.k8s }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-
 # Create value file for node
 - name: "Create value file for node"
   include_role:
     name: helm_component
   vars:
+    helm_lint: "true"
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
@@ -45,14 +91,16 @@
     type: node
     vault_address: "{{ org.vault.url }}"
     vault_auth_path:  "cordaent{{ org.name | lower }}"
-    vault_cert_secret_prefix: "secret/{{ peer.name | lower }}"
+    vault_cert_secret_prefix: "secret/{{ org.name | lower }}/{{ peer.name | lower }}"
     vault_node_path: "{{ peer.name | lower }}"
     legal_name: "{{ org.subject }}"
-    tls_cert_crl_issuer: "{{ network | json_query('orderers[?type==`signer`].subject') | first }}"
+    tls_cert_crl_issuer: "{{ network | json_query('orderers[?type==`idman`].crlissuer_subject') | first }}"
     networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
     doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
-    p2p_port: "{{ peer.firewall.bridge.port if peer.firewall.enabled == true else peer.p2p.ambassador }}"
-    p2p_address: "{{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ org.external_url_suffix }}"
+    idman_domain: "{{ doorman_url.split(':')[1] | regex_replace('/', '') }}"    
+    networkmap_domain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
+    p2p_port: "{{ peer.firewall.bridge.port if peer.firewall.enabled == true else peer.p2p.port }}"
+    p2p_address: "{{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ component_ns }}"
     rpc_port: "{{ peer.rpc.port }}"
     rpc_admin_port: "{{ peer.rpcadmin.port }}"
     user_name: "{{ peer.name | lower }}"
@@ -73,11 +121,19 @@
 - name: Create value file for bridge
   include_role:
     name: setup/bridge
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.firewall.enabled
 
 # Create value file for float 
 - name: Create value file for float
   include_role:
     name: setup/float
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.firewall.enabled
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -91,4 +147,4 @@
     GIT_PASSWORD: "{{ org.gitops.password }}"
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/corda-ent/configuration"
-    msg: "[ci skip] Pushing node"
+    msg: "[ci skip] Pushing node files"
