@@ -10,12 +10,10 @@ spec:
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/invoke_chaincode
+    path: {{ charts_dir }}/commit_chaincode
   values:
     metadata:
       namespace: {{ namespace }}
-      network:
-        version: {{ network.version }}
       images:
         fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
@@ -40,7 +38,7 @@ spec:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
-      instantiationarguments: {{ component_chaincode.arguments | quote}}
+      commitarguments: {{ component_chaincode.arguments | quote}}
       endorsementpolicies:  {{ component_chaincode.endorsements | quote}}
     channel:
       name: {{ item.channel_name | lower }}
