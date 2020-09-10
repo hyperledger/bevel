@@ -28,61 +28,61 @@ spec:
     networkServices:
       doormanURL: {{ doorman_url }}
       networkMapURL: {{ networkmap_url }}
-      idmanDomain: {{ idman_domain }}
-      networkMapDomain: {{ networkmap_domain }}
+      idmanDomain: "{{ doorman_url.split(':')[1] | regex_replace('/', '') }}"
+      networkMapDomain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
+      idmanName: "{{ network | json_query('orderers[?type==`idman`].name') | first }}"
+      networkmapName: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
     firewall:
-      enabled: {{ firewall_enabled }}
-    cenmServices:  
-      idmanName: {{ idman_name }}
-      networkmapName: {{ networkmap_name }}
+      enabled: {{ peer.firewall.enabled }}      
     vault:
-      address: {{ vault_address }}
+      address: {{ org.vault.url }}
       role: vault-role
-      authpath: {{ vault_auth_path }}
+      authpath: cordaent{{ org.name | lower }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault_cert_secret_prefix }}
-      nodePath: {{ vault_node_path }}
-    ambassador:
-      external_url_suffix: {{ external_url_suffix }}
-      p2pPort: {{ ambassador_p2p_port }}
+      certsecretprefix: secret/{{ org.name | lower }}/{{ peer.name | lower }}
+      nodePath: {{ peer.name | lower }}
     nodeConf:
-      ambassadorAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
-    legalName: "{{ legal_name }}"
-    emailAddress: "dev-node@baf.com"
-    crlCheckSoftFail: true
-    tlsCertCrlDistPoint: ""
-    tlsCertCrlIssuer: "{{ tls_cert_crl_issuer }}"
-    devMode: false
+      ambassador:
+        external_url_suffix: {{ org.external_url_suffix }}
+        p2pPort: {{ peer.p2p.ambassador }}
+        p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+      legalName: "{{ org.subject }}"
+      emailAddress: "dev-node@baf.com"
+      crlCheckSoftFail: true
+      tlsCertCrlDistPoint: ""
+      tlsCertCrlIssuer: "{{ network | json_query('orderers[?type==`idman`].crlissuer_subject') | first }}"
+      devMode: false
+      volume:
+        baseDir: /opt/corda
+      jarPath: bin
+      configPath: etc
+      cordaJarMx: 1524
     service:
-      p2pPort: {{ p2p_port }}
-      p2pAddress: {{ p2p_address }}
-    ssh:
-      enabled: true
-      sshdPort: 2222
-    rpc:
-      port: {{ rpc_port }}
-      adminPort: {{ rpc_admin_port }}
-      users:
-      - name: {{ user_name }}
-        password: {{ user_password }}
-        permissions: ALL
-    dataSource:
-      user: {{ datasource_user }}
-      password: {{ datasource_password }}
-      url: "{{ datasource_url }}"
-      dataSourceClassName: org.h2.jdbcx.JdbcDataSource
-      dbUrl: "{{ component_name }}db"
-      dbPort: 9101
-    monitoring:
-      enabled: true
-      port: 8090
-    allowDevCorDapps:
-      enabled: true
-    volume:
-      baseDir: /opt/corda
-    jarPath: bin
-    configPath: etc
-    cordaJarMx: 1524
+      p2pPort: {{ peer.firewall.bridge.port if peer.firewall.enabled == true else peer.p2p.port }}
+      p2pAddress: {{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ component_ns }}
+      ssh:
+        enabled: true
+        sshdPort: 2222
+      rpc:
+        port: {{ peer.rpc.port }}
+        adminPort: {{ peer.rpcadmin.port }}
+        users:
+        - name: {{ peer.name | lower }}
+          password: {{ peer.name | lower }}P
+          permissions: ALL
+    dataSourceProperties:
+      dataSource:
+        user: {{ peer.name | lower }}-db-user
+        password: {{ peer.name | lower }}-db-password
+        url: "jdbc:h2:tcp://{{ peer.name | lower }}db:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+        dataSourceClassName: org.h2.jdbcx.JdbcDataSource
+        dbUrl: "{{ component_name }}db"
+        dbPort: 9101
+      monitoring:
+        enabled: true
+        port: 8090
+      allowDevCorDapps:
+        enabled: true
     sleepTimeAfterError: 120
     sleepTime: 0
     healthcheck:

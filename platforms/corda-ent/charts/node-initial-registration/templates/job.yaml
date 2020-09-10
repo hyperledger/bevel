@@ -38,7 +38,7 @@ spec:
             - name: VAULT_APP_ROLE
               value: {{ $.Values.vault.role }}
             - name: BASE_DIR
-              value: {{ $.Values.volume.baseDir }}
+              value: {{ $.Values.nodeConf.volume.baseDir }}
             - name: CERTS_SECRET_PREFIX
               value: {{ .Values.vault.certsecretprefix }}
             - name: MOUNT_PATH
@@ -66,13 +66,13 @@ spec:
 
                 # Fetching network-root-truststore certificates from vault
                 COUNTER=1
-                while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+                while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
                 do
                     # get keystores from vault to see if certificates are created and put in vault
                     LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
                     if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                     then
-                      sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                      sleep {{ $.Values.vault.retryInterval }}
                     else
                       network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
                       echo "${network_root_truststore}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
@@ -81,7 +81,7 @@ spec:
                     fi 
                     COUNTER=`expr "$COUNTER" + 1`
                 done
-                if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+                if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
                 then
                   # printing number of trial done before giving up
                   echo "$COUNTER"
@@ -90,14 +90,14 @@ spec:
                 fi
 
                 mkdir -p ${MOUNT_PATH}/tlscerts
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.idmanName }} | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.idmanName }})" "${LOOKUP_SECRET_RESPONSE}"
-                IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.cenmServices.idmanName }}.crt"]')
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }} | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }})" "${LOOKUP_SECRET_RESPONSE}"
+                IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.idmanName }}.crt"]')
                 echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/idman.crt
 
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.networkmapName }} | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.networkmapName }})" "${LOOKUP_SECRET_RESPONSE}"
-                NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.cenmServices.networkmapName }}.crt"]')
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }} | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }})" "${LOOKUP_SECRET_RESPONSE}"
+                NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.networkmapName }}.crt"]')
                 echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
                 echo "Done"
           volumeMounts:
@@ -113,9 +113,9 @@ spec:
             COUNTER=1
             FLAG=true
             # perform health check if db is up and running before starting corda node
-            while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+            while [ "$COUNTER" -le {{ $.Values.dataSourceProperties.retries }} ]
             do
-              DB_NODE={{ .Values.dataSource.dbUrl }}:{{ .Values.dataSource.dbPort }}
+              DB_NODE={{ .Values.dataSourceProperties.dataSource.dbUrl }}:{{ .Values.dataSourceProperties.dataSource.dbPort }}
               STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
 
               if [ "$STATUS" == 0 ]
@@ -128,9 +128,9 @@ spec:
 
               if [ "$FLAG" == false ]
               then
-                  echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+                  echo "Retry attempted $COUNTER times, retrying after {{ $.Values.dataSourceProperties.retryInterval }} seconds"
                   COUNTER=`expr "$COUNTER" + 1`
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  sleep {{ $.Values.dataSourceProperties.retryInterval }}
               else
                   echo "SUCCESS!"
                   echo "DB up and running!"
@@ -139,7 +139,7 @@ spec:
               fi
             done
 
-            if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ]
+            if [ "$COUNTER" -gt {{ $.Values.dataSourceProperties.retries }} ] || [ "$FLAG" == false ]
             then
                 echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
                 exit 1
@@ -182,9 +182,9 @@ spec:
             mountPath: /opt/corda/DATA
           resources:
             requests:
-              memory: {{ .Values.cordaJarMx }}M
+              memory: {{ .Values.nodeConf.pod.resources.requests }}
             limits:
-              memory: {{ add .Values.cordaJarMx 2 }}M
+              memory: {{ .Values.nodeConf.pod.resources.limits }}
         - name: store-certs-in-vault
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
@@ -196,7 +196,7 @@ spec:
             - name: VAULT_APP_ROLE
               value: {{ $.Values.vault.role }}
             - name: BASE_DIR
-              value: {{ $.Values.volume.baseDir }}
+              value: {{ $.Values.nodeConf.volume.baseDir }}
             - name: CERTS_SECRET_PREFIX
               value: {{ .Values.vault.certsecretprefix }}
             - name: MOUNT_PATH
@@ -213,7 +213,7 @@ spec:
             # perform check if certificates are ready or not, and upload certificate into vault when ready
             COUNTER=1
             cd ${BASE_DIR}/certificates
-            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 if [ -e done.txt ]
                 then
@@ -224,7 +224,7 @@ spec:
                   break
                 else
                   echo "certificates are not ready, sleeping for the defined time"
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  sleep {{ $.Values.vault.retryInterval }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
@@ -237,9 +237,9 @@ spec:
             mountPath: /opt/corda/DATA
           resources:
             requests:
-              memory: {{ .Values.cordaJarMx }}M
+              memory: {{ .Values.nodeConf.pod.resources.requests }}
             limits:
-              memory: {{ add .Values.cordaJarMx 2 }}M
+              memory: {{ .Values.nodeConf.pod.resources.limits }}
         volumes:
         - name: node-conf
           configMap:
