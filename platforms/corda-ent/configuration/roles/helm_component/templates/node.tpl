@@ -28,6 +28,8 @@ spec:
     networkServices:
       doormanURL: {{ doorman_url }}
       networkMapURL: {{ networkmap_url }}
+      idmanDomain: {{ idman_domain }}
+      networkMapDomain: {{ networkmap_domain }}
     firewall:
       enabled: {{ firewall_enabled }}
     cenmServices:  
@@ -43,6 +45,8 @@ spec:
     ambassador:
       external_url_suffix: {{ external_url_suffix }}
       p2pPort: {{ ambassador_p2p_port }}
+    nodeConf:
+      ambassadorAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
     legalName: "{{ legal_name }}"
     emailAddress: "dev-node@baf.com"
     crlCheckSoftFail: true

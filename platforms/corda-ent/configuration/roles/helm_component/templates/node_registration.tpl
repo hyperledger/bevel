@@ -30,6 +30,8 @@ spec:
     networkServices:
       doormanURL: {{ doorman_url }}
       networkMapURL: {{ networkmap_url }}
+      idmanDomain: {{ idman_domain }}
+      networkMapDomain: {{ networkmap_domain }}
     vault:
       address: {{ vault_address }}
       role: {{ vault_role }}
@@ -37,6 +39,8 @@ spec:
       serviceaccountname: {{ vault_service_account_name }}
       certsecretprefix: {{ vault_cert_secret_prefix }}
       nodePath: {{ vault_node_path }}
+    nodeConf:
+      ambassadorAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
     legalName: "{{ legal_name }}"
     emailAddress: {{ email_address }}
     crlCheckSoftFail: {{ crl_check_soft_fail }}
@@ -61,6 +65,8 @@ spec:
       password: {{ datasource_password }}
       url: "{{ datasource_url }}"
       dataSourceClassName: {{ datasource_class_name }}
+      dbUrl: "{{ node_name }}db"
+      dbPort: 9101
     monitoring:
       enabled: {{ monitoring_enabled }}
       port: {{ monitoring_port }}
