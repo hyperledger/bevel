@@ -8,46 +8,46 @@ metadata:
 spec:
   releaseName: {{ component_name }}
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
+    git: {{ org.gitops.git_ssh }}
+    ref: {{ org.gitops.branch }}
     path: {{ charts_dir }}/idman
   values:
-    nodeName: {{ node_name }}
+    nodeName: {{ org.services.idman.name | lower }}
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ init_container_name }}
-      idmanContainerName: {{ idman_image_name }}:{{ idman_image_tag }}
+      initContainerName: {{ network.docker.url }}/{{ init_image }}
+      idmanContainerName: {{ network.docker.url }}/{{ docker_image }}
       pullPolicy: Always
-      imagePullSecret: {{ image_pull_secret }}
+      imagePullSecret: "regcred"
     storage:
-      name: {{ storageclass }}
+      name: "cordaentsc"
       memory: 700Mi
     acceptLicense: YES
     vault:
-      address: {{ vault_addr }}
-      certSecretPrefix: {{ vault_cert_secret_prefix }}
-      role: {{ vault_role }}
-      authPath: {{ auth_path }}
-      serviceAccountName: {{ vault_serviceaccountname }}
+      address: {{ org.vault.url }}
+      certSecretPrefix: secret/{{ org.name | lower }}
+      role: vault-role
+      authPath: cordaent{{ org.name | lower }}
+      serviceAccountName: vault-auth
       retries: 10
       sleepTimeAfterError: 15
     service:
       external:
-        port: {{ idman_port }}
+        port: {{ org.services.idman.port }}
       internal:
         port: 5052
       revocation:
         port: 5053
       shell:
         sshdPort: 2222
-        user: {{ ssh_username }}
-        password: {{ ssh_password }}
+        user: "{{ org.services.idman.name }}"
+        password: "{{ org.services.idman.name }}P"
     database:
       driverClassName: "org.h2.Driver"
       url: "jdbc:h2:file:./h2/identity-manager-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
-      user: {{ db_username }}
-      password: {{ db_password }}
+      user: "{{ org.services.idman.name }}-db-user"
+      password: "{{ org.services.idman.name }}-db-password"
       runMigration: "true"
     config:
       volume:
@@ -64,4 +64,4 @@ spec:
       replicas: 1
       sleepTimeAfterError: 120
     ambassador:
-      external_url_suffix: {{ external_url_suffix }}
+      external_url_suffix: "{{ org.external_url_suffix }}"

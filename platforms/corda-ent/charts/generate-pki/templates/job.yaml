@@ -55,7 +55,7 @@ spec:
               memory: {{ .Values.cordaJarMx }}M
             limits:
               memory: {{ add .Values.cordaJarMx 2 }}M
-        - name: store-certs-in-vault
+        - name: store-certs
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
           env:
@@ -186,6 +186,12 @@ spec:
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
+            if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ]
+            then
+                echo "Retry attempted $COUNTER times, no files found. Giving up!"
+                exit 1
+                break
+            fi
             echo "completed"
           volumeMounts:
           - name: pkitool-certs-keys

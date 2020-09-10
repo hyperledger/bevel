@@ -25,18 +25,14 @@ All values must be Base64 encoded files as BAF decodes them.
 | /secret/`cenm_orgname_lowercase`/`idman_service_name`/certs         | corda-ssl-identity-manager-keys.jks  | Idman SSL keystore |
 | /secret/`cenm_orgname_lowercase`/`idman_service_name`/tlscerts      | tlscacerts                        | Idman Ambassador Certificate |
 | /secret/`cenm_orgname_lowercase`/`idman_service_name`/tlscerts      | tlskey                            | Idman Ambassador Private key |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs                             | Notary.cer                 | Certificate |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs                             | Notary.key                 | Private key |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/idman                       | idman.crt                  | Idman Ambassador Certificate |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/networkmap                  | networkmap.crt             | Networkmap Ambassador Certificate |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/networkmaptruststore        | network-map-truststore     | Certificate |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/nodekeystore                | nodekeystore.jks           | Certificate |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/sslkeystore                 | sslkeystore.jks            | Certificate |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/truststore                  | truststore.jks             | Certificate |
+| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/nodekeystore                | nodekeystore.jks           | Notary keystore |
+| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/sslkeystore                 | sslkeystore.jks            | SSL Keystore |
+| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/truststore                  | truststore.jks             | Trust keystore |
+| /secret/`cenm_orgname_lowercase`/`notary_service_name`/certs/networkparam        | network-parameters-initial     | Initial network-parameters file generated during notary registration |
+| /secret/`cenm_orgname_lowercase`/`notary_service_name`/nodeInfo                          | nodeInfoFile                   | Notary node info file contents            |
+| /secret/`cenm_orgname_lowercase`/`notary_service_name`/nodeInfo                            | nodeInfoName | Notary node info filename with hash    |
 | /secret/`cenm_orgname_lowercase`/`notary_service_name`/tlscerts                          | tlscacerts                 | Notary Ambassador Certificate |
 | /secret/`cenm_orgname_lowercase`/`notary_service_name`/tlscerts                          | tlskey                     | Notary Ambassador Private key |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/nodeInfo                          | nodeInfo                   | Notary node info              |
-| /secret/`cenm_orgname_lowercase`/`notary_service_name`/nparam                             | network-parameters-initial | Network initial parameters    |
 
 -----
 
@@ -44,15 +40,11 @@ All values must be Base64 encoded files as BAF decodes them.
 
 | Path (`orgname_lowercase` crypto material)              | Crypto-material        | Type        |
 |--------------------------------------------------|------------------------|-------------|
-| /secret/`orgname_lowercase`/`peer_name`/certs                      | `peer_name`.cer       | Certificate |
-| /secret/`orgname_lowercase`/`peer_name`/certs                      | `peer_name`.key       | Private key |
-| /secret/`orgname_lowercase`/`peer_name`/certs/customnodekeystore   | nodekeystore.jks       | Certificate |
-| /secret/`orgname_lowercase`/`peer_name`/certs/`idman_service_name`                | `idman_service_name`.crt            | Idman Ambassador Certificate |
-| /secret/`orgname_lowercase`/`peer_name`/certs/`networkmap_service_name`           | `networkmap_service_name`.crt         | Networkmap Ambassador Certificate |
-| /secret/`orgname_lowercase`/`peer_name`/certs/networkmaptruststore | network-map-truststore | Certificate |
-| /secret/`orgname_lowercase`/`peer_name`/certs/nodekeystore         | nodekeystore.jks       | Certificate |
-| /secret/`orgname_lowercase`/`peer_name`/certs/sslkeystore          | sslkeystore.jks        | Certificate |
-| /secret/`orgname_lowercase`/`peer_name`/certs/truststore           | truststore.jks         | Certificate |
-| /secret/`orgname_lowercase`/`peer_name`/root/certs           | network-root-truststore.jks         | Certificate |
+| /secret/`orgname_lowercase`/`peer_name`/certs/`idman_service_name`  | `idman_service_name`.crt       | Idman Ambassador Certificate |
+| /secret/`orgname_lowercase`/`peer_name`/certs/`networkmap_service_name`   | ``networkmap_service_name``.crt  | Networkmap Ambassador Certificate |
+| /secret/`orgname_lowercase`/`peer_name`/certs/nodekeystore         | nodekeystore.jks       | Node keystore |
+| /secret/`orgname_lowercase`/`peer_name`/certs/sslkeystore          | sslkeystore.jks        | SSL Keystore |
+| /secret/`orgname_lowercase`/`peer_name`/certs/truststore           | truststore.jks         | Trust keystore |
+| /secret/`orgname_lowercase`/`peer_name`/root/certs | network-root-truststore.jks | Network Root certificates truststore |
 | /secret/`orgname_lowercase`/`peer_name`/tlscerts                   | tlscacerts             | Node Ambassador Certificate |
 | /secret/`orgname_lowercase`/`peer_name`/tlscerts                   | tlskey                 | Node Ambassador Private key |

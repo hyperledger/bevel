@@ -189,7 +189,7 @@ spec:
               memory: {{ .Values.nodeConf.pod.resources.requests }}
             limits:
               memory: {{ .Values.nodeConf.pod.resources.limits }}
-        - name: store-certs-in-vault
+        - name: store-certs
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
           env:
@@ -209,11 +209,13 @@ spec:
           args:
           - |-
             #!/usr/bin/env sh
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                 echo "ERROR: unable to retrieve ${1}: ${2}"
+                 exit 1
+              fi
+            }           
 
-            # setting up env to get secrets from vault
-            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-            
             # perform check if certificates are ready or not, and upload certificate into vault when ready
             COUNTER=1
             cd ${BASE_DIR}/certificates
@@ -222,6 +224,10 @@ spec:
                 if [ -e done.txt ]
                 then                  
                   echo "certificates found, saving to vault"
+                  # setting up env to get secrets from vault
+                  KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                  VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                  validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
                   (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore
                   (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore
                   (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
@@ -239,6 +245,10 @@ spec:
             do
                 if [ -e network-parameters-initial.conf ]
                 then
+                  # setting up env to get secrets from vault
+                  KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                  VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                  validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
                   # getting the nodeInfo name
                   nodeInfoName=$(basename $(ls nodeInfo*))
                   # Encoding binary file and putting it in file, to make sure binary gets correctly put in Vault
@@ -252,6 +262,12 @@ spec:
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
+            if [ "$COUNTER" -gt {{ $.Values.vault.retries }} ]
+            then
+                echo "Retry attempted $COUNTER times, no files found. Giving up!"
+                exit 1
+                break
+            fi
           volumeMounts:
           - name: notary-nodeinfo
             mountPath: {{ $.Values.nodeConf.volume.baseDir }}/additional-node-infos
