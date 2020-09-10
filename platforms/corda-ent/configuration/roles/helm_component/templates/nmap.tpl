@@ -1,23 +1,23 @@
 apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
-  name: {{ org.name | lower }}nmap
+  name: {{ component_name }}
   namespace: {{ component_ns }}
   annotations:
     flux.weave.works/automated: "false"
 spec:
-  releaseName: {{ org.name | lower }}nmap
+  releaseName: {{ component_name }}
   chart:
     git: {{ org.gitops.git_ssh }}
     ref: {{ org.gitops.branch }}
-    path: {{ org.gitops.chart_source }}/nmap
+    path: {{ charts_dir }}/nmap
   values:
     nodeName: {{ org.services.networkmap.name | lower }}
     metadata:
       namespace: {{ component_ns }}
     storage:
       name: "cordaentsc"
-      memory: 64Mi
+      memory: 512Mi
     image:
       initContainerName: {{ network.docker.url }}/{{ init_image }}
       nmapContainerName: {{ network.docker.url }}/{{ docker_image }}
