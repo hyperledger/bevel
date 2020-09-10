@@ -21,64 +21,67 @@ spec:
       nodeContainerName: {{ network.docker.url }}/{{ docker_image }}
       imagepullsecret: {{ image_pull_secret }}
       pullPolicy: Always
-    cenmServices:  
-      idmanName: {{ idman_name }}
-      networkmapName: {{ networkmap_name }}
     truststorePassword: password
     keystorePassword: password
     acceptLicence: true
     networkServices:
       doormanURL: {{ doorman_url }}
-      networkMapURL: {{ networkmap_url }}
-      idmanDomain: {{ idman_domain }}
-      networkMapDomain: {{ networkmap_domain }}
+      networkMapURL: {{ networkmap_url }} 
+      idmanDomain: "{{ doorman_url.split(':')[1] | regex_replace('/', '') }}"
+      networkMapDomain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
+      idmanName: "{{ network | json_query('orderers[?type==`idman`].name') | first }}"
+      networkmapName: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
     vault:
-      address: {{ vault_address }}
-      role: {{ vault_role }}
-      authpath: {{ vault_auth_path }}
-      serviceaccountname: {{ vault_service_account_name }}
-      certsecretprefix: {{ vault_cert_secret_prefix }}
-      nodePath: {{ vault_node_path }}
+      address: {{ org.vault.url }}
+      role: vault-role
+      authpath: cordaent{{ org.name | lower }}
+      serviceaccountname: vault-auth
+      certsecretprefix: secret/{{ org.name | lower }}/{{ peer.name }}
+      nodePath: {{ peer.name | lower }}
     nodeConf:
-      ambassadorAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
-    legalName: "{{ legal_name }}"
-    emailAddress: {{ email_address }}
-    crlCheckSoftFail: {{ crl_check_soft_fail }}
-    tlsCertCrlDistPoint: ""
-    tlsCertCrlIssuer: "{{ tls_cert_crl_issuer }}"
-    devMode: {{ dev_mode }}
+      ambassador:
+        external_url_suffix: {{ org.external_url_suffix }}
+        p2pPort: {{ peer.p2p.ambassador }}
+        p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+      legalName: "{{ org.subject }}"
+      emailAddress: dev-node@baf.com
+      crlCheckSoftFail: true
+      tlsCertCrlDistPoint: ""
+      tlsCertCrlIssuer: "{{ network | json_query('orderers[?type==`idman`].crlissuer_subject') | first }}"
+      devMode: false
+      volume:
+        baseDir: /opt/corda
+      jarPath: bin
+      configPath: etc
+      cordaJarMx: 1524
     service:
-      p2pPort: {{ p2p_port }}
-      p2pAddress: {{ p2p_address }}
-    ssh:
-      enabled: {{ ssh_enabled }}
-      sshdPort: {{ ssh_port }}
-    rpc:
-      port: {{ rpc_port }}
-      adminPort: {{ rpc_admin_port }}
-      users:
-      - name: {{ user_name }}
-        password: {{ user_password }}
-        permissions: {{ user_permissions }}
-    dataSource:
-      user: {{ datasource_user }}
-      password: {{ datasource_password }}
-      url: "{{ datasource_url }}"
-      dataSourceClassName: {{ datasource_class_name }}
-      dbUrl: "{{ node_name }}db"
-      dbPort: 9101
-    monitoring:
-      enabled: {{ monitoring_enabled }}
-      port: {{ monitoring_port }}
-    allowDevCorDapps:
-      enabled: {{ allow_dev_cordapps }}
-    volume:
-      baseDir: {{ volume_base_dir }}
-    jarPath: {{ java_path }}
-    configPath: {{ config_path }}
-    cordaJarMx: 1524
-    sleepTimeAfterError: {{ sleep_time_after_error }}
-    sleepTime: {{ sleep_time }}
+      p2pPort: {{ peer.firewall.bridge.port if peer.firewall.enabled == true else peer.p2p.port }}
+      p2pAddress: {{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ component_ns }}
+      ssh:
+        enabled: true
+        sshdPort: 2222
+      rpc:
+        port: {{ peer.rpc.port }}
+        adminPort: {{ peer.rpcadmin.port }}
+        users:
+        - name: {{ peer.name | lower }}
+          password: {{ peer.name | lower }}P
+          permissions: ALL
+    dataSourceProperties:
+      dataSource:
+        user: {{ peer.name | lower }}-db-user
+        password: {{ peer.name | lower }}-db-password
+        url: "jdbc:h2:tcp://{{ peer.name | lower }}db:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+        dataSourceClassName: org.h2.jdbcx.JdbcDataSource
+        dbUrl: "{{ node_name }}db"
+        dbPort: 9101
+      monitoring:
+        enabled: true
+        port: 8090
+      allowDevCorDapps:
+        enabled: true
+    sleepTimeAfterError: 120
+    sleepTime: 0
     healthcheck:
-      readinesscheckinterval: {{ readiness_check_interval }}
-      readinessthreshold:  {{ readiness_threshold }}
+      readinesscheckinterval: 10
+      readinessthreshold:  15
