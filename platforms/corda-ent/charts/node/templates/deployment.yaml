@@ -4,9 +4,9 @@ kind: Deployment
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{- if .Values.deployment.annotations }}
+  {{- if .Values.nodeConf.deployment.annotations }}
   annotations:
-{{ toYaml .Values.deployment.annotations | indent 8 }}
+{{ toYaml .Values.nodeConf.deployment.annotations | indent 8 }}
     {{- end }}
   labels:
     app.kubernetes.io/name: {{ .Values.nodeName }}
@@ -14,7 +14,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.nodeConf.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.nodeName }}
@@ -66,20 +66,20 @@ spec:
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
             echo "logged into vault"
             COUNTER=1
-            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 # get truststore from vault to see if registration is done or not
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore | jq -r 'if .errors then . else . end')
                 if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                 then
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  sleep {{ $.Values.vault.retryInterval }}
                 else
                   break
                 fi 
                 COUNTER=`expr "$COUNTER" + 1`
             done
 
-            if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+            if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
             then
               # printing number of trial done before giving up
               echo "$COUNTER"
@@ -98,7 +98,7 @@ spec:
           - name: VAULT_APP_ROLE
             value: {{ $.Values.vault.role }}
           - name: BASE_DIR
-            value: {{ $.Values.volume.baseDir }}
+            value: {{ $.Values.nodeConf.volume.baseDir }}
           - name: CERTS_SECRET_PREFIX
             value: {{ .Values.vault.certsecretprefix }}                         
         command: ["sh", "-c"]
@@ -120,7 +120,7 @@ spec:
               
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               
-              OUTPUT_PATH=${BASE_DIR}/{{ .Values.workspacePath }}/certificates              
+              OUTPUT_PATH=${BASE_DIR}/{{ .Values.nodeConf.workspacePath }}/certificates              
               
               # get nodekeystore.jks from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/nodekeystore | jq -r 'if .errors then . else . end')
@@ -142,19 +142,19 @@ spec:
               echo "Done"
 
               mkdir -p ${OUTPUT_PATH}/tlscerts
-              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.idmanName }} | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.idmanName }})" "${LOOKUP_SECRET_RESPONSE}"
-              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.cenmServices.idmanName }}.crt"]')
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }} | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }})" "${LOOKUP_SECRET_RESPONSE}"
+              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.idmanName }}.crt"]')
               echo "${IDMAN_CERT}" | base64 -d > ${OUTPUT_PATH}/tlscerts/idman.crt
 
-              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.networkmapName }} | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.cenmServices.networkmapName }})" "${LOOKUP_SECRET_RESPONSE}"
-              NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.cenmServices.networkmapName }}.crt"]')
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }} | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }})" "${LOOKUP_SECRET_RESPONSE}"
+              NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.networkmapName }}.crt"]')
               echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/tlscerts/networkmap.crt
               echo "Done"
         volumeMounts:
         - name: node-certificates
-          mountPath: {{ $.Values.volume.baseDir }}/{{ .Values.workspacePath }}/certificates
+          mountPath: {{ $.Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/certificates
       - name: db-healthcheck
         image: {{ .Values.image.initContainerName }}
         imagePullPolicy: Always
@@ -165,9 +165,9 @@ spec:
           COUNTER=1
           FLAG=true
           # perform health check if db is up and running before starting corda node
-          while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+          while [ "$COUNTER" -le {{ $.Values.dataSourceProperties.retries }} ]
           do
-            DB_NODE={{ .Values.dataSource.dbUrl }}:{{ .Values.dataSource.dbPort }}
+            DB_NODE={{ .Values.dataSourceProperties.dataSource.dbUrl }}:{{ .Values.dataSourceProperties.dataSource.dbPort }}
             STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
             if [ "$STATUS" == 0 ]
             then
@@ -178,9 +178,9 @@ spec:
             fi
             if [ "$FLAG" == false ]
             then
-              echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+              echo "Retry attempted $COUNTER times, retrying after {{ $.Values.vault.retryInterval }} seconds"
               COUNTER=`expr "$COUNTER" + 1`
-              sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+              sleep {{ $.Values.vault.retryInterval }}
             else
               echo "SUCCESS!"
               echo "DB up and running!"
@@ -188,7 +188,7 @@ spec:
               break
             fi
           done
-          if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ]
+          if [ "$COUNTER" -gt {{ $.Values.dataSourceProperties.retries }} ] || [ "$FLAG" == false ]
           then
             echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
             exit 1
@@ -205,33 +205,33 @@ spec:
         args:
         - |-
           mkdir bin
-          cp CM-FILES/node.conf {{ .Values.workspacePath }}/
+          cp CM-FILES/node.conf {{ .Values.nodeConf.workspacePath }}/
           cp CM-FILES/*.sh bin/
           cp corda.jar bin/
           chmod +x bin/*
           # to clean network-parameters on every restart
-          rm -rf {{ .Values.workspacePath }}/network-parameters
-          yes | keytool -importcert -file {{ .Values.workspacePath }}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-          yes | keytool -importcert -file {{ .Values.workspacePath }}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+          rm -rf {{ .Values.nodeConf.workspacePath }}/network-parameters
+          yes | keytool -importcert -file {{ .Values.nodeConf.workspacePath }}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+          yes | keytool -importcert -file {{ .Values.nodeConf.workspacePath }}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
           bin/run.sh
         volumeMounts:
         - name: node-conf
-          mountPath: {{ .Values.volume.baseDir }}/CM-FILES/node.conf
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}/CM-FILES/node.conf
           subPath: node.conf
         - name: node-conf
-          mountPath: {{ .Values.volume.baseDir }}/CM-FILES/run.sh
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}/CM-FILES/run.sh
           subPath: run.sh
         - name: node-workspace
-          mountPath: {{ .Values.volume.baseDir }}/{{ .Values.workspacePath }}
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}
         - name: node-certificates
-          mountPath: {{ .Values.volume.baseDir }}/{{ .Values.workspacePath }}/certificates
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/certificates
         - name: node-logs
-          mountPath: {{ .Values.volume.baseDir }}/{{ .Values.workspacePath }}/logs
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/logs
         resources:
           requests:
-            memory: {{ .Values.cordaJarMx }}M
+            memory: {{ .Values.nodeConf.pod.resources.requests }}
           limits:
-            memory: {{ add .Values.cordaJarMx 2 }}M
+            memory: {{ .Values.nodeConf.pod.resources.limits }}
       - name: logs
         image: "{{ .Values.image.nodeContainerName }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -241,13 +241,13 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cd {{ .Values.volume.baseDir }}/{{ .Values.workspacePath }}/
+          cd {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/
           while true; do tail -f logs/*.log 2>/dev/null; sleep 5; done
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
         - name: node-logs
-          mountPath: {{ .Values.volume.baseDir }}/{{ .Values.workspacePath }}/logs
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/logs
       volumes:
       - name: node-conf
         configMap:

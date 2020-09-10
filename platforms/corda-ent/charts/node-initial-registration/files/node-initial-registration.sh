@@ -37,9 +37,9 @@ do
         echo "Node: running initial registration ..."
         echo
         pwd
-        java -jar {{ .Values.jarPath }}/corda.jar \
+        java -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
           initial-registration \
-        --config-file={{ .Values.configPath }}/node.conf \
+        --config-file={{ .Values.nodeConf.configPath }}/node.conf \
         --log-to-console \
         --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \
         --network-root-truststore-password ${NETWORK_ROOT_TRUSTSTOR_PASSWORD}
