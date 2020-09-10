@@ -13,7 +13,7 @@ metadata:
       name: {{ .Values.nodeName }}-https
       prefix: /
       host: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}:8443
-      service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
+      service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.external.port }}
       tls: false
       ---
       apiVersion: ambassador/v1
@@ -32,23 +32,23 @@ metadata:
 spec:
   selector:
     app: {{ .Values.nodeName }}
-# we need healthCheckNodePort set to get rid of logs pollution
-{{- if (.Values.healthCheckNodePort) }}
-  healthCheckNodePort: {{ .Values.healthCheckNodePort }}
+# W e need healthCheckNodePort set to get rid of logs pollution
+{{- if (.Values.healthCheck.nodePort) }}
+  healthCheckNodePort: {{ .Values.healthCheck.nodePort }}
 {{- end }}
   ports:
-    - port: {{ .Values.serviceInternal.port }}
-      targetPort: {{ .Values.serviceInternal.port }}
+    - port: {{ .Values.service.internal.port }}
+      targetPort: {{ .Values.service.internal.port }}
       protocol: TCP
       name: http-internal
-    - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.port }}
+    - port: {{ .Values.service.external.port }}
+      targetPort: {{ .Values.service.external.port }}
       protocol: TCP
       name: http
-    - port: {{ .Values.shell.sshdPort }}
-      targetPort: {{ .Values.shell.sshdPort }}
+    - port: {{ .Values.service.shell.sshdPort }}
+      targetPort: {{ .Values.service.shell.sshdPort }}
       protocol: TCP
-      {{- if .Values.shell.nodePort }}
-      nodePort: {{ .Values.shell.nodePort }}
+      {{- if .Values.service.shell.nodePort }}
+      nodePort: {{ .Values.service.shell.nodePort }}
       {{- end }}
       name: ssh

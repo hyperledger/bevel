@@ -66,34 +66,15 @@
   include_role:
     name: helm_component
   vars:
-    component_name: "{{ org.name | lower }}nmap"
     type: "nmap"
-    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"
+    component_name: "{{ org.name | lower }}nmap"
     charts_dir: "{{ org.gitops.chart_source }}"
-    notary_name: "{{ org.services.notary.name }}"
-    idman_name: "{{ org.services.idman.name }}"
-    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
-    idman_domain: "{{ idman_url.split(':')[1] | regex_replace('/', '') }}"
-    git_url: "{{ org.gitops.git_ssh }}"
-    git_branch: "{{ org.gitops.branch }}"
-    node_name: "{{ org.services.networkmap.name | lower }}"
-    storageclass: "cordaentsc"
-    init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
-    image_pull_secret: "regcred"
-    corda_service_version: cenm-networkmap-{{ org.version }}
-    vault_addr: "{{ org.vault.url }}"
-    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
-    authpath: "cordaent{{ org.name | lower }}"
-    serviceaccountname: "vault-auth"
-    external_url_suffix: "{{ org.external_url_suffix }}"
-    nmap_port: "{{ org.services.networkmap.ports }}"
-    ssh_username: "nmap"
-    ssh_password: "nmapP"
-    db_username: "{{ org.services.networkmap.name }}-db-user"
-    db_password: "{{ org.services.networkmap.name }}-db-password"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    corda_service_version: networkmap-{{ org.version }}
+    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}" # Keep this in ansible role to prevent confusion in template
     helm_lint: "true"
-    
+
 # Push the nmap deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role: 
