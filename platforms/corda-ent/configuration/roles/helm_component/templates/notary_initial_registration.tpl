@@ -44,8 +44,10 @@ spec:
           username: notary
           password: notaryP
     networkServices:
+      idmanName: {{ org.services.idman.name }}
       doormanURL: {{ idman_url }}
       idmanDomain: {{ idman_domain }}
+      networkmapName: {{ org.services.networkmap.name }}
       networkMapURL: {{ networkmap_url }}
       networkMapDomain: {{ networkmap_domain }}
       idmanName: {{ org.services.idman.name }}

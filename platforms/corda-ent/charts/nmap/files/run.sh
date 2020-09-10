@@ -1,24 +1,15 @@
 #!/bin/sh
-{{ if eq .Values.bashDebug true }}
-set -x
-{{ end }}
 
-#
-# main run
-#
-if [ -f {{ .Values.jarPath }}/networkmap.jar ]
+if [ -f {{ .Values.config.jarPath }}/networkmap.jar ]
 then
-{{ if eq .Values.bashDebug true }}
-    sha256sum {{ .Values.jarPath }}/networkmap.jar 
-{{ end }}
     echo
     echo "CENM: starting Networkmap service ..."
     echo
-    cat {{ .Values.configPath }}/nmap.conf
-    java -Xmx{{ .Values.cordaJarMx }}M -jar {{ .Values.jarPath }}/networkmap.jar -f {{ .Values.configPath }}/nmap.conf
+    cat {{ .Values.config.configPath }}/nmap.conf
+    java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar {{ .Values.config.jarPath }}/networkmap.jar -f {{ .Values.config.configPath }}/nmap.conf
     EXIT_CODE=${?}
 else
-    echo "Missing networkmap jar file in {{ .Values.jarPath }} folder:"
-    ls -al {{ .Values.jarPath }}
+    echo "Missing networkmap jar file in {{ .Values.config.jarPath }} folder:"
+    ls -al {{ .Values.config.jarPath }}
     EXIT_CODE=110
 fi
