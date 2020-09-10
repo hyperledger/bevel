@@ -17,8 +17,8 @@ spec:
       namespace: {{ component_ns }}
       labels:
     image:
-      initContainerName: {{ init_container_name }}
-      nodeContainerName: {{ docker_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_image }}
+      nodeContainerName: {{ network.docker.url }}/{{ docker_image }}
       imagepullsecret: {{ image_pull_secret }}
       pullPolicy: Always
     cenmServices:  

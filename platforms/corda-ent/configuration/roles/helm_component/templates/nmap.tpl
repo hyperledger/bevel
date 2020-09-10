@@ -19,8 +19,8 @@ spec:
       name: "cordaentsc"
       memory: 64Mi
     image:
-      initContainerName: {{ network.docker.url}}/{{ init_image }}
-      nmapContainerName: {{ network.docker.url}}/{{ docker_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_image }}
+      nmapContainerName: {{ network.docker.url }}/{{ docker_image }}
       imagePullSecret: "regcred"
       pullPolicy: Always
     acceptLicense: YES
