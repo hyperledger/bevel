@@ -1,70 +1,74 @@
 apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
-  name: {{ component_name }}
+  name: {{ org.name | lower }}nmap
   namespace: {{ component_ns }}
   annotations:
     flux.weave.works/automated: "false"
 spec:
-  releaseName: {{ component_name }}
+  releaseName: {{ org.name | lower }}nmap
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
-    path: {{ charts_dir }}/nmap
+    git: {{ org.gitops.git_ssh }}
+    ref: {{ org.gitops.branch }}
+    path: {{ org.gitops.chart_source }}/nmap
   values:
-    nodeName: {{ node_name }}
-    idmanName: {{ idman_name }}
-    idmanDomain: {{ idman_domain }}
+    nodeName: {{ org.services.networkmap.name | lower }}
     metadata:
       namespace: {{ component_ns }}
-    notaryName: {{ notary_name }}
     storage:
-      name: {{ storageclass }}
-    replicas: 1
+      name: "cordaentsc"
+      memory: 64Mi
     image:
-      initContainerName: {{ init_container_name }}
-      imagepullsecret: {{ image_pull_secret }}
-    dockerImage:
-      name: {{ docker_image }}
+      initContainerName: {{ network.docker.url}}/{{ init_image }}
+      nmapContainerName: {{ network.docker.url}}/{{ docker_image }}
+      imagePullSecret: "regcred"
       pullPolicy: Always
-      imagePullSecret: {{ image_pull_secret }}
     acceptLicense: YES
     vault:
+      address: {{ org.vault.url }}
       role: vault-role
-      authpath: {{ authpath }}
-      serviceaccountname: {{ serviceaccountname }}
-      address: {{ vault_addr }}
-      certsecretprefix: {{ vault_cert_secret_prefix }}
-    ambassador:
-      external_url_suffix: {{ external_url_suffix }}
-    volume:
-      baseDir: /opt/corda
-    service:
-      port: {{ nmap_port.servicePort }}
-    serviceInternal:
-      port: 5050
-    shell:
-      sshdPort: 2222
-      user: {{ ssh_username }}
-      password: {{ ssh_password }}
+      authPath: cordaent{{ org.name | lower }}
+      serviceAccountName: vault-auth
+      certSecretPrefix: secret/{{ org.name | lower }}
+      retries: 10
+      sleepTimeAfterError: 15
+    service: 
+      external:
+        port: {{ org.services.networkmap.ports.servicePort }}
+      internal:
+        port: 5050
+      revocation:
+        port: 5053
+      shell:
+        sshdPort: 2222
+        user: "nmap"
+        password: "nmapP"
+    serviceLocations:
+      identityManager:
+        name: {{ org.services.idman.name }}
+        domain: {{ idman_url.split(':')[1] | regex_replace('/', '') }}
+        host: {{ org.services.idman.name }}.{{ component_ns }}
+        port: 5052
+      notary:
+        name: {{ org.services.notary.name }}
     database:
       driverClassName: "org.h2.Driver"
       url: "jdbc:h2:file:./h2/networkmap-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
-      user: {{ db_username }}
-      password: {{ db_password }}
+      user: "{{ org.services.networkmap.name }}-db-user"
+      password: "{{ org.services.networkmap.name }}-db-password"
       runMigration: "true"
-    identityManager:
-      host: {{ idman_name }}.{{ component_ns }}
-      port: 5052
-    revocation:
-      port: 5053
-    cordaJarMx: 1024
-    healthCheckNodePort: 0
-    jarPath: bin
-    bashDebug: false
-    configPath: etc
-    sleepTimeAfterError: 120
-    sleepTime: 0
-    healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 15
+    config:
+      volume:
+        baseDir: /opt/corda
+      jarPath: bin
+      configPath: etc
+      cordaJar:
+        memorySize: 1024
+        unit: M
+      pod:
+        resources:
+          limits: 1026M
+          requests: 1024M
+      replicas: 1
+    ambassador:
+      external_url_suffix: "{{ org.external_url_suffix }}"
