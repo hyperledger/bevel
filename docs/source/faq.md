@@ -75,7 +75,7 @@ Please see this [page](./operations/setting_dlt.md) for detials.
 One could request a new feature on the Github repository for now. In the future, people might use Jira or Slack to do the same as well.
 
 ### Are CI/CD pipeline tools a mandatory to use the Blockchain Automation Framework?
-No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a user automate the set-up or testing of a new DLT/Blockchain network in different environments, once a user has a good understanding of using it.
+No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a user automate the set-up or testing of a new DLT/Blockchain network in different environments, once a user has a good understanding of using it. We have the master Jenkinsfile in `automation` folder which can be taken as a template.
 
 ### Is it required to run Ansible in a particular machine like AWS EC2?
 No, a user should be able to run the Ansible command on any machine as long as Ansible command CLI is installed.

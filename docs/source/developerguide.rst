@@ -94,11 +94,10 @@ Helm Charts
    developer/quorum-helmcharts
    developer/besu-helmcharts
 
-Jenkins 
+Jenkins Automation
 ---------------------------
 
 .. toctree::
    :maxdepth: 1
 
    developer/corda-jenkins
-   developer/fabric-jenkins

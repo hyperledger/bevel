@@ -46,10 +46,10 @@ Following Corda Docker Images are used and needed by the Blockchain Automation F
 
 ### Ansible Playbooks
 
-Detailed information on ansible playbooks can be referred [here](../developer/corda-ansible) and the execution process can be referred [here](../operations/setting_dlt.md).
+Detailed information on ansible playbooks can be referred [here](../developer/corda-ent-ansible) and the execution process can be referred [here](../operations/setting_dlt.md).
 
 ### Helm Charts
-Detailed information on helm charts can be referred [here](../developer/corda-helmcharts.md).
+Detailed information on helm charts can be referred [here](../developer/corda-ent-helmcharts.md).
 
 
 <a name="vault-config"></a>
