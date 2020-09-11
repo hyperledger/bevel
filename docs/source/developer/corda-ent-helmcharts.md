@@ -3,7 +3,7 @@
 Following are the helm charts used for R3 Corda Enterprise in Blockchain Automation Framework.
 
 ```
-platforms/corda-ent/charts
+platforms/r3-corda-ent/charts
 ├── bridge
 ├── float
 ├── generate-pki
