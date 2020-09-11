@@ -1,6 +1,6 @@
-# Corda Enterprise Charts
+# Corda Enterprise Helm Charts
 
-The structure below represents the Chart structure for R3 Corda Enterprise components in the Blockchain Automation Framework implementation.
+Following are the helm charts used for R3 Corda Enterprise in Blockchain Automation Framework.
 
 ```
 platforms/corda-ent/charts
@@ -15,16 +15,167 @@ platforms/corda-ent/charts
 ├── notary
 ├── notary-initial-registration
 └── signer
-
 ```
 ---------
 ## Pre-requisites
 
-``helm`` to be installed and configured on the cluster.
+``helm`` version 2.x.x to be installed and configured on the cluster.
+
+## Bridge
+### About
+This chart deploys the Bridge component of Corda Enterprise filewall. The folder contents are below: 
+
+### Folder Structure
+```
+├── bridge
+│   ├── Chart.yaml
+│   ├── files
+│   │   └── firewall.conf
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   └── values.yaml
+```
+
+### Charts description
+
+#### Chart.yaml 
+- This file contains the information about the chart such as apiversion, appversion, name etc.
+
+#### files
+- This folder contains the configuration files needed for bridge.
+  - firewall.conf: The main configuration file for firewall.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Corda Firewall implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains one init-container `init-certificates` to download the keys/certs from Vault, and one `main` containers which executes the firewall service.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - pvc.yaml: This creates the PVC used by firwall
+      
+  - service.yaml: This creates the firewall service endpoint.
+
+#### values.yaml 
+- This file contains the default values for the chart.
+
+-----
+## Float
+### About
+This chart deploys the Float component of Corda Enterprise filewall. The folder contents are below: 
+
+### Folder Structure
+```
+├── float
+│   ├── Chart.yaml
+│   ├── files
+│   │   └── firewall.conf
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   └── values.yaml
+```
+
+### Charts description
+
+#### Chart.yaml 
+- This file contains the information about the chart such as apiversion, appversion, name etc.
+
+#### files
+- This folder contains the configuration files needed for float.
+  - firewall.conf: The main configuration file for firewall.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Corda Firewall implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains one init-container `init-certificates` to download the keys/certs from Vault, and one `main` containers which executes the firewall service.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - pvc.yaml: This creates the PVC used by firwall
+      
+  - service.yaml: This creates the firewall service endpoint.
+
+#### values.yaml 
+- This file contains the default values for the chart.
+
+-----
+## Generate-pki
+### About
+This chart deploys the Generate-PKI job on Kubernetes. The folder contents are below: 
+
+### Folder Structure
+```
+├── generate-pki
+│   ├── Chart.yaml
+│   ├── files
+│   │   └── pki.conf
+│   ├── README.md
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── _helpers.tpl
+│   │   └── job.yaml
+│   └── values.yaml
+```
+
+### Charts description
+
+#### Chart.yaml 
+- This file contains the information about the chart such as apiversion, appversion, name etc.
+
+#### files
+- This folder contains the configuration files needed for PKI.
+  - pki.conf: The main configuration file for generate-pki.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for PKI job. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+  - job.yaml: This creates the main Kubernetes job. It contains a `main` container which runs the pkitool to generate the certificates and keystores, and a `store-certs` container to upload the certificates/keystores to Vault.
+#### values.yaml 
+- This file contains the default values for the chart.
+----
+
+## h2 (database)
+
+### About
+This chart deploys the H2 database pod on Kubernetes. The folder contents are below:
+
+### Folder Structure
+```
+├── h2
+│   ├── Chart.yaml
+│   ├── templates
+│   │   ├── deployment.yaml
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   └── values.yaml
+```
+
+### Charts description
+      
+#### Chart.yaml
+- This file contains the information about the chart such as apiversion, appversion, name etc
+#### templates
+- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for H2 implementation. This folder contains following template files:
+   - deployment.yaml: This file is used as a basic manifest for creating a Kubernetes deployment. For the H2 node, this file creates H2 pod.
+	- pvc.yaml: This yaml is used to create persistent volumes claim for the H2 deployment. This file creates h2-pvc for, the volume claim for H2.
+	- service.yaml: This template is used as a basic manifest for creating a service endpoint for our deployment.This service.yaml creates H2 service endpoint.
+#### values.yaml
+- This file contains the default configuration values for the chart.
+
+----
 
 ## idman
 ### About
-This folder consists Idman helm charts which are used by the ansible playbooks for the deployment of Idman component. The folder contains a templates folder, a chart file and a value file. 
+This chart deploys the Idman component of Corda CENM. The folder contents are below: 
 
 ### Folder Structure
 ```
@@ -45,597 +196,287 @@ This folder consists Idman helm charts which are used by the ansible playbooks f
 
 ### Charts description
 
-#### templates
-- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Idman implementation.
-- This folder contains following template files for Idman implementation
-  
-  - deployment.yaml: 
-      This file is used as a basic manifest for creating a Kubernetes deployment for Idman. The file basically describes the container and volume specifications of the Idman. The file defines container where idman container is defined with corda image and corda jar details. The init container init-creds creates idman db root password and user credentials at mount path, init-certificates init container basically configures idman keys.jks by fetching certsecretprefix from the vault, change permissions init-containers provides permissions to base directory and db-healthcheck init-container checks for db is up or not.
-	      
-  - pvc.yaml:
-      This yaml is used to create persistent volumes claim for the Idman deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud environment.
-	  This file creates persistentVolumeClaim for Idman pvc.
-      
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment. This service.yaml creates the idman service endpoint using Ambassador proxy. The file basically specifies service type and kind of service ports for idman server.
-      
-      
 #### Chart.yaml 
 - This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml 
-- This file contains the default configuration values for the chart.
 
+#### files
+- This folder contains the configuration files needed for idman.
+  - idman.conf: The main configuration file for idman.
+  - run.sh: The executable file to run the idman service in the kubernetes pod.
+
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Idman implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains one init-container `init-certificates` to download the keys/certs from Vault, and two main containers: `idman` and `logs`.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - pvc.yaml: This creates the PVCs used by idman: one for logs and one for the file H2 database.
+      
+  - service.yaml: This creates the idman service endpoint with Ambassador proxy configurations.       
+
+#### values.yaml 
+- This file contains the default values for the chart.
 
 -----
 
-## idman-tls
+## nmap
 ### About
-This folder consists Idman helm charts which are used by the ansible playbooks for the deployment of Idman component when TLS is on for the idman. The folder contains a templates folder, a chart file and a value file. 
+This chart deploys the NetworkMap component of Corda CENM. The folder contents are below: 
 
 ### Folder Structure
 ```
-/idman-tls
-|-- templates
-|   |-- pvc.yaml
-|   |-- deployment.yaml
-|   |-- service.tpl
-|-- Chart.yaml
-|-- values.yaml
+├── nmap
+│   ├── Chart.yaml
+│   ├── files
+│   │   ├── nmap.conf
+│   │   ├── run.sh
+│   │   └── set-network-parameters.sh
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   └── values.yaml
 ```
 
 ### Charts description
 
-#### templates
-- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Idman implementation.
-- This folder contains following template files for Idman implementation
-  
-  - deployment.yaml: 
-      This file is used as a basic manifest for creating a Kubernetes deployment for Idman. The file basically describes the container and volume specifications of the Idman. The file defines container where idman container is defined with corda image and corda jar details. The init container init-creds creates idman db root password and user credentials at mount path, init-certificates init container basically configures idman keys.jks by fetching certsecretprefix from the vault, change permissions init-containers provides permissions to base directory and db-healthcheck init-container checks for db is up or not.
-	      
-  - pvc.yaml:
-      This yaml is used to create persistent volumes claim for the Idman deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud environment.
-	  This file creates persistentVolumeClaim for Idman pvc.
-      
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.
-	  This service.yaml creates ca service endpoint.The file basically specifies service type and kind of service ports for idman server.
-      
-      
 #### Chart.yaml 
 - This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml 
-- This file contains the default configuration values for the chart.
 
-
------
-
-
-## nms 
-
-### About
-This folder consists networkmapservice helm charts which are used by the ansible playbooks for the deployment of networkmapservice component. The folder contains a templates folder,a chart file and a value file. 
-
-### Folder Structure ###
-```
-/nms
-|-- templates
-|   |-- volume.yaml
-|   |-- deployment.yaml
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-
-### Charts description
-
-#### templates 
-- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for nms implementation.
-- This folder contains following template files for nms implementation
-	  
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment for NMS. The file basically describes the container and volume specifications of the NMS. The file defines conatainers where NMS conatainer is defined with corda image and corda jar details. The init container init-certificates-creds creates NMS db root password and user credentials at mount path, init-certificates init container basically configures NMS keys.jks by fetching certsecretprefix from the vault, changepermissions init-containers provides permissions to base directory and db-healthcheck init-container checks for db is up or not.
-	  
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.
-	  This service.yaml creates nms service endpoint.The file basically specifies service type and kind of service ports for the nms server.
-	  
-  - volume.yaml:
-      This yaml is used to create persistent volumes claim for the nms deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud environment.
-	  This file creates nms pvc for, the volume claim for nms.
-	       
-      
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
-
-----
-
-## nms-tls
-
-### About
-This folder consists networkmapservice helm charts that establishes a TLS connection with mongodb, which are used by the ansible playbooks for the deployment of networkmapservice component. This chart is deployed when TLS is on for nms. The folder contains a templates folder, a chart file and a value file. 
-
-### Folder Structure ###
-```
-/nms-tls
-|-- templates
-|   |-- volume.yaml
-|   |-- deployment.yaml
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-
-### Charts description
-
-#### templates 
-- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for nms implementation.
-- This folder contains following template files for nms implementation
-	  
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment for NMS. The file basically describes the container and volume specifications of the NMS. The file defines conatainers where NMS conatainer is defined with corda image and corda jar details. The init container init-certificates-creds creates NMS db root password and user credentials at mount path, init-certificates init container basically configures NMS keys.jks by fetching certsecretprefix from the vault, changepermissions init-containers provides permissions to base directory and db-healthcheck init-container checks for db is up or not.
-	  
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.
-	  This service.yaml creates nms service endpoint.The file basically specifies service type and kind of service ports for the nms server.
-	  
-  - volume.yaml:
-      This yaml is used to create persistent volumes claim for the nms deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud environment.
-	  This file creates nms pvc for, the volume claim for nms.
-	       
-      
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
-
-----
-
-## h2 (database)
-
-### About
-This folder consists H2 helm charts which are used by the ansible playbooks for the deployment of the H2 database. The folder contains a templates folder, a chart file and a value file. 
-
-### Folder Structure
-```
-/h2
-|-- templates
-|   |-- pvc.yaml
-|   |-- deployment.yaml
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-
-### Charts description
+#### files
+- This folder contains the configuration files needed for nmap.
+  - nmap.conf: The main configuration file for nmap.
+  - run.sh: The executable file to run the nmap service in the kubernetes pod.
+  - set-network-parameters.sh: This executable file which creates the initial network-parameters.
 
 #### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for H2 implementation.
-- This folder contains following template files for H2 implementation
- 
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment.For the H2 node, this file creates H2 deployment.
-	  
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.This service.yaml creates H2 service endpoint 
-	  
-  - pvc.yaml:
-      This yaml is used to create persistent volumes claim for the H2 deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud environment.
-	  This file creates h2-pvc for, the volume claim for H2.
-	       
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for NetworkMap implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains a init-container `init-certificates` to download the keys/certs from Vault, a `setnparam` container to set the network-parameters, and two main containers: `main` and `logs`.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - pvc.yaml: This creates the PVCs used by nmap: one for logs and one for the file H2 database.
       
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
+  - service.yaml: This creates the nmap service endpoint with Ambassador proxy configurations.       
 
-----
-
-## h2-addUser
-
-### About
-This folder consists H2-adduser helm charts which are used by the ansible playbooks for the deployment of the Peer component. The folder contains a templates folder,a chart file and a value file. 
-
-### Folder Structure
-```
-/h2-addUser
-|-- templates
-|   |-- job.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-
-### Pre-requisites
-
- helm to be installed and configured 
-
-### Charts description
-
-#### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for h2 add user implementation.
-- This folder contains following template file for adding users to h2 implementation
-
-  - job.yaml:
-      The job.yaml file through template engine runs create h2-add-user container and thus runs newuser.sql to create users and create passwords for new users.  
-      
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
-
------
-
-## h2-password-change
-
-### About
-This folder consists H2-password-change helm charts which are used by the ansible playbooks for the deployment of the Peer component. The folder contains a templates folder,a chart file and a value file. 
-
-### Folder Structure ###
-```
-/h2-password-change
-|-- templates
-|   |-- job.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-
-### Pre-requisites
-
- helm to be installed and configured 
-
-### Charts description
-
-#### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for h2 password change implementation.
-- This folder contains following template file for changing h2 password implementation
-
-  - job.yaml:
-      The job.yaml file through template engine runs create h2-add-user container and thus runs newuser.sql to create users and create passwords for new users.  
-      
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
-
------
-
-## mongodb
-
-### About
-This folder consists Mongodb helm charts which are used by the ansible playbooks for the deployment of the Mongodb component. The folder contains a templates folder, a chart file and a value file. 
-
-### Folder Structure ###
-```
-/mongodb
-|-- templates
-|   |-- pvc.yaml
-|   |-- deployment.yaml
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-### Charts description
-
-#### templates 
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for Mongodb implementation.
-- This folder contains following template files for Mongodb implementation
- 
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment.For the Mongodb node, this file creates Mongodb deployment.
-	  
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.This service.yaml creates Mongodb service endpoint 
-	  
-  - pvc.yaml:
-      This yaml is used to create persistent volumes claim for the Mongodb deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud enviornment.
-	  This file creates mongodb-pvc for, the volume claim for mongodb.
-	  
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
 #### values.yaml 
-- This file contains the default configuration values for the chart.
-
-
------
-
-## mongodb-tls
-
-### About
-This folder consists Mongodb helm charts which are used by the ansible playbooks for the deployment of the Mongodb component. It allows for TLS connection. When TLS is on for nms or idman, this chart is deployed for them else mongodb chart is deployed. The folder contains a templates folder, a chart file and a value file. 
-
-### Folder Structure ###
-```
-/mongodb-tls
-|-- templates
-|   |-- pvc.yaml
-|   |-- deployment.yaml
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-### Charts description
-
-#### templates 
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for Mongodb implementation.
-- This folder contains following template files for Mongodb implementation
- 
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment.For the Mongodb node, this file creates Mongodb deployment.
-	  
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.This service.yaml creates Mongodb service endpoint 
-	  
-  - pvc.yaml:
-      This yaml is used to create persistent volumes claim for the Mongodb deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud enviornment.
-	  This file creates mongodb-pvc for, the volume claim for mongodb.
-	  
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml 
-- This file contains the default configuration values for the chart.
-
+- This file contains the default values for the chart.
 
 -----
 
 ## node
 
 ### About
-This folder consists node helm charts which are used by the ansible playbooks for the deployment of the corda node component. The folder contains a templates folder,a chart file and a value file. 
+This chart deploys the Node component of Corda Enterprise. The folder contents are below: 
 
 ### Folder Structure ###
 ```
-/node
-|-- templates
-|   |-- deployment.yaml
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
+├── node
+│   ├── Chart.yaml
+│   ├── files
+│   │   ├── node.conf
+│   │   └── run.sh
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   └── values.yaml
 ```
 ### Charts description
 
-#### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for R3 Corda node implementation.
-- This folder contains following template files for node implementation
- 
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment.For the corda node, this file creates a node deployment.The file defines conatainers where node conatainer is defined with corda image and corda jar details and corda-logs container is used for logging purpose. The init container init-nodeconf defines node.conf file for node, init-certificates init container basically configures networkmap.crt, idman.crt, SSLKEYSTORE and TRUSTSTORE at mount path for node by fetching certsecretprefix from the vault and init-healthcheck init-container checks for h2 database. Certificates and notary server database are defined on the volume mount paths.
-	  
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.
-	  This service.yaml creates node service endpoint.The file basically specifies service type and kind of service ports for the corda nodes. 
-      
-      
-#### Chart.yaml
+#### Chart.yaml 
 - This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
+
+#### files
+- This folder contains the configuration files needed for Corda node.
+  - node.conf: The main configuration file for node.
+  - run.sh: The executable file to run the node service in the kubernetes pod.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Corda Node implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains three init-containers: `init-check-registration` to check if node-initial-registration was completed, `init-certificates` to download the keys/certs from Vault, and a `db-healthcheck` container to check if the database service is reachable, and two main containers: `node` and `logs`.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - pvc.yaml: This creates the PVC used by the node.
+      
+  - service.yaml: This creates the node service endpoint with Ambassador proxy configurations.       
+
+#### values.yaml 
+- This file contains the default values for the chart.
 
 ----------
-
 
 ## node-initial-registration 
 
 ### About
-This folder contains node-initial-registration helm charts which are used by the ansible playbooks for the deployment of the install_chaincode component. The folder contains a templates folder,a chart file and the corresponding value file. 
+This chart deploys the Node-Registration job for Corda Enterprise. The folder contents are below: 
 
 ### Folder Structure ###
 ```
-/node-initial-registration
-|-- templates
-|   |--job.yaml
-|   |--_helpers.tpl
-|-- Chart.yaml
-|-- values.yaml
+├── node-initial-registration
+│   ├── Chart.yaml
+│   ├── files
+│   │   ├── node.conf
+│   │   └── node-initial-registration.sh
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── _helpers.tpl
+│   │   └── job.yaml
+│   └── values.yaml
 ```
 ### Charts description
 
-#### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for node-initial-registration implementation.
-- This folder contains following template files for  node-initial-registration implementation
-  - job.yaml:
-      It is used as a basic manifest for creating a Kubernetes deployment for initial node
-      registration. The file basically describes the container and volume specifications of the node. corda-node container is used for running corda jar.store-certs-in-vault container is used for putting certificate into the vault. init container is used for creating node.conf which is used by corda node, download corda jar, download certificate from vault,getting passwords of keystore from vault  and also performs health checks
-
-  - _helpers.tpl:
-      A place to put template helpers that you can re-use throughout the chart.
-      
-#### Chart.yaml
+#### Chart.yaml 
 - This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
+
+#### files
+- This folder contains the configuration files needed for Corda node.
+  - node.conf: The main configuration file for node.
+  - node-initial-registration.sh: The executable file to run the node initial-registration.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for registration job. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+  - job.yaml: This creates the main Kubernetes job. It contains two init-containers: `init-certificates` to download the keys/certs from Vault, and a `db-healthcheck` container to check if the database service is reachable, and two main containers: `registration` for the actual registration and `store-certs` to upload the certificates to Vault.       
+
+#### values.yaml 
+- This file contains the default values for the chart.
 
 ----
 
 ## notary
 
 ### About
-This folder consists Notary helm charts, which are used by the ansible playbooks for the deployment of the Notary component. The folder contains a templates folder,a chart file and a value file. 
+This chart deploys the Notary component of Corda Enterprise. The folder contents are below: 
 
 ### Folder Structure ###
 ```
-/notary
-|-- templates
-|   |-- deployment.tpl
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
+├── notary
+│   ├── Chart.yaml
+│   ├── files
+│   │   ├── notary.conf
+│   │   └── run.sh
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   └── values.yaml
 ```
-
 ### Charts description
 
-#### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for Notary implementation.
-- This folder contains following template files for Notary implementation
-
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment.For the corda notary, this file creates a notary deployment.The file defines conatainers where notary container is defined with corda image and corda jar details also registers the notary with nms and corda-logs container is used for logging purpose. The init container init-nodeconf defines node.conf file for notary, init-certificates init container basically configures networkmap.crt, idman.crt, SSLKEYSTORE and TRUSTSTORE at mount path by fetching certsecretprefix from vault and db-healthcheck init-container checks for h2 database.Certificates and notary server database are defined on the volume mount paths.
-	  
-  - service.yaml
-      This template is used as a basic manifest for creating a service endpoint for our deployment.
-	  This service.yaml creates Notary service endpoint.The file basically specifies service type and kind of service ports for Notary.
-      
-#### Chart.yaml
+#### Chart.yaml 
 - This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
+
+#### files
+- This folder contains the configuration files needed for Corda Notary.
+  - notary.conf: The main configuration file for notary.
+  - run.sh: The executable file to run the notary service in the kubernetes pod.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Corda Notary implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains three init-containers: `init-check-registration` to check if notary-initial-registration was completed, `init-certificates` to download the keys/certs from Vault, and a `db-healthcheck` container to check if the database service is reachable, and two main containers: `notary` and `logs`.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - pvc.yaml: This creates the PVC used by the notary.
+      
+  - service.yaml: This creates the notary service endpoint with Ambassador proxy configurations.       
+
+#### values.yaml 
+- This file contains the default values for the chart.
 
 ------
 
 ## notary-initial-registration 
 
 ### About
-This folder consists notary-initial-registration helm charts, which are used by the ansible playbooks for the deployment of the initial notary components. The folder contains a templates folder,a chart file and a corresponding value file. 
+This chart deploys the Notary-Registration job for Corda Enterprise. The folder contents are below: 
 
 ### Folder Structure ###
 ```
-/notary-initial-registration
-|-- templates
-|   |--job.yaml
-|   |--_helpers.tpl
-|-- Chart.yaml
-|-- values.yaml
+├── notary-initial-registration
+│   ├── Chart.yaml
+│   ├── files
+│   │   ├── create-network-parameters-file.sh
+│   │   ├── notary.conf
+│   │   └── notary-initial-registration.sh
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── _helpers.tpl
+│   │   └── job.yaml
+│   └── values.yaml
 ```
-
 ### Charts description
 
-#### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for registering notary components.
-- This folder contains following template files for initializing notary implementation.
-  - job.yaml:
-      It is used as a basic manifest for creating a Kubernetes deployment for initial notary
-      registration. The file basically describes the container and volume specifications of the notary. corda-node container is used for running corda jar.store-certs-in-vault container is used for putting certificate into the vault. init container is used for creating node.conf which is used by corda node, download corda jar, download certificate from vault,getting passwords of keystore from vault  and also performs health checks.
-  
-  - _helpers.tpl:
-      A place to put template helpers that you can re-use throughout the chart.
-      
-#### Chart.yaml
+#### Chart.yaml 
 - This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
 
+#### files
+- This folder contains the configuration files needed for Corda Notary.
+  - create-network-parameters-file.sh: Creates the network parameters file.
+  - notary.conf: The main configuration file for notary.
+  - notary-initial-registration.sh: The executable file to run the notary initial-registration.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Notary registration job. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+  - job.yaml: This creates the main Kubernetes job. It contains two init-containers: `init-certificates` to download the keys/certs from Vault, and a `db-healthcheck` container to check if the database service is reachable, and two main containers: `registration` for the actual registration and `store-certs` to upload the certificates to Vault.       
 
-## springbootwebserver 
+#### values.yaml 
+- This file contains the default values for the chart.
+
+----
+
+## signer 
 
 ### About
-This folder consists springbootwebserver helm charts which are used by the ansible playbooks for the deployment of the springbootwebserver component. The folder contains a templates folder,a chart file and a value file. 
+This chart deploys the Signer component of Corda CENM. The folder contents are below: 
 
 ### Folder Structure ###
 ```
-/springbootwebserver
-|-- templates
-|   |-- deployment.yaml
-|   |-- pvc.yaml
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
+└── signer
+    ├── Chart.yaml
+    ├── files
+    │   └── signer.conf
+    ├── README.md
+    ├── templates
+    │   ├── configmap.yaml
+    │   ├── deployment.yaml
+    │   ├── _helpers.tpl
+    │   └── service.yaml
+    └── values.yaml
 ```
 
 ### Charts description 
 
-#### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for springbootwebserver implementation.
-- This folder contains following template files for springbootwebserver implementation
- 
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment.For the corda springbootwebserver, this file creates a springbootwebserver deployment.The file defines containers where springbootwebserver container is defined with corda image and app jar details and 
-	  the init container basically creates app.properties file, configures the vault with various vault parameters.Certificates and springbootwebserver database are defined on the volume mount paths.
-
-  - pvc.yaml:
-      This yaml is used to create persistent volumes claim for the springbootwebserver deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud enviornment.
-	  This file creates springbootwebserver-pvc for, the volume claim for springbootwebserver.
-	  
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.
-	  This service.yaml creates springbootwebserver service endpoint.The file basically specifies service type and kind of service ports for the corda springbootwebserver. 
-
-      
-#### Chart.yaml
+#### Chart.yaml 
 - This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
 
-----
-
-## storage
-
-### About
-This folder consists storage helm charts, which are used by the ansible playbooks for the deployment of the storage component. The folder contains a templates folder,a chart file and a value file. 
-
-### Folder Structure ###
-```
-/storage
-|-- templates
-|   |-- storageclass.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-
-### Charts description
-
-#### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for storageclass implementation.
-- This folder contains following template files for storageclass implementation
+#### files
+- This folder contains the configuration files needed for signer.
+  - signer.conf: The main configuration file for signer.
   
-  - storageclass.yaml:
-      This yaml file basically creates storageclass.We define provisioner,storagename and namespace from value file.
-      
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
-
-------
-
-## webserver Chart
-
-### About
-This folder consists webserver helm charts which are used by the ansible playbooks for the deployment of the webserver component. The folder contains a templates folder,a chart file and a value file. 
-
-### Folder Structure ###
-```
-/webserver
-|-- templates
-|   |-- pvc.yaml
-|   |-- deployment.yaml
-|   |-- service.yaml
-|-- Chart.yaml
-|-- values.yaml
-```
-
-### Charts description
-
 #### templates
-- This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for webserver implementation.
-- This folder contains following template files for webserver implementation
- 
-  - deployment.yaml:
-      This file is used as a basic manifest for creating a Kubernetes deployment.For the webserver node, this file creates webserver deployment.
-	  
-  - service.yaml:
-      This template is used as a basic manifest for creating a service endpoint for our deployment.This service.yaml creates webserver service endpoint 
-	  
-  - pvc.yaml:
-      This yaml is used to create persistent volumes claim for the webserver deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud enviornment.
-	  This file creates webserver-pvc for, the volume claim for webserver.
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Signer implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains two init-containers: `init-check-certificates` to check if the signer certificates are saved on Vault and `init-certificates` to download the keys/certs from Vault, and two main containers: `signer` and `logs`.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - service.yaml: This creates the signer service endpoint.       
 
-  - volume.yaml:
-      This yaml is used to create persistent volumes claim for the webserver deployment.A persistentVolumeClaim volume is used to mount a PersistentVolume into a Pod. 
-	  PersistentVolumes provide a way for users to 'claim' durable storage  without having the information details of the particular cloud environment.
-	  This file creates webserver pvc for, the volume claim for webserver.
-      
-      
-#### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc.
-#### values.yaml
-- This file contains the default configuration values for the chart.
-
+#### values.yaml 
+- This file contains the default values for the chart.

@@ -76,6 +76,7 @@ Ansible Roles and Playbooks
 
    developer/shared
    developer/corda-ansible
+   developer/corda-ent-ansible
    developer/fabric-ansible
    developer/indy-ansible
    developer/quorum-ansible
@@ -89,6 +90,7 @@ Helm Charts
 
    developer/shared-helmcharts
    developer/corda-helmcharts
+   developer/corda-ent-helmcharts
    developer/fabric-helmcharts
    developer/indy-helmcharts
    developer/quorum-helmcharts
@@ -100,4 +102,4 @@ Jenkins Automation
 .. toctree::
    :maxdepth: 1
 
-   developer/corda-jenkins
+   developer/jenkins
