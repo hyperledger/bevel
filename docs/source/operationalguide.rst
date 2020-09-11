@@ -22,3 +22,4 @@ This section defines the pre-requisites installation and steps for setup of a DL
     operations/indy_verify.md
     operations/adding_new_org_quorum
     operations/adding_new_storageclass.md
+    operations/adding_new_org_besu

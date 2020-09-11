@@ -41,7 +41,8 @@ const deploy = async ()=>{
         .then(data=>{
             contractAddress=data.contractAddress
             console.log(contractAddress);
-            args['v'] && console.log(`Transaction receipt: ${data}`); //comment for large smartcontracts
+            args['v'] && console.log(`Transaction receipt:`); //comment for large smartcontracts
+            args['v'] && console.log(data); //comment for large smartcontracts
         });
     })
     .catch(e=>{
@@ -55,7 +56,7 @@ const deploy = async ()=>{
 }
 
 const deploySmartContract= async ( contractOptions )=>{
-    args['v'] && console.log(`trying to create a new ccount from private key`);
+    args['v'] && console.log(`trying to create a new account from private key`);
     const newAccount = await web3.eth.accounts.privateKeyToAccount(`0x${privateKey}`) // Creating new ethereum account from the private key
     args['v'] && console.log(`Deploying the smartcontract......`);
     return web3.eea.sendRawTransaction(contractOptions); // deploy smartcontract with contractoptions
