@@ -1,0 +1,127 @@
+##############################################################################################
+# This role sets up all Corda node services
+##############################################################################################
+
+- name: "Wait for namespace creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+    type: "retry"
+
+- name: "Wait for vault-auth creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-auth"
+    type: "retry"
+  tags:
+    - notest    
+
+- name: "Wait for vault-reviewer creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-reviewer"
+    type: "retry"
+  tags:
+    - notest    
+
+- name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ component_ns }}-role-tokenreview-binding"
+    type: "retry"
+  tags:
+    - notest
+# ----------------------------------------------------------------------  
+# create vault access policies
+- name: "Setup vault access for nodes"
+  include_role: 
+    name: setup/vault_kubernetes
+  vars:
+    component_name: "{{ org.name | lower }}"
+    component_path: "{{ org.name | lower }}/"
+    component_auth: "cordaent{{ org.name | lower }}"
+    component_type: "{{ org.type | lower }}"
+
+# Create ambassador certificates for node
+- name: Create ambassador certificates for node
+  include_role:
+    name: create/certificates/node
+  vars:
+    node_name: "{{ peer.name | lower }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+
+# Save tls certificates for orderers to Vault
+- name: Save tls certificates for orderers to Vault
+  include_role:
+    name: setup/tlscerts
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+
+# Create value file for node registration
+- name: Create value file for node registration
+  include_role:
+    name: setup/node_registration
+
+# Create value file for node
+- name: "Create value file for node"
+  include_role:
+    name: helm_component
+  vars:
+    helm_lint: "true"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    component_name: "{{ peer.name | lower }}"
+    node_name: "{{ peer.name | lower }}"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    corda_service_version: node
+    type: node
+    doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+
+# Create value file for bridge 
+- name: Create value file for bridge
+  include_role:
+    name: setup/bridge
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.firewall.enabled
+
+# Create value file for float 
+- name: Create value file for float
+  include_role:
+    name: setup/float
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.firewall.enabled
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
+    msg: "[ci skip] Pushing node files"

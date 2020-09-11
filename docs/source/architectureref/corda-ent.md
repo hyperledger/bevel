@@ -36,20 +36,20 @@ For Corda Enterprise, the *corda_ent_node* and *corda_ent_firewall* docker image
 The official Corda images are available on [Docker Hub](https://hub.docker.com/u/corda). These are evaluation only, for production implementation, please aquire licensed images from R3, upload them into your private docker registry and update the tags accordingly.
 
 Following Corda Docker Images are used and needed by the Blockchain Automation Framework.
-* [Corda Network Map Service](https://hub.docker.com/r/corda/enterprise-networkmap) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images))
+* [Corda Network Map Service](https://hub.docker.com/r/corda/enterprise-networkmap) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/images))
 * [Corda Identity Manager Service](https://hub.docker.com/r/corda/enterprise-identitymanager)
 * [Corda Signer](https://hub.docker.com/r/corda/enterprise-signer)
-* [Corda PKITool](https://hub.docker.com/r/corda/enterprise-pkitool) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images))
-* [Corda Notary](https://hub.docker.com/r/corda/notary) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images))
+* [Corda PKITool](https://hub.docker.com/r/corda/enterprise-pkitool) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/images))
+* [Corda Notary](https://hub.docker.com/r/corda/notary) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/images))
 * Corda Node (Built as per [these instructions](https://github.com/Accenture-BAF/corda-kubernetes-deployment/tree/master/docker-images))
 * Corda Firewall (Built as per [these instructions](https://github.com/Accenture-BAF/corda-kubernetes-deployment/tree/master/docker-images))
 
 ### Ansible Playbooks
 
-Detailed information on ansible playbooks can be referred [here](../developer/corda-ansible) and the execution process can be referred [here](../operations/setting_dlt.md).
+Detailed information on ansible playbooks can be referred [here](../developer/corda-ent-ansible) and the execution process can be referred [here](../operations/setting_dlt.md).
 
 ### Helm Charts
-Detailed information on helm charts can be referred [here](../developer/corda-helmcharts.md).
+Detailed information on helm charts can be referred [here](../developer/corda-ent-helmcharts.md).
 
 
 <a name="vault-config"></a>
