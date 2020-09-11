@@ -25,30 +25,14 @@
 - name: Create value file for idman
   include_role:
     name: helm_component
-  vars:
-    component_name: "{{ org.name | lower }}idman"
+  vars:    
     type: "idman"
-    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"
+    component_name: "{{ org.name | lower }}idman"        
     charts_dir: "{{ org.gitops.chart_source }}"
-    git_url: "{{ org.gitops.git_ssh }}"
-    git_branch: "{{ org.gitops.branch }}"
-    node_name: "{{ org.services.idman.name }}"
-    storageclass: "cordaentsc"
-    image_pull_secret: "regcred"
-    idman_image_name: "{{ network.docker.url }}/corda/enterprise-identitymanager"
-    idman_image_tag: "1.2-zulu-openjdk8u242"
-    vault_addr: "{{ org.vault.url }}"
-    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
-    vault_role: "vault-role"
-    auth_path: "cordaent{{ org.name | lower }}"
-    vault_serviceaccountname: "vault-auth"
-    external_url_suffix: "{{ org.external_url_suffix }}"
-    idman_port: "{{ org.services.idman.port }}"
-    ssh_username: "{{ org.services.idman.name }}"
-    ssh_password: "{{ org.services.idman.name }}P"
-    db_username: "{{ org.services.idman.name }}-db-user"
-    db_password: "{{ org.services.idman.name }}-db-password"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    corda_service_version: idman-{{ org.version }}
+    helm_lint: "true"
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
