@@ -99,7 +99,7 @@ The snapshot of the `orderers` section with example values is below
       type: networkmap
       uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
-      truststore: home_dir/platforms/corda-ent/configuration/build/networkroottruststore.jks #Certificate should be encoded in base64 format
+      truststore: home_dir/platforms/r3-corda-ent/configuration/build/networkroottruststore.jks #Certificate should be encoded in base64 format
 ```
 The `orderers` section contains a list of doorman/networkmap which is exposed to the network. Each `orderer` has the following fields:
 

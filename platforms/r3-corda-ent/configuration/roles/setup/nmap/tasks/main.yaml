@@ -1,0 +1,100 @@
+##############################################################################################
+# This role creates the value file for nmap
+##############################################################################################
+
+# Check if the networkmap certs are already created
+- name: Check if the networkmap certs are already created
+  shell: |
+    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ org.services.networkmap.name }}/certs
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: nmap_certs
+  ignore_errors: yes
+
+# Wait for the pki-generator job to get complete
+- name: "waiting for pki-generator job to get complete"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ org.name | lower }}-generate-pki"
+    kubernetes: "{{ org.k8s }}"
+  when: nmap_certs.failed
+
+# Create ambassador certificates for networkmap
+- name: Create networkmap ambassador certificates
+  include_role:
+    name: create/certificates/cenm
+  vars:
+    tlscert_path: "./build/ambassador/{{ org.services.networkmap.name }}"
+    service_name: "{{ org.services.networkmap.name }}"
+    dest_path: "{{ network | json_query('orderers[?type==`networkmap`].certificate') | first }}"
+
+# Get the network-root-truststore and save locally
+- name: Get the network-root-truststore
+  shell: |
+    vault read -field=network-root-truststore.jks secret/{{ org.name | lower }}/root/certs > "{{ cert_path }}"
+  vars:
+    cert_path: "{{ network | json_query('orderers[?type==`networkmap`].truststore') | first }}"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+   
+# Check if the notary-registration is already completed
+- name: Check if the notary-registration is already completed
+  shell: |
+    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ org.services.notary.name | lower }}/certs/truststore
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: notary_certs
+  ignore_errors: yes
+
+# ----------------------------------------------------------------------   
+# Create value file for notary-initial-registration 
+# TODO this is a workaround. Ideally notary registration should be done from setup/notary
+- name: Create value file for notary registration job
+  include_role:
+    name: setup/notary-initial-registration
+  when: notary_certs.failed
+
+# Wait for the notary initial registration job to complete
+- name: "waiting for notary initial registration job to complete"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ org.services.notary.name | lower }}-initial-registration"
+    kubernetes: "{{ org.k8s }}"
+  when: notary_certs.failed
+
+# create deployment file for CENM nmap service
+- name: "create nmap value files"
+  include_role:
+    name: helm_component
+  vars:
+    type: "nmap"
+    name: "{{ org.name | lower }}"
+    component_name: "{{ org.name | lower }}nmap"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    corda_service_version: networkmap-{{ org.version }}
+    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}" # Keep this in ansible role to prevent confusion in template
+    helm_lint: "true"
+
+# Push the nmap deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
+    msg: "[ci skip] Pushing deployment files for nmap service"

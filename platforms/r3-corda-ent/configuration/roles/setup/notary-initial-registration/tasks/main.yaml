@@ -1,0 +1,82 @@
+##############################################################################################
+# This role creates the deployment files for node and pushes them to repository
+##############################################################################################
+
+- name: "Waiting for idman pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ org.services.idman.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
+# Create deployment file for CENM notary service db
+- name: "Create db for notary"
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ org.services.notary.name | lower }}db"
+    type: "db"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    name: "{{ org.name | lower }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    node_name: "{{ org.services.notary.name | lower }}"
+    image_pull_secret: "regcred"
+    storageclass: "cordaentsc"
+    container_name: "index.docker.io/hyperledgerlabs/h2:2018"
+    tcp_port: "{{ org.services.notary.dbtcp.port }}"
+    tcp_targetport: "{{ org.services.notary.dbtcp.targetPort }}"
+    web_port: "{{ org.services.notary.dbweb.port }}"
+    web_targetport: "{{ org.services.notary.dbweb.targetPort }}"
+    helm_lint: "true"
+
+# ----------------------------------------------------------------------  
+# Check if notary already registered or not
+- name: Check if nodekeystore already created
+  shell: |
+    vault kv get -field=nodekeystore.jks secret/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/nodekeystore
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: nodekeystore_result
+  ignore_errors: yes
+
+# ----------------------------------------------------------------------
+# create deployment files for job for notaries
+- name: 'Create notary initial-registration job file'
+  include_role:
+    name: helm_component
+  vars:    
+    type: "notary-initial-registration"
+    component_name: "{{ org.name | lower }}notary-initial-registration"
+    name: "{{ org.name | lower }}"
+    notary_service: "{{ org.services.notary }}"
+    notary_name: "{{ notary_service.name }}"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    idman_domain: "{{ idman_url.split(':')[1] | regex_replace('/', '') }}"    
+    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    networkmap_domain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
+    corda_service_version: notary-{{ org.version }}
+  when: nodekeystore_result.failed == True
+
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
+    msg: "[ci skip] Pushing DB and registration job deployment files for {{ org.services.notary.name }}"
