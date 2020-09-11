@@ -19,13 +19,23 @@
     check: "ensure_dir"
 
 # Checks if certificates for root are already created and stored in vault.
-- name: Check if certs already created
+- name: Check if root certs already created
+  shell: |
+    vault kv get -format=yaml secret/besu-{{ network.env.type }}/rootca
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: root_certs
+  ignore_errors: yes
+
+# Checks if certificates  are already created and stored in vault.
+- name: Check if ambassador and tls certs already created
   shell: |
     vault kv get -format=yaml secret/{{ component_ns }}/crypto/{{ node_name }}/tls
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  register: root_certs
+  register: certs
   ignore_errors: yes
 
 # Gets the existing root certificates if any.
@@ -51,16 +61,25 @@
     eval "openssl genrsa -out rootca.key 2048"
     eval "openssl req -x509 -new -nodes -key rootca.key -sha256 -days 1024 -out rootca.pem -subj '/{{ cert_subject }}'"
   when: root_certs.failed == True and rootca_stat_result.stat.exists == False
+
+# Stores the genrated rootca.pem and rootca.key
+- name: Putting root certs to vault
+  shell: |
+    vault kv put secret/besu-{{ network.env.type }}/rootca rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: root_certs.failed == True
  
 # Gets the existing ambassador tls certs
 - name: Get ambassador tls certs
   include_role: 
     name: "{{ playbook_dir }}/roles/setup/get_crypto"
   vars:
-    vault_output: "{{ root_certs.stdout | from_yaml }}"
+    vault_output: "{{ certs.stdout | from_yaml }}"
     type: "ambassador"
     cert_path: "{{ ambassadortls }}"
-  when: root_certs.failed == False
+  when: certs.failed == False
 
 # Generates the openssl file for domain
 - name: Generate openssl conf file
@@ -85,7 +104,7 @@
   vars:
     domain_name_priv: "{{ node_name }}.{{ component_ns }}"
     domain_name_pub: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
-  when: root_certs.failed == True
+  when: certs.failed == True or root_certs.failed == True
 
 # Generates the ambassador tls certificates if already not generated
 - name: Generate ambassador tls certs
@@ -100,7 +119,7 @@
     cat {{ rootca }}/rootca.pem >> {{ node_name }}-certchain.pem
   vars:
     domain_name: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
-  when: root_certs.failed == True
+  when: certs.failed == True or root_certs.failed == True
 
 # Generate crypto for besu nodes and knownserver file
 - name: create tls credentials for besu
@@ -117,7 +136,9 @@
     eval "printf '%s\n' '{{ node_name }}.{{ component_ns }}:{{ node.tm_clientport.port | default('8888') }} $DIGEST' '{{ common_name }} $DIGEST' > {{ node_name }}-knownServer"
   vars:
     common_name: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
-  when: network.config.tm_tls == True and root_certs.failed == True
+  when: 
+    - network.config.tm_tls == True  
+    - certs.failed == True or True and root_certs.failed == True
 
 # Stores the genreated ambassador tls certificates to vault if tls is off for network
 - name: Putting ambassador certs to vault
@@ -126,18 +147,22 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: root_certs.failed == True and network.config.tm_tls == False
+  when: 
+    - network.config.tm_tls == False
+    - root_certs.failed == True or certs.failed == True 
 
-# Stores the genreated ambassador tls certificates to vault
+# This task stores the genreated ambassador tls certificates to vault
 - name: Putting tls certs to vault
   shell: |
     vault kv put secret/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" keystore="$(cat {{ambassadortls}}/{{ node_name }}-besu-node.pkcs12 | base64)" password="$(cat {{ambassadortls}}/{{ node_name }}-password | base64)" knownServer="$(cat {{ambassadortls}}/{{ node_name }}-knownServer | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: root_certs.failed == True and network.config.tm_tls == True
+  when: 
+    - network.config.tm_tls == True
+    - root_certs.failed == True or certs.failed == True
 
-# Check if Ambassador credentials exist already
+# This task checks if Ambassador credentials exist already
 - name: Check Ambassador cred exists
   k8s_info:
     kind: Secret

@@ -100,9 +100,19 @@ This task rename the above created directories to the org_name/node_name
 **copy** : This module copies the content of numerical directories to org/node directory
 **when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
 
+#### 4. Create organization directory if it does not exist
+ This task creates the organization directories for crypto material if not exists.
+**file** : This module will create the directory if it does not exist with 755 permissions.
+**when**: *add_new_org* is true.
+
 #### 13. Generate the nodeAddress for each peer
  This task creates the node address for each peer 
 **shell**: This task generates the nodeAddress for each node placed in node directories
+**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
+
+#### 13. Generate the key.pub for each peer of new organization
+ This task creates the node public key for each peer of new organization
+**shell**: This task generates thepublic key for each node placed in new organization peer
 **when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
 
 #### 14. Touch file to store information for validators
