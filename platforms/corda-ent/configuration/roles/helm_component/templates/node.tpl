@@ -41,6 +41,8 @@ spec:
       serviceaccountname: vault-auth
       certsecretprefix: secret/{{ org.name | lower }}/{{ peer.name | lower }}
       nodePath: {{ peer.name | lower }}
+      retries: 30
+      retryInterval: 30
     nodeConf:
       ambassador:
         external_url_suffix: {{ org.external_url_suffix }}
@@ -59,7 +61,6 @@ spec:
       cordaJar:
         memorySize: 1524
         unit: M
-      volume:
       pod:
         resources:
           limits: 1524M
@@ -90,6 +91,8 @@ spec:
         port: 8090
       allowDevCorDapps:
         enabled: true
+      retries: 20
+      retryInterval: 15
     sleepTimeAfterError: 120
     sleepTime: 0
     healthcheck:
