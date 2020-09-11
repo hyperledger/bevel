@@ -1,0 +1,23 @@
+# This task adds a new node to the existing network
+- name: Add a new node to the existing network
+  uri:
+    url: "{{ node }}"
+    method: POST
+    validate_certs: no
+    return_content: yes
+    body_format: json
+    body: '{"jsonrpc":"2.0","method":"admin_addPeer","params":["enode://{{ enode.enodeval }}@{{ enode.peer_publicIP }}:{{ enode.p2p_ambassador }}"],"id":1}'
+    headers:
+      Content-Type: "application/json"
+  loop: "{{ enode_data_list }}"
+  loop_control:
+    loop_var: enode
+  register: peer_id
+  until: peer_id.status == 200
+  retries: "{{ network.env.retry_count }}"
+  delay: 50
+
+# This task fetches the new peer_id 
+- name: Get peer_id
+  set_fact:
+    peer_id: "{{ peer_id.results[0].json.id }}"
