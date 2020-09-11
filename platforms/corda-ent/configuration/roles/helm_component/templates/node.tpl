@@ -56,7 +56,14 @@ spec:
         baseDir: /opt/corda
       jarPath: bin
       configPath: etc
-      cordaJarMx: 1524
+      cordaJar:
+        memorySize: 1524
+        unit: M
+      volume:
+      pod:
+        resources:
+          limits: 1524M
+          requests: 1524M
     service:
       p2pPort: {{ peer.firewall.bridge.port if peer.firewall.enabled == true else peer.p2p.port }}
       p2pAddress: {{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ component_ns }}
