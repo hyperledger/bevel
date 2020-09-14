@@ -1,0 +1,47 @@
+#############################################################################################
+# This role creates value file for Cli pods
+############################################################################################
+#                      CREATE CLI POD                                                      #
+############################################################################################
+#
+############################################################################################
+# This task creates the value file for the cli pod as per requirements mentioned in 
+# network.yaml
+- name: "Create Value file for CLI Pod"
+  include_role:
+    name: helm_component
+  vars:
+    name: "cli"
+    component_name: "{{ org.name | lower}}-cli"
+    orderer_image: "hyperledger/fabric-orderer:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"  
+    orderer: "{{ network.orderers | first }}"
+    component_ns: "{{ org.name | lower}}-net"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ network.docker.url }}/alpine-utils:1.0"
+    storage_class: "{{ org.name | lower }}sc"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    type: "cli"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.cli is defined and peer.cli == "enabled"
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing CLI value files"
+  when: peer.cli is defined and peer.cli == "enabled" 

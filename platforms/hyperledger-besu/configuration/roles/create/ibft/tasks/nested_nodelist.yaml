@@ -34,7 +34,17 @@
   lineinfile:
     line: "\\\"http://{{enode_item.peer_name}}.{{enode_item.external_url}}:{{enode_item.node_ambassador}}\\\""
     path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/nodelist"
-  with_items: "{{enode_data_list}}"
+  with_items: "{{ enode_data_list }}"
   loop_control:
     loop_var: enode_item
   when: enode_item.peer_name != peer.name and network.config.tm_tls == False and enode_item.node_ambassador is defined
+
+# Add othernodes data from the networkyaml
+- name: nodelist loop for networkyaml list of tm_nodes
+  lineinfile:
+    line: "\\\"{{ enode_item }}\\\""
+    path: "{{ build_path }}/{{ org.name }}/{{ peer.name }}/nodelist"
+  with_items: "{{ network.config.tm_nodes }}"
+  loop_control:
+    loop_var: enode_item
+  when: network.config.tm_nodes is defined

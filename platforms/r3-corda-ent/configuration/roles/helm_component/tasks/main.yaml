@@ -1,0 +1,37 @@
+#############################################################################################
+# This role generates the value file for the helm releases 
+#############################################################################################
+
+
+############################################################################################
+# This task ensures that the directory exists, and creates it, if it does not exist
+- name: "Ensures {{ values_dir }}/{{ name }} dir exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ values_dir }}/{{ name }}"
+    check: "ensure_dir"
+
+############################################################################################
+# This task creates the value file for the helm release
+# This is done by consuming a template file which is passes as a variable by the role
+# including this helm_component role
+- name: "create value file for {{ component_name }}"
+  template:
+    src: "{{ helm_templates[type] | default('helm_component.tpl') }}"
+    dest: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"
+  vars:
+    docker_image: "{{ docker_images.cenm[corda_service_version] }}"
+    init_image: "{{ docker_images.init_container }}"
+    
+############################################################################################
+# This task tests the value file for syntax errors/ missing values
+# This is done by calling the helm_lint role and passing the value file parameter
+# When a new helm_component is added, changes should be made in helm_lint role as well
+- name: Helm lint
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
+  vars:
+    helmtemplate_type: "{{ type }}"
+    chart_path: "{{ charts_dir }}"
+    value_file: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"

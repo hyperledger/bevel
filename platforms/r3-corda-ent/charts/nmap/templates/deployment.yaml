@@ -1,0 +1,330 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  {{- if .Values.config.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.config.deployment.annotations | indent 8 }}
+    {{- end }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.nodeName }}
+      app.kubernetes.io/name: {{ .Values.nodeName }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.nodeName }}
+        app.kubernetes.io/name: {{ .Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceAccountName }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+      - name: init-certificates
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authPath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: BASE_DIR
+            value: {{ $.Values.config.volume.baseDir }}
+          - name: CERTS_SECRET_PREFIX
+            value: {{ .Values.vault.certSecretPrefix }}
+          - name: MOUNT_PATH
+            value: "/DATA"
+          - name: NODEINFO_MOUNT_PATH
+            value: "/notary-nodeinfo"
+        command: ["sh", "-c"]
+        args:
+        - |-
+              #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                fi
+              }
+
+              # Setting up the environment to get secrets from Vault
+              echo "Getting secrets from Vault Server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "logged into vault"
+
+              # Creating dirs for storing certificates
+              mkdir -p ${MOUNT_PATH}/key-stores;
+              mkdir -p ${MOUNT_PATH}/trust-stores;
+              mkdir -p ${MOUNT_PATH}/crl-files;
+
+              # Getting intitial network parameters from Vault
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
+              do 
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.serviceLocations.notary.name }}/networkparam | jq -r 'if .errors then . else . end')
+                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
+                  else
+                   initial_param=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-parameters-initial"]')
+                   echo "${initial_param}" | base64 -d > ${NODEINFO_MOUNT_PATH}/network-parameters-initial.conf
+                   echo "Successfully got initial network parameters"
+                   break
+                fi
+                COUNTER=`expr "$COUNTER" + 1`
+              done  
+
+              # Getting node Info File from Vault
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
+              do 
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.serviceLocations.notary.name }}/nodeInfo | jq -r 'if .errors then . else . end')
+                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
+                  else
+                  notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
+                  notary_nodeinfo_name=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoName"]')
+                  echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/${notary_nodeinfo_name}
+                  echo "Successfully got node info file"
+                  break
+                fi
+                COUNTER=`expr "$COUNTER" + 1`
+              done
+                  
+              # Fetching ssl-idman certificates from vault
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
+              do
+                  # get keystores from vault to see if certificates are created and put in vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
+                  else
+                    idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-network-map-keys.jks"]')
+                    echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/key-stores/corda-ssl-network-map-keys.jks
+                    echo "Successfully got ssl idman certifcates"
+                    break
+                  fi
+                  COUNTER=`expr "$COUNTER" + 1`
+              done
+
+              if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+              then
+                # printing number of trial done before giving up
+                echo "$COUNTER"
+                echo "ssl idman certificates might not have been put in vault.  Giving up!!!"
+                exit 1
+              fi
+              echo "Done"
+
+              # Fetching corda-ssl-trust-store certificates from vault
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
+              do
+                  # get keystores from vault to see if certificates are created and put in vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
+                  else
+                    root_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+                    echo "${root_ssl}" | base64 -d > ${MOUNT_PATH}/trust-stores/corda-ssl-trust-store.jks
+
+                    root_trust=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
+                    echo "${root_trust}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
+
+                    echo "Successfully got root ssl and trust_store certifcates"
+                    break
+                  fi
+                  COUNTER=`expr "$COUNTER" + 1`
+              done
+
+              if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+              then
+                # printing number of trial done before giving up
+                echo "$COUNTER"
+                echo "root ssl certificates might not have been put in vault. Giving up!!!"
+                exit 1
+              fi
+              echo "Done"
+
+              # Fetching crl certificates from vault
+              # TODO: Check if CRL certificates are required for NMS
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
+              do
+                  # get crls from vault to see if certificates are created and put in vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.serviceLocations.identityManager.name }}/crls | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    sleep {{ $.Values.vault.sleepTimeAfterError }}
+                  else
+                    tls_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tls.crl"]')
+                    echo "${tls_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/tls.crl
+
+                    root_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root.crl"]')
+                    echo "${root_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/root.crl
+
+                    subordinate_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["subordinate.crl"]')
+                    echo "${subordinate_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/subordinate.crl
+
+                    echo "Successfully got crl certifcates"
+                    break
+                  fi
+                  COUNTER=`expr "$COUNTER" + 1`
+              done
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.serviceLocations.identityManager.name }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.serviceLocations.identityManager.name }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+              echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/idman.crt
+
+              if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+              then
+                # printing number of trial done before giving up
+                echo "$COUNTER"
+                echo "crl certificates might not have been put in vault. Giving up!!!"
+                exit 1
+              fi
+              echo "Done"
+        volumeMounts:
+        - name: certificates
+          mountPath: /DATA
+        - name: notary-nodeinfo
+          mountPath: /notary-nodeinfo
+      - name: setnparam
+        image: "{{ required "nmap[setnparam]: missing value for .Values.image.nmapContainerName" .Values.image.nmapContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: ACCEPT_LICENSE
+            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          cp -r CM-FILES/*.conf etc/
+          cp -r CM-FILES/*.sh bin/
+          chmod +x bin/*
+          if [ ! -f {{ .Values.config.configPath }}/network-parameters-initial-set-succesfully ]
+          then
+            echo "Setting network parameters for deployment..."
+            bin/set-network-parameters.sh
+          else
+            echo "Already set, no need to set network parameters"
+          fi
+        volumeMounts:
+        - name: nmap-conf
+          mountPath: /opt/corda/CM-FILES/nmap.conf
+          subPath: nmap.conf
+        - name: nmap-conf
+          mountPath: /opt/corda/CM-FILES/set-network-parameters.sh
+          subPath: set-network-parameters.sh
+        - name: notary-nodeinfo
+          mountPath: /opt/corda/notary-nodeinfo
+        - name: nmap-etc
+          mountPath: /opt/corda/etc
+        - name: certificates
+          mountPath: /opt/corda/DATA
+        - name: nmap-logs
+          mountPath: /opt/corda/logs
+        - name: nmap-h2
+          mountPath: /opt/corda/h2
+        resources:
+          requests:
+            memory: {{ .Values.config.pod.resources.requests }}
+          limits:
+            memory: {{ .Values.config.pod.resources.limits }}
+      containers:
+      - name: main
+        image: "{{ required "nmap[main]: missing value for .Values.image.nmapContainerName" .Values.image.nmapContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: ACCEPT_LICENSE
+            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          cp -r CM-FILES/*.sh bin/
+          chmod +x bin/*
+          until [ -f {{ .Values.config.configPath }}/network-parameters-initial-set-succesfully ]
+          do
+            sleep 5
+            echo "Waiting for network parameters to be set..."
+          done
+          echo "Network parameters have been set!"
+          yes | keytool -importcert -file ./DATA/idman.crt -storepass changeit -alias {{ .Values.serviceLocations.identityManager.domain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+          bin/run.sh
+        volumeMounts:
+        - name: nmap-conf
+          mountPath: /opt/corda/CM-FILES/nmap.conf
+          subPath: nmap.conf
+        - name: nmap-conf
+          mountPath: /opt/corda/CM-FILES/run.sh
+          subPath: run.sh
+        - name: notary-nodeinfo
+          mountPath: /opt/corda/notary-nodeinfo
+        - name: nmap-h2
+          mountPath: /opt/corda/h2
+        - name: nmap-etc
+          mountPath: /opt/corda/etc
+        - name: nmap-logs
+          mountPath: /opt/corda/logs
+        - name: certificates
+          mountPath: /opt/corda/DATA
+        resources:
+          requests:
+            memory: {{ .Values.config.pod.resources.requests }}
+          limits:
+            memory: {{ .Values.config.pod.resources.limits }}
+      - name: logs
+        image: "{{ required "nmap[logs]: missing value for .Values.image.nmapContainerName" .Values.image.nmapContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: ACCEPT_LICENSE
+            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          cd /opt/corda/
+          while true; do tail -f logs/network-map/*.log 2>/dev/null; sleep 5; done
+          # in case sth went wrong just wait indefinitely ...
+          tail -f /dev/null
+        volumeMounts:
+        - name: nmap-logs
+          mountPath: /opt/corda/logs
+      imagePullSecrets:
+      - name: {{ .Values.image.imagePullSecret }}
+      volumes:
+        - name: certificates
+          emptyDir:
+            medium: Memory
+        - name: nmap-etc
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-etc
+        - name: nmap-conf
+          configMap:
+            name: {{ .Values.nodeName }}-conf
+        - name: nmap-logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-pvc-logs
+        - name: nmap-h2
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-pvc-h2
+        - name: notary-nodeinfo
+          emptyDir:
+            medium: Memory

@@ -4,7 +4,7 @@ The following mandatory pre-requisites must be completed to set up a development
 The process of setting up developer pre-requisites can be done manually or via an automation script(currently script is for windows OS only)
 
 ## Script Based Setup
-You can use the [script](https://github.com/hyperledger-labs/blockchain-automation-framework/platforms/shared/scripts/pre_setup_win.bat) to setup developer prerequisites (currently for Windows OS only).   
+You can use the scripts [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/scripts) to setup developer prerequisites for Windows or Mac systems.   
 
 ---
 
@@ -174,7 +174,7 @@ For development environment, minikube can be used as the Kubernetes cluster on w
 1. Configure minikube to use 4GB memory and default kubernetes version
    ```bash
    minikube config set memory 4096
-   minikube config set kubernetes-version v1.15.4
+   minikube config set kubernetes-version v1.16.13
    ```
 1. Then start minikube. This will take longer the first time.
    ```bash

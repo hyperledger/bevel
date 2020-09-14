@@ -57,7 +57,7 @@
     loop_control:
       loop_var: organizationItem
 
-  # Generate Ambassador certificate for nodes
+  # Generate Ambassador certificate for nodes. These certificates are used for Orion TLS as well
   - name: "Create ambassador certificates for Nodes" 
     include_role: 
       name: create/certificates/ambassador
@@ -81,15 +81,8 @@
     vars:
       build_path: "{{ playbook_dir }}/build"    
     when: network.config.consensus == 'ibft'
-
-  # This role generates the crypto materials for orion tm
-  - name: "Generate crypto for the Orion transaction manager"
-    include_role:
-      name: create/crypto/orion  
-    vars:
-      build_path: "{{ playbook_dir }}/build"   
   
-  # This role deploy validator nodes 
+  # This role deploy validator nodes. Validator nodes do not use Orion crypto.
   - name: "Deploy validator nodes"
     include_role:
       name: create/validator
@@ -111,6 +104,14 @@
     loop: "{{ network['organizations'] }}"
     when: network.config.consensus == 'ibft' and item.type == 'validator'
 
+  # This role generates the crypto materials for orion tm
+  - name: "Generate crypto for the Orion transaction manager"
+    include_role:
+      name: create/crypto/orion  
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+    when: network.config.transaction_manager == 'orion'
+
   # This role deploy nodes with Orion transaction manager and IBFT consensus
   - name: "Deploy nodes with orion Transaction Manager and IBFT consensus"
     include_role:
@@ -131,7 +132,10 @@
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: network.config.consensus == 'ibft' and item.type == 'member'
+    when: 
+      - network.config.consensus == 'ibft' 
+      - item.type == 'member'
+      - network.config.transaction_manager == 'orion'
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS

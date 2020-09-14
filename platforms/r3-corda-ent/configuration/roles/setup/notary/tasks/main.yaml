@@ -1,0 +1,59 @@
+##############################################################################################
+# This role creates the value file for notary
+##############################################################################################
+
+# Wait till the nmap is running
+- name: "Waiting for nmap pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ org.services.networkmap.name | lower }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
+# Create notary ambassador certificates
+- name: Create ambassador certficates for notary
+  include_role:
+    name: create/certificates/cenm
+  vars:
+    tlscert_path: "./build/ambassador/{{ org.services.notary.name }}"
+    service_name: "{{ org.services.notary.name }}"
+    dest_path: "./build/ambassador/{{ org.services.notary.name }}/notary.crt"
+
+# Create deployment file for CENM notary service
+- name: "Create value file for notary"
+  include_role: 
+    name: helm_component
+  vars:
+    type: "notary"
+    notary_service: "{{ org.services.notary }}"
+    component_name: "{{ notary_service.name | lower }}"
+    name: "{{ org.name | lower }}"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    idman_domain: "{{ idman_url.split(':')[1] | regex_replace('/', '') }}"    
+    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    networkmap_domain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
+    corda_service_version: notary-{{ org.version }}
+    p2p_port: "{{ org.services.notary.p2p.port }}"
+    ambassador_p2pPort: "{{ org.services.notary.p2p.ambassador }}"
+
+# Push the notary deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
+    msg: "[ci skip] Pushing deployment files for notary service"

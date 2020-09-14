@@ -13,8 +13,8 @@ network:
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Besu
     ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
-    #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts: 15010,15011,15012,15013,15014,15015,15020,15021,15022,15023,15024,15030,15031,15032,15033,15034,15040,15041,15042,15043,15044,15050,15051,15052,15060,15061,15062,15070,15071,15072,15080,15081,15082
+    #  This sample uses a single cluster, so we have to open 3 ports for each Node. These ports are again specified for each organization below
+    ambassadorPorts: 15010,15011,15012,15013,15014,15015,15016,15017,15020,15021,15022,15030,15031,15032,15040,15041,15042,15050,15051,15052
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
@@ -37,7 +37,9 @@ network:
     # This is the version of "orion" docker image that will be deployed
     tm_version: "1.5.2"               
     # TLS can be True or False for the orion tm
-    tm_tls: False
+    tm_tls: True
+    # Tls trust value
+    tm_trust: "ca-or-tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## File location for saving the genesis file should be provided.
     genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
     
@@ -93,44 +95,40 @@ network:
             port: 8545
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
-            port: 8546          
-            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+            port: 8546
         - validator:
           name: validator2
           bootnode: true          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
-            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15012       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546          
-            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
         - validator:
           name: validator3
           bootnode: false          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
-            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15014       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15015       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546          
-            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
         - validator:
           name: validator4
           bootnode: false          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
-            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15016       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15017       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
-            port: 8546          
-            ambassador: 8443    # Port exposed on ambassador service (Transaction manager port)
+            port: 8546
 
     - organization:
       name: carrier
@@ -175,23 +173,20 @@ network:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          lock: true/false        # Sets Besu node to lock or unlock mode
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
           p2p:
             port: 30303
-            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
-            ambassador: 15012
           tm_nodeport:
-            port: 8888         
-            ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
+            port: 15022             # Port exposed on ambassador service must be same
+            ambassador: 15022    
           tm_clientport:
-            port: 8080         
-            ambassador: 15014    # Port exposed on ambassador service (Transaction manager client port)
-           
+            port: 8888           
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -238,22 +233,20 @@ network:
           name: manufacturer
           subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          lock: true/false        # Sets Besu node to lock or unlock mode
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
           p2p:
             port: 30303
-            ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
-            ambassador: 15022
           tm_nodeport:
-            port: 8888         
-            ambassador: 15023   # Port exposed on ambassador service (Transaction manager node port)
+            port: 15032             # Port exposed on ambassador service must be same
+            ambassador: 15032    
           tm_clientport:
-            port: 8080         
-            ambassador: 15024    # Port exposed on ambassador service (Transaction manager client port)
+            port: 8888
 
     - organization:
       name: store
@@ -298,22 +291,20 @@ network:
           name: store
           subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          lock: true/false        # Sets Besu node to lock or unlock mode
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
           p2p:
             port: 30303
-            ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
-            ambassador: 15032
           tm_nodeport:
-            port: 8888         
-            ambassador: 15033   # Port exposed on ambassador service (Transaction manager node port)
+            port: 15042             # Port exposed on ambassador service must be same
+            ambassador: 15042    
           tm_clientport:
-            port: 8080         
-            ambassador: 15034    # Port exposed on ambassador service (Transaction manager client port)
+            port: 8888
 
     - organization:
       name: warehouse
@@ -358,19 +349,17 @@ network:
           name: warehouse
           subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          lock: true/false        # Sets Besu node to lock or unlock mode
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
           p2p:
             port: 30303
-            ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15050       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15051       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
-            ambassador: 15042
           tm_nodeport:
-            port: 8888         
-            ambassador: 15043   # Port exposed on ambassador service (Transaction manager node port)
+            port: 15052             # Port exposed on ambassador service must be same
+            ambassador: 15052    
           tm_clientport:
-            port: 8080         
-            ambassador: 15044    # Port exposed on ambassador service (Transaction manager client port)
+            port: 8888

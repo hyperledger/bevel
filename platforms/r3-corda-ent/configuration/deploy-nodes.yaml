@@ -1,0 +1,67 @@
+###########################################################
+# Playbook to create deployment files for the following:
+#  storageclass
+#  namespaces, service account and clusterrolebinding
+# Playbook arguments: complete network.yaml
+###########################################################
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+  # Delete build directory before start of play, can be commented if you do not want to delete it.
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
+  # Create Storageclass that will be used for this deployment
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "cordaentsc"
+      git_dir: "{{ org.gitops.release_dir }}"
+      kubernetes: "{{ org.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+
+  # create namespace, service account and clusterrolebinding
+  - name: "Create namespace, service accounts and clusterrolebinding"
+    include_role: 
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ org.name | lower }}-ent"
+      organisation: "{{ org.name | lower }}"
+      kubernetes: "{{ org.k8s }}"
+      gitops: "{{ org.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+  # ----------------------------------------------------------------------  
+  # Check that cenm services are reachable
+  - name: Check that CENM uri are reachable
+    uri:
+      url: "{{ item.uri }}/status"
+      validate_certs: no
+    register: this
+    until: this.status == 200
+    loop: "{{ network['orderers'] }}"
+    retries: "{{ network.env.retry_count}}"
+    delay: 50
+
+  # ----------------------------------------------------------------------   
+  # Setup Corda Node services for the network
+  - name: Setup Corda Node services
+    include_role:
+      name: setup/node
+    vars:
+      services: "{{ org.services }}"
+      organisation: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-ent"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'node'

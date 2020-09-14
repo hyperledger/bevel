@@ -84,20 +84,26 @@
     dest: "{{ build_path }}/ibftConfigFile.json"
   vars:
     total_peer_count: "{{ node_list | length }}"
-  when: generate_crypto is defined and generate_crypto == True
+  when: 
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
 
 # This task displays the ibftConfigFile file content
 - name: Display ibftConfigFile file contents
   debug: 
     msg: "The ibftConfigFile file is: {{ lookup('file', '{{ playbook_dir }}/build/ibftConfigFile.json') }}"
     verbosity: 2
-  when: generate_crypto is defined and generate_crypto == True
+  when: 
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
 
 # Generate crypto for IBFT consensus
 - name: Generate crypto for IBFT consensus
   shell: |
     {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu operator generate-blockchain-config --config-file={{ build_path }}/ibftConfigFile.json --to={{ build_path }}/crypto --private-key-file-name=key
-  when: network.config.consensus == "ibft" and generate_crypto is defined and generate_crypto == True
+  when: 
+    - network.config.consensus == "ibft" and generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
 
 # This task get the list of folders
 - name: Find folders
@@ -106,7 +112,9 @@
     file_type: directory
     recurse: false
   register: folder
-  when: generate_crypto is defined and generate_crypto == True
+  when: 
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
 
 # This task rename the above created directories to the org_name/node_name 
 - name: Rename the directories created above with the elements of node_list
@@ -115,7 +123,21 @@
   loop_control:
     loop_var: file
     index_var: index
-  when: generate_crypto is defined and generate_crypto == True
+  when: 
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
+
+# This task creates the organization directories for crypto material if not exists
+- name: Create organization directory if it does not exist
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ playbook_dir }}/{{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data"
+    check: "ensure_dir"
+  with_indexed_items: "{{ node_list }}"
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == True
 
 # This task creates the node address for each peer 
 - name: Generate the nodeAddress for each peer
@@ -124,12 +146,72 @@
   with_indexed_items: "{{ node_list }}"
   when: generate_crypto is defined and generate_crypto == True
 
+# This task creates the node public key for each peer of new organization 
+- name: Generate the key.pub for each peer of new organization
+  shell: |
+    {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu --data-path {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data public-key export --to {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data/key.pub
+  with_indexed_items: "{{ node_list }}"
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is defined and add_new_org|bool == True
+
+# This file stores the address of the validator nodes
+- name: Touch file to store information for validators
+  file:
+    path: "{{ build_path }}/validatorinfo"
+    state: touch
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
+
+# This file used by besu binary to generate the extra data information
+- name: Touch toEncode.json file
+  file:
+    path: "{{ build_path }}/toEncode.json"
+    state: touch
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
+
+# new genesis file with updated extradata
+- name: Touch modified genesis file
+  file:
+    path: "{{ build_path }}/crypto/newGenesis.json"
+    state: touch
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
+
+# Create the validator address array
+- name: Get node data
+  shell: |
+    echo "\"$(cat {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data/nodeAddress)\"" >> {{ build_path }}/validatorinfo
+  with_indexed_items: "{{ node_list }}"
+  when:  
+    # TODO uncomment the line below when the smartcontract can be deployed on member node.
+    #- item[1].type == "validator"
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
+
+# This task creates the rlp encoded string and add it to extraData field in newGenesis.json
+- name: Create the new genesis file with information for validator nodes
+  shell: |
+    cat {{ build_path }}/validatorinfo | paste -sd "," -| awk '{print "["$0"]"}'> {{ build_path }}/toEncode.json
+    echo "$( {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu rlp encode --from={{ build_path }}/toEncode.json )" > {{ build_path }}/extraData
+    jq '.extraData = $newVal' --arg newVal $(cat {{ build_path }}/extraData) << cat {{ build_path }}/crypto/genesis.json > {{ build_path }}/crypto/newGenesis.json
+  when: 
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
+    
 ## Delete the keys directory
 - name: Delete the keys directory
   file:
     path: "{{ build_path }}/crypto/keys"
     state: absent
-  when: generate_crypto is defined and generate_crypto == True
+  when: 
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
+
 
 # This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
@@ -149,6 +231,8 @@
     content: "{{ genesis }}"
     dest: "{{ network.config.genesis }}"
   vars:
-    genesis: "{{ lookup('file', '{{ build_path }}/crypto/genesis.json') | b64encode }}"
-  when: generate_crypto is defined and generate_crypto == True
+    genesis: "{{ lookup('file', '{{ build_path }}/crypto/newGenesis.json') | b64encode }}"
+  when: 
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
  
