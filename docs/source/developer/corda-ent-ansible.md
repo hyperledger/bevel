@@ -30,6 +30,7 @@ platforms/r3-corda-ent/configuration
 │   └── setup
 │       ├── bridge
 │       ├── cenm
+│       ├── credentials
 │       ├── float
 │       ├── get_crypto
 │       ├── idman
@@ -171,6 +172,13 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Calls setup/notary role to deploy notary service.
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/cenm) for detailed information.
+
+## **setup/credentials**
+
+* Writes keystore,truststore,ssl passwords for CENM services
+* Writes node keystore, node truststore, network root-truststore passwords for CENM services
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/credentials) for detailed information.
 
 ## **setup/float**
 * Create helmrelease files for Float component

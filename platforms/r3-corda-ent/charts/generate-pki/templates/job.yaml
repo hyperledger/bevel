@@ -24,32 +24,409 @@ spec:
         hostname: {{ .Values.nodeName }}
         securityContext:
           fsGroup: 1000
+        initContainers:
+        - name: init-check-certificates
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certsecretprefix }}
+            - name: MOUNT_PATH
+              value: "/certcheck"
+          command: ["sh", "-c"]
+          args:
+          - |-
+              #!/usr/bin/env sh
+               validateVaultResponse () {
+                 if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                 fi
+               }
+
+              # Setting up the environment to get secrets/certificates from Vault
+              echo "Getting secrets/certificates from Vault server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "Logged into Vault"
+
+              mkdir -p ${MOUNT_PATH}
+
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+              if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+              then
+                echo "Certficates absent in vault. Ignore error warning"
+                touch ${MOUNT_PATH}/absent.txt
+              else
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present.txt
+              fi 
+
+              echo "Done checking for certificates in vault"
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+        - name: init-credentials
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: VAULT_APP_ROLE
+              value: {{ $.Values.vault.role }}
+            - name: BASE_DIR
+              value: {{ $.Values.volume.baseDir }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certsecretprefix }}
+            - name: MOUNT_PATH
+              value: "/DATA"
+            - name: NODEINFO_MOUNT_PATH
+              value: "/notary-nodeinfo"
+          command: ["sh", "-c"]
+          args:
+          - |-
+              #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                fi
+              }
+
+              if [ -e /certcheck/present.txt ]
+              then
+                echo "Certificates already present in the vault. Skipping.."
+                exit 0
+              fi
+
+              # Setting up the environment to get secrets from Vault
+              echo "Getting secrets from Vault Server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "logged into vault"
+
+              # Creating dirs for storing certificates
+              mkdir -p ${MOUNT_PATH}/truststore;
+              mkdir -p ${MOUNT_PATH}/keystore;
+              mkdir -p ${MOUNT_PATH}/ssl;
+
+              OUTPUT_PATH=${MOUNT_PATH}/truststore;
+
+              # Fetching credentials for truststores
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+
+              ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
+              echo "${ROOTCA_TRUSTSTORE}"> ${OUTPUT_PATH}/rootcats
+              SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+              echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
+
+              OUTPUT_PATH=${MOUNT_PATH}/keystore;
+
+              # Fetching credentials for keystores
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
+
+              IDMAN_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
+              echo "${IDMAN_KEYSTORE}"> ${OUTPUT_PATH}/idmanks
+              NETWORKMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+              echo "${NETWORKMAP_KEYSTORE}"> ${OUTPUT_PATH}/networkmapks
+              SUBORDINATECA_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["subordinateca"]')
+              echo "${SUBORDINATECA_KEYSTORE}"> ${OUTPUT_PATH}/subordinatecaks
+              ROOTCA_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
+              echo "${ROOTCA_KEYSTORE}"> ${OUTPUT_PATH}/rootcaks
+              TLSCRLSIGNER_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscrlsigner"]')
+              echo "${TLSCRLSIGNER_KEYSTORE}"> ${OUTPUT_PATH}/tlscrlsignerks
+
+              OUTPUT_PATH=${MOUNT_PATH}/ssl;
+
+              # Fetching credentials for ssl certificates
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/ssl)" "${LOOKUP_SECRET_RESPONSE}"
+
+              IDMAN_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
+              echo "${IDMAN_SSL}"> ${OUTPUT_PATH}/idmanssl
+              NETWORKMAP_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+              echo "${NETWORKMAP_SSL}"> ${OUTPUT_PATH}/networkmapssl
+              SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signer"]')
+              echo "${SIGNER_SSL}"> ${OUTPUT_PATH}/signerssl
+              ROOT_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root"]')
+              echo "${ROOT_SSL}"> ${OUTPUT_PATH}/rootssl
+
+              touch /DATA/done.txt
+              echo "Done"
+          volumeMounts:
+          - name: credentials
+            mountPath: /DATA
+          - name: certcheck
+            mountPath: /certcheck
         containers:
         - name: pki
-          image: "{{ required "signer[pki]: missing value for .Values.dockerImagePki.name" .Values.dockerImagePki.name }}:{{ required "signer[pki]: missing value for .Values.dockerImagePki.tag" .Values.dockerImagePki.tag }}"
+          image: "{{ required "pki[main]: missing value for .Values.image.pkiContainerName" .Values.image.pkiContainerName }}"
           env:
             - name: ACCEPT_LICENSE
-              value: {{ .Values.acceptLicense }}
-          imagePullPolicy: {{ .Values.dockerImagePki.pullPolicy }}
+              value: "{{ .Values.acceptLicense }}"
+            - name: BASE_DIR
+              value: "{{ .Values.volume.baseDir }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            rm -r DATA/done.txt
+            if [ -e /certcheck/present.txt ]
+            then
+              echo "Certificates already present in the vault. Skipping.."
+              exit 0
+            fi
+            rm -r ${BASE_DIR}/DATA/done.txt
 
-            cp CM-FILES/pki.conf etc/pki.conf
+            echo 'keyStores = {
+                "identity-manager-key-store" = {
+                    type = LOCAL
+                    file = "./DATA/signer/identity-manager-key-store.jks"
+                    password = "IDMAN_KEYSTORE"
+                }
+                "network-map-key-store" = {
+                    type = LOCAL
+                    file = "./DATA/signer/network-map-key-store.jks"
+                    password = "NETWORKMAP_KEYSTORE"
+                }
+                "subordinate-key-store" = {
+                    type = LOCAL
+                    file = "./DATA/root/subordinate-key-store.jks"
+                    password = "SUBORDINATECA_KEYSTORE"
+                }
+                "root-key-store" = {
+                    type = LOCAL
+                    file = "./DATA/root/root-key-store.jks"
+                    password = "ROOTCA_KEYSTORE"
+                }
+                "tls-crl-signer-key-store" = {
+                    type = LOCAL
+                    file = "./DATA/root/tls-crl-signer-key-store.jks"
+                    password = "TLSCRLSIGNER_KEYSTORE"
+                }
+                "corda-ssl-network-map-keys" = {
+                    type = LOCAL
+                    file = "./DATA/networkmap/corda-ssl-network-map-keys.jks"
+                    password = "NETWORKMAP_SSL"
+                },
+                "corda-ssl-identity-manager-keys" = {
+                    type = LOCAL
+                    file = "./DATA/idman/certs/corda-ssl-identity-manager-keys.jks"
+                    password = "IDMAN_SSL"
+                },
+                "corda-ssl-signer-keys" = {
+                    type = LOCAL
+                    file = "./DATA/signer/corda-ssl-signer-keys.jks"
+                    password = "SIGNER_SSL"
+                },
+                "corda-ssl-root-keys" = {
+                    type = LOCAL
+                    file = "./DATA/root/corda-ssl-root-keys.jks"
+                    password = "ROOT_SSL"
+                }    
+            }
+            certificatesStores = {
+                "network-root-trust-store" = {
+                    file = "./DATA/root/network-root-truststore.jks"
+                    password = "ROOTCA_TRUSTSTORE"
+                }
+                "corda-ssl-trust-store" = {
+                    file = "./DATA/root/corda-ssl-trust-store.jks"
+                    password = "SSL_TRUSTSTORE"
+                }
+            }
+            certificates = {
+                "tlscrlsigner" = {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["tls-crl-signer-key-store"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "TLSCRLSIGNER_KEYSTORE"
+                    }
+                    isSelfSigned = true
+                    keyUsages = [CRL_SIGN]
+                    keyPurposes = [SERVER_AUTH, CLIENT_AUTH]
+                    validDays = 7300
+                    issuesCertificates = true
+                    subject = {{ .Values.subjects.tlscrlsigner | quote }}
+                    includeIn = ["network-root-trust-store"]
+                    crl = {
+                        crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/tls"
+                        indirectIssuer = true
+                        issuer = {{ .Values.subjects.tlscrlissuer | quote }}
+                        file = "./DATA/idman/crls/tls.crl"
+                    }
+                },
+                "cordarootca" = {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["root-key-store"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "ROOTCA_KEYSTORE"
+                    }
+                    isSelfSigned = true
+                    keyUsages = [DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN]
+                    keyPurposes = [SERVER_AUTH, CLIENT_AUTH]
+                    validDays = 7300
+                    issuesCertificates = true
+                    subject = {{ .Values.subjects.rootca | quote }}
+                    includeIn = ["network-root-trust-store"]
+                    crl = {
+                        crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/root"
+                        file = "./DATA/idman/crls/root.crl"
+                    }
+                },
+                "subordinateca" = {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["subordinate-key-store"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "SUBORDINATECA_KEYSTORE"
+                    }
+                    isSelfSigned = false
+                    signedBy = "cordarootca"
+                    keyUsages = [DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN]
+                    keyPurposes = [SERVER_AUTH, CLIENT_AUTH]
+                    validDays = 7300
+                    issuesCertificates = true
+                    subject = {{ .Values.subjects.subordinateca | quote }}
+                    crl = {
+                        crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/subordinate"
+                        file = "./DATA/idman/crls/subordinate.crl"
+                    }
+                },
+                "identitymanagerca" = {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["identity-manager-key-store"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "IDMAN_KEYSTORE"
+                    }
+                    isSelfSigned = false
+                    signedBy = "subordinateca"
+                    keyUsages = [DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN]
+                    keyPurposes = [SERVER_AUTH, CLIENT_AUTH]
+                    validDays = 7300
+                    role = DOORMAN_CA
+                    issuesCertificates = true
+                    subject = {{ .Values.subjects.idmanca | quote }}
+                },
+                "networkmap" = {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["network-map-key-store"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "NETWORKMAP_KEYSTORE"
+                    }
+                    isSelfSigned = false
+                    signedBy = "subordinateca"
+                    keyUsages = [DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN]
+                    keyPurposes = [SERVER_AUTH, CLIENT_AUTH]
+                    validDays = 7300
+                    role = NETWORK_MAP
+                    issuesCertificates = false
+                    subject = {{ .Values.subjects.networkmap | quote }}
+                },
+                "::CORDA_SSL_ROOT" {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["corda-ssl-root-keys"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "ROOT_SSL"
+                    }
+                    crl = {
+                        crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/ssl"
+                        file = "./DATA/root/crls/ssl.crl"
+                    }
+                },
+                "::CORDA_SSL_IDENTITY_MANAGER" {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["corda-ssl-identity-manager-keys"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "IDMAN_SSL"
+                    }
+                    crl = {
+                        crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/ssl"
+                        file = "./DATA/idman/crls/ssl.crl"
+                    }
+                },
+                "::CORDA_SSL_NETWORK_MAP" {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["corda-ssl-network-map-keys"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "NETWORKMAP_SSL"
+                    }
+                    crl = {
+                        crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/ssl"
+                        file = "./DATA/networkmap/crls/ssl.crl"
+                    }
+                },
+                "::CORDA_SSL_SIGNER" {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["corda-ssl-signer-keys"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "SIGNER_SSL"
+                    }
+                    crl = {
+                        crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/ssl"
+                        file = "./DATA/signer/crls/ssl.crl"
+                    }
+                }    
+            }' >> {{ .Values.configPath }}/pki.conf
+
+            #replacement of the variables in the pki conf file
+            export ROOTCA_TRUSTSTORE=$(cat /opt/corda/credentials/truststore/rootcats)
+            sed -i -e "s*ROOTCA_TRUSTSTORE*${ROOTCA_TRUSTSTORE}*g" {{ .Values.configPath }}/pki.conf
+            export SSL_TRUSTSTORE=$(cat /opt/corda/credentials/truststore/sslts)
+            sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g" {{ .Values.configPath }}/pki.conf
+            export IDMAN_KEYSTORE=$(cat /opt/corda/credentials/keystore/idmanks)
+            sed -i -e "s*IDMAN_KEYSTORE*${IDMAN_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
+            export NETWORKMAP_KEYSTORE=$(cat /opt/corda/credentials/keystore/networkmapks)
+            sed -i -e "s*NETWORKMAP_KEYSTORE*${NETWORKMAP_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
+            export SUBORDINATECA_KEYSTORE=$(cat /opt/corda/credentials/keystore/subordinatecaks)
+            sed -i -e "s*SUBORDINATECA_KEYSTORE*${SUBORDINATECA_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
+            export ROOTCA_KEYSTORE=$(cat /opt/corda/credentials/keystore/rootcaks)
+            sed -i -e "s*ROOTCA_KEYSTORE*${ROOTCA_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
+            export TLSCRLSIGNER_KEYSTORE=$(cat /opt/corda/credentials/keystore/tlscrlsignerks)
+            sed -i -e "s*TLSCRLSIGNER_KEYSTORE*${TLSCRLSIGNER_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
+            export IDMAN_SSL=$(cat /opt/corda/credentials/ssl/idmanssl)
+            sed -i -e "s*IDMAN_SSL*${IDMAN_SSL}*g" {{ .Values.configPath }}/pki.conf
+            export NETWORKMAP_SSL=$(cat /opt/corda/credentials/ssl/networkmapssl)
+            sed -i -e "s*NETWORKMAP_SSL*${NETWORKMAP_SSL}*g" {{ .Values.configPath }}/pki.conf
+            export SIGNER_SSL=$(cat /opt/corda/credentials/ssl/signerssl)
+            sed -i -e "s*SIGNER_SSL*${SIGNER_SSL}*g" {{ .Values.configPath }}/pki.conf
+            export ROOT_SSL=$(cat /opt/corda/credentials/ssl/rootssl)
+            sed -i -e "s*ROOT_SSL*${ROOT_SSL}*g" {{ .Values.configPath }}/pki.conf
+
+
             mkdir DATA/signer DATA/root DATA/networkmap DATA/idman DATA/idman/crls DATA/idman/certs
-            time java -Xmx{{ .Values.cordaJarMx }}M -jar {{ .Values.jarPath }}/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf
+            time java -Xmx{{ .Values.cordaJarMx }}M -jar bin/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf
 
             #creating a dummy file to perform check if last line is executed or not.
-            touch DATA/done.txt
+            touch ${BASE_DIR}/DATA/done.txt
           volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+          - name: credentials
+            mountPath: /opt/corda/credentials
           - name: pkitool-certs-keys
             mountPath: /opt/corda/DATA
           - name: pkitool-etc
             mountPath: /opt/corda/etc
-          - name: pkitool-conf
-            mountPath: /opt/corda/CM-FILES/pki.conf
-            subPath: pki.conf
           resources:
             requests:
               memory: {{ .Values.cordaJarMx }}M
@@ -79,6 +456,12 @@ spec:
                  exit 1
               fi
             }
+            
+            if [ -e /certcheck/present.txt ]
+            then
+              echo "Certificates already present in the vault. Skipping.."
+              exit 0
+            fi
 
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -87,7 +470,7 @@ spec:
             cd ${BASE_DIR}/DATA
             # putting certificate for cenm root 
             COUNTER=1
-            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 if [ -e done.txt ]
                 then
@@ -112,14 +495,14 @@ spec:
                   break;
                 else
                   echo "certificates are not ready, sleeping ..."
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  sleep {{ $.Values.vault.sleepTimeAfterError }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
             cd ${BASE_DIR}/DATA
             # putting certificate for cenm signer
             COUNTER=1
-            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 if [ -e done.txt ]
                 then
@@ -144,7 +527,7 @@ spec:
                   break;
                 else
                   echo "certificates are not ready, sleeping ..."
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  sleep {{ $.Values.vault.sleepTimeAfterError }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
@@ -152,7 +535,7 @@ spec:
             # putting idman certificate for cenm idman
             cd ${BASE_DIR}/DATA
             COUNTER=1
-            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 if [ -e done.txt ]
                 then
@@ -182,11 +565,11 @@ spec:
                   break;
                 else
                   echo "certificates are not ready, sleeping ..."
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  sleep {{ $.Values.vault.sleepTimeAfterError }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
-            if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ]
+            if [ "$COUNTER" -gt {{ $.Values.vault.retries }} ]
             then
                 echo "Retry attempted $COUNTER times, no files found. Giving up!"
                 exit 1
@@ -194,18 +577,29 @@ spec:
             fi
             echo "completed"
           volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
           - name: pkitool-certs-keys
             mountPath: /opt/corda/DATA
             readOnly: false
         imagePullSecrets:
           - name: {{ .Values.image.imagePullSecret }}
         volumes:
-          - name: pkitool-conf
-            configMap:
-              name: {{ .Values.nodeName }}-pkitool-conf
-          - name: pkitool-etc
+          - name: certcheck
+            emptyDir:
+              medium: Memory
+          - name: credentials
+            emptyDir:
+              medium: Memory
+          - name: pkitool-signer-etc
+            emptyDir:
+              medium: Memory
+          - name: signer-logs
             emptyDir:
               medium: Memory
           - name: pkitool-certs-keys
+            emptyDir:
+              medium: Memory
+          - name: pkitool-etc
             emptyDir:
               medium: Memory

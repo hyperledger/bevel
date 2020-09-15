@@ -99,8 +99,26 @@ spec:
                 validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
                 NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
                 echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
+
+                #Fetching truststore credentials from vault
+                mkdir -p ${MOUNT_PATH}/truststore
+                OUTPUT_PATH=${MOUNT_PATH}/truststore;
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+                ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
+                echo "${ROOTCA_TRUSTSTORE}"> ${OUTPUT_PATH}/rootcats
+                TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["trustStorePassword"]')
+                echo "${TRUSTSTORE_PASSWORD}"> ${OUTPUT_PATH}/ts
+
+                #Fetching keystore credentials from vault
+                mkdir -p ${MOUNT_PATH}/keystore
+                OUTPUT_PATH=${MOUNT_PATH}/keystore;
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
+                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keyStorePassword"]')
+                echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/ks
                 
-                echo "Done with getting certifcates from vault"
+                echo "Done with getting certifcates and credentials from vault"
           volumeMounts:
           - name: certificates
             mountPath: /DATA
@@ -157,25 +175,128 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
+            echo 'networkServices {
+                doormanURL="{{ .Values.networkServices.doormanURL }}"
+                networkMapURL="{{ .Values.networkServices.networkMapURL }}"
+            }
+            dataSourceProperties {
+                dataSource {
+                    password = "{{ .Values.dataSourceProperties.dataSource.password }}"
+                    url = "{{ .Values.dataSourceProperties.dataSource.url }}"
+                    user = "{{ .Values.dataSourceProperties.dataSource.user }}"
+                }
+                dataSourceClassName = "{{ .Values.dataSourceProperties.dataSourceClassName }}"
+            }
+            notary {
+                validating = "{{ .Values.nodeConf.notary.validating }}"
+            }
+
+            devMode = {{ .Values.nodeConf.devMode }}
+            emailAddress : "{{ .Values.nodeConf.email }}"
+            myLegalName : "{{ .Values.nodeConf.legalName }}"
+            p2pAddress : "{{ .Values.nodeConf.p2p.url }}:{{ .Values.service.p2pPort }}"
+            trustStorePassword: "TRUSTSTORE_PASSWORD"
+            keyStorePassword: "KEYSTORE_PASSWORD"
+            additionalP2PAddresses : ["{{ .Values.nodeConf.ambassador.p2pAddress }}"]
+            detectPublicIp : false
+            rpcSettings {
+                address="{{ .Values.service.rpc.address }}:{{ .Values.service.rpc.addressPort }}"
+                adminAddress="{{ .Values.service.rpc.admin.address }}:{{ .Values.service.rpc.admin.addressPort }}"
+                standAloneBroker="{{ .Values.service.rpc.standAloneBroker }}"
+                useSsl="{{ .Values.service.rpc.useSSL }}"
+            }
+
+            rpcUsers=[
+                {
+                    username="{{ .Values.service.rpc.users.username }}"
+                    password="{{ .Values.service.rpc.users.password }}"
+                    permissions=[
+                        ALL
+                    ]
+                }
+            ]' >> etc/notary.conf
+
+            export TRUSTSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/truststore/ts)
+            sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" etc/notary.conf
+            export KEYSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/keystore/ks)
+            sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/notary.conf
+
             rm -r ${BASE_DIR}/certificates/done.txt
-            cp CM-FILES/notary.conf etc/
-            cp CM-FILES/*.sh bin/
-            chmod +x bin/*
-            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
-            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
-            bin/notary-initial-registration.sh
-            bin/create-network-parameters-file.sh
+            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+            
+            
+            
+            /bin/sh
+            NETWORK_ROOT_TRUSTSTORE={{ $.Values.nodeConf.volume.baseDir }}/DATA/trust-stores/network-root-truststore.jks
+            NETWORK_ROOT_TRUSTSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/truststore/rootcats)
+
+            while true
+            do
+                if [ ! -f certificates/nodekeystore.jks ] || [ ! -f certificates/sslkeystore.jks ] || [ ! -f certificates/truststore.jks ]
+                then
+                    echo
+                    echo "Notary: running initial registration ..."
+                    echo
+                    pwd
+                    java -Dcapsule.jvm.args='-Xmx{{ .Values.nodeConf.cordaJar.memorySize }}{{ .Values.nodeConf.cordaJar.unit }}' -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
+                      initial-registration \
+                    --config-file={{ .Values.nodeConf.configPath }}/notary.conf \
+                    --log-to-console \
+                    --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \
+                    --network-root-truststore-password ${NETWORK_ROOT_TRUSTSTORE_PASSWORD}
+                    
+                    EXIT_CODE=${?}
+                else
+                    echo
+                    echo "Notary: already registered to IdMan - skipping initial registration."
+                    echo
+                    EXIT_CODE="0"
+                    break
+                fi
+            done
+
+            if [ "${EXIT_CODE}" -ne "0" ]
+            then
+                HOW_LONG={{ .Values.sleepTimeAfterError }}
+                echo
+                echo "Notary initial registration failed - exit code: ${EXIT_CODE} (error)"
+                echo
+                echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
+                echo
+                pwd
+                ls -al 
+            else
+                HOW_LONG={{ .Values.sleepTime }}
+                echo
+                echo "Notary initial registration: no errors - sleeping for requested ${HOW_LONG} seconds before disappearing."
+                echo
+            fi
+
+            sleep ${HOW_LONG}
+            echo
+            
+            # Get the nodeInfo file name and store it in a variable
+            nodeInfoFile=$(basename $(ls additional-node-infos/nodeInfo*))
+            export nodeInfoFile
+            envsubst <<"EOF" > additional-node-infos/network-parameters-initial.conf.tmp
+            notaries : [
+              {
+                notaryNodeInfoFile: "notary-nodeinfo/${nodeInfoFile}"
+                validating = "{{ .Values.nodeConf.notary.validating }}"
+              }
+            ]
+            minimumPlatformVersion = 1
+            maxMessageSize = 10485760
+            maxTransactionSize = 10485760
+            eventHorizonDays = 1
+            EOF
+
+            mv additional-node-infos/network-parameters-initial.conf.tmp additional-node-infos/network-parameters-initial.conf
+            echo "Created the network-parameters-initial.conf file"
+
             touch ${BASE_DIR}/certificates/done.txt
           volumeMounts:
-          - name: notary-conf
-            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/CM-FILES/notary.conf
-            subPath: notary.conf
-          - name: notary-conf
-            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/CM-FILES/notary-initial-registration.sh
-            subPath: notary-initial-registration.sh
-          - name: notary-conf
-            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/CM-FILES/create-network-parameters-file.sh
-            subPath: create-network-parameters-file.sh
           - name: notary-etc
             mountPath: {{ $.Values.nodeConf.volume.baseDir }}/etc
           - name: notary-nodeinfo
@@ -222,7 +343,7 @@ spec:
             while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 if [ -e done.txt ]
-                then                  
+                then
                   echo "certificates found, saving to vault"
                   # setting up env to get secrets from vault
                   KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -278,9 +399,6 @@ spec:
         imagePullSecrets:
         - name: {{ .Values.image.imagePullSecret }}
         volumes:
-        - name: notary-conf
-          configMap:
-            name: {{ .Values.nodeName }}-reg-conf
         - name: notary-etc
           emptyDir:
             medium: Memory
