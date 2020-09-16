@@ -33,7 +33,19 @@ All values must be Base64 encoded files as BAF decodes them.
 | /secret/`cenm_orgname_lowercase`/`notary_service_name`/nodeInfo                            | nodeInfoName | Notary node info filename with hash    |
 | /secret/`cenm_orgname_lowercase`/`notary_service_name`/tlscerts                          | tlscacerts                 | Notary Ambassador Certificate |
 | /secret/`cenm_orgname_lowercase`/`notary_service_name`/tlscerts                          | tlskey                     | Notary Ambassador Private key |
-
+| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | idman                     | Idman keystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | networkmap                     | Networkmap keystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | subordinateca                     | SubordinateCA keystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | rootca                     | Root keystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | tlscrlsigner                     | Signer keystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | keyStorePassword                     | Notary keystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/truststore                          | rootca                     | Network root truststore password |
+| /secret/`cenm_orgname_lowercase`/credentials/truststore                          | ssl                     | SSL truststore password |
+| /secret/`cenm_orgname_lowercase`/credentials/truststore                          | trustStorePassword                     | Notary truststore password |
+| /secret/`cenm_orgname_lowercase`/credentials/ssl                          | idman                     | Idman sslkeystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/ssl                          | networkmap                     | Networkmap sslkeystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/ssl                          | signer                     | Signer sslkeystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/ssl                          | root                     | Corda root sslkeystore password |
 -----
 
 ### For Node/Peer Organization
@@ -48,3 +60,6 @@ All values must be Base64 encoded files as BAF decodes them.
 | /secret/`orgname_lowercase`/`peer_name`/root/certs | network-root-truststore.jks | Network Root certificates truststore |
 | /secret/`orgname_lowercase`/`peer_name`/tlscerts                   | tlscacerts             | Node Ambassador Certificate |
 | /secret/`orgname_lowercase`/`peer_name`/tlscerts                   | tlskey                 | Node Ambassador Private key |
+| /secret/`orgname_lowercase`/`peer_name`/credentials/root                   | truststore                 | Network root truststore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials/truststore                   | node                 | Node truststore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials/keystore                   | keystore                 | Node keystore password |

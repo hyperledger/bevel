@@ -195,6 +195,24 @@ spec:
               IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
               echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/idman.crt
 
+              #fetching networkmap ssl credentials from vault
+              mkdir -p ${MOUNT_PATH}/ssl
+              OUTPUT_PATH=${MOUNT_PATH}/ssl;
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/ssl)" "${LOOKUP_SECRET_RESPONSE}"
+              NETWORKMAP_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+              echo "${NETWORKMAP_SSL}"> ${OUTPUT_PATH}/networkmapssl
+
+              #fetching truststore ssl credentials from vault
+              mkdir -p ${MOUNT_PATH}/truststore
+              OUTPUT_PATH=${MOUNT_PATH}/truststore;
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+              ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
+              echo "${ROOTCA_TRUSTSTORE}"> ${OUTPUT_PATH}/rootcats
+              SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+              echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
+
               if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
               then
                 # printing number of trial done before giving up
@@ -217,23 +235,133 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cp -r CM-FILES/*.conf etc/
-          cp -r CM-FILES/*.sh bin/
-          chmod +x bin/*
+          echo 'address = "0.0.0.0:{{ .Values.service.external.port }}"
+          pollingInterval = 10000
+          checkRevocation = "{{ .Values.config.checkRevocation }}"
+          database {
+              driverClassName = "{{ .Values.database.driverClassName }}"
+              url = "{{ .Values.database.url }}"
+              user = "{{ .Values.database.user }}"
+              password = "{{ .Values.database.password }}"
+              runMigration = "{{ .Values.database.runMigration }}"
+          }
+
+          enmListener = {
+              port = {{ .Values.service.internal.port }}
+              ssl = {
+                  keyStore = {
+                      location = "./DATA/key-stores/corda-ssl-network-map-keys.jks"
+                      password = NETWORKMAP_SSL
+                      keyPassword = NETWORKMAP_SSL
+                  }
+                  trustStore = {
+                      location = "./DATA/trust-stores/corda-ssl-trust-store.jks"
+                      password = SSL_TRUSTSTORE
+                  }
+              }
+          }
+
+          identityManager = {
+              host = {{ .Values.serviceLocations.identityManager.host }}
+              port = {{ .Values.serviceLocations.identityManager.port }}
+              ssl = {
+                  keyStore = {
+                      location = "./DATA/key-stores/corda-ssl-network-map-keys.jks"
+                      password = NETWORKMAP_SSL
+                      keyPassword = NETWORKMAP_SSL
+                  }
+                  trustStore = {
+                      location = "./DATA/trust-stores/corda-ssl-trust-store.jks"
+                      password = SSL_TRUSTSTORE
+                  }
+              }
+          }
+
+          revocation = {
+              host = {{ .Values.serviceLocations.identityManager.host }}
+              port = {{ .Values.service.revocation.port }}
+              ssl = {
+                  keyStore = {
+                      location = "./DATA/key-stores/corda-ssl-network-map-keys.jks"
+                      password = NETWORKMAP_SSL
+                      keyPassword = NETWORKMAP_SSL
+                  }
+                  trustStore = {
+                      location = "./DATA/trust-stores/corda-ssl-trust-store.jks"
+                      password = SSL_TRUSTSTORE
+                  }
+              }
+          }
+
+          shell {
+            sshdPort = {{ .Values.service.shell.sshdPort }}
+            user = "{{ .Values.service.shell.user }}"
+            password = "{{ .Values.service.shell.password }}"
+          }' >> etc/nmap.conf
+
+          export NETWORKMAP_SSL=$(cat /opt/corda/DATA/ssl/networkmapssl)
+          sed -i -e "s*NETWORKMAP_SSL*${NETWORKMAP_SSL}*g" etc/nmap.conf
+          export SSL_TRUSTSTORE=$(cat /opt/corda/DATA/truststore/sslts)
+          sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g" etc/nmap.conf
+
+          # /bin/sh
           if [ ! -f {{ .Values.config.configPath }}/network-parameters-initial-set-succesfully ]
           then
             echo "Setting network parameters for deployment..."
-            bin/set-network-parameters.sh
+            echo "Waiting for notary-nodeinfo/network-parameters-initial.conf ..."
+
+            if [ ! -f {{ .Values.config.configPath }}/network-parameters-initial-set-succesfully ]
+            then
+                until [ -f notary-nodeinfo/network-parameters-initial.conf ]
+                do
+                    sleep 1
+                done
+            fi
+            ROOTCA_TRUSTSTORE=$(cat /opt/corda/DATA/truststore/rootcats)
+            echo "Waiting for notary-nodeinfo/network-parameters-initial.conf ... done."
+            ls -al notary-nodeinfo/network-parameters-initial.conf
+            cp notary-nodeinfo/network-parameters-initial.conf {{ .Values.config.configPath }}/
+
+            echo "Setting initial network parameters ..."
+            java -jar {{ .Values.config.jarPath }}/networkmap.jar \
+              -f {{ .Values.config.configPath }}/nmap.conf \
+              --set-network-parameters {{ .Values.config.configPath }}/network-parameters-initial.conf \
+              --network-truststore DATA/trust-stores/network-root-truststore.jks \
+              --truststore-password ${ROOTCA_TRUSTSTORE} \
+              --root-alias cordarootca
+
+            EXIT_CODE=${?}
+
+            if [ "${EXIT_CODE}" -ne "0" ]
+            then
+                HOW_LONG=120
+                echo
+                echo "Network Map: setting network parameters failed - exit code: ${EXIT_CODE} (error)"
+                echo
+                echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
+                echo
+            else
+                HOW_LONG=0
+                echo
+                echo "Network Map: initial network parameters have been set."
+                echo "No errors."
+                echo
+                touch {{ .Values.config.configPath }}/network-parameters-initial-set-succesfully
+                echo "# This is a file with _example_ content needed for updating network parameters" > {{ .Values.config.configPath }}/network-parameters-update-example.conf
+                cat {{ .Values.config.configPath }}/network-parameters-initial.conf >> {{ .Values.config.configPath }}/network-parameters-update-example.conf
+            echo '# updateDeadline=\\$(date -u +'%Y-%m-%dT%H:%M:%S.%3NZ' -d \"+10 minute\")
+            parametersUpdate {
+                description = "Update network parameters settings"
+                updateDeadline = "[updateDeadline]"
+            }' >> {{ .Values.config.configPath }}/network-parameters-update-example.conf            
+            fi
+
+            sleep ${HOW_LONG}
+            exit ${EXIT_CODE}
           else
             echo "Already set, no need to set network parameters"
           fi
         volumeMounts:
-        - name: nmap-conf
-          mountPath: /opt/corda/CM-FILES/nmap.conf
-          subPath: nmap.conf
-        - name: nmap-conf
-          mountPath: /opt/corda/CM-FILES/set-network-parameters.sh
-          subPath: set-network-parameters.sh
         - name: notary-nodeinfo
           mountPath: /opt/corda/notary-nodeinfo
         - name: nmap-etc
@@ -259,8 +387,6 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cp -r CM-FILES/*.sh bin/
-          chmod +x bin/*
           until [ -f {{ .Values.config.configPath }}/network-parameters-initial-set-succesfully ]
           do
             sleep 5
@@ -268,14 +394,22 @@ spec:
           done
           echo "Network parameters have been set!"
           yes | keytool -importcert -file ./DATA/idman.crt -storepass changeit -alias {{ .Values.serviceLocations.identityManager.domain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
-          bin/run.sh
+          
+          /bin/sh
+          if [ -f {{ .Values.config.jarPath }}/networkmap.jar ]
+          then
+              echo
+              echo "CENM: starting Networkmap service ..."
+              echo
+              cat {{ .Values.config.configPath }}/nmap.conf
+              java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar {{ .Values.config.jarPath }}/networkmap.jar -f {{ .Values.config.configPath }}/nmap.conf
+              EXIT_CODE=${?}
+          else
+              echo "Missing networkmap jar file in {{ .Values.config.jarPath }} folder:"
+              ls -al {{ .Values.config.jarPath }}
+              EXIT_CODE=110
+          fi
         volumeMounts:
-        - name: nmap-conf
-          mountPath: /opt/corda/CM-FILES/nmap.conf
-          subPath: nmap.conf
-        - name: nmap-conf
-          mountPath: /opt/corda/CM-FILES/run.sh
-          subPath: run.sh
         - name: notary-nodeinfo
           mountPath: /opt/corda/notary-nodeinfo
         - name: nmap-h2
@@ -316,9 +450,6 @@ spec:
         - name: nmap-etc
           persistentVolumeClaim:
             claimName: {{ .Values.nodeName }}-etc
-        - name: nmap-conf
-          configMap:
-            name: {{ .Values.nodeName }}-conf
         - name: nmap-logs
           persistentVolumeClaim:
             claimName: {{ .Values.nodeName }}-pvc-logs

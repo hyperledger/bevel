@@ -143,6 +143,19 @@ spec:
               NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
               echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/networkmap.crt             
               echo "Done fetching all certificates from vault"
+
+              # Fetching keystore credentials from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keyStorePassword"]')
+              echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/kspass
+
+              # Fetching truststore credentials from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["trustStorePassword"]')
+              echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/tspass
+              echo "Fetched credentials from vault"
         volumeMounts:
         - name: notary-certificates
           mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
@@ -197,8 +210,57 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cp ${BASE_DIR}/etc/*.sh bin/
-          chmod +x bin/*
+          mkdir -p ${BASE_DIR}/etc
+          echo 'networkServices {
+              doormanURL="{{ .Values.networkServices.doormanURL }}"
+              networkMapURL="{{ .Values.networkServices.networkMapURL }}"
+          }
+          dataSourceProperties {
+              dataSource {
+                  password = "{{ .Values.dataSourceProperties.dataSource.password }}"
+                  url = "{{ .Values.dataSourceProperties.dataSource.url }}"
+                  user = "{{ .Values.dataSourceProperties.dataSource.user }}"
+              }
+              dataSourceClassName = "{{ .Values.dataSourceProperties.dataSourceClassName }}"
+          }
+          notary {
+              validating = "{{ .Values.nodeConf.notary.validating }}"
+          }
+
+          devMode = {{ .Values.nodeConf.devMode }}
+          emailAddress : "{{ .Values.nodeConf.email }}"
+          myLegalName : "{{ .Values.nodeConf.legalName }}"
+          p2pAddress : "{{ .Values.nodeConf.p2p.url }}:{{ .Values.service.p2pPort }}"
+          trustStorePassword: "TRUSTSTORE_PASSWORD"
+          keyStorePassword: "KEYSTORE_PASSWORD"
+          additionalP2PAddresses : ["{{ .Values.nodeConf.ambassador.p2pAddress }}"]
+          detectPublicIp : false
+          rpcSettings {
+              address="{{ .Values.service.rpc.address }}:{{ .Values.service.rpc.addressPort }}"
+              adminAddress="{{ .Values.service.rpc.admin.address }}:{{ .Values.service.rpc.admin.addressPort }}"
+              standAloneBroker="{{ .Values.service.rpc.standAloneBroker }}"
+              useSsl="{{ .Values.service.rpc.useSSL }}"
+          }
+
+          rpcUsers=[
+              {
+                  username="{{ .Values.service.rpc.users.username }}"
+                  password="{{ .Values.service.rpc.users.password }}"
+                  permissions=[
+                      ALL
+                  ]
+              }
+          ]
+
+          sshd {
+              port={{ .Values.service.sshdPort }}
+          }' >> ${BASE_DIR}/etc/notary.conf
+
+          export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/tspass)
+          sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
+          export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
+          sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
+
 
           # to clean network-parameters on every restart
           rm -rf ${BASE_DIR}/network-parameters
@@ -206,11 +268,35 @@ spec:
           # add idman and networkmap certificates to java keystore
           yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
           yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts          
-          bin/run.sh
+          
+          #!/bin/sh
+          KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
+          if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
+          then
+              echo
+              echo "CENM: starting Notary node ..."
+              echo
+              # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
+              java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/etc/notary.conf --base-directory=${BASE_DIR} 
+              EXIT_CODE=${?}
+          else
+              echo "Missing notary jar file in {{ .Values.nodeConf.jarPath }} folder:"
+              ls -al {{ .Values.nodeConf.jarPath }}
+              EXIT_CODE=110
+          fi
+
+          if [ "${EXIT_CODE}" -ne "0" ]
+          then
+              HOW_LONG={{ .Values.sleepTimeAfterError }}
+              echo
+              echo "Notary failed - exit code: ${EXIT_CODE} (error)"
+              echo
+              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
+              echo
+              sleep ${HOW_LONG}
+          fi
+          echo
         volumeMounts:
-        - name: notary-conf
-          mountPath: {{ $.Values.nodeConf.volume.baseDir }}/etc
-          readOnly: false
         - name: notary-certificates
           mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
           readOnly: false
@@ -241,9 +327,6 @@ spec:
       imagePullSecrets:
       - name: {{ .Values.image.imagePullSecret }}
       volumes:
-      - name: notary-conf
-        configMap:
-          name: {{ .Values.nodeName }}-conf
       - name: notary-certificates
         emptyDir:
           medium: Memory
