@@ -99,6 +99,22 @@ spec:
                 validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }})" "${LOOKUP_SECRET_RESPONSE}"
                 NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.networkmapName }}.crt"]')
                 echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
+
+                # Fetching node keystore, node truststore and network-root-truststore credentials from the vault
+                mkdir -p ${MOUNT_PATH}/credentials
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+                TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["node"]')
+                echo "${TRUSTSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/truststorepass
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
+                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["node"]')
+                echo "${KEYSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/keystorepass  
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/root | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/root)" "${LOOKUP_SECRET_RESPONSE}"
+                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore"]')
+                echo "${KEYSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/rootpass             
+                
                 echo "Done"
           volumeMounts:
           - name: certificates
@@ -157,21 +173,156 @@ spec:
           - |-
             rm -r certificates/done.txt
             mkdir bin
-            cp CM-FILES/node.conf etc/
-            cp CM-FILES/*.sh bin/
+
+            echo 'myLegalName: "{{ .Values.nodeConf.legalName }}"
+            emailAddress: "{{ .Values.nodeConf.emailAddress }}"
+            p2pAddress: "{{ .Values.service.p2pAddress }}:{{ .Values.service.p2pPort }}"
+            networkServices: {
+              doormanURL: "{{ .Values.networkServices.doormanURL }}",
+              networkMapURL: "{{ .Values.networkServices.networkMapURL }}"
+            }
+            crlCheckSoftFail: {{ .Values.nodeConf.crlCheckSoftFail }}
+            {{- if ne .Values.nodeConf.tlsCertCrlDistPoint "" }}
+            tlsCertCrlDistPoint:  "{{ .Values.nodeConf.tlsCertCrlDistPoint }}",
+            tlsCertCrlIssuer: "{{ .Values.nodeConf.tlsCertCrlIssuer }}"
+            {{- end }}
+            devMode: {{ .Values.nodeConf.devMode }}
+            {{- if .Values.service.ssh.enabled }}
+            sshd:  {
+              port: {{ .Values.service.ssh.sshdPort }}
+            }
+            {{- end }}
+            rpcSettings: {
+              address: "0.0.0.0:{{ .Values.service.rpc.port }}",
+              adminAddress: "0.0.0.0:{{ .Values.service.rpc.adminPort }}"
+            }
+            rpcUsers: [
+            {{- range $user := .Values.service.rpc.users }}
+              {
+                user: "{{ $user.name }}",
+                password: "{{ $user.password }}",
+                permissions: [
+                  "{{ $user.permissions }}"
+                ]
+              }
+            {{- end }}
+            ]
+            {{- if .Values.dataSourceProperties.monitoring.enabled }}
+            jmxMonitoringHttpPort: {{ .Values.dataSourceProperties.monitoring.port }}
+            {{- end }}
+
+            trustStorePassword: "TRUSTSTORE_PASSWORD"
+            keyStorePassword : "KEYSTORE_PASSWORD"
+            detectPublicIp: false
+            additionalP2PAddresses: ["{{ .Values.nodeConf.ambassador.p2pAddress }}"]
+            messagingServerAddress: "0.0.0.0:{{ .Values.service.p2pPort }}"
+            messagingServerExternal: false
+            enterpriseConfiguration: {
+              externalBridge: false
+            }
+            {{- if .Values.dataSourceProperties.allowDevCorDapps.enabled }}
+            cordappSignerKeyFingerprintBlacklist: [
+            ]
+            {{- end }}
+            dataSourceProperties: {
+              dataSourceClassName: "{{ .Values.dataSourceProperties.dataSource.dataSourceClassName }}",
+              dataSource.url: "{{ .Values.dataSourceProperties.dataSource.url }}",
+              dataSource.user: "{{ .Values.dataSourceProperties.dataSource.user }}",
+              dataSource.password: "{{ .Values.dataSourceProperties.dataSource.password }}"
+            }
+            database = {
+            {{- if eq .Values.dataSourceProperties.dataSource.dataSourceClassName "oracle.jdbc.pool.OracleDataSource" }}
+                transactionIsolationLevel = READ_COMMITTED
+                schema = xe
+            {{- end}}
+                runMigration = true
+            }' > etc/node.conf
+
+            export TRUSTSTORE_PASSWORD=$(cat DATA/credentials/truststorepass)
+            sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" etc/node.conf
+            export KEYSTORE_PASSWORD=$(cat DATA/credentials/keystorepass)
+            sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/node.conf
+
             cp corda.jar bin/
             chmod +x bin/*
             yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
             yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-            bin/node-initial-registration.sh
+            
+            /bin/sh
+
+            # Network root trust store path and password
+            NETWORK_ROOT_TRUSTSTORE=DATA/trust-stores/network-root-truststore.jks
+            NETWORK_ROOT_TRUSTSTORE_PASSWORD=$(cat DATA/credentials/rootpass)
+
+            # Check for network root trust store
+            while true
+            do
+                if [ ! -f ${NETWORK_ROOT_TRUSTSTORE} ]
+                then
+                    echo "no network-root-truststore"
+                    sleep 10
+                else
+                    echo
+                    echo "md5/sha256 of ${NETWORK_ROOT_TRUSTSTORE}: "
+                    md5sum ${NETWORK_ROOT_TRUSTSTORE}    | awk '{print $1}' | xargs printf "   md5sum: %65s\n"
+                    sha256sum ${NETWORK_ROOT_TRUSTSTORE} | awk '{print $1}' | xargs printf "sha256sum: %65s\n"
+                    echo
+                    echo
+                    break
+                fi
+            done
+
+            # Check for Idman and networkmap service links are up
+            server=$(echo {{ .Values.networkServices.doormanURL }} | sed 's/.*\/\/\(.*\):\(.*\)/\1/' )
+            port=$(echo {{ .Values.networkServices.doormanURL }} | sed 's/.*\/\/\(.*\):\(.*\)/\2/' )
+            printf "IdMan server:%s" "${server}"
+            printf "  IdMan port:%s" "${port}"
+            timeout 10m bash -c 'until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do sleep 1; done' ${server} ${port}
+
+            while true
+            do
+                if [ ! -f certificates/nodekeystore.jks ] || [ ! -f certificates/sslkeystore.jks ] || [ ! -f certificates/truststore.jks ]
+                then
+                    echo
+                    echo "Node: running initial registration ..."
+                    echo
+                    pwd
+                    java -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
+                      initial-registration \
+                    --config-file={{ .Values.nodeConf.configPath }}/node.conf \
+                    --log-to-console \
+                    --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \
+                    --network-root-truststore-password ${NETWORK_ROOT_TRUSTSTORE_PASSWORD}
+                    EXIT_CODE=${?}
+                else
+                    echo
+                    echo "Node: already registered to IdMan - skipping initial registration."
+                    echo
+                    EXIT_CODE="0"
+                    break
+                fi
+            done
+
+            if [ "${EXIT_CODE}" -ne "0" ]
+            then
+                HOW_LONG={{ .Values.sleepTimeAfterError }}
+                echo
+                echo "Node initial registration failed - exit code: ${EXIT_CODE} (error)"
+                echo
+                echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
+                echo
+                pwd
+                ls -al 
+            else
+                HOW_LONG={{ .Values.sleepTime }}
+                echo
+                echo "Node initial registration: no errors - sleeping for requested ${HOW_LONG} seconds before disappearing."
+                echo
+            fi
+            sleep ${HOW_LONG}
+
             touch certificates/done.txt
           volumeMounts:
-          - name: node-conf
-            mountPath: /opt/corda/CM-FILES/node.conf
-            subPath: node.conf
-          - name: node-conf
-            mountPath: /opt/corda/CM-FILES/node-initial-registration.sh
-            subPath: node-initial-registration.sh
           - name: node-etc
             mountPath: /opt/corda/etc
           - name: node-nodeinfo
@@ -253,9 +404,6 @@ spec:
             limits:
               memory: {{ .Values.nodeConf.pod.resources.limits }}
         volumes:
-        - name: node-conf
-          configMap:
-            name: {{ .Values.nodeName }}-reg-conf
         - name: node-etc
           emptyDir:
             medium: Memory

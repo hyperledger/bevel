@@ -66,10 +66,12 @@ spec:
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "Logged into Vault"
-              # Creating dirs for storing certificates
+              # Creating dirs for storing certificates and credentials
               mkdir -p ${MOUNT_PATH}/idman;
               mkdir -p ${MOUNT_PATH}/root;
               mkdir -p ${MOUNT_PATH}/crl-files;
+              mkdir -p ${MOUNT_PATH}/ssl;
+              mkdir -p ${MOUNT_PATH}/truststore;
 
               # Fetching ssl-idman certificates from vault
               COUNTER=1
@@ -151,6 +153,21 @@ spec:
                 echo "CRL Certificates might not have been put in Vault. Giving up after $COUNTER tries!"
                 exit 1
               fi
+
+              # Fetching the idman ssl credentials from vault
+              OUTPUT_PATH=${MOUNT_PATH}/ssl;
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/ssl)" "${LOOKUP_SECRET_RESPONSE}"
+              IDMAN_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
+              echo "${IDMAN_SSL}"> ${OUTPUT_PATH}/idmanssl
+
+              #Fetching ssl truststore from vault
+              OUTPUT_PATH=${MOUNT_PATH}/truststore;
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+              SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+              echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
+
               echo "Done"
         volumeMounts:
         - name: certificates
@@ -165,15 +182,100 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cp CM/run.sh bin/
-          cp CM/idman.conf etc/
-          chmod +x bin/*
-          bin/run.sh
+          echo 'address = "0.0.0.0:{{ .Values.service.external.port }}"
+          database {
+              driverClassName = "{{ .Values.database.driverClassName }}"
+              url = "{{ .Values.database.url }}"
+              user = "{{ .Values.database.user }}"
+              password = "{{ .Values.database.password }}"
+              runMigration = "{{ .Values.database.runMigration }}"
+          }
+          workflows = {
+              "identity-manager" = {
+                  type = ISSUANCE
+                  updateInterval = 10000
+                  enmListener = {
+                      port = {{ .Values.service.internal.port }}
+                      reconnect = true
+                      ssl = {
+                          keyStore = {
+                              location = ./DATA/idman/corda-ssl-identity-manager-keys.jks
+                              password = IDMAN_SSL
+                          }
+                          trustStore = {
+                              location = ./DATA/root/corda-ssl-trust-store.jks
+                              password = SSL_TRUSTSTORE
+                          }
+                      }
+                  }
+                  plugin = {
+                      pluginClass = "com.r3.enmplugins.approveall.ApproveAll"
+                  }
+              },
+              "revocation" = {
+                  type = REVOCATION
+                  crlCacheTimeout = 900000 # every 15 minutes
+                  crlFiles = ["./DATA/crl-files/tls.crl", "./DATA/crl-files/root.crl", "./DATA/crl-files/subordinate.crl"]
+                  enmListener = {
+                      port = {{ .Values.service.revocation.port }}
+                      reconnect = true
+                      ssl = {
+                          keyStore = {
+                              location = ./DATA/idman/corda-ssl-identity-manager-keys.jks
+                              password = IDMAN_SSL
+                          }
+                          trustStore = {
+                              location = ./DATA/root/corda-ssl-trust-store.jks
+                              password = SSL_TRUSTSTORE
+                          }
+                      }
+                  }
+                  plugin = {
+                      pluginClass = "com.r3.enmplugins.approveall.ApproveAll"
+                  }
+              }
+          }
+          shell = {
+              sshdPort = "{{ .Values.service.shell.sshdPort }}"
+              user = "{{ .Values.service.shell.user }}"
+              password = "{{ .Values.service.shell.password }}"
+          }' >> etc/idman.conf
+
+          #replacing the variables in idman.conf with actual values
+          export IDMAN_SSL=$(cat /opt/corda/DATA/ssl/idmanssl)
+          sed -i -e "s*IDMAN_SSL*${IDMAN_SSL}*g" etc/idman.conf
+          export SSL_TRUSTSTORE=$(cat /opt/corda/DATA/truststore/sslts)
+          sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g" etc/idman.conf
+
+          #running the idman service
+          /bin/sh
+          # main run
+          if [ -f {{ .Values.config.jarPath }}/identitymanager.jar ]
+          then
+              sha256sum {{ .Values.config.jarPath }}/identitymanager.jar 
+              echo
+              echo "CENM: starting Identity Manager process ..."
+              echo
+              java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar {{ .Values.config.jarPath }}/identitymanager.jar -f {{ .Values.config.configPath }}/idman.conf
+              EXIT_CODE=${?}
+          else
+              echo "Missing Identity Manager jar file in {{ .Values.config.jarPath }} folder:"
+              ls -al {{ .Values.config.jarPath }}
+              EXIT_CODE=110
+          fi
+
+          if [ "${EXIT_CODE}" -ne "0" ]
+          then
+              HOW_LONG={{ .Values.config.sleepTimeAfterError }}
+              echo
+              echo "exit code: ${EXIT_CODE} (error)"
+              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
+          fi
+          sleep ${HOW_LONG}
+          echo
         volumeMounts:
         - name: idman-etc
           mountPath: /opt/corda/etc
-        - name: idman-conf
-          mountPath: /opt/corda/CM
         - name: idman-logs
           mountPath: /opt/corda/logs
         - name: idman-h2
@@ -204,9 +306,6 @@ spec:
       imagePullSecrets:
       - name: {{ .Values.image.imagePullSecret }}
       volumes:
-        - name: idman-conf
-          configMap:
-            name: {{ .Values.nodeName }}-conf
         - name: idman-etc
           emptyDir:
             medium: Memory

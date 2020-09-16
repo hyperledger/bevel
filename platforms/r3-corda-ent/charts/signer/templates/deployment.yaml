@@ -138,13 +138,46 @@ spec:
                corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
                echo "${corda_ssl_trust_store}" | base64 -d > ${MOUNT_PATH}/root/corda-ssl-trust-store.jks
 
+               # Fetching credentials from vault
+               mkdir -p ${MOUNT_PATH}/credentials/truststore
+               OUTPUT_PATH=${MOUNT_PATH}/credentials/truststore;
+
+               #Fetching truststore credentials from vault
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+
+               SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+               echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
+
+               mkdir -p ${MOUNT_PATH}/credentials/keystore
+               OUTPUT_PATH=${MOUNT_PATH}/credentials/keystore;
+
+               #Fetching keystore credentials from vault
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
+               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
+
+               IDMAN_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
+               echo "${IDMAN_KEYSTORE}"> ${OUTPUT_PATH}/idmanks
+               NETWORKMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+               echo "${NETWORKMAP_KEYSTORE}"> ${OUTPUT_PATH}/networkmapks
+
+               mkdir -p ${MOUNT_PATH}/credentials/ssl
+               OUTPUT_PATH=${MOUNT_PATH}/credentials/ssl;
+
+               #Fetching ssl credentials from vault
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
+               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/ssl)" "${LOOKUP_SECRET_RESPONSE}"
+
+               SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signer"]')
+               echo "${SIGNER_SSL}"> ${OUTPUT_PATH}/signerssl
+
                echo "Done"
           volumeMounts:
           - name: certificates
             mountPath: /DATA
       containers:
       - name: signer
-        image: "{{ required "signer[main]: missing value for .Values.iamage.signerContainerName" .Values.image.signerContainerName }}"
+        image: "{{ required "signer[main]: missing value for .Values.image.signerContainerName" .Values.image.signerContainerName }}"
         env:
           - name: ACCEPT_LICENSE
             value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
@@ -152,12 +185,137 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cp CM-FILES/signer.conf etc/signer.conf;
+          echo 'shell = {
+              sshdPort = {{ .Values.service.ssh.port }}
+              user = "{{ .Values.service.shell.user }}"
+              password = "{{ .Values.service.shell.password }}"
+          }
+
+          signingKeys = {
+              "cordaidentitymanagerca" = {
+                  alias = "identitymanagerca"
+                  type = LOCAL
+                  password = "IDMAN_KEYSTORE"
+                  keyStore {
+                      file = "./DATA/signer/identity-manager-key-store.jks"
+                      password = "IDMAN_KEYSTORE"
+                  }
+              },
+              "cordanetworkmap" = {
+                  alias = "networkmap"
+                  type = LOCAL
+                  password = "NETWORKMAP_KEYSTORE"
+                  keyStore {
+                      file = "./DATA/signer/network-map-key-store.jks"
+                      password = "NETWORKMAP_KEYSTORE"
+                  }
+              }
+          }
+
+          serviceLocations = {
+              "identity-manager" = {
+                  host = {{ .Values.serviceLocations.identityManager.host }}
+                  port = {{ .Values.serviceLocations.identityManager.port }}
+                  ssl = {
+                      keyStore = {
+                          location = "./DATA/signer/corda-ssl-signer-keys.jks"
+                          password = SIGNER_SSL
+                          keyPassword = SIGNER_SSL
+                      }
+                      trustStore = {
+                          location = "./DATA/root/corda-ssl-trust-store.jks"
+                          password = SSL_TRUSTSTORE
+                      }
+                      validate = true
+                  }
+              },
+              "network-map" = {
+                  host = {{ .Values.serviceLocations.networkMap.host }}
+                  port = {{ .Values.serviceLocations.networkMap.port }}
+                  ssl = {
+                      keyStore = {
+                          location = "./DATA/signer/corda-ssl-signer-keys.jks"
+                          password = SIGNER_SSL
+                          keyPassword = SIGNER_SSL
+                      }
+                      trustStore = {
+                          location = "./DATA/root/corda-ssl-trust-store.jks"
+                          password = SSL_TRUSTSTORE
+                      }
+                      validate = true
+                  }
+              },
+              "revocation" = {
+                  host = {{ .Values.serviceLocations.identityManager.host }}
+                  port = {{ .Values.serviceLocations.revocation.port }}
+                  ssl = {
+                      keyStore = {
+                          location = "./DATA/signer/corda-ssl-signer-keys.jks"
+                          password = SIGNER_SSL
+                          keyPassword = SIGNER_SSL
+                      }
+                      trustStore = {
+                          location = "./DATA/root/corda-ssl-trust-store.jks"
+                          password = SSL_TRUSTSTORE
+                      }
+                      validate = true
+                  }
+              }
+          }
+
+          signers = {
+              "CSR" = {
+                  type = CSR
+                  signingKeyAlias = "cordaidentitymanagerca"
+                  serviceLocationAlias = "identity-manager"
+                  crlDistributionPoint = "https://{{ .Values.serviceLocations.identityManager.publicIp }}:{{ .Values.serviceLocations.identityManager.publicPort }}/certificate-revocation-list/doorman"
+                  validDays = 7300 # 20 year certificate expiry
+                  schedule {
+                      interval = {{ .Values.signers.CSR.schedule.interval }}
+                  }
+              },
+              "CRL" = {
+                  type = CRL
+                  signingKeyAlias = "cordaidentitymanagerca"
+                  serviceLocationAlias = "revocation"
+                  crlDistributionPoint = "https://{{ .Values.serviceLocations.identityManager.publicIp }}:{{ .Values.serviceLocations.identityManager.publicPort }}/certificate-revocation-list/doorman"
+                  # updatePeriod = 86400000 # 1 day CRL expiry
+                  updatePeriod = 604800000 # 1 week CRL expiry
+                  schedule {
+                      interval = {{ .Values.signers.CRL.schedule.interval }}
+                  }
+              },
+              "NetworkMap" = {
+                  type = NETWORK_MAP
+                  signingKeyAlias = "cordanetworkmap"
+                  serviceLocationAlias = "network-map"
+                  schedule {
+                      interval = {{ .Values.signers.NetworkMap.schedule.interval }}
+                  }
+              },
+              "NetworkParameters" = {
+                  type = NETWORK_PARAMETERS
+                  signingKeyAlias = "cordanetworkmap"
+                  serviceLocationAlias = "network-map"
+                  schedule {
+                      interval = {{ .Values.signers.NetworkParameters.schedule.interval }}
+                  }
+              }
+          }' >> {{ .Values.config.configPath }}/signer.conf
+
+          #replacement of the variables
+          export IDMAN_KEYSTORE=$(cat /opt/corda/DATA/credentials/keystore/idmanks)
+          sed -i -e "s*IDMAN_KEYSTORE*${IDMAN_KEYSTORE}*g" {{ .Values.config.configPath }}/signer.conf
+          export NETWORKMAP_KEYSTORE=$(cat /opt/corda/DATA/credentials/keystore/networkmapks)
+          sed -i -e "s*NETWORKMAP_KEYSTORE*${NETWORKMAP_KEYSTORE}*g" {{ .Values.config.configPath }}/signer.conf
+          export SIGNER_SSL=$(cat /opt/corda/DATA/credentials/ssl/signerssl)
+          sed -i -e "s*SIGNER_SSL*${SIGNER_SSL}*g" {{ .Values.config.configPath }}/signer.conf
+          export SSL_TRUSTSTORE=$(cat /opt/corda/DATA/credentials/truststore/sslts)
+          sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g" {{ .Values.config.configPath }}/signer.conf
+
           java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar {{ .Values.config.jarPath }}/signer.jar --config-file {{ .Values.config.configPath }}/signer.conf
+
         volumeMounts:
-        - name: signer-conf
-          mountPath: /opt/corda/CM-FILES/signer.conf
-          subPath: signer.conf
         - name: pkitool-signer-etc
           mountPath: /opt/corda/etc
         - name: signer-logs
@@ -188,9 +346,6 @@ spec:
       imagePullSecrets:
       - name: {{ .Values.image.imagePullSecret }}
       volumes:
-        - name: signer-conf
-          configMap:
-            name: {{ .Values.nodeName }}-cenm-conf
         - name: pkitool-signer-etc
           emptyDir:
             medium: Memory

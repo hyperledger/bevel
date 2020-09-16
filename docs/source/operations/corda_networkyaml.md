@@ -100,6 +100,7 @@ The snapshot of the `orderers` section with example values is below
       uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
       truststore: home_dir/platforms/r3-corda-ent/configuration/build/networkroottruststore.jks #Certificate should be encoded in base64 format
+      truststore_pass: rootpassword
 ```
 The `orderers` section contains a list of doorman/networkmap which is exposed to the network. Each `orderer` has the following fields:
 
@@ -111,6 +112,7 @@ The `orderers` section contains a list of doorman/networkmap which is exposed to
 | certificate | Absolute path to the public certificates for Doorman/IDman and Networkmap.             |
 | crlissuer_subject | Only for **Corda Enterprise Idman**. Subject of the CRL Issuer.|
 | truststore | Only for **Corda Enterprise Networkmap**. Absolute path to the base64 encoded networkroot truststore.|
+| truststore_pass | Only for **Corda Enterprise Networkmap**. Truststore password |
 
 
 The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. doorman, membership service, etc), then these services should be listed in this section as well.
@@ -147,6 +149,7 @@ Each organization under the `organizations` section has the following fields.
 | k8s                                         | Kubernetes cluster deployment variables.|
 | vault                                       | Contains Hashicorp Vault server address and root-token in the example |
 | gitops                                      | Git Repo details which will be used by GitOps/Flux. |
+| credentials                                 | Only for **Corda Enterprise Networkmap**. Credentials consumed during crypto-material creation |
 | cordapps (optional)                         | Cordapps Repo details which will be used to store/fetch cordapps jar **Not Implemented for Corda Enterprise** |
 | services                                    | Contains list of services which could be peers/doorman/nms/notary/idman/signer | 
 
@@ -205,7 +208,45 @@ The `gitops` field under each organization contains
 | username                             | Username which has access rights to read/write on repository                                                     |
 | password                             | Password of the user which has access rights to read/write on repository                                         |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |
+| private_key                          | Path to the private key file which has write-access to the git repo                                              |   
+
+
+The `credentials` field under each organization contains
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| keystore    | Contains passwords for keystores                         |
+| truststore    | Contains passwords for truststores                         |
+| ssl    | Contains passwords for ssl keystores                         |
+For organization as type `cenm` the credential block looks like
+```yaml
+      credentials:
+        keystore:
+          keystore: cordacadevpass #notary keystore password
+          idman: password #idman keystore password
+          networkmap: password #networkmap keystore password
+          subordinateca: password #subordinateca keystore password
+          rootca: password # rootca keystore password
+          tlscrlsigner: password #tls-crl-signer keystore password
+        truststore:
+          truststore: trustpass #notary truststore password
+          rootca: password #network root truststore password
+          ssl: password #corda ssl truststore password
+        ssl:
+          networkmap: password #ssl networkmap keystore password
+          idman: password #ssl idman keystore password
+          signer: password #ssl signer keystore password
+          root: password #ssl root keystore password
+```
+For organization as type `node` the credential section is under peers section and looks like
+```yaml
+          credentials:
+            truststore:
+              node: trustpass #node truststore password
+            keystore:
+              node: cordacadevpass #node keystore password
+```
+
 
 For cordapps fields the snapshot from the sample configuration file with the example values is below: This has not been implented for **Corda Enterprise**.
 ```yaml

@@ -151,6 +151,21 @@ spec:
               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }})" "${LOOKUP_SECRET_RESPONSE}"
               NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.networkmapName }}.crt"]')
               echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/tlscerts/networkmap.crt
+
+              # Fetching node keystore, node truststore and network-root-truststore credentials from vault
+              mkdir -p ${OUTPUT_PATH}/credentials
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+              TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["node"]')
+              echo "${TRUSTSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/truststorepass
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["node"]')
+              echo "${KEYSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/keystorepass  
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/root | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/root)" "${LOOKUP_SECRET_RESPONSE}"
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore"]')
+              echo "${KEYSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/rootpass
               echo "Done"
         volumeMounts:
         - name: node-certificates
@@ -205,22 +220,110 @@ spec:
         args:
         - |-
           mkdir bin
-          cp CM-FILES/node.conf {{ .Values.nodeConf.workspacePath }}/
-          cp CM-FILES/*.sh bin/
+          echo 'myLegalName: "{{ .Values.nodeConf.legalName }}"
+          emailAddress: "{{ .Values.nodeConf.emailAddress }}"
+          p2pAddress: "{{ .Values.service.p2pAddress }}:{{ .Values.service.p2pPort }}"
+          networkServices: {
+            doormanURL: "{{ .Values.networkServices.doormanURL }}",
+            networkMapURL: "{{ .Values.networkServices.networkMapURL }}"
+          }
+          crlCheckSoftFail: {{ .Values.nodeConf.crlCheckSoftFail }}
+          {{- if ne .Values.nodeConf.tlsCertCrlDistPoint "" }}
+          tlsCertCrlDistPoint:  "{{ .Values.nodeConf.tlsCertCrlDistPoint }}",
+          tlsCertCrlIssuer: "{{ .Values.nodeConf.tlsCertCrlIssuer }}"
+          {{- end }}
+          devMode: {{ .Values.nodeConf.devMode }}
+          {{- if .Values.service.ssh.enabled }}
+          sshd:  {
+            port: {{ .Values.service.ssh.sshdPort }}
+          }
+          {{- end }}
+          rpcSettings: {
+            address: "0.0.0.0:{{ .Values.service.rpc.port }}",
+            adminAddress: "0.0.0.0:{{ .Values.service.rpc.adminPort }}"
+          }
+          rpcUsers: [
+          {{- range $user := .Values.service.rpc.users }}
+            {
+              user: "{{ $user.name }}",
+              password: "{{ $user.password }}",
+              permissions: [
+                "{{ $user.permissions }}"
+              ]
+            }
+          {{- end }}
+          ]
+          {{- if .Values.dataSourceProperties.monitoring.enabled }}
+          jmxMonitoringHttpPort: {{ .Values.dataSourceProperties.monitoring.port }}
+          {{- end }}
+
+          trustStorePassword: "TRUSTSTORE_PASSWORD"
+          keyStorePassword : "KEYSTORE_PASSWORD"
+          detectPublicIp: false
+          additionalP2PAddresses: ["{{ .Values.nodeConf.ambassador.p2pAddress }}"]
+          messagingServerAddress: "0.0.0.0:{{ .Values.service.p2pPort }}"
+          messagingServerExternal: false
+          enterpriseConfiguration: {
+            externalBridge: {{ .Values.firewall.enabled }}
+          }
+          {{- if .Values.dataSourceProperties.allowDevCorDapps.enabled }}
+          cordappSignerKeyFingerprintBlacklist: [
+          ]
+          {{- end }}
+          dataSourceProperties: {
+            dataSourceClassName: "{{ .Values.dataSourceProperties.dataSource.dataSourceClassName }}",
+            dataSource.url: "{{ .Values.dataSourceProperties.dataSource.url }}",
+            dataSource.user: "{{ .Values.dataSourceProperties.dataSource.user }}",
+            dataSource.password: "{{ .Values.dataSourceProperties.dataSource.password }}"
+          }
+          database = {
+          {{- if eq .Values.dataSourceProperties.dataSource.dataSourceClassName "oracle.jdbc.pool.OracleDataSource" }}
+              transactionIsolationLevel = READ_COMMITTED
+              schema = xe
+          {{- end}}
+              runMigration = true
+          }' >> {{ .Values.nodeConf.workspacePath }}/node.conf
+
+          export TRUSTSTORE_PASSWORD=$(cat {{ .Values.nodeConf.workspacePath }}/certificates/credentials/truststorepass)
+          sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" {{ .Values.nodeConf.workspacePath }}/node.conf
+          export KEYSTORE_PASSWORD=$(cat {{ .Values.nodeConf.workspacePath }}/certificates/credentials/keystorepass)
+          sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" {{ .Values.nodeConf.workspacePath }}/node.conf
+
           cp corda.jar bin/
           chmod +x bin/*
           # to clean network-parameters on every restart
           rm -rf {{ .Values.nodeConf.workspacePath }}/network-parameters
           yes | keytool -importcert -file {{ .Values.nodeConf.workspacePath }}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
           yes | keytool -importcert -file {{ .Values.nodeConf.workspacePath }}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-          bin/run.sh
+
+          /bin/sh
+          KEYSTORE_PASSWORD=$(cat {{ .Values.nodeConf.workspacePath }}/certificates/credentials/keystorepass)
+          if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
+          then
+              echo
+              echo "Starting Node node ..."
+              echo
+              # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
+              java -Djavax.net.ssl.keyStore={{ .Values.nodeConf.workspacePath }}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f {{ .Values.nodeConf.workspacePath }}/node.conf --base-directory {{ .Values.nodeConf.workspacePath }}
+              EXIT_CODE=${?}
+          else
+              echo "Missing node jar file in {{ .Values.nodeConf.jarPath }} folder:"
+              ls -al {{ .Values.nodeConf.jarPath }}
+              EXIT_CODE=110
+          fi
+
+          if [ "${EXIT_CODE}" -ne "0" ]
+          then
+              HOW_LONG={{ .Values.sleepTimeAfterError }}
+              echo
+              echo "Node failed - exit code: ${EXIT_CODE} (error)"
+              echo
+              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
+              echo
+              sleep ${HOW_LONG}
+          fi
+          echo "DONE"
         volumeMounts:
-        - name: node-conf
-          mountPath: {{ .Values.nodeConf.volume.baseDir }}/CM-FILES/node.conf
-          subPath: node.conf
-        - name: node-conf
-          mountPath: {{ .Values.nodeConf.volume.baseDir }}/CM-FILES/run.sh
-          subPath: run.sh
         - name: node-workspace
           mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}
         - name: node-certificates
@@ -249,9 +352,6 @@ spec:
         - name: node-logs
           mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/logs
       volumes:
-      - name: node-conf
-        configMap:
-          name: {{ .Values.nodeName }}-conf
       - name: node-certificates
         emptyDir:
           medium: Memory
