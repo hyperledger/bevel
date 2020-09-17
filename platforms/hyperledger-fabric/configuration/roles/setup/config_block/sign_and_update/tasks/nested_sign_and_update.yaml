@@ -2,6 +2,17 @@
 # This task initiates cli creation and signing of the block
 ############################################################################################
 
+# checking for fabric cli
+- name: "Check if fabric cli is already present"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org.name }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: existing_cli
+
 # Create the value file for org first peer
 - name: "create cli value files for {{peer.name}}-{{ org.name }} for signing the modified configuration block"
   include_role:
@@ -11,7 +22,6 @@
     component_type: "existing_peer_cli_job"    
     component_name: "cli-{{ channel_name }}-{{ participant.name }}-{{ peer.name }}"
     peer_name: "{{ peer.name }}"
-    peer_address: "{{ peer.gossipAddress }}"
     component_ns: "{{ participant.name | lower}}-net"
     vault: "{{ org.vault }}"
     fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
@@ -19,11 +29,13 @@
     channel_name: "{{ channel_name }}"
     storage_class: "{{ participant.name }}sc"
     release_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/"
+  when: existing_cli.resources|length == 0
 
 # Starts the cli with valuefile generated above
 - name: "start cli {{peer.name}}-{{ org.name }}"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+  when: existing_cli.resources|length == 0
 
 # waiting for fabric cli
 - name: "Check if fabric cli is present"
@@ -44,7 +56,7 @@
 # Copy the block back to the build folder after signature
 - name: signing from the admin of {{ org.name }}
   shell: |
-    export PEER_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ org.name | lower }}-net | grep "{{ peer.name }}-cli" | awk '{print $1}')
+    export PEER_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ org.name | lower }}-net | grep "cli" | head -n 1 | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/{{ channel_name | lower}}_config_block.pb {{ org.name | lower }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name | lower}}_config_block.pb
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name | lower }}-net ${PEER_CLI} -- peer channel signconfigtx -f {{ channel_name | lower}}_config_block.pb
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org.name | lower }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name | lower}}_config_block.pb ./build/{{ channel_name | lower}}_config_block.pb
@@ -56,3 +68,4 @@
 - name: "delete cli {{ peer.name }}-{{ participant.name }}-cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm del --purge {{ peer.name }}-{{ participant.name }}-cli
+  when: existing_cli.resources|length == 0

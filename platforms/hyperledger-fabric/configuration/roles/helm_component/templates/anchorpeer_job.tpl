@@ -20,7 +20,11 @@ spec:
 
     peer:
       name: {{ peer_name }}
-      address: {{ peer.gossipAddress }}
+{% if network.env.proxy == 'none' %}
+      address: {{ peer.name }}.{{ component_ns }}:7051
+{% else %}
+      address: {{ peer.peerAddress }}
+{% endif %}
       localmspid: {{ org.name | lower}}MSP
       loglevel: debug
       tlsstatus: true
