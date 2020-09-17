@@ -1,10 +1,22 @@
 ############################################################################################
 # This task initiates the nested sign and update
 
-# Creeate the value file for creater org first peer
+# checking for fabric cli
+- name: "Check if fabric cli is already present"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org.name }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: existing_cli
+
+# Create the value file for creater org first peer
 - name: "start cli for {{ peer.name }}-{{ org.name }} for updating the channel"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+  when: existing_cli.resources|length == 0
 
 # waiting for fabric cli
 - name: "Check if fabric cli is present"
@@ -24,7 +36,7 @@
 # This task updates the blockchain after signature from the first peer of the creator
 - name: updating the channel with the new configuration block
   shell: |
-    export PEER_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ org.name | lower }}-net | grep "{{ peer.name }}-cli" | awk '{print $1}')
+    export PEER_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ org.name | lower }}-net | grep "cli" | head -n 1 | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/{{ channel_name | lower}}_config_block.pb {{ org.name | lower }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name | lower}}_config_block.pb
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name | lower }}-net ${PEER_CLI} -- peer channel update -f {{ channel_name | lower}}_config_block.pb -c {{ channel_name | lower}} -o {{ participant.ordererAddress }} --tls --cafile ${ORDERER_CA}
   environment:
@@ -38,3 +50,4 @@
 - name: "delete cli {{ peer.name }}-{{ participant.name }}-cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm del --purge {{ peer.name }}-{{ participant.name }}-cli
+  when: existing_cli.resources|length == 0
