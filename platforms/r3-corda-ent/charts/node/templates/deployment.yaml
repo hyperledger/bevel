@@ -120,7 +120,7 @@ spec:
               
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               
-              OUTPUT_PATH=${BASE_DIR}/{{ .Values.nodeConf.workspacePath }}/certificates              
+              OUTPUT_PATH=${BASE_DIR}/certificates              
               
               # get nodekeystore.jks from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/nodekeystore | jq -r 'if .errors then . else . end')
@@ -169,7 +169,7 @@ spec:
               echo "Done"
         volumeMounts:
         - name: node-certificates
-          mountPath: {{ $.Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/certificates
+          mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
       - name: db-healthcheck
         image: {{ .Values.image.initContainerName }}
         imagePullPolicy: Always
@@ -216,6 +216,8 @@ spec:
         env:
           - name: ACCEPT_LICENSE
             value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+          - name: BASE_DIR
+            value: {{ $.Values.nodeConf.volume.baseDir }}
         command: ["/bin/bash", "-c"]
         args:
         - |-
@@ -282,29 +284,28 @@ spec:
               schema = xe
           {{- end}}
               runMigration = true
-          }' >> {{ .Values.nodeConf.workspacePath }}/node.conf
+          }' >> ${BASE_DIR}/node.conf
 
-          export TRUSTSTORE_PASSWORD=$(cat {{ .Values.nodeConf.workspacePath }}/certificates/credentials/truststorepass)
-          sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" {{ .Values.nodeConf.workspacePath }}/node.conf
-          export KEYSTORE_PASSWORD=$(cat {{ .Values.nodeConf.workspacePath }}/certificates/credentials/keystorepass)
-          sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" {{ .Values.nodeConf.workspacePath }}/node.conf
+          export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/truststorepass)
+          sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/node.conf
+          export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
+          sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/node.conf
 
           cp corda.jar bin/
           chmod +x bin/*
           # to clean network-parameters on every restart
-          rm -rf {{ .Values.nodeConf.workspacePath }}/network-parameters
-          yes | keytool -importcert -file {{ .Values.nodeConf.workspacePath }}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-          yes | keytool -importcert -file {{ .Values.nodeConf.workspacePath }}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-
+          rm -rf ${BASE_DIR}/network-parameters
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
           /bin/sh
-          KEYSTORE_PASSWORD=$(cat {{ .Values.nodeConf.workspacePath }}/certificates/credentials/keystorepass)
+          KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
           if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
           then
               echo
               echo "Starting Node node ..."
               echo
               # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
-              java -Djavax.net.ssl.keyStore={{ .Values.nodeConf.workspacePath }}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f {{ .Values.nodeConf.workspacePath }}/node.conf --base-directory {{ .Values.nodeConf.workspacePath }}
+              java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/node.conf --base-directory ${BASE_DIR}
               EXIT_CODE=${?}
           else
               echo "Missing node jar file in {{ .Values.nodeConf.jarPath }} folder:"
@@ -324,12 +325,10 @@ spec:
           fi
           echo "DONE"
         volumeMounts:
-        - name: node-workspace
-          mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}
+        - name: node-volume
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}
         - name: node-certificates
-          mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/certificates
-        - name: node-logs
-          mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/logs
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}/certificates
         resources:
           requests:
             memory: {{ .Values.nodeConf.pod.resources.requests }}
@@ -344,20 +343,17 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cd {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/
+          cd {{ .Values.nodeConf.volume.baseDir }}/
           while true; do tail -f logs/*.log 2>/dev/null; sleep 5; done
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
-        - name: node-logs
-          mountPath: {{ .Values.nodeConf.volume.baseDir }}/{{ .Values.nodeConf.workspacePath }}/logs
+        - name: node-volume
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}
       volumes:
       - name: node-certificates
         emptyDir:
           medium: Memory
-      - name: node-logs
+      - name: node-volume
         persistentVolumeClaim:
-          claimName: {{ .Values.nodeName }}-logs
-      - name: node-workspace
-        emptyDir:
-          medium: Memory
+          claimName: {{ .Values.nodeName }}-volume
