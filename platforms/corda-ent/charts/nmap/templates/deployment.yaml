@@ -76,7 +76,7 @@ spec:
               COUNTER=1
               while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
               do 
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.notaryName }}/nparam | jq -r 'if .errors then . else . end')
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.notaryName }}/networkparam | jq -r 'if .errors then . else . end')
                 if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
@@ -99,7 +99,8 @@ spec:
                     sleep {{ $.Values.healthcheck.readinesscheckinterval }}
                   else
                   notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
-                  echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/notary_nodeinfo
+                  notary_nodeinfo_name=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoName"]')
+                  echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/${notary_nodeinfo_name}
                   echo "Successfully got node info file"
                   break
                 fi

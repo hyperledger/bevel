@@ -1,0 +1,8 @@
+---
+# This task writes the certificates of all the approving organizations to the vault so that the creator organization can use it to commit.
+- name: Copy organization level certificates for orgs {{ endorser.name }}
+  shell: |
+    vault write /secret/crypto/peerOrganizations/{{ namespace }}/endorsers/{{ endorser.name }}/users/admin/msp cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ endorser.name }}-net/users/Admin@{{ endorser.name }}-net/msp/cacerts/ca-{{ endorser.name }}-net-7054.pem)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
