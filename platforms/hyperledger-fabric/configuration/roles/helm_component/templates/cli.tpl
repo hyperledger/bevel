@@ -33,6 +33,6 @@ spec:
       name: {{ peer.name }}
       localmspid: {{ org.name | lower}}MSP
       tlsstatus: true
-      address: {{ peer.name }}.{{ component_ns }}.{{ external_url_suffix }}:8443
+      address: {{ peer.gossippeeraddress }}
     orderer:
       address: {{ orderer.uri }}
