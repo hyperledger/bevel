@@ -1,13 +1,16 @@
 #!/bin/sh
+{{ if eq .Values.bashDebug true }}
+set -x
+pwd
+cat -n etc/notary.conf
+{{ end }}
 
-# Get the nodeInfo file name and store it in a variable
-nodeInfoFile=$(basename $(ls additional-node-infos/nodeInfo*))
-export nodeInfoFile
+# For now, we are using a 'hardcoded' nodeInfo filename, to avoid having to save the hash in Vault
 envsubst <<"EOF" > additional-node-infos/network-parameters-initial.conf.tmp
 notaries : [
   {
-    notaryNodeInfoFile: "notary-nodeinfo/${nodeInfoFile}"
-    validating = "{{ .Values.nodeConf.notary.validating }}"
+    notaryNodeInfoFile: "notary-nodeinfo/notary_nodeinfo"
+    validating = "{{ .Values.notary.validating }}"
   }
 ]
 minimumPlatformVersion = 1
@@ -18,4 +21,4 @@ EOF
 
 mv additional-node-infos/network-parameters-initial.conf.tmp additional-node-infos/network-parameters-initial.conf
 cat additional-node-infos/network-parameters-initial.conf
-echo "Create the network-parameters-initial.conf file"
+echo
