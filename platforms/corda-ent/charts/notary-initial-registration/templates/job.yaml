@@ -20,7 +20,7 @@ spec:
           app.kubernetes.io/instance: {{ .Release.Name }}
       spec:
         restartPolicy: "OnFailure"
-        serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+        serviceAccountName: {{ $.Values.vault.serviceAccountName }}
         hostname: {{ .Values.nodeName }}
         securityContext:
           fsGroup: 1000
@@ -32,13 +32,13 @@ spec:
             - name: VAULT_ADDR
               value: {{ $.Values.vault.address }}
             - name: KUBERNETES_AUTH_PATH
-              value: {{ $.Values.vault.authpath }}
+              value: {{ $.Values.vault.authPath }}
             - name: VAULT_APP_ROLE
               value: {{ $.Values.vault.role }}
             - name: BASE_DIR
-              value: {{ $.Values.volume.baseDir }}
+              value: {{ $.Values.nodeConf.volume.baseDir }}
             - name: CERTS_SECRET_PREFIX
-              value: {{ .Values.vault.certsecretprefix }}
+              value: {{ .Values.vault.certSecretPrefix }}
             - name: MOUNT_PATH
               value: "/DATA"       
           command: ["sh", "-c"]
@@ -57,6 +57,7 @@ spec:
                 KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
                 VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                 validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+                
                 echo "logged into vault"
 
                 # Creating dirs for storing the certificate
@@ -64,13 +65,13 @@ spec:
 
                 # Fetching network-root-truststore certificates from vault
                 COUNTER=1
-                while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+                while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
                 do
                     # get keystores from vault to see if certificates are created and put in vault
                     LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
                     if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                     then
-                      sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                      sleep {{ $.Values.vault.retryInterval }}
                     else
                       network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
                       echo "${network_root_truststore}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
@@ -80,25 +81,26 @@ spec:
                     COUNTER=`expr "$COUNTER" + 1`
                 done
 
-                if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
+                if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
                 then
                   # printing number of trial done before giving up
                   echo "$COUNTER"
-                  echo "network truststore certificates might not have been put in vault. Giving up!!!"
+                  echo "Network truststore certificates might not have been put in vault ! Giving up..."
                   exit 1
                 fi
                 
                 mkdir -p ${MOUNT_PATH}/tlscerts
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.idmanName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
                 IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
                 echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/idman.crt
 
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.cenmServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
                 NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
                 echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
-                echo "Done"
+                
+                echo "Done with getting certifcates from vault"
           volumeMounts:
           - name: certificates
             mountPath: /DATA
@@ -124,7 +126,6 @@ spec:
                   FLAG=true
                   echo "DB up and running"
               fi
-
               if [ "$FLAG" == false ]
               then
                   echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
@@ -146,13 +147,13 @@ spec:
             fi
         containers:
         - name: registration
-          image: "{{ required "notary[main]: missing value for .Values.dockerImage.notaryContainerName" .Values.dockerImage.notaryContainerName }}"
+          image: "{{ .Values.image.nodeContainerName }}"
           env:
             - name: ACCEPT_LICENSE
               value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
             - name: BASE_DIR
-              value: {{ $.Values.volume.baseDir }}
-          imagePullPolicy: {{ .Values.dockerImage.pullPolicy }}
+              value: {{ $.Values.nodeConf.volume.baseDir }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/bash", "-c"]
           args:
           - |-
@@ -167,27 +168,27 @@ spec:
             touch ${BASE_DIR}/certificates/done.txt
           volumeMounts:
           - name: notary-conf
-            mountPath: /opt/corda/CM-FILES/notary.conf
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/CM-FILES/notary.conf
             subPath: notary.conf
           - name: notary-conf
-            mountPath: /opt/corda/CM-FILES/notary-initial-registration.sh
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/CM-FILES/notary-initial-registration.sh
             subPath: notary-initial-registration.sh
           - name: notary-conf
-            mountPath: /opt/corda/CM-FILES/create-network-parameters-file.sh
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/CM-FILES/create-network-parameters-file.sh
             subPath: create-network-parameters-file.sh
           - name: notary-etc
-            mountPath: /opt/corda/etc
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/etc
           - name: notary-nodeinfo
-            mountPath: /opt/corda/additional-node-infos
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/additional-node-infos
           - name: notary-certificates
-            mountPath: /opt/corda/certificates
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
           - name: certificates
-            mountPath: /opt/corda/DATA
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/DATA
           resources:
             requests:
-              memory: {{ .Values.cordaJarMx }}M
+              memory: {{ .Values.nodeConf.pod.resources.requests }}
             limits:
-              memory: {{ add .Values.cordaJarMx 2 }}M
+              memory: {{ .Values.nodeConf.pod.resources.limits }}
         - name: store-certs-in-vault
           image: {{ .Values.image.initContainerName }}
           imagePullPolicy: Always
@@ -195,13 +196,13 @@ spec:
             - name: VAULT_ADDR
               value: {{ $.Values.vault.address }}
             - name: KUBERNETES_AUTH_PATH
-              value: {{ $.Values.vault.authpath }}
+              value: {{ $.Values.vault.authPath }}
             - name: VAULT_APP_ROLE
               value: {{ $.Values.vault.role }}
             - name: BASE_DIR
-              value: {{ $.Values.volume.baseDir }}
+              value: {{ $.Values.nodeConf.volume.baseDir }}
             - name: CERTS_SECRET_PREFIX
-              value: {{ .Values.vault.certsecretprefix }}
+              value: {{ .Values.vault.certSecretPrefix }}
             - name: MOUNT_PATH
               value: "/DATA"
           command: ["sh", "-c"]
@@ -216,7 +217,7 @@ spec:
             # perform check if certificates are ready or not, and upload certificate into vault when ready
             COUNTER=1
             cd ${BASE_DIR}/certificates
-            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 if [ -e done.txt ]
                 then                  
@@ -226,43 +227,40 @@ spec:
                   (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
                   break
                 else
-                  echo "certificates are not ready, sleeping for 10s"
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  echo "certificates are not ready, sleeping for {{ $.Values.vault.retryInterval }} seconds"
+                  sleep {{ $.Values.vault.retryInterval }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
             # perform check if network-parameters are ready or not, and upload it into vault when ready
             COUNTER=1
             cd ${BASE_DIR}/additional-node-infos
-            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 if [ -e network-parameters-initial.conf ]
                 then
+                  # getting the nodeInfo name
+                  nodeInfoName=$(basename $(ls nodeInfo*))
                   # Encoding binary file and putting it in file, to make sure binary gets correctly put in Vault
                   base64 ${BASE_DIR}/additional-node-infos/nodeInfo* > ${BASE_DIR}/file
-                  (echo '{"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nodeInfo
-                  (echo '{"network-parameters-initial": "'; base64 ${BASE_DIR}/additional-node-infos/network-parameters-initial.conf; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nparam
+                  (echo '{"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '","nodeInfoName": "'; echo $nodeInfoName; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nodeInfo
+                  (echo '{"network-parameters-initial": "'; base64 ${BASE_DIR}/additional-node-infos/network-parameters-initial.conf; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/networkparam
                   break
                 else
-                  echo "node info not ready, sleeping for 10s"
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  echo "node info not ready, sleeping sleeping for {{ $.Values.vault.retryInterval }} seconds"
+                  sleep {{ $.Values.vault.retryInterval }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
           volumeMounts:
           - name: notary-nodeinfo
-            mountPath: /opt/corda/additional-node-infos
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/additional-node-infos
           - name: notary-certificates
-            mountPath: /opt/corda/certificates
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
           - name: certificates
-            mountPath: /opt/corda/DATA
-          resources:
-            requests:
-              memory: {{ .Values.cordaJarMx }}M
-            limits:
-              memory: {{ add .Values.cordaJarMx 2 }}M
+            mountPath: {{ $.Values.nodeConf.volume.baseDir }}/DATA
         imagePullSecrets:
-        - name: {{ .Values.dockerImage.imagePullSecret }}
+        - name: {{ .Values.image.imagePullSecret }}
         volumes:
         - name: notary-conf
           configMap:

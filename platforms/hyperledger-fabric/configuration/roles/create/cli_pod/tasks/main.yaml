@@ -12,7 +12,7 @@
     name: helm_component
   vars:
     name: "cli"
-    component_name: "{{ org.name | lower}}-cli"
+    component_name: "{{ peer.name }}-{{ org.name | lower}}-cli"
     orderer_image: "hyperledger/fabric-orderer:{{ network.version }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"  
     orderer: "{{ network.orderers | first }}"
@@ -26,6 +26,7 @@
     storage_class: "{{ org.name | lower }}sc"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
     type: "cli"
+    external_url_suffix: "{{ org.external_url_suffix }}"
   loop: "{{ peers }}"
   loop_control:
     loop_var: peer
@@ -44,4 +45,4 @@
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing CLI value files"
-  when: peer.cli is defined and peer.cli == "enabled" 
+

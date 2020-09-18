@@ -4,9 +4,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .Values.nodeName }}-volume
   namespace: {{ .Values.metadata.namespace }}
-    {{- if .Values.pvc.annotations }}
+    {{- if .Values.nodeConf.pvc.annotations }}
   annotations:
-{{ toYaml .Values.pvc.annotations | indent 8 }}
+{{ toYaml .Values.nodeConf.pvc.annotations | indent 8 }}
     {{- end }}
   labels:
     app.kubernetes.io/name: {{ .Values.nodeName }}-volume
@@ -16,7 +16,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: {{ .Values.storage.name }}
+  storageClassName: {{ .Values.nodeConf.storage.name }}
   resources:
     requests:
-      storage: 512Mi
+      storage: {{ .Values.nodeConf.storage.memory }}

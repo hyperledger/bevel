@@ -3,10 +3,25 @@
 # Creates the CLI and to fetch the latest configuration block to add new config details
 ############################################################################################
 
+# checking for fabric cli
+- name: "Check if fabric cli is already present"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org.name }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: existing_cli
+
+- debug:
+    var: existing_cli
+
 # Creeate the value file for creater org first peer
 - name: "start cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ participantx.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participantx.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+  when: existing_cli.resources|length == 0
 
 # waiting for fabric cli
 - name: "Check if fabric cli is present"

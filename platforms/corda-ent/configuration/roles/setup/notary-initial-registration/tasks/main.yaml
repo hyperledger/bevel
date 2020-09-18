@@ -46,7 +46,7 @@
   register: nodekeystore_result
   ignore_errors: yes
 
-# ----------------------------------------------------------------------  
+# ----------------------------------------------------------------------
 # create deployment files for job for notaries
 - name: 'Create notary initial-registration job file'
   include_role:
@@ -56,30 +56,17 @@
     component_name: "{{ org.name | lower }}notary-initial-registration"
     name: "{{ org.name | lower }}"
     notary_service: "{{ org.services.notary }}"
-    notary_legal_name: "{{ notary_service.subject }}"
-    is_validating: "{{ org.services.notary.validating }}"
+    notary_name: "{{ notary_service.name }}"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
     charts_dir: "{{ org.gitops.chart_source }}"
-    idman_name: "{{ org.services.idman.name }}"
-    networkmap_name: "{{ org.services.networkmap.name }}"
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
     init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
-    vault_authpath: "cordaent{{ org.name | lower }}"
-    ambassador_p2pPort: "{{ org.services.notary.p2p.ambassador }}"
-    corda_service_version: cenm-notary-{{ org.version }}
-    notary_public_ip: "{{ org.services.notary.name }}.{{ org.external_url_suffix }}"
-    image_pull_secret: "regcred"
-    vault_addr: "{{ org.vault.url }}"
-    vault_cert_secret_prefix: "secret/{{ org.name | lower }}"
-    db_name: "{{ org.services.notary.name }}"
-    db_username: "{{ org.services.notary.name }}-db-user"
-    db_password: "{{ org.services.notary.name }}-db-password"
-    db_port: "{{ org.services.notary.dbtcp.port }}"
     idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
     idman_domain: "{{ idman_url.split(':')[1] | regex_replace('/', '') }}"    
     networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
     networkmap_domain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
+    corda_service_version: cenm-notary-{{ org.version }}
   when: nodekeystore_result.failed == True
 
 - name: "Push the created deployment files to repository"
