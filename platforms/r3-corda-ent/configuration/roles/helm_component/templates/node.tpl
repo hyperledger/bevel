@@ -55,7 +55,7 @@ spec:
       tlsCertCrlIssuer: "{{ network | json_query('orderers[?type==`idman`].crlissuer_subject') | first }}"
       devMode: false
       volume:
-        baseDir: /opt/corda
+        baseDir: /opt/corda/base
       jarPath: bin
       configPath: etc
       cordaJar:
