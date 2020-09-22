@@ -8,6 +8,15 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_msp_result.failed == True
 
+- name: Copy msp cacerts from auto-generated path to given path
+  copy:
+    src: "./build/crypto-config/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem"
+    dest: "{{ peer.certificate }}"
+    follow: no
+    force: yes
+  when: item.org_status == 'new'
+  tags:
+    - notest
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
