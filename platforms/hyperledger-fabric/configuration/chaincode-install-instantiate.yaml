@@ -1,7 +1,8 @@
 # This playbook is a subsequent playbook
 # This playbook does following
 # 1. Installs chaincode provided in network.yaml from each peer
-# 2. Instantiates chaincode from the creator participant peer of the channel
+# 2. Instantiates chaincode from the creator participant peer of the channel( For Fabric 1.4)
+# 3. Approves chaincode for Org and Commits chaincode on the peer (Fabric 2.X)
 ##########################################################################################
 # DO NOT RUN THIS IF YOU HAVE NOT RUN deploy-network.yaml and deployed the Fabric network
 ##########################################################################################
@@ -31,7 +32,15 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
-      when: add_new_org == 'false'
+      when: add_new_org == 'false' and network.version == '1.4.4'
+
+    - include_role:
+        name: "create/chaincode/commit"
+      vars:
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: add_new_org == 'false' and '2.' in network.version    
 
     # This task invokes chaincode after the chaincode installation for the new organization to 
     # be added in existing network
