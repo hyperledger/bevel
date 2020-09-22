@@ -20,6 +20,7 @@
     path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-anchorfile.json"
     state: touch
 
+
 # Create the values for anchor peer update
 - name: "adding new org peers anchor peer information"
   shell: |
@@ -27,7 +28,12 @@
     then
         echo -n "," >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-anchorfile.json  
     fi
-    echo -n "{\"host\":\"{{ peer.gossippeeraddress.split(":")[0] | to_json }}\",\"port\":{{ peer.gossippeeraddress.split(":")[1] | to_json }}}" >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-anchorfile.json
+    if [ {{ network.env.proxy }} == 'none' ]
+    then
+        echo -n "{\"host\":\"{{ peer.name }}.{{ component_ns }}\",\"port\":7051}" >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-anchorfile.json
+    else
+        echo -n "{\"host\":\"{{ peer.peerAddress.split(":")[0] | to_json }}\",\"port\":{{ peer.peerAddress.split(":")[1] | to_json }}}" >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-anchorfile.json
+    fi
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer

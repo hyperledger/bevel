@@ -3,10 +3,25 @@
 # Creates the CLI and to fetch the latest configuration block to add new config details
 ############################################################################################
 
+# checking for fabric cli
+- name: "Check if fabric cli is already present"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org.name }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: existing_cli
+
+- debug:
+    var: existing_cli
+
 # Creeate the value file for creater org first peer
 - name: "start cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ participantx.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participantx.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+  when: existing_cli.resources|length == 0
 
 # waiting for fabric cli
 - name: "Check if fabric cli is present"
@@ -27,7 +42,7 @@
 # from first peer of creator cli
 - name: fetch and copy the configuration block from the blockchain
   shell: |
-    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ org.name }}-net | grep "{{ peer.name }}-cli" | awk '{print $1}')
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ org.name }}-net | grep "cli" | head -n 1 | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block.pb -o {{ participantx.ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/create-block-{{ channel_name }}.sh {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/create_block.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/channel-artifacts/{{ channel_name | lower }}.json {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config.json

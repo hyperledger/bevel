@@ -18,8 +18,7 @@ BAF recommends one Kubernetes cluster per organization for production-ready proj
 Also, a user needs to make sure that the Kubernetes clusters can support the number of pods and persistent volumes that will be created by BAF.
 
 ---
-**NOTE:** For the current release, BAF has been tested on Amazon EKS with Kubernetes version 1.12. Currently Indy is only tested on Kubernetes Cluster of AWS instances with Kubernetes version 1.16 and also you need AWS cli credentials.
-
+**NOTE:** BAF DLT platforms are tested on Kubernetes Cluster of AWS instances with suppot on both Kubernetes version 1.16 and 1.14. For the current release BAF has been tested and being actively developed on Amazon EKS with Kubernetes version 1.16. AWS cli credentials are also required.
 ---
 
 Please follow [Amazon instructions](https://aws.amazon.com/eks/getting-started/) to set-up your required Kubernetes cluster(s).

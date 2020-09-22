@@ -208,15 +208,16 @@
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
 
-    # Create CLI pod for peers
+    # Create CLI pod for peers with cli option enabled
     - include_role:
         name: "create/cli_pod"
       vars:
         peers: "{{ org.services.peers }}"
+        docker_url: "{{ network.docker.url }}"
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
-      when: network.organizations is defined  and org.type == "peer"
+      when: org.type == "peer" and org.org_status == "new"
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges

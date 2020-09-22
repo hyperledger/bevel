@@ -99,9 +99,12 @@
         name: "create/new_organization/create_block"
       vars:
         build_path: "./build"
-        participants: "{{ item.participants }}"
-        channel_name: "{{ item.channel_name | lower}}"
+        participants: "{{ channel.participants }}"
+        channel_name: "{{ channel.channel_name | lower}}"
       loop: "{{ network['channels'] }}"
+      loop_control:
+        loop_var: channel
+      
 
     #Creating a pause so that the client certificates are valid
     # You can continue if the CA-server pods are running for more than 5 minutes
@@ -188,6 +191,17 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
+
+    # Create CLI pod for peers with cli option enabled
+    - include_role:
+        name: "create/cli_pod"
+      vars:
+        peers: "{{ org.services.peers }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == "peer" and org.org_status == "new"
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
