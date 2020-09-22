@@ -155,19 +155,20 @@ spec:
           mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
           cd $GOPATH/src/github.com/chaincode && dep ensure
 
-          {{ if eq  $.Values.metadata.network.version "1.4.4" }}
+          if [ ${NETWORK_VERSION} == '1.4.'* ]
+          then
             echo ${NETWORK_VERSION} 
             ## Installing chaincode on a peer
             peer chaincode install -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -p github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR}
             echo "Chaincode install for Fabric v.1.4.4"
-          {{ else }}
+          else
             echo ${NETWORK_VERSION} 
             ## packaging chaincode
             peer lifecycle chaincode package ${CHAINCODE_NAME}.tar.gz --path github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR} --lang ${CC_RUNTIME_LANGUAGE} --label ${CHAINCODE_NAME}_${CHAINCODE_VERSION}
             ## Installing Chaincode
             peer lifecycle chaincode install ${CHAINCODE_NAME}.tar.gz
             echo "Chaincode install for Fabric v.2.X"
-          {{ end }}
+          fi
 
         env:
         - name: CORE_VM_ENDPOINT
