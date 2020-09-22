@@ -1,21 +1,19 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
   namespace: {{ namespace }}
   annotations:
-    fluxcd.io/automated: "false"
+    flux.weave.works/automated: "false"
 spec:
   releaseName: {{ component_name }}
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/invoke_chaincode
+    path: {{ charts_dir }}/commit_chaincode
   values:
     metadata:
       namespace: {{ namespace }}
-      network:
-        version: {{ network.version }}
       images:
         fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
@@ -29,8 +27,8 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ namespace | e }}-auth
-      adminsecretprefix: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/users/admin 
-      orderersecretprefix: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/orderer
+      adminsecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/users/admin 
+      orderersecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth
       imagesecretname: regcred
       tls: false
@@ -40,7 +38,7 @@ spec:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
-      instantiationarguments: {{ component_chaincode.arguments | quote}}
+      commitarguments: {{ component_chaincode.arguments | quote}}
       endorsementpolicies:  {{ component_chaincode.endorsements | quote}}
     channel:
       name: {{ item.channel_name | lower }}

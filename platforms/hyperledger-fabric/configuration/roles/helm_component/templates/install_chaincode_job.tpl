@@ -14,6 +14,8 @@ spec:
   values:
     metadata:
       namespace: {{ namespace }}
+      network:
+        version: {{ network.version }}
       images:
         fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
@@ -39,6 +41,7 @@ spec:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
+      lang: {{ component_chaincode.lang }}
       maindirectory: {{ component_chaincode.maindirectory }}
       repository:
         hostname: "{{ component_chaincode.repository.url.split('/')[0] | lower }}"
