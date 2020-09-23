@@ -1,11 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: invokechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+  name: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
   namespace: {{ $.Values.metadata.namespace }}
   labels:
-    app: invokechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
-    app.kubernetes.io/name: invokechaincode-{{ $.Values.chaincode.name }}
+    app: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+    app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}{{ $.Values.chaincode.version }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       labels:
-        app: invokechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+        app: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
     spec:
       restartPolicy: OnFailure
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
@@ -116,7 +116,7 @@ spec:
         - name: certificates
           mountPath: /secret
       containers:
-      - name: invokechaincode
+      - name: approvechaincode
         image: {{ $.Values.metadata.images.fabrictools }}
         imagePullPolicy: Always
         stdin: true
@@ -124,19 +124,27 @@ spec:
         command: ["sh", "-c"]
         args:
         - |-
-          #!/bin/bash
-          export ARGS='{"Args":'"'["${INSTANTIATION_ARGUMENTS}"]'"'}'
-          export qARGS="'${ARGS}'"
-          touch ./invokeChaincode.sh
-          version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
-          if [ $version1_4 = 1 ];then
-            echo "peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -c $qARGS" >> ./invokeChaincode.sh
+          #!/bin/bash sh
+          echo $COMMIT_ARGUMENTS>COMMIT_ARGUMENTS.txt
+          COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
+          
+          echo "Extracting package id"
+          peer lifecycle chaincode queryinstalled > log.txt
+          PACKAGE_ID=$(sed -n "/${CC_NAME}_${CC_VERSION}/{s/^Package ID: //; s/, Label:.*$//; p;}" log.txt)
+          echo "Package Id Extracted"
+
+          echo "Endorsing policy :${ENDORSEMENT_POLICIES}"
+          if [ -z ${ENDORSEMENT_POLICIES} ]
+          then
+            ## approve for myorg
+            echo "peer query approve"
+            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_VERSION} --init-required > log.txt
           else
-            echo "peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} --isInit -c $qARGS" >> ./invokeChaincode.sh
+            ## approve for myorg
+            echo "peer query approve"
+            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_VERSION} --init-required --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt  
           fi
           
-          chmod 755 ./invokeChaincode.sh
-          sh ./invokeChaincode.sh
         env:
         - name: CORE_VM_ENDPOINT
           value: unix:///host/var/run/docker.sock
@@ -166,10 +174,12 @@ spec:
           value: "{{ $.Values.chaincode.builder }}"
         - name: CHANNEL_NAME
           value: "{{ $.Values.channel.name }}"
-        - name: INSTANTIATION_ARGUMENTS
-          value: '{{ $.Values.chaincode.instantiationarguments }}'
-        - name: NETWORK_VERSION
-          value: "{{ $.Values.metadata.network.version }}"
+        - name: COMMIT_ARGUMENTS
+          value: '{{ $.Values.chaincode.commitarguments }}'
+        - name: CC_RUNTIME_LANGUAGE
+          value: "{{ $.Values.chaincode.lang }}"
+        - name: ENDORSEMENT_POLICIES
+          value: "{{ $.Values.chaincode.endorsementpolicies }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto

@@ -1,28 +1,28 @@
 ---
 ############################################################################################
-# This role creates the commit_chaincode value file
+# This role creates the approve_chaincode value file
 
-# Check or Wait if approve-chaincode is already run
-- name: "Waiting for chaincode to be approve on {{ peer.name }}"
+# Check or Wait if install-chaincode is already run
+- name: "Waiting for chaincode to be installed on {{ peer.name }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Job"
     namespace: "{{ org.name |lower }}-net"
     kubernetes: "{{ org.k8s }}"
-    component_name: "approvechaincode-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+    component_name: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
   when: peer.chaincode is defined
 
-# Check if commit-chaincode is already run
-- name: 'Check for commit-chaincode job'
+# Check if approve-chaincode is already run
+- name: 'Check for approve-chaincode job'
   k8s_info:
     kind: "Job"
     namespace: "{{ namespace }}"
     label_selectors:
-      - "app = commitchaincode-{{peer.chaincode.name}}-{{ peer.chaincode.version }}"
+      - "app = approvechaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   vars:
@@ -31,28 +31,17 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  register: commit_chaincode
+  register: approve_chaincode
   when: peer.chaincode is defined
 
-- name: "Write all endorsing orgs certificates to vault"
-  include_tasks: write.yaml
-  vars:
-    namespace: "{{ org.name |lower }}-net"
-    vault: "{{ org.vault }}"
-    peers: "{{ organization.services.peers | first }}"
-  loop: "{{ network.organizations }}"
-  loop_control:
-    loop_var: organization
-  when: organization.type == 'peer'
-
-# Nested task for chaincode commit
-- name: "Create value file for chaincode commit"
+# Nested task for chanincode approve
+- name: "Create value file for chaincode approve"
   include_role:
     name: helm_component
   vars:    
     name: "{{ org.name | lower }}"
-    type: "commit_chaincode_job"
-    component_name: "commit-{{ org.name | lower }}-{{item.channel_name|lower}}-{{peer.chaincode.name}}{{peer.chaincode.version}}"
+    type: "approve_chaincode_job"
+    component_name: "approve-{{ org.name | lower }}-{{ item.channel_name|lower }}-{{peer.chaincode.name}}{{peer.chaincode.version}}"
     namespace: "{{ org.name |lower }}-net"
     peer_name: "{{ peer.name }}"
     peer_address: "{{ peer.name }}.{{ org.name |lower }}-net:{{ peer.grpc.port }}"
@@ -67,7 +56,7 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: peer.chaincode is defined and commit_chaincode.results[0].resources|length == 0
+  when: peer.chaincode is defined and approve_chaincode.results[0].resources|length == 0
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -81,5 +70,5 @@
     GIT_PASSWORD: "{{ org.gitops.password }}"
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
-    msg: "[ci skip] Pushing chaincode commit files"
-  when: commit_chaincode.results[0].resources|length == 0
+    msg: "[ci skip] Pushing chaincode approve files"
+  when: approve_chaincode.results[0].resources|length == 0

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: commitchaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+  name: commitchaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
   namespace: {{ $.Values.metadata.namespace }}
   labels:
     app: commitchaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
@@ -46,6 +46,10 @@ spec:
           value: {{ $.Values.vault.role }}
         - name: VAULT_PEER_SECRET_PREFIX
           value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: ENDORSING_ORG_NAMES
+          value: "{{ $.Values.endorsers.name }}"
+        - name: CREATOR_NS
+          value: "{{ $.Values.endorsers.creator }}"
         - name: VAULT_ORDERER_SECRET_PREFIX
           value: "{{ $.Values.vault.orderersecretprefix }}"
         - name: MOUNT_PATH
@@ -68,7 +72,8 @@ spec:
             -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-
+          
+          #############################################
           vault_secret_key="${VAULT_ORDERER_SECRET_PREFIX}/tls"
           echo "Getting Orderer TLS certificates from Vault using key $vault_secret_key"
 
@@ -83,6 +88,8 @@ spec:
 
           mkdir -p ${OUTPUT_PATH}
           echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+
+          ###############################################################################
 
           vault_secret_key="${VAULT_PEER_SECRET_PREFIX}/msp"
           echo "Getting MSP certificates from Vault using key $vault_secret_key"
@@ -107,6 +114,34 @@ spec:
           echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
           echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
           echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+
+          ######################################################################
+
+          #Downloading Certificates for all admin users
+          echo $ENDORSING_ORG_NAMES
+          for ns in $ENDORSING_ORG_NAMES
+          do
+            SECRETPREFIX=secret/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${ns}/users/admin
+            echo "Fetching certificates for org: $ns"
+            echo $SECRETPREFIX
+
+            vault_secret_key="$SECRETPREFIX/msp"
+            echo "Getting MSP certificates from Vault using key $vault_secret_key"
+
+            OUTPUT_PATH="${MOUNT_PATH}/endorsers/$ns/msp"
+            echo $OUTPUT_PATH
+
+            LOOKUP_SECRET_RESPONSE=$(curl -sS  \
+              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+            CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["cacerts"]')
+
+            mkdir -p ${OUTPUT_PATH}/cacerts
+            echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+            cat ${OUTPUT_PATH}/cacerts/ca.crt
+          done
         volumeMounts:
         {{ if .Values.vault.tls  }}
         - name: vaultca
@@ -124,28 +159,46 @@ spec:
         command: ["sh", "-c"]
         args:
         - |-
+          #!/bin/bash sh
           echo $COMMIT_ARGUMENTS>COMMIT_ARGUMENTS.txt
           COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
           
-          #query installed
-          peer lifecycle chaincode queryinstalled
-          PACKAGE_ID=$(sed -n "/${CHAINCODE_NAME}_${CHAINCODE_VERSION}/{s/^Package ID: //; s/, Label:.*$//; p;}")
-          {{ if $.Values.chaincode.endorsementpolicies  }}
-            ## approve for myorg
-            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence 1 --init-required --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote}}
-            ## check commit rediness
-            peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence 1 --init-required --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote}} --output json
-            ## commit chaincode
-            peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID $CHANNEL_NAME --name ${CC_NAME} --version ${CC_VERSION} --sequence 1 --init-required --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote}}
-          {{ else }}
-            ## approve for myorg
-            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence 1 --init-required
-            ## check commit rediness
+          COMMIT_CMD="peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence 1 --init-required"
+          
+          for item in $ENDORSERS_CORE_PEER_ADDR
+          do
+            COMMIT_CMD=${COMMIT_CMD}" --peerAddresses "${item}
+          done
+
+          echo ${COMMIT_CMD}
+
+          for item in $ENDORSING_ORG_NAMES
+          do
+            path="/opt/gopath/src/github.com/hyperledger/fabric/crypto/endorsers/${item}/msp/cacerts/ca.crt"
+            COMMIT_CMD=${COMMIT_CMD}" --tlsRootCertFiles "${path}
+          done
+
+          echo ${COMMIT_CMD}
+
+          if [ -z ${ENDORSEMENT_POLICIES} ]
+          then
+            ## check commit readiness
+            echo "peer query commitreadiness"
             peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence 1 --init-required --output json
             ## commit chaincode
-            peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID $CHANNEL_NAME --name ${CC_NAME} --version ${CC_VERSION} --sequence 1 --init-required
-          {{ end }}
-              
+            echo "peer query commit : Endorsement Policy null "
+            eval ${COMMIT_CMD}
+          else
+            ## check commit readiness
+            echo "peer query commit readiness"
+            peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence 1 --init-required --output json --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt
+            cat log.txt
+            ## commit chaincode
+            echo "peer query commit"
+            endorsement_policy=" --signature-policy ${ENDORSEMENT_POLICIES}"
+            COMMIT_CMD=${COMMIT_CMD}${endorsement_policy}
+            eval ${COMMIT_CMD}
+          fi
         env:
         - name: CORE_VM_ENDPOINT
           value: unix:///host/var/run/docker.sock
@@ -179,6 +232,12 @@ spec:
           value: '{{ $.Values.chaincode.commitarguments }}'
         - name: CC_RUNTIME_LANGUAGE
           value: "{{ $.Values.chaincode.lang }}"
+        - name: ENDORSEMENT_POLICIES
+          value: "{{ $.Values.chaincode.endorsementpolicies }}"
+        - name: ENDORSERS_CORE_PEER_ADDR
+          value: "{{ $.Values.endorsers.corepeeraddress }}"
+        - name: ENDORSING_ORG_NAMES
+          value: "{{ $.Values.endorsers.name }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
