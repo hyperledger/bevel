@@ -1,11 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: instantiatechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+  name: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
   namespace: {{ $.Values.metadata.namespace }}
   labels:
-    app: instantiatechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
-    app.kubernetes.io/name: instantiatechaincode-{{ $.Values.chaincode.name }}
+    app: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+    app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}{{ $.Values.chaincode.version }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -15,11 +15,7 @@ spec:
   template:
     metadata:
       labels:
-        app: instantiatechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
-        app.kubernetes.io/name: instantiatechaincode-{{ $.Values.chaincode.name }}
-        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-        app.kubernetes.io/managed-by: {{ .Release.Service }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        app: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
     spec:
       restartPolicy: OnFailure
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
@@ -120,7 +116,7 @@ spec:
         - name: certificates
           mountPath: /secret
       containers:
-      - name: instantiatechaincode
+      - name: approvechaincode
         image: {{ $.Values.metadata.images.fabrictools }}
         imagePullPolicy: Always
         stdin: true
@@ -128,13 +124,27 @@ spec:
         command: ["sh", "-c"]
         args:
         - |-
-          echo $INSTANTIATION_ARGUMENTS>INSTANTIATION_ARGUMENTS.txt
-          INSTANTIATION_ARGUMENTS=$(< INSTANTIATION_ARGUMENTS.txt)
-          {{ if $.Values.chaincode.endorsementpolicies  }}
-            peer chaincode instantiate -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -c '{"Args":['${INSTANTIATION_ARGUMENTS}']}' -P {{ $.Values.chaincode.endorsementpolicies | quote}} --lang ${CC_RUNTIME_LANGUAGE}
-          {{ else }}
-            peer chaincode instantiate -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -c '{"Args":['${INSTANTIATION_ARGUMENTS}']}' --lang ${CC_RUNTIME_LANGUAGE}
-          {{ end }}
+          #!/bin/bash sh
+          echo $COMMIT_ARGUMENTS>COMMIT_ARGUMENTS.txt
+          COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
+          
+          echo "Extracting package id"
+          peer lifecycle chaincode queryinstalled > log.txt
+          PACKAGE_ID=$(sed -n "/${CC_NAME}_${CC_VERSION}/{s/^Package ID: //; s/, Label:.*$//; p;}" log.txt)
+          echo "Package Id Extracted"
+
+          echo "Endorsing policy :${ENDORSEMENT_POLICIES}"
+          if [ -z ${ENDORSEMENT_POLICIES} ]
+          then
+            ## approve for myorg
+            echo "peer query approve"
+            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_VERSION} --init-required > log.txt
+          else
+            ## approve for myorg
+            echo "peer query approve"
+            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_VERSION} --init-required --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt  
+          fi
+          
         env:
         - name: CORE_VM_ENDPOINT
           value: unix:///host/var/run/docker.sock
@@ -164,10 +174,12 @@ spec:
           value: "{{ $.Values.chaincode.builder }}"
         - name: CHANNEL_NAME
           value: "{{ $.Values.channel.name }}"
-        - name: INSTANTIATION_ARGUMENTS
-          value: '{{ $.Values.chaincode.instantiationargs }}'
+        - name: COMMIT_ARGUMENTS
+          value: '{{ $.Values.chaincode.commitarguments }}'
         - name: CC_RUNTIME_LANGUAGE
           value: "{{ $.Values.chaincode.lang }}"
+        - name: ENDORSEMENT_POLICIES
+          value: "{{ $.Values.chaincode.endorsementpolicies }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto

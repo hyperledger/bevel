@@ -27,7 +27,7 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ namespace | e }}-auth
-      adminsecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/users/admin 
+      adminsecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/users/admin
       orderersecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth
       imagesecretname: regcred
@@ -39,6 +39,10 @@ spec:
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
       commitarguments: {{ component_chaincode.arguments | quote}}
-      endorsementpolicies:  {{ component_chaincode.endorsements | quote}}
+      endorsementpolicies:  {{ component_chaincode.endorsements | quote }}
     channel:
       name: {{ item.channel_name | lower }}
+    endorsers:
+      creator: {{ namespace }}
+      name: {% for name in approvers.name %} {{ name }} {% endfor %} 
+      corepeeraddress: {% for address in approvers.corepeerAddress %} {{ address }} {% endfor %}

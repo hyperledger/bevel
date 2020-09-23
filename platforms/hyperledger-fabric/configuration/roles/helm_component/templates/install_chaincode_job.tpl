@@ -49,3 +49,4 @@ spec:
         url: {{ component_chaincode.repository.url }}
         branch: {{ component_chaincode.repository.branch }}
         path: {{ component_chaincode.repository.path }}
+      endorsementpolicies:  {{ component_chaincode.endorsements | quote}}

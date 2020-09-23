@@ -147,11 +147,22 @@ spec:
             echo "Channel ${CHANNEL_NAME} is already created."
           else
             echo "Creating Channel ${CHANNEL_NAME}"
+            version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
             if [ "$tls_status" = "true" ]
             then
-              peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA}
+              if [ $version1_4 = 1 ]
+              then
+                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA}
+              else
+                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --outputBlock /tmp/${CHANNEL_NAME}.block
+              fi
             else
-              peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx 
+              if [ $version1_4 = 1 ]
+              then 
+                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx
+              else
+                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --outputBlock /tmp/${CHANNEL_NAME}.block
+              fi
             fi
           fi
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer

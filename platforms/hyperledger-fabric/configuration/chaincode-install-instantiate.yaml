@@ -13,12 +13,6 @@
   gather_facts: no
   tasks:
 
-    # delete build directory
-    - name: Remove build directory
-      file:
-        path: "./build"
-        state: absent
-        
     - include_role:
         name: "create/chaincode/install"
       vars:
@@ -32,16 +26,25 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
-      when: add_new_org == 'false' and network.version == '1.4.4'
+      when: add_new_org == 'false' and '1.4' in network.version
+
+    - include_role:
+        name: "create/chaincode/approve"
+      vars:
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: participants is defined and '2.' in network.version
 
     - include_role:
         name: "create/chaincode/commit"
       vars:
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
+        approvers: "{{ item.endorsers }}"
       loop: "{{ network['channels'] }}"
       when: add_new_org == 'false' and '2.' in network.version    
-
+        
     # This task invokes chaincode after the chaincode installation for the new organization to 
     # be added in existing network
     - include_role:
@@ -51,10 +54,16 @@
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
       when: add_new_org == 'true'
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
     
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    bin_install_dir:  "~/bin"           #Default to /bin install directory for binaries
     add_new_org: 'false'
