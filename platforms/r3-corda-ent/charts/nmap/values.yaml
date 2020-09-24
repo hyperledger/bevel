@@ -1,0 +1,203 @@
+# Default values for the Networkmap (nmap) service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#############################################################
+#                   Basic Configuration                     #
+#############################################################
+
+# Provide the name of the node
+# e.g. `networkmap`
+nodeName:
+
+# This section contains the Corda Enterprise nmap metadata.
+metadata:
+  # Provide the namespace for the Corda Enterprise nmap.
+  # Eg. namespace: cenm
+  namespace:
+  # Provide any additional labels for the Corda Enterprise nmap.
+  labels:
+
+storage:
+  # Provide the name of the storageclass.
+  # NOTE: Make sure that the storageclass exist prior to this deployment as
+  # this chart doesn't create the storageclass.
+  # Eg. name: cenm
+  name:
+  # Provide the memory size for the storage class.
+  # Eg. memory: 64Mi
+  memory:
+
+# Image for the init-containers
+image:
+  # Name of the Docker image to use for init-containers, e.g. `index.docker.io/hyperledgerlabs/alpine-utils:1.0`
+  initContainerName:
+  # Name of the Docker image to use for the main Networkmap Service, e.g. corda/enterprise-networkmap:1.2-zulu-openjdk8u24
+  nmapContainerName:
+  # Pull secret to use for the Docker image, e.g. `regcred`
+  imagePullSecret:
+  # When to pull the image, e.g. `Always`
+  pullPolicy:
+
+# required parameter
+acceptLicense: YES
+
+#############################################################
+#               HashiCorp Vault Configuration               #
+#############################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication. 
+# For more info, see https://www.vaultproject.io/docs/auth/kubernetes
+
+# Values for HashiCorp Vault
+vault:
+  # Address of the vault, e.g. `http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200`
+  address:
+  # Which role to use when connecting to vault, e.g. `vault-role`
+  role:
+  # Authpath created for networkmap, e.g. cordaentcenm
+  authPath: 
+  # Serviceaccount, eg. vault-auth
+  serviceAccountName: 
+  # Prefix to use for secret engine for certificates, e.g. `cenm/certs`
+  certSecretPrefix: 
+  # The amount of times to retry fetching from/writing to Vault before giving up.
+  # Eg. retries: 10
+  retries:
+  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
+  # Eg. sleepTimeAfterError: 15  
+  sleepTimeAfterError:
+ 
+
+#############################################################
+#                    Nmap Configuration                     #
+#############################################################
+
+service:
+  # Nmap 'main' service
+  external:
+    # E.g. port: 10000
+    port:
+  # Internal service, inside the K8s cluster
+  internal:
+    # E.g. port: 5050
+    port:
+  # Values for the Revocation check
+  revocation:
+    # On which port to check for Revocation, e.g. `5053`
+    port:
+  # Values for the ssh session into the Networkmap Service
+  shell:
+    # Port to use in sshd service, e.g. `2222`
+    sshdPort:
+    # User for ssh session, e.g. `nmap`
+    user:
+    # Password for ssh session, e.g. `password`
+    password:
+
+serviceLocations:
+  # Values for the Identity Manager (idman)
+  identityManager:
+    # Name of idman service
+    # E.g. name: idman
+    name: 
+    # External domain name of idman service
+    # E.g. domain: 
+    domain:
+    # Host of idman 
+    # E.g. host: idman.{namespace}
+    host:
+    # Port of idman
+    # E.g. port: 5052
+    port: 
+  # Values for notary service
+  notary:
+    # Name of the notary service
+    # E.g. name: notary
+    name:
+
+#############################################################
+#                Database Options and Configuration         #
+#############################################################
+database:
+  # Java class name to use for the database
+  # Eg. driverClassName: "org.h2.Driver"
+  driverClassName:
+  # The DB connection URL 
+  # Eg. url: "jdbc:h2:file:./h2/identity-manager-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
+  url:
+  # DB user
+  # Eg. user: "example-db-user"
+  user:
+  # DB password 
+  # Eg. password: "example-db-password"
+  password:
+  # Migrations of database can be run as part of the startup of nmap, if set to true. 
+  # If set to false, it will be run prior to setting up the nmap.
+  # E.g. runMigration: true
+  runMigration:
+
+#############################################################
+#                       Settings                            #
+#############################################################
+config:
+  # Provide volume related specifications
+  volume:
+    # E.g. baseDir: /opt/corda
+    baseDir:
+
+  # Provide the path where the CENM Idman .jar-file is stored
+  # Eg. jarPath: bin
+  jarPath:
+
+  # Provide the path where the CENM Service configuration files are stored
+  # Eg. configPath: etc
+  configPath:
+  
+  # Provide any extra annotations for the PVCs
+  pvc:
+    #   annotations:
+    #     key: "value"
+    annotations: {}
+
+  # Provide any extra annotations for the deployment
+  deployment:
+    #   annotations:
+    #     key: "value"
+    annotations: {}
+
+  # Specify the maximum size of the memory allocation pool
+  cordaJar:
+    # Provide the memory size.
+    # Eg. memorySize: 4096 (if using kilobytes)
+    # Eg. memorySize: 512 (if using megabytes)
+    # Eg. memorySize: 1 (if using gigabytes) 
+    memorySize:
+    # Provide the unit of greatness for the size, one of three options:
+    # - k or K for kilobytes
+    # - m or M for megabytes
+    # - g or G for gigabytes
+    # Eg. unit: M 
+    unit:
+    
+  # Set memory limits of pod  
+  pod:  
+    resources:
+      # Provide the limit memory for node
+      # Eg. limits: 512M
+      limits:
+      # Provide the requests memory for node
+      # Eg. requests: 550M
+      requests:
+         
+  # Provide the number of replicas for your pods
+  # Eg. replicas: 1
+  replicas:
+  
+  # Whether the NMS will check the certificate revocation list, e.g. `true`
+  checkRevocation: true
+
+healthCheck:
+  # Health Check node port set to get rid of logs pollution
+  # Eg. nodePort: 0
+  nodePort:

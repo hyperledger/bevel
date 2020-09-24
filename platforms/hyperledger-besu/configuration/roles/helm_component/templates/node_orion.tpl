@@ -27,9 +27,6 @@ spec:
       namespace: {{ component_ns }}
       labels:
 
-    ambassador:
-      external_url_suffix: {{ external_url }}
-
     liveliness_check:
       enabled: false
 
@@ -38,9 +35,7 @@ spec:
       external_url: {{ name }}.{{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
       rpc: {{ peer.rpc.ambassador }}
-      ws: {{ peer.ws.ambassador }}
-      nodeport: {{ peer.tm_nodeport.ambassador }}
-      clientport: {{ peer.tm_clientport.ambassador }}
+      tmport: {{ peer.tm_nodeport.ambassador }}
 
     images:
       node: hyperledger/besu:{{ network.version }}
@@ -69,6 +64,7 @@ spec:
       url: "http://{{ name }}.{{ external_url }}"
 {% endif %}
       nodelist: "{{nodelist}}"
+      trust: {{ network.config.tm_trust }}
       ports:
         nodeport: {{ peer.tm_nodeport.port }}
         clientport: {{ peer.tm_clientport.port }}

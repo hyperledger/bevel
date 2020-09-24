@@ -1,0 +1,214 @@
+# Default values for Node Registration job.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Provide the name of the node
+# Eg. nodeName: carrier-registration
+nodeName:
+
+# This section contains the Enterprise-Corda node metadata.
+metadata:
+  # Provide the namespace for the Corda node.
+  # Eg. namespace: cenm
+  namespace:
+  # Provide the labels to the Corda node.
+  labels:
+
+# Provide image for the containers
+image:
+  # Provide the alpine utils image.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
+  initContainerName:
+  # Enterprise node image
+  # Eg. adopblockchaincloud0502.azurecr.io/corda_image_ent_4.4:latest
+  nodeContainerName:
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecret: regcred
+  imagepullsecret:
+  # Image pull policy
+  # Eg. Always
+  pullPolicy:
+
+# required parameter
+# Accept Corda Enterprise license should be YES.
+acceptLicense: YES
+
+#############################################################################################
+#                 This section contains the vault related information.                      #                               
+#############################################################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication.
+
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address: 
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role:
+  # Provide the authpath configured to be used.
+  # Eg. authpath: entcordacenm
+  authpath:
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceaccountname:
+  # Provide the vault path where the  certificates are stored
+  # Eg. certsecretprefix: secret/organisation-name
+  certsecretprefix:
+  # Provide the vault orginsation node folder name where the certificates are stored
+  # Eg. nodePath: carrier
+  nodePath:
+  # Number of retries to check contents from vault 
+  retries:
+  # Interval in seconds between retries
+  retryInterval:
+
+#############################################################
+#                    Node Configuration                     #
+#############################################################
+nodeConf:
+  ambassador:
+    p2pPort: 
+    external_url_suffix: 
+    # Node external address
+    # Eg. p2pAddress: carrier.rce.blockchainexample.com:15010
+    p2pAddress: 
+  # Node legal name
+  # Eg. legalName: O=Node,OU=Node,L=London,C=GB
+  legalName: 
+  # Email address
+  # Eg. emailAddress: dev-node@baf.com
+  emailAddress: 
+  # crlCheckSoftFail defines if CRL failure is a critical error or if we can just fail softly (by logging an error) and continuing
+  crlCheckSoftFail: true
+  # tlsCertCrlDistPoint defines the endpoint for retrieving the CRL (Certificate Revocation List) of the Corda Network, if empty "", not used
+  # Example from Corda Network UAT network: http://crl.uat.corda.network/nodetls.crl
+  # Eg. tlsCertCrlDistPoint: "", empty for current usage
+  tlsCertCrlDistPoint: "" 
+  # tlsCertCrlIssuer defines the X500 name of the trusted CRL issuer of the Corda Network, example from the Corda Network UAT network
+  # Eg. tlsCertCrlIssuer: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  tlsCertCrlIssuer: 
+  devMode: false
+  # Provide volume related specifications
+  volume:
+    # Ex baseDir: /opt/corda
+    baseDir:
+  # where is node jar is stored
+  jarPath: bin
+  # where service configuration files are stored
+  configPath: etc
+  # Specify the maximum size of the memory allocation pool
+  cordaJar:
+    # Provide the memory size.
+    # Eg. memorySize: 4096 (if using kilobytes)
+    # Eg. memorySize: 512 (if using megabytes)
+    # Eg. memorySize: 1 (if using gigabytes) 
+    memorySize:
+    # Provide the unit of greatness for the size, one of three options:
+    # - k or K for kilobytes
+    # - m or M for megabytes
+    # - g or G for gigabytes
+    # Eg. unit: M 
+    unit:
+    # Set limits of .jar  
+  pod:
+    resources:
+      # Provide the limit memory for node
+      # Eg. limits: 512M
+      limits:
+      # Provide the requests memory for node
+      # Eg. requests: 550M
+      requests:
+
+networkServices:
+  # Ex. idmanName: idman
+  idmanName:
+  # doormanURL defines the accesspoint for the Identity Manager server (protocol + domain name + port, eg. http://my-identity-manager:10000)
+  doormanURL: 
+  idmanDomain: 
+  # Ex. networkmapName: networkmap
+  networkmapName:
+  # networkMapURL defines the accesspoint for the Network Map server (protocol + domain name + port, eg. http://my-network-map:10000)
+  networkMapURL:
+  networkMapDomain: 
+    
+service:
+  # p2pPort defines the port number of inbound connections
+  # Eg. p2pPort: 40000
+  p2pPort:
+  # p2pAddress defines the public facing IP address (domain name recommended) and port number of the Node, in the case of using a Float, this address should correspond to the public IP address of the float
+  # Eg. float-internal.cenm-ent
+  p2pAddress:
+  # ssh defines the SSH access options
+  ssh:
+    # enabled is a boolean value for the above parameter
+    enabled: true
+    # sshdPort is the Node Shell access port.
+    # Eg. sshdPort: 2222
+    sshdPort: 
+  rpc:
+    # port is the RPC endpoint that the user interface will access to direct the CorDapp on the Corda Node
+    # Eg. port: 30000
+    port: 
+    # adminPort is the RPC admin endpoint that can be used to do administrative tasks on the Corda Node.
+    # Eg. adminPort: 30009
+    adminPort: 
+    # users defines the list of RPC users and the permissions they have.
+    users:
+      # name defines the name of the RPC user
+      # Eg. name: carrier-node
+    - name: 
+      # password defines the password for the RPC user
+      # Eg. password: nodeP
+      password: 
+      # permissions defines the RPC permissions available.
+      permissions: ALL
+
+#############################################################
+#                Database Options and Configuration         #
+#############################################################
+dataSourceProperties:
+  dataSource:
+    # Ex user: "sa"
+    user: 
+    # Ex. password: "ziAscD0MJnj4n4xkFWY6XuMBuw9bvYC7"
+    password: 
+    # Eg. url: "jdbc:h2:tcp://carrierdb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+    url: 
+    # Eg. dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+    dataSourceClassName: 
+    # dbUrl: notarydb
+    dbUrl:
+    # dbPort: 9101
+    dbPort: 
+  monitoring:
+    # enabled is a boolean value for the above parameter
+    enabled: true
+    # port defines the port on which the monitoring information will be available
+    port: 8090
+  # allowDevCorDapps defines if CorDapps that are signed with developer keys will be allowed to load or not (it clears the cordappSignerKeyFingerprintBlacklist if enabled)
+  allowDevCorDapps:
+    # enabled is a boolean value for the above parameter
+    enabled: true
+  # Number of retries to check contents from vault 
+  retries:
+  # Interval in seconds between retries
+  retryInterval:
+
+#############################################################
+#                       Settings                            #
+############################################################# 
+# sleep time in seconds when error while registration
+# Ex. sleepTimeAfterError: 120
+sleepTimeAfterError: 120
+# custom sleep time in seconds
+sleepTime: 20
+healthcheck:
+  #Provide the wait interval in seconds in fetching certificates from vault
+  #Eg. readinesscheckinterval: 5
+  readinesscheckinterval: 5
+  #Provide the threshold number of retries in fetching certificates from vault
+  #Eg. readinessthreshold: 2
+  readinessthreshold: 2

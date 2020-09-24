@@ -7,16 +7,6 @@
   loop_control:
     loop_var: peer
 
-# Ensure the directories exists
-- name: Ensure the folder structure exists for tls 
-  file:
-    path: "{{ build_path }}/crypto/{{ org.name }}-bes/{{ peer.name }}/tls"
-    state: directory
-  loop: "{{ peers }}"
-  loop_control:
-    loop_var: peer
-  when: network.config.tm_tls == True
-
 # This tasks create orion nodeKey for every peer
 - name: create orion nodeKey
   shell: |
@@ -26,26 +16,10 @@
   loop_control:
     loop_var: peer
 
-# This tasks create tls certificates for orion
-- name: create tls certificates
-  shell: |
-    cd {{ build_path }}/crypto/{{ org.name }}-bes/{{ peer.name }}/tls
-    eval "openssl genrsa -out orion_cer.key 2048"
-    eval "openssl req -new -key orion_cer.key -out orion_cer.csr -subj '/{{ cert_subject }}/CN={{ common_name }}'"
-    eval "openssl x509 -req -in orion_cer.csr -CA {{ build_path }}/tls/orion_ca.pem -CAkey {{ build_path }}/tls/orion_ca.key -CAcreateserial -out orion_cer.pem -days 500 -sha256"
-  vars:
-    common_name: "{{ peer.name }}.{{ org.external_url_suffix }}"
-    cert_subject: "{{ peer.subject | regex_replace(',', '/') }}"
-  loop: "{{ peers }}"
-  loop_control:
-    loop_var: peer
-  when: network.config.tm_tls == True
-
 # This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   shell: |
     vault kv put secret/{{ component_ns }}/crypto/{{ peer.name }}/orion key="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/nodeKey.key)" key.pub="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/nodeKey.pub)" password="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/password)"
-    vault kv put secret/{{ component_ns }}/crypto/{{ peer.name }}/tls orion_ca.pem="$(cat {{ build_path }}/tls/orion_ca.pem)" orion_cer.pem="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/tls/orion_cer.pem)" orion_cer.key="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/tls/orion_cer.key)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

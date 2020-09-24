@@ -17,15 +17,10 @@
   local_action: copy content="{{ vault_output['data'].ambassadorkey | b64decode }}" dest="{{ cert_path }}/ambassador.key"
   when: type == "ambassador"
 
-- name: Save root keychain
-  local_action: copy content="{{ vault_output['data'].rootca | b64decode }}" dest="{{ cert_path }}/rootca.jks"
+- name: Save rootca file
+  local_action: copy content="{{ vault_output['data'].rootca_pem | b64decode }}" dest="{{ cert_path }}/rootca.pem"
   when: type == "rootca"
 
-- name: Extracting root certificate from .jks
-  shell: |
-    cd {{cert_path}}
-    eval "keytool -importkeystore -srckeystore rootca.jks -destkeystore rootca.p12 -srcalias rootca -srcstoretype jks -deststoretype pkcs12 -srcstorepass 'hyperledgerbesu' -deststorepass 'hyperledgerbesu'"
-    eval "openssl pkcs12 -in rootca.p12 -nokeys -out rootca.pem -passin pass:'hyperledgerbesu' -passout pass:'hyperledgerbesu'"
-    eval "openssl pkcs12 -in rootca.p12 -nodes -nocerts -out rootca.key -passin pass:'hyperledgerbesu' -passout pass:'hyperledgerbesu'"
-  when: type == 'rootca'
-
+- name: Save root key
+  local_action: copy content="{{ vault_output['data'].rootca_key | b64decode }}" dest="{{ cert_path }}/rootca.key"
+  when: type == "rootca"

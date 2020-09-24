@@ -11,6 +11,7 @@ The following diagram shows how Corda peer nodes will be deployed on your Kubern
 1. Certificates are mounted as in-memory volumes from the [Vault](#vault-config).
 1. The h2 database is a separate pod running in the same namespace. In future release, PostgreSQL will be implemented as well.
 1. All storage uses a Kubernetes Persistent Volume.
+1. Release 0.6.0.0 does not implement Corda firewall components. These will be implemented in later releases based on demand.
 
 ### Support Services
 The following diagram shows how the Corda Enterprise Network Map Services (**Identity Manager**, **Networkmap**, **Signer** and **Notary**) will be deployed on your Kubernetes instance(s).
@@ -23,35 +24,36 @@ The following diagram shows how the Corda Enterprise Network Map Services (**Ide
 1. All CENM pods (except Notary) have separate H2 volume for data storage. In future release, PostgreSQL will be implemented as well.
 1. Notary service has a separate H2 pod for data storage. In future release, PostgreSQL will be implemented as well.
 1. All storage uses a Kubernetes Persistent Volume.
+1. Release 0.6.0.0 implements Notary in the same namespace as other CENM services. They will be separated when HA Notary is implemented in later releases.
 
 ## Components
 ![Figure: Corda Enterprise Components](../../images/blockchain-automation-framework-corda-ent.png)
 
 ### Docker Images
 
-For Corda Enterprise, the *corda_ent_node* and *corda_ent_firewall* docker images should be built and put in a private docker registry. Please follow [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images) to build docker images for Corda Enterprise. 
+For Corda Enterprise, the *corda_ent_node* and *corda_ent_firewall* docker images should be built and put in a private docker registry. Please follow [these instructions](https://github.com/Accenture-BAF/corda-kubernetes-deployment/tree/master/docker-images) to build docker images for Corda Enterprise. 
 
-The official Corda images are available on [Docker Hub](https://hub.docker.com/u/corda). These are evaluation only, for production implementation, please aquire licensed images from R3 and update the tags accordingly.
+The official Corda images are available on [Docker Hub](https://hub.docker.com/u/corda). These are evaluation only, for production implementation, please aquire licensed images from R3, upload them into your private docker registry and update the tags accordingly.
 
 Following Corda Docker Images are used and needed by the Blockchain Automation Framework.
-* [Corda Network Map Service](https://hub.docker.com/r/corda/enterprise-networkmap) 
+* [Corda Network Map Service](https://hub.docker.com/r/corda/enterprise-networkmap) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/images))
 * [Corda Identity Manager Service](https://hub.docker.com/r/corda/enterprise-identitymanager)
 * [Corda Signer](https://hub.docker.com/r/corda/enterprise-signer)
-* [Corda PKITool](https://hub.docker.com/r/corda/enterprise-pkitool)
-* [Corda Notary](https://hub.docker.com/r/corda/notary)
-* Corda Node (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images/))
-* Corda Firewall (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/corda-ent/images))
+* [Corda PKITool](https://hub.docker.com/r/corda/enterprise-pkitool) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/images))
+* [Corda Notary](https://hub.docker.com/r/corda/notary) (Built as per [these instructions](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/images))
+* Corda Node (Built as per [these instructions](https://github.com/Accenture-BAF/corda-kubernetes-deployment/tree/master/docker-images))
+* Corda Firewall (Built as per [these instructions](https://github.com/Accenture-BAF/corda-kubernetes-deployment/tree/master/docker-images))
 
 ### Ansible Playbooks
 
-Detailed information on ansible playbooks can be referred [here](../developer/corda-ansible) and the execution process can be referred [here](../operations/setting_dlt.md)
+Detailed information on ansible playbooks can be referred [here](../developer/corda-ent-ansible) and the execution process can be referred [here](../operations/setting_dlt.md).
 
 ### Helm Charts
-Detailed information on helm charts can be referred [here](../developer/corda-helmcharts.md)
+Detailed information on helm charts can be referred [here](../developer/corda-ent-helmcharts.md).
 
 
 <a name="vault-config"></a>
-## Vault Configuration
+## Vault Configuration WIP
 The Blockchain Automation Framework stores their `crypto` and `credentials` immediately within the secret secrets engine.
 
 | Crypto Material Path | Credentials Path     |

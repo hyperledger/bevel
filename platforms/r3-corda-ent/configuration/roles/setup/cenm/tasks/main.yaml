@@ -1,0 +1,88 @@
+##############################################################################################
+# This role sets up all cenm services
+##############################################################################################
+    
+- name: "Wait for namespace creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+    type: "retry"
+
+- name: "Wait for vault-auth creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-auth"
+    type: "retry"
+  tags:
+    - notest    
+
+- name: "Wait for vault-reviewer creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-reviewer"
+    type: "retry"
+  tags:
+    - notest    
+
+- name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ component_ns }}-role-tokenreview-binding"
+    type: "retry"
+  tags:
+    - notest    
+
+# ----------------------------------------------------------------------  
+# create vault access policies
+- name: "Setup vault access for cenm"
+  include_role: 
+    name: setup/vault_kubernetes
+  vars:
+    component_name: "{{ org.name | lower }}"
+    component_path: "{{ org.name | lower }}/"
+    component_auth: "cordaent{{ org.name | lower }}"
+    component_type: "{{ org.type | lower }}"
+
+# Check if the certs are already created
+- name: Check if the root certs are already created
+  shell: |
+    vault kv get -format=yaml secret/{{ org.name | lower }}/root/certs
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: root_certs
+  ignore_errors: yes
+
+# Generate crypto using pki-generator
+- name: "Generate crypto using pki-generator"   
+  include_role: 
+    name: "setup/pki-generator"
+  when: root_certs.failed
+
+# Deploy Signer node
+- name: Deploy Signer service
+  include_role:
+    name: setup/signer
+
+# Deploy Idman service
+- name: Deploy Idman service
+  include_role:
+    name: setup/idman
+
+# Deploy networkmap service
+- name: Deploy networkmap service
+  include_role:
+    name: setup/nmap
+
+# Deploy notary service 
+- name: Deploy notary service
+  include_role:
+    name: setup/notary

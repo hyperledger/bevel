@@ -16,27 +16,24 @@ metadata:
       ---
       apiVersion: ambassador/v1
       kind: TCPMapping
-      name: {{ .Values.node.name }}-ws
-      port: {{ .Values.proxy.ws }}
-      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.ws }}
-      ---
-      apiVersion: ambassador/v1
-      kind: TCPMapping
       name: {{ .Values.node.name }}-rlpx
       port: {{ .Values.proxy.p2p }}
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.p2p }}
       ---
       apiVersion: ambassador/v1
       kind: TCPMapping
-      name: {{ .Values.node.name }}-nodeport
-      port: {{ .Values.proxy.nodeport }}
+      name: {{ .Values.node.name }}-tmport      
+      host: {{ .Values.proxy.external_url }}
+      port: {{ .Values.proxy.tmport }}
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.orion.ports.nodeport }}
+      tls: {{ .Values.node.name }}_mapping_tlscontext
       ---
       apiVersion: ambassador/v1
-      kind: TCPMapping
-      name: {{ .Values.node.name }}-clientport
-      port: {{ .Values.proxy.clientport }}
-      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.orion.ports.clientport }}
+      kind: TLSContext
+      name: {{ .Values.node.name }}_mapping_tlscontext
+      hosts:
+      - {{ .Values.proxy.external_url }}
+      secret: {{ .Values.node.name }}-ambassador-certs
     {{- end }}
   creationTimestamp: null
   labels:

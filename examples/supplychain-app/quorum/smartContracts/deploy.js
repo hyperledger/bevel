@@ -58,7 +58,7 @@ const DeployContract = (payload, parameter, myContract) =>{
         console.log("contract Name: ", contractName); // returning the contract address
         process.env.CONTRACT_ADDRESS = address; // exporting the contract address to an Environment variable
         web3.eth.getTransactionReceipt(transactionHash).then((transaction)=>{
-            console.log("Transaction Recipt for the transaction hash ",transactionHash," : ",transaction); // logging the transaction recipt
+            console.log("Transaction Receipt for the transaction hash ",transactionHash," : ",transaction); // logging the transaction recipt
         });
         return(address);
     })
