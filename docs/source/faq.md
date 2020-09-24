@@ -43,7 +43,7 @@ Unfortunately, there are no existing training for using the Blockchain Automatio
 Yes, you can add additional nodes to a running DLT/Blockchain network using the Blockchain Automation Framework (BAF). Unfortunately, BAF does not support removing nodes in a running DLT/Blockchain network, but this significant feature is in our future roadmap, and we will add this feature in a future release.
 
 ### Does the Blockchain Automation Framework support multiple versions of Fabric and Corda? What are the minimum versions for Fabric and Corda supported in the Blockchain Automation Framework?
-The Blockchain Automation Framework currently only supports version 1.4.0, 1.4.4 & 2.0.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda. Corda Enterprise 4.4 is in progress.
+The Blockchain Automation Framework currently only supports version 1.4.0, 1.4.4 & 2.0.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda. Corda Enterprise 4.4 is available as per Release 0.6.0.0. Please check the [latest releases](https://github.com/hyperledger-labs/blockchain-automation-framework/releases) for version upgrades and deprecations.
 
 ## 2.FAQs for Operators Guide
 
@@ -75,21 +75,21 @@ Please see this [page](./operations/setting_dlt.md) for detials.
 One could request a new feature on the Github repository for now. In the future, people might use Jira or Slack to do the same as well.
 
 ### Are CI/CD pipeline tools a mandatory to use the Blockchain Automation Framework?
-No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a user automate the set-up or testing of a new DLT/Blockchain network in different environments, once a user has a good understanding of using it.
+No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a user automate the set-up or testing of a new DLT/Blockchain network in different environments, once a user has a good understanding of using it. We have the master Jenkinsfile in `automation` folder which can be taken as a template.
 
 ### Is it required to run Ansible in a particular machine like AWS EC2?
 No, a user should be able to run the Ansible command on any machine as long as Ansible command CLI is installed.
 
 ### Is there an example ansible_hosts file?
-Yes, you can find an example ansible_hosts file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisoners). The configuration in this file means that all Ansible commands will be run in the same machine that works as both an Ansible client and server machine.
+Yes, you can find an example ansible_hosts file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisioners). The configuration in this file means that all Ansible commands will be run in the same machine that works as both an Ansible client and server machine.
 
 ### Can I specify the tools versions such as kubectl, helm in this project?
 Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [environment-setup.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/environment-setup.yaml).
 
 ### How would system react if we plan to update tools versions (e.g. kubectl, helm)?
-Honest speaking, we don't know. Currently the Blockchain Automation Framework has been tested on specific versions of these tools, see below:
-(1) Kubectl: v1.14.2
-(2) Helm: v2.14.1
+Honestly speaking, we don't know. The latest version Blockchain Automation Framework has been tested on specific client versions of these tools, see below:
+(1) Kubectl: v1.14.2 for Kubernetes 1.14, v1.16.13 for Kubernetes 1.16
+(2) Helm: v2.14.1 for Kubernetes 1.14, v2.16.10 for Kubernetes 1.16
 (3) HashiCorp Vault: v1.0.1
 (4) AWS-Authenticator: v1.10.3
 

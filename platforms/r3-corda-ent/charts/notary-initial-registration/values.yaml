@@ -1,0 +1,181 @@
+# Default values for Notary Registration job.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Provide the name of the node
+# Eg. nodeName: notary-registration
+nodeName:
+
+# This section contains the Enterprise-Corda node metadata.
+metadata:
+  # Provide the namespace for the Corda node.
+  # Eg. namespace: cenm
+  namespace:
+  # Provide the labels to the Corda node.
+  labels:
+
+# Provide image for the containers
+image:
+  # Provide the alpine utils image.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
+  initContainerName:
+  # Enterprise node image
+  # Eg. adopblockchaincloud0502.azurecr.io/corda/notary:1.2-zulu-openjdk8u242
+  nodeContainerName:
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecret: regcred
+  imagePullSecret:
+  # Image pull policy
+  # Eg. Always
+  pullPolicy:
+
+# required parameter
+# Accept Corda Enterprise license should be YES.
+acceptLicense: YES
+
+#############################################################################################
+#                 This section contains the vault related information.                      #                               
+#############################################################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication.
+
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address: 
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role:
+  # Provide the authpath configured to be used.
+  # Eg. authpath: entcordacenm
+  authpath:
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceaccountname:
+  # Provide the vault path where the  certificates are stored
+  # Eg. certsecretprefix: secret/organisation-name
+  certsecretprefix:
+  # Provide the vault orginsation node folder name where the certificates are stored
+  # Eg. nodePath: notary
+  nodePath:
+  # Number of retries to check contents from vault 
+  retries:
+  # Interval in seconds between retries
+  retryInterval:
+
+#############################################################
+#                    Notary Configuration                   #
+#############################################################
+nodeConf:
+  p2p:
+    url:
+  ambassador:
+    p2pPort: 
+    external_url_suffix: 
+    p2pAddress: 
+  # Notary legal name
+  # Eg. legalName: O=Notary,OU=Notary,L=London,C=GB
+  legalName:
+    # Email address
+    # Eg. emailAddress: dev-node@baf.com
+    emailAddress: 
+    # Notary is validator Ex : isValidating: true
+  notary:
+    validating:
+    # Dev Mode
+  devMode: false
+  # Provide volume related specifications
+  volume:
+    # Ex baseDir: /opt/corda
+    baseDir:
+  # where is node jar is stored
+  jarPath: 
+  # where service configuration files are stored
+  configPath:
+  # Specify the maximum size of the memory allocation pool
+  cordaJar:
+    # Provide the memory size.
+    # Eg. memorySize: 4096 (if using kilobytes)
+    # Eg. memorySize: 512 (if using megabytes)
+    # Eg. memorySize: 1 (if using gigabytes) 
+    memorySize:
+    # Provide the unit of greatness for the size, one of three options:
+    # - k or K for kilobytes
+    # - m or M for megabytes
+    # - g or G for gigabytes
+    # Eg. unit: M 
+    unit:
+    # Set limits of .jar  
+  pod:
+    resources:
+      # Provide the limit memory for node
+      # Eg. limits: 512M
+      limits:
+      # Provide the requests memory for node
+      # Eg. requests: 550M
+      requests:
+        
+networkServices:
+  # Ex. idmanName: idman
+  idmanName: 
+  # doormanURL defines the accesspoint for the Identity Manager server (protocol + domain name + port, eg. http://my-identity-manager:1000)
+  doormanURL:
+  idmanDomain:
+  # Ex. networkmapName: networkmap
+  networkmapName:
+  # networkMapURL defines the accesspoint for the Network Map server (protocol + domain name + port, eg. http://my-network-map:10000)
+  networkMapURL:
+  networkMapDomain:
+    
+service:
+  # p2pPort defines the port number of inbound connections
+  # Eg. p2pPort: 40000
+  p2pPort: 
+  notaryPublicIP:
+  rpc:
+    address: 
+    addressPort: 
+    admin:
+      address: 
+      addressPort: 
+    standAloneBroker: 
+    useSSL: 
+    users:
+      username: 
+      password:  
+
+#############################################################
+#                Database Options and Configuration         #
+#############################################################
+dataSourceProperties:
+  dataSource:
+    # Ex. password: "ziAscD0MJnj4n4xkFWY6XuMBuw9bvYC7"
+    password:
+    # Ex. url: "jdbc:h2:tcp://notarydb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+    url:
+    # Ex user: "sa"
+    user:
+  # Ex data source class name: "org.h2.jdbcx.JdbcDataSource"
+  dataSourceClassName:
+  # dbUrl: notarydb
+  dbUrl:
+  # dbPort: 9101
+  dbPort:
+
+#############################################################
+#                       Settings                            #
+#############################################################
+# sleep time in seconds when error while registration
+# Ex. sleepTimeAfterError: 120
+sleepTimeAfterError:
+# custom sleep time in seconds
+sleepTime:
+healthcheck:
+  #Provide the wait interval in seconds for any readiness check
+  #Eg. readinesscheckinterval: 5
+  readinesscheckinterval: 5
+  #Provide the threshold number of retries
+  #Eg. readinessthreshold: 2
+  readinessthreshold:

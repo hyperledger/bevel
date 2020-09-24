@@ -100,17 +100,52 @@ This task rename the above created directories to the org_name/node_name
 **copy** : This module copies the content of numerical directories to org/node directory
 **when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
 
-#### 13. Generate the nodeAddress for each peer
+#### 13. Create organization directory if it does not exist
+ This task creates the organization directories for crypto material if not exists.
+**file** : This module will create the directory if it does not exist with 755 permissions.
+**when**: *add_new_org* is true.
+
+#### 14. Generate the nodeAddress for each peer
  This task creates the node address for each peer 
 **shell**: This task generates the nodeAddress for each node placed in node directories
 **when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
 
-#### 14. Delete the keys directories
+#### 15. Generate the key.pub for each peer of new organization
+ This task creates the node public key for each peer of new organization
+**shell**: This task generates thepublic key for each node placed in new organization peer
+**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
+
+#### 16. Touch file to store information for validators
+ This file stores the address of the validator nodes
+**file** : This module will create the file if it does not exist
+**when**: *generate_crypto* count is *True*.
+
+#### 17. Touch toEncode.json file
+ This file used by besu binary to generate the extra data information
+**file** : This module will create the flie if it does not exist.
+**when**: *generate_crypto* count is *True*.
+
+#### 18. Touch modified genesis file
+ New genesis file with updated extradata
+**file** : This module will create the flie if it does not exist.
+**when**: *generate_crypto* count is *True*.
+
+#### 19. Get node data
+ Create the validator address array 
+**shell**: This task generates the validator address array 
+**when**: *generate_crypto* count is *True*.
+
+#### 20. Create the new genesis file with information for validator nodes
+ This task crestes the rlp encoded string and add it to extraData field in newGenesis.json
+**shell**: This task crestes the rlp encoded string and add it to extraData field in newGenesis.json 
+**when**: *generate_crypto* count is *True*.
+
+#### 21. Delete the keys directories
  This tasks deletes the keys directories
 **file** : This module deletes the numerical directories
 **when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
 
-#### 15. Copy the crypto material to Vault
+#### 22. Copy the crypto material to Vault
 This task adds the crypto material to Vault
 **include_tasks**: add_to_vault
 **loop**: loops over all the node in an organisation

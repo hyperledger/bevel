@@ -1,0 +1,61 @@
+# This playbook deletes the DLT network on existing Kubernetes clusters which has been created
+#  using the Blockchain Automation Framework.
+# Please use the same network.yaml to run this playbook as used for deploy-network.yaml
+###########################################################################################
+# THIS PLAYBOOK DELETES EVERYTHING, EVEN NAMESPACES and FLUX
+###########################################################################################
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+    # ----------------------------------------------------------------------
+    # Delete Gitops file and check-in
+    - include_role:
+        name: "delete/gitops_files"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+
+    # ----------------------------------------------------------------------
+    # Delete Vault and Kubernetes secrets.
+    - include_role: 
+        name: "delete/vault_secrets"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+
+    # ----------------------------------------------------------------------
+    # Uninstalling Flux is needed so that everything is clean
+    # remove this if not needed
+    - name: Uninstall flux
+      shell: |
+        KUBECONFIG={{ org.k8s.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
+        KUBECONFIG={{ org.k8s.config_file }} helm delete --purge flux-{{ network.env.type }}
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      ignore_errors: yes
+
+    # ----------------------------------------------------------------------
+    # Delete Helmreleases
+    - include_role:
+        name: "delete/flux_releases"
+      vars:
+        component_ns: "{{ org.name | lower }}-ent"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+
+    # ----------------------------------------------------------------------
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

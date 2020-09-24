@@ -6,16 +6,16 @@ BAF current roadmap
     title BAF current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    R3 Corda Enterprise Version  :active, a1, 20-05-15  , 110d
-    Besu Provisioning       :active, a2, 20-05-20  , 105d
-    Couch DB     :a3, 20-09-15  , 60d
-    Helm 3 upgrade:active, 20-07-15, 45d
-    EKS upgrade:a5, 20-08-10, 10d
-    HL-Fabric upgrade:a6, 20-09-01, 30d
+    R3 Corda Enterprise Version  :active, a1, 20-05-15  , 130d
+    Besu Provisioning       :active, a2, 20-05-20  , 125d
+    Couch DB     :a3, 20-11-15  , 60d
+    Helm 3 upgrade:active, 20-07-15, 90d
+    EKS upgrade:done, a5, 20-08-10, 10d
+    HL-Fabric upgrade:active, a6, 20-09-01, 45d
     
     section Application
-    Quorum Ref App      :done, b1, 20-03-10, 60d
-    Indy Ref App      :done, b2, after b1, 30d
+    R3 Corda Ent. Ref App : b3, 20-09-15, 45d
+    HL Besu Ref App: b4, 20-09-15, 45d
     
     section Architecture
     Besu Blueprint      : done, 20-06-01, 50d
@@ -72,9 +72,10 @@ General
 -  |run| Improve the existing ``readthedocs`` documentations
 -  |run| BAF DLT and software tools upgrade:
     - |run| Helm3 upgrade
-    - |pin| EKS upgrade to 1.16
-    - |pin| Fabric version upgrade
-    - |pin| Ambassador and HAProxy upgrade to latest stable
+    - |tick| HAProxy upgrade to latest stable
+    - |tick| EKS upgrade to 1.16
+    - |run| HL Fabric version upgrade
+    - |pin| Ambassador upgrade to latest stable 
     - |pin| Flux upgrade for helm3 operator support
     - |pin| Java version upgrades
 
@@ -82,7 +83,7 @@ Platforms
 ---------
 
 -  |run| Besu network provisioning
--  |pin| Support for R3 Corda Enterprise Version
+-  |tick| Support for R3 Corda Enterprise Version
 -  |tick| Hyperledger Indy network provisioning
 -  |tick| Quorum network provisioning
 -  |tick| Support for Hyperledger Fabric v2.0
@@ -93,13 +94,14 @@ Application
 -----------
 
 -  |pin| Hyperledger Besu reference application
+-  |pin| R3 Corda Enterprise reference application
 -  |tick| Quorum supplychain application integration
 -  |tick| Hyperledger Indy reference application
 
 Architecture
 ------------
 
--  |pin| Besu architecture blueprint
+-  |tick| Besu architecture blueprint
 -  |tick| R3 Corda Enterprise Version architecture blueprint
 -  |hand| Couch DB architecture blueprint
 

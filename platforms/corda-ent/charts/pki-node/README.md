@@ -1,1 +1,0 @@
-chart for creating initial certificates of firewall for nodes.

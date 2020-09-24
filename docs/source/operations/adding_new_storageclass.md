@@ -98,7 +98,7 @@ volumeBindingMode: Immediate
 parameters:
   encrypted: "true"  
 ```
-1. Mention the template file, which you created above, under `platforms/quorum/configuration/roles/create/k8_component/vars/main.yaml` with a variable reference. For example,
+2. Mention the template file, which you created above, under `platforms/quorum/configuration/roles/create/k8_component/vars/main.yaml` with a variable reference. For example,
 ```
 dlt_templates:
   sample-sc: sample_sc.tpl

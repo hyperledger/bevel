@@ -64,7 +64,7 @@ Contains following containers:
 - Change password of nodekeystore.jks,sslkeystore.jks ,truststore.jks
 - Command to run corda jar with --initial-registration to perform initial registration with doorman, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl
 
-2. store-certs-in-vault:  This container is is used for putting certiicate into the vault  
+2. store-certs:  This container is is used for putting certificate into the vault  
   Tasks performed in this container
 - Loop to check if certificate and check file is generated 
 - Put certificates obtained after perfoming initial-registration is added in vault

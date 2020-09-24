@@ -19,6 +19,10 @@ peer:
   name: {{ peer_name }}
   localmspid: {{ org.name | lower}}MSP
   tlsstatus: true
-  address: {{ peer_address }}
+{% if network.env.proxy == 'none' %}
+  address: {{ peer.name }}.{{ component_ns }}:7051
+{% else %}
+  address: {{ peer.peerAddress }}
+{% endif %}
 orderer:
   address: {{ participant.ordererAddress }}
