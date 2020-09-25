@@ -4,6 +4,14 @@
 
 #############################################################################################
 
+# Uninstalling Flux is needed so that everything is clean
+- name: Uninstall flux
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
+    KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}
+    KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}-helm-operator
+  ignore_errors: yes
+  
 # Remove CRD Helmrelease
 - name: "Deletes all the helmreleases in {{ component_ns }}"
   shell: |
@@ -15,10 +23,10 @@
   args:
     executable: /bin/bash
   shell: |
-    helm_releases=($(KUBECONFIG={{ org.k8s.config_file }} helm ls | grep {{ org.name | lower }} | awk '{print $1}'))
+    helm_releases=($(KUBECONFIG={{ org.k8s.config_file }} helm ls -A | grep {{ org.name | lower }} | awk '{print $1}'))
     for helm_release in "${helm_releases[@]}"
     do
-      KUBECONFIG={{ org.k8s.config_file }} helm delete ${helm_release} --purge
+      KUBECONFIG={{ org.k8s.config_file }} helm uninstall ${helm_release}
     done
   ignore_errors: yes
   
