@@ -42,7 +42,7 @@ The snapshot of the `env` section with example value is below
 ```yaml 
   env:
     type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: haproxy                  # values can be 'haproxy' or 'ambassador'
+    proxy: haproxy                  # values can be 'haproxy' or 'none' (for minikube)
     ambassadorPorts: 15010,15020    # is valid only if proxy='ambassador'
     retry_count: 100                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -107,7 +107,7 @@ The fields under the each `orderer` are
 |-------------|----------------------------------------------------------|
 | name        | Name of the orderer service                                  |
 | type        | For Fabric, `orderer` is the only valid type of orderers.   |
-| org_name    | Name of the organization to which this orderer belong to |
+| org_name    | Name of the organization to which this orderer belongs to |
 | uri         | Orderer URL                                              |
 | certificate | Path to orderer certificate. For inital network setup, ensure that the directory is present, the file need not be present. For adding a new organization, ensure that the file is the crt file of the orderer of the existing network. |
 
@@ -127,34 +127,42 @@ The snapshot of channels section with its fields and sample values is below
     - organization:
       name: carrier
       type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
+      org_status: new
       peers:
       - peer:
         name: peer0
         gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
+        peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
     - organization:      
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
+      org_status: new
       peers:
       - peer:
         name: peer0
         gossipAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443
+        peerAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: warehouse
       type: joiner
+      org_status: new
       peers:
       - peer:
         name: peer0
         gossipAddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443
+        peerAddress: peer0.warehouse-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: manufacturer
       type: joiner
+      org_status: new
       peers:
       - peer:
         name: peer0
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
+        peerAddress: peer0.manufacturer-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     genesis:
       name: OrdererGenesis
@@ -175,9 +183,11 @@ Each `organization` field under `participants` field of the channel contains the
 |---------------------------------|------------------------------------------------------------|
 | name               | Organization name of the peer participating in the channel |
 | type               | This field can be creator/joiner of channel                |
+| org_status         | `new` (for inital setup) or `existing` (for add new org) | 
 | ordererAddress     | URL of the orderer this peer connects to                   |
 | peer.name          | Name of the peer                                           |
 | peer.gossipAddress | Gossip address of the peer                                 |
+| peer.peerAddress | External address of the peer                                 |
 
 
 The `organizations` section contains the specifications of each organization.  
@@ -195,6 +205,10 @@ The snapshot of an organization field with sample values is below
       subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
       type: orderer
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
+      org_status: new
+      ca_data:
+        url: ca.supplychain-net:7054
+        certificate: file/server.crt        # This has not been implemented 
       cloud_provider: aws   # Options: aws, azure, gcp, minikube
 ```
 Each `organization` under the `organizations` section has the following fields. 
@@ -208,6 +222,7 @@ Each `organization` under the `organizations` section has the following fields.
 | subject                                     | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | type                                        | This field can be orderer/peer            |
 | external_url_suffix                         | Public url suffix of the cluster.         |
+| org_status         | `new` (for inital setup) or `existing` (for add new org) | 
 | ca_data                                     | Contains the certificate authority url and certificate path; This has not been implemented yet |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | When the organization cluster is on AWS |
@@ -303,7 +318,9 @@ Each organization with type as peer will have a peers service. The snapshot of p
         - peer:
           name: peer0          
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
-          gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer          
+          gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
+          peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
             port: 7051         
           events:
@@ -333,9 +350,11 @@ The fields under `peer` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| name                          | Name of the peer                                                                                                 |
+| name                          | Name of the peer. Must be of the format `peer0` for the first peer, `peer1` for the second peer and so on.       |
 | type                          | Type can be `anchor` and `nonanchor` for Peer                                                                    |
-| gossippeeraddress             | Gossip address of the peer                                                                                       |
+| gossippeeraddress             | Gossip address of another peer in the same Organization. If there is only one peer, then use that peer address. Must be internal as the peer is hosted in the same Kubernetes cluster. |
+| peerAddress             | External address of this peer. Must be the HAProxy qualified address. If using minikube, this can be internal address. |
+| cli             | Optional field. If `enabled` will deploy the CLI pod for this Peer. Default is `disabled`. |
 | grpc.port                     | Grpc port                                                                                                        |
 | events.port                   | Events port                                                                                                      |
 | couchdb.port                  | Couchdb port                                                                                                     |
@@ -344,7 +363,7 @@ The fields under `peer` service are
 | expressapi.targetPort         | Express server target port                                                                                       |
 | expressapi.port               | Express server port                                                                                              |
 | chaincode.name                | Name of the chaincode                                                                                            |
-| chaincode.version             | Version of the chaincode                                                                                         |
+| chaincode.version             | Version of the chaincode. Please do not use . (dot) in the version.    |
 | chaincode.maindirectory       | Path of main.go file                                                                                             |
 | chaincode.repository.username | Username which has access to the git repo containing chaincode                                                   |
 | chaincode.repository.password | Password of the user which has access to the git repo containing chaincode                                       |
@@ -352,7 +371,7 @@ The fields under `peer` service are
 | chaincode.repository.branch   | Branch in the repository where the chaincode resides                                                             |
 | chaincode.repository.path     | Path of the chaincode in the repository branch                                                                   |
 | chaincode.arguments           | Arguments to the chaincode                                                                                       |
-| chaincode.endorsements        | This could be anchor/non-anchor |
+| chaincode.endorsements        | Endorsements (if any) provided along with the chaincode |
 
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 ```yaml
@@ -367,10 +386,10 @@ The fields under `consensus` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| name                     | Name of the Consensus service                                                                            |
-| type                      | Consensus service type, for example: broker                                                                                 |
-| replicas                  | Replica count of the brokers                                                                                     |
-| grpc.port                 | Grpc port of consensus service |
+| name                     | Name of the Consensus service. Can be `raft` or `kafka`.      |
+| type                      | Only for `kafka`. Consensus service type, only value supported is `broker` currently  |
+| replicas                  | Only for `kafka`. Replica count of the brokers  |
+| grpc.port                 | Only for `kafka`. Grpc port of consensus service |
 
 The organization with orderer type will have orderers service. The snapshot of orderers service with example values is below
 ```yaml
@@ -396,10 +415,8 @@ The fields under `orderer` service are
 |-------------|----------------------------------------------------------|
 | name                        | Name of the Orderer service                                                                                                     |
 | type          | This type must be `orderer`  |
-| consensus                   | Consensus type, for example: kafka, raft                                                                               |
+| consensus                   | Consensus type, for example: `kafka`, `raft`                                                                               |
 | grpc.port                   | Grpc port of orderer                                                                                             |
-| ca_data.url                 | Orderer url                                                                                                      |
-| ca_data.certificate         | Path to CA certificate **  |
 
 
 \ 
