@@ -1,6 +1,11 @@
-#############################################################################################
-# This role generate genesis block and channel
-#############################################################################################
+############################################################################################
+# This task ensures that the directory exists, and creates it, if it does not exist
+############################################################################################
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
 
 ############################################################################################
 # This task ensures that the directory exists, and creates it, if it does not exist
@@ -49,32 +54,12 @@
     mode: 0755
   when: config_stat_result.stat.exists == False
 
-- name: Remove old genesis block
-  file:
-    path: "{{ build_path }}/channel-artifacts/genesis.block"
-    state: absent
-
 ############################################################################################
 # This task creates the channel-artifacts folder
 - name: "Creating channel-artifacts folder"
   file:
     path: "{{ build_path }}/channel-artifacts"
     state: directory
-
-############################################################################################
-# This task creates the genesis block by consuming the configtx.yaml file
-- name: "Creating genesis block"
-  shell: |
-    cd {{ build_path }}
-    {% if '2.' in network.version %}
-    ./configtxgen -profile {{ genesis.name }} -channelID syschannel  -outputBlock ./channel-artifacts/genesis.block
-    {% else %}
-    ./configtxgen -profile {{ genesis.name }} -outputBlock ./channel-artifacts/genesis.block
-    {% endif %}
-    cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
-  when: add_new_org == 'false'
-  tags:
-    - molecule-idempotence-notest
 
 - name: remove old channel block
   file:
