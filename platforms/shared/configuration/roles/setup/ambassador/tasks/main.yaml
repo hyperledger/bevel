@@ -105,15 +105,6 @@
     - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
     - item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal'
 
-# Disable TLS1.0 for the AWS Loadbalancer
-- name: Disable TLS1.0 for the AWS
-  shell: |
-    KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy=ELBSecurityPolicy-TLS-1-2-2017-01"
-  tags:
-    - ambassador
-    - molecule-idempotence-notest
-  when: item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal'
-
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up
   include_role:
