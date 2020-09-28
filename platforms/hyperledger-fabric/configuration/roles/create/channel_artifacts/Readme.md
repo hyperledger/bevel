@@ -1,5 +1,5 @@
 ## ROLE: channel_artifacts
- This role generate genesis block and channel
+ This role generate the channel and its artifacts
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
@@ -43,15 +43,7 @@ This task extracts the configtxgen binary and place it at appropriate path.
 **mode**: The permission for file is specified here.
 **when**: Condition specified here, It runs only when, configtxgen binary is not found.
 
-#### 5. Remove old genesis block
-This task removes the old genesis block.
-##### Input Variables
-
-    *build_path: The path of build directory.
-**path**: The path for genesis block
-**state**: Used to specify state. (absent, meaning it will remove the file).
-
-#### 6. Creating channel-artifacts folder
+#### 5. Creating channel-artifacts folder
 This task Creates channel-artifacts folder.
 ##### Input Variables
 
@@ -59,14 +51,7 @@ This task Creates channel-artifacts folder.
 **path**: The path for genesis block
 **state**: Used to specify state. (directory, meaning it will create).
 
-#### 7. Creating genesis block
-This task Creates the genesis block.
-##### Input Variables
-
-    *build_path: The path of build directory.
-**shell**: The command goes to build path and creates the genesis block by consuming the configtx.yaml file.
-
-#### 8. Remove old channel block
+#### 6. Remove old channel block
 This task removes the old channel block.
 ##### Input Variables
 
@@ -75,7 +60,7 @@ This task removes the old channel block.
 **path**: The path for the channel block
 **state**: Used to specify state. (absent, meaning it will remove the file).
 
-#### 9. Creating channels
+#### 7. Creating channels
 This task Creates channel by consuming the configtx.yaml file.
 ##### Input Variables
 
@@ -84,7 +69,7 @@ This task Creates channel by consuming the configtx.yaml file.
     *channel_name: The name of the channel
 **shell**: The command goes to build path and creates the channel by consuming the configtx.yaml file.
 
-#### 10. Creating Anchor artifacts
+#### 8. Creating Anchor artifacts
 This task creates the anchortx files.
 ##### Input Variables
 
@@ -94,7 +79,7 @@ This task creates the anchortx files.
 **shell**: The command goes to build path and creates the anchortx file.
 
 
-#### 11. Creating JSON Configuration
+#### 9. Creating JSON Configuration
 This task Creates JSON configuration file by consuming the configtx.yaml file.
 ##### Input Variables
 

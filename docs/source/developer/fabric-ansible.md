@@ -115,15 +115,21 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Geting the configtxgen binary tar
 * Unzipping the downloaded file
 * Moving the configtxgen from the extracted folder and place in it path
-* Remove old genesis block
 * Creating channel-artifacts folder
-* Creating genesis block
+* Write BASE64 encoded genesis block to Vault
 * Remove old channel block
 * Creating channels 
 * Creating Anchor artifacts
 * Creating JSON configration for new organization
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/roles/create/channel_artifacts) for detailed information.
+
+## **create/genesis** 
+* Remove old genesis block
+* Creating genesis block
+* Write genesis block to Vault
+
+Follow [README](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/develop/platforms/hyperledger-fabric/configuration/roles/create/genesis) for more information.
 
 ## **create/channels**
 
