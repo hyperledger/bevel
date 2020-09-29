@@ -1,0 +1,42 @@
+#############################################################################################
+# This role creates the generate_crypto.sh script for orderers and organizations.
+#############################################################################################
+
+############################################################################################
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+
+# Set new_peer_list to empty
+- name: Set new_peer_list to []
+  set_fact:
+    new_peer_list: []
+
+# This task loops over the peers and finds the number of new peers
+- name: Count new peers
+  set_fact:
+    new_peer_list={{ new_peer_list|default([]) + [ {'peer_name':peer.name } ] }}
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: component_type == 'peer' and peer.peerstatus == 'new'
+
+############################################################################################
+# This task creates the generate_crypto.sh file for organizations
+- name: Create generate_crypto script file for organisations
+  template:
+    src: "organisation_script.tpl"
+    dest: "./build/generate-crypto-{{ component_name }}.sh"
+  vars:
+    component_name: "{{ item.name | lower }}"
+    component_ns: "{{ item.name | lower }}-net"
+    component_subject: "{{ item.subject }}"
+    component_country: "{{ item.country }}"
+    component_state: "{{ item.state }}"
+    component_location: "{{ item.location }}"
+    ca_url: "{{ item.ca_data.url }}"
+    peer_count: "{{ item.services.peers | length }}"
+    new_peer_count: "{{ new_peer_list | length }}"
+  when: component_type == 'peer'
