@@ -77,4 +77,13 @@ We are working on a verification document for Hyperledger Fabric.
     ansible-playbook chaincode-install-instantiate.yaml -e "@/path/to/network-fabric.yaml" -e "add_new_org='true'"
     ```
     The playbook will create resources in the Kubernetes cluster(s) and will intermittently wait for resources to be created before proceeding. You may want to check the cluster(s) about any errors.
-6. You can maintain separate `network.yaml`s for separate environments (different amount of organizations, different configuration, etc.).
+
+6. If you want to add a peer in existing organization which is a part of existing network, then, from the *platforms/hyperledger-fabric/configuration* directory, run the following command: 
+    ```
+    ansible-playbook add-peer.yaml -e "@/path/to/network-fabric.yaml" -e "add_new_org='false'" -e "add_peer='true'"
+    ```
+    Follow steps in [README](https://github.com/hyperledger-labs/blockchain-automation-framework/docs/source/operations/adding_new_peer_fabric.md).
+
+    (Above command assumes that network.yaml is present in current directory with org_status tag and new organization details).<br>
+
+7. You can maintain separate `network.yaml`s for separate environments (different amount of organizations, different configuration, etc.).
