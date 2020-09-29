@@ -41,3 +41,17 @@ This task pushes the above generated value files to git repo.
 These variables are fetched through network.yaml using *item.gitops*
 
 **include_role**: It includes the name of intermediatory role which is required for creating the vault auth value file.
+
+#### 4. Check peer pod is up
+This tasks check if the namespace is already created or not.
+##### Input Variables
+
+    kind: This defines the kind of Kubernetes resource
+    *name: Name of the component 
+    *namespace: Namespace of the component
+    *kubeconfig: The config file of the cluster
+    *context: This refer to the required kubernetes cluster context
+    *org_query: Query to get peer names for organisations
+    *peer_name: Name of the peer
+    
+**include_role**: It includes the name of intermediatory role which is required for creating the vault auth value file.
