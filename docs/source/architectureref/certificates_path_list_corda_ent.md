@@ -60,6 +60,6 @@ All values must be Base64 encoded files as BAF decodes them.
 | /secret/`orgname_lowercase`/`peer_name`/root/certs | network-root-truststore.jks | Network Root certificates truststore |
 | /secret/`orgname_lowercase`/`peer_name`/tlscerts                   | tlscacerts             | Node Ambassador Certificate |
 | /secret/`orgname_lowercase`/`peer_name`/tlscerts                   | tlskey                 | Node Ambassador Private key |
-| /secret/`orgname_lowercase`/`peer_name`/credentials/root                   | truststore                 | Network root truststore password |
-| /secret/`orgname_lowercase`/`peer_name`/credentials/truststore                   | node                 | Node truststore password |
-| /secret/`orgname_lowercase`/`peer_name`/credentials/keystore                   | keystore                 | Node keystore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | root                 | Network root truststore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | truststore                 | Node truststore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | keystore                 | Node keystore password |
