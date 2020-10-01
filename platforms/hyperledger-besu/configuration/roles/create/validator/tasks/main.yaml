@@ -10,7 +10,30 @@
   loop_control:
     loop_var: org
 
-# This task creates the Orion Transaction Manager value files for each node of organization
+# Check for local genesis file
+- name: Check that the gensis file exists
+  stat:
+    path: "{{ network.config.genesis }}"
+  register: stat_result
+
+# This task gets the genesis file when there isno local genesis
+- name: get genesis from vault
+  shell: |
+    vault kv get -field=genesis secret/{{ component_ns }}/crypto/genesis
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_genesis
+  ignore_errors: yes
+  when: stat_result.stat.exists == False
+
+#This task only runs when there is no local genesis file
+- name: Copy genesis from vault to correct path
+  shell: |
+    echo {{ vault_genesis.stdout }} > {{ network.config.genesis }}
+  when: stat_result.stat.exists == False
+
+#This task creates the Orion Transaction Manager value files for each node of organization
 - name: Create value file for validator for each node
   include_role:
     name: helm_component
