@@ -10,7 +10,7 @@ spec:
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/instantiate_chaincode
+    path: {{ charts_dir }}/approve_chaincode
   values:
     metadata:
       namespace: {{ namespace }}
@@ -37,9 +37,8 @@ spec:
     chaincode:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       name: {{ component_chaincode.name | lower | e }}
-      lang: {{ component_chaincode.lang | default('golang') }}
       version: {{ component_chaincode.version }}
-      instantiationarguments: {{ component_chaincode.arguments | quote}}
-      endorsementpolicies:  {{ component_chaincode.endorsements | quote}}
+      commitarguments: {{ component_chaincode.arguments | quote}}
+      endorsementpolicies:  {{ component_chaincode.endorsements | quote }}
     channel:
       name: {{ item.channel_name | lower }}
