@@ -3,7 +3,7 @@ kind: HelmRelease
 metadata:
   name: {{ org.services.signer.name }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
   namespace: {{ component_ns }}
 spec:
   releaseName: {{ org.services.signer.name }}
@@ -74,4 +74,3 @@ spec:
           limits: 512M
           requests: 512M
       replicas: 1
-
