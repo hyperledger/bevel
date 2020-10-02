@@ -241,10 +241,8 @@ For organization as type `cenm` the credential block looks like
 For organization as type `node` the credential section is under peers section and looks like
 ```yaml
           credentials:
-            truststore:
-              node: trustpass #node truststore password
-            keystore:
-              node: cordacadevpass #node keystore password
+            truststore: trustpass #node truststore password
+            keystore: cordacadevpass #node keystore password
 ```
 
 
