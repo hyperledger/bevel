@@ -74,4 +74,3 @@ spec:
           limits: 512M
           requests: 512M
       replicas: 1
-
