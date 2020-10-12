@@ -243,6 +243,9 @@ For organization as type `node` the credential section is under peers section an
           credentials:
             truststore: trustpass #node truststore password
             keystore: cordacadevpass #node keystore password
+            firewallca: firewallcapassword #firewallCA keystore and corresponding truststore password
+            float: floatpassword #float password
+            bridge: bridepassword #bridge password
 ```
 
 

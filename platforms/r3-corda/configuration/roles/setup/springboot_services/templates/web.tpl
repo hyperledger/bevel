@@ -1,9 +1,9 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ config.name }}-web
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
   {{ config.metadata | to_nice_yaml | indent(2) }}
 spec:
   releaseName: {{ config.name }}-web
