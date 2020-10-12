@@ -6,15 +6,15 @@
 #                   Basic Configuration                     #
 #############################################################
 # Provide the name of the node
-# Eg. nodeName: idman
+# Eg. nodeName: carrier
 nodeName:
 
-# This section contains the Corda Enterprise metadata.
+# This section contains the Corda Node metadata.
 metadata:
-  # Provide the namespace for the Corda Enterprise PKI Generator.
-  # Eg. namespace: cenm
+  # Provide the namespace for the Corda PKI Generator for the node.
+  # Eg. namespace: carrier-ent
   namespace:
-  # Provide any additional labels for the Corda Enterprise PKI Generator.
+  # Provide any additional labels for the Corda PKI Generator for the node.
   labels:
 
 # Provide information regarding the Docker images used.
@@ -23,7 +23,7 @@ image:
   # NOTE: The alpine image used is the base alpine image with CURL installed.
   # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
   initContainerName:
-  # Provide the image for the pki container.
+  # Provide the image for the main pki container.
   # Eg. pkiContainerName: corda/enterprise-pki:1.2-zulu-openjdk8u242
   pkiContainerName:
   # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
@@ -36,7 +36,6 @@ image:
 # Required parameter to start any .jar files
 # Eg. acceptLicense: YES 
 acceptLicense: 
-
 
 #############################################################
 #               HashiCorp Vault Configuration               #
@@ -53,14 +52,14 @@ vault:
   # Eg. role: vault-role
   role:
   # Provide the authpath configured to be used.
-  # Eg. authpath: cordaentcenm
+  # Eg. authpath: cordaentcarrier
   authPath:
   # Provide the service account name autheticated to vault.
   # NOTE: Make sure that the service account is already created and autheticated to use the vault.
   # Eg. serviceaccountname: vault-auth
   serviceAccountName:
   # Provide the vault path where the certificates are stored
-  # Eg. certsecretprefix: secret/cenm-org-name
+  # Eg. certsecretprefix: secret/carrier/carrier
   certSecretPrefix:
   # The amount of times to retry fetching from/writing to Vault before giving up.
   # Eg. retries: 10
@@ -69,54 +68,21 @@ vault:
   # Eg. sleepTimeAfterError: 15  
   sleepTimeAfterError:
 
-
 #############################################################
-#                  CENM Service Details                     #
+#                  Corda Firewall Details                   #
 #############################################################
-# This section details the CENM service names as per the configuration file
-
-cenmServices:
-  # Provide the name of the signer
-  # Eg. signerName: signer
-  signerName:
-  # Provide the name of the idman
-  # Eg. idmanName: idman
-  idmanName:
-  # Provide the name of the networkmap
-  # Eg. networkmapName: networkmap
-  networkmapName:
-  # Provide the name of the notary
-  # Eg. notaryName: notary
-  notaryName:
-
-identityManager:
-  # Mention the idman public IP
-  # Eg. publicIp: idman.baf.com
-  publicIp:
-  # Mention the idman public port:
-  # Eg. publicPort: 8443
-  publicPort: 
+# This section details the corda firewall subjects
 
 subjects:
-  # Mention the subject for tls crl signer
-  # Eg. tlscrlsigner: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-  tlscrlsigner:
-  # Mention the subject for the tls crl issuer
-  # Eg. tlscrlissuer: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
-  tlscrlissuer:
-  # Mention the subject for rootca
-  # Eg. rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-  rootca:
-  # Mention the subject for subordinateca
-  # Eg. subordinateca: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-  subordinateca:
-  # Mention the subject for idmanca
-  # Eg. idmanca: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-  idmanca:
-  # Mention the subject for networkmap
-  # Eg. networkmap: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-  networkmap:
-
+  # Mention the subject for the firewallCA
+  # Eg. firewallca: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  firewallca:
+  # Mention the subject for the float component
+  # Eg. float: "CN=Test Float Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  float: 
+  # Mention the subject for the bridge component
+  # Eg. bridge: "CN=Test Bridge Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  bridge: 
 
 #############################################################
 #                       Settings                            #
@@ -128,6 +94,9 @@ volume:
 # This is consumed by the pki jar
 # Eg. cordaJarMx: 256
 cordaJarMx: 
-# Provide the path where the CENM Service configuration files are stored
+# Provide the path where the Corda node configuration files are stored
 # Eg. configPath: etc
 configPath: 
+#Provide the replicacount
+# Eg. replicas: 1
+replicas: 

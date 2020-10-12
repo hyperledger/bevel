@@ -1,9 +1,9 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: mongodb-{{ nodename }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
   namespace: {{ component_ns }}
 spec:
   replicaCount: 1
