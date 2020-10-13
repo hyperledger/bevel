@@ -2,8 +2,24 @@
 # This role generates crypto material for orderers.
 #############################################################################################
 
+# Check admin msp already created
+- name: Check if admin msp already created
+  shell: |
+    vault kv get -field=admincerts secret/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_admin_result
+  ignore_errors: yes
+  changed_when: false
+
 - name: Call orderercheck.yaml for orderer
   include_tasks: orderercheck.yaml
+
+- name: Call common.yaml for each peer
+  include_tasks: common.yaml
+  tags:
+    - notest
 
 - name: Call orderer.yaml for each orderer
   include_tasks: orderer.yaml
