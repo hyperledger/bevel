@@ -19,7 +19,8 @@
         state: absent
 
     # Create Namespaces and Vault-rbac kubernetes-value files
-    - include_role:
+    - name: Create namespace and Vault auth for each organization
+      include_role:
         name: "create/namespace_vaultauth"
       vars:
         component_name: "{{ item.name | lower }}-net"
@@ -29,7 +30,8 @@
       loop: "{{ network['organizations'] }}"
     
     #Setup Vault-Kubernetes accesses and Regcred for docker registry
-    - include_role: 
+    - name: Setup Vault Kubernetes for each organization
+      include_role: 
         name: "setup/vault_kubernetes"
       vars:
         component_name: "{{ item.name | lower }}-net"
@@ -40,7 +42,8 @@
       loop: "{{ network['organizations'] }}"
 
     # Create Storageclass 
-    - include_role:
+    - name: Create storageclass for each organization
+      include_role:
         name: "create/storageclass"
       vars:
         sc_name: "{{ item.name | lower}}sc"
@@ -50,7 +53,8 @@
       loop: "{{ network['organizations'] }}"
         
     # Create CA Server helm-value files and check-in
-    - include_role:
+    - name: Create CA server for each organization
+      include_role:
         name: "create/ca-server"
       vars:
         component_name: "{{ item.name | lower}}-net"
@@ -67,7 +71,8 @@
       when: item.services.ca is defined
         
     # Create CA Tools helm-value files and check-in
-    - include_role:
+    - name: Create CA tools for each organization
+      include_role:
         name: "create/ca-tools"
       vars:
         component_name: "{{ item.name | lower}}-net"
@@ -82,7 +87,8 @@
       loop: "{{ network['organizations'] }}"
 
     # Create generate_crypto script for each organization
-    - include_role:
+    - name: Create generate_crypto.sh for each organization
+      include_role:
         name: "create/crypto_script"
       vars:
         component_type: "{{ item.type | lower}}"
@@ -96,7 +102,8 @@
         minutes: 6
 
     # Create Orderer crypto materials
-    - include_role:
+    - name: Create crypto materials for each orderer
+      include_role:
         name: "create/crypto/orderer"
       vars:
         component_name: "{{ item.name | lower}}-net"
@@ -111,7 +118,8 @@
       when: item.type == 'orderer'
     
     # Create Organization crypto materials
-    - include_role:
+    - name: Create crypto materials for each peer
+      include_role:
         name: "create/crypto/peer"
       vars:
         component_name: "{{ item.name | lower}}-net"
@@ -128,13 +136,14 @@
     # Creating channel artifacts and putting them in vault
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
     # which is then consumed by configtxgen tool
-    - include_role:
+    - name: Create configtx.yaml
+      include_role:
         name: "create/configtx"
       vars:
         config_file: "./build/configtx.yaml"
 
     # This role generate genesis block and channeltx
-    - name: "Create channel artifacts"
+    - name: Create channel artifacts for all channels
       include_role:
         name: "create/channel_artifacts"
       vars:
@@ -152,7 +161,8 @@
       loop: "{{ network['channels'] }}"
     
     # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
-    - include_role:
+    - name: Create all orderers
+      include_role:
         name: "create/orderers"
       vars:
         build_path: "./build"
@@ -170,7 +180,8 @@
 
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
-    - include_role:
+    - name: Create all peers
+      include_role:
         name: "create/peers"
       vars:
         build_path: "./build"
@@ -188,7 +199,8 @@
 
     # This role creates the value file for creating channel from creator organization
     # to the vault.
-    - include_role:
+    - name: Create all create-channel jobs
+      include_role:
         name: "create/channels"
       vars:
         build_path: "./build"
@@ -198,7 +210,8 @@
 
     # This role creates the value file for joining channel from each participating peer
     # to the vault.
-    - include_role:
+    - name: Create all join-channel jobs
+      include_role:
         name: "create/channels_join"
       vars:
         build_path: "./build"
@@ -208,7 +221,8 @@
 
     # This role creates the value file for anchor peer update over channel for
     # each organization which is the part of the channel.
-    - include_role:
+    - name: Create all anchor-peer jobs
+      include_role:
         name: "create/anchorpeer"
       vars:
         build_path: "./build"
@@ -217,7 +231,8 @@
       loop: "{{ network['channels'] }}"
 
     # Create CLI pod for peers with cli option enabled
-    - include_role:
+    - name: Create CLI pod for each peer with it enabled
+      include_role:
         name: "create/cli_pod"
       vars:
         peers: "{{ org.services.peers }}"

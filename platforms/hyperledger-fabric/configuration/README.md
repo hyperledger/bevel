@@ -68,7 +68,7 @@ We are working on a verification document for Hyperledger Fabric.
     ```
     ansible-playbook add-organization.yaml -e "@/path/to/network-fabric.yaml" -e "add_new_org='true'"
     ```
-    Follow steps in [README](https://github.com/hyperledger-labs/blockchain-automation-framework/docs/source/operations/adding_new_org_fabric.md).
+    Follow steps in [README](https://blockchain-automation-framework.readthedocs.io/en/latest/operations/adding_new_org_fabric.html).
 
     (Above command assumes that network.yaml is present in current directory with org_status tag and new organization details).<br>
 
