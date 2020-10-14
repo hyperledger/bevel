@@ -2,11 +2,47 @@
 # This role generates crypto material for orderers.
 #############################################################################################
 
+# Check admin msp already created
+- name: Check if admin msp already created
+  shell: |
+    vault kv get -field=admincerts secret/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_admin_result
+  ignore_errors: yes
+  changed_when: false
+
 - name: Call orderercheck.yaml for orderer
   include_tasks: orderercheck.yaml
+
+- name: Call common.yaml for each peer
+  include_tasks: common.yaml
+  tags:
+    - notest
 
 - name: Call orderer.yaml for each orderer
   include_tasks: orderer.yaml
   loop: "{{ services.orderers }}"
   loop_control:
     loop_var: orderer
+
+# Check admin msp already created
+- name: Check if admin msp already created
+  shell: |
+    vault kv get -field=admincerts secret/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_admin_result
+  ignore_errors: yes
+  changed_when: false
+
+- name: Copy organization level certificates for orgs
+  shell: |
+    vault write secret/crypto/ordererOrganizations/{{ component_name }}/users/admin/tls ca.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.key)"
+    vault write secret/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp admincerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/admincerts/Admin@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_admin_result.failed == True
