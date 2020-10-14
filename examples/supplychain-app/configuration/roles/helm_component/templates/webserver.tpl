@@ -16,6 +16,7 @@ spec:
     replicas: 1
     metadata:
       namespace: {{ component_ns }}
+      type: {{ platform_type }}
     image:
       containerName: {{ network.docker.url }}/supplychain_corda:{{ image_tag }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
@@ -60,6 +61,9 @@ spec:
     service:
       type: NodePort
       annotations: {}
+    networkservices:
+      networkmap: {{ networkmap_name }}
+      doorman: {{ doorman_name }}
     vault:
       address: "{{ component_vault.url }}"
       role: vault-role
