@@ -23,11 +23,26 @@
     component_state: "{{ item.state }}"
     component_location: "{{ item.location }}"
     ca_url: "{{ item.ca_data.url }}"
-    # peer_name: "{{ item.services.orderer.name }}"
     peer_name: "{{ orderer.name }}"
   loop: "{{ orderers }}"
   loop_control:
     loop_var: orderer
+  when: component_type == 'orderer'
+
+############################################################################################
+# This task creates the generate-crypto-{{ component_name }}.sh file for orderer organizations
+- name: Create generate_crypto script file for orderer organisation
+  template:
+    src: "orderer_organisation_script.tpl"
+    dest: "./build/generate-crypto-{{ component_name }}.sh"
+  vars:
+    component_name: "{{ item.name | lower }}"
+    component_ns: "{{ item.name | lower }}-net"
+    component_subject: "{{ item.subject }}"
+    component_country: "{{ item.country }}"
+    component_state: "{{ item.state }}"
+    component_location: "{{ item.location }}"
+    ca_url: "{{ item.ca_data.url }}"
   when: component_type == 'orderer'
 
 ############################################################################################
