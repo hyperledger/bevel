@@ -1,3 +1,8 @@
+# Set node_list to empty
+- name: Set node_list to []
+  set_fact:
+    node_list: []
+
 # This tasks checks the crypto material in the vault
 - name: Check for the crypto material in the vault
   include_tasks: check_vault.yaml
@@ -52,7 +57,6 @@
     url: https://bintray.com/hyperledger-org/besu-repo/download_file?file_path=besu-{{ network.version }}.tar.gz
     dest: "{{ tmp_directory.path }}"
   when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
-
 
 # This task unzips the above downloaded tar file
 - name: "Unziping the downloaded file"
@@ -188,8 +192,7 @@
     echo "\"$(cat {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data/nodeAddress)\"" >> {{ build_path }}/validatorinfo
   with_indexed_items: "{{ node_list }}"
   when:  
-    # TODO uncomment the line below when the smartcontract can be deployed on member node.
-    #- item[1].type == "validator"
+    - item[1].type == "validator"
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
 
@@ -212,19 +215,6 @@
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
 
-
-# This tasks copy the crypto material to the vault
-- name: Copy the crypto material to Vault
-  include_tasks: add_to_vault.yaml
-  vars:
-    component_ns: "{{ org.name }}-bes"
-    vault: "{{ org.vault }}"
-    peers: "{{ org.services.peers }}"
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-  when: generate_crypto is defined and generate_crypto == True
-
 # This task writes the genesis base64 data to the file
 - name: write the genesis file
   copy:
@@ -236,3 +226,15 @@
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
  
+# This tasks copy the crypto material to the vault
+- name: Copy the crypto material to Vault
+  include_tasks: add_to_vault.yaml
+  vars:
+    component_ns: "{{ org.name }}-bes"
+    vault: "{{ org.vault }}"
+    peers: "{{ org.services.peers }}"
+    genesis: "{{ lookup('file', '{{ build_path }}/crypto/newGenesis.json') | b64encode }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: generate_crypto is defined and generate_crypto == True

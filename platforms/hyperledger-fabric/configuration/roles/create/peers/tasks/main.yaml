@@ -30,6 +30,7 @@
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer 
+  when: peer.peerstatus is not defined or peer.peerstatus == 'new'
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -44,3 +45,18 @@
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing Peer files"
+
+# Wait for peer pods to be in the state of running
+- name: "Waiting for peer pod {{ peer.name }} in {{ item.name | lower }}-net"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ item.name | lower }}-net"
+    component_name: "{{ peer.name }}"
+    kubernetes: "{{ item.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+  loop: "{{ component_services.peers }}"
+  loop_control:
+    loop_var: peer 

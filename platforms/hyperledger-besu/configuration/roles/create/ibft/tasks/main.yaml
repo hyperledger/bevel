@@ -4,7 +4,7 @@
     enode_data_list: []
 
 # Set node_list to empty
-- name: Set enode_data_list to []
+- name: Set node_list to []
   set_fact:
     node_list: []
 
@@ -32,6 +32,30 @@
   when:
     - add_new_org is defined and add_new_org|bool == True
     - network.config.besu_nodes is defined
+
+# Check for local genesis file
+- name: Check that the gensis file exists
+  stat:
+    path: "{{ network.config.genesis }}"
+  register: stat_result
+
+# This task gets the genesis file when there isno local genesis
+- name: get genesis from vault
+  shell: |
+    vault kv get -field=genesis secret/{{ component_ns }}/crypto/genesis
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_genesis
+  ignore_errors: yes
+  when: stat_result.stat.exists == False
+
+#This task only runs when there is no local genesis file
+- name: Copy genesis from vault to correct path
+  shell: |
+    echo {{ vault_genesis.stdout }} > {{ network.config.genesis }}
+  when: stat_result.stat.exists == False
+
 
 # This task creates the Orion Transaction Manager value files for each node of organization
 - name: Create value file for Orion TM for each node

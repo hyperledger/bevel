@@ -33,6 +33,10 @@ spec:
       name: {{ peer.name }}
       localmspid: {{ org.name | lower}}MSP
       tlsstatus: true
-      address: {{ peer.gossippeeraddress }}
+{% if network.env.proxy == 'none' %}
+      address: {{ peer.name }}.{{ component_ns }}:7051
+{% else %}
+      address: {{ peer.peerAddress }}
+{% endif %}
     orderer:
       address: {{ orderer.uri }}

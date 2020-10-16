@@ -1,0 +1,28 @@
+############################################################################################
+- name: Remove old genesis block
+  file:
+    path: "{{ build_path }}/channel-artifacts/genesis.block"
+    state: absent
+
+# This task creates the genesis block by consuming the configtx.yaml file
+- name: "Create genesis block"
+  shell: |
+    cd {{ build_path }}
+    ./configtxgen -profile {{ genesis.name }} -channelID syschannel -outputBlock ./channel-artifacts/genesis.block
+    cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
+  when: add_new_org == 'false'
+  tags:
+    - molecule-idempotence-notest
+
+- name: "Write genesis block to Vault"  
+  shell: |
+    vault write secret/crypto/ordererOrganizations genesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  tags:
+    - molecule-idempotence-notest
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: add_new_org == 'false' and org.type == "orderer"

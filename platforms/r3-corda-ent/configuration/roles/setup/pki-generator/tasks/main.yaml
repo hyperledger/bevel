@@ -1,5 +1,10 @@
 # This role creates the the value file for pki-generator chart and pushes it to the git repository
 
+# Write keystore, truststore, ssl credentials to the vault
+- name: Write keystore, truststore, ssl credentials to the vault
+  include_role:
+    name: setup/credentials
+
 # Check if pki-generator is already run
 - name: "Checking if pki-generator job is already completed"
   include_role:
@@ -18,35 +23,13 @@
   include_role:
     name: helm_component
   vars:
-    component_name: "{{ org.name | lower }}pkigenerator"
     type: "pki-generator"
+    corda_service_version: pki-{{ org.version }}
     values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}"
     name: "{{ org.name | lower }}"
-    signerName: "{{ services.signer.name }}"
-    idmanName: "{{ services.idman.name }}"
-    networkmapName: "{{ services.networkmap.name }}"
-    notaryName: "{{ services.notary.name }}"
-    charts_dir: "{{ gitops.chart_source }}"
-    git_url: "{{ gitops.git_ssh }}"
-    git_branch: "{{ gitops.branch }}"
-    docker_url: "corda/enterprise-pkitool"
-    docker_tag: "1.2-zulu-openjdk8u242"
-    init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
-    vault_address: "{{ vault.url }}"
-    authpath: "cordaent{{ org.name | lower }}"
-    certsecretprefix: "secret/{{ org.name | lower }}"
-    username: "signer"
-    password: "signerP"
-    idman_ip: "{{ services.idman.name | lower }}.{{ org.external_url_suffix }}"
-    idman_port: 8443
-    idman_host: "{{ services.idman.name }}.{{ component_ns }}"
-    networkmap_host: "{{ services.networkmap.name }}.{{ component_ns }}"
-    tls_crl_signer_subject: "{{ services.signer.subject }}"
-    tls_crl_signer_issuer: "{{ services.idman.crlissuer_subject }}"
-    corda_root_ca_subject: "{{ org.subject }}"
-    subordinate_ca_subject: "{{ org.subordinate_ca_subject }}"
-    idman_ca_subject: "{{ services.idman.subject }}"
-    networkmap_ca_subject: "{{ services.networkmap.subject }}"
+    component_name: "{{ org.name | lower }}pkigenerator"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    chart: generate-pki
   when: generate_pki.resources|length == 0
 
 # Git Push : Pushes the above generated files to git directory 

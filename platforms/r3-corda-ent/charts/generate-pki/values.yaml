@@ -1,124 +1,133 @@
-#Provide the nodeName for node
-#Eg. nodeName: bank1
+# Default values for PKI Generator chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#############################################################
+#                   Basic Configuration                     #
+#############################################################
+# Provide the name of the node
+# Eg. nodeName: idman
 nodeName:
 
-# Name of the cenm services
-# Ex. signerName: signerkd
-# Ex. idmanName: idmankd
-# Ex. networkmapName: networkmapkd
-# Ex. notaryName: notarykd
-cenmServices:  
-  signerName:
-  idmanName: 
-  networkmapName:
-  notaryName: 
-
-#Provide the replica set for node deployed
-#Eg. replicas: 1
-replicas:
-
+# This section contains the Corda Enterprise metadata.
 metadata:
-  #Provide the namespace
-  #Eg. namespace: cenm
+  # Provide the namespace for the Corda Enterprise PKI Generator.
+  # Eg. namespace: cenm
   namespace:
+  # Provide any additional labels for the Corda Enterprise PKI Generator.
+  labels:
 
-# This section contains the name of the image used in the deployment for pki tool.
-dockerImagePki:
-  # Ex. name: corda/enterprise-pkitool
-  name:
-  # Ex. tag: 1.2-zulu-openjdk8u242
-  tag: 
-  # Ex. pullPolicy: Always
-  pullPolicy:
-
-# Provide image for init container
+# Provide information regarding the Docker images used.
 image:
-  # Provide the alpine utils image.
+  # Provide the alpine utils image, which is used for all init-containers of deployments/jobs.
   # NOTE: The alpine image used is the base alpine image with CURL installed.
   # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
   initContainerName:
+  # Provide the image for the main Idman container.
+  # Eg. pkiContainerName: corda/enterprise-pki:1.2-zulu-openjdk8u242
+  pkiContainerName:
   # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
   # Eg. imagePullSecret: regcred
-  imagePullSecret:
+  imagePullSecret: 
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: Always
+  pullPolicy: 
 
-#base directory ex. /opt/corda
-volume:
-  baseDir:
+# Required parameter to start any .jar files
+# Eg. acceptLicense: YES 
+acceptLicense: 
 
-# This section contains the vault related information.
-# NOTE: Make sure that the vault is already unsealed, intialized and configured to
-# use the Kubernetes service account token based authentication.
+
+#############################################################
+#               HashiCorp Vault Configuration               #
+#############################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication. 
+# For more info, see https://www.vaultproject.io/docs/auth/kubernetes
+
 vault:
   # Provide the vault address
   # Eg. address: http://vault.example.com:8200
-  address:
+  address: 
   # Provide the vault role used.
   # Eg. role: vault-role
   role:
   # Provide the authpath configured to be used.
-  # Eg. authpath: entcordacenm
-  authpath:
+  # Eg. authpath: cordaentcenm
+  authPath:
   # Provide the service account name autheticated to vault.
   # NOTE: Make sure that the service account is already created and autheticated to use the vault.
   # Eg. serviceaccountname: vault-auth
-  serviceaccountname:
-  # Provide the vault path where the  certificates are stored
-  # Eg. certsecretprefix: secret/cenm-org-name/signer/certs
-  certsecretprefix: 
-    
-healthcheck:
-  #Provide the interval in seconds you want to iterate after for checking certificates
-  #Eg. readinesscheckinterval: 10
-  readinesscheckinterval:
-  # Provide this to iterate till this to check for the certificates
-  # readinessthreshold: 20
-  readinessthreshold:
-
-# required parameter public Ip of idman
-idmanPublicIP:
-
-# port number where idman is available
-idmanPort:
+  serviceAccountName:
+  # Provide the vault path where the certificates are stored
+  # Eg. certsecretprefix: secret/cenm-org-name
+  certSecretPrefix:
+  # The amount of times to retry fetching from/writing to Vault before giving up.
+  # Eg. retries: 10
+  retries:
+  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
+  # Eg. sleepTimeAfterError: 15  
+  sleepTimeAfterError:
 
 
-# Provide the JVM for jar
-# cordaJarMx: 1
-cordaJarMx:
+#############################################################
+#                  CENM Service Details                     #
+#############################################################
+# This section details the CENM service names as per the configuration file
 
-# Ex healthCheckNodePort: 0
-healthCheckNodePort: 0
+cenmServices:
+  # Provide the name of the signer
+  # Eg. signerName: signer
+  signerName:
+  # Provide the name of the idman
+  # Eg. idmanName: idman
+  idmanName:
+  # Provide the name of the networkmap
+  # Eg. networkmapName: networkmap
+  networkmapName:
+  # Provide the name of the notary
+  # Eg. notaryName: notary
+  notaryName:
 
-# where is CENM service jar file stored
-# Ex. jarPath: bin
-jarPath:
+identityManager:
+  # Mention the idman public IP
+  # Eg. publicIp: idman.baf.com
+  publicIp:
+  # Mention the idman public port:
+  # Eg. publicPort: 8443
+  publicPort: 
 
-# where is CENM service configuration file stored
-# Ex. configPath: etc
-configPath:
+subjects:
+  # Mention the subject for tls crl signer
+  # Eg. tlscrlsigner: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  tlscrlsigner:
+  # Mention the subject for the tls crl issuer
+  # Eg. tlscrlissuer: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
+  tlscrlissuer:
+  # Mention the subject for rootca
+  # Eg. rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+  rootca:
+  # Mention the subject for subordinateca
+  # Eg. subordinateca: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  subordinateca:
+  # Mention the subject for idmanca
+  # Eg. idmanca: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  idmanca:
+  # Mention the subject for networkmap
+  # Eg. networkmap: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  networkmap:
 
-# certificates subjects specification for generating certificates for network entity
-pki:
-  certificates:
-    # tlscrlsigner details 
-    tlscrlsigner:
-      # EX. subject: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-      subject:
-      crl:
-        # Ex. issuer: "CN=Corda TLS Signer Certificate, OU=Corda, O=R3 HoldCo LLC, L=New York, C=US"
-        issuer: 
-    # cordarootca certificates specificataions
-    cordarootca:
-      # subject: "CN=Test Root CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-      subject: 
-    # subordinateca certificates specificataions  
-    subordinateca:
-      # subject: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-      subject: 
-    # identitymanagerca specifications
-    identitymanagerca:
-      # subject: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-      subject: 
-    # networkmap certificate specifications  
-    networkmap:
-      # subject: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-      subject:
+
+#############################################################
+#                       Settings                            #
+#############################################################
+volume:
+  # Eg. baseDir: /opt/corda
+  baseDir: 
+# Mention the maximum size, in megabytes, of the memory allocation pool
+# This is consumed by the pki jar
+# Eg. cordaJarMx: 256
+cordaJarMx: 
+# Provide the path where the CENM Service configuration files are stored
+# Eg. configPath: etc
+configPath: 

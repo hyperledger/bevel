@@ -1,6 +1,11 @@
 Certificate Paths on Vault for Fabric Network
 ---------------------------------------------
 
+## For each channel
+| Path                                                                       | Key (for Vault)                  | Type        |
+|-----------------------------------------------------------------------------------------------------------|-------------------------------------|-------------|
+| /secret/crypto/ordererOrganizations/                                                                      | genesisBlock         | Genesis     |
+
 ### For each orderer organization
 
 | Path                                                                       | Key (for Vault)                  | Type        |
@@ -15,6 +20,14 @@ Certificate Paths on Vault for Fabric Network
 | /secret/crypto/ordererOrganizations/`orgname_lowercase`-net/orderers/orderer.`orgname_lowercase`-net/tls/ | ca.crt                              | Certificate |
 | /secret/crypto/ordererOrganizations/`orgname_lowercase`-net/orderers/orderer.`orgname_lowercase`-net/tls/ | server.key                          | Private key |
 | /secret/crypto/ordererOrganizations/`orgname_lowercase`-net/orderers/orderer.`orgname_lowercase`-net/tls/ | server.crt                          | Certificate |
+| /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/msp/                                 | admincerts                          | Certificate |
+| /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/msp/                                 | keystore                            | Certificate |
+| /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/msp/                                 | signcerts                           | Certificate |
+| /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/msp/                                 | tlscacerts                          | Certificate |
+| /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | ca.crt                              | Certificate |
+| /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | client.crt                          | Certificate |
+| /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | client.key                          | Private Key |
+
 
 -------------------------------
 ### For each peer organization

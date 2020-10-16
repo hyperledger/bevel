@@ -134,13 +134,21 @@
         config_file: "./build/configtx.yaml"
 
     # This role generate genesis block and channeltx
-    - include_role:
+    - name: "Create channel artifacts"
+      include_role:
         name: "create/channel_artifacts"
       vars:
         build_path: "./build"
-        genesis: "{{ item.genesis }}"
         channel_name: "{{ item.channel_name | lower}}"
         profile_name: "{{ item.channel_name }}"
+      loop: "{{ network['channels'] }}"
+
+    - name: "Create genesis block"
+      include_role: 
+        name: "create/genesis"
+      vars:
+        build_path: "./build"
+        genesis: "{{ item.genesis }}"
       loop: "{{ network['channels'] }}"
     
     # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
@@ -208,15 +216,16 @@
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
 
-    # Create CLI pod for peers
+    # Create CLI pod for peers with cli option enabled
     - include_role:
         name: "create/cli_pod"
       vars:
         peers: "{{ org.services.peers }}"
+        docker_url: "{{ network.docker.url }}"
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
-      when: network.organizations is defined  and org.type == "peer"
+      when: org.type == "peer" and org.org_status == "new"
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
