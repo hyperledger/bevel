@@ -19,6 +19,7 @@ Also, a user needs to make sure that the Kubernetes clusters can support the num
 
 ---
 **NOTE:** BAF DLT platforms are tested on Kubernetes Cluster of AWS instances with suppot on both Kubernetes version 1.16 and 1.14. For the current release BAF has been tested and being actively developed on Amazon EKS with Kubernetes version 1.16. AWS cli credentials are also required.
+
 ---
 
 Please follow [Amazon instructions](https://aws.amazon.com/eks/getting-started/) to set-up your required Kubernetes cluster(s).
