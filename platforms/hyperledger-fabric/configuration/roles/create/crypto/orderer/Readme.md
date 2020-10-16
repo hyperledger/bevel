@@ -4,8 +4,36 @@ This role generates crypto material for orderers.
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
 
-#### 0. Call orderercheck.yaml for orderer
+#### 1. Check if orderer admin already created
+This task Check orderer admin already created.
+##### Input Variables
+    *component_name: The name of the component
+    *orderer: Orderer Name
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+    
+##### Output Variables
+    vault_admin_result: This variable stores the output of query.
+    
+**environment** : It includes the list of environment variables.
+**shell** : This command check if orderer admin certificates exists in vault.
+**vault* : This variable contains details of vault from network.yaml. It comes from previous calling playbook(deploy-network,yaml) 
+**ignore_errors**: This flag ignores the any errors and proceeds furthur.
+
+#### 2. Call orderercheck.yaml for orderer
 This task will call a nested file orderercheck.yaml
+
+#### 3. Call common.yaml for orderer
+This task will call a nested file common.yaml
+
+#### 4. Call orderer.yaml for each orderer
+This task will call a nested file orderer.yaml
+**loop** : This will loop over all the orderers.
+
+
+------------
+### orderercheck.yaml
+This task checks the crypto in the vault
 
 #### 1. Check if CA-tools is running
 This task checks if CA-tools pod is running.
@@ -46,7 +74,7 @@ This task check if CA certs exists in vault, if not this should fail. If yes, ge
 **vault* : This variable contains details of vault from network.yaml. It comes from previous calling playbook(deploy-network,yaml) 
 
 
-#### 3.1. Check if ca key already created
+#### 4. Check if ca key already created
 This task check if CA key exists in vault, if not this should fail. If yes, get the key.
 ##### Input Variables
     *component_name: The name of the component
@@ -56,11 +84,49 @@ This task check if CA key exists in vault, if not this should fail. If yes, get 
 **shell** : This command check if CA key exists in vault, if yes, it moves the key to the specified directory.
 **vault* : This variable contains details of vault from network.yaml. It comes from previous calling playbook(deploy-network,yaml) 
 
-#### 3.2 Call orderer.yaml for each orderer
-This task will call a nested file orderer.yaml
-**loop** : This will loop over all the orderers.
+------------
+### common.yaml
+This task creates the organization specific crypto material for each organization
 
-#### 4. Check if orderer msp already created
+#### 1. Create directory path on CA Tools
+This task creates directory path on CA Tools CLI.
+**shell** : This command creates CA TOOLS CLI.
+**when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
+
+#### 2. Changing the permissions for generate-crypto script
+This task changes the permission of generate-crypto script.
+**loop**: It loop over files
+**when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
+
+#### 3. Copy the generate_crypto.sh file into the CA Tools
+This task copy the generate_crypto.sh and cert files in the respective CA Tools CLI
+**shell** : This command copies the files into CA TOOLS CLI.
+**when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
+
+#### 9. Generate crypto material for organization orderers
+This task generates the crypto material by executing the generate_crypto.sh script file present in the Organizations CA Tools CLI
+##### Input Variables
+    *component_name: The name of the resource
+    *component_type: The type of the resource
+    *org_name: The name of the organisation.
+**shell** : The specified commands generates the crypto material by executing the generate_crypto.sh script file present in the Organizations CA Tools CLI
+**when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
+
+#### 10. Copy the crypto config folder from the ca tools
+This task copies the generated crypto material from the respective CA Tools CLI to the Ansible container
+##### Input Variables
+    *component_name: The name of the resource
+    *KUBECONFIG: The config file of kubernetes cluster.
+    *org_name: The name of the organisation.
+**shell** : The specified commands copies the generated crypto material from the respective CA Tools CLI.
+**when**: Condition is specified here, runs only when *vault_msp_result.failed*  is true i.e. not found.
+
+
+------------
+### orderer.yaml
+This creates the crypto material for each of the orderer
+
+#### 1. Check if orderer msp already created
 This task Check orderer msp already created.
 ##### Input Variables
     *component_name: The name of the component
@@ -76,7 +142,7 @@ This task Check orderer msp already created.
 **vault* : This variable contains details of vault from network.yaml. It comes from previous calling playbook(deploy-network,yaml) 
 **ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
-#### 5. Get MSP info
+#### 2. Get MSP info
 This task gets MSP info.
 ##### Input Variables
     *vault_output: "Result of vault msp check query"
@@ -85,7 +151,7 @@ This task gets MSP info.
 **include_role** : It includes the name of intermediatory role which is required for getting MSP info.
 **when**: Condition is specified here, runs only when *vault_msp_result.failed* is FALSE i.e. MSP is found.
 
-#### 5.1 Check if orderer tls already created
+#### 3 Check if orderer tls already created
 This task gets orderer tls info.
 ##### Input Variables
     *vault_output: "Result of vault msp check query"
@@ -94,10 +160,10 @@ This task gets orderer tls info.
 **include_role** : It includes the name of intermediatory role which is required for getting MSP info.
 **when**: Condition is specified here, runs only when *vault_tls_result.failed* is FALSE i.e. MSP is found.
 
-#### 5.2 Ensure tls directory exists
+#### 4 Ensure tls directory exists
 This tasks ensures whether the tls directory exists
 
-#### 5.3 Get orderer tls crt
+#### 5 Get orderer tls crt
 This task gets the orderer tls certificate.
 **when** : It runs when *vault_tls_result.failed == False*
 
