@@ -3,7 +3,7 @@ kind: HelmRelease
 metadata:
   name: {{ org.services.signer.name }}
   annotations:
-    fluxcd.io/automated: "false"
+    flux.weave.works/automated: "false"
   namespace: {{ component_ns }}
 spec:
   releaseName: {{ org.services.signer.name }}
