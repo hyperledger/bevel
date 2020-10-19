@@ -70,3 +70,4 @@ All values must be Base64 encoded files as BAF decodes them.
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | firewallca                 | FirewallCA keystore and corresponding truststore password |
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | float                 | Float keystore password |
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | bridge                 | Bridge keystore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | `peer_name`                 | Rpc user password |

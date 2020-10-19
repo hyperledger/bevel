@@ -57,9 +57,9 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organization_data
-    when: network['type'] == 'corda'
+    when: network['type'] == 'corda' or network['type'] == 'corda-enterprise'
   ############################################################################################
-  # Create expressapi value file for the corda nodes
+  # Create expressapi value file for the corda opensource nodes
   - include_role:
       name: "create/corda/expressapi"
     vars:
@@ -73,6 +73,21 @@
     loop_control:
       loop_var: organization_data
     when: network['type'] == 'corda'
+  ############################################################################################
+  # Create expressapi value file for the corda enterprise nodes
+  - include_role:
+      name: "create/corda/expressapi"
+    vars:
+      component_name: "expressapi"
+      component_ns: "{{ organization_data.name | lower }}-ent"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'corda-enterprise'
 
   ############################################################################################
   # Create frontend value file for the corda nodes
