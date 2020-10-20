@@ -57,5 +57,5 @@ spec:
       tunnelPort: {{ org.services.float.ports.ambassador_tunnel_port }}
       external_url_suffix: {{ org.services.float.external_url_suffix }}
     dmz:
-      internal: "0.0.0.0"
-      external: "0.0.0.0"
+      internal: "{{ dmz_internal }}"
+      external: "{{ dmz_external }}"
