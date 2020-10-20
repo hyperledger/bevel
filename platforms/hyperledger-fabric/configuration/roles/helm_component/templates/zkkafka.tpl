@@ -1,10 +1,10 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: zkkafka-{{ org_name }}-orderer
   namespace: {{ namespace }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: zkkafka-{{ org_name }}-orderer
   chart:
@@ -17,7 +17,6 @@ spec:
       images:
         kafka: {{ kafka_image }}
         zookeeper: {{ zookeeper_image }}
-      
     storage: 
       storageclassname: {{ org_name }}sc
       storagesize: 512Mi

@@ -1,10 +1,10 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ name }}-{{ peer_name }}
   namespace: {{ peer_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: {{ name }}-{{ peer_name }}
   chart:

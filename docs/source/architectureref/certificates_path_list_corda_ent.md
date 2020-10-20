@@ -57,9 +57,17 @@ All values must be Base64 encoded files as BAF decodes them.
 | /secret/`orgname_lowercase`/`peer_name`/certs/nodekeystore         | nodekeystore.jks       | Node keystore |
 | /secret/`orgname_lowercase`/`peer_name`/certs/sslkeystore          | sslkeystore.jks        | SSL Keystore |
 | /secret/`orgname_lowercase`/`peer_name`/certs/truststore           | truststore.jks         | Trust keystore |
+| /secret/`orgname_lowercase`/`peer_name`/certs/firewall           | firewallca.jks         | FirewallCA keystore |
+| /secret/`orgname_lowercase`/`peer_name`/certs/firewall           | float.jks         | Float keystore |
+| /secret/`orgname_lowercase`/`peer_name`/certs/firewall           | bridge.jks         | Bridge keystore |
+| /secret/`orgname_lowercase`/`peer_name`/certs/firewall           | trust.jks         | Truststore keystore |
 | /secret/`orgname_lowercase`/`peer_name`/root/certs | network-root-truststore.jks | Network Root certificates truststore |
 | /secret/`orgname_lowercase`/`peer_name`/tlscerts                   | tlscacerts             | Node Ambassador Certificate |
 | /secret/`orgname_lowercase`/`peer_name`/tlscerts                   | tlskey                 | Node Ambassador Private key |
-| /secret/`orgname_lowercase`/`peer_name`/credentials/root                   | truststore                 | Network root truststore password |
-| /secret/`orgname_lowercase`/`peer_name`/credentials/truststore                   | node                 | Node truststore password |
-| /secret/`orgname_lowercase`/`peer_name`/credentials/keystore                   | keystore                 | Node keystore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | root                 | Network root truststore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | truststore                 | Node truststore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | keystore                 | Node keystore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | firewallca                 | FirewallCA keystore and corresponding truststore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | float                 | Float keystore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | bridge                 | Bridge keystore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | `peer_name`                 | Rpc user password |

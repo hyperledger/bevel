@@ -8,7 +8,8 @@
 - name: Uninstall flux
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
-    KUBECONFIG={{ kubernetes.config_file }} helm delete --purge flux-{{ network.env.type }}
+    KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}
+    KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}-helm-operator
   ignore_errors: yes
 
 # Remove CRD Helmrelease
@@ -25,7 +26,7 @@
     helm_releases=($(KUBECONFIG={{ kubernetes.config_file }} helm ls | grep {{ org_namespace }} | awk '{print $1}'))
     for helm_release in "${helm_releases[@]}"
     do
-      KUBECONFIG={{ kubernetes.config_file }} helm delete ${helm_release} --purge
+      KUBECONFIG={{ kubernetes.config_file }} helm uninstall ${helm_release}
     done
   ignore_errors: yes
 

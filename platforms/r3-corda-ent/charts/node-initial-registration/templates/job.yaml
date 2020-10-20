@@ -102,17 +102,13 @@ spec:
 
                 # Fetching node keystore, node truststore and network-root-truststore credentials from the vault
                 mkdir -p ${MOUNT_PATH}/credentials
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
                 validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
-                TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["node"]')
+                TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore"]')
                 echo "${TRUSTSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/truststorepass
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
-                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["node"]')
+                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
                 echo "${KEYSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/keystorepass  
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/root | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/root)" "${LOOKUP_SECRET_RESPONSE}"
-                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore"]')
+                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root"]')
                 echo "${KEYSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/rootpass             
                 
                 echo "Done"

@@ -1,0 +1,52 @@
+#############################################################################################
+# This role generates crypto material for organisations and orderers.
+#############################################################################################
+
+############################################################################################
+# This task creates directory path on CA Tools CLI
+- name: Create directory path on CA Tools
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get pods -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p /root/ca-tools/{{org_name|lower}}
+  when: vault_admin_result.failed == True
+
+############################################################################################
+# This task changes the permission for generate-crypto script
+- name: Changing the permissions for generate-crypto script
+  file:  
+    path: ./build/{{ files }} 
+    mode: '0775'
+  with_items:
+    - "generate-crypto-{{ org_name|lower }}.sh"
+  loop_control:
+    loop_var: files
+  when: vault_admin_result.failed == True
+
+############################################################################################
+# This task copy the generate_crypto.sh and cert files in the respective CA Tools CLI
+- name: Copy the generate_crypto.sh file into the CA Tools 
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-crypto-{{ org_name|lower }}.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-crypto.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/crypto-config/{{component_type}}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem {{ component_name }}/${CA_TOOL_CLI}:crypto-config/{{component_type}}Organizations/{{ component_name }}/ca/
+  when: vault_admin_result.failed == True or ( add_peer is defined and add_peer | bool == True )
+
+
+############################################################################################
+# This task generates the crypto material by executing the generate_crypto.sh script file
+# present in the Organizations CA Tools CLI
+- name: Generate crypto material for organization orderers
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-crypto.sh
+  when: vault_admin_result.failed == True
+
+############################################################################################
+# This task copies the generated crypto material from the respective CA Tools CLI
+# to the Ansible container
+- name: Copy the crypto config folder from the ca tools
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
+  when: vault_admin_result.failed == True

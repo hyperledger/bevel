@@ -22,4 +22,3 @@ For more information, please read [the documentation](https://www.weave.works/te
 * **db.yaml,job.yaml,node.yaml,doorman.yaml,nms.yaml**: This is of kind HelmRelease which creates deployment for the respective services.
 
 **NOTE**: Once the values file created GitOps will automatically take the files and create the deployment in the cluster.
-   
