@@ -1,4 +1,8 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
   name: {{ component_name }}
+  namespace: {{ component_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:

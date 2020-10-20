@@ -1,10 +1,18 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
   name: {{ component_name }}
+  namespace: {{ component_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
   chart:
+    git: {{ org.gitops.git_ssh }}
+    ref: {{ org.gitops.branch }}
+    path: {{ charts_dir }}/nmap
   values:
+    nodeName: {{ org.services.networkmap.name | lower }}
     metadata:
       namespace: {{ component_ns }}
     storage:
