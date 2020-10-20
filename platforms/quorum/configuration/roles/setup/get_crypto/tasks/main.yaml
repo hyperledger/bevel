@@ -7,11 +7,12 @@
   file:
     path: "{{ cert_path }}"
     state: directory
-
+  
 # Save the cert file
 - name: Save cert
   local_action: copy content="{{ vault_output['data'].ambassadorcrt | b64decode }}" dest="{{ cert_path }}/ambassador.crt"
   when: type == "ambassador"
+  
 # Save the key file
 - name: Save key
   local_action: copy content="{{ vault_output['data'].ambassadorkey | b64decode }}" dest="{{ cert_path }}/ambassador.key"
@@ -21,11 +22,18 @@
   local_action: copy content="{{ vault_output['data'].rootca | b64decode }}" dest="{{ cert_path }}/rootca.jks"
   when: type == "rootca"
 
-- name: Extracting root certificate from .jks
-  shell: |
-    cd {{cert_path}}
-    eval "keytool -importkeystore -srckeystore rootca.jks -destkeystore rootca.p12 -srcalias rootca -srcstoretype jks -deststoretype pkcs12 -srcstorepass 'quorum' -deststorepass 'quorum'"
-    eval "openssl pkcs12 -in rootca.p12 -nokeys -out rootca.pem -passin pass:'quorum' -passout pass:'quorum'"
-    eval "openssl pkcs12 -in rootca.p12 -nodes -nocerts -out rootca.key -passin pass:'quorum' -passout pass:'quorum'"
-  when: type == 'rootca'
+- name: Save root rootcacertpkcs12
+  local_action: copy content="{{ vault_output['data'].rootcacertpkcs12 | b64decode }}" dest="{{ cert_path }}/rootcacert.pkcs12"
+  when: type == "rootca"
 
+- name: Save root rootcakeypkcs12
+  local_action: copy content="{{ vault_output['data'].rootcakeypkcs12 | b64decode }}" dest="{{ cert_path }}/rootcakey.pkcs12"
+  when: type == "rootca"
+
+- name: Save root rootcapem
+  local_action: copy content="{{ vault_output['data'].rootcapem | b64decode }}" dest="{{ cert_path }}/rootca.pem"
+  when: type == "rootca"
+
+- name: Save root rootcakey
+  local_action: copy content="{{ vault_output['data'].rootcakey | b64decode }}" dest="{{ cert_path }}/rootca.key"
+  when: type == "rootca"

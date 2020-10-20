@@ -43,6 +43,12 @@ metadata:
     {{- include "labels.custom" . | nindent 2 }}
   name: {{ .Values.node.name }}
 spec:
+  selector:
+    app.kubernetes.io/name: {{ .Values.node.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
   type: {{ .Values.node.servicetype }}
   ports:
   - name: wsrpc-listener

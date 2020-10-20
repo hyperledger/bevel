@@ -8,17 +8,21 @@ metadata:
 {{- end }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
-  app.kubernetes.io/name: {{ .Values.nodeName }}
-  helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-  app.kubernetes.io/managed-by: {{ .Release.Service }}
-  app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Values.nodeName }}
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   replicas: {{  .Values.replicaCount  }}
   selector:
     matchLabels:
       app: {{ .Values.nodeName }}
       app.kubernetes.io/name: {{ .Values.nodeName }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
       app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
   strategy:
     type: Recreate
     rollingUpdate: null
@@ -27,6 +31,8 @@ spec:
       labels:
         app: {{ .Values.nodeName }}
         app.kubernetes.io/name: {{ .Values.nodeName }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       hostname: {{ .Values.nodeName }}
