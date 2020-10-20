@@ -58,6 +58,18 @@ spec:
       dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
       dbUrl: "{{ component_name }}db"
       dbPort: {{ notary_service.dbtcp.port }}
+{% if org.cordapps|length %}
+    cordapps:
+      getcordapps: true
+      jars:
+        {% for jars in org.cordapps.jars %}
+- url: {{ jars.jar.url }}
+        {% endfor %}
+{% else %}
+    cordapps:
+      getcordapps: false
+{% endif %}
+
     nodeConf:
       legalName: {{ notary_service.subject }}
       emailAddress: {{ notary_service.emailAddress }}

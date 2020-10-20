@@ -43,6 +43,18 @@ spec:
       nodePath: {{ peer.name | lower }}
       retries: 30
       retryInterval: 30
+{% if org.cordapps|length %}
+    cordapps:
+      getcordapps: true
+      jars:
+        {% for jars in org.cordapps.jars %}
+- url: {{ jars.jar.url }}
+        {% endfor %}
+{% else %}
+    cordapps:
+      getcordapps: false
+{% endif %}
+
     nodeConf:
       ambassador:
         external_url_suffix: {{ org.external_url_suffix }}
