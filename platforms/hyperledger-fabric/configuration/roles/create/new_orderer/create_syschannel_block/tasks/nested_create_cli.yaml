@@ -1,0 +1,78 @@
+############################################################################################
+# This task creates the orderer cli and fetch and modify the config block
+############################################################################################
+
+# Create the value file for creater org first peer
+- name: "create valuefile for cli {{ orderer.name }}-{{ org.name }}-{{ channel_name }}"
+  include_role:
+    name: k8_component
+  vars:
+    component_type_name: "{{ org.name | lower }}"
+    component_type: "orderer_cli_job"    
+    component_name: "cli-{{ channel_name }}-{{ org.name }}-{{ orderer.name }}"
+    orderer_name: "{{ orderer.name }}"
+    component_ns: "{{ org.name | lower}}-net"
+    git_url: "{{ org.gitops.git_ssh }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    channel_name: "{{ channel_name }}"
+    storage_class: "{{ org.name }}sc"
+    release_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}"
+    orderer_component: "{{ orderer.name | lower }}.{{ org.name | lower }}-net"
+    orderer_address: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+
+
+# Start the cli using the value file created in the previous step
+- name: "start cli"
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+
+# waiting for fabric cli
+- name: "Check if fabric cli is present"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org.name }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: get_cli
+  until: ("Running" in get_cli|json_query('resources[*].status.phase'))
+  retries: "{{ network.env.retry_count}}"
+  delay: 40
+
+############################################################################################
+# This task fetch , modify, update and copy the configuration block from the blockchain with the new orderer information
+# from orderer cli
+- name: fetch, modify, update and copy the configuration block from the blockchain
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ org.name }}-net | grep "cli" | head -n 1 | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/syschannel-update-script.sh {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/channel-artifacts/{{ channel_name | lower}}-orderer {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/orderer
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- chmod 777 ./update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} --  sh ./update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- peer channel update -f {{ channel_name }}_update_in_envelope.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_modified_config.json ./build/{{ channel_name }}_config_block_with_added_content.json  
+  environment:
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  vars: 
+    kubernetes: "{{ org.k8s }}"
+    ordererAddress: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+
+############################################################################################
+# fetch the latest block from the blockchain
+# from orderer cli
+- name: fetch the latest block from the blockchain
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ org.name }}-net | grep "cli" | head -n 1 | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_latest_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_latest_config_block.pb ./build/{{ channel_name }}_config_block.pb
+  environment:
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  vars: 
+    kubernetes: "{{ org.k8s }}"
+    ordererAddress: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
