@@ -6,17 +6,24 @@ BAF current roadmap
     title BAF current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    R3 Corda Enterprise Version  :active, a1, 20-05-15  , 130d
-    Besu Provisioning       :active, a2, 20-05-20  , 125d
-    Couch DB     :a3, 20-11-15  , 60d
-    Helm 3 upgrade:active, 20-07-15, 90d
+    Corda Ent. MVP Provisioning  :active, a1, 20-05-15  , 130d
+    Besu MVP Provisioning       :active, a2, 20-05-20  , 125d
+    Flux Helm3: done, 20-07-15, 15d
+    Quorum Helm3: active, 20-10-01, 15d
+    Besu Helm3: active, 20-10-01, 15d
+    Fabric Helm3: active, 20-10-01, 15d
+    Indy Helm3: done, 20-09-15, 15d
+    Tech tool upgrades: 20-12-01, 45d
+    Corda OS Helm3: done, 20-09-20, 15d
+    Corda Ent. OFE*: 20-11-15, 60d
+    Corda Ent. Helm3: done, 20-09-15, 15d
     EKS upgrade:done, a5, 20-08-10, 10d
-    HL-Fabric upgrade:active, a6, 20-09-01, 45d
-    
+    Fabric 2.2 upgrade: active, a6, 20-09-01, 50d
+    Fabric OFE*: active, 20-10-01, 45d
+    Besu OFE*: 20-11-15, 45d
     section Application
-    R3 Corda Ent. Ref App : b3, 20-09-15, 45d
-    HL Besu Ref App: b4, 20-09-15, 45d
-    
+    Corda Ent. Ref App : active, b3, 20-09-15, 60d
+    Besu Ref App: active, b4, 20-09-15, 60d
     section Architecture
     Besu Blueprint      : done, 20-06-01, 50d
     Corda-Ent Blueprint : done, 20-06-01, 50d
@@ -44,6 +51,8 @@ BAF current roadmap
     :alt: in use
     :width: 15pt
     :height: 15pt
+
+OFE* : Operational feature enhancement
 
 Legend of annotations:
 
@@ -74,21 +83,18 @@ General
     - |run| Helm3 upgrade
     - |tick| HAProxy upgrade to latest stable
     - |tick| EKS upgrade to 1.16
-    - |run| HL Fabric version upgrade
     - |pin| Ambassador upgrade to latest stable 
-    - |pin| Flux upgrade for helm3 operator support
+    - |tick| Flux upgrade for helm3 operator support
     - |pin| Java version upgrades
 
 Platforms
 ---------
 
--  |run| Besu network provisioning
--  |tick| Support for R3 Corda Enterprise Version
--  |tick| Hyperledger Indy network provisioning
--  |tick| Quorum network provisioning
--  |tick| Support for Hyperledger Fabric v2.0
+-  |tick| Besu MVP network provisioning
+-  |tick| R3 Corda Enterprise MVP network provisioning
 -  |tick| Key storage and management
--  |hand| Implementing couch DB
+-  |run| HL Fabric 2.2 version upgrade
+-  |run| HL Fabric operational feature enhancements
 
 Application
 -----------
@@ -103,7 +109,6 @@ Architecture
 
 -  |tick| Besu architecture blueprint
 -  |tick| R3 Corda Enterprise Version architecture blueprint
--  |hand| Couch DB architecture blueprint
 
 Histroic DLT/Blockchain support releases
 -----------------------------------------
@@ -111,6 +116,8 @@ Histroic DLT/Blockchain support releases
 +-------------------------------------------+-----------+--------------+
 | Feature Name                              | Release   | Status       |
 +===========================================+===========+==============+
+| R3 Corda Enterprise v4.4                  | 0.6.0     | |active|     |
++-------------------------------------------+-----------+--------------+
 | Hyperledger Fabric v2.0                   | 0.5.0     | |active|     |
 +-------------------------------------------+-----------+--------------+
 | R3 Corda v4.4                             | 0.5.0     | |active|     |
