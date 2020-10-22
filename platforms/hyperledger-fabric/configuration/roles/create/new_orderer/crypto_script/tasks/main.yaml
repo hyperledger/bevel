@@ -1,0 +1,31 @@
+#############################################################################################
+# This role creates the generate_crypto.sh script for orderers and organizations.
+#############################################################################################
+
+############################################################################################
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+
+############################################################################################
+# This task creates the generate_crypto.sh file for orderers
+- name: Create generate_crypto script file for orderers
+  template:
+    src: "orderer_script.tpl"
+    dest: "./build/generate-crypto-{{ component_name }}-{{ peer_name }}.sh"
+  vars:
+    component_name: "{{ item.name | lower }}"
+    component_ns: "{{ item.name | lower }}-net"
+    component_country: "{{ item.country }}"
+    component_subject: "{{ item.subject }}"
+    component_state: "{{ item.state }}"
+    component_location: "{{ item.location }}"
+    ca_url: "{{ item.ca_data.url }}"
+    # peer_name: "{{ item.services.orderer.name }}"
+    peer_name: "{{ orderer.name }}"
+  loop: "{{ orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: component_type == 'orderer' and orderer.status == 'new'
