@@ -22,6 +22,7 @@ This tasks creates deployment file for bridge node by calling the `helm_componen
 - `values_dir` - The directory where the release files are stored
 - `networkmap_name` -  The name of the `networkmap` component
 - `init_container_name` - The name of the Docker image used for the `init-container`s
+- `firewall_image` -  The name of the Docker image used for the firewall
 - `image_pull_secret` - The image pull secret used to pull Docker images from registry
 - *`vault_addr` - The Vault address
 - *`vault_role` - The Vault role that has been configured with access to the Vault
