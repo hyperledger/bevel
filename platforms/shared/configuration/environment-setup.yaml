@@ -21,7 +21,7 @@
         name:  setup/helm
       vars:
         helm:
-          version: "v2.16.10"
+          version: "v3.2.4"
           os: "{{ install_os }}"
           arch: "{{ install_arch }}"
           bin_directory: "{{ bin_install_dir }}"
@@ -60,16 +60,8 @@
         kubecontext: "{{ item.k8s.context }}"
       with_items: "{{ network.organizations }}"
       when: "item.cloud_provider == 'aws'"
-    - include_role:
-        name: setup/tiller
-      vars:
-        kubeconfig_path: "{{ data.k8s.config_file }}"
-        kubecontext: "{{ data.k8s.context }}"
-      with_items: "{{ network.organizations }}"
-      loop_control:
-        loop_var: data
     vars: #These variables can be overriden from the command line
       privilege_escalate: false           #Default to NOT escalate to root privledges
       install_os: "linux"                 #Default to linux OS
       install_arch:  "amd64"              #Default to amd64 architecture
-      bin_install_dir:  "~/bin"            #Default to ~/bin install directory for binaries
+      bin_install_dir:  "~/bin"           #Default to ~/bin install directory for binaries

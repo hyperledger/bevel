@@ -105,7 +105,7 @@ This task checks if the Docker credentials exists for any namespace by calling t
     
 ---
 
-#### 12.  Create the docker pull credentials
+#### 11.  Create the docker pull credentials
 This task creates the Docker credentials if they do not exist yet.
 ##### Input Variables
 - *`config_file` - The configuration file used for communication with the K8s cluster.

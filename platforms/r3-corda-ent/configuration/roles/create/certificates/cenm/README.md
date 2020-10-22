@@ -29,8 +29,8 @@ This tasks creates the ambassador directory if it doesn't exist. Calls common ro
 #### 3. Check if the Ambassador TLS is already created
 This tasks checks if the Ambassador TLS is already created and stored in the Vault.
 ##### Input Variables
-- `VAULT_ADDR` - The Vault address
-- `VAULT_TOKEN` - Vault root/custom token which has the access to the path
+- *`VAULT_ADDR` - The Vault address
+- *`VAULT_TOKEN` - Vault root/custom token which has the access to the path
 ##### Output Variables:
 - `ambassador_tls_certs` -  Stores the status of the ambassador tls certificates in the vault (true if the TLS is already created)
 
@@ -52,7 +52,7 @@ This tasks fetches the Ambassador certificates, if they are present in the vault
 #### 5. Check if the `openssl.conf` file exists or not
 This tasks checks if the `openssl.conf` file exists on the given path.
 ##### Input Variables
-- `path` -  The path to the openssl.conf file
+- `path` -  The path to the `openssl.conf` file
 ##### Output Variables
 - `openssl_conf_check` -  Stores the status of the command
 
@@ -97,12 +97,15 @@ This tasks checks if the Ambassador secret is already created
 
 #### 10. Create the Ambassador credentials
 This tasks creates the Ambassador credential secret if they don't exist
+##### Input variables
+- `service_name` - The name of the service, used to create the secret (name)
+- `tlscert_path` - The path that contains the ambassador credentials on the local file system
 
 **when**: It runs when **get_ambassador_secret** variable doesnt have the secret details (secret is not already created)
 
 ---
 
-#### 11. Copy generated crt to build location
+#### 11. Copy generated Ambassador TLS certificates to build location
 This tasks copies the public Ambassador certificates to the build location provided in `network.yaml`
 ##### Input Variables
 - `tlscert_path` - The original path of the Ambassador certificates

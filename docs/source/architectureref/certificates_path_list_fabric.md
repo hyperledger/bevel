@@ -28,7 +28,6 @@ Certificate Paths on Vault for Fabric Network
 | /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | client.crt                          | Certificate |
 | /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | client.key                          | Private Key |
 
-
 -------------------------------
 ### For each peer organization
 

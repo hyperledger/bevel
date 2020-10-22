@@ -13,10 +13,10 @@
   args:
     executable: /bin/bash
   shell: |
-    helm_releases=($(KUBECONFIG={{ org.k8s.config_file }} helm ls | grep {{ org.name | lower }} | awk '{print $1}'))
+    helm_releases=($(KUBECONFIG={{ org.k8s.config_file }} helm ls -A | grep {{ org.name | lower }} | awk '{print $1}'))
     for helm_release in "${helm_releases[@]}"
     do
-      KUBECONFIG={{ org.k8s.config_file }} helm delete ${helm_release} --purge
+      KUBECONFIG={{ org.k8s.config_file }} helm uninstall ${helm_release}
     done
   ignore_errors: yes
   

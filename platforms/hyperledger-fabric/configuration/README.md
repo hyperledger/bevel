@@ -68,7 +68,7 @@ We are working on a verification document for Hyperledger Fabric.
     ```
     ansible-playbook add-organization.yaml -e "@/path/to/network-fabric.yaml" -e "add_new_org='true'"
     ```
-    Follow steps in [README](https://github.com/hyperledger-labs/blockchain-automation-framework/docs/source/operations/adding_new_org_fabric.md).
+    Follow steps in [README](https://blockchain-automation-framework.readthedocs.io/en/latest/operations/adding_new_org_fabric.html).
 
     (Above command assumes that network.yaml is present in current directory with org_status tag and new organization details).<br>
 
@@ -86,4 +86,12 @@ We are working on a verification document for Hyperledger Fabric.
 
     (Above command assumes that network.yaml is present in current directory with org_status tag and new organization details).<br>
 
-7. You can maintain separate `network.yaml`s for separate environments (different amount of organizations, different configuration, etc.).
+7. If you want to add an orderer in existing network with raft cluster, then, from the *platforms/hyperledger-fabric/configuration* directory, run the following command: 
+    ```
+    ansible-playbook add-orderer.yaml -e "@/path/to/network-fabric.yaml"
+    ```
+    Follow steps in [README](https://github.com/hyperledger-labs/blockchain-automation-framework/docs/source/operations/adding_new_orderer_fabric.md).
+
+    (Above command assumes that network.yaml is present in current directory with status tag in orderers under orderer organization and minimum three raft orderers running in the network ).<br>
+
+8. You can maintain separate `network.yaml`s for separate environments (different amount of organizations, different configuration, etc.).
