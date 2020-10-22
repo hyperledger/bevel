@@ -110,5 +110,4 @@ This tasks copies the public Ambassador certificates to the build location provi
 ##### Input Variables
 - `tlscert_path` - The original path of the Ambassador certificates
 - `dest_path` - The path to copy the Ambassador certificates to
-
 **when**: the `dest_path` variable is defined.
