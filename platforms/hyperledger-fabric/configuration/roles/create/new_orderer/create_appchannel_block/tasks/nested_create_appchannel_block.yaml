@@ -1,0 +1,87 @@
+#############################################################################################
+# This role creates the block modification script.
+#############################################################################################
+
+# Ensure channel-artifacts dir exists
+- name: Ensure channel-artifacts dir exists
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+    
+# remove old orderer file
+- name: Remove old orderer file
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer"
+    state: absent
+
+# creating new orderer file
+- name: Creating new orderer file
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer"
+    state: touch
+
+# remove old orderer-tls file
+- name: Remove old orderer-tls file
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls"
+    state: absent
+
+# creating new orderer-tls file
+- name: Creating new orderer-tls file
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls"
+    state: touch
+
+# Create orderer-tls for tls certificate information
+- name: "adding tls certificate information"
+  shell: |
+    if [ -s {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls ]
+    then
+        echo -n "," >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
+    fi
+    echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ org.name|lower }}-net/orderers/{{ orderer.name|lower }}.{{ org.name|lower }}-net/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name|lower }}.{{ org.external_url_suffix }}\",\"port\":8443,\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ org.name|lower }}-net/orderers/{{ orderer.name|lower }}.{{ org.name|lower }}-net/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
+  loop: "{{ orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: orderer.status == 'new'
+
+# Create orderer file for adding new endpoint information
+- name: "adding new endpoint information"
+  shell: |
+    if [ -s {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer ]
+    then
+        echo -n "," >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer  
+    fi
+    echo -n '"{{ orderer.name }}.{{ org.external_url_suffix }}:8443"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer 
+  loop: "{{ orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: orderer.status == 'new'
+
+# Create the values for orderer files
+- name: "adding new org peers anchor peer information"
+  shell: |
+    echo -n "[$(cat {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer )]" > {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
+    echo -n "[$(cat {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls )]" > {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls
+
+############################################################################################
+# This task creates the update-channel-scriptk.sh file for new organizations
+- name: "Create update-channel-script.sh script file for new orderer"
+  template:
+    src: "update_channel_script.tpl"
+    dest: "./build/update-channel-script.sh"
+  vars:
+    component_name: "{{ org.name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+############################################################################################
+# This task calls nested_create_cli to generate the cli value files for the orderer organization
+- name: Call nested_create_cli for the first orderer
+  include_tasks: nested_create_cli.yaml
+  vars:
+    orderer: "{{ org.services.orderers | first }}"
+
+
+
