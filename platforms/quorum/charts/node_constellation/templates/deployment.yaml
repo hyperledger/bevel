@@ -18,7 +18,11 @@ spec:
       app: consortiumchain
       name: {{ .Values.node.name }}
       service.rpc: {{ .Values.node.name }}
-  strategy:
+      app.kubernetes.io/name: {{ .Values.node.name }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/instance: {{ .Release.Name }} 
+  updateStrategy:
     type: RollingUpdate
   template:
     metadata:
@@ -27,6 +31,10 @@ spec:
         app: consortiumchain
         name: {{ .Values.node.name }}
         service.rpc: {{ .Values.node.name }}
+        app.kubernetes.io/name: {{ .Values.node.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
       imagePullSecrets:
@@ -41,7 +49,6 @@ spec:
             items:
               - key: genesis.json.base64
                 path: genesis.json.base64
-            
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}

@@ -110,6 +110,8 @@ This task deletes the crypto materials for the CENM from Vault on the previously
 - `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
 - `*VAULT_TOKEN` - Contains Vault root token, fetched from the `network.yaml`
 - *`org.services` - The services of that organization, fetched from `network.yaml`
+- *`org.name` - The name of the organization, used in the Vault path, fetched from `network.yaml`
+
 **shell** : This command deletes the crypto for CENM.
 
 ---
@@ -120,6 +122,8 @@ This task deletes the crypto materials for each of the nodes from Vault on the p
 - `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
 - `*VAULT_TOKEN` - Contains Vault root token, fetched from the `network.yaml`
 - *`org.services` - The services of that organization, fetched from `network.yaml`
+- *`org.name` - The name of the organization, used in the Vault path, fetched from `network.yaml`
+
 **shell** : This command deletes the crypto for CENM.
 
 ---

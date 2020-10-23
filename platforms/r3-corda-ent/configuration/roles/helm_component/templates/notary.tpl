@@ -1,10 +1,10 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
   namespace: {{ component_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
   chart:
@@ -58,6 +58,18 @@ spec:
       dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
       dbUrl: "{{ component_name }}db"
       dbPort: {{ notary_service.dbtcp.port }}
+{% if org.cordapps|length %}
+    cordapps:
+      getcordapps: true
+      jars:
+        {% for jars in org.cordapps.jars %}
+- url: {{ jars.jar.url }}
+        {% endfor %}
+{% else %}
+    cordapps:
+      getcordapps: false
+{% endif %}
+
     nodeConf:
       legalName: {{ notary_service.subject }}
       emailAddress: {{ notary_service.emailAddress }}

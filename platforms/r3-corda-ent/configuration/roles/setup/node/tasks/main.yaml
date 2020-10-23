@@ -68,10 +68,19 @@
   loop_control:
     loop_var: orderer
 
-# Write node keystore, truststore and network-root-truststore to the vault
-- name: Write node keystore, truststore and network-root-truststore to the vault
+# Write the networkroot truststore, node truststore, node keystore, firewallca, float and bridge passwords to the vault
+- name: Write the networkroot truststore, node truststore, node keystore, firewallca, float and bridge passwords to the vault
   include_role:
     name: setup/credentials
+
+# Create value file for generate-pki-node chart
+- name: Create value files for generate-pki-node chart
+  include_role:
+    name: setup/pki-generator-node
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.firewall.enabled
 
 # Create value file for node registration
 - name: Create value file for node registration

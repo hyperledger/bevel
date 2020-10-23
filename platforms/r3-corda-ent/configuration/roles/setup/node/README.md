@@ -66,17 +66,29 @@ This task will save the TLS certificates for the orderers to the Vault by callin
 
 ---
 
-#### 8. Write node keystore, truststore and network-root-truststore to the Vault
-This task will write some files to the Vault by calling the `setup/credentials` role.
+#### 8. Write node credentials to Vault
+This task will write the following files to the Vault by calling the `setup/credentials` role:
+- networkroot-truststore
+- node-truststore
+- firewall-ca
+- float & bridge credentials
 
 ---
 
-#### 9. Create value file for node registration
+#### 9. Create value files for generate-pki-node
+This task will create the value file for the `generate-pki-node` registration by calling the `setup/pki-generator-node` role for each peer in the node organisation.
+
+**when** - This task will only run when the peer has firewall enabled (`peer.firewall.enabled`)
+
+---
+
+
+#### 10. Create value file for node registration
 This task will create the value file for the node registration by calling the `setup/node_registration` role.
 
 ----
 
-#### 10. Create value file for node
+#### 11. Create value file for node
 This task will create the value file for the node by calling the `helm_component` role. 
 ##### Input variables
 - `helm_lint` - Whether to lint the Helm chart, i.e. `true
@@ -94,17 +106,17 @@ This task will create the value file for the node by calling the `helm_component
 
 ----
 
-#### 11. Create value file for bridge
+#### 12. Create value file for bridge
 This task will create the value file for the bridge firewall component by calling the `setup/bridge` role (for each peer in the organisation).
 
 ----
 
-#### 12. Create value file for node registration
+#### 13. Create value file for float
 This task will create the value file for the float firewall component by calling the `setup/float` role (for each peer in the organisation).
 
 ----
 
-#### 13. Push the created deployment files to repository
+#### 14. Push the created deployment files to repository
 - `GIT_DIR` - The base path of the GIT repository, default `{{ playbook_dir }}/../../../`
 - *`GIT_REPO` - HTTPS URL for GIT repository, used for pushing deployment files; uses the variable `{{ gitops.git_push_url }}` from `network.yaml`
 - *`GIT_USERNAME`: Username with access to the GIT repository; uses `{{ gitops.username }}` from `network.yaml`

@@ -9,8 +9,8 @@ This role generates the Ambassador proxy certificates, and the Kubernetes secret
 #### 1. Check if the Ambassador tls directory exists
 This task checks if the Ambassador tls directory exists or not.
 ##### Input Variables
-- `path` - The Ambassador directory. Fetched through the `network.yaml`
-
+- `path` - The Ambassador directory
+- `node_name` - The name of the node, used to form the previous `path` variable
 ##### Output Variables
 - `ambassadordir_check` - Variable which stores the status of the directory presence (`true` if the directory exists)
 

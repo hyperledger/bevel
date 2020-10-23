@@ -44,7 +44,7 @@ This task will write the keystore credentials to the Vault if they were not pres
 - *`VAULT_ADDR` - The Vault address
 - *`VAULT_TOKEN` - The Vault/root token with full access to the Vault
 - *`org.name` - The name of the organization 
-- `org.credentials.keystore` - Contains the  keystore credentials for the services (idman, networkmap, etc.)
+- *`org.credentials.keystore` - Contains the  keystore credentials for the services (idman, networkmap, etc.)
 
 **when** - This role is only called if the result of `vault_credentials_keystore` is that the credentials did not exist yet
 
@@ -94,6 +94,14 @@ This task will write the SSL credentials to the Vault if they were not present a
 
 **when** - This role is only called if the result of `vault_credentials_ssl` is that the credentials did not exist yet
 
+#### 7. Write cordapps credentials to Vault
+This task will write credentials to the Vault for Cordapps repository.
+##### Input variables
+- *`VAULT_ADDR` - The Vault address
+- *`VAULT_TOKEN` - The Vault/root token with full access to the Vault
+- *`org.name` - The name of the organization 
+- `org.cordapps` - Contains the username & password for the Cordapps repository
+
 ---
 ## Tasks (`node_tasks.yaml`)
 
@@ -122,5 +130,15 @@ This task will write the passwords for the several truststores/keystores to the 
 - *`VAULT_TOKEN` - The Vault/root token with full access to the Vault
 - *`org.name` - The name of the organisation
 - *`peer.name` - The name of the peer
+
+**when** - This role is only called if the result of `vault_credentials_node` is that the credentials did not exist yet
+
+#### 3. Write cordapps credentials to Vault
+This task will write credentials to the Vault for Cordapps repository.
+##### Input variables
+- *`VAULT_ADDR` - The Vault address
+- *`VAULT_TOKEN` - The Vault/root token with full access to the Vault
+- *`org.name` - The name of the organization 
+- `org.cordapps` - Contains the username & password for the Cordapps repository
 
 **when** - This role is only called if the result of `vault_credentials_node` is that the credentials did not exist yet

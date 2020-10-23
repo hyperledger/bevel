@@ -10,21 +10,6 @@
       env:
         type: test
   tasks:
-  # Assert Tiller is installed on Kubernetes
-  - name: Check Tiller on Kubernetes clusters
-    k8s_info:
-      kind: Pod
-      namespace: kube-system
-      kubeconfig: "{{ kubeconfig_path }}"
-      context: "{{ kubecontext }}"
-      label_selectors:
-        - app = helm
-      field_selectors:
-        - status.phase=Running
-    register: tiller_status
-  - name: Assert Tiller has been installed
-    assert:
-      that: tiller_status.resources|length == 1
   # Assert Flux is installed on Kubernetes
   - name: Check Flux on Kubernetes clusters
     k8s_info:
