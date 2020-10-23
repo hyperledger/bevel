@@ -16,13 +16,11 @@
   tags:
     - notest
 
-
 # Ensure ca directory is present in build
 - name: Ensure ca directory exists
   file:
     path: "./build/crypto-config/peerOrganizations/{{ component_name }}/ca"
     state: directory
-
 
 # Check if CA certs exists in vault, if not this should fail. If yes, get the certificate
 - name: Check if ca certs already created
@@ -115,6 +113,28 @@
   when: add_new_org == 'false'
   tags:
     - notest
+
+# This task create the orderer certificate directories if it is not present 
+- name: Create the orderer certificate directory if it does not exist
+  file:
+    path: "{{ orderer.certificate | dirname }}"
+    state: directory
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: add_new_org == 'false' and add_peer is not defined
+
+# This task generate the ca.crt file if it is not present
+- name: Create the ca.crt for orderers if it is not present
+  file:
+    path: "{{ orderer.certificate }}"
+    state: touch
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: add_new_org == 'false' and add_peer is not defined
+  tags:
+    - molecule-idempotence-notest
 
 # Copy the ca.crt when add_new_org is false 
 - name: Copy tls ca.crt from auto-generated path to given path

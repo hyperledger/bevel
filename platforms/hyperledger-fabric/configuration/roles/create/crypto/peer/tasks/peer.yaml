@@ -8,13 +8,32 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_msp_result.failed == True
 
+# This task create the directories if it is not present 
+- name: Create the peer certificate directory if it does not exist
+  file:
+    path: "{{ peer.certificate | dirname }}"
+    state: directory
+  when: peer.certificate is defined
+
+# This task generate the ca.crt file if it is not present.
+- name: Create the ca.crt for peers if it is not present
+  file:
+    path: "{{ peer.certificate }}"
+    state: touch
+  when: peer.certificate is defined
+  tags:
+    - molecule-idempotence-notest
+
+# This task copy the peer certificate to the path provided in network.yaml
 - name: Copy msp cacerts from auto-generated path to given path
   copy:
     src: "./build/crypto-config/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem"
     dest: "{{ peer.certificate }}"
     follow: no
     force: yes
-  when: item.org_status == 'new'
+  when: 
+    - item.org_status == 'new'
+    - peer.certificate is defined
   tags:
     - notest
 
