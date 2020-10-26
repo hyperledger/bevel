@@ -13,14 +13,16 @@
   gather_facts: no
   tasks:
 
-    - include_role:
+    - name: Install chaincode
+      include_role:
         name: "create/chaincode/install"
       vars:
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer' and item.org_status == 'new'
 
-    - include_role:
+    - name: Instantiate chaincode
+      include_role:
         name: "create/chaincode/instantiate"
       vars:
         participants: "{{ item.participants }}"
@@ -28,7 +30,8 @@
       loop: "{{ network['channels'] }}"
       when: add_new_org == 'false' and '1.4' in network.version
 
-    - include_role:
+    - name: "Approve chaincode"
+      include_role:
         name: "create/chaincode/approve"
       vars:
         participants: "{{ item.participants }}"
@@ -36,7 +39,8 @@
       loop: "{{ network['channels'] }}"
       when: participants is defined and '2.' in network.version
 
-    - include_role:
+    - name: Commit chaincode
+      include_role:
         name: "create/chaincode/commit"
       vars:
         participants: "{{ item.participants }}"
@@ -47,7 +51,8 @@
         
     # This task invokes chaincode after the chaincode installation for the new organization to 
     # be added in existing network
-    - include_role:
+    - name: Invoke chaincode
+      include_role:
         name: "create/chaincode/invoke"
       vars:
         participants: "{{ item.participants }}"
