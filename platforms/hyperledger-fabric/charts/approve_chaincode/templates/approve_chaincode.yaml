@@ -16,6 +16,9 @@ spec:
     metadata:
       labels:
         app: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+        app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}{{ $.Values.chaincode.version }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       restartPolicy: OnFailure
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
@@ -133,15 +136,15 @@ spec:
           PACKAGE_ID=$(sed -n "/${CC_NAME}_${CC_VERSION}/{s/^Package ID: //; s/, Label:.*$//; p;}" log.txt)
           echo "Package Id Extracted"
 
-          echo "Endorsing policy :${ENDORSEMENT_POLICIES}"
+          echo "Endorsing policy:${ENDORSEMENT_POLICIES}"
           if [ -z ${ENDORSEMENT_POLICIES} ]
           then
             ## approve for myorg
-            echo "peer query approve"
+            echo "peer query approve without endorsement"
             peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_VERSION} --init-required > log.txt
           else
             ## approve for myorg
-            echo "peer query approve"
+            echo "peer query approve with endorsement policies"
             peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_VERSION} --init-required --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt  
           fi
           
