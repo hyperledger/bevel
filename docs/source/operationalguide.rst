@@ -62,3 +62,4 @@ Generic operations
     operations/setting_dlt 
     operations/baf_verify.md     
     operations/adding_new_storageclass.md
+    operations/upgrade_helm_deployments.md
