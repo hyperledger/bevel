@@ -43,7 +43,7 @@ spec:
       nodePath: {{ peer.name | lower }}
       retries: 30
       retryInterval: 30
-{% if org.cordapps|length %}
+{% if (org.cordapps is defined) and (org.cordapps|length > 0) %}
     cordapps:
       getcordapps: true
       jars:
