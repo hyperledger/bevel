@@ -58,7 +58,7 @@ spec:
       dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
       dbUrl: "{{ component_name }}db"
       dbPort: {{ notary_service.dbtcp.port }}
-{% if org.cordapps|length %}
+{% if (org.cordapps is defined) and (org.cordapps|length > 0) %}
     cordapps:
       getcordapps: true
       jars:
