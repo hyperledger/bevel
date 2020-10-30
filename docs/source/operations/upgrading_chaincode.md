@@ -1,13 +1,15 @@
 <a name = "upgrading-chaincode"></a>
 # Upgrading chaincode in Hyperledger Fabric
 
-- [Pre-requisites](#pre_req)
-- [Modifying configuration file](#create_config_file)
-- [Running playbook to upgrade chaincode to new version in Hyperledger Fabric network](#run_network)
+- [Upgrading chaincode in Hyperledger Fabric](#upgrading-chaincode-in-hyperledger-fabric)
+  - [Pre-requisites](#pre-requisites)
+  - [Modifying configuration file](#modifying-configuration-file)
+  - [Run playbook for Fabric version 1.4.x](#run-playbook-for-fabric-version-14x)
+  - [Run playbook for Fabric version 2.2.x](#run-playbook-for-fabric-version-22x)
 
 <a name = "pre_req"></a>
 ## Pre-requisites
-Hyperledger Fabric network deployed, network.yaml configuration file already set and chaincode is installed and instantiated.
+Hyperledger Fabric network deployed, network.yaml configuration file already set and chaincode is installed and instantiated or packaged, approved and commited in case of Fabric version 2.2.
 
 <a name = "create_config_file"></a>
 ## Modifying configuration file
@@ -35,8 +37,9 @@ network:
           ..
           chaincode:
             name: "chaincode_name" #This has to be replaced with the name of the chaincode
-            version: "chaincode_version" # This has to be different than the current version
+            version: "chaincode_version" # This has to be greater than the current version, should be an integer.
             maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
+            lang: "java" # The chaincode language, optional field with default vaule of 'go'.
             repository:
               username: "git_username"          # Git Service user who has rights to check-in in all branches
               password: "git_password"
@@ -48,13 +51,22 @@ network:
 ```
 
 <a name = "run_network"></a>
-## Run playbook
+## Run playbook for Fabric version 1.4.x
 
-The playbook [chaincode-upgrade.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-upgrade.yaml) is used to upgrade chaincode to a new version in the existing fabric network.
+The playbook [chaincode-upgrade.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-upgrade.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 1.4.x.
 This can be done by using the following command
 
 ```
     ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-upgrade.yaml --extra-vars "@path-to-network.yaml"
+```
+
+## Run playbook for Fabric version 2.2.x
+
+The playbook [chaincode-install-instantiate.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-install-instantiate.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 2.2.x.
+This can be done by using the following command
+
+```
+    ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-install-instantiate.yaml --extra-vars "@path-to-network.yaml" -e "add_new_org='false'"
 ```
 
 ---
