@@ -61,8 +61,8 @@ This task creates the ambassador certificates for the node by calling the `creat
 
 ---
 
-#### 7. Save TLS certificates for orderers to Vault
-This task will save the TLS certificates for the orderers to the Vault by calling the `setup/tlscerts` role. This will be called for each of the orderers in the network.
+#### 7. Save TLS certificates for network services to Vault
+This task will save the TLS certificates for the network services to the Vault by calling the `setup/tlscerts` role. This will be called for each of the network services in the network.
 
 ---
 

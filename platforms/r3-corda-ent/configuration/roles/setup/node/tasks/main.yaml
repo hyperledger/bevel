@@ -60,13 +60,13 @@
   loop_control:
     loop_var: peer
 
-# Save tls certificates for orderers to Vault
-- name: Save tls certificates for orderers to Vault
+# Save tls certificates for network services to Vault
+- name: Save tls certificates for network services to Vault
   include_role:
     name: setup/tlscerts
-  loop: "{{ network.orderers }}"
+  loop: "{{ network.network_services }}"
   loop_control:
-    loop_var: orderer
+    loop_var: service
 
 # Write the networkroot truststore, node truststore, node keystore, firewallca, float and bridge passwords to the vault
 - name: Write the networkroot truststore, node truststore, node keystore, firewallca, float and bridge passwords to the vault
@@ -102,8 +102,8 @@
     name: "{{ org.name | lower }}"
     corda_service_version: node
     type: node
-    doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
-    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    doorman_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
+    networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
