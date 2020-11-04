@@ -92,8 +92,8 @@ spec:
       role: ro
     storage:
       data:
-        storagesize: 2Gi
+        storagesize: 512Mi
         storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
       keys:
-        storagesize: 1Gi
+        storagesize: 512Mi
         storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
