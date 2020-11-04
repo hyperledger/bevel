@@ -30,8 +30,8 @@ spec:
       networkMapURL: {{ networkmap_url }}
       idmanDomain: "{{ doorman_url.split(':')[1] | regex_replace('/', '') }}"
       networkMapDomain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
-      idmanName: "{{ network | json_query('orderers[?type==`idman`].name') | first }}"
-      networkmapName: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
+      idmanName: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"
+      networkmapName: "{{ network | json_query('network_services[?type==`networkmap`].name') | first }}"
     firewall:
       enabled: {{ peer.firewall.enabled }}      
     vault:
@@ -64,7 +64,7 @@ spec:
       emailAddress: "dev-node@baf.com"
       crlCheckSoftFail: true
       tlsCertCrlDistPoint: ""
-      tlsCertCrlIssuer: "{{ network | json_query('orderers[?type==`idman`].crlissuer_subject') | first }}"
+      tlsCertCrlIssuer: "{{ network | json_query('network_services[?type==`idman`].crlissuer_subject') | first }}"
       devMode: false
       volume:
         baseDir: /opt/corda/base

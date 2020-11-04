@@ -59,7 +59,7 @@ This is the main ansible playbook which call all the roles in below sequence to 
 * Create Storage Class
 * Create namespace and vault auth
 * Deploy CENM services
-* Check that orderer uri are reachable
+* Check that network service uri are reachable
 * Deploy nodes
 
 ## **deploy_nodes.yaml**
@@ -68,7 +68,7 @@ This ansible playbook should be used when deploying only the nodes. This can be 
 * Remove build directory
 * Create Storage Class
 * Create namespace and vault auth
-* Check that orderer uri are reachable
+* Check that network service uri are reachable
 * Deploy nodes
 
 ## **reset_network.yaml**

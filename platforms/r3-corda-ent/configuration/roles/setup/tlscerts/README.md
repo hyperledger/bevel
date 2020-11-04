@@ -15,7 +15,7 @@ This task checks if the idman TLS certficate is already present in the Vault or 
 - *`VAULT_TOKEN` - Vault root/custom token which has the access to the path
 - `org.name` - The name of the node organisation
 - `peer.name` - The name of the peer
-- `orderer.name` - The name of the orderer
+- `service.name` - The name of the service
 ##### Output variables
 - `vault_tlscert` - Variable that stores the result of the command (`vault_tlscert.failed` will be `true` when the certs do not exist yet)
 
@@ -28,7 +28,7 @@ This task will copy the tls certificates to each of the peer Vault if they do no
 - *`VAULT_TOKEN` - Vault root/custom token which has the access to the path
 - `org.name` - The name of the node organisation
 - `peer.name` - The name of the peer
-- `orderer.name` - The name of the orderer
+- `service.name` - The name of the service
 
 **when** - This task is only called when the idman certificates are not present yet in the Vault (when `vault_tlscert.failed`)
 
@@ -37,7 +37,7 @@ This task will copy the tls certificates to each of the peer Vault if they do no
 #### 3. Check if the networkroottruststore is already present in the given directory
 This task checks if the networkroottruststore is already present in the given directory of the `network.yaml`.
 ##### Input variables
-- `path` - The truststore path provided in the orderer information of the `network.yaml`
+- `path` - The truststore path provided in the service information of the `network.yaml`
 ##### Output variables
 - `file_status` - The status of the file, `file_status.stat.exists` will be `true` if the file exists
 
@@ -51,4 +51,4 @@ This task copies the networkroottruststore to the Vault for each organisation.
 - `org.name` - The name of the node organisation
 - `peer.name` - The name of the peer
 
-**when** - This task is called when the `orderer.type == 'networkmap` and when the networkroottruststore is present (`file_status.stat.exists` is `true`)
+**when** - This task is called when the `service.type == 'networkmap` and when the networkroottruststore is present (`file_status.stat.exists` is `true`)

@@ -46,7 +46,7 @@ This is the main ansible playbook which call all the roles in below sequence to 
 * Create namespace and vault auth
 * Deploy Doorman service node
 * Deploy Networkmap service node
-* Check that orderer uri are reachable
+* Check that network service uri are reachable
 * Deploy notary
 * Deploy nodes
 * Remove build directory
