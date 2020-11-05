@@ -24,7 +24,7 @@ spec:
       privateCertificate: true
     vault:
       address: {{ org.vault.url }}
-      certSecretPrefix: secret/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}
       serviceAccountName: vault-auth
       role: vault-role
       authPath: cordaent{{ org.name | lower }}

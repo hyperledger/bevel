@@ -26,7 +26,7 @@ spec:
       role: vault-role
       authPath: {{ component_auth }}
       serviceAccountName: vault-auth
-      certSecretPrefix: secret/{{ org.name | lower }}
+      certSecretPrefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}
       retries: 10
       sleepTimeAfterError: 15
     service:

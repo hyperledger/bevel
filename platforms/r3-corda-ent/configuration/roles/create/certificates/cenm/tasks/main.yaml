@@ -21,7 +21,7 @@
 # Check if the ambassador tls is already created
 - name: Check if the Ambassador TLS is already created
   shell: |
-    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ service_name }}/tlscerts
+    vault kv get -format=yaml {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ service_name }}/tlscerts
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -74,7 +74,7 @@
 # Store the ambassador certificates into the vault
 - name: Store the Ambassador certs to vault
   shell: |
-    vault kv put secret/{{ org.name | lower }}/{{ service_name }}/tlscerts tlscacerts="$(cat {{ tlscert_path }}/ambassador.pem | base64)" tlskey="$(cat {{ tlscert_path }}/ambassador.key | base64)"
+    vault kv put {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ service_name }}/tlscerts tlscacerts="$(cat {{ tlscert_path }}/ambassador.pem | base64)" tlskey="$(cat {{ tlscert_path }}/ambassador.key | base64)"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
