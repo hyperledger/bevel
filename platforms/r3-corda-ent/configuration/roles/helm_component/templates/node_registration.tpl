@@ -8,18 +8,18 @@ metadata:
 spec:
   releaseName: {{ component_name }}
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
+    git: {{ org.gitops.git_ssh }}
+    ref: {{ org.gitops.branch }}
     path: {{ charts_dir }}/node-initial-registration
   values:
-    nodeName: {{ node_name }}-registration
+    nodeName: {{ peer.name | lower }}-registration
     metadata:
       namespace: {{ component_ns }}
-      labels:
+      labels: {}
     image:
       initContainerName: {{ network.docker.url }}/{{ init_image }}
       nodeContainerName: {{ network.docker.url }}/{{ docker_image }}
-      imagepullsecret: {{ image_pull_secret }}
+      imagepullsecret: regcred
       pullPolicy: Always
     truststorePassword: password
     keystorePassword: password
