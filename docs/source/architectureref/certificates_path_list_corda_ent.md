@@ -1,6 +1,7 @@
 Certificate Paths on Vault for Corda Enterprise
 -----------------------------------------------
-All values must be Base64 encoded files as BAF decodes them.
+* All values must be Base64 encoded files as BAF decodes them.
+* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
 
 ### For CENM
 
