@@ -19,6 +19,7 @@ This section defines the pre-requisites installation and steps for setup of a DL
     operations/upgrading_chaincode.md
     operations/upgrade_fabricnetwork.md
     operations/adding_new_org_fabric
+    operations/removing_org_fabric.md
     operations/adding_new_peer_fabric
     operations/fabric_verify.md
     operations/indy_verify.md
