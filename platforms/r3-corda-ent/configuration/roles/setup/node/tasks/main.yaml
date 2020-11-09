@@ -50,15 +50,29 @@
     component_auth: "cordaent{{ org.name | lower }}"
     component_type: "{{ org.type | lower }}"
 
-# Create ambassador certificates for node
-- name: Create ambassador certificates for node
+# Create ambassador certificates for node when firewall is enabled
+- name: Create ambassador certificates for node when firewall is enabled
   include_role:
     name: create/certificates/node
   vars:
     node_name: "{{ peer.name | lower }}"
+    domain_name: "{{ peer.firewall.float.name }}.{{ node_name }}.{{ org.external_url_suffix }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
+  when: peer.firewall.enabled
+
+# Create ambassador certificates for node when firewall is disabled
+- name: Create ambassador certificates for node when firewall is disabled
+  include_role:
+    name: create/certificates/node
+  vars:
+    node_name: "{{ peer.name | lower }}"
+    domain_name: "{{ node_name }}.{{ org.external_url_suffix }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: not peer.firewall.enabled
 
 # Save tls certificates for network services to Vault
 - name: Save tls certificates for network services to Vault

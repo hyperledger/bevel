@@ -44,11 +44,11 @@ spec:
       readinesscheckinterval: 10
       readinessthreshold:: 15
     float:
-      address: {{ peer.firewall.float.name | lower }}.{{ component_ns }}
-      port: {{ peer.firewall.float.port }}
+      address: {{ peer.firewall.float.name | lower }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}
+      port: {{ peer.p2p.ambassador }}
       subject: {{ peer.firewall.float.subject }}
     node:
       messagingServerAddress: {{ (peer.name | lower) ~ '.' ~ component_ns }}
       messagingServerPort: {{ peer.p2p.port }}
     tunnel:
-      port: {{ peer.firewall.bridge.tunnelport }}
+      port: {{ peer.firewall.bridge.ambassadorTunnelPort }}

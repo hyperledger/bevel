@@ -46,7 +46,11 @@ spec:
       ambassador:
         external_url_suffix: {{ org.external_url_suffix }}
         p2pPort: {{ peer.p2p.ambassador }}
+{% if peer.firewall.enabled == true %}
         p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+{% else %}
+        p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+{% endif %}
       legalName: "{{ org.subject }}"
       emailAddress: dev-node@baf.com
       crlCheckSoftFail: true
@@ -65,7 +69,12 @@ spec:
           limits: 1524M
           requests: 1524M
     service:
-      p2pPort: {{ peer.firewall.float.port if peer.firewall.enabled == true else peer.p2p.port }}
+{% if peer.firewall.enabled %}
+      p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}
+{% else %}
+      p2pAddress: {{ peer.name | lower }}.{{ component_ns }}
+{% endif %}
+      p2pPort: {{ peer.p2p.ambassador if peer.firewall.enabled == true else peer.p2p.port }}
       p2pAddress: {{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ component_ns }}
       messagingServerPort: {{ peer.p2p.port }}
       ssh:
