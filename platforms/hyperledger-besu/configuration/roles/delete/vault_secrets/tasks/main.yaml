@@ -38,12 +38,12 @@
 # This task deletes crypto material
 - name: Delete Crypto material 
   shell: |
-    vault delete secret/{{ org_namespace }}/crypto/{{ peer.name }}/data
-    vault delete secret/{{ org_namespace }}/crypto/{{ peer.name }}/orion
-    vault delete secret/{{ org_namespace }}/crypto/{{ peer.name }}/certs
-    vault delete secret/{{ org_namespace }}/crypto/{{ peer.name }}/tls
-    vault delete secret/{{ org_namespace }}/crypto/genesis
-    vault delete secret/besu-{{ network.env.type }}/rootca
+    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/data
+    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/orion
+    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/certs
+    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tls
+    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/genesis
+    vault delete {{ item.vault.secret_path | default('secret') }}/besu-{{ network.env.type }}/rootca
   loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
