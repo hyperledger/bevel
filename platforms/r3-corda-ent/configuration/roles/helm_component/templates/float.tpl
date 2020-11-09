@@ -15,6 +15,7 @@ spec:
     deployment:
       annotations: {}
     nodeName: {{ component_name }}
+    peerName: {{ peer.name | lower }}
     metadata:
       namespace: {{ component_ns }}
       labels: {}
@@ -51,6 +52,10 @@ spec:
       loadBalancerIP: {{ peer.firewall.float.name | lower }}.{{ component_ns }}
     node:
       p2pPort: {{ peer.firewall.float.port }}
+    ambassador:
+      p2pPort: {{ peer.p2p.ambassador }}
+      tunnelPort: {{ peer.firewall.bridge.ambassadorTunnelPort }}
+      external_url_suffix: {{ org.external_url_suffix }}
     dmz:
       internal: "0.0.0.0"
       external: "0.0.0.0"

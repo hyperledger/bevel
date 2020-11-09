@@ -504,6 +504,7 @@ For **Corda Enterprise**, following additional fields have been added under each
               subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
               port: 40000
               tunnelport: 40000
+              ambassadorTunnelPort: 15011
           hsm:                              # hsm support for future release
             enabled: false 
 ```
@@ -519,5 +520,6 @@ For **Corda Enterprise**, following additional fields have been added under each
 | firewall.bridge.name | Name of the Bridge component |
 | firewall.bridge.port | Internal port of the Bridge component |
 | firewall.bridge.tunnelport | Tunnel port of the Bridge component |
+| firewall.bridge.ambassadorTunnelPort | Ambassador Tunnel port of the Bridge component |
 | firewall.bridge.subject | Subject of the Bridge component |
 | hsm.enabled      | This is kept for future HSM integration  |

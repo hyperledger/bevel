@@ -57,18 +57,13 @@
     keyUsage=digitalSignature
     extendedKeyUsage=serverAuth
     EOF
-  vars:
-    domain_name: "{{ node_name }}.{{ org.external_url_suffix }}"
   when: not openssl_conf_check.stat.exists
-
 
 # Create ambassador certificates
 - name: Create Ambassador certificates
   shell: |
     cd ./build/ambassador/{{ node_name }}
     openssl req -x509 -out ambassador.pem -keyout ambassador.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ domain_name }}" -extensions EXT -config openssl{{ node_name }}.conf
-  vars:
-    domain_name: "{{ node_name }}.{{ org.external_url_suffix }}"
   when: ambassador_tls_certs.failed
 
 # Store the ambassador certificates into the vault
