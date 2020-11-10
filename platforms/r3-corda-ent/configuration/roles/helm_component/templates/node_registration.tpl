@@ -1,25 +1,25 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
   namespace: {{ component_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
+    git: {{ org.gitops.git_ssh }}
+    ref: {{ org.gitops.branch }}
     path: {{ charts_dir }}/node-initial-registration
   values:
-    nodeName: {{ node_name }}-registration
+    nodeName: {{ peer.name | lower }}-registration
     metadata:
       namespace: {{ component_ns }}
-      labels:
+      labels: {}
     image:
       initContainerName: {{ network.docker.url }}/{{ init_image }}
       nodeContainerName: {{ network.docker.url }}/{{ docker_image }}
-      imagepullsecret: {{ image_pull_secret }}
+      imagepullsecret: regcred
       pullPolicy: Always
     truststorePassword: password
     keystorePassword: password
@@ -29,27 +29,33 @@ spec:
       networkMapURL: {{ networkmap_url }} 
       idmanDomain: "{{ doorman_url.split(':')[1] | regex_replace('/', '') }}"
       networkMapDomain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
-      idmanName: "{{ network | json_query('orderers[?type==`idman`].name') | first }}"
-      networkmapName: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
+      idmanName: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"
+      networkmapName: "{{ network | json_query('network_services[?type==`networkmap`].name') | first }}"
     vault:
       address: {{ org.vault.url }}
       role: vault-role
       authpath: cordaent{{ org.name | lower }}
       serviceaccountname: vault-auth
-      certsecretprefix: secret/{{ org.name | lower }}/{{ peer.name }}
+      certsecretprefix: {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name }}
       nodePath: {{ peer.name | lower }}
       retries: 30
       retryInterval: 30
+    firewall:
+      enabled: {{ peer.firewall.enabled }}
     nodeConf:
       ambassador:
         external_url_suffix: {{ org.external_url_suffix }}
         p2pPort: {{ peer.p2p.ambassador }}
+{% if peer.firewall.enabled == true %}
         p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+{% else %}
+        p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+{% endif %}
       legalName: "{{ org.subject }}"
       emailAddress: dev-node@baf.com
       crlCheckSoftFail: true
       tlsCertCrlDistPoint: ""
-      tlsCertCrlIssuer: "{{ network | json_query('orderers[?type==`idman`].crlissuer_subject') | first }}"
+      tlsCertCrlIssuer: "{{ network | json_query('network_services[?type==`idman`].crlissuer_subject') | first }}"
       devMode: false
       volume:
         baseDir: /opt/corda
@@ -63,8 +69,14 @@ spec:
           limits: 1524M
           requests: 1524M
     service:
-      p2pPort: {{ peer.firewall.bridge.port if peer.firewall.enabled == true else peer.p2p.port }}
+{% if peer.firewall.enabled %}
+      p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}
+{% else %}
+      p2pAddress: {{ peer.name | lower }}.{{ component_ns }}
+{% endif %}
+      p2pPort: {{ peer.p2p.ambassador if peer.firewall.enabled == true else peer.p2p.port }}
       p2pAddress: {{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ component_ns }}
+      messagingServerPort: {{ peer.p2p.port }}
       ssh:
         enabled: true
         sshdPort: 2222

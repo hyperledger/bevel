@@ -20,7 +20,7 @@
 # Check if the ambassador tls is already created
 - name: Check if the Ambassador TLS is already created
   shell: |
-    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ node_name }}/tlscerts
+    vault kv get -format=yaml {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ node_name }}/tlscerts
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -57,24 +57,19 @@
     keyUsage=digitalSignature
     extendedKeyUsage=serverAuth
     EOF
-  vars:
-    domain_name: "{{ node_name }}.{{ org.external_url_suffix }}"
   when: not openssl_conf_check.stat.exists
-
 
 # Create ambassador certificates
 - name: Create Ambassador certificates
   shell: |
     cd ./build/ambassador/{{ node_name }}
     openssl req -x509 -out ambassador.pem -keyout ambassador.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ domain_name }}" -extensions EXT -config openssl{{ node_name }}.conf
-  vars:
-    domain_name: "{{ node_name }}.{{ org.external_url_suffix }}"
   when: ambassador_tls_certs.failed
 
 # Store the ambassador certificates into the vault
 - name: Store the Ambassador certs to vault
   shell: |
-    vault kv put secret/{{ org.name | lower }}/{{ node_name }}/tlscerts tlscacerts="$(cat ./build/ambassador/{{ node_name }}/ambassador.pem | base64)" tlskey="$(cat ./build/ambassador/{{ node_name }}/ambassador.key | base64)"
+    vault kv put {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ node_name }}/tlscerts tlscacerts="$(cat ./build/ambassador/{{ node_name }}/ambassador.pem | base64)" tlskey="$(cat ./build/ambassador/{{ node_name }}/ambassador.key | base64)"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"

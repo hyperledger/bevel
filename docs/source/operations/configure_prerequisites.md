@@ -81,7 +81,7 @@ vault operator unseal << unseal-key-from-above >>
 ```
 vault login << give the root token >>
 ```
-* Enable secrets engine
+* Enable secrets engine. Blockchain Automation Framework uses the secret path `secret` by default. This can be changed in the network.yaml, in which case it will need to be enabled with the selected path.
 ```
 vault secrets enable -version=1 -path=secret kv
 ```

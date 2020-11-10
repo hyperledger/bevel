@@ -1,7 +1,7 @@
 # This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault kv put secret/{{ component_ns }}/crypto/{{ peer.name }}/data key="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/key)" key.pub="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/key.pub)" nodeAddress="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/nodeAddress)"
+    vault kv put {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}/data key="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/key)" key.pub="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/key.pub)" nodeAddress="$(cat {{ build_path }}/crypto/{{ component_ns }}/{{ peer.name }}/data/nodeAddress)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -11,7 +11,7 @@
 
 - name: Copy genesis to Vault
   shell: |
-    vault kv put secret/{{ component_ns }}/crypto/genesis genesis="{{ genesis }}" 
+    vault kv put {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/genesis genesis="{{ genesis }}" 
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

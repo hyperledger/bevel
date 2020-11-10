@@ -1,0 +1,345 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.nodeName }}-generate-pki
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Values.nodeName }}-generate-pki
+    app.kubernetes.io/name: {{ .Values.nodeName }}-generate-pki
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+    backoffLimit: 6
+    template:
+      metadata:
+        labels:
+          app: {{ .Values.nodeName }}-generate-pki
+          app.kubernetes.io/name: {{ .Values.nodeName }}-generate-pki
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        restartPolicy: "OnFailure"
+        serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+        hostname: {{ .Values.nodeName }}
+        securityContext:
+          fsGroup: 1000
+        initContainers:
+        - name: init-check-certificates
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certsecretprefix }}
+            - name: MOUNT_PATH
+              value: "/certcheck"
+          command: ["sh", "-c"]
+          args:
+          - |-
+              #!/usr/bin/env sh
+               validateVaultResponse () {
+                 if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                 fi
+               }
+
+              # Setting up the environment to get secrets/certificates from Vault
+              echo "Getting secrets/certificates from Vault server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "Logged into Vault"
+
+              mkdir -p ${MOUNT_PATH}
+
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/firewall | jq -r 'if .errors then . else . end')
+              if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+              then
+                echo "Certficates absent in vault. Ignore error warning"
+                touch ${MOUNT_PATH}/absent.txt
+              else
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present.txt
+              fi 
+
+              echo "Done checking for certificates in vault"
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+        - name: init-credentials
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: VAULT_APP_ROLE
+              value: {{ $.Values.vault.role }}
+            - name: BASE_DIR
+              value: {{ $.Values.volume.baseDir }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certsecretprefix }}
+            - name: MOUNT_PATH
+              value: "/DATA"
+            - name: NODEINFO_MOUNT_PATH
+              value: "/notary-nodeinfo"
+          command: ["sh", "-c"]
+          args:
+          - |-
+              #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                fi
+              }
+
+              if [ -e /certcheck/present.txt ]
+              then
+                echo "Certificates already present in the vault. Skipping.."
+                exit 0
+              fi
+
+              # Setting up the environment to get secrets from Vault
+              echo "Getting secrets from Vault Server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "logged into vault"
+
+              # Creating dirs for storing certificates
+              mkdir -p ${MOUNT_PATH};
+
+              # Fetching credentials for truststores
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials)" "${LOOKUP_SECRET_RESPONSE}"
+
+              FIREWALL_CA=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["firewallca"]')
+              echo "${FIREWALL_CA}"> ${MOUNT_PATH}/firewallca
+              BRIDGE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["bridge"]')
+              echo "${BRIDGE}"> ${MOUNT_PATH}/bridge
+              FLOAT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["float"]')
+              echo "${FLOAT}"> ${MOUNT_PATH}/float
+
+              touch /DATA/done.txt
+              echo "Done"
+          volumeMounts:
+          - name: credentials
+            mountPath: /DATA
+          - name: certcheck
+            mountPath: /certcheck
+        containers:
+        - name: pki
+          image: "{{ required "pki[main]: missing value for .Values.image.pkiContainerName" .Values.image.pkiContainerName }}"
+          env:
+            - name: ACCEPT_LICENSE
+              value: "{{ .Values.acceptLicense }}"
+            - name: BASE_DIR
+              value: "{{ .Values.volume.baseDir }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            if [ -e /certcheck/present.txt ]
+            then
+              echo "Certificates already present in the vault. Skipping.."
+              exit 0
+            fi
+            rm -r ${BASE_DIR}/DATA/done.txt
+
+            echo 'keyStores = {
+                "bridge" = {
+                    type = LOCAL
+                    file = "./DATA/node/bridge.jks"
+                    password = "BRIDGE"
+                },
+                "float" = {
+                    type = LOCAL
+                    file = "./DATA/node/float.jks"
+                    password = "FLOAT"
+                },
+                "firewallca" = {
+                    type = LOCAL
+                    file = "./DATA/node/firewallca.jks"
+                    password = "FIREWALL_CA"
+                }
+            }
+            certificates = {
+                "firewallca" = {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["firewallca"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "FIREWALL_CA"
+                    }
+                    isSelfSigned = true
+                    keyUsages = [DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN]
+                    keyPurposes = [SERVER_AUTH, CLIENT_AUTH]
+                    validDays = 7300
+                    issuesCertificates = false
+                    subject = {{ .Values.subjects.firewallca | quote }}
+                },
+                "bridge" = {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["bridge"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "BRIDGE"
+                    }
+
+                    signedBy = "firewallca"
+                    keyUsages = [DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN]
+                    keyPurposes = [SERVER_AUTH, CLIENT_AUTH]
+                    validDays = 7300
+                    issuesCertificates = false
+                    subject = {{ .Values.subjects.bridge | quote }}
+                },
+                "float" = {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["float"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "FLOAT"
+                    }
+                    signedBy = "firewallca"
+                    keyUsages = [DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN]
+                    keyPurposes = [SERVER_AUTH, CLIENT_AUTH]
+                    validDays = 7300
+                    issuesCertificates = false
+                    subject = {{ .Values.subjects.float | quote }}
+                }
+            }' >> {{ .Values.configPath }}/pki.conf
+
+            #replacement of the variables in the pki conf file
+            export FIREWALL_CA=$(cat /opt/corda/credentials/firewallca)
+            sed -i -e "s*FIREWALL_CA*${FIREWALL_CA}*g" {{ .Values.configPath }}/pki.conf
+            export FLOAT=$(cat /opt/corda/credentials/float)
+            sed -i -e "s*FLOAT*${FLOAT}*g" {{ .Values.configPath }}/pki.conf
+            export BRIDGE=$(cat /opt/corda/credentials/bridge)
+            sed -i -e "s*BRIDGE*${BRIDGE}*g" {{ .Values.configPath }}/pki.conf
+
+            mkdir -p DATA/node
+            time java -Xmx{{ .Values.cordaJarMx }}M -jar bin/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf --ignore-missing-crl
+            keytool -exportcert -rfc -alias firewallca -keystore DATA/node/firewallca.jks -storepass ${FIREWALL_CA} -keypass ${FIREWALL_CA} > DATA/node/root.pem
+            keytool -importcert -noprompt -file DATA/node/root.pem -alias firewallca -keystore DATA/node/trust.jks -storepass ${FIREWALL_CA}
+            rm DATA/node/root.pem
+
+            #creating a dummy file to perform check if last line is executed or not.
+            touch ${BASE_DIR}/DATA/done.txt
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+          - name: credentials
+            mountPath: /opt/corda/credentials
+          - name: pkitool-certs-keys
+            mountPath: /opt/corda/DATA
+          - name: pkitool-etc
+            mountPath: /opt/corda/etc
+          resources:
+            requests:
+              memory: {{ .Values.cordaJarMx }}M
+            limits:
+              memory: {{ add .Values.cordaJarMx 2 }}M
+        - name: store-certs
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+             - name: VAULT_ADDR
+               value: {{ $.Values.vault.address }}
+             - name: KUBERNETES_AUTH_PATH
+               value: {{ $.Values.vault.authpath }}
+             - name: VAULT_APP_ROLE
+               value: {{ $.Values.vault.role }}
+             - name: BASE_DIR
+               value: {{ $.Values.volume.baseDir }}
+             - name: CERTS_SECRET_PREFIX
+               value: {{ .Values.vault.certsecretprefix }}
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                 echo "ERROR: unable to retrieve ${1}: ${2}"
+                 exit 1
+              fi
+            }
+            
+            if [ -e /certcheck/present.txt ]
+            then
+              echo "Certificates already present in the vault. Skipping.."
+              exit 0
+            fi
+
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+            cd ${BASE_DIR}/DATA
+            # putting certificate for cenm root 
+            COUNTER=1
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
+            do
+                if [ -e done.txt ]
+                then
+                  cd ${BASE_DIR}/DATA/node
+                  echo "found firewall certificates, performing vault put for root path"
+                  (echo '{'
+                  for FILE in *;
+                  do
+                  echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
+                  done;
+                  ) >> ../temp_root.json
+                  sed -i '$ s/.$//' ../temp_root.json
+                  echo '}' >> ../temp_root.json
+                  cat ../temp_root.json | tr -d '\n' >> ../root.json
+                  echo "before curl"
+                  curl \
+                   --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                   --request POST \
+                   --data @../root.json \
+                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/firewall
+                   echo "after curl"
+                  break;
+                else
+                  echo "certificates are not ready, sleeping ..."
+                  sleep {{ $.Values.vault.sleepTimeAfterError }}
+                  COUNTER=`expr "$COUNTER" + 1`
+                fi
+            done
+            echo "completed"
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+          - name: pkitool-certs-keys
+            mountPath: /opt/corda/DATA
+            readOnly: false
+        imagePullSecrets:
+          - name: {{ .Values.image.imagePullSecret }}
+        volumes:
+          - name: certcheck
+            emptyDir:
+              medium: Memory
+          - name: credentials
+            emptyDir:
+              medium: Memory
+          - name: pkitool-signer-etc
+            emptyDir:
+              medium: Memory
+          - name: signer-logs
+            emptyDir:
+              medium: Memory
+          - name: pkitool-certs-keys
+            emptyDir:
+              medium: Memory
+          - name: pkitool-etc
+            emptyDir:
+              medium: Memory

@@ -1,10 +1,10 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
   namespace: {{ name | lower | e }}-net
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
   chart:
@@ -27,11 +27,11 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ namespace | e }}-auth
-      adminsecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/users/admin 
-      orderersecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/orderer
+      adminsecretprefix: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/users/admin 
+      orderersecretprefix: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth
       imagesecretname: regcred
-      secretgitprivatekey: secret/credentials/{{ namespace }}/git?git_password
+      secretgitprivatekey: {{ vault.secret_path | default('secret') }}/credentials/{{ namespace }}/git?git_password
       tls: false
     orderer:
       address: {{ orderer_address }}

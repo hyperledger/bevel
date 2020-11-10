@@ -21,7 +21,7 @@
 # Check if CA certs exists in vault, if not this should fail. If yes, get the certificate
 - name: Check if ca certs already created
   shell: |
-    vault kv get -field=ca.{{ component_name }}-cert.pem secret/crypto/ordererOrganizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
+    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
     mv ca.{{ component_name }}-cert.pem ./build/crypto-config/ordererOrganizations/{{ component_name }}/ca/
   environment:
     VAULT_ADDR: "{{ vault.url }}"
@@ -31,7 +31,7 @@
 # Check if CA key exists in vault, if not this should fail. If yes, get the certificate
 - name: Check if ca key already created
   shell: |
-    vault kv get -field={{ component_name }}-CA.key secret/crypto/ordererOrganizations/{{ component_name }}/ca > {{ component_name }}-CA.key
+    vault kv get -field={{ component_name }}-CA.key {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/ca > {{ component_name }}-CA.key
     mv {{ component_name }}-CA.key ./build/crypto-config/ordererOrganizations/{{ component_name }}/ca/
   environment:
     VAULT_ADDR: "{{ vault.url }}"

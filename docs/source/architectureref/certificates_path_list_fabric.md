@@ -1,6 +1,8 @@
 Certificate Paths on Vault for Fabric Network
 ---------------------------------------------
 
+* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+
 ## For each channel
 | Path                                                                       | Key (for Vault)                  | Type        |
 |-----------------------------------------------------------------------------------------------------------|-------------------------------------|-------------|
@@ -27,7 +29,6 @@ Certificate Paths on Vault for Fabric Network
 | /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | ca.crt                              | Certificate |
 | /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | client.crt                          | Certificate |
 | /secret/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | client.key                          | Private Key |
-
 
 -------------------------------
 ### For each peer organization

@@ -1,10 +1,10 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ name }}-expressapi
   namespace: {{ component_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   chart:
     path: {{ component_gitops.chart_source }}/expressapp-quorum
@@ -18,7 +18,7 @@ spec:
     replicaCount: 1
     vault:
       address: {{ organization_data.vault.url }}
-      secretprefix: secret/{{ component_ns }}/smartContracts
+      secretprefix: {{ organization_data.vault.secret_path | default('secret') }}/{{ component_ns }}/smartContracts
       serviceaccountname: vault-auth
       keyname: General
       role: vault-role

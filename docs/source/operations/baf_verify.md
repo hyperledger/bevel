@@ -1,11 +1,11 @@
-# How to debug a Fabric deployment
+# How to debug a BAF deployment
 While deploying a DLT/Blockchain network using BAF, the pods and other components take some time to start. The BAF automation (Ansible component) waits for the components to be at a "Running" or "Completed" state before proceeding with further steps. This is where you can see the message "FAILED - RETRYING: ... "
 
 
 Each component has a retry count which can be configured in the configuration file (network.yaml). When everything is fine, the components are usually up in 10-15 retries. Meanwhile, you can check the components while the retries occurs to avoid unnecessary wait time till the error/Failed message occurs in Ansible logs.
 
 
-## BAF Deployment Flowchart:
+## BAF Deployment Flowchart
 ---
 
 This flow chart shows the BAF Deployment process flow. To verify the steps of deployment, follow the flow chart and check verification table 'C' to troubleshoot the general errors.
@@ -13,7 +13,7 @@ This flow chart shows the BAF Deployment process flow. To verify the steps of de
 
 
 ### Common Troubleshooting
-### (Table 'C')
+### Table 'C'
 ---
 
 | Section | Sub-section | Problem                                                        | Possible Cause                                                                                                                                           | Solution                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -41,7 +41,7 @@ If components are there but not able to talk to each, check whether the ambasssa
 
 ---   
 
-## Hyperledger Fabric Checks:
+## Hyperledger Fabric Checks
 
 The flow chart shows the Fabric Deployment process. To verify the steps of deployment, follow the verification Table 'F', to troubleshoot the general errors.
 
@@ -49,7 +49,7 @@ The flow chart shows the Fabric Deployment process. To verify the steps of deplo
 
 ----
 ### Fabric Troubleshooting
-### (Table 'F')
+### Table 'F'
 
 | Section | Sub-section | Problem                                                                                                                                                                                                                                                                                                                                                                                                                           | Possible Cause                                                                                                                         | Solution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 |---------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -78,66 +78,162 @@ The flow chart shows the Fabric Deployment process. To verify the steps of deplo
 #### Final network validy check
 For final checking of the validity of the fabric network.
 
-1. Create a cli pod for any organization. (Now Peer CLI can be enabled from network.yaml itself. Check the [sample network.yaml](./../operations/fabric_networkyaml.md) for reference)
+- Create a cli pod for any organization. (Now Peer CLI can be enabled from network.yaml itself. Check the [sample network.yaml](./../operations/fabric_networkyaml.md) for reference)
 
-Use this sample template.
-```yaml
-  metadata:
-    namespace: <ORG_NAME>-net
-  images:
-    fabrictools: hyperledger/fabric-tools:2.0
-    alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
-  storage:
-    class: <ORG_NAME>sc
-    size: 256Mi
-  vault:
-    role: ault-role
-    address: <VAULT_ADDR>
-    authpath: <ORG_NAME>-net-auth
-    adminsecretprefix: secret/crypto/peerOrganizations/<ORG_NAME>-net/users/admin
-    orderersecretprefix: secret/crypto/peerOrganizations/<ORG_NAME>-net/orderer
-    serviceaccountname: vault-auth
-    imagesecretname: regcred
-    tls: false
-  peer:
-    name: <PEER_NAME>
-    localmspid: <ORG_NAME>MSP
-    tlsstatus: true
-    address: <PEER_NAME>.<ORG_NAME>-net.<EXTERNAL_URL_SUFFIX>:8443
-  orderer:
-    address: <ORDERER_NAME>
-```
+  Use this sample template.
+  ```yaml
+    metadata:
+      namespace: <ORG_NAME>-net
+    images:
+      fabrictools: hyperledger/fabric-tools:2.0
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+    storage:
+      class: <ORG_NAME>sc
+      size: 256Mi
+    vault:
+      role: ault-role
+      address: <VAULT_ADDR>
+      authpath: <ORG_NAME>-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/<ORG_NAME>-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/<ORG_NAME>-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      tls: false
+    peer:
+      name: <PEER_NAME>
+      localmspid: <ORG_NAME>MSP
+      tlsstatus: true
+      address: <PEER_NAME>.<ORG_NAME>-net.<EXTERNAL_URL_SUFFIX>:8443
+    orderer:
+      address: <ORDERER_NAME>
+  ```
 
-2. To install the cli
-```
-helm install -f cli.yaml /blockchain-automation-framework/platforms/hyperledger-fabric/charts/fabric_cli/ -n <CLI_NAME>
-```
+- To install the cli
+  ```
+  helm install -f cli.yaml /blockchain-automation-framework/platforms/hyperledger-fabric/charts/fabric_cli/ -n <CLI_NAME>
+  ```
 
-3. Get the cli pod
-```
-export ORG1_NS=<ORG_NAME>-net
-export CLI=$(kubectl get po -n ${ORG1_NS} | grep "cli" | awk '{print $1}')
-```
+- Get the cli pod
+  ```
+  export ORG1_NS=<ORG_NAME>-net
+  export CLI=$(kubectl get po -n ${ORG1_NS} | grep "cli" | awk '{print $1}')
+  ```
 
-4. Copy the cli pod name from the output list and enter the cli using.
-```
-kubectl exec -it $CLI -n <ORG_NAME>-net -- bash
-```
+- Copy the cli pod name from the output list and enter the cli using.
+  ```
+  kubectl exec -it $CLI -n <ORG_NAME>-net -- bash
+  ```
 
-5. To see which chaincodes are installed
-```
-peer chaincode list --installed (after exec into the cli)
-```
+- To see which chaincodes are installed
+  ```
+  peer chaincode list --installed (after exec into the cli)
+  ```
 
-6. Check if the chaincode is instantiated or not
-```
-peer chaincode list --instantiated -C allchannel (after exec into the cli)
-```
+- Check if the chaincode is instantiated or not
+  ```
+  peer chaincode list --instantiated -C allchannel (after exec into the cli)
+  ```
 
-7. Execute a transaction
-For init:
-```
-peer chaincode invoke -o <orderer url> --tls true --cafile <path of orderer tls cert> -C <channel name> -n <chaincode name> -c '{"Args":[<CHAINCODE_INSTANTIATION_ARGUMENT>]}' (after exec into the cli)
-```
+- Execute a transaction
+  For init:
+  ```
+  peer chaincode invoke -o <orderer url> --tls true --cafile <path of orderer tls cert> -C <channel name> -n <chaincode name> -c '{"Args":[<CHAINCODE_INSTANTIATION_ARGUMENT>]}' (after exec into the cli)
+  ```
 
 Upon successful invocation, should display a `status 200` msg.
+
+
+---  
+
+
+## Hyperledger Indy Checks
+
+The flow chart shows the Indy Deployment process. To verify the steps of deployment, follow the Verification Table 'N', to troubleshoot the general errors.
+
+![](./../_static/indy_flowchart.png)
+
+----
+### Indy Troubleshooting
+### Table 'N'
+
+|Section|Sub-Section|Problem                                                                                                                                                                                                                            |Possible Cause                                                     |Solution                                                                                                                                                                                                                                                                                                                                                         |
+|-------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|N1     |a          |**Ansible playbook successful** <br>Playbook execution terminated at <br>**Role:** setup/domain_genesis <br>**Task:** Create domain genesis <br>**Error:** Ansible vars or dict object not found, domain genesis was not created   |network.yaml not properly configured                               |Please check `organisation.service.trustees`,  `organisation.service.stewards` and `organisation.service.endorsers` is properly configured for the failing `organisation` in your `network.yaml`.<br>Please refer to [indy_sample.yaml](https://blockchain-automation-framework.readthedocs.io/en/latest/operations/indy_networkyaml.html) for more details.     |
+|N1     |b          |**Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** setup/domain_genesis <br>**Task:** Create domain genesis <br>**Error:** Vault Access denied, Root Token invalid, Vault Sealed                       |Vault connectivity                                                 |If the logs mention "access denied", make sure that the Vault authentications were created correctly by checking all the tabs on Vault UI.<br>Any Vault authentication problem is because of running different configurations (network.yaml) on the same Vault.<br>Please ensure that you reset the network before re-running with a different network.yaml.     |
+|N2     |a          |**Ansible playbook successful** <br>Playbook execution terminated at <br>**Role:** setup/pool_genesis <br>**Task:** Create pool genesis <br>**Error:** Ansible vars or dict object not found, pool genesis was not created                |network.yaml not properly configured                               |Please check `organisation.service.trustees`,  `organisation.service.stewards` and `organisation.service.endorsers` is properly configured for the failing `organisation` in your `network.yaml`.<br>Please refer to [indy_sample.yaml](https://blockchain-automation-framework.readthedocs.io/en/latest/operations/indy_networkyaml.html) for more details.     |
+|N2     |b          |**Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** setup/pool_genesis <br>**Task:** Create pool genesis <br>**Error:** Vault Access denied, Root Token invalid, Vault Sealed                           |Vault connectivity                                                 |If the logs mention "access denied", make sure that the Vault authentications were created correctly by checking all the tabs on Vault UI.<br>Any Vault authentication problem is because of running different configurations (network.yaml) on the same Vault.<br>Please ensure that you reset the network before re-running with a different network.yaml.     |
+|N3     |a          |**Ansible playbook successful** <br>Playbook execution terminated at <br>**Role:** setup/node <br>**Task:** Wait until steward pods are running <br>**Error:** logs of the nodes show that the nodes cannot connect with each other|Port/IP blocked from firewall                                      |You can check the logs of node pods using:  ` $> kubectl logs -f -n university university-university-steward-1-node-0 ` Properly configure the required outbound and inbound rules for the firewall settings for `Ambassador Pod`.<br>E.g.<br>if you using AWS the firewall setting for the `Ambassador Pod` will be K8S Cluster's `worker-sg` Security Group.   |
+|N3     |b          |**Ansible playbook successful** <br>Playbook execution terminated at <br>**Role:** setup/node <br>**Task:** Wait until steward pods are running <br>**Error:** Not able to connect to the indy pool                                |Ambassador IP does not match the PublicIps provided in network.yaml|Check the `Ambassador Host's IP` using  ` $> host <Ambassador Public URL> `  and verify if the same is present in the `PublicIps:` section of your `network.yaml`                                                                                                                                                                                                |
+|N3     |c          |**Ansible playbook successful** <br>Playbook execution terminated at <br>**Role:** setup/node <br>**Task:** Wait until steward pods are running <br>**Error:** Not able to connect to the indy pool                                |Port/IP blocked from firewall                                      |Properly configure the required outbound and inbound rules for the firewall settings for `Ambassador Pod`.<br>E.g.<br>if you using AWS the firewall setting for the `Ambassador Pod` will be K8S Cluster's `worker-sg` Security Group.                                                                                                                           |
+|N3     |d          |**Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** setup/node <br>**Task:** Wait until steward pods are running <br>**Error:** Vault Access denied, Root Token invalid, Vault Sealed                   |Vault connectivity                                                 |If the logs mention "access denied", make sure that the Vault authentications were created correctly by checking all the tabs on Vault UI.<br>Any Vault authentication problem is because of running different configurations (network.yaml) on the same Vault.<br>Please ensure that you reset the network before re-running with a different network.yaml.     |
+|N4     |a          |**Ansible playbook successful** <br>Playbook execution terminated at <br>**Role:** setup/endorsers <br>**Task:** Wait until identities are creating <br>**Error:** not able to connect to indy pool                                |Port/IP blocked from firewall                                      |Properly configure the required outbound and inbound rules for the firewall settings for `Ambassador Pod`.<br>E.g.<br>if you using AWS the firewall setting for the `Ambassador Pod` will be K8S Cluster's `worker-sg` Security Group.                                                                                                                           |
+|N4     |b          |**Ansible playbook successful** <br>Playbook execution terminated at <br>**Role:** setup/endorsers <br>**Task:** Wait until identities are creating <br>**Error:** not able to connect to indy pool                                |Ambassador IP does not match the PublicIps provided in network.yaml|Check the `Ambassador Host's IP` using  ` $> host <Ambassador Public URL> `  and verify if the same is present in the `PublicIps:` section of your `network.yaml`                                                                                                                                                                                                |
+|N4     |c          |**Ansible playbook successful** <br>Playbook execution terminated at <br>**Role:** setup/endorsers <br>**Task:** Wait until identities are creating <br>**Error:** Resource Temporarily Unavailable                                |Insufficient memory issues leads to RockDB getting locked |The `steward node pods` are not getting sufficient memory to turn up the RocksDB service hence it results in the nDB to get locked. Recommedation is to either scale up the k8s nodes or increase the memory of existing k8s nodes                                                                                                                                                                                                 |
+|N4     |d          |**Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** setup/endorsers <br>**Task:** Wait until identities are creating <br>**Error:** Vault Access denied, Root Token invalid, Vault Sealed               |Vault connectivity                                                 |If the logs mention "access denied", make sure that the Vault authentications were created correctly by checking all the tabs on Vault UI.<br>Any Vault authentication problem is because of running different configurations (network.yaml) on the same Vault.<br>Please ensure that you reset the network before re-running with a different network.yaml.     |
+
+
+#### Final network validy check
+For final checking of the validity of the indy network.
+
+- Please find the generated pool genesis inside your releases/__ReleaseName__/__OrgName__/__OrgName-ptg__ folder as pool_genesis.yaml.
+
+  `NOTE: All the organisations will have the same pool genesis. Hence, you can pick from any organization`
+
+  The sample ConfigMap:
+  ```yaml
+  apiVersion: helm.fluxcd.io/v1
+  kind: HelmRelease
+  metadata:
+    name: employer-ptg
+    annotations:
+      fluxcd.io/automated: "false"
+    namespace: employer-ns
+  spec:
+    releaseName: employer-ptg
+    chart:
+      path: platforms/hyperledger-indy/charts/indy-pool-genesis
+      git: ssh://git@github.com/<username>/blockchain-automation-framework.git
+      ref: master
+    values:
+      metadata:
+        name: employer-ptg
+        namespace: employer-ns
+      organization:
+        name: employer
+      configmap:
+        poolGenesis: |-
+          {"reqSignature":{},"txn":{"data":{"data":{"alias":"university-steward-1","blskey":"3oYpr4xXDp1bgEKM6kJ8iaM66cpkHRe6vChvcEj52sFKforRkYbSq2G8ZF8dCSU4a8CdZWUJw6hJUYzY48zTKELYAgJrQyu7oAcmH1qQ5tqZc3ccp34wZaNFWEfWPt76cfd9BwGihzpMDRbQhMwLp68aasMXyYebn1MSbvkeg6UrmtM","blskey_pop":"RBS3XRtmErE6w1SEwHv69b7eSuHhnYh5tTs1A3NAjnAQwmk5SXeHUt3GNuSTB84L6MJskaziP8s7N6no34My4dizxkSbyuL7fWLEPTyxbAYZ3MGYzscZYWysXbSms2xFmYjT99n7uB78CgG8Chuo3iMuPJCAx6SBxTaAzTa7gAvtWB","client_ip":"127.0.0.1","client_port":15012,"node_ip":"127.0.0.1","node_port":15011,"services":["VALIDATOR"]},"dest":"Cj79w18ViZ7Q7gfb9iXPxYchHo4K4iVtL1oFjWbnrzBf"},"metadata":{"from":"NWpkXoWjzq9oQUTBiezzHi"},"type":"0"},"txnMetadata":{"seqNo":1,"txnId":"16bcef3d14020eac552e3f893b83f00847420a02cbfdc80517425023b75f124e"},"ver":"1"}
+          {"reqSignature":{},"txn":{"data":{"data":{"alias":"university-steward-2","blskey":"4R1x9mGMVHu4vsWxiTgQEvQzPizyh2XspKH1KBr11WDNXt9dhbAVkSZBy2wgEzodjH9BcMzSjjVpHXQA3fJHgZJaGejH5DKzxyCm7XoEa8ff5rEnBfyGxMZRCtKio9GuovMBYmZkfA1XBexQcrZksPZc23NtnWJ9tWBonjWuzADiNKG","blskey_pop":"R14qoTS4urnSeNAMSgZzp2ryhi5kFLi1KCxK2ZP8Lk3Pa7FNFoqp6LrPanZxsdELVazsCEQv2B7fmexo3JGj3f2vtp2ZRzdaf9bAMReduFNZWe9vziQVYBA96maq82A7Ym2rSdK6hebJaix1ysv5LZy8jhNTYqjJoQ3fMEyRZ14EHM","client_ip":"127.0.0.1","client_port":15022,"node_ip":"127.0.0.1","node_port":15021,"services":["VALIDATOR"]},"dest":"ETdTNU6xrRwxuV4nPrXAecYsFGP6v8L5PpfGBnriC4Ao"},"metadata":{"from":"RhFtCjqTXAGbAhqJoVLrGe"},"type":"0"},"txnMetadata":{"seqNo":2,"txnId":"ab3146fcbe19c6525fc9c325771d6d6474f8ddec0f2da425774a1687a4afe949"},"ver":"1"}
+          {"reqSignature":{},"txn":{"data":{"data":{"alias":"employer-steward-1","blskey":"2LieBpwUyP8gUVb16k7hGCUnZRNHdqazHVLbN2K2CgeE2cXt3ZC3yt8Gd8NheNHVdCU7cHcsEq5e1XKBS3LFXNQctiL6wMErxyXwcSWq8c9EtJwmqE7TESd5TaEYZhtrJ6TCDBdPU3BUFdw1q29g1omwYXRd6LZHmBsiWHYJbf4Mued","blskey_pop":"R9q58hsWHaVenRefuwh44fnhX8TcJMskiBX1Mf5ue7DEH8SGTajUcWVUbE3kT7mNeK2TeUMeXDcmboeSCkbpqtX2289ectbQAKj8pKWmkp7o5nkYjYwvqUsTaMutxXjSN6pvH9rLU13y86XkU1qDYoWvfJ6GT3qVetpEP26BGPv6Kq","client_ip":"127.0.0.1","client_port":15032,"node_ip":"127.0.0.1","node_port":15031,"services":["VALIDATOR"]},"dest":"C5F8eDsQZYQcUx1NPENenr9A1Jqr9ZCAXrcAoAcGkutY"},"metadata":{"from":"MKMbzGYtfpLk2NVhYSeSRN"},"type":"0"},"txnMetadata":{"seqNo":3,"txnId":"d85334ed1fb537b2ff8627b8cc4bcf2596d5da62c6d85244b80675ebae91fd07"},"ver":"1"}
+          {"reqSignature":{},"txn":{"data":{"data":{"alias":"employer-steward-2","blskey":"36q2aZbJBp8Dpo16wzHqWGbsDs6zZvjxZwxxrD1hp1iJXyGBsbyfqMXVNZRokkNiD811naXrbqc8AfZET5sB5McQXni5as6eywqb9u1ECthYsemMq7knqZLGD4zRueLqhrAXLMVqdH4obiFFjjaEQQo9oAAzQKTfyimNWwHnwxp4yb3","blskey_pop":"QkYzAXabCzgbF3AZYzKQJE4sC5BpAFx1t32T9MWyxf7r1YkX2nMEZToAd5kmKcwhzbQZViu6CdkHTWrWMKjUHyVgdkta1QqQXQVMsSN7JPMSBwFSTc9qKpxC9xRabZHEmha5sD8nsEqwDCQ5iQ2dfuufGoPTEnrdNodW1m9CMRHsju","client_ip":"127.0.0.1","client_port":15042,"node_ip":"127.0.0.1","node_port":15041,"services":["VALIDATOR"]},"dest":"D2m1rwJHDo17nnCUSNvd7m1qRCiV6qCvEXxgGfuxtKZh"},"metadata":{"from":"P5DH5NEGC3agMBssdEMJxv"},"type":"0"},"txnMetadata":{"seqNo":4,"txnId":"1b0dca5cd6ffe526ab65f1704b34ec24096b75f79d4c0468a625229ed686f42a"},"ver":"1"}
+  ```
+
+- Copy the genesis block to a new file, say **__pool_genesis.txt__**
+  ```
+  pool_genesis.txt >>
+
+  {"reqSignature":{},"txn":{"data":{"data":{"alias":"university-steward-1","blskey":"3oYpr4xXDp1bgEKM6kJ8iaM66cpkHRe6vChvcEj52sFKforRkYbSq2G8ZF8dCSU4a8CdZWUJw6hJUYzY48zTKELYAgJrQyu7oAcmH1qQ5tqZc3ccp34wZaNFWEfWPt76cfd9BwGihzpMDRbQhMwLp68aasMXyYebn1MSbvkeg6UrmtM","blskey_pop":"RBS3XRtmErE6w1SEwHv69b7eSuHhnYh5tTs1A3NAjnAQwmk5SXeHUt3GNuSTB84L6MJskaziP8s7N6no34My4dizxkSbyuL7fWLEPTyxbAYZ3MGYzscZYWysXbSms2xFmYjT99n7uB78CgG8Chuo3iMuPJCAx6SBxTaAzTa7gAvtWB","client_ip":"127.0.0.1","client_port":15012,"node_ip":"127.0.0.1","node_port":15011,"services":["VALIDATOR"]},"dest":"Cj79w18ViZ7Q7gfb9iXPxYchHo4K4iVtL1oFjWbnrzBf"},"metadata":{"from":"NWpkXoWjzq9oQUTBiezzHi"},"type":"0"},"txnMetadata":{"seqNo":1,"txnId":"16bcef3d14020eac552e3f893b83f00847420a02cbfdc80517425023b75f124e"},"ver":"1"}
+  {"reqSignature":{},"txn":{"data":{"data":{"alias":"university-steward-2","blskey":"4R1x9mGMVHu4vsWxiTgQEvQzPizyh2XspKH1KBr11WDNXt9dhbAVkSZBy2wgEzodjH9BcMzSjjVpHXQA3fJHgZJaGejH5DKzxyCm7XoEa8ff5rEnBfyGxMZRCtKio9GuovMBYmZkfA1XBexQcrZksPZc23NtnWJ9tWBonjWuzADiNKG","blskey_pop":"R14qoTS4urnSeNAMSgZzp2ryhi5kFLi1KCxK2ZP8Lk3Pa7FNFoqp6LrPanZxsdELVazsCEQv2B7fmexo3JGj3f2vtp2ZRzdaf9bAMReduFNZWe9vziQVYBA96maq82A7Ym2rSdK6hebJaix1ysv5LZy8jhNTYqjJoQ3fMEyRZ14EHM","client_ip":"127.0.0.1","client_port":15022,"node_ip":"127.0.0.1","node_port":15021,"services":["VALIDATOR"]},"dest":"ETdTNU6xrRwxuV4nPrXAecYsFGP6v8L5PpfGBnriC4Ao"},"metadata":{"from":"RhFtCjqTXAGbAhqJoVLrGe"},"type":"0"},"txnMetadata":{"seqNo":2,"txnId":"ab3146fcbe19c6525fc9c325771d6d6474f8ddec0f2da425774a1687a4afe949"},"ver":"1"}
+  {"reqSignature":{},"txn":{"data":{"data":{"alias":"employer-steward-1","blskey":"2LieBpwUyP8gUVb16k7hGCUnZRNHdqazHVLbN2K2CgeE2cXt3ZC3yt8Gd8NheNHVdCU7cHcsEq5e1XKBS3LFXNQctiL6wMErxyXwcSWq8c9EtJwmqE7TESd5TaEYZhtrJ6TCDBdPU3BUFdw1q29g1omwYXRd6LZHmBsiWHYJbf4Mued","blskey_pop":"R9q58hsWHaVenRefuwh44fnhX8TcJMskiBX1Mf5ue7DEH8SGTajUcWVUbE3kT7mNeK2TeUMeXDcmboeSCkbpqtX2289ectbQAKj8pKWmkp7o5nkYjYwvqUsTaMutxXjSN6pvH9rLU13y86XkU1qDYoWvfJ6GT3qVetpEP26BGPv6Kq","client_ip":"127.0.0.1","client_port":15032,"node_ip":"127.0.0.1","node_port":15031,"services":["VALIDATOR"]},"dest":"C5F8eDsQZYQcUx1NPENenr9A1Jqr9ZCAXrcAoAcGkutY"},"metadata":{"from":"MKMbzGYtfpLk2NVhYSeSRN"},"type":"0"},"txnMetadata":{"seqNo":3,"txnId":"d85334ed1fb537b2ff8627b8cc4bcf2596d5da62c6d85244b80675ebae91fd07"},"ver":"1"}
+  {"reqSignature":{},"txn":{"data":{"data":{"alias":"employer-steward-2","blskey":"36q2aZbJBp8Dpo16wzHqWGbsDs6zZvjxZwxxrD1hp1iJXyGBsbyfqMXVNZRokkNiD811naXrbqc8AfZET5sB5McQXni5as6eywqb9u1ECthYsemMq7knqZLGD4zRueLqhrAXLMVqdH4obiFFjjaEQQo9oAAzQKTfyimNWwHnwxp4yb3","blskey_pop":"QkYzAXabCzgbF3AZYzKQJE4sC5BpAFx1t32T9MWyxf7r1YkX2nMEZToAd5kmKcwhzbQZViu6CdkHTWrWMKjUHyVgdkta1QqQXQVMsSN7JPMSBwFSTc9qKpxC9xRabZHEmha5sD8nsEqwDCQ5iQ2dfuufGoPTEnrdNodW1m9CMRHsju","client_ip":"127.0.0.1","client_port":15042,"node_ip":"127.0.0.1","node_port":15041,"services":["VALIDATOR"]},"dest":"D2m1rwJHDo17nnCUSNvd7m1qRCiV6qCvEXxgGfuxtKZh"},"metadata":{"from":"P5DH5NEGC3agMBssdEMJxv"},"type":"0"},"txnMetadata":{"seqNo":4,"txnId":"1b0dca5cd6ffe526ab65f1704b34ec24096b75f79d4c0468a625229ed686f42a"},"ver":"1"}
+  ```
+
+- Install indy-cli, in case not installed already, follow the [official installation steps](https://hyperledger-indy.readthedocs.io/projects/sdk/en/latest/cli/README.html).
+
+
+- Open the indy-cli terminal
+  ```shell
+  ~$ indy-cli
+  ```
+
+- Create a pool
+  ```shell
+  indy> pool create <POOL_ALIAS> gen_txn_file=<Path to pool_genesis.txt>
+  ```
+
+- Connect to indy pool
+  ```shell
+  indy> pool connect <POOL_ALIAS>
+  ```
+
+Upon successful connection, should display a `Pool Connected Successfully` msg.

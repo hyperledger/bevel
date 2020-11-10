@@ -1,7 +1,7 @@
 # This task checks if the crypto material is already stored in the vault or not
 - name: Check if nodekey already present in the vault
   shell: |
-    vault read -field=nodekey secret/{{ component_ns }}/crypto/{{ peer.name }}/quorum
+    vault read -field=nodekey {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}/quorum
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -28,7 +28,7 @@
 # This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault kv put secret/{{ component_ns }}/crypto/{{ peer.name }}/quorum nodekey="$(cat build/{{ component_name }}/{{ peer.name }}/nodekey)" keystore="$(cat build/{{ component_name }}/{{ peer.name }}/keystore.json)" db_user="demouser" db_password="password" gethpassword="$(cat build/{{ component_name }}/{{ peer.name }}/password)"
+    vault kv put {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}/quorum nodekey="$(cat build/{{ component_name }}/{{ peer.name }}/nodekey)" keystore="$(cat build/{{ component_name }}/{{ peer.name }}/keystore.json)" db_user="demouser" db_password="password" gethpassword="$(cat build/{{ component_name }}/{{ peer.name }}/password)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

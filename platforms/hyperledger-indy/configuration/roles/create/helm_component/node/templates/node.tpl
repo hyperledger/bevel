@@ -1,9 +1,9 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
   namespace: {{ component_ns }}
 spec:
   releaseName: {{ component_name }}
@@ -92,8 +92,8 @@ spec:
       role: ro
     storage:
       data:
-        storagesize: 2Gi
+        storagesize: 512Mi
         storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
       keys:
-        storagesize: 1Gi
+        storagesize: 512Mi
         storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass

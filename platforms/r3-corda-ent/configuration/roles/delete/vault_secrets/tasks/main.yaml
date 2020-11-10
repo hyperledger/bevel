@@ -79,7 +79,7 @@
 # This task deletes crypto materials from vault for cenm
 - name: Delete Crypto for CENM
   shell: |
-    vault secrets disable secret/{{ org.name | lower }}
+    vault secrets disable {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -87,22 +87,23 @@
 # This task deletes crypto material
 - name: Delete Crypto material for CENM
   shell: |
-    vault delete secret/{{ org.name | lower }}/root/certs
-    vault delete secret/{{ org.name | lower }}/{{ org.services.idman.name }}/certs
-    vault delete secret/{{ org.name | lower }}/{{ org.services.idman.name }}/crls
-    vault delete secret/{{ org.name | lower }}/{{ org.services.idman.name }}/tlscerts
-    vault delete secret/{{ org.name | lower }}/{{ org.services.notary.name }}/tlscerts
-    vault delete secret/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/nodekeystore
-    vault delete secret/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/sslkeystore
-    vault delete secret/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/truststore
-    vault delete secret/{{ org.name | lower }}/{{ org.services.notary.name }}/nodeInfo
-    vault delete secret/{{ org.name | lower }}/{{ org.services.notary.name }}/networkparam
-    vault delete secret/{{ org.name | lower }}/{{ org.services.networkmap.name }}/certs
-    vault delete secret/{{ org.name | lower }}/{{ org.services.networkmap.name }}/tlscerts
-    vault delete secret/{{ org.name | lower }}/{{ org.services.signer.name }}/certs
-    vault delete secret/{{ org.name | lower }}/credentials/keystore
-    vault delete secret/{{ org.name | lower }}/credentials/truststore
-    vault delete secret/{{ org.name | lower }}/credentials/ssl
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/root/certs
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.idman.name }}/certs
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.idman.name }}/crls
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.idman.name }}/tlscerts
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.notary.name }}/tlscerts
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/nodekeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/sslkeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/truststore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.notary.name }}/nodeInfo
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.notary.name }}/networkparam
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.networkmap.name }}/certs
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.networkmap.name }}/tlscerts
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.signer.name }}/certs
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/credentials/keystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/credentials/truststore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/credentials/ssl
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/credentials/cordapps
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -112,18 +113,19 @@
 # This task deletes crypto material
 - name: Delete Crypto material for nodes
   shell: |
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/customnodekeystore
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/{{ network | json_query('orderers[?type==`idman`].name') | first }}
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/{{ network | json_query('orderers[?type==`networkmap`].name') | first }}
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/networkmaptruststore
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/nodekeystore
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/sslkeystore
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/truststore
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/tlscerts
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/root/certs
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/network-parameters
-    vault delete secret/{{ org.name | lower }}/{{ peer.name | lower }}/credentials
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/customnodekeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/{{ network | json_query('network_services[?type==`idman`].name') | first }}
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/{{ network | json_query('network_services[?type==`networkmap`].name') | first }}
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/networkmaptruststore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/nodekeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/sslkeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/truststore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/firewall
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/tlscerts
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/root/certs
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/network-parameters
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/credentials
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -135,7 +137,7 @@
 # This task deletes crypto materials from vault for nodes
 - name: Delete Crypto for nodes
   shell: |
-    vault secrets disable secret/{{ org.name | lower }}
+    vault secrets disable {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"

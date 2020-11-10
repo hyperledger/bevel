@@ -198,6 +198,46 @@ spec:
             exit 1
             break
           fi
+      - name: init-cordapps
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        command: ["sh", "-c"]
+        env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authPath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: BASE_DIR
+            value: {{ $.Values.nodeConf.volume.baseDir }}
+          - name: CERTS_SECRET_PREFIX
+            value: {{ .Values.vault.certSecretPrefix }}
+        args:
+        - |-
+          # crearting cordapps dir in volume to keep jars
+          {{- if .Values.cordapps.getcordapps }}
+            mkdir -p ${BASE_DIR}/cordapps
+            mkdir -p /tmp/downloaded-jars
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server"
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            
+            # save cordapps login password from vault
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/cordapps | jq -r 'if .errors then . else . end')                            
+            REPO_USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["repo_password"]')
+            REPO_USER=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["repo_username"]')
+            
+            # Downloading official corda provided jars using curl 
+            {{- range .Values.cordapps.jars }}
+              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -J {{ .url }}
+            {{- end }}
+            cp -ar /tmp/downloaded-jars/* ${BASE_DIR}/cordapps
+          {{- end }}
+        volumeMounts:
+        - name: notary-volume
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}    
       containers:
       - name: notary
         image: "{{ .Values.image.nodeContainerName }}"
@@ -268,7 +308,7 @@ spec:
           # add idman and networkmap certificates to java keystore
           yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
           yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts          
-          
+
           #!/bin/sh
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
           if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]

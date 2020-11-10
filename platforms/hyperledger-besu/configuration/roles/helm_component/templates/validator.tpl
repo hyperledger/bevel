@@ -1,4 +1,4 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -61,7 +61,7 @@ spec:
 
     vault:
       address: {{ vault.url }}
-      secretprefix: secret/{{ component_ns }}/crypto/{{ peer.name }}
+      secretprefix: {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: data
       tlsdir: tls

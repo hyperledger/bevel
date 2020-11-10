@@ -64,6 +64,7 @@ Detailed information on helm charts can be referred [here](../developer/besu-hel
 
 The Blockchain Automation Framework stores their `crypto` immediately in the Hashicorp Vault secrets engine.
 The crypto is stored by each organization under path `secret/org_namespace` - it contains node keys, keystore, passwords, TM keys, and CA certificates for proxy connections.
+Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
 
 
 The complete key paths in the Vault can be referred [here](certificates_path_list_besu.md).

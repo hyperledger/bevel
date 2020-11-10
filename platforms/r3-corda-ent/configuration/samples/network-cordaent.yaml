@@ -13,7 +13,7 @@ network:
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts: 15010,15020,15011,15021    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
@@ -26,14 +26,14 @@ network:
     password: "docker_password"
   
   # Remote connection information for idman and networkmap (will be blank or removed for hosting organization)
-  orderers:
-    - orderer:
+  network_services:
+    - service:
       name: idman
       type: idman
       uri: https://idman.test.corda.blockchaincloudpoc.com:8443
       certificate: home_dir/platforms/r3-corda-ent/configuration/build/ambassador/idman/ambassador.pem
       crlissuer_subject: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
-    - orderer:
+    - service:
       name: networkmap
       type: networkmap
       uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
@@ -73,7 +73,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-
+        secret_path: "secret"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
@@ -86,6 +86,18 @@ network:
         password: "git_access_token"          # Git Server user password/access token
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+      
+      # Cordapps Repository details (optional if cordapps jar are store in a repository)
+      cordapps:
+        jars: 
+        - jar:
+            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
+            url: 
+        - jar:
+            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
+            url: 
+        username: "repository_username"
+        password: "repository_password"
 
       credentials:
         keystore:
@@ -154,6 +166,7 @@ network:
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: manufacturer
+      version: 4.4
       country: CH
       state: Zurich
       location: Zurich
@@ -176,7 +189,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-
+        secret_path: "secret"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
@@ -212,6 +225,9 @@ network:
           credentials:
             truststore: trustpass
             keystore: cordacadevpass
+            firewallca: firewallcapassword
+            float: floatpassword
+            bridge: bridgepassword
           firewall:
             enabled: true                   # true if firewall components are to be deployed
             dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
@@ -227,6 +243,7 @@ network:
               subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
               port: 40000
               tunnelport: 40000
+              ambassadorTunnelPort: 15011
           hsm:                              # hsm support for future release
             enabled: false 
           p2p:
@@ -254,6 +271,7 @@ network:
     
     - organization:
       name: carrier
+      version: 4.4
       country: GB
       state: London
       location: London
@@ -277,7 +295,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-
+        secret_path: "secret"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
@@ -318,6 +336,7 @@ network:
             dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
               context: "dmz_cluster_context"
               config_file: "dmz_cluster_config"
+            subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
             float: 
               name: float
               port: 39999
@@ -326,7 +345,8 @@ network:
               name: bridge
               subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
               port: 40000
-              tunnelport: 40000              
+              tunnelport: 40000   
+              ambassadorTunnelPort: 15011           
           hsm:                              # hsm support for future release
             enabled: false 
           p2p:
@@ -354,6 +374,7 @@ network:
 
     - organization:
       name: store
+      version: 4.4
       country: US
       state: New York
       location: New York
@@ -377,7 +398,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-
+        secret_path: "secret"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
@@ -412,12 +433,16 @@ network:
           credentials:
             truststore: trustpass
             keystore: cordacadevpass
+            firewallca: firewallcapassword
+            float: floatpassword
+            bridge: bridgepassword
           firewall:
             enabled: true                   # true if firewall components are to be deployed
             dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
             dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
               context: "dmz_cluster_context"
               config_file: "dmz_cluster_config"
+            subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
             float: 
               name: float
               port: 39999
@@ -426,7 +451,8 @@ network:
               name: bridge
               subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
               port: 40000
-              tunnelport: 40000              
+              tunnelport: 40000 
+              ambassadorTunnelPort: 15021             
           hsm:                              # hsm support for future release
             enabled: false 
           p2p:
@@ -454,6 +480,7 @@ network:
 
     - organization:
       name: warehouse
+      version: 4.4
       country: US
       state: Massachusetts
       location: Boston
@@ -477,7 +504,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-
+        secret_path: "secret"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
@@ -526,7 +553,8 @@ network:
               name: bridge
               subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
               port: 40000
-              tunnelport: 40000              
+              tunnelport: 40000 
+              ambassadorTunnelPort: 15021             
           hsm:                              # hsm support for future release
             enabled: false 
           p2p:

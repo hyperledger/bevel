@@ -50,28 +50,51 @@
     component_auth: "cordaent{{ org.name | lower }}"
     component_type: "{{ org.type | lower }}"
 
-# Create ambassador certificates for node
-- name: Create ambassador certificates for node
+# Create ambassador certificates for node when firewall is enabled
+- name: Create ambassador certificates for node when firewall is enabled
   include_role:
     name: create/certificates/node
   vars:
     node_name: "{{ peer.name | lower }}"
+    domain_name: "{{ peer.firewall.float.name }}.{{ node_name }}.{{ org.external_url_suffix }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
+  when: peer.firewall.enabled
 
-# Save tls certificates for orderers to Vault
-- name: Save tls certificates for orderers to Vault
+# Create ambassador certificates for node when firewall is disabled
+- name: Create ambassador certificates for node when firewall is disabled
+  include_role:
+    name: create/certificates/node
+  vars:
+    node_name: "{{ peer.name | lower }}"
+    domain_name: "{{ node_name }}.{{ org.external_url_suffix }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: not peer.firewall.enabled
+
+# Save tls certificates for network services to Vault
+- name: Save tls certificates for network services to Vault
   include_role:
     name: setup/tlscerts
-  loop: "{{ network.orderers }}"
+  loop: "{{ network.network_services }}"
   loop_control:
-    loop_var: orderer
+    loop_var: service
 
-# Write node keystore, truststore and network-root-truststore to the vault
-- name: Write node keystore, truststore and network-root-truststore to the vault
+# Write the networkroot truststore, node truststore, node keystore, firewallca, float and bridge passwords to the vault
+- name: Write the networkroot truststore, node truststore, node keystore, firewallca, float and bridge passwords to the vault
   include_role:
     name: setup/credentials
+
+# Create value file for generate-pki-node chart
+- name: Create value files for generate-pki-node chart
+  include_role:
+    name: setup/pki-generator-node
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.firewall.enabled
 
 # Create value file for node registration
 - name: Create value file for node registration
@@ -91,13 +114,27 @@
     node_name: "{{ peer.name | lower }}"
     values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"
-    corda_service_version: node
+    corda_service_version: node-{{ org.version }}
     type: node
-    doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
-    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    doorman_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
+    networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_USERNAME: "{{ org.gitops.username }}"
+    GIT_EMAIL: "{{ org.gitops.email }}"
+    GIT_PASSWORD: "{{ org.gitops.password }}"
+    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
+    msg: "[ci skip] Pushing node files"
 
 # Create value file for bridge 
 - name: Create value file for bridge
@@ -116,17 +153,3 @@
   loop_control:
     loop_var: peer
   when: peer.firewall.enabled
-
-# Git Push : Pushes the above generated files to git directory 
-- name: Git Push
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
-  vars:
-    GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_REPO: "{{ org.gitops.git_push_url }}"
-    GIT_USERNAME: "{{ org.gitops.username }}"
-    GIT_EMAIL: "{{ org.gitops.email }}"
-    GIT_PASSWORD: "{{ org.gitops.password }}"
-    GIT_BRANCH: "{{ org.gitops.branch }}"
-    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
-    msg: "[ci skip] Pushing node files"

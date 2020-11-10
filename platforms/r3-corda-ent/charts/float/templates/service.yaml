@@ -2,8 +2,31 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.nodeName }}-internal
-  namespace: {{ .Values.metadata.namespace}}
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind: TLSContext
+      name: {{ .Values.nodeName }}_{{ .Values.peerName }}_context
+      hosts:
+      - {{ .Values.nodeName }}.{{ .Values.peerName }}.{{ .Values.ambassador.external_url_suffix }}
+      secret: {{ .Values.nodeName }}-ambassador-certs
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.nodeName }}_{{ .Values.peerName }}_p2p_mapping
+      port: {{ .Values.ambassador.p2pPort }}
+      host: {{ .Values.nodeName }}.{{ .Values.peerName }}.{{ .Values.ambassador.external_url_suffix }}
+      service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.node.p2pPort }}
+      ---
+      apiVersion: ambassador/v1
+      kind: TCPMapping
+      name: {{ .Values.nodeName }}_{{ .Values.peerName }}_tunnel_mapping
+      port: {{ .Values.ambassador.tunnelPort }}
+      host: {{ .Values.nodeName }}.{{ .Values.peerName }}.{{ .Values.ambassador.external_url_suffix }}
+      service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.bridge.tunnelPort }}
   labels:
     run: {{ .Values.nodeName }}
     app.kubernetes.io/name: {{ .Values.nodeName }}
@@ -22,3 +45,7 @@ spec:
     protocol: TCP
     port: {{ .Values.bridge.tunnelPort }}
     targetPort: {{ .Values.bridge.tunnelPort }}
+  - name: p2p
+    protocol: TCP
+    port: {{ .Values.node.p2pPort }}
+    targetPort: {{ .Values.node.p2pPort }}

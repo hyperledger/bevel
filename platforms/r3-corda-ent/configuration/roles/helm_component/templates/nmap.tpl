@@ -1,10 +1,10 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
   namespace: {{ component_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
   chart:
@@ -29,7 +29,7 @@ spec:
       role: vault-role
       authPath: cordaent{{ org.name | lower }}
       serviceAccountName: vault-auth
-      certSecretPrefix: secret/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}
       retries: 10
       sleepTimeAfterError: 15
     service: 

@@ -1,9 +1,9 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ org.services.signer.name }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
   namespace: {{ component_ns }}
 spec:
   releaseName: {{ org.services.signer.name }}
@@ -26,7 +26,7 @@ spec:
       role: vault-role
       authPath: {{ component_auth }}
       serviceAccountName: vault-auth
-      certSecretPrefix: secret/{{ org.name | lower }}
+      certSecretPrefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}
       retries: 10
       sleepTimeAfterError: 15
     service:

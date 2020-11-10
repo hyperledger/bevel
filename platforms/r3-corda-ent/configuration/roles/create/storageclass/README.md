@@ -6,7 +6,7 @@ This role creates the storageclass value file for notaries and nodes
 
 ---
 
-#### 1. Check if storageclass {{ storageclass_name }}exists
+#### 1. Check if storageclass {{ storageclass_name }} exists
 This task checsk if the storageclass already exists, by calling the `shared/configuration/roles/check/k8_component` role.
 ##### Input Variables
 - `component_type` - the resource that has to be checked for in cluster, i.e StorageClass here.

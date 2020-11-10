@@ -18,7 +18,7 @@ The configurations are grouped in the following sections for better understandin
 
 * docker
 
-* orderers
+* network_services
 
 * organizations
 
@@ -84,17 +84,17 @@ The fields under `docker` section are
 
 ---
 
-The snapshot of the `orderers` section with example values is below
+The snapshot of the `network_services` section with example values is below
 ```yaml
   # Remote connection information for doorman/idman and networkmap (will be blank or removed for hosting organization)
-  orderers:
-    - orderer:
+  network_services:
+    - service:
       name: doorman
       type: doorman
       uri: https://doorman.test.corda.blockchaincloudpoc.com:8443
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
       crlissuer_subject: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
-    - orderer:
+    - service:
       name: networkmap
       type: networkmap
       uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
@@ -102,11 +102,11 @@ The snapshot of the `orderers` section with example values is below
       truststore: home_dir/platforms/r3-corda-ent/configuration/build/networkroottruststore.jks #Certificate should be encoded in base64 format
       truststore_pass: rootpassword
 ```
-The `orderers` section contains a list of doorman/networkmap which is exposed to the network. Each `orderer` has the following fields:
+The `network_services` section contains a list of doorman/networkmap which is exposed to the network. Each `service` has the following fields:
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| type        | For Corda, `networkmap` and `doorman` (`idman` for **Corda Enterprise**) are the only valid type of orderers.    |
+| type        | For Corda, `networkmap` and `doorman` (`idman` for **Corda Enterprise**) are the only valid type of network_services.    |
 | name | Only for **Corda Enterprise**. Name of the idman/networkmap service. |
 | uri         | Doorman/IDman/Networkmap external URL. This should be reachable from all nodes.     | 
 | certificate | Absolute path to the public certificates for Doorman/IDman and Networkmap.             |
@@ -243,6 +243,9 @@ For organization as type `node` the credential section is under peers section an
           credentials:
             truststore: trustpass #node truststore password
             keystore: cordacadevpass #node keystore password
+            firewallca: firewallcapassword #firewallCA keystore and corresponding truststore password
+            float: floatpassword #float password
+            bridge: bridepassword #bridge password
 ```
 
 
@@ -501,6 +504,7 @@ For **Corda Enterprise**, following additional fields have been added under each
               subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
               port: 40000
               tunnelport: 40000
+              ambassadorTunnelPort: 15011
           hsm:                              # hsm support for future release
             enabled: false 
 ```
@@ -516,5 +520,6 @@ For **Corda Enterprise**, following additional fields have been added under each
 | firewall.bridge.name | Name of the Bridge component |
 | firewall.bridge.port | Internal port of the Bridge component |
 | firewall.bridge.tunnelport | Tunnel port of the Bridge component |
+| firewall.bridge.ambassadorTunnelPort | Ambassador Tunnel port of the Bridge component |
 | firewall.bridge.subject | Subject of the Bridge component |
 | hsm.enabled      | This is kept for future HSM integration  |
