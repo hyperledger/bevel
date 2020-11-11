@@ -195,6 +195,14 @@ spec:
             CC_SRC_PATH=$CC_SRC_PATH/build/install/${CHAINCODE_NAME}
 
             echo $CC_SRC_PATH
+          elif [ ${CC_RUNTIME_LANGUAGE} = "node" ]
+          then
+            ## Copying desired chaincode to a location relative to $GOPATH/src
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+
+            #chaincode path
+            CC_SRC_PATH="${GOPATH}/src/github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR}"
           fi
           version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
           if [ $version1_4 = 1 ];then
