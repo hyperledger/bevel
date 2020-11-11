@@ -16,13 +16,34 @@
     name: helm_component
   vars:
     type: "webserver"
+    platform_type: "cordaopensource"
     name: "{{ node.name }}"
     charts_dir: "{{ organization_data.gitops.chart_source }}"
     image_tag: "{{ springboot_image_tag[network.version] }}"
+    networkmap_name: na
+    doorman_name: na
   loop: "{{ organization_data.services.peers }}"
   loop_control:
     loop_var: node
-  when: component_type == 'node' and node.springboot is defined
+  when: component_type == 'node' and node.springboot is defined and network['type'] == 'corda'
+
+# Create corda webserver value file for the peer nodes
+- name: "Create webserver values file for peer organizations"
+  include_role:
+    name: helm_component
+  vars:
+    type: "webserver-ent"
+    platform_type: "cordaenterprise"
+    component_ns: "{{ organization_data.name | lower }}-ent"
+    name: "{{ node.name }}"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    image_tag: "{{ springboot_image_tag[network.version] }}"
+    networkmap_name: "{{ network | json_query('network_services[?type==`networkmap`].name') | first }}"
+    doorman_name: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: node
+  when: component_type == 'node' and node.springboot is defined and network['type'] == 'corda-enterprise'
 
 # Push the webserver deployment files to repository
 - name: "Push the created deployment files to repository"

@@ -1,55 +1,61 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
   namespace: {{ component_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
   chart:
-    git: "{{ git_url }}"
-    ref: {{ git_branch }}
+    git: {{ org.gitops.git_ssh }}
+    ref: {{ org.gitops.branch }}
     path: {{ charts_dir }}/float
   values:
     deployment:
       annotations: {}
-    nodeName: {{ float_name }}
+    nodeName: {{ component_name }}
+    peerName: {{ peer.name | lower }}
     metadata:
       namespace: {{ component_ns }}
       labels: {}
     replicas: 1
-    initContainerImage:
-      name: {{ init_container_name }}
     image:
-      name: {{ docker_image }}
-      pullsecret: {{ image_pull_secret }}
+      initContainerName: {{ network.docker.url }}/{{ init_image }}
+      mainContainerName: {{ network.docker.url }}/{{ docker_image }}
+      imagePullSecret: regcred
       pullPolicy: Always
     vault:
-      address: {{ vault_addr }}
-      role: {{ vault_role }}
-      authpath: {{ auth_path }}
-      serviceaccountname: {{ vault_serviceaccountname }}
-      certsecretprefix: {{ vault_cert_secret_prefix }}
+      address: {{ vault.url }}
+      role: vault-role
+      authpath: cordaent{{ peer.name | lower }}
+      serviceaccountname: vault-auth
+      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ peer.name | lower }}/{{ peer.name | lower }}
+      retries: 20
+      sleepTimeAfterError: 20
     volume:
-      baseDir: /opt/corda
+      baseDir: /opt/corda/base
     storage:
-      name: {{ storageclass }}
+      name: cordaentsc
     pvc:
       annotations: {}
     sleepTime: 0
-    cordaJarMx: 100
+    cordaJarMx: 1024
     bridge:
-      legalName: {{ bridge_subject }}
-      tunnelPort: {{ bridge_tunnel_port }}
+      subject: {{ peer.firewall.bridge.subject }}
+      tunnelPort: {{ peer.firewall.bridge.tunnelport }}
     healthCheckNodePort: 0
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
     float:
-      loadBalancerIP: "{{ float_address }}"
+      loadBalancerIP: {{ peer.firewall.float.name | lower }}.{{ component_ns }}
     node:
-      p2pPort: {{ float_port }}
+      p2pPort: {{ peer.firewall.float.port }}
+    ambassador:
+      p2pPort: {{ peer.p2p.ambassador }}
+      tunnelPort: {{ peer.firewall.bridge.ambassadorTunnelPort }}
+      external_url_suffix: {{ org.external_url_suffix }}
     dmz:
-      internal: "{{ dmz_internal }}"
-      external: "{{ dmz_external }}"
+      internal: "0.0.0.0"
+      external: "0.0.0.0"

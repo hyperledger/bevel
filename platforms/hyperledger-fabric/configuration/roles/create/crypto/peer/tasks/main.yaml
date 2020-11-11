@@ -27,7 +27,7 @@
 # Check if CA certs exists in vault, if not this should fail. If yes, get the certificate
 - name: Check if ca certs already created
   shell: |
-    vault kv get -field=ca.{{ component_name }}-cert.pem secret/crypto/peerOrganizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
+    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
     mv ca.{{ component_name }}-cert.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/ca/
   environment:
     VAULT_ADDR: "{{ vault.url }}"
@@ -37,7 +37,7 @@
 # Check if CA key exists in vault, if not this should fail. If yes, get the certificate
 - name: Check if ca key already created
   shell: |
-    vault kv get -field={{ component_name }}-CA.key secret/crypto/peerOrganizations/{{ component_name }}/ca > {{ component_name }}-CA.key
+    vault kv get -field={{ component_name }}-CA.key {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca > {{ component_name }}-CA.key
     mv {{ component_name }}-CA.key ./build/crypto-config/peerOrganizations/{{ component_name }}/ca/
   environment:
     VAULT_ADDR: "{{ vault.url }}"
@@ -133,7 +133,7 @@
 # Check if Orderer certs exists in vault. If yes, get the certificate
 - name: Check if Orderer certs exist in Vault
   shell: |
-    vault kv get -field=ca.crt secret/crypto/peerOrganizations/{{ component_name }}/orderer/tls
+    vault kv get -field=ca.crt {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -158,7 +158,7 @@
 - name: Copy organization level certificates for orderers
   shell: |
     {% for orderer in orderers %}
-    vault write secret/crypto/peerOrganizations/{{ component_name }}/orderer/tls ca.crt="$(cat {{ orderer.certificate }})" 
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls ca.crt="$(cat {{ orderer.certificate }})" 
     {% endfor %}
   vars:
     orderers: "{{ network.orderers }}"
@@ -172,7 +172,7 @@
 # Check admin msp already created
 - name: Check if admin msp already created
   shell: |
-    vault kv get -field=admincerts secret/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
+    vault kv get -field=admincerts {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -182,8 +182,8 @@
 
 - name: Copy organization level certificates for orgs
   shell: |
-    vault write secret/crypto/peerOrganizations/{{ component_name }}/users/admin/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.key)"
-    vault write secret/crypto/peerOrganizations/{{ component_name }}/users/admin/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/admincerts/Admin@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.key)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/admincerts/Admin@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -192,7 +192,7 @@
 # Check user msp already created
 - name: Check if user msp already created
   shell: |
-    vault kv get -field=admincerts secret/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
+    vault kv get -field=admincerts {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -202,8 +202,8 @@
 
 - name: Copy user certificates for orgs
   shell: |
-    vault write secret/crypto/peerOrganizations/{{ component_name }}/users/user1/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.key)"
-    vault write secret/crypto/peerOrganizations/{{ component_name }}/users/user1/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/admincerts/User1@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.key)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/admincerts/User1@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

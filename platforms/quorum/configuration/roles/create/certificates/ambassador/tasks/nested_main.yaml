@@ -21,7 +21,7 @@
 # Checks if certificates for root are already created and stored in vault.
 - name: Check if certs already created
   shell: |
-    vault kv get -format=yaml secret/{{ component_ns }}/crypto/{{ node_name }}/certs
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ node_name }}/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -56,11 +56,11 @@
     eval "yes | keytool -importkeystore -srckeystore rootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass quorum -destkeystore rootca.jks -deststorepass quorum"
     eval "yes | keytool -importkeystore -srckeystore rootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass quorum -destkeystore rootca.jks -deststorepass quorum"
   when: root_certs.failed == True and rootca_stat_result.stat.exists == False
- 
+
 # Check ambassador tls certs already created
 - name: Check if ambassador tls already created
   shell: |
-    vault kv get -format=yaml secret/{{ component_ns }}/crypto/{{ node_name }}/certs
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ node_name }}/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -109,15 +109,6 @@
     domain_name: "{{ node_name }}.{{ item.external_url_suffix }}"
   when: ambassador_tls_certs.failed == True
 
-# Stores the genreated ambassador tls certificates to vault
-- name: Putting certs to vault
-  shell: |
-    vault kv put secret/{{component_ns}}/crypto/{{node_name}}/certs rootca="$(cat {{rootca}}/rootca.jks | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: ambassador_tls_certs.failed == True
-
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
   k8s_info:
@@ -133,3 +124,20 @@
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert={{ ambassadortls }}/{{ node_name }}-certchain.pem --key={{ ambassadortls }}/{{node_name}}.key -n default
   when: get_ambassador_secret.resources|length == 0
+
+# Store all generated certifactes to the vault
+- name: Putting certs to vault
+  shell: |
+    cd {{ rootca }}
+    vault kv put {{ vault.secret_path | default('secret') }}/{{component_ns}}/crypto/{{node_name}}/certs \
+    rootcacertpkcs12="$(cat {{rootca}}/rootcacert.pkcs12 | base64)" \
+    rootcakeypkcs12="$(cat {{rootca}}/rootcakey.pkcs12 | base64)" \
+    rootcapem="$(cat {{rootca}}/rootca.pem | base64)" \
+    rootcakey="$(cat {{rootca}}/rootca.key | base64)" \
+    ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" \
+    ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" \
+    rootca="$(cat {{rootca}}/rootca.jks | base64)" \
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: ambassador_tls_certs.failed == True

@@ -1,0 +1,41 @@
+# Check if pki-generator is already run for the node
+- name: "Checking if pki-generator job is already completed for the node"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    job_title: "{{ peer.name | lower }}-generate-pki"
+    component_type: "OneTimeJob"
+    component_name: "{{ peer.name | lower }}-generate-pki"
+
+- name: "Set Variable generate_pki"
+  set_fact:
+    generate_pki: "{{ result }}"
+
+# This task will loop over the network.yaml to fetch the node details
+- name: Create value file for pki generator for the node
+  include_role:
+    name: helm_component
+  vars:
+    type: "pki-generator-node"
+    corda_service_version: pki-1.2
+    values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}"
+    name: "{{ peer.name | lower }}"
+    component_name: "{{ peer.name | lower }}pkigenerator"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    chart: generate-pki
+  when: generate_pki.resources|length == 0
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_EMAIL: "{{ gitops.email }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
+    msg: "[ci skip] Pushing pki-generator files for the node"
+  when: generate_pki.resources|length == 0

@@ -20,26 +20,24 @@
   vars:
     component_name: "{{ org.services.notary.name | lower }}db"
     type: "db"
-    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"
-    charts_dir: "{{ org.gitops.chart_source }}"
-    git_url: "{{ org.gitops.git_ssh }}"
-    git_branch: "{{ org.gitops.branch }}"
     node_name: "{{ org.services.notary.name | lower }}"
-    image_pull_secret: "regcred"
-    storageclass: "cordaentsc"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
     container_name: "index.docker.io/hyperledgerlabs/h2:2018"
+    helm_lint: "true"
+    # These variables are needed as the db.tpl is used for both notary & node registration
+    # The values for the below variables are fetched from different parts in the network.yaml
     tcp_port: "{{ org.services.notary.dbtcp.port }}"
     tcp_targetport: "{{ org.services.notary.dbtcp.targetPort }}"
     web_port: "{{ org.services.notary.dbweb.port }}"
     web_targetport: "{{ org.services.notary.dbweb.targetPort }}"
-    helm_lint: "true"
 
 # ----------------------------------------------------------------------  
 # Check if notary already registered or not
 - name: Check if nodekeystore is already created
   shell: |
-    vault kv get -field=nodekeystore.jks secret/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/nodekeystore
+    vault kv get -field=nodekeystore.jks {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.notary.name }}/certs/nodekeystore
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -61,11 +59,11 @@
     charts_dir: "{{ org.gitops.chart_source }}"
     git_url: "{{ org.gitops.git_ssh }}"
     git_branch: "{{ org.gitops.branch }}"
-    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
+    idman_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
     idman_domain: "{{ idman_url.split(':')[1] | regex_replace('/', '') }}"    
-    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
     networkmap_domain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
-    corda_service_version: notary-{{ org.version }}
+    corda_service_version: notary-{{ network.version }}
   when: nodekeystore_result.failed == True
 
 - name: "Push the created deployment files to repository"

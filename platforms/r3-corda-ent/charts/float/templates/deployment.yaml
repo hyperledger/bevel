@@ -34,7 +34,7 @@ spec:
         fsGroup: 1000
       initContainers:
       - name: init-certificates
-        image: {{ .Values.initContainerImage.name }}
+        image: {{ .Values.image.initContainerName }}
         imagePullPolicy: Always
         env:
           - name: VAULT_ADDR
@@ -47,8 +47,6 @@ spec:
             value: {{ $.Values.volume.baseDir }}
           - name: CERTS_SECRET_PREFIX
             value: {{ .Values.vault.certsecretprefix }}
-          - name: MOUNT_PATH
-            value: "/DATA"
         command: ["sh", "-c"]
         args:
         - |-
@@ -59,7 +57,7 @@ spec:
                     exit 1
                 fi
               }
-              
+
               # setting up env to get secrets from vault
               echo "Getting secrets from Vault Server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -67,122 +65,141 @@ spec:
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "logged into vault"
 
-              # Creating directory for storing certificates
-              mkdir -p /shared/certificates;
+              OUTPUT_PATH=${BASE_DIR}/certificates
+
+              # get sslkeystore.jks from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/sslkeystore)" "${LOOKUP_SECRET_RESPONSE}"
+              TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["sslkeystore.jks"]')
+              echo "${TLS_SSLKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/sslkeystore.jks
+
+              # get truststore.jks from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+              TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
+              echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks              
+              echo "Done"
               
-              # Fetching SSL Keystore certificate from vault
-              COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-              do
-                  # get keystores from vault to see if certificates are created and put in vault
-                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                  then
-                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-                  else
-                    ssl_keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root-key-store.jks"]')
-                    echo "${ssl_keystore}" | base64 -d > /shared/certificates/sslkeystore.jks
-                    echo "Successfully got SSL Keystore certifcate"
-                    break
-                  fi
-                  COUNTER=`expr "$COUNTER" + 1`
-              done
+              # Fetching float Certificate from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/firewall | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+              float=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["float.jks"]')
+              echo "${float}" | base64 -d > ${OUTPUT_PATH}/float.jks
+              echo "Successfully got Bridge Certifcate"
 
-              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
-              then
-                # printing number of trial done before giving up
-                echo "SSL Keystore certificates might not have been put in Vault. Giving up after $COUNTER tries!"
-                exit 1s
-              fi
+              trust=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["trust.jks"]')
+              echo "${trust}" | base64 -d > ${OUTPUT_PATH}/trust.jks
+              echo "Successfully got trust Certifcate"
+              
+              # Fetching node keystore, node truststore and network-root-truststore credentials from vault
+              mkdir -p ${OUTPUT_PATH}/credentials
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials)" "${LOOKUP_SECRET_RESPONSE}"
+              TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore"]')
+              echo "${TRUSTSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/truststorepass
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+              echo "${KEYSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/keystorepass  
+              FIREWALL_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["firewallca"]')
+              echo "${FIREWALL_PASSWORD}" > ${OUTPUT_PATH}/credentials/firewallpass
+              FLOAT_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["float"]')
+              echo "${FLOAT_PASSWORD}" > ${OUTPUT_PATH}/credentials/floatpass
               echo "Done"
-
-              # Fetching Float Certificate from vault
-              COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-              do
-                  # get keystores from vault to see if certificates are created and put in vault
-                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                  then
-                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-                  else
-                    float=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["float.jks"]')
-                    echo "${float}" | base64 -d > /shared/certificates/float.jks
-                    echo "Successfully got Float Certifcate"
-                    break
-                  fi
-                  COUNTER=`expr "$COUNTER" + 1`
-              done
-
-              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
-              then
-                # printing number of trial done before giving up
-                echo "Float certificate might not have been put in Vault. Giving up after $COUNTER tries!"
-                exit 1s
-              fi
-              echo "Done"
-
-              # Fetching corda-ssl-trust-store certificates from vault
-              COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-              do
-                  # get keystores from vault to see if certificates are created and put in vault
-                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                  then
-                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-                  else
-                    root_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
-                    echo "${root_ssl}" | base64 -d > /shared/certificates/truststore.jks
-                    root_trust=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
-                    echo "${root_trust}" | base64 -d > /shared/certificates/trust.jks
-
-                    echo "Successfully got Root SSL and Truststore certifcates"
-                    break
-                  fi
-                  COUNTER=`expr "$COUNTER" + 1`
-              done
-
-              if [ "$COUNTER" -ge {{ $.Values.healthcheck.readinessthreshold }} ]
-              then
-                # Printing number of trials done before giving up
-                echo "Root SSL or Truststore certificates might not have been put in Vault. Giving up after $COUNTER tries!"
-                exit 1
-              fi
-              # The general Firewall Docker image checks the existence network-parameters,
-              # both on Bridge + Float in it's startFirewall.sh script;
-              # while it is only required for Bridge. So, we have to create a dummy file to make the script work.
-              echo dummy_file > /shared/network-parameters
-              echo "Done"              
+              
+              # TODO: Get network-parameters from corresponding Node
+              echo "Done with init-certificates..."             
         volumeMounts:
         - name: certificates
-          mountPath: /shared
+          mountPath: {{ $.Values.volume.baseDir }}/certificates
       imagePullSecrets:
-      - name: {{ .Values.image.pullSecret }}
+      - name: {{ .Values.image.imagePullSecret }}
       containers:
       - name: main
-        image: "{{ required "float[main]: missing value for .Values.image.name" .Values.image.name }}"
+        image: "{{ .Values.image.mainContainerName }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: BASE_DIR
+            value: {{ $.Values.volume.baseDir }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          echo 'firewallMode: FloatOuter
+          networkParametersPath: "network-parameters"
+          
+          inboundConfig: {
+            listeningAddress: "{{ .Values.dmz.external }}:{{ .Values.node.p2pPort }}"
+          }
+          
+          floatOuterConfig: {
+              floatAddress: "{{ .Values.dmz.internal }}:{{ .Values.bridge.tunnelPort }}"
+              expectedCertificateSubject: "{{ .Values.bridge.subject }}"
+              tunnelSSLConfiguration: {
+                     keyStorePassword: "FLOAT_PASSWORD"
+                     trustStorePassword: "FIREWALL_PASSWORD"
+                     sslKeystore: "certificates/float.jks"
+                     trustStoreFile: "certificates/trust.jks"
+              }
+          }
+          
+          revocationConfig: { mode: "EXTERNAL_SOURCE"}
+          
+          certificatesDirectory: "certificates"
+          sslKeystore: "certificates/sslkeystore.jks"
+          trustStoreFile: "certificates/truststore.jks"
+          keyStorePassword: "KEYSTORE_PASSWORD"
+          trustStorePassword: "TRUSTSTORE_PASSWORD"
+          silencedIPs: []
+          
+          enableAMQPPacketTrace: true
+          artemisReconnectionIntervalMin: 5000
+          artemisReconnectionIntervalMax: 60000
+          politeShutdownPeriod: 1000
+          p2pConfirmationWindowSize: 1048576
+          auditServiceConfiguration: {
+            loggingIntervalSec: 60
+          }' >> ${BASE_DIR}/firewall.conf
+
+          export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/truststorepass)
+          sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/firewall.conf
+          export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
+          sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/firewall.conf
+          export FIREWALL_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/firewallpass)
+          sed -i -e "s*FIREWALL_PASSWORD*${FIREWALL_PASSWORD}*g" ${BASE_DIR}/firewall.conf
+          export FLOAT_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/floatpass)
+          sed -i -e "s*FLOAT_PASSWORD*${FLOAT_PASSWORD}*g" ${BASE_DIR}/firewall.conf
+          
+          ifNetworkParametersExists () {                                                                                                                            
+              if [ -f ${BASE_DIR}/network-parameters ]
+              then                                                                                                                                                     
+                  return 1                                                                                                                                             
+              else                                                                                                                                                     
+                  return 0                                                                                                                                             
+              fi                                                                                                                                                       
+          }  
+          let EXIT_CODE=0                                                                                                                                      
+          while [ ${EXIT_CODE} -eq 0 ]                                                                                                                         
+          do
+                  sleep 2                                                                                                             
+                  echo "Checking for network parameters"
+                  ifNetworkParametersExists
+                  let EXIT_CODE=$?
+          done
+
+          echo "Starting the firewall"                                                                                                                                         
+          java -jar corda-firewall.jar --base-directory ${BASE_DIR} --verbose --logging-level=INFO 
         resources:
           requests:
             memory: {{ .Values.cordaJarMx }}M
           limits:
             memory: {{ add .Values.cordaJarMx 2}}M
         volumeMounts:
+        - name: float-volume
+          mountPath: {{ .Values.volume.baseDir }}
         - name: certificates
-          mountPath: /opt/corda/workspace/
-        - name: float-conf
-          mountPath: /opt/corda/workspace/firewall.conf
-          subPath: firewall.conf
-        - name: float-logs
-          mountPath: /opt/corda/workspace/logs
+          mountPath: {{ .Values.volume.baseDir }}/certificates
       volumes:
         - name: certificates
           emptyDir:
             medium: Memory
-        - name: float-conf
-          configMap:
-            name: {{ .Values.nodeName }}-conf
-        - name: float-logs
+        - name: float-volume
           persistentVolumeClaim:
-            claimName: {{ .Values.nodeName }}-pvc-logs
+            claimName: {{ .Values.nodeName }}-volume

@@ -16,10 +16,12 @@ spec:
   selector:
     matchLabels:
       app: consortiumchain
-      name: {{ .Values.node.name }}
       service.rpc: {{ .Values.node.name }}
-  strategy:
-    type: RollingUpdate
+      app.kubernetes.io/name: {{ .Values.node.name }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/instance: {{ .Release.Name }} 
+      {{- include "labels.custom" . | nindent 2 }}
   template:
     metadata:
       creationTimestamp: null
@@ -27,6 +29,11 @@ spec:
         app: consortiumchain
         name: {{ .Values.node.name }}
         service.rpc: {{ .Values.node.name }}
+        app.kubernetes.io/name: {{ .Values.node.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+        {{- include "labels.custom" . | nindent 2 }}
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
       hostname: {{ .Values.node.name }}

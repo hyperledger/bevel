@@ -47,7 +47,7 @@ Detailed information on helm charts can be referred [here](../developer/corda-he
 <a name="vault-config"></a>
 ## Vault Configuration
 The Blockchain Automation Framework stores their `crypto` and `credentials` immediately within the secret secrets engine.
-
+Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
 | Crypto Material Path | Credentials Path     |
 |----------------------|----------------------|
 | `secret/<servicename>`      | `secret/<servicename>/credentials` |

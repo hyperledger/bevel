@@ -560,7 +560,7 @@ spec:
               echo "Getting secrets from Vault Server"
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               
-              # save networkmap login password from vault
+              # save cordapps repository login password from vault
               LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${SECRET_PREFIX} | jq -r 'if .errors then . else . end')                            
               REPO_USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["repo_password"]')
               REPO_USER=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["repo_username"]')

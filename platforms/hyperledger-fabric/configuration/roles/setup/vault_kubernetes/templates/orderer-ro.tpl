@@ -1,12 +1,12 @@
-path "secret/crypto/ordererOrganizations/{{ component_name }}/*" {
+path "{{ vault_secret_path }}/crypto/ordererOrganizations/{{ component_name }}/*" {
     capabilities = ["read", "list"]
 }
-path "secret/*" {
+path "{{ vault_secret_path }}/*" {
     capabilities = ["list"]
 }
-path "secret/crypto/peerOrganizations/*" {
+path "{{ vault_secret_path }}/crypto/peerOrganizations/*" {
     capabilities = ["deny"]
 }
-path "secret/credentials/{{ component_name }}/*" {
+path "{{ vault_secret_path }}/credentials/{{ component_name }}/*" {
     capabilities = ["read", "list"]
 }

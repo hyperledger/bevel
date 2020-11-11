@@ -58,6 +58,7 @@ This task checks if the root PKI certificates are already created and stored in 
 ##### Input Variables
 - *`VAULT_ADDR` - The Vault address
 - *`VAULT_TOKEN` - Vault root/custom token which has the access to the path
+- *`org.name` - The name of the organisation, used to check the KV in Vault
 ##### Output Variables:
 - `root_certs` - Stores the status of the certificates in the Vault
 

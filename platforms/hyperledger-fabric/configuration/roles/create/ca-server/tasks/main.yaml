@@ -5,7 +5,7 @@
 
 - name: Check if ca certs already created
   shell: |
-    vault kv get -field=ca.{{ component_name }}-cert.pem secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ca
+    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -24,9 +24,9 @@
 
 - name: Get ca certs and key
   shell: |
-    vault kv get -field=ca.{{ component_name }}-cert.pem secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
+    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
     mv ca.{{ component_name }}-cert.pem ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/
-    vault kv get -field={{ component_name }}-CA.key secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ca > {{ component_name }}-CA.key
+    vault kv get -field={{ component_name }}-CA.key {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca > {{ component_name }}-CA.key
     mv {{ component_name }}-CA.key ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/
   environment:
     VAULT_ADDR: "{{ vault.url }}"
@@ -54,7 +54,7 @@
 # This task copy the CA certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault write secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ca ca.{{ component_name }}-cert.pem="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem")" {{ component_name }}-CA.key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key")"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca ca.{{ component_name }}-cert.pem="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem")" {{ component_name }}-CA.key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key")"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -64,7 +64,7 @@
 
 - name: Check if ca admin credentials already created
   shell: |
-    vault kv get secret/credentials/{{ component_name }}/ca/{{ component }}
+    vault kv get {{ vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ component }}
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -76,7 +76,7 @@
 # This task write the CA server admin credentials to Vault
 - name: Write the ca server admin credentials to Vault
   shell: |
-    vault write secret/credentials/{{ component_name }}/ca/{{ component }} user="{{ component }}-adminpw"
+    vault write {{ vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ component }} user="{{ component }}-adminpw"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

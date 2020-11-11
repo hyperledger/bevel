@@ -1,12 +1,13 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
   namespace: {{ component_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  helmVersion: v3
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
@@ -51,7 +52,7 @@ spec:
       mysqluser: demouser
     vault:
       address: {{ vault.url }}
-      secretprefix: secret/{{ component_ns }}/crypto/{{ peer.name }}
+      secretprefix: {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: quorum
       tm_keyname: transaction

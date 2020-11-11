@@ -1,6 +1,8 @@
 Certificate Paths on Vault for Quorum Network
 ---------------------------------------------
 
+* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+
 ### For IBFT/ RAFT
 
 | Path                                                                              | Key Name               | Description         |

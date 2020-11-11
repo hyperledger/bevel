@@ -1,10 +1,10 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ name }}-{{ peer_name }}
   namespace: {{ peer_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   releaseName: {{ name }}-{{ peer_name }}
   chart:
@@ -46,11 +46,11 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ namespace }}-auth
-      secretprefix: secret/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
-      secretambassador: secret/crypto/peerOrganizations/{{ namespace }}/ambassador
+      secretprefix: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
+      secretambassador: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/ambassador
       serviceaccountname: vault-auth
       imagesecretname: regcred
-      secretcouchdbpass: secret/credentials/{{ namespace }}/couchdb/{{ name }}?user
+      secretcouchdbpass: {{ vault.secret_path | default('secret') }}/credentials/{{ namespace }}/couchdb/{{ name }}?user
 
     service:
       servicetype: ClusterIP

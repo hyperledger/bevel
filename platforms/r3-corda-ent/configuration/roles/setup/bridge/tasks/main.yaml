@@ -1,5 +1,17 @@
 # This role creates the the value file for bridge chart and pushes it to the git repository
 
+# Wait till the node is running
+- name: "Waiting for node pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
 # This task will will create the value file for bridge
 - name: Create value file for bridge
   include_role:
@@ -8,28 +20,10 @@
     component_name: "{{ peer.firewall.bridge.name }}"
     type: bridge
     name: "{{ org.name | lower }}"
-    corda_service_version: "firewall"
-    component_ns: "{{ component_ns }}"
-    git_url: "{{ org.gitops.git_ssh }}"
-    git_branch: "{{ org.gitops.branch }}"
+    corda_service_version: "firewall-{{ org.version }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
-    networkmap_name: "{{ network | json_query('orderers[?type==`networkmap`].name') | first }}"
-    init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
-    image_pull_secret: "regcred"
-    vault_addr: "{{ org.vault.url }}"
-    vault_role: "vault-role"
-    auth_path: "cordaent{{ org.name | lower }}"
-    vault_serviceaccountname: "vault-auth"
-    vault_cert_secret_prefix: "secret/{{ org.name | lower }}/{{ peer.name }}"
-    storageclass: cordaentsc
-    float_address: "{{ peer.firewall.float.name | lower }}.{{ component_ns }}"
-    float_port: "{{ peer.firewall.float.port }}"
-    float_subject: "{{ peer.firewall.float.subject }}"
-    bridge_address: "{{ peer.firewall.bridge.name | lower }}.{{ component_ns }}"
-    bridge_port: "{{ peer.firewall.bridge.port }}"
-    bridge_tunnel_port: "{{ peer.firewall.bridge.tunnelport }}"
-    
+
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
@@ -43,3 +37,24 @@
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
     msg: "[ci skip] Pushing bridge files"
+
+# Wait till the bridge is running
+- name: "Waiting for bridge pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer.firewall.bridge.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
+############################################################################################
+# This task copies network-parameter file into the bride pod 
+- name: Copy the network-parameter file into the bride pod 
+  shell: |
+    export BRIDGE_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.firewall.bridge.name }} | grep {{ peer.firewall.bridge.name }}  | awk '{print $1}')
+    export PEER_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.name }} | grep {{ peer.name }} | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ peer.name }}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/np-{{ peer.name }} {{ component_ns }}/${BRIDGE_POD}:base/network-parameters

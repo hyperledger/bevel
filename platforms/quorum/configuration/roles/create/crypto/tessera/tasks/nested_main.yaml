@@ -1,7 +1,7 @@
 # This task checks if the tm crypto material is already stored in the vault or not
 - name: Check if tm key is already present in the vault
   shell: |
-    vault read -field=tm.key secret/{{ component_ns }}/crypto/{{ peer.name }}/transaction
+    vault read -field=tm.key {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}/transaction
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -41,7 +41,7 @@
 # This task copies the crypto material to the vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault kv put secret/{{ component_ns }}/crypto/{{ peer.name }}/transaction tm.pub="$(cat build/{{ component_name }}/{{ peer.name }}/tm.pub)" tm.key="$(cat build/{{ component_name }}/{{ peer.name }}/tm.key)"
+    vault kv put {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}/transaction tm.pub="$(cat build/{{ component_name }}/{{ peer.name }}/tm.pub)" tm.key="$(cat build/{{ component_name }}/{{ peer.name }}/tm.key)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

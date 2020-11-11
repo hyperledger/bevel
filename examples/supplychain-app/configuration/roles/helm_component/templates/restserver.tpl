@@ -1,10 +1,10 @@
-apiVersion: flux.weave.works/v1beta1
+apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: {{ name }}-restserver
   namespace: {{ component_ns }}
   annotations:
-    flux.weave.works/automated: "false"
+    fluxcd.io/automated: "false"
 spec:
   chart:
     path: {{ component_gitops.chart_source }}/fabric-restserver
@@ -29,7 +29,7 @@ spec:
       address: {{ component_vault.url }}
       role: vault-role
       authpath: {{ component_ns }}-auth
-      secretprefix: secret/crypto/peerOrganizations/{{ component_ns }}
+      secretprefix: {{ component_vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_ns }}
       serviceaccountname: vault-auth
       imagesecretname: regcred
       image: hyperledgerlabs/alpine-utils:1.0

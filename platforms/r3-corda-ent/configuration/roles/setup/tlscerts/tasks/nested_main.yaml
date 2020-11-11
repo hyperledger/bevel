@@ -1,9 +1,9 @@
-# This role puts the orderer certs to vault for each member organizations
+# This role puts the service certs to vault for each member organizations
 
 # Check if the tls certificate is already present in the vault
 - name: Check if the tls certificate is already present in the vault
   shell: |
-    vault read -field={{ orderer.name }}.crt secret/{{ org.name }}/{{ peer.name }}/certs/{{ orderer.name }}
+    vault read -field={{ service.name }}.crt {{ org.vault.secret_path | default('secret') }}/{{ org.name }}/{{ peer.name }}/certs/{{ service.name }}
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -13,28 +13,28 @@
 # This task copies the tls certificate to each peer vault
 - name: Copy the tls certificate to each peer vault
   shell: |
-    vault kv put secret/{{ org.name }}/{{ peer.name }}/certs/{{ orderer.name }} {{ orderer.name }}.crt="$(cat {{ orderer.certificate }} | base64 )"
+    vault kv put {{ org.vault.secret_path | default('secret') }}/{{ org.name }}/{{ peer.name }}/certs/{{ service.name }} {{ service.name }}.crt="$(cat {{ service.certificate }} | base64 )"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   when: vault_tlscert.failed
 
-# Store the networkroottruststore to Vault when orderer.type == networkmap
+# Store the networkroottruststore to Vault when service.type == networkmap
 # Check if the networkroottruststore is already present in the given directory
 - name: Check if the networkroottruststore is already present in the given directory
   stat:
-    path: "{{ orderer.truststore }}"
+    path: "{{ service.truststore }}"
   register: file_status
-  when: orderer.type == 'networkmap'
+  when: service.type == 'networkmap'
   failed_when: not file_status.stat.exists
 
 # This task copies the networkroottruststore to each org vault
 - name: Copy the networkroottruststore to the Vault for each organisation
   shell: |
-    vault kv put secret/{{ org.name }}/{{ peer.name }}/root/certs network-root-truststore.jks="$(cat {{ orderer.truststore }})"
+    vault kv put {{ org.vault.secret_path | default('secret') }}/{{ org.name }}/{{ peer.name }}/root/certs network-root-truststore.jks="$(cat {{ service.truststore }})"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   when: 
-    - orderer.type == 'networkmap'
+    - service.type == 'networkmap'
     - file_status.stat.exists

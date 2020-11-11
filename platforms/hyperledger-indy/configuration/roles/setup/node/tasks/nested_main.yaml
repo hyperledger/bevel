@@ -1,0 +1,39 @@
+# This deploys all nodes sequencially per organization
+---
+#----------------------------------------------------------------------
+# create deployment file for node steward
+- name: "Create steward deployment file"
+  include_role:
+    name: create/helm_component/node
+  vars:
+    component_type: "node"
+    component_name: "{{ organization }}-{{ stewardItem.name }}-node"
+    indy_version: "indy-{{ network.version }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
+
+# ---------------------------------------------------------------------
+# push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_EMAIL: "{{ gitops.email }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "[ci skip] Pushing deployment files for {{ organization }}-{{ stewardItem.name }}-node"
+
+# ---------------------------------------------------------------------
+# wait until steward pods are running
+- name: "Wait until steward pods are running"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    namespace: "{{ component_ns }}"
+    component_type: "Pod"
+    component_name: "{{ organization }}-{{ stewardItem.name }}-node"
+    label_selectors:
+      - app = {{ component_name }}

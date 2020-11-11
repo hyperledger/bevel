@@ -49,6 +49,9 @@ pipeline {
     VAULT_PRIVATE_IP="10.1.3.67"
     //Secret which contains google maps key
     GMAPS_CREDS="gmaps_key"
+    //SSH config
+    SSH_SERVER_ALIVE_INTERVAL=60
+    SSH_SERVER_ALIVE_COUNT_MAX=20
   }
 
   parameters {
@@ -110,8 +113,10 @@ pipeline {
           chmod 400 ${LOCAL_BUILD_PATH}/gitops.pem
           chmod 400 ${VAULT_FILE}
           curl https://ipv4.icanhazip.com/
-          ssh-keyscan ${VAULT_BASTION} > ~/.ssh/known_hosts
+          ssh-keyscan ${VAULT_BASTION} >> ~/.ssh/known_hosts
           echo "127.0.0.1 ${VAULT_SERVER}" > /etc/hosts
+          echo "ServerAliveInterval ${SSH_SERVER_ALIVE_INTERVAL}" >> ~/.ssh/config
+          echo "ServerAliveCountMax ${SSH_SERVER_ALIVE_COUNT_MAX}" >> ~/.ssh/config
           ssh -i ${VAULT_FILE} -f -q -N -L ${VAULT_PORT}:${VAULT_PRIVATE_IP}:${VAULT_PORT} devinstance@${VAULT_BASTION}
           ps -aux | grep ssh
           echo 'Install nodejs'
@@ -407,7 +412,6 @@ pipeline {
             branch 'master';
             branch 'develop';
             branch 'indy';
-            branch 'corda-ent';
             branch 'besu'
           }
         }
@@ -440,7 +444,6 @@ pipeline {
             branch 'master';
             branch 'develop';
             branch 'indy';
-            branch 'corda-ent';
             branch 'besu'
           }
         }

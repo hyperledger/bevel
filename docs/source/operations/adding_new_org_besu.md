@@ -1,5 +1,5 @@
 <a name = "adding-new-org-to-existing-network-in-besu"></a>
-# Adding a new node in besu
+# Adding a new node in Besu
 
   - [Prerequisites](#prerequisites)
   - [Create Configuration File](#create-configuration-file)
