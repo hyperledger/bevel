@@ -60,9 +60,9 @@ spec:
         external_url_suffix: {{ org.external_url_suffix }}
         p2pPort: {{ peer.p2p.ambassador }}
 {% if peer.firewall.enabled == true %}
-        p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
-{% else %}
         p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+{% else %}
+        p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
 {% endif %}
       legalName: "{{ org.subject }}"
       emailAddress: "dev-node@baf.com"
