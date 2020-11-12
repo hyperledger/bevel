@@ -2,7 +2,7 @@
 ############################################################################################
 # This role creates the invoke_chaincode value file
 
-# Check or Wait if commit-chaincode is already run
+# Check or Wait if commit-chaincode is already run for v.2.x
 - name: "Waiting for chaincode to be commited on {{ peer.name }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -14,7 +14,21 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: peer.chaincode is defined
+  when: peer.chaincode is defined and '2.' in network.version
+
+# Check or Wait if install-chaincode is already run for v.1.4.x
+- name: "Waiting for chaincode to be installed on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.chaincode is defined and '1.4' in network.version 
 
 # Check if invoke-chaincode is already run
 - name: 'Check for invoke-chaincode job'

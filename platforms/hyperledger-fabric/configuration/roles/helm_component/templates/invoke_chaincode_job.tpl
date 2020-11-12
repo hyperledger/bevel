@@ -14,6 +14,8 @@ spec:
   values:
     metadata:
       namespace: {{ namespace }}
+      network:
+        version: {{ network.version }}
       images:
         fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
@@ -42,7 +44,9 @@ spec:
       endorsementpolicies:  {{ component_chaincode.endorsements | quote }}
     channel:
       name: {{ item.channel_name | lower }}
+{% if '2.' in network.version %}
     endorsers:
-      creator: {{ namespace }}
-      name: {% for name in approvers.name %} {{ name }} {% endfor %} 
-      corepeeraddress: {% for address in approvers.corepeerAddress %} {{ address }} {% endfor %}
+        creator: {{ namespace }}
+        name: {% for name in approvers.name %} {{ name }} {% endfor %} 
+        corepeeraddress: {% for address in approvers.corepeerAddress %} {{ address }} {% endfor %}
+{% endif %}
