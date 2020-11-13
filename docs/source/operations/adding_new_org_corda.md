@@ -19,7 +19,7 @@ To add a new organization Corda Doorman and Networkmap services should already b
 
 Refer [this guide](./corda_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information about the networkmap and doorman service.
+The `network.yaml` file should contain the specific `network.organization` patch along with the network service information about the networkmap and doorman service.
 
 ---
 **NOTE**: Make sure the doorman and networkmap service certificates are in plain text and not encoded in base64 or any other encoding scheme, along with correct paths to them mentioned in network.yaml.
@@ -53,12 +53,12 @@ network:
     password: "docker_password"
   
   # Remote connection information for doorman and networkmap (will be blank or removed for hosting organization)
-  orderers:
-    - orderer:
+  network_service:
+    - service:
       type: doorman
       uri: https://doorman.test.corda.blockchaincloudpoc.com:8443
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
-    - orderer:
+    - service:
       type: networkmap
       uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt

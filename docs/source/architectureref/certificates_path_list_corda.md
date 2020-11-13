@@ -1,6 +1,8 @@
 Certificate Paths on Vault for Corda Network
 ---------------------------------------------
 
+* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+
 ### For Networkmap 
 
 | Path (networkmap crypto material) | Crypto-material         | Type        |

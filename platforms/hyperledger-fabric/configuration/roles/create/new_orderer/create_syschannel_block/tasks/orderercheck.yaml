@@ -1,0 +1,14 @@
+# Check if the orderer pod is up
+- name: "Waiting for orderer pod {{ orderer.name }} in {{ orderer_namespace }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ orderer_namespace }}"
+    component_name: "{{ orderer.name }}"
+    kubernetes: "{{ ordererorg.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+  loop: "{{ ordererorg.services.orderers }}"
+  loop_control:
+    loop_var: orderer

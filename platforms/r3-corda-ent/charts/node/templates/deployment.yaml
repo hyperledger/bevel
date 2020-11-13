@@ -152,6 +152,12 @@ spec:
               NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.networkmapName }}.crt"]')
               echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/tlscerts/networkmap.crt
 
+              # Fetching the node tlscerts
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+              NODE_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+              echo "${NODE_CERT}" | base64 -d > ${OUTPUT_PATH}/tlscerts/node.crt 
+
               # Fetching node keystore, node truststore and network-root-truststore credentials from vault
               mkdir -p ${OUTPUT_PATH}/credentials
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
@@ -205,6 +211,46 @@ spec:
             exit 1
             break
           fi
+      - name: init-cordapps
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        command: ["sh", "-c"]
+        env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: BASE_DIR
+            value: {{ $.Values.nodeConf.volume.baseDir }}
+          - name: CERTS_SECRET_PREFIX
+            value: {{ .Values.vault.certsecretprefix }}  
+        args:
+        - |-
+          # crearting cordapps dir in volume to keep jars
+          {{- if .Values.cordapps.getcordapps }}
+            mkdir -p ${BASE_DIR}/cordapps
+            mkdir -p /tmp/downloaded-jars
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server"
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            
+            # save cordapps login password from vault
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')                            
+            REPO_USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["repo_password"]')
+            REPO_USER=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["repo_username"]')
+            
+            # Downloading official corda provided jars using curl 
+            {{- range .Values.cordapps.jars }}
+              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -J {{ .url }}
+            {{- end }}
+            cp -ar /tmp/downloaded-jars/* ${BASE_DIR}/cordapps
+          {{- end }}
+        volumeMounts:
+        - name: node-volume
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}
       containers:
       - name: node
         image: "{{ .Values.image.nodeContainerName }}"
@@ -259,7 +305,7 @@ spec:
           keyStorePassword : "KEYSTORE_PASSWORD"
           detectPublicIp: false
           additionalP2PAddresses: ["{{ .Values.nodeConf.ambassador.p2pAddress }}"]
-          messagingServerAddress: "0.0.0.0:{{ .Values.service.p2pPort }}"
+          messagingServerAddress: "0.0.0.0:{{ .Values.service.messagingServerPort }}"
           messagingServerExternal: false
           enterpriseConfiguration: {
             externalBridge: {{ .Values.firewall.enabled }}
@@ -293,6 +339,8 @@ spec:
           rm -rf ${BASE_DIR}/network-parameters
           yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
           yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/node.crt -storepass changeit -alias {{ .Values.nodeName }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+          
           /bin/sh
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
           if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]

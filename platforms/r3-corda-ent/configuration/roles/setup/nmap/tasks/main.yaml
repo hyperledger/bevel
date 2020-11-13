@@ -5,7 +5,7 @@
 # Check if the networkmap certs are already created
 - name: Check if the networkmap certs are already created
   shell: |
-    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ org.services.networkmap.name }}/certs
+    vault kv get -format=yaml {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.networkmap.name }}/certs
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -30,14 +30,14 @@
   vars:
     tlscert_path: "./build/ambassador/{{ org.services.networkmap.name }}"
     service_name: "{{ org.services.networkmap.name }}"
-    dest_path: "{{ network | json_query('orderers[?type==`networkmap`].certificate') | first }}"
+    dest_path: "{{ network | json_query('network_services[?type==`networkmap`].certificate') | first }}"
 
 # Get the network-root-truststore and save locally
 - name: Get the network-root-truststore
   shell: |
-    vault read -field=network-root-truststore.jks secret/{{ org.name | lower }}/root/certs > "{{ cert_path }}"
+    vault read -field=network-root-truststore.jks {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/root/certs > "{{ cert_path }}"
   vars:
-    cert_path: "{{ network | json_query('orderers[?type==`networkmap`].truststore') | first }}"
+    cert_path: "{{ network | json_query('network_services[?type==`networkmap`].truststore') | first }}"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -45,7 +45,7 @@
 # Check if the notary-registration is already completed
 - name: Check if the notary-registration is already completed
   shell: |
-    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ org.services.notary.name | lower }}/certs/truststore
+    vault kv get -format=yaml {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.notary.name | lower }}/certs/truststore
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -82,7 +82,7 @@
     charts_dir: "{{ org.gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
     corda_service_version: networkmap-{{ org.version }}
-    idman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}" # Keep this in ansible role to prevent confusion in template
+    idman_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}" # Keep this in ansible role to prevent confusion in template
     helm_lint: "true"
 
 # Push the nmap deployment files to repository

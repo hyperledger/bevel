@@ -16,7 +16,7 @@
 # Fetch nodekey from vault
 - name: Get the nodekey from vault and generate the enode
   shell: |
-    vault read -field=nodekey secret/{{ org.name }}-quo/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey
+    vault read -field=nodekey {{ vault.secret_path | default('secret') }}/{{ org.name }}-quo/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey
     bootnode --nodekey={{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey --writeaddress > {{ build_path }}/{{ org.name }}/{{ peer.name }}/enode
   environment:
     VAULT_ADDR: "{{ vault.url }}"

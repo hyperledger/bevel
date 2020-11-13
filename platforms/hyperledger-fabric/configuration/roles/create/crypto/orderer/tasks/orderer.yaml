@@ -1,7 +1,7 @@
 # Check orderer msp already created
 - name: Check if orderer msp already created
   shell: |
-    vault kv get -format=yaml secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -25,7 +25,7 @@
 
 - name: Check if orderer tls already created
   shell: |
-    vault kv get -field=ca.crt secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
+    vault kv get -field=ca.crt {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -44,8 +44,8 @@
 
 - name: Get Orderer tls crt
   shell: |
-    vault kv get -field=ca.crt secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls > ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/ca.crt
-    vault kv get -field=server.crt secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls > ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/server.crt
+    vault kv get -field=ca.crt {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls > ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/ca.crt
+    vault kv get -field=server.crt {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls > ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/server.crt
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -133,8 +133,8 @@
 # These roles put the above created crypto material in the vault
 - name: Copy the crypto material for orderer
   shell: |
-    vault write secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls ca.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/ca.crt)" server.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/server.crt)" server.key="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/server.key)"
-    vault write secret/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp admincerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/admincerts/Admin@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/tlscacerts/ca-{{ component_name }}-7054.pem)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls ca.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/ca.crt)" server.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/server.crt)" server.key="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls/server.key)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp admincerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/admincerts/Admin@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp/tlscacerts/ca-{{ component_name }}-7054.pem)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -156,7 +156,7 @@
  #Check the existence of Orderer ambassador certs secret in the vault 
 - name: Check if orderer ambassador secrets already created
   shell: |
-    vault kv get -format=yaml secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador/{{ orderer.name }}
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador/{{ orderer.name }}
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -199,7 +199,7 @@
  # This task copy the orderer certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault write secret/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador/{{ orderer.name }} certificate="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}-certchain.pem")" key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ orderer.name }}-{{ component_name }}.key")"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador/{{ orderer.name }} certificate="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{orderer.name}}-{{ component_name }}-certchain.pem")" key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/{{ orderer.name }}-{{ component_name }}.key")"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{ if $.Values.nodeConf.ambassador.p2pAddress }}
+  {{ if and ($.Values.nodeConf.ambassador.p2pAddress) (eq .Values.firewall.enabled false)  }}
   annotations:
     getambassador.io/config: |
       ---
@@ -38,8 +38,8 @@ spec:
   type: {{ .Values.service.type }}
   {{- end }}
   ports:
-    - port: {{ .Values.service.p2pPort }}
-      targetPort: {{ .Values.service.p2pPort }}
+    - port: {{ .Values.service.messagingServerPort }}
+      targetPort: {{ .Values.service.messagingServerPort }}
       protocol: TCP
       name: p2p
     - port: {{ .Values.service.rpc.port }} 

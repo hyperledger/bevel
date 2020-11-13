@@ -1,0 +1,105 @@
+# This playbook adds an orderer to a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook add-orderer.yaml -e "@./network.yaml" -e "add_orderer=true"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run and a DLT network exists.
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+
+    # Create generate_crypto script for new organization
+    - name: "Generate crypto script for new orderer"
+      include_role:
+        name: "create/new_orderer/crypto_script"
+      vars:
+        component_type: "{{ item.type | lower}}"
+        orderers: "{{ item.services.orderers }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.org_status == 'new'
+
+    # Create Orderer crypto materials
+    - name: "Generate crypto for new orderer"
+      include_role:
+        name: "create/crypto/orderer"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name }}"
+        services: "{{ item.services }}"
+        subject: "{{ item.subject }}"
+        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'orderer'
+
+    # Generate script to modify the fetched configuration block
+    - name: "Modify the system channel with tls information of new orderer"
+      include_role:
+        name: "create/new_orderer/create_syschannel_block"
+      vars:
+        build_path: "./build"
+        orderers: "{{ org.services.orderers }}"
+        docker_url: "{{ network.docker.url }}"
+        channel_name: "syschannel"
+        update_type: "tls"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == 'orderer'
+
+    # This role creates value file new orderer
+    - name: "create new orderer"
+      include_role:
+        name: "create/orderers"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_ssh }}"
+        git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'orderer'
+
+    # Generate script to modify the fetched configuration block
+    - name: "Modify the system channel with endpoint information of new orderer"
+      include_role:
+        name: "create/new_orderer/create_syschannel_block"
+      vars:
+        build_path: "./build"
+        orderers: "{{ org.services.orderers }}"
+        docker_url: "{{ network.docker.url }}"
+        channel_name: "syschannel"
+        update_type: "address"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == 'orderer'
+
+    # Generate script to modify the fetched configuration block from application channel
+    - name: "Modify the application channel with tls and address information of new orderer"
+      include_role:
+        name: "create/new_orderer/create_appchannel_block"
+      vars:
+        build_path: "./build"
+        channel_name: "{{ channel.channel_name | lower }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network.channels }}"
+      loop_control:
+        loop_var: channel

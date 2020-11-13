@@ -61,14 +61,14 @@
     when: network['type'] == 'corda' and item.type.find('nms') != -1
   
   # ----------------------------------------------------------------------  
-  # Wait for orderer services to respond  
-  - name: Check that orderer uri are reachable
+  # Wait for network services to respond  
+  - name: Check that network services uri are reachable
     uri:
       url: "{{ item.uri }}"
       validate_certs: no
     register: this
     until: this.status == 200 or this.status == 401
-    loop: "{{ network['orderers'] }}"
+    loop: "{{ network['network_services'] }}"
     retries: "{{ network.env.retry_count}}"
     delay: 50
     ignore_errors: yes

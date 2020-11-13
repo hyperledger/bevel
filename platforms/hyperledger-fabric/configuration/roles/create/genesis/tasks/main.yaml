@@ -11,7 +11,7 @@
     {% if '2.' in network.version %}
     ./configtxgen -profile {{ genesis.name }} -channelID syschannel  -outputBlock ./channel-artifacts/genesis.block
     {% else %}
-    ./configtxgen -profile {{ genesis.name }} -outputBlock ./channel-artifacts/genesis.block
+    ./configtxgen -profile {{ genesis.name }} -channelID syschannel -outputBlock ./channel-artifacts/genesis.block
     {% endif %}
     cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
   when: add_new_org == 'false'
@@ -20,7 +20,7 @@
 
 - name: "Write genesis block to Vault"  
   shell: |
-    vault write secret/crypto/ordererOrganizations genesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
+    vault write {{ org.vault.secret_path | default('secret') }}/crypto/ordererOrganizations genesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"

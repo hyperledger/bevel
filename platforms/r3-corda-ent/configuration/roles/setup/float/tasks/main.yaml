@@ -10,27 +10,10 @@
     component_name: "{{ peer.firewall.float.name }}"
     type: float
     name: "{{ org.name | lower }}"
-    corda_service_version: "firewall"
-    git_url: "{{ org.gitops.git_ssh }}"
-    git_branch: "{{ org.gitops.branch }}"
+    corda_service_version: "firewall-{{ org.version }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
-    float_name: "{{ peer.firewall.float.name }}"
-    init_container_name: "index.docker.io/hyperledgerlabs/alpine-utils:1.0"
-    image_pull_secret: "regcred"
-    vault_addr: "{{ org.vault.url }}"
-    vault_role: "vault-role"
-    auth_path: "cordaent{{ org.name | lower }}"
-    vault_serviceaccountname: "vault-auth"
-    vault_cert_secret_prefix: "secret/{{ org.name | lower }}/{{ peer.name }}"
-    storageclass: cordaentsc
-    float_address: "{{ peer.firewall.float.name | lower }}.{{ component_ns }}"
-    float_port: "{{ peer.firewall.float.port }}"
-    bridge_subject: "{{ peer.firewall.bridge.subject }}"
-    bridge_tunnel_port: "{{ peer.firewall.bridge.tunnelport }}"
-    dmz_internal: "0.0.0.0"
-    dmz_external: "0.0.0.0"
-    
+
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
@@ -44,3 +27,24 @@
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
     msg: "[ci skip] Pushing float files"
+
+# Wait till the float is running
+- name: "Waiting for float pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer.firewall.float.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
+############################################################################################
+# This task copies network-parameter file into the float pod 
+- name: Copy the network-parameter file into the float pod 
+  shell: |
+    export FLOAT_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.firewall.float.name }} | grep {{ peer.firewall.float.name }}  | awk '{print $1}')
+    export PEER_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.name }} | grep {{ peer.name }} | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ peer.name }}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/np-{{ peer.name }} {{ component_ns }}/${FLOAT_POD}:base/network-parameters

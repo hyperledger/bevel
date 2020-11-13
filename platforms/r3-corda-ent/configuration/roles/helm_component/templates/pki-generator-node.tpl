@@ -28,7 +28,7 @@ spec:
       role: vault-role
       authpath: cordaent{{ peer.name | lower }}
       serviceaccountname: vault-auth
-      certsecretprefix: secret/{{ peer.name | lower }}/{{ peer.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ peer.name | lower }}/{{ peer.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     subjects:
