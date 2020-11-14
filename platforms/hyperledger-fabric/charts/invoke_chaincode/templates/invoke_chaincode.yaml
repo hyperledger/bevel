@@ -170,30 +170,39 @@ spec:
           export ARGS='{"Args":'"'["${INSTANTIATION_ARGUMENTS}"]'"'}'
           export qARGS="'${ARGS}'"
 
-          INVOKE_CMD="peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --isInit -c $qARGS""
+          touch ./invokeChaincode.sh	
           
-          for item in $ENDORSERS_CORE_PEER_ADDR
-          do
-            INVOKE_CMD=${INVOKE_CMD}" --peerAddresses "${item}
-          done
-
-          echo ${INVOKE_CMD}
-
-          for item in $ENDORSING_ORG_NAMES
-          do
-            path="/opt/gopath/src/github.com/hyperledger/fabric/crypto/endorsers/${item}/msp/cacerts/ca.crt"
-            INVOKE_CMD=${INVOKE_CMD}" --tlsRootCertFiles "${path}
-          done
-
-          echo ${INVOKE_CMD}
-
-          if [ -z ${ENDORSEMENT_POLICIES} ]
-          then
-            eval ${INVOKE_CMD}
+          version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
+          if [ $version1_4 = 1 ];then
+            echo "peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -c $qARGS" >> ./invokeChaincode.sh
+            chmod 755 ./invokeChaincode.sh
+            sh ./invokeChaincode.sh
           else
-            endorsement_policy=" --signature-policy ${ENDORSEMENT_POLICIES}"
-            INVOKE_CMD=${INVOKE_CMD}${endorsement_policy}
-            eval ${INVOKE_CMD}
+            INVOKE_CMD="peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --isInit -c $qARGS"
+            
+            for item in $ENDORSERS_CORE_PEER_ADDR
+            do
+              INVOKE_CMD=${INVOKE_CMD}" --peerAddresses "${item}
+            done
+
+            echo ${INVOKE_CMD}
+
+            for item in $ENDORSING_ORG_NAMES
+            do
+              path="/opt/gopath/src/github.com/hyperledger/fabric/crypto/endorsers/${item}/msp/cacerts/ca.crt"
+              INVOKE_CMD=${INVOKE_CMD}" --tlsRootCertFiles "${path}
+            done
+
+            echo ${INVOKE_CMD}
+
+            if [ -z ${ENDORSEMENT_POLICIES} ]
+            then
+              eval ${INVOKE_CMD}
+            else
+              endorsement_policy=" --signature-policy ${ENDORSEMENT_POLICIES}"
+              INVOKE_CMD=${INVOKE_CMD}${endorsement_policy}
+              eval ${INVOKE_CMD}
+            fi
           fi
         env:
         - name: CORE_VM_ENDPOINT
