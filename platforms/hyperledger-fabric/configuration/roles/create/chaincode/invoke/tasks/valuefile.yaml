@@ -14,7 +14,25 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: peer.chaincode is defined and '2.' in network.version
+  when: 
+    - peer.chaincode is defined and '2.' in network.version
+    - add_new_org is not defined or add_new_org == 'false'
+
+# Check or Wait if approve-chaincode is already run for v.2.x when adding a new org
+- name: "Waiting for chaincode to be approved on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "approvechaincode-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.chaincode is defined and '2.' in network.version 
+    - add_new_org is defined and add_new_org == 'true'
 
 # Check or Wait if install-chaincode is already run for v.1.4.x
 - name: "Waiting for chaincode to be installed on {{ peer.name }}"
@@ -47,7 +65,6 @@
     loop_var: peer
   register: invoke_chaincode
   when: peer.chaincode is defined
-
   
 - name: "Write all endorsing orgs certificates to vault"
   include_tasks: write.yaml
