@@ -21,7 +21,7 @@
 # Checks if certificates for root are already created and stored in vault.
 - name: Check if root certs already created
   shell: |
-    vault kv get -format=yaml secret/besu-{{ network.env.type }}/rootca
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/besu-{{ network.env.type }}/rootca
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -31,7 +31,7 @@
 # Checks if certificates  are already created and stored in vault.
 - name: Check if ambassador and tls certs already created
   shell: |
-    vault kv get -format=yaml secret/{{ component_ns }}/crypto/{{ node_name }}/tls
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ node_name }}/tls
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -65,7 +65,7 @@
 # Stores the genrated rootca.pem and rootca.key
 - name: Putting root certs to vault
   shell: |
-    vault kv put secret/besu-{{ network.env.type }}/rootca rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)"
+    vault kv put {{ vault.secret_path | default('secret') }}/besu-{{ network.env.type }}/rootca rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -143,7 +143,7 @@
 # Stores the genreated ambassador tls certificates to vault if tls is off for network
 - name: Putting ambassador certs to vault
   shell: |
-    vault kv put secret/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" 
+    vault kv put {{ vault.secret_path | default('secret') }}/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" 
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -154,7 +154,7 @@
 # This task stores the genreated ambassador tls certificates to vault
 - name: Putting tls certs to vault
   shell: |
-    vault kv put secret/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" keystore="$(cat {{ambassadortls}}/{{ node_name }}-besu-node.pkcs12 | base64)" password="$(cat {{ambassadortls}}/{{ node_name }}-password | base64)" knownServer="$(cat {{ambassadortls}}/{{ node_name }}-knownServer | base64)"
+    vault kv put {{ vault.secret_path | default('secret') }}/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" keystore="$(cat {{ambassadortls}}/{{ node_name }}-besu-node.pkcs12 | base64)" password="$(cat {{ambassadortls}}/{{ node_name }}-password | base64)" knownServer="$(cat {{ambassadortls}}/{{ node_name }}-knownServer | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

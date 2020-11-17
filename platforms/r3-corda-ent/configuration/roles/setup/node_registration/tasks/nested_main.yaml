@@ -3,7 +3,7 @@
 # Check if the node-registration is already completed
 - name: Check if the node-registration is already completed
   shell: |
-    vault kv get -format=yaml secret/{{ org.name | lower }}/{{ peer.name | lower }}/certs/truststore
+    vault kv get -format=yaml {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/truststore
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -17,38 +17,32 @@
   vars:
     component_name: "{{ peer.name | lower }}db"
     type: "db"
-    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"
-    charts_dir: "{{ org.gitops.chart_source }}"
-    git_url: "{{ org.gitops.git_ssh }}"
-    git_branch: "{{ org.gitops.branch }}"
     node_name: "{{ peer.name | lower }}"
-    image_pull_secret: "regcred"
-    storageclass: "cordaentsc"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
     container_name: "index.docker.io/hyperledgerlabs/h2:2018"
+    helm_lint: "true"
+    # These variables are needed as the db.tpl is used for both notary & node registration
+    # The values for the below variables are fetched from different parts in the network.yaml
     tcp_port: "{{ peer.dbtcp.port }}"
     tcp_targetport: "{{ peer.dbtcp.targetPort }}"
     web_port: "{{ peer.dbweb.port }}"
     web_targetport: "{{ peer.dbweb.targetPort }}"
-    helm_lint: "true"
 
 - name: "Create value file for node registration"
   include_role:
     name: helm_component
   vars:
-    helm_lint: "true"
-    git_url: "{{ org.gitops.git_ssh }}"
-    git_branch: "{{ org.gitops.branch }}"
-    charts_dir: "{{ org.gitops.chart_source }}"
     component_name: "{{ peer.name | lower }}registration"
-    node_name: "{{ peer.name | lower }}"
-    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
-    name: "{{ org.name | lower }}"
-    corda_service_version: node
-    image_pull_secret: regcred
     type: node_registration
-    doorman_url: "{{ network | json_query('orderers[?type==`idman`].uri') | first }}"
-    networkmap_url: "{{ network | json_query('orderers[?type==`networkmap`].uri') | first }}"
+    name: "{{ org.name | lower }}"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    corda_service_version: node-{{ org.version }}
+    doorman_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
+    networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
+    helm_lint: "true"
   when: node_certs.failed
 
 # Git Push : Pushes the above generated files to git directory 

@@ -28,9 +28,9 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ component_name }}-auth
-      secretcert: secret/crypto/ordererOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: secret/crypto/ordererOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretadminpass: secret/credentials/{{ component_name | e }}/ca/{{ component }}?user
+      secretcert: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
+      secretadminpass: {{ vault.secret_path | default('secret') }}/credentials/{{ component_name | e }}/ca/{{ component }}?user
       serviceaccountname: vault-auth
       imagesecretname: regcred
     service:

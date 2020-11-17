@@ -1,7 +1,7 @@
 # This tasks checks if transaction manager key is already present in the vault
 - name: Check tm key is present the vault
   shell: |
-    vault read -field=tm.pub secret/{{ component_ns }}/crypto/{{ node.name }}/transaction
+    vault read -field=tm.pub {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ node.name }}/transaction
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -25,7 +25,7 @@
 
 - name: Copy the crypto into vault
   shell: |
-    vault kv put secret/{{component_ns}}/crypto/{{ node.name }}/transaction tm.pub="$(cat build/{{ component_name }}/{{ node.name }}/tm.pub)" tm.key="$(cat build/{{ component_name }}/{{ node.name }}/tm.key)"
+    vault kv put {{ vault.secret_path | default('secret') }}/{{component_ns}}/crypto/{{ node.name }}/transaction tm.pub="$(cat build/{{ component_name }}/{{ node.name }}/tm.pub)" tm.key="$(cat build/{{ component_name }}/{{ node.name }}/tm.key)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

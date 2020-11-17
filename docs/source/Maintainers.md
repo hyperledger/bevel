@@ -6,10 +6,11 @@ This is the list of maintainers, including their github profiles for direct comm
 
 |          Name          |     GitHub Id            |       Area of expertise       |
 |------------------------|--------------------------|-------------------------------|
-| Jonathan M Hamilton    | @jonathan-m-hamilton     | Product vision                |
+| Jonathan M Hamilton    | @jonathan-m-hamilton     | Product vision    
+| Priyanka Vats          | @pri-vats                | Product roadmap & development |
 | Tracy Kuhrt            | @tkuhrt                  | Architecture                  |
 | Sownak Roy             | @sownak                  | Architecture, Development     |
-| Juraj Durech           | @juraj-durech            | Architecture, Development     |
+| Suvajit Sarkar         | @suvajit-sarkar          | Development     |
 
 
 ## License <a name="license"></a>

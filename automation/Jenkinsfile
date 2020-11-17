@@ -49,12 +49,15 @@ pipeline {
     VAULT_PRIVATE_IP="10.1.3.67"
     //Secret which contains google maps key
     GMAPS_CREDS="gmaps_key"
+    //SSH config
+    SSH_SERVER_ALIVE_INTERVAL=60
+    SSH_SERVER_ALIVE_COUNT_MAX=20
   }
 
   parameters {
     choice(choices: 'no\nyes', description: 'Force rebuild? To force building [ci skip] commits', name: 'FORCE_ACTION')
     choice(choices: 'yes\nno', description: 'Reset Network at start?', name: 'RESET_ACTION')
-    choice(choices: 'no\nyes', description: 'Only API Test? This skips all other deployment steps.', name: 'APIONLY_ACTION')
+    choice(choices: 'no\nyes', description: 'Reset Only? Use this to reset only after manual testing or failure.', name: 'RESETONLY_ACTION')
     choice(choices: '1_4_4\n2_0_0', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
     choice(choices: 'raft\nkafka', description: 'What is the Fabric Consensus?', name: 'FABRIC_CONSENSUS')
     choice(choices: '4_4\n4_1', description: 'What is the Corda version?', name: 'CORDA_VERSION')
@@ -110,8 +113,10 @@ pipeline {
           chmod 400 ${LOCAL_BUILD_PATH}/gitops.pem
           chmod 400 ${VAULT_FILE}
           curl https://ipv4.icanhazip.com/
-          ssh-keyscan ${VAULT_BASTION} > ~/.ssh/known_hosts
+          ssh-keyscan ${VAULT_BASTION} >> ~/.ssh/known_hosts
           echo "127.0.0.1 ${VAULT_SERVER}" > /etc/hosts
+          echo "ServerAliveInterval ${SSH_SERVER_ALIVE_INTERVAL}" >> ~/.ssh/config
+          echo "ServerAliveCountMax ${SSH_SERVER_ALIVE_COUNT_MAX}" >> ~/.ssh/config
           ssh -i ${VAULT_FILE} -f -q -N -L ${VAULT_PORT}:${VAULT_PRIVATE_IP}:${VAULT_PORT} devinstance@${VAULT_BASTION}
           ps -aux | grep ssh
           echo 'Install nodejs'
@@ -335,8 +340,7 @@ pipeline {
             branch 'develop'
           }
         }
-        expression { params.RESET_ACTION == 'yes' }
-        expression { params.APIONLY_ACTION != 'yes' }
+        expression { params.RESET_ACTION == 'yes' || params.RESETONLY_ACTION == 'yes' }        
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {              
@@ -356,7 +360,7 @@ pipeline {
             branch 'develop'
           }
         }
-        expression { params.APIONLY_ACTION != 'yes' }
+        expression { params.RESETONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {
@@ -384,7 +388,7 @@ pipeline {
             branch 'indy'
           }
         }
-        expression { params.APIONLY_ACTION != 'yes' }
+        expression { params.RESETONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {        
@@ -408,11 +412,10 @@ pipeline {
             branch 'master';
             branch 'develop';
             branch 'indy';
-            branch 'corda-ent';
             branch 'besu'
           }
         }
-        expression { params.APIONLY_ACTION != 'yes' }
+        expression { params.RESETONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {        
@@ -424,7 +427,7 @@ pipeline {
     stage('Deploy Identity-App') {
       when {
         branch 'indy';
-        expression { params.APIONLY_ACTION != 'yes' }
+        expression { params.RESETONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {        
@@ -441,10 +444,10 @@ pipeline {
             branch 'master';
             branch 'develop';
             branch 'indy';
-            branch 'corda-ent';
             branch 'besu'
           }
         }
+        expression { params.RESETONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
@@ -463,6 +466,7 @@ pipeline {
     stage('Run Identity API tests') {
       when {
         branch 'indy';
+        expression { params.RESETONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
@@ -487,6 +491,7 @@ pipeline {
             branch 'develop' 
           }
         }
+        expression { params.RESETONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {
@@ -518,6 +523,7 @@ pipeline {
             branch 'develop' 
           }
         }
+        expression { params.RESETONLY_ACTION != 'yes' }
         expression { shouldBuild || params.FORCE_ACTION == 'yes' }
       }
       steps {   
