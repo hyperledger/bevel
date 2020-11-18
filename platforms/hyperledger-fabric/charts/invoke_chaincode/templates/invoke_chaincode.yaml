@@ -128,13 +128,13 @@ spec:
             do
               SECRETPREFIX=secret/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${ns}/users/admin
               echo "Fetching certificates for org: $ns"
-              echo $SECRETPREFIX
+              echo "Secret prefix for org: $SECRETPREFIX"
 
               vault_secret_key="$SECRETPREFIX/msp"
               echo "Getting MSP certificates from Vault using key $vault_secret_key"
 
               OUTPUT_PATH="${MOUNT_PATH}/endorsers/$ns/msp"
-              echo $OUTPUT_PATH
+              echo "Certificate output path: $OUTPUT_PATH"
 
               LOOKUP_SECRET_RESPONSE=$(curl -sS  \
                 --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
@@ -166,7 +166,6 @@ spec:
         args:
         - |-
           #!/bin/bash sh
-          set -x
           export ARGS='{"Args":'"'["${INSTANTIATION_ARGUMENTS}"]'"'}'
           export qARGS="'${ARGS}'"
 
@@ -185,7 +184,7 @@ spec:
               INVOKE_CMD=${INVOKE_CMD}" --peerAddresses "${item}
             done
 
-            echo ${INVOKE_CMD}
+            echo "Building Invoke Command: ${INVOKE_CMD}"
 
             for item in $ENDORSING_ORG_NAMES
             do
@@ -193,7 +192,7 @@ spec:
               INVOKE_CMD=${INVOKE_CMD}" --tlsRootCertFiles "${path}
             done
 
-            echo ${INVOKE_CMD}
+            echo "Building Invoke Command: ${INVOKE_CMD}"
 
             if [ -z ${ENDORSEMENT_POLICIES} ]
             then
