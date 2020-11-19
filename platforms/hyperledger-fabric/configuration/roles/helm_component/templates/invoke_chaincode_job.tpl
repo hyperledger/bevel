@@ -40,7 +40,13 @@ spec:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
-      instantiationarguments: {{ component_chaincode.arguments | quote}}
-      endorsementpolicies:  {{ component_chaincode.endorsements | quote}}
+      invokearguments: {{ component_chaincode.arguments | quote}}
+      endorsementpolicies:  {{ component_chaincode.endorsements | quote }}
     channel:
       name: {{ item.channel_name | lower }}
+{% if '2.' in network.version %}
+    endorsers:
+        creator: {{ namespace }}
+        name: {% for name in approvers.name %} {{ name }} {% endfor %} 
+        corepeeraddress: {% for address in approvers.corepeerAddress %} {{ address }} {% endfor %}
+{% endif %}
