@@ -179,3 +179,28 @@
     loop_control:
       loop_var: organization_data 
     when: network['type'] == 'quorum' and network['frontend'] == 'enabled'
+
+  ############################################################################################
+  # Deploy the Smart contract on besu node
+  - name: "Deploying smartcontract on besu node"
+    include_role:
+      name: "deploy/besu/smartContract"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-quo"
+      component_vault: "{{ organization_data.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'besu'
+
+# Place the smart contract in the vault of the organization
+  - name: "Adding SmartContract address to the other organizations"
+    include_role:
+      name: "setup/smartContractAddress"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-bes"
+      component_vault: "{{ organization_data.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'besu' and check != "Error"
