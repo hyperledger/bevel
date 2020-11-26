@@ -42,6 +42,7 @@ The snapshot of the `env` section with example values is below
     # Any additional Ambassador ports can be given below, must be comma-separated without spaces. 
     # Must be different from all steward ambassador ports specified in the rest of this network yaml
     ambassadorPorts: 15010,15020,15030,15040 
+    loadBalancerSourceRanges: ""    # (Optional) Add IP addresses/ranges to limit access to inbound ambassador ports, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: disabled           # Should be enabled if using external-dns for automatic route configuration
 ```

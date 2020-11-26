@@ -44,6 +44,7 @@ The snapshot of the `env` section with example value is below
     type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: haproxy                  # values can be 'haproxy' or 'none' (for minikube)
     ambassadorPorts: 15010,15020    # is valid only if proxy='ambassador'
+    loadBalancerSourceRanges: ""    # (Optional) Add IP addresses/ranges to limit access to inbound ambassador ports, this is valid only if proxy='ambassador'
     retry_count: 100                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
 ```
