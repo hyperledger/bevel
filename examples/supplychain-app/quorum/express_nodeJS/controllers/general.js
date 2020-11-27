@@ -1,7 +1,7 @@
 var express = require('express')
   , router = express.Router();
 
-const {productContract, fromAddress, fromNodeOrganization, fromNodeOrganizationUnit} = require('../web3services');
+const {productContract, fromAddress, fromNodeOrganization, fromNodeOrganizationUnit,protocol} = require('../web3services');
 var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require('body-parser');
@@ -55,7 +55,10 @@ router.get('/:trackingID/history', function (req, res) {
           var history = {};
           history.party = toPush.custodian;
           history.party = history.party+","+toPush.lastScannedAt;
-          history.time  = (new Date(toPush.timestamp * 1000)).getTime();
+          if(protocol==="raft")
+            history.time  = (new Date(toPush.timestamp/1000000)).getTime();
+          else
+            history.time  = (new Date(toPush.timestamp * 1000)).getTime(); 
           history.location = toPush.lastScannedAt;
           allTransaction.push(history);
     }
