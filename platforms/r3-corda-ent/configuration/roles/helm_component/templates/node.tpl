@@ -33,7 +33,7 @@ spec:
       idmanName: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"
       networkmapName: "{{ network | json_query('network_services[?type==`networkmap`].name') | first }}"
     firewall:
-      enabled: {{ peer.firewall.enabled }}      
+      enabled: {{ org.firewall.enabled }}      
     vault:
       address: {{ org.vault.url }}
       role: vault-role
@@ -59,8 +59,8 @@ spec:
       ambassador:
         external_url_suffix: {{ org.external_url_suffix }}
         p2pPort: {{ peer.p2p.ambassador }}
-{% if peer.firewall.enabled == true %}
-        p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+{% if org.firewall.enabled == true %}
+        p2pAddress: {{ org.services.float.name }}.{{ org.name | lower }}.{{ org.services.float.external_url_suffix }}:{{ org.services.float.ports.ambassador_p2p_port | default('10002') }}
 {% else %}
         p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
 {% endif %}
@@ -82,15 +82,8 @@ spec:
           limits: 1524M
           requests: 1524M
     service:
-{% if peer.firewall.enabled == true %}
-      p2pPort: {{ peer.p2p.ambassador }}
-      p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}
-{% else %}
       p2pPort: {{ peer.p2p.port }}
       p2pAddress: {{ peer.name | lower }}.{{ component_ns }}
-{% endif %}
-      p2pPort: {{ peer.firewall.float.port if peer.firewall.enabled == true else peer.p2p.port }}
-      p2pAddress: {{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ component_ns }}
       messagingServerPort: {{ peer.p2p.port }}
       ssh:
         enabled: true

@@ -254,8 +254,12 @@ spec:
           env:
              - name: VAULT_ADDR
                value: {{ $.Values.vault.address }}
+             - name: FLOAT_VAULT_ADDR
+               value: {{ $.Values.vault.floatVaultAddress }}
              - name: KUBERNETES_AUTH_PATH
                value: {{ $.Values.vault.authpath }}
+             - name: KUBERNETES_AUTH_PATH_FLOATVAULT
+               value: {{ $.Values.vault.authpathFloat }}
              - name: VAULT_APP_ROLE
                value: {{ $.Values.vault.role }}
              - name: BASE_DIR
@@ -279,13 +283,19 @@ spec:
               exit 0
             fi
 
-            # setting up env to get secrets from vault
+            # setting up env to access vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-            cd ${BASE_DIR}/DATA
-            # putting certificate for cenm root 
+            
+            # setting up env to access vault of float
+            FLOAT_VAULT_TOKEN=$(curl -sS --request POST ${FLOAT_VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH_FLOATVAULT}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'float vault login token' "${FLOAT_VAULT_TOKEN}"
+
+            # putting certificate for firewall 
             COUNTER=1
+
+            cd ${BASE_DIR}/DATA
             while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
                 if [ -e done.txt ]
@@ -307,6 +317,14 @@ spec:
                    --request POST \
                    --data @../root.json \
                   ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/firewall
+                  
+                  echo "Put firewall certificates in float vault.."
+
+                  curl \
+                   --header "X-Vault-Token: ${FLOAT_VAULT_TOKEN}" \
+                   --request POST \
+                   --data @../root.json \
+                  ${FLOAT_VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/firewall
                    echo "after curl"
                   break;
                 else

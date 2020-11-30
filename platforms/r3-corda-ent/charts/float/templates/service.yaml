@@ -8,18 +8,12 @@ metadata:
     getambassador.io/config: |
       ---
       apiVersion: ambassador/v1
-      kind: TLSContext
-      name: {{ .Values.nodeName }}_{{ .Values.peerName }}_context
-      hosts:
-      - {{ .Values.nodeName }}.{{ .Values.peerName }}.{{ .Values.ambassador.external_url_suffix }}
-      secret: {{ .Values.nodeName }}-ambassador-certs
-      ---
-      apiVersion: ambassador/v1
       kind: TCPMapping
       name: {{ .Values.nodeName }}_{{ .Values.peerName }}_p2p_mapping
       port: {{ .Values.ambassador.p2pPort }}
       host: {{ .Values.nodeName }}.{{ .Values.peerName }}.{{ .Values.ambassador.external_url_suffix }}
       service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.node.p2pPort }}
+      tls: false
       ---
       apiVersion: ambassador/v1
       kind: TCPMapping
@@ -27,6 +21,7 @@ metadata:
       port: {{ .Values.ambassador.tunnelPort }}
       host: {{ .Values.nodeName }}.{{ .Values.peerName }}.{{ .Values.ambassador.external_url_suffix }}
       service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.bridge.tunnelPort }}
+      tls: false
   labels:
     run: {{ .Values.nodeName }}
     app.kubernetes.io/name: {{ .Values.nodeName }}

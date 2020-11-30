@@ -44,7 +44,13 @@ This task waits for the token-review ClusterRoleBinding to be created before con
 
 ---
 
-#### 5. Setup Vault access for nodes
+#### 5. Setup cluster enviorment for float of {{ organisation }}
+This task calls the float-enviorment role to setup cluster enviorment for float
+**when** - This task will only run when the peer has firewall enabled (`peer.firewall.enabled`)
+
+---
+
+#### 6. Setup Vault access for nodes
 This task will set up Vault access for the node by calling the `setup/vault_kubernetes` role.
 ##### Input variables
 - *`component_name` - The name of the component
@@ -53,8 +59,28 @@ This task will set up Vault access for the node by calling the `setup/vault_kube
 - *`component_type` - The type of component
 
 --- 
+#### 7. Setup Vault access for nodes
+This task will set up float vault access policies calling the `setup/vault_kubernetes` role.
+##### Input variables
+- *`component_name` - The name of the component
+- *`component_path` - The Vault path for the component
+- *`component_auth` - The authentication identifier for the component 
+- *`component_type` - The type of component
+**when** - This task will only run when the peer has firewall enabled (`peer.firewall.enabled`)
 
-#### 6. Create ambassador certificates for node when firewall is enabled
+--- 
+#### 8. Setup Vault access for nodes
+This task will setup float vault access policies by calling the `setup/vault_kubernetes` role. for the float cluster
+##### Input variables
+- *`component_name` - The name of the component
+- *`component_path` - The Vault path for the component
+- *`component_auth` - The authentication identifier for the component 
+- *`component_type` - The type of component
+**when** - This task will only run when the peer has firewall enabled (`peer.firewall.enabled`)
+
+--- 
+
+#### 9. Create ambassador certificates for node when firewall is enabled
 This task creates the ambassador certificates for the node by calling the `create/certificates/node` role; this is run for each peer service of the node.
 ##### Input variables
 - `node_name` - The name of the peer 
@@ -63,7 +89,7 @@ This task creates the ambassador certificates for the node by calling the `creat
 
 ---
 
-#### 7. Create ambassador certificates for node when firewall is disabled
+#### 10. Create ambassador certificates for node when firewall is disabled
 This task creates the ambassador certificates for the node by calling the `create/certificates/node` role; this is run for each peer service of the node.
 ##### Input variables
 - `node_name` - THe name of the peer 
@@ -72,12 +98,12 @@ This task creates the ambassador certificates for the node by calling the `creat
 
 ---
 
-#### 8. Save TLS certificates for network services to Vault
+#### 11. Save TLS certificates for network services to Vault
 This task will save the TLS certificates for the network services to the Vault by calling the `setup/tlscerts` role. This will be called for each of the network service in the network.yaml.
 
 ---
 
-#### 9. Write node credentials to Vault
+#### 12. Write node credentials to Vault
 This task will write the following files to the Vault by calling the `setup/credentials` role:
 - networkroot-truststore
 - node-truststore
@@ -86,7 +112,7 @@ This task will write the following files to the Vault by calling the `setup/cred
 
 ---
 
-#### 10. Create value files for generate-pki-node
+#### 13. Create value files for generate-pki-node
 This task will create the value file for the `generate-pki-node` registration by calling the `setup/pki-generator-node` role for each peer in the node organisation.
 
 **when** - This task will only run when the peer has firewall enabled (`peer.firewall.enabled`)
@@ -94,12 +120,12 @@ This task will create the value file for the `generate-pki-node` registration by
 ---
 
 
-#### 11. Create value file for node registration
+#### 14. Create value file for node registration
 This task will create the value file for the node registration by calling the `setup/node_registration` role.
 
 ----
 
-#### 12. Create value file for node
+#### 15. Create value file for node
 This task will create the value file for the node by calling the `helm_component` role. 
 ##### Input variables
 - `helm_lint` - Whether to lint the Helm chart, i.e. `true
@@ -116,18 +142,7 @@ This task will create the value file for the node by calling the `helm_component
 - `networkmap_url` - The URL to the networkmap (nmap)
 
 ----
-
-#### 13. Create value file for bridge
-This task will create the value file for the bridge firewall component by calling the `setup/bridge` role (for each peer in the organisation).
-
-----
-
-#### 14. Create value file for float
-This task will create the value file for the float firewall component by calling the `setup/float` role (for each peer in the organisation).
-
-----
-
-#### 15. Push the created deployment files to repository
+#### 16. Push the created deployment files to repository
 - `GIT_DIR` - The base path of the GIT repository, default `{{ playbook_dir }}/../../../`
 - *`GIT_REPO` - HTTPS URL for GIT repository, used for pushing deployment files; uses the variable `{{ gitops.git_push_url }}` from `network.yaml`
 - *`GIT_USERNAME`: Username with access to the GIT repository; uses `{{ gitops.username }}` from `network.yaml`
@@ -136,3 +151,13 @@ This task will create the value file for the float firewall component by calling
 - *`GIT_BRANCH`: The name of the current branch, where the Helm releases are pushed; uses `{{ gitops.branch }}` from `network.yaml`
 - `GIT_RESET_PATH`: The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
 - `msg` - The commit message to use when pushing deployment files.
+
+#### 17. Create value file for bridge
+This task will create the value file for the bridge firewall component by calling the `setup/bridge` role (for each organisation).
+
+----
+
+#### 18. Create value file for float
+This task will create the value file for the float firewall component by calling the `setup/float` role (for each organisation).
+
+----
