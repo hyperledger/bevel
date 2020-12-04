@@ -26,7 +26,5 @@ Please follow the readme in [**configuration**](../README.md) directory for help
 - This role installs helm client which is required to deploy helm charts on the Kubernetes cluster. ``helm`` is mandatory to be installed on the Ansible controller.
 #### kubectl
 - This role installs kubectl which is required to connect to the any Kubernetes cluster. ``kubectl`` is mandatory to be installed on the Ansible controller.
-#### tiller
-- This role installs tiller (server component for helm) which is required to deploy helm charts on the Kubernetes cluster. Tiller is a pod that deploys on the Kubernetes cluster without which ``helm`` will not work, and so, is mandatory to be installed on the cluster.
 #### vault
 - This role installs vault client which is required to connect to the HashiCorp Vault server. ``vault`` is mandatory to be installed on the Ansible controller.
