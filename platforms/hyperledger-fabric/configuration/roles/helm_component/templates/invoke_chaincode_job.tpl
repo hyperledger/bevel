@@ -16,6 +16,7 @@ spec:
       namespace: {{ namespace }}
       network:
         version: {{ network.version }}
+      add_organization: {{ add_organization }}
       images:
         fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
@@ -49,4 +50,9 @@ spec:
         creator: {{ namespace }}
         name: {% for name in approvers.name %} {{ name }} {% endfor %} 
         corepeeraddress: {% for address in approvers.corepeerAddress %} {{ address }} {% endfor %}
+{% else %}
+    endorsers:
+        creator: {{ namespace }}
+        name: {{ peer_name }}
+        corepeeraddress: {{ peer_address }}
 {% endif %}
