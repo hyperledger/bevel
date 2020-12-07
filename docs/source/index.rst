@@ -33,6 +33,7 @@ The Blockchain Automation Framework is an accelerator for delivering production-
    developerguide
    samples
    roadmap
+   compatibilitymatrix
    architectureref
    commandsref
    faq
