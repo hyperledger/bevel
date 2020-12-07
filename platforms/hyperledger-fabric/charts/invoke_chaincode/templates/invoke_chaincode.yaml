@@ -166,13 +166,13 @@ spec:
         args:
         - |-
           #!/bin/bash sh
-          export ARGS='{"Args":'"'["${INSTANTIATION_ARGUMENTS}"]'"'}'
+          export ARGS='{"Args":'"'["${INVOKE_ARGUMENTS}"]'"'}'
           export qARGS="'${ARGS}'"
 
           touch ./invokeChaincode.sh	
           
           version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
-          if [ $version1_4 = 1 ];then
+          if [ $version1_4 = 1 ] || [ $ADD_ORGANIZATION = 'true' ];then
             echo "peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -c $qARGS" >> ./invokeChaincode.sh
             chmod 755 ./invokeChaincode.sh
             sh ./invokeChaincode.sh
@@ -244,6 +244,8 @@ spec:
           value: "{{ $.Values.endorsers.name }}"
         - name: NETWORK_VERSION
           value: "{{ $.Values.metadata.network.version }}"
+        - name: ADD_ORGANIZATION
+          value: "{{ $.Values.metadata.add_organization }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
