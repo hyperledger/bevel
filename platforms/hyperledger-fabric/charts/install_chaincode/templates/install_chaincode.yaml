@@ -54,6 +54,8 @@ spec:
           value: "{{ $.Values.vault.orderersecretprefix }}"
         - name: MOUNT_PATH
           value: /secret
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
         command: ["sh", "-c"]
         args:
         - |-
@@ -142,22 +144,83 @@ spec:
         command: ["sh", "-c"]
         args:
         - |-
+          #!/bin/bash sh
           ## Git repository clone for chaincode
           mkdir -p /root/.ssh/          
           apk add curl openssh
           ssh-keyscan {{ $.Values.chaincode.repository.hostname }} > /root/.ssh/known_hosts
           git_password=$(cat /opt/gopath/src/github.com/hyperledger/fabric/crypto/user_cred)
           cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode
+          ls
+          echo $GOPATH
+          if [ ${CC_RUNTIME_LANGUAGE} = "golang" ]
+          then
+            ## Copying desired chaincode to a location relative to $GOPATH/src
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
 
-          ## Copying desired chaincode to a location relative to $GOPATH/src
-          mkdir -p $GOPATH/src/github.com/chaincode
-          cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+            # Get dependencies
+            mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            cd $GOPATH/src/github.com/chaincode && dep ensure
 
-          # Get dependencies
-          mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-          cd $GOPATH/src/github.com/chaincode && dep ensure
-          ## Installing chaincode on a peer
-          peer chaincode install -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -p github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR}
+            #chaincode path
+            CC_SRC_PATH="github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR}"
+            
+          elif [ ${CC_RUNTIME_LANGUAGE} = "java" ]
+          then
+            ## Copying desired chaincode to a location 
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+
+            # Get dependencies
+            apk add openjdk8
+            java -version
+            apk add gradle
+            gradle -v
+            cd $GOPATH/src/github.com/chaincode && dep ensure
+
+            CC_SRC_PATH="/$GOPATH/src/github.com/chaincode/"
+
+            echo "CC_SRC_PATH= $CC_SRC_PATH"
+            current_path=`pwd`
+            echo $current_path
+
+            echo "Compiling Java code..."
+            chmod +x gradlew
+            ./gradlew installDist --stacktrace
+            cd $current_path
+            echo "Finished compiling Java code"
+
+            #chaincode path
+            CC_SRC_PATH=$CC_SRC_PATH/build/install/${CHAINCODE_NAME}
+
+            echo $CC_SRC_PATH
+          elif [ ${CC_RUNTIME_LANGUAGE} = "node" ]
+          then
+            ## Copying desired chaincode to a location relative to $GOPATH/src
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+
+            #chaincode path
+            CC_SRC_PATH="${GOPATH}/src/github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR}"
+          fi
+          version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
+          if [ $version1_4 = 1 ];then
+            echo "Installing Chaincode for ${NETWORK_VERSION}"
+            ## Installing chaincode on a peer
+            peer chaincode install -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -p ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANGUAGE}
+            echo "Chaincode installed for Fabric v.1.4.X"         
+          else
+            echo "Installing Chaincode for ${NETWORK_VERSION}"
+            ## packaging chaincode
+            peer lifecycle chaincode package ${CHAINCODE_NAME}.tar.gz --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANGUAGE} --label ${CHAINCODE_NAME}_${CHAINCODE_VERSION}
+            ## Installing Chaincode
+            peer lifecycle chaincode install ${CHAINCODE_NAME}.tar.gz
+            echo "Chaincode installed for Fabric v.2.X"
+            #query installed
+            echo "peer query installed"
+            peer lifecycle chaincode queryinstalled
+          fi
         env:
         - name: CORE_VM_ENDPOINT
           value: unix:///host/var/run/docker.sock
@@ -187,6 +250,10 @@ spec:
           value: "{{ $.Values.chaincode.version }}"
         - name: CORE_CHAINCODE_BUILDER
           value: "{{ $.Values.chaincode.builder }}"
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
+        - name: CC_RUNTIME_LANGUAGE
+          value: "{{ $.Values.chaincode.lang }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
