@@ -19,21 +19,33 @@ spec:
       name: {{ network.name }}
     organization:
       name: {{ organizationItem.name }}
+    genesis:
+      pool: {{ genesis.pool | indent(width=8) | b64encode }}
+      domain: {{ genesis.domain | indent(width=8) | b64encode }}
+      add_org: {{ genesis.add_org | default(false) }}
     image:
       pullSecret: regcred
       initContainer:
         name: {{ component_name }}-init
         repository: alpine:3.9.4
+      cli:
+        name: {{ component_name }}-ledger-txn
+        repository: {{ network.docker.url }}/indy-ledger-txn:latest
+        pullSecret: regcred  
       indyNode:
         name: {{ component_name }}
         repository: {{ network.docker.url }}/indy-node:{{ network.version }}
     node:
       name: {{ stewardItem.name }}
       ip: 0.0.0.0
+      publicIp: {{ stewardItem.publicIp }}
       port: {{ stewardItem.node.port }}
+      ambassadorPort: {{ stewardItem.node.ambassador }}
     client:
+      publicIp: {{ stewardItem.publicIp }}
       ip: 0.0.0.0
       port: {{ stewardItem.client.port }}
+      ambassadorPort: {{ stewardItem.client.ambassador }}
     service:
 {% if organizationItem.cloud_provider != 'minikube' %}
       type: ClusterIP
@@ -92,8 +104,8 @@ spec:
       role: ro
     storage:
       data:
-        storagesize: 512Mi
+        storagesize: 3Gi
         storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
       keys:
-        storagesize: 512Mi
+        storagesize: 3Gi
         storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
