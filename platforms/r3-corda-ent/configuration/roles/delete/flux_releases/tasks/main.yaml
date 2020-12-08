@@ -5,7 +5,7 @@
 # Remove CRD Helmrelease
 - name: "Deletes all the helmreleases in {{ component_ns }}"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} kubectl delete --all helmrelease -n "{{ component_ns }}"
+    KUBECONFIG={{ k8s.config_file }} kubectl delete --all helmrelease -n "{{ component_ns }}"
   ignore_errors: yes
 
 # Remove all Helm releases of organization
@@ -13,10 +13,10 @@
   args:
     executable: /bin/bash
   shell: |
-    helm_releases=($(KUBECONFIG={{ org.k8s.config_file }} helm ls -A | grep {{ org.name | lower }} | awk '{print $1}'))
+    helm_releases=($(KUBECONFIG={{ k8s.config_file }} helm ls -A | grep {{ org.name | lower }} | awk '{print $1}'))
     for helm_release in "${helm_releases[@]}"
     do
-      KUBECONFIG={{ org.k8s.config_file }} helm uninstall ${helm_release}
+      KUBECONFIG={{ k8s.config_file }} helm uninstall ${helm_release}
     done
   ignore_errors: yes
   
@@ -25,6 +25,6 @@
     kind: Namespace
     name: "{{ component_ns }}"
     state: absent
-    kubeconfig: "{{ org.k8s.config_file }}"
-    context: "{{ org.k8s.context }}"
+    kubeconfig: "{{ k8s.config_file }}"
+    context: "{{ k8s.context }}"
   ignore_errors: yes

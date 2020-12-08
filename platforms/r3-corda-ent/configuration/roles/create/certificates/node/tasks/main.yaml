@@ -20,10 +20,10 @@
 # Check if the ambassador tls is already created
 - name: Check if the Ambassador TLS is already created
   shell: |
-    vault kv get -format=yaml {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ node_name }}/tlscerts
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ node_name }}/tlscerts
   environment:
-    VAULT_ADDR: "{{ org.vault.url }}"
-    VAULT_TOKEN: "{{ org.vault.root_token }}"
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
   register: ambassador_tls_certs
   ignore_errors: yes
 
@@ -69,10 +69,10 @@
 # Store the ambassador certificates into the vault
 - name: Store the Ambassador certs to vault
   shell: |
-    vault kv put {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ node_name }}/tlscerts tlscacerts="$(cat ./build/ambassador/{{ node_name }}/ambassador.pem | base64)" tlskey="$(cat ./build/ambassador/{{ node_name }}/ambassador.key | base64)"
+    vault kv put {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ node_name }}/tlscerts tlscacerts="$(cat ./build/ambassador/{{ node_name }}/ambassador.pem | base64)" tlskey="$(cat ./build/ambassador/{{ node_name }}/ambassador.key | base64)"
   environment:
-    VAULT_ADDR: "{{ org.vault.url }}"
-    VAULT_TOKEN: "{{ org.vault.root_token }}"
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
   when: ambassador_tls_certs.failed
 
 # Check if the ambassador secret is created in the default namespace
@@ -81,12 +81,12 @@
     kind: Secret
     namespace: default
     name: "{{ node_name }}-ambassador-certs"
-    kubeconfig: "{{ org.k8s.config_file }}"
-    context: "{{ org.k8s.context }}"
+    kubeconfig: "{{ k8s.config_file }}"
+    context: "{{ k8s.context }}"
   register: get_ambassador_secret
 
 # Create the ambassador secret if it doesn't exist
 - name: Create the Ambassador credentials
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert="./build/ambassador/{{ node_name }}/ambassador.pem" --key="./build/ambassador/{{ node_name }}/ambassador.key" -n default
+    KUBECONFIG={{ k8s.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert="./build/ambassador/{{ node_name }}/ambassador.pem" --key="./build/ambassador/{{ node_name }}/ambassador.key" -n default
   when: get_ambassador_secret.resources|length == 0

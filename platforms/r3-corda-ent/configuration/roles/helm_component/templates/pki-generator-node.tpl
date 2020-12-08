@@ -25,16 +25,18 @@ spec:
       baseDir: /opt/corda
     vault:
       address: {{ vault.url }}
+      floatVaultAddress: {{ org.services.float.vault.url }}
       role: vault-role
-      authpath: cordaent{{ peer.name | lower }}
+      authpath: cordaent{{ org.name | lower }}
+      authpathFloat: cordaent{{ org.name | lower }}float
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ peer.name | lower }}/{{ peer.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     subjects:
-      firewallca: "{{ peer.firewall.subject }}"
-      float: "{{ peer.firewall.float.subject }}"
-      bridge: "{{ peer.firewall.bridge.subject }}"
+      firewallca: "{{ org.firewall.subject }}"
+      float: "{{ org.services.float.subject }}"
+      bridge: "{{ org.services.bridge.subject }}"
     replicas: 1
     cordaJarMx: 256
     configPath: etc

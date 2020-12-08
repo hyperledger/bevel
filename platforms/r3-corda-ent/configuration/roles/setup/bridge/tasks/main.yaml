@@ -7,7 +7,7 @@
   vars:
     component_type: "Pod"
     namespace: "{{ component_ns }}"
-    component_name: "{{ peer.name }}"
+    component_name: "{{ org.services.peers[0].name }}"
     kubernetes: "{{ org.k8s }}"
     label_selectors:
       - app = {{ component_name }}
@@ -17,7 +17,7 @@
   include_role:
     name: helm_component
   vars:
-    component_name: "{{ peer.firewall.bridge.name }}"
+    component_name: "{{ org.services.bridge.name }}"
     type: bridge
     name: "{{ org.name | lower }}"
     corda_service_version: "firewall-{{ org.version }}"
@@ -45,7 +45,7 @@
   vars:
     component_type: "Pod"
     namespace: "{{ component_ns }}"
-    component_name: "{{ peer.firewall.bridge.name }}"
+    component_name: "{{ org.services.bridge.name }}"
     kubernetes: "{{ org.k8s }}"
     label_selectors:
       - app = {{ component_name }}
@@ -54,7 +54,7 @@
 # This task copies network-parameter file into the bride pod 
 - name: Copy the network-parameter file into the bride pod 
   shell: |
-    export BRIDGE_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.firewall.bridge.name }} | grep {{ peer.firewall.bridge.name }}  | awk '{print $1}')
-    export PEER_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.name }} | grep {{ peer.name }} | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ peer.name }}
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/np-{{ peer.name }} {{ component_ns }}/${BRIDGE_POD}:base/network-parameters
+    export BRIDGE_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.services.bridge.name }} | grep {{ org.services.bridge.name }}  | awk '{print $1}')
+    export PEER_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.name }} | grep {{ org.name }} | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ org.name }}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/np-{{ org.name }} {{ component_ns }}/${BRIDGE_POD}:base/network-parameters
