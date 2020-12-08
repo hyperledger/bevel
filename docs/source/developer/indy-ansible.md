@@ -279,6 +279,11 @@ This role creates value files for storage class
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/storageclass) for detailed information.
 
+## **copy/vault_crypto_values**
+This role generates transfers the crypto across secrets engine in the vault
+
+* Transfer DID and Seed Values between Vaults
+
 ## **setup/auth_job**
 This role generates Helm releases of kubernetes jobs, which create Auth Methods into HashiCorp Vault for getting Vault token by Kubernetes Service Accounts
 
