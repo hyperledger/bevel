@@ -1,0 +1,16 @@
+---
+#############################################################################################
+# This role creates value file for the deployment of chaincode commit
+#############################################################################################
+
+############################################################################################
+# Create value file for chaincode commit
+- name: "Create value file for chaincode commit"
+  include_tasks: valuefile.yaml
+  vars:
+    channelcreator_query: "participants[?type=='creator']"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+  loop: "{{ item | json_query(channelcreator_query) }}"
+  loop_control:
+    loop_var: participant

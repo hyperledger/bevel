@@ -1,0 +1,247 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: commitchaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app: commitchaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+    app.kubernetes.io/name: commitchaincode-{{ $.Values.chaincode.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: commitchaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+        app.kubernetes.io/name: commitchaincode-{{ $.Values.chaincode.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end  }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: Always
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_PEER_SECRET_PREFIX
+          value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: ENDORSING_ORG_NAMES
+          value: "{{ $.Values.endorsers.name }}"
+        - name: CREATOR_NS
+          value: "{{ $.Values.endorsers.creator }}"
+        - name: VAULT_ORDERER_SECRET_PREFIX
+          value: "{{ $.Values.vault.orderersecretprefix }}"
+        - name: MOUNT_PATH
+          value: /secret
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          validateVaultResponse () {
+          if echo ${2} | grep "errors"; then
+           echo "ERROR: unable to retrieve ${1}: ${2}"
+           exit 1
+           fi
+          }
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          # Login to Vault and so I can get an approle token
+          VAULT_CLIENT_TOKEN=$(curl -sS  --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+            -H "Content-Type: application/json" \
+            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+            jq -r 'if .errors then . else .auth.client_token end')
+          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          
+          #############################################
+          vault_secret_key="${VAULT_ORDERER_SECRET_PREFIX}/tls"
+          echo "Getting Orderer TLS certificates from Vault using key $vault_secret_key"
+
+          OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS  \
+            --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+            ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ca.crt"]')
+
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+
+          ###############################################################################
+
+          vault_secret_key="${VAULT_PEER_SECRET_PREFIX}/msp"
+          echo "Getting MSP certificates from Vault using key $vault_secret_key"
+
+          OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS  \
+            --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+            ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+          ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["admincerts"]')
+          CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["cacerts"]')
+          KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+          SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signcerts"]')
+
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+
+          ######################################################################
+
+          #Downloading Certificates for all admin users
+          echo $ENDORSING_ORG_NAMES
+          for ns in $ENDORSING_ORG_NAMES
+          do
+            SECRETPREFIX=secret/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${ns}/users/admin
+            echo "Fetching certificates for org: $ns"
+            echo $SECRETPREFIX
+
+            vault_secret_key="$SECRETPREFIX/msp"
+            echo "Getting MSP certificates from Vault using key $vault_secret_key"
+
+            OUTPUT_PATH="${MOUNT_PATH}/endorsers/$ns/msp"
+            echo $OUTPUT_PATH
+
+            LOOKUP_SECRET_RESPONSE=$(curl -sS  \
+              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+            CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["cacerts"]')
+
+            mkdir -p ${OUTPUT_PATH}/cacerts
+            echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+            cat ${OUTPUT_PATH}/cacerts/ca.crt
+          done
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+      containers:
+      - name: commitchaincode
+        image: {{ $.Values.metadata.images.fabrictools }}
+        imagePullPolicy: Always
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/bin/bash sh
+          echo $COMMIT_ARGUMENTS>COMMIT_ARGUMENTS.txt
+          COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
+          
+          COMMIT_CMD="peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_VERSION} --init-required"
+          
+          for item in $ENDORSERS_CORE_PEER_ADDR
+          do
+            COMMIT_CMD=${COMMIT_CMD}" --peerAddresses "${item}
+          done
+
+          echo ${COMMIT_CMD}
+
+          for item in $ENDORSING_ORG_NAMES
+          do
+            path="/opt/gopath/src/github.com/hyperledger/fabric/crypto/endorsers/${item}/msp/cacerts/ca.crt"
+            COMMIT_CMD=${COMMIT_CMD}" --tlsRootCertFiles "${path}
+          done
+
+          echo ${COMMIT_CMD}
+
+          if [ -z ${ENDORSEMENT_POLICIES} ]
+          then
+            ## check commit readiness
+            echo "peer query commitreadiness"
+            peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_VERSION} --init-required --output json
+            ## commit chaincode
+            echo "peer query commit : Endorsement Policy null "
+            eval ${COMMIT_CMD}
+          else
+            ## check commit readiness
+            echo "peer query commit readiness"
+            peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_VERSION} --init-required --output json --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt
+            cat log.txt
+            ## commit chaincode
+            echo "peer query commit"
+            endorsement_policy=" --signature-policy ${ENDORSEMENT_POLICIES}"
+            COMMIT_CMD=${COMMIT_CMD}${endorsement_policy}
+            eval ${COMMIT_CMD}
+          fi
+        env:
+        - name: CORE_VM_ENDPOINT
+          value: unix:///host/var/run/docker.sock
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.peer.loglevel }}
+        - name: CORE_PEER_ID
+          value: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+        - name: CORE_PEER_ADDRESS
+          value: {{ $.Values.peer.address }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $.Values.peer.localmspid }}
+        - name: CORE_PEER_TLS_ENABLED
+          value: "{{ $.Values.peer.tlsstatus }}"
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/cacerts/ca.crt
+        - name: ORDERER_CA
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
+        - name: ORDERER_URL
+          value: {{ $.Values.orderer.address }}
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
+        - name: CHAINCODE_NAME
+          value: "{{ $.Values.chaincode.name }}"
+        - name: CHAINCODE_VERSION
+          value: "{{ $.Values.chaincode.version }}"
+        - name: CORE_CHAINCODE_BUILDER
+          value: "{{ $.Values.chaincode.builder }}"
+        - name: CHANNEL_NAME
+          value: "{{ $.Values.channel.name }}"
+        - name: COMMIT_ARGUMENTS
+          value: '{{ $.Values.chaincode.commitarguments }}'
+        - name: CC_RUNTIME_LANGUAGE
+          value: "{{ $.Values.chaincode.lang }}"
+        - name: ENDORSEMENT_POLICIES
+          value: "{{ $.Values.chaincode.endorsementpolicies }}"
+        - name: ENDORSERS_CORE_PEER_ADDR
+          value: "{{ $.Values.endorsers.corepeeraddress }}"
+        - name: ENDORSING_ORG_NAMES
+          value: "{{ $.Values.endorsers.name }}"
+        volumeMounts:
+        - name: certificates
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
+          readOnly: true
