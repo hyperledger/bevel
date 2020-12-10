@@ -253,7 +253,7 @@ The flow chart shows the R3 Corda process. To verify the steps of deployment, fo
 ### Table 'N'
 
 |Section|Sub-Section|Problem|Possible Cause|Solution|
-|----|---|----------|-------|--------------|--------|
+|-------|-----------|-------|--------------|--------|
 | R1 | a | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/certificates/ambassador <br>**Task:** Copy generated ambassador tls certs to given build location. <br>**Error:** Destination directory, example: /home/[user]/build/corda/doorman/tls, does not exist | Folder to copy tls certs does not exist. | **network.network_services.certificate** value is either misspelled or directory doesn't exist. |
 | R1 | b | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** setup/vault_kubernetes <br>**Task:** Write reviewer token <br>**Error:** Error writing data to auth/cordadoormanjv/config: Error making API request. Code: 403. Errors: permission denied. | Vault root_token might be incorrect. | **network.organizations.organization.vault.root_token** value is incorrect. |
 | R1 | c | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** check/k8_component <br>**Task:** Wait for Namespace supplychainjv-ns <br>**Error:** Out of retries... | URI might be misspelled. | **network.network_services.uri** value is either misspelled or using the wrong port. |
