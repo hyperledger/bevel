@@ -123,7 +123,19 @@ This task will check if the Node credentials are already present in the Vault
 
 ---
 
-#### 2. Write networkroottruststore, node truststore, node keystore password to the Vault
+#### 2. Check if the Node credentials are already present in the Float Vault
+This task will check if the Node credentials are already present in the Float Vault
+#### Input variables
+- *`VAULT_ADDR` - The Vault address
+- *`VAULT_TOKEN` - The Vault/root token with full access to the Vault
+- *`org.name` - The name of the organisation
+- *`peer.name` - The name of the peer
+#### Output variables
+- `float_vault_credentials` - Stores the result of the check to Float Vault (if the Node credentials are present)
+
+---
+
+#### 3. Write networkroottruststore, node truststore, node keystore password to the Vault
 This task will write the passwords for the several truststores/keystores to the Vault
 ### Input variables
 - *`VAULT_ADDR` - The Vault address
@@ -133,7 +145,17 @@ This task will write the passwords for the several truststores/keystores to the 
 
 **when** - This role is only called if the result of `vault_credentials_node` is that the credentials did not exist yet
 
-#### 3. Write cordapps credentials to Vault
+#### 4. Write networkroottruststore, node truststore, node keystore password to the flloat Vault
+This task will write the passwords for the several truststores/keystores to the float Vault
+### Input variables
+- *`VAULT_ADDR` - The Vault address
+- *`VAULT_TOKEN` - The Vault/root token with full access to the Vault
+- *`org.name` - The name of the organisation
+- *`peer.name` - The name of the peer
+
+**when** - This role is only called if the result of `float_vault_credentials` is that the credentials did not exist yet
+
+#### 5. Write cordapps credentials to Vault
 This task will write credentials to the Vault for Cordapps repository.
 ##### Input variables
 - *`VAULT_ADDR` - The Vault address

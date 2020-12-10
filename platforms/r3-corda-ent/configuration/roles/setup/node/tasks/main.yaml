@@ -39,6 +39,14 @@
     type: "retry"
   tags:
     - notest
+
+# ----------------------------------------------------------------------  
+# Setup cluster enviorment for float
+- name: Setup cluster enviorment for float
+  include_role:
+    name: setup/float-environment
+  when: org.firewall.enabled
+
 # ----------------------------------------------------------------------  
 # create vault access policies
 - name: "Setup vault access for nodes"
@@ -50,29 +58,55 @@
     component_auth: "cordaent{{ org.name | lower }}"
     component_type: "{{ org.type | lower }}"
 
+# create float vault access policies
+- name: "Setup vault access for float"
+  include_role: 
+    name: setup/vault_kubernetes
+  vars:
+    component_name: "{{ org.name | lower }}"
+    component_path: "{{ org.name | lower }}/"
+    component_auth: "cordaent{{ org.name | lower }}float"
+    component_type: "{{ org.type | lower }}"
+    vault: "{{ org.services.float.vault }}"
+  when: org.firewall.enabled
+
+# ----------------------------------------------------------------------  
+# # create float vault access policies for the float cluster
+- name: "Setup vault access for float"
+  include_role: 
+    name: setup/vault_kubernetes
+  vars:
+    component_name: "{{ org.name | lower }}"
+    component_path: "{{ org.name | lower }}/"
+    component_auth: "cordaentfloat{{ org.name | lower }}"
+    component_type: "{{ org.type | lower }}"
+    vault: "{{ org.services.float.vault }}"
+    kubernetes: "{{ org.services.float.k8s }}"
+  when: org.firewall.enabled
+
 # Create ambassador certificates for node when firewall is enabled
 - name: Create ambassador certificates for node when firewall is enabled
   include_role:
     name: create/certificates/node
   vars:
-    node_name: "{{ peer.name | lower }}"
-    domain_name: "{{ peer.firewall.float.name }}.{{ node_name }}.{{ org.external_url_suffix }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: peer.firewall.enabled
+    k8s: "{{ org.services.float.k8s }}"
+    vault: "{{ org.services.float.vault }}"
+    node_name: "{{ org.name | lower }}"
+    domain_name: "{{ org.services.float.name }}.{{ node_name }}.{{ org.services.float.external_url_suffix }}"
+  when: org.firewall.enabled
 
 # Create ambassador certificates for node when firewall is disabled
 - name: Create ambassador certificates for node when firewall is disabled
   include_role:
     name: create/certificates/node
   vars:
+    k8s: "{{ org.k8s }}"
+    vault: "{{ org.vault }}"
     node_name: "{{ peer.name | lower }}"
     domain_name: "{{ node_name }}.{{ org.external_url_suffix }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: not peer.firewall.enabled
 
 # Save tls certificates for network services to Vault
 - name: Save tls certificates for network services to Vault
@@ -91,10 +125,7 @@
 - name: Create value files for generate-pki-node chart
   include_role:
     name: setup/pki-generator-node
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: peer.firewall.enabled
+  when: org.firewall.enabled
 
 # Create value file for node registration
 - name: Create value file for node registration
@@ -140,16 +171,13 @@
 - name: Create value file for bridge
   include_role:
     name: setup/bridge
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: peer.firewall.enabled
+  when: org.firewall.enabled
 
 # Create value file for float 
 - name: Create value file for float
   include_role:
     name: setup/float
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: peer.firewall.enabled
+  vars:
+    k8s: "{{ org.services.float.k8s }}"
+    gitops: "{{ org.services.float.gitops }}"
+  when: org.firewall.enabled

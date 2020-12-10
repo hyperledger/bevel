@@ -143,7 +143,7 @@ This folder consists indy-node helm charts, which are used by the ansible playbo
 
 ### Folder Structure
 ```
-/instantiate_chaincode
+/indy-node
 |-- templates
 |   |-- configmap.yaml
 |   |-- service.yaml
@@ -151,7 +151,6 @@ This folder consists indy-node helm charts, which are used by the ansible playbo
 |-- Chart.yaml
 |-- values.yaml
 ```
-
 ### Charts description
 
 #### templates

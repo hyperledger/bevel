@@ -4,8 +4,8 @@ This role creates helm value file for the deployment of chaincode_invoke job
 ### main.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Create value file for chaincode invocation
-This task creates value file for chaincode invocation.
+#### 1. Create value file for chaincode invocation with creator organization
+This task creates value file for chaincode invocation with creator organization.
 ##### Input Variables
 
     channelcreator_query:  query based on type, "participants[?type=='creator']"
@@ -16,6 +16,23 @@ This task creates value file for chaincode invocation.
 **loop_control**: Specify conditions for controlling the loop.
                 
     loop_var: loop variable used for iterating the loop.
+
+**when** : It runs when `add_new_org` is not defined or `false`.
+
+#### 2. Create value file for chaincode invocation with new organization
+This task creates value file for chaincode invocation with new organization.
+##### Input Variables
+
+    channelcreator_query:  query based on type, "participants[?org_status=='new']"
+    org_query: query based on name "organizations[?name=='{{participant.name}}']"
+    org: query result of org_query"{{ network | json_query(org_query) | first }}"
+**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
+**loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+**when** : It runs when `add_new_org` is defined and `true`.
 
 -------
 ### valuefile.yaml

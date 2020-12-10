@@ -13,14 +13,29 @@
     # Delete Gitops file and check-in
     - include_role:
         name: "delete/gitops_files"
+      vars:
+        gitops: "{{ org.gitops }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
+    
+    # ----------------------------------------------------------------------
+    # Delete Gitops file for firewall float when enabled
+    - include_role:
+        name: "delete/gitops_files"
+      vars:
+        gitops: "{{ org.services.float.gitops }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: org.firewall is defined and org.firewall.enabled
 
     # ----------------------------------------------------------------------
     # Delete Vault and Kubernetes secrets.
     - include_role: 
         name: "delete/vault_secrets"
+      vars: 
+        gitops: "{{ org.gitops }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
@@ -39,14 +54,40 @@
       ignore_errors: yes
 
     # ----------------------------------------------------------------------
+    # Uninstalling Flux is needed so that everything is clean
+    - name: Uninstall flux from float cluster
+      shell: |
+        KUBECONFIG={{ org.services.float.k8s.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
+        KUBECONFIG={{ org.services.float.k8s.config_file }} helm uninstall flux-{{ network.env.type }}
+        KUBECONFIG={{ org.services.float.k8s.config_file }} helm uninstall flux-{{ network.env.type }}-helm-operator
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      ignore_errors: yes
+      when: org.type =='node' is defined and org.firewall.enabled
+
+    # ----------------------------------------------------------------------
     # Delete Helmreleases
     - include_role:
         name: "delete/flux_releases"
       vars:
         component_ns: "{{ org.name | lower }}-ent"
+        k8s: "{{ org.k8s }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
+
+    # ----------------------------------------------------------------------
+    # Delete Helmreleases for the float the cluster
+    - include_role:
+        name: "delete/flux_releases"
+      vars:
+        component_ns: "{{ org.name | lower }}-ent"
+        k8s: "{{ org.services.float.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: org.type =='node' and org.firewall.enabled
 
     # ----------------------------------------------------------------------
     # delete build directory
