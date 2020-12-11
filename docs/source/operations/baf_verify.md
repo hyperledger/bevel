@@ -264,7 +264,7 @@ The flow chart shows the R3 Corda process. To verify the steps of deployment, fo
 
 |What?|How?|Comments|
 |-----|----|--------|
-| Check if all* pods are running | `kubectl get pods -A` or `kubectl get pods -A | grep <name>` | *Keep in mind that pods are still initializing after Ansibel is finished. |
+| Check if all* pods are running | `kubectl get pods -A` or `kubectl get pods -A <pipe> grep <name>` | *Keep in mind that pods are still initializing after Ansibel is finished. |
 | Check registration of Corda |	`kubectl logs <podname> -n <namespace> node-initial-registration` |	
 | Check corda logging |	`kubectl logs <podname> -n <namespace> -c corda-logs`	|
 | Check Corda status |	`kubectl logs <podname> -n <namespace> -c corda-node` |
