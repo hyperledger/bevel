@@ -1,0 +1,107 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: manufacturerjv-initial-registration
+  annotations:
+    fluxcd.io/automated: "false"
+  namespace: manufacturerjv-ns
+spec:
+  releaseName: manufacturerjv-initial-registration
+  chart:
+    path: platforms/r3-corda/charts/node-initial-registration
+    git: ssh://git@github.com/jwavoetacn/blockchain-automation-framework.git
+    ref: feature/1231-install-ambassador-fails-with-sourceips
+  values:
+    nodeName: manufacturerjv
+    replicas: 1
+    metadata:
+      namespace: manufacturerjv-ns  
+    image:
+      containerName: index.docker.io/hyperledgerlabs/corda:4.1-linuxkit
+      initContainerName: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+      doormanCertAlias: doormanjv.rc.dev2.aws.blockchaincloudpoc-develop.com
+      networkmapCertAlias: networkmapjv.rc.dev2.aws.blockchaincloudpoc-develop.com
+    nodeConf:
+      p2p:
+        url: manufacturerjv.manufacturerjv-ns
+        port: 10002
+      ambassadorAddress: manufacturerjv.rc.dev2.aws.blockchaincloudpoc-develop.com:15052
+      rpcSettings:
+        useSsl: false
+        standAloneBroker: false
+        address: "0.0.0.0:10003"
+        adminAddress: "0.0.0.0:10005"
+        ssl:
+          certificatesDirectory: na-ssl-false
+          sslKeystorePath: na-ssl-false
+          trustStoreFilePath: na-ssl-false
+      legalName: O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH #use peer-node level subject for legalName
+      messagingServerAddress:
+      jvmArgs:
+      systemProperties:
+      sshd:
+        port:
+      exportJMXTo:
+      transactionCacheSizeMegaBytes: 8
+      attachmentContentCacheSizeMegaBytes: 10
+      attachmentCacheBound: 1024
+       
+      detectPublicIp: false
+      database:
+        transactionIsolationLevel: READ_COMMITTED
+        exportHibernateJMXStatistics: false
+      dbUrl: manufacturerjvdb
+      dbPort: 9101
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      dataSourceUrl: "jdbc:h2:tcp://manufacturerjvdb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+      jarPath: "/data/corda-workspace/h2/bin"
+      networkMapURL: https://networkmapjv.rc.dev2.aws.blockchaincloudpoc-develop.com:8443
+      doormanURL: https://doormanjv.rc.dev2.aws.blockchaincloudpoc-develop.com:8443
+      compatibilityZoneURL:
+      jarVersion: 4.1
+      devMode: false
+      env:
+        - name: JAVA_OPTIONS
+          value: -Xmx512m
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: BASE_DIR
+          value: /base/corda
+    credentials:
+      dataSourceUser: sa
+      rpcUser:
+        - name: manufacturerjvoperations
+          permissions: [ALL]
+
+    volume:
+      baseDir: /base/corda
+    resources:
+      limits: "512Mi"
+      requests: "512Mi"
+    
+    service:
+      type: ClusterIP
+      p2p:
+        port: 10002
+        targetPort: 10002
+      rpc:
+        port: 10003
+      rpcadmin:
+        port: 10005
+
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      role: vault-role
+      authpath: cordamanufacturerjv
+      serviceaccountname: vault-auth
+      dbsecretprefix: manufacturerjv/credentials/database
+      rpcusersecretprefix: manufacturerjv/credentials/rpcusers
+      tokensecretprefix: manufacturerjv/credentials/vaultroottoken
+      keystoresecretprefix: manufacturerjv/credentials/keystore
+      certsecretprefix: manufacturerjv/certs
+        
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15
