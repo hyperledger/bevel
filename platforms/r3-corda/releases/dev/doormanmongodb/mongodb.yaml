@@ -1,0 +1,49 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: mongodb-doormanjv
+  annotations:
+    fluxcd.io/automated: "false"
+  namespace: supplychainjv-ns
+spec:
+  replicaCount: 1
+  replicas: 1
+  releaseName: mongodb-doormanjv
+  chart:
+    path: platforms/r3-corda/charts/mongodb-tls
+    git: ssh://git@github.com/jwavoetacn/blockchain-automation-framework.git
+    ref: feature/1231-install-ambassador-fails-with-sourceips
+  values:
+    nodeName: mongodb-doormanjv
+    metadata:
+      namespace: supplychainjv-ns
+    image:
+      containerName: mongo:3.6.6
+      imagePullSecret: regcred
+      initContainerName: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+    storage:
+      memory: 512Mi
+      name: awsstorageclass
+      mountPath: /data/db
+      volname: hostvol
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      role: vault-role
+      authpath: cordadoormanjv
+      secretprefix: doormanjv/credentials/mongodb
+      serviceaccountname: vault-auth
+      certsecretprefix: doormanjv/certs
+    service:
+      tcp:
+          port: 27017
+          targetPort: 27017
+      type: NodePort
+      annotations: {}
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
+    mongodb:
+      username: doormanjv
+    cluster:
+      enabled: false
