@@ -37,7 +37,7 @@
     AWS_SECRET_ACCESS_KEY: "{{ aws.secret_key }}"
   shell: |
     # format ip addresses list to string with space separator
-    ips=$(echo '{{ item.publicIps }}' | tr -d '[]' | sed 's/,/\ /g')
+    ips=$(echo '{{ item.publicIps }}' | tr -d '["]' | sed 's/,/\ /g')
     data=$(aws ec2 describe-addresses --public-ips ${ips} --region {{ aws.region }} --output json | jq '.Addresses[].AllocationId')
     # format eip addresses list to string with comma separator (comma has to be escaped)
     echo ${data} | tr -d '"' | sed 's/\ /\\,/g'
