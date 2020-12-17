@@ -35,7 +35,6 @@ router.get("/:trackingID?", function(req, res) {
           container.custodian = newContainer.custodian;
           container.custodian = container.custodian + "," + newContainer.lastScannedAt;
           container.trackingID = newContainer.trackingID;
-          console.log(protocol,"*****");
           if(protocol==="raft")
             container.timestamp  = (new Date(newContainer.timestamp/1000000)).getTime();
           else
