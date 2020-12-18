@@ -225,9 +225,12 @@ pipeline {
           sh """#!/bin/bash
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}.yaml ../network.yaml
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}addorg.yaml ../addorg.yaml
-            if [ -f "demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}removeorg.yaml" ]
+            if [ -f demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}removeorg.yaml ]
             then
               cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}removeorg.yaml ../removeorg.yaml
+            else
+              # Dummy file to prevent error in sed commands below for other dlt networks
+              touch ../removeorg.yaml
             fi
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*application.yaml ../application.yaml
           """
@@ -262,6 +265,12 @@ pipeline {
               sed -i -e 's+PATH_TO_CONFIG_FILE+${KUBECONFIG}+g' build/addorg.yaml
               sed -i -e 's+PATH_TO_GITOPS_FILE+${LOCAL_BUILD_PATH}+g' build/addorg.yaml
 
+              sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/removeorg.yaml
+              sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/removeorg.yaml
+              sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/removeorg.yaml
+              sed -i -e 's+PATH_TO_CONFIG_FILE+${KUBECONFIG}+g' build/removeorg.yaml
+              sed -i -e 's+PATH_TO_GITOPS_FILE+${LOCAL_BUILD_PATH}+g' build/removeorg.yaml
+
               sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/application.yaml
               sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/application.yaml
               sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/application.yaml
@@ -285,6 +294,9 @@ pipeline {
                   sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/addorg.yaml
                   sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/addorg.yaml
 
+                  sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/removeorg.yaml
+                  sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/removeorg.yaml
+
                   sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/application.yaml
                   sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/application.yaml
               """
@@ -296,6 +308,9 @@ pipeline {
 
                   sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/addorg.yaml
                   sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/addorg.yaml
+
+                  sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/removeorg.yaml
+                  sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/removeorg.yaml
 
                   sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/application.yaml
                   sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/application.yaml
@@ -328,9 +343,11 @@ pipeline {
               sh """
                   sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/network.yaml
                   sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/addorg.yaml
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/removeorg.yaml
                   sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/application.yaml
                   sed -i -e 's*DOCKER_PASSWORD*${PASSWORD}*g' build/network.yaml
                   sed -i -e 's*DOCKER_PASSWORD*${PASSWORD}*g' build/addorg.yaml
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/removeorg.yaml
                   sed -i -e 's*DOCKER_PASSWORD*${PASSWORD}*g' build/application.yaml
               """
           }          
