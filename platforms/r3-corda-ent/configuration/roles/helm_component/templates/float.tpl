@@ -15,7 +15,7 @@ spec:
     deployment:
       annotations: {}
     nodeName: {{ component_name }}
-    peerName: {{ peer.name | lower }}
+    peerName: {{ org.name | lower }}
     metadata:
       namespace: {{ component_ns }}
       labels: {}
@@ -28,9 +28,9 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: cordaent{{ peer.name | lower }}
+      authpath: cordaentfloat{{ org.name | lower }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ peer.name | lower }}/{{ peer.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     volume:
@@ -42,20 +42,20 @@ spec:
     sleepTime: 0
     cordaJarMx: 1024
     bridge:
-      subject: {{ peer.firewall.bridge.subject }}
-      tunnelPort: {{ peer.firewall.bridge.tunnelport }}
+      subject: {{ org.services.bridge.subject }}
+      tunnelPort: {{ org.services.float.ports.tunnelport }}
     healthCheckNodePort: 0
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15
     float:
-      loadBalancerIP: {{ peer.firewall.float.name | lower }}.{{ component_ns }}
+      loadBalancerIP: {{ org.services.float.name | lower }}.{{ component_ns }}
     node:
-      p2pPort: {{ peer.firewall.float.port }}
+      p2pPort: {{ org.services.float.ports.p2p_port }}
     ambassador:
-      p2pPort: {{ peer.p2p.ambassador }}
-      tunnelPort: {{ peer.firewall.bridge.ambassadorTunnelPort }}
-      external_url_suffix: {{ org.external_url_suffix }}
+      p2pPort: {{ org.services.float.ports.ambassador_p2p_port }}
+      tunnelPort: {{ org.services.float.ports.ambassador_tunnel_port }}
+      external_url_suffix: {{ org.services.float.external_url_suffix }}
     dmz:
       internal: "0.0.0.0"
       external: "0.0.0.0"

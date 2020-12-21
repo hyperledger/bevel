@@ -115,9 +115,6 @@ For more details, refer: [SSH](https://en.wikipedia.org/wiki/Secure_Shell)
 For more details, refer: [Ansible Template](https://docs.ansible.com/ansible/latest/modules/template_module.html)
 * Helm Charts: In Helm Charts, Templates generate manifest files, which are YAML-formatted resource descriptions that Kubernetes can understand.
 For more details, refer: [Helm Charts Template](https://helm.sh/docs/chart_template_guide/)
-### Tiller
-Tiller is the in-cluster component of Helm. It interacts directly with the Kubernetes API server to install, upgrade, query, and remove Kubernetes resources. It also stores the objects that represent releases.
-For more details, refer: [Tiller](https://helm.sh/docs/install/)
 ### TLS
 Transport Layer Security, and its now-deprecated predecessor, Secure Sockets Layer, are cryptographic protocols designed to provide communications security over a computer network. 
 For more details, refer: [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security)

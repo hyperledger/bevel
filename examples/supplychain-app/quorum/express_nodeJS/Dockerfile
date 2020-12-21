@@ -20,6 +20,7 @@ ENV NODE_IDENTITY="Enter address of an account"
 ENV NODE_SUBJECT="node subject"
 ENV NODE_ORGANIZATION="node organization"
 ENV NODE_ORGANIZATION_UNIT="node organization unit"
+ENV PROTOCOL="Consensus mechanism used"
 
 EXPOSE ${PORT}
 CMD [ "node", "app.js" ]

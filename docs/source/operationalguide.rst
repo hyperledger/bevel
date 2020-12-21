@@ -19,7 +19,9 @@ Fabric operations
     operations/fabric_networkyaml
     operations/upgrade_fabricnetwork.md
     operations/adding_new_org_fabric
+    operations/removing_org_fabric.md
     operations/adding_new_peer_fabric
+    operations/install_instantiate_chaincode.md
     operations/upgrading_chaincode.md
     
 Corda operations

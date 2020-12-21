@@ -1,0 +1,26 @@
+#############################################################################################
+# This role creates the block modification script to remove organization.
+#############################################################################################
+
+############################################################################################
+
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+
+# This task creates the generate_block.sh file for to be deleted  organizations
+- name: "Create create-block-{{ channel_name }}.sh script file for to be deleted organisations"
+  template:
+    src: "organisation_script.tpl"
+    dest: "./build/create-block-{{ channel_name }}.sh"
+  vars:
+    component_name: "{{ participant.name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.org_status == 'delete'

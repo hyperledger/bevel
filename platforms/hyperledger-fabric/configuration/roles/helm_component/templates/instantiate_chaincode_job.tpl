@@ -37,6 +37,7 @@ spec:
     chaincode:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       name: {{ component_chaincode.name | lower | e }}
+      lang: {{ component_chaincode.lang | default('golang') }}
       version: {{ component_chaincode.version }}
       instantiationarguments: {{ component_chaincode.arguments | quote}}
       endorsementpolicies:  {{ component_chaincode.endorsements | quote}}

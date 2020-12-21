@@ -75,6 +75,17 @@
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
 
+# This task deletes vault auth for float
+- name: Delete vault-auth path for organizations float vault
+  shell: |
+    vault delete sys/auth/cordaent{{ org.name | lower }}
+    vault delete sys/auth/cordaent{{ org.name | lower }}float
+    vault delete sys/auth/cordaentfloat{{ org.name | lower }}
+  environment:
+    VAULT_ADDR: "{{ org.services.float.vault.url }}"
+    VAULT_TOKEN: "{{ org.services.float.vault.root_token }}"
+  when: org.type == 'node' and org.firewall.enabled
+
 ############################################################################################
 # This task deletes crypto materials from vault for cenm
 - name: Delete Crypto for CENM
@@ -109,7 +120,7 @@
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   when: org.type == 'cenm'
 
-
+############################################################################################
 # This task deletes crypto material
 - name: Delete Crypto material for nodes
   shell: |
@@ -134,6 +145,24 @@
     loop_var: peer
   when: org.type == 'node'
 
+# This task deletes crypto material from float vault path
+- name: Delete Crypto material for nodes
+  shell: |
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/nodekeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/sslkeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/truststore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/firewall
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/tlscerts
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name | lower }}/credentials
+  environment:
+    VAULT_ADDR: "{{ org.services.float.vault.url }}"
+    VAULT_TOKEN: "{{ org.services.float.vault.root_token }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: org.type == 'node' and org.firewall.enabled
+############################################################################################
 # This task deletes crypto materials from vault for nodes
 - name: Delete Crypto for nodes
   shell: |
@@ -143,6 +172,15 @@
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   when: org.type == 'node'
 
+# This task deletes crypto materials from float vault
+- name: Delete Crypto for float vault
+  shell: |
+    vault secrets disable {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}
+  environment:
+    VAULT_ADDR: "{{ org.services.float.vault.url }}"
+    VAULT_TOKEN: "{{ org.services.float.vault.root_token }}"
+  when: org.type == 'node' and org.firewall.enabled
+
 ############################################################################################
 # This task deletes the policies
 - name: Delete vault access control policy for organizations
@@ -151,3 +189,12 @@
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
+
+# This task deletes the float vault policies
+- name: Delete vault access control policy for organizations float
+  shell: |
+    vault policy delete vault-crypto-{{ org.type }}-{{ org.name | lower }}-ro
+  environment:
+    VAULT_ADDR: "{{ org.services.float.vault.url }}"
+    VAULT_TOKEN: "{{ org.services.float.vault.root_token }}"
+  when: org.type == 'node' and org.firewall.enabled

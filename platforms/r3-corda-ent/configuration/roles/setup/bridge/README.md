@@ -50,3 +50,6 @@ This tasks push the created value files into repository by calling the `shared/c
 - *`GIT_BRANCH`: The name of the current branch, where the Helm releases are pushed; uses `{{ gitops.branch }}` from `network.yaml`
  - `GIT_RESET_PATH`: The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
  - `msg` - The commit message to use when pushing deployment files.
+
+#### 3. "Copy the network-parameter file into the bridge pod"
+This task copies network-parameter file into the bridge pod.

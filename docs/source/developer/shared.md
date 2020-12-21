@@ -11,7 +11,6 @@ Playbook enviornment-setup.yaml executes the roles which has tasks to install th
     * helm
     * vault client
     * aws-authenticator
-    * tiller
 
 2. **kubernetes-env-setup.yaml**
 Playbook kubernetes-env-setup.yaml executes the roles which has tasks to configure the following on each Kubernetes cluster:
@@ -29,7 +28,6 @@ All the common Ansible roles can be found at [platforms/shared/configuration/rol
 * setup/haproxy-ingress
 * setup/helm
 * setup/kubectl
-* setup/tiller
 * setup/vault
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/roles/) for detailed information on each of these roles.

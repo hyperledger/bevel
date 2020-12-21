@@ -58,7 +58,7 @@ pipeline {
     choice(choices: 'no\nyes', description: 'Force rebuild? To force building [ci skip] commits', name: 'FORCE_ACTION')
     choice(choices: 'yes\nno', description: 'Reset Network at start?', name: 'RESET_ACTION')
     choice(choices: 'no\nyes', description: 'Reset Only? Use this to reset only after manual testing or failure.', name: 'RESETONLY_ACTION')
-    choice(choices: '1_4_4\n2_0_0', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
+    choice(choices: '1_4_4\n2_2_0', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
     choice(choices: 'raft\nkafka', description: 'What is the Fabric Consensus?', name: 'FABRIC_CONSENSUS')
     choice(choices: '4_4\n4_1', description: 'What is the Corda version?', name: 'CORDA_VERSION')
     choice(choices: '2_5_0\n2_x_x', description: 'What is the Quorum version?', name: 'QUORUM_VERSION')
@@ -225,6 +225,13 @@ pipeline {
           sh """#!/bin/bash
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}.yaml ../network.yaml
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}addorg.yaml ../addorg.yaml
+            if [ -f demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}removeorg.yaml ]
+            then
+              cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}removeorg.yaml ../removeorg.yaml
+            else
+              # Dummy file to prevent error in sed commands below for other dlt networks
+              touch ../removeorg.yaml
+            fi
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*application.yaml ../application.yaml
           """
         }
@@ -258,6 +265,12 @@ pipeline {
               sed -i -e 's+PATH_TO_CONFIG_FILE+${KUBECONFIG}+g' build/addorg.yaml
               sed -i -e 's+PATH_TO_GITOPS_FILE+${LOCAL_BUILD_PATH}+g' build/addorg.yaml
 
+              sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/removeorg.yaml
+              sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/removeorg.yaml
+              sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/removeorg.yaml
+              sed -i -e 's+PATH_TO_CONFIG_FILE+${KUBECONFIG}+g' build/removeorg.yaml
+              sed -i -e 's+PATH_TO_GITOPS_FILE+${LOCAL_BUILD_PATH}+g' build/removeorg.yaml
+
               sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/application.yaml
               sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/application.yaml
               sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/application.yaml
@@ -281,6 +294,9 @@ pipeline {
                   sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/addorg.yaml
                   sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/addorg.yaml
 
+                  sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/removeorg.yaml
+                  sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/removeorg.yaml
+
                   sed -i -e 's*AWS_ACCESS_KEY*${AWS_ACCESS_KEY_ID}*g' build/application.yaml
                   sed -i -e 's*AWS_SECRET_KEY*${AWS_SECRET_ACCESS_KEY}*g' build/application.yaml
               """
@@ -292,6 +308,9 @@ pipeline {
 
                   sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/addorg.yaml
                   sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/addorg.yaml
+
+                  sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/removeorg.yaml
+                  sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/removeorg.yaml
 
                   sed -i -e 's*VAULT_TOKEN*${VAULT_ROOT}*g' build/application.yaml
                   sed -i -e 's*VAULT_URL*http://${VAULT_SERVER}:${VAULT_PORT}*g' build/application.yaml
@@ -324,9 +343,11 @@ pipeline {
               sh """
                   sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/network.yaml
                   sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/addorg.yaml
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/removeorg.yaml
                   sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/application.yaml
                   sed -i -e 's*DOCKER_PASSWORD*${PASSWORD}*g' build/network.yaml
                   sed -i -e 's*DOCKER_PASSWORD*${PASSWORD}*g' build/addorg.yaml
+                  sed -i -e 's*DOCKER_USER*${USERNAME}*g' build/removeorg.yaml
                   sed -i -e 's*DOCKER_PASSWORD*${PASSWORD}*g' build/application.yaml
               """
           }          
@@ -375,7 +396,27 @@ pipeline {
         """        
       }
     }
-    
+    /*
+    *  Execute remove-organization.yamll which will remove an organisation from the network
+    */
+    stage('Remove an organisation') {
+      when {
+        branch 'fabric';
+        expression { params.RESETONLY_ACTION != 'yes' }
+        expression { params.FABRIC_VERSION == '2_2_0' }
+        expression { shouldBuild || params.FORCE_ACTION == 'yes' }
+      }
+      steps {        
+        sh """
+          if [ ${env.JDK_VERSION} = "14" ]
+          then
+            JAVA_HOME=/opt/jdk-14
+            PATH=/opt/jdk-14/bin:\$PATH
+          fi
+          ansible-playbook platforms/hyperledger-fabric/configuration/remove-organization.yaml -e "@./build/removeorg.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+        """        
+      }
+    }
     /*
     *  Execute add-new-organization.yaml which will add a new node to the network
     */

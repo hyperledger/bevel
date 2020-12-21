@@ -1,11 +1,12 @@
 ---
-# This is a sample configuration file for SupplyChain App on Single K8s Cluster.
-# For multiple K8s clusters, there should be multiple configuration files.
+# This is a sample configuration file for Corda Enterprise network for SupplyChain App usecase on Single K8s Cluster.
+# For multiple K8s clusters, there should be multiple configuration files or refer to configuration guide on the below link.
+# https://blockchain-automation-framework.readthedocs.io/en/latest/operations/corda_networkyaml.html
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: corda-enterprise
-  version: 4.4
+  version: 4.4        # BAF deployment both supports 4.1 and 4.4 node version 
 
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
 
@@ -13,7 +14,8 @@ network:
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020,15011,15021    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts: 15010,15020,15021,15030,15031,15040,15041,15050,15051  # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
@@ -173,6 +175,13 @@ network:
       subject: "O=Manufacturer,OU=Manufacturer,L=Zurich,C=CH"
       type: node
       external_url_suffix: test.corda.blockchaincloudpoc.com
+      firewall:
+        enabled: true        # true if firewall components are to be deployed
+        subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+        credentials:
+            firewallca: firewallcapassword
+            float: floatpassword
+            bridge: bridgepassword
       
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -217,6 +226,38 @@ network:
 
       # The participating nodes are named as peers 
       services:
+        float: 
+          name: float
+          subject: "CN=Test Float Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          external_url_suffix: test.cordafloat.blockchaincloudpoc.com
+          cloud_provider: aws   # Options: aws, azure, gcp
+          aws:
+            access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+            secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+          k8s:
+            context: "float_cluster_context"
+            config_file: "float_cluster_config"
+          vault:
+            url: "float_vault_addr"
+            root_token: "float_vault_root_token"
+          gitops:
+            git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
+            branch: "develop"           # Git branch where release is being made
+            release_dir: "platforms/r3-corda-ent/releases/float" # Relative Path in the Git repo for flux sync per environment. 
+            chart_source: "platforms/r3-corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
+            git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
+            username: "git_username"          # Git Service user who has rights to check-in in all branches
+            password: "git_access_token"          # Git Server user password/access token
+            email: "git_email"                # Email to use in git config
+            private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+          ports:
+            p2p_port: 40000
+            tunnelport: 39999
+            ambassador_tunnel_port: 15021
+            ambassador_p2p_port: 15020
+        bridge:
+          name: bridge
+          subject: "CN=Test Bridge Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
         peers:
         - peer:
           name: manufacturer
@@ -225,25 +266,6 @@ network:
           credentials:
             truststore: trustpass
             keystore: cordacadevpass
-            firewallca: firewallcapassword
-            float: floatpassword
-            bridge: bridgepassword
-          firewall:
-            enabled: true                   # true if firewall components are to be deployed
-            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
-            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
-              context: "dmz_cluster_context"
-              config_file: "dmz_cluster_config"
-            float: 
-              name: float
-              port: 39999
-              subject: "CN=Float Local,O=Local Only,L=London,C=GB"
-            bridge:
-              name: bridge
-              subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
-              port: 40000
-              tunnelport: 40000
-              ambassadorTunnelPort: 15011
           hsm:                              # hsm support for future release
             enabled: false 
           p2p:
@@ -278,6 +300,13 @@ network:
       subject: "O=Carrier,OU=Carrier,L=London,C=GB"
       type: node
       external_url_suffix: test.corda.blockchaincloudpoc.com
+      firewall:
+        enabled: true        # true if firewall components are to be deployed
+        subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+        credentials:
+            firewallca: firewallcapassword
+            float: floatpassword
+            bridge: bridgepassword
       
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -322,6 +351,38 @@ network:
         password: "repository_password"
       
       services:
+        float: 
+          name: float
+          subject: "CN=Test Float Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          external_url_suffix: test.cordafloat.blockchaincloudpoc.com
+          cloud_provider: aws   # Options: aws, azure, gcp
+          aws:
+            access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+            secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+          k8s:
+            context: "float_cluster_context"
+            config_file: "float_cluster_config"
+          vault:
+            url: "float_vault_addr"
+            root_token: "float_vault_root_token"
+          gitops:
+            git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
+            branch: "develop"           # Git branch where release is being made
+            release_dir: "platforms/r3-corda-ent/releases/float" # Relative Path in the Git repo for flux sync per environment. 
+            chart_source: "platforms/r3-corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
+            git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
+            username: "git_username"          # Git Service user who has rights to check-in in all branches
+            password: "git_access_token"          # Git Server user password/access token
+            email: "git_email"                # Email to use in git config
+            private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+          ports:
+            p2p_port: 40000
+            tunnelport: 39999
+            ambassador_tunnel_port: 15031
+            ambassador_p2p_port: 15030
+        bridge:
+          name: bridge
+          subject: "CN=Test Bridge Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
         peers:
         - peer:
           name: carrier
@@ -329,30 +390,13 @@ network:
           type: node
           credentials:
             truststore: trustpass
-            keystore: cordacadevpass
-          firewall:
-            enabled: true                   # true if firewall components are to be deployed
-            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
-            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
-              context: "dmz_cluster_context"
-              config_file: "dmz_cluster_config"
-            subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-            float: 
-              name: float
-              port: 39999
-              subject: "CN=Float Local,O=Local Only,L=London,C=GB"
-            bridge:
-              name: bridge
-              subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
-              port: 40000
-              tunnelport: 40000   
-              ambassadorTunnelPort: 15011           
+            keystore: cordacadevpass         
           hsm:                              # hsm support for future release
             enabled: false 
           p2p:
             port: 10002
             targetPort: 10002
-            ambassador: 15010       #Port for ambassador service (must be from env.ambassadorPorts above)
+            ambassador: 15030       #Port for ambassador service (must be from env.ambassadorPorts above)
           rpc:
             port: 30000
             targetPort: 10003
@@ -381,6 +425,13 @@ network:
       subject: "O=Store,OU=Store,L=New York,C=US"
       type: node
       external_url_suffix: test.corda.blockchaincloudpoc.com
+      firewall:
+        enabled: true        # true if firewall components are to be deployed
+        subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+        credentials:
+            firewallca: firewallcapassword
+            float: floatpassword
+            bridge: bridgepassword
       
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -425,6 +476,38 @@ network:
         password: "repository_password"
 
       services:
+        float: 
+          name: float
+          subject: "CN=Test Float Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          external_url_suffix: test.cordafloat.blockchaincloudpoc.com
+          cloud_provider: aws   # Options: aws, azure, gcp
+          aws:
+            access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+            secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+          k8s:
+            context: "float_cluster_context"
+            config_file: "float_cluster_config"
+          vault:
+            url: "float_vault_addr"
+            root_token: "float_vault_root_token"
+          gitops:
+            git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
+            branch: "develop"           # Git branch where release is being made
+            release_dir: "platforms/r3-corda-ent/releases/float" # Relative Path in the Git repo for flux sync per environment. 
+            chart_source: "platforms/r3-corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
+            git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
+            username: "git_username"          # Git Service user who has rights to check-in in all branches
+            password: "git_access_token"          # Git Server user password/access token
+            email: "git_email"                # Email to use in git config
+            private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+          ports:
+            p2p_port: 40000
+            tunnelport: 39999
+            ambassador_tunnel_port: 15041
+            ambassador_p2p_port: 15040
+        bridge:
+          name: bridge
+          subject: "CN=Test Bridge Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
         peers:
         - peer:
           name: store
@@ -433,32 +516,12 @@ network:
           credentials:
             truststore: trustpass
             keystore: cordacadevpass
-            firewallca: firewallcapassword
-            float: floatpassword
-            bridge: bridgepassword
-          firewall:
-            enabled: true                   # true if firewall components are to be deployed
-            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
-            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
-              context: "dmz_cluster_context"
-              config_file: "dmz_cluster_config"
-            subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
-            float: 
-              name: float
-              port: 39999
-              subject: "CN=Float Local,O=Local Only,L=London,C=GB"
-            bridge:
-              name: bridge
-              subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
-              port: 40000
-              tunnelport: 40000 
-              ambassadorTunnelPort: 15021             
           hsm:                              # hsm support for future release
             enabled: false 
           p2p:
             port: 10002
             targetPort: 10002
-            ambassador: 15020       #Port for ambassador service (must be from env.ambassadorPorts above)
+            ambassador: 15040       #Port for ambassador service (must be from env.ambassadorPorts above)
           rpc:
             port: 30000
             targetPort: 10003
@@ -487,6 +550,13 @@ network:
       subject: "O=Warehouse,OU=Warehouse,L=Boston,C=US"
       type: node
       external_url_suffix: test.corda.blockchaincloudpoc.com
+      firewall:
+        enabled: true        # true if firewall components are to be deployed
+        subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+        credentials:
+            firewallca: firewallcapassword
+            float: floatpassword
+            bridge: bridgepassword
       
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -531,6 +601,38 @@ network:
         password: "repository_password"
         
       services:
+        float: 
+          name: float
+          subject: "CN=Test Float Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          external_url_suffix: test.cordafloat.blockchaincloudpoc.com
+          cloud_provider: aws   # Options: aws, azure, gcp
+          aws:
+            access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+            secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+          k8s:
+            context: "float_cluster_context"
+            config_file: "float_cluster_config"
+          vault:
+            url: "float_vault_addr"
+            root_token: "float_vault_root_token"
+          gitops:
+            git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
+            branch: "develop"           # Git branch where release is being made
+            release_dir: "platforms/r3-corda-ent/releases/float" # Relative Path in the Git repo for flux sync per environment. 
+            chart_source: "platforms/r3-corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
+            git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
+            username: "git_username"          # Git Service user who has rights to check-in in all branches
+            password: "git_access_token"          # Git Server user password/access token
+            email: "git_email"                # Email to use in git config
+            private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+          ports:
+            p2p_port: 40000
+            tunnelport: 39999
+            ambassador_tunnel_port: 15051
+            ambassador_p2p_port: 15050
+        bridge:
+          name: bridge
+          subject: "CN=Test Bridge Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
         peers:
         - peer:
           name: warehouse
@@ -538,29 +640,13 @@ network:
           type: node
           credentials:
             truststore: trustpass
-            keystore: cordacadevpass
-          firewall:
-            enabled: true                   # true if firewall components are to be deployed
-            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
-            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
-              context: "dmz_cluster_context"
-              config_file: "dmz_cluster_config"
-            float: 
-              name: float
-              port: 39999
-              subject: "CN=Float Local,O=Local Only,L=London,C=GB"
-            bridge:
-              name: bridge
-              subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
-              port: 40000
-              tunnelport: 40000 
-              ambassadorTunnelPort: 15021             
+            keystore: cordacadevpass             
           hsm:                              # hsm support for future release
             enabled: false 
           p2p:
             port: 10002
             targetPort: 10002
-            ambassador: 15020       #Port for ambassador service (must be from env.ambassadorPorts above)
+            ambassador: 15050       #Port for ambassador service (must be from env.ambassadorPorts above)
           rpc:
             port: 30000
             targetPort: 10003

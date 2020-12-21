@@ -34,27 +34,6 @@ spec:
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       imagePullSecrets:
         - name: {{ $.Values.vault.imagesecretname }}
-      volumes:
-      {{ if .Values.vault.tls  }}
-      - name: vaultca
-        secret:
-          secretName: {{ $.Values.vault.tls }}
-          items:
-          - key: ca.crt.pem
-            path: ca-certificates.crt
-      {{ end }}
-      - name: certificates
-        emptyDir:
-          medium: Memory
-      - name: dockersocket
-        hostPath:
-          path: /var/run/docker.sock
-      - name: {{ $.Values.peer.name }}-msp-config-volume
-        configMap:
-          name: {{ $.Values.peer.name }}-msp-config
-          items:
-            - key: mspconfig
-              path: mspconfig
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils}}
@@ -220,20 +199,30 @@ spec:
         - name: {{ $.Values.peer.name }}-msp-config-volume
           mountPath: /etc/hyperledger/fabric/NodeOUconfig
           readOnly: true
-  volumeClaimTemplates: 
-  - metadata:
-      name: datadir
-    spec:
-      storageClassName: {{ $.Values.storage.peer.storageclassname }}
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: {{ $.Values.storage.peer.storagesize }}
-  - metadata:
-      name: datadir-couchdb     
-    spec:
-      storageClassName: {{ $.Values.storage.couchdb.storageclassname }}    
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: {{ $.Values.storage.couchdb.storagesize }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: dockersocket
+        hostPath:
+          path: /var/run/docker.sock
+      - name: {{ $.Values.peer.name }}-msp-config-volume
+        configMap:
+          name: {{ $.Values.peer.name }}-msp-config
+          items:
+            - key: mspconfig
+              path: mspconfig
+      - name: datadir
+        persistentVolumeClaim:
+          claimName: {{ $.Values.peer.name }}-peer-volume     
+      - name: datadir-couchdb
+        persistentVolumeClaim:
+          claimName: {{ $.Values.peer.name }}-db-volume

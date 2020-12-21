@@ -79,14 +79,10 @@ Below are various debugging commands that can be used
     ```
     helm ls
     ```
-* To upgrade helm client and Tiller server to the same version
-    ```
-    helm init --upgrade
-    ```
 * To delete an existing helm installation
     ```
-    helm del --purge HELM_RELEASE_NAME
-    Ex. helm del --purge carrier-ca
+    helm uninstall HELM_RELEASE_NAME -n NAMESPACE
+    Ex. helm uninstall carrier-ca -n carrier-ns
     ```
 
 ## Docker related debugging

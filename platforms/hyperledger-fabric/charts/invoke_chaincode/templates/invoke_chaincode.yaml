@@ -50,10 +50,16 @@ spec:
           value: {{ $.Values.vault.role }}
         - name: VAULT_PEER_SECRET_PREFIX
           value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: ENDORSING_ORG_NAMES
+          value: "{{ $.Values.endorsers.name }}"
+        - name: CREATOR_NS
+          value: "{{ $.Values.endorsers.creator }}"
         - name: VAULT_ORDERER_SECRET_PREFIX
           value: "{{ $.Values.vault.orderersecretprefix }}"
         - name: MOUNT_PATH
           value: /secret
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
         command: ["sh", "-c"]
         args:
         - |-
@@ -111,6 +117,37 @@ spec:
           echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
           echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
           echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          
+          ######################################################################
+
+          version2=`echo $NETWORK_VERSION | grep -c 2.`
+          if [ $version2 = 1 ];then
+            #Downloading Certificates for all admin users
+            echo $ENDORSING_ORG_NAMES
+            for ns in $ENDORSING_ORG_NAMES
+            do
+              SECRETPREFIX=secret/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${ns}/users/admin
+              echo "Fetching certificates for org: $ns"
+              echo "Secret prefix for org: $SECRETPREFIX"
+
+              vault_secret_key="$SECRETPREFIX/msp"
+              echo "Getting MSP certificates from Vault using key $vault_secret_key"
+
+              OUTPUT_PATH="${MOUNT_PATH}/endorsers/$ns/msp"
+              echo "Certificate output path: $OUTPUT_PATH"
+
+              LOOKUP_SECRET_RESPONSE=$(curl -sS  \
+                --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+
+              CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["cacerts"]')
+
+              mkdir -p ${OUTPUT_PATH}/cacerts
+              echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+              cat ${OUTPUT_PATH}/cacerts/ca.crt
+            done
+          fi
         volumeMounts:
         {{ if .Values.vault.tls  }}
         - name: vaultca
@@ -128,12 +165,44 @@ spec:
         command: ["sh", "-c"]
         args:
         - |-
-          export ARGS='{"Args":'"'["${INSTANTIATION_ARGUMENTS}"]'"'}'
+          #!/bin/bash sh
+          export ARGS='{"Args":'"'["${INVOKE_ARGUMENTS}"]'"'}'
           export qARGS="'${ARGS}'"
-          touch ./invokeChaincode.sh
-          echo "peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -c $qARGS" >> ./invokeChaincode.sh
-          chmod 755 ./invokeChaincode.sh
-          sh ./invokeChaincode.sh
+
+          touch ./invokeChaincode.sh	
+          
+          version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
+          if [ $version1_4 = 1 ] || [ $ADD_ORGANIZATION = 'true' ];then
+            echo "peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -c $qARGS" >> ./invokeChaincode.sh
+            chmod 755 ./invokeChaincode.sh
+            sh ./invokeChaincode.sh
+          else
+            INVOKE_CMD="peer chaincode invoke -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --isInit -c $qARGS"
+            
+            for item in $ENDORSERS_CORE_PEER_ADDR
+            do
+              INVOKE_CMD=${INVOKE_CMD}" --peerAddresses "${item}
+            done
+
+            echo "Building Invoke Command: ${INVOKE_CMD}"
+
+            for item in $ENDORSING_ORG_NAMES
+            do
+              path="/opt/gopath/src/github.com/hyperledger/fabric/crypto/endorsers/${item}/msp/cacerts/ca.crt"
+              INVOKE_CMD=${INVOKE_CMD}" --tlsRootCertFiles "${path}
+            done
+
+            echo "Building Invoke Command: ${INVOKE_CMD}"
+
+            if [ -z ${ENDORSEMENT_POLICIES} ]
+            then
+              eval ${INVOKE_CMD}
+            else
+              endorsement_policy=" --signature-policy ${ENDORSEMENT_POLICIES}"
+              INVOKE_CMD=${INVOKE_CMD}${endorsement_policy}
+              eval ${INVOKE_CMD}
+            fi
+          fi
         env:
         - name: CORE_VM_ENDPOINT
           value: unix:///host/var/run/docker.sock
@@ -163,8 +232,20 @@ spec:
           value: "{{ $.Values.chaincode.builder }}"
         - name: CHANNEL_NAME
           value: "{{ $.Values.channel.name }}"
-        - name: INSTANTIATION_ARGUMENTS
-          value: '{{ $.Values.chaincode.instantiationarguments }}'
+        - name: INVOKE_ARGUMENTS
+          value: '{{ $.Values.chaincode.invokearguments }}'
+        - name: CC_RUNTIME_LANGUAGE
+          value: "{{ $.Values.chaincode.lang }}"
+        - name: ENDORSEMENT_POLICIES
+          value: "{{ $.Values.chaincode.endorsementpolicies }}"
+        - name: ENDORSERS_CORE_PEER_ADDR
+          value: "{{ $.Values.endorsers.corepeeraddress }}"
+        - name: ENDORSING_ORG_NAMES
+          value: "{{ $.Values.endorsers.name }}"
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
+        - name: ADD_ORGANIZATION
+          value: "{{ $.Values.metadata.add_organization }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto

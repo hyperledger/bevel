@@ -26,9 +26,11 @@ spec:
       imagePullSecrets:
         - name: "{{ $.Values.image.cli.pullSecret }}"
       volumes:
+{{- if eq $.Values.genesis.add_org false }}      
         - name: {{ $.Values.organization.name }}-ptg
           configMap:
             name: {{ $.Values.organization.name }}-ptg
+{{- end }}            
         - name: shared-data
           emptyDir:
             medium: Memory
@@ -59,7 +61,6 @@ spec:
           admin_seed=$(echo ${QUERY_RES} | jq -r ".data[\"seed\"]");
           mkdir -p /data/seed;
           echo "${admin_seed}" > /data/seed/adminseed.txt;
-
         env:
           - name: VAULT_APP_ROLE
             value: {{ $.Values.vault.role }}
@@ -78,7 +79,6 @@ spec:
         volumeMounts:
           - name: shared-data
             mountPath: /data
-
       - name: "{{ $.Values.image.cli.name }}"
         image: "{{ $.Values.image.cli.repository }}"
         stdin: true
@@ -87,12 +87,16 @@ spec:
         args:
         - |-
           apt-get install curl -y
+          
+          if [ $ADD_ORG ]; then
+          mkdir -p /var/lib/indy/genesis/${INDY_NETWORK_NAME};
+          echo ${POOL_GENESIS} | base64 -d | sed -e 's/[ \t]*//' >> /var/lib/indy/genesis/${INDY_NETWORK_NAME}/pool_transactions_genesis;
+          fi;
 
           ADMIN_SEED=$( cat /data/seed/adminseed.txt)
           echo "Running ledger Transaction Script...";
 
           ./home/indy-ledger.sh $ADMIN_DID $ADMIN_SEED $IDENTITY_DID $IDENTITY_ROLE $IDENTITY_VERKEY $POOL_GENESIS_PATH;
-
         env:
           - name: VAULT_APP_ROLE
             value: {{ $.Values.vault.role }}
@@ -110,9 +114,17 @@ spec:
             value: "{{ $.Values.organization.newIdentity.verkey }}"
           - name: POOL_GENESIS_PATH
             value: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
+          - name: POOL_GENESIS
+            value: "{{ $.Values.genesis.pool }}"
+          - name: INDY_NETWORK_NAME
+            value: "{{ $.Values.network.name }}"
+          - name: ADD_ORG
+            value: "{{ $.Values.genesis.add_org }}"
         volumeMounts:
+{{- if eq $.Values.genesis.add_org false }}        
           - name: {{ $.Values.organization.name }}-ptg
             mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
             subPath: pool_transactions_genesis
+{{- end }}
           - name: shared-data
             mountPath: /data

@@ -41,7 +41,8 @@ The snapshot of the `env` section with example value is below
     ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043  
+    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043
+    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 50                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
 ```
@@ -52,6 +53,7 @@ The fields under `env` section are
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Hyperledger Besu |
 | ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
+| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -238,6 +240,59 @@ The fields under `peer` service are
 | tm_nodeport.port   | Port used by Transaction manager `orion`. |
 | tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
 | tm_clientport.port   | Client Port used by Transaction manager `orion`. |
+
+The peer in an organization with type as `member` can be used to deploy the smarcontracts with additional field `peer.smart_contract`. The snapshot of peers service with example values is below
+```yaml
+        peers:
+        - peer:
+          name: carrier
+          subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
+          geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          p2p:
+            port: 30303
+            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546
+          tm_nodeport:
+            port: 8888         
+            ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
+          tm_clientport:
+            port: 8080       
+            geth_url: "http://manufacturerl.test.besu.blockchaincloudpoc.com:15011"  # geth url of the node
+          # smartcontract to be deployed only from one node (should not be repeated in other nodes)
+          smart_contract:
+            name: "General"           # Name of the smart contract or Name of the main Smart contract Class
+            deployjs_path: "examples/supplychain-app/besu/smartContracts" # location of folder containing deployment script from BAF directory
+            contract_path: "../../besu/smartContracts/contracts"       # Path of the smart contract folder relative to deployjs_path
+            iterations: 200           # Number of Iteration of execution to which the gas and the code is optimised
+            entrypoint: "General.sol" # Main entrypoint solidity file of the contract 
+            private_for: "hPFajDXpdKzhgGdurWIrDxOimWFbcJOajaD3mJJVrxQ=,7aOvXjjkajr6gJm5mdHPhAuUANPXZhJmpYM5rDdS5nk=" # Orion Public keys for the privateFor         
+```
+The fields under `peer` service are
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name of the peer                |
+| subject     | This is the alternative identity of the peer node    |
+| geth_passphrase | This is the passphrase used to generate the geth account. |
+| p2p.port   | P2P port for Besu|
+| p2p.ambassador | The P2P Port when exposed on ambassador service|
+| rpc.port   | RPC port for Besu|
+| rpc.ambassador | The RPC Port when exposed on ambassador service|
+| ws.port   | Webservice port for Besu|
+| tm_nodeport.port   | Port used by Transaction manager `orion`. |
+| tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
+| tm_clientport.port   | Client Port used by Transaction manager `orion`. |
+| geth_url  | RPC url for the `besu` node  |
+| smart_contract.name | Name of the main smartcontract class  |
+| smart_contract.deployjs_path | location of folder containing deployment script relative to BAF directory  |
+| smart_contract.contract_path | Path of the smart contract folder relative to deployjs_path  |
+| smart_contract.iterations | Number of Iteration of executions for which the gas and the code is optimised  |
+| smart_contract.entrypoint | Main entrypoint solidity file of the smart contract   |
+| smart_contract.private_for | Comma seperated string of `Orion` Public keys for the `privateFor`  |
 
 Each organization with type as `validator` will have a validator service. The snapshot of validator service with example values is below
 ```yaml

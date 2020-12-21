@@ -43,6 +43,7 @@
     loop_control:
       loop_var: organization_data
     when: network['type'] == 'fabric'
+  
   ############################################################################################
   # Create webserver value file for the corda nodes
   - include_role:
@@ -50,14 +51,30 @@
     vars:
       component_name: "webserver"
       component_ns: "{{ organization_data.name | lower }}-ns"
-      component_type: "{{ organization_data.type | lower }}"
+      component_type: "{{ organization_data.type | default(' ', true) | lower }}"
       component_gitops: "{{ organization_data.gitops }}"
       component_vault: "{{ organization_data.vault }}"
       values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organization_data
-    when: network['type'] == 'corda' or network['type'] == 'corda-enterprise'
+    when: network['type'] == 'corda' and component_type == 'node'
+
+  # Create webserver value file for the corda enterprise nodes
+  - include_role:
+      name: "create/corda/webserver"
+    vars:
+      component_name: "webserver"
+      component_ns: "{{ organization_data.name | lower }}-ent"
+      component_type: "{{ organization_data.type | default(' ', true) | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'corda-enterprise' and component_type == 'node'
+  
   ############################################################################################
   # Create expressapi value file for the corda opensource nodes
   - include_role:
@@ -65,29 +82,29 @@
     vars:
       component_name: "expressapi"
       component_ns: "{{ organization_data.name | lower }}-ns"
-      component_type: "{{ organization_data.type | lower }}"
+      component_type: "{{ organization_data.type | default(' ', true) | lower }}"
       component_gitops: "{{ organization_data.gitops }}"
       component_vault: "{{ organization_data.vault }}"
       values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organization_data
-    when: network['type'] == 'corda'
-  ############################################################################################
+    when: network['type'] == 'corda' and component_type == 'node'
+  
   # Create expressapi value file for the corda enterprise nodes
   - include_role:
       name: "create/corda/expressapi"
     vars:
       component_name: "expressapi"
       component_ns: "{{ organization_data.name | lower }}-ent"
-      component_type: "{{ organization_data.type | lower }}"
+      component_type: "{{ organization_data.type | default(' ', true) | lower }}"
       component_gitops: "{{ organization_data.gitops }}"
       component_vault: "{{ organization_data.vault }}"
       values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organization_data
-    when: network['type'] == 'corda-enterprise'
+    when: network['type'] == 'corda-enterprise' and component_type == 'node'
 
   ############################################################################################
   # Create frontend value file for the corda nodes
@@ -179,3 +196,28 @@
     loop_control:
       loop_var: organization_data 
     when: network['type'] == 'quorum' and network['frontend'] == 'enabled'
+
+  ############################################################################################
+  # Deploy the Smart contract on besu node
+  - name: "Deploying smartcontract on besu node"
+    include_role:
+      name: "deploy/besu/smartContract"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-quo"
+      component_vault: "{{ organization_data.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'besu'
+
+# Place the smart contract in the vault of the organization
+  - name: "Adding SmartContract address to the other organizations"
+    include_role:
+      name: "setup/smartContractAddress"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-bes"
+      component_vault: "{{ organization_data.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'besu' and check != "Error"
