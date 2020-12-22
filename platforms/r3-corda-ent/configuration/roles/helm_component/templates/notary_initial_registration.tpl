@@ -71,7 +71,7 @@ spec:
         p2pPort: {{ notary_service.p2p.ambassador | default('10002') }}
         external_url_suffix: {{ org.external_url_suffix }}
         p2pAddress: {{ component_name }}.{{ org.external_url_suffix }}:{{ notary_service.p2p.ambassador | default('10002') }}
-      jarPath: /opt/cenm/bin
+      jarPath: /opt/corda
       configPath: etc
       cordaJar:
         memorySize: 1524

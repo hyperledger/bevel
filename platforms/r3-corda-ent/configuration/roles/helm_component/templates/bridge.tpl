@@ -27,9 +27,9 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: cordaent{{ peer.name | lower }}
+      authpath: cordaent{{ org.name | lower }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ peer.name | lower }}/{{ peer.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     volume:
@@ -44,11 +44,11 @@ spec:
       readinesscheckinterval: 10
       readinessthreshold:: 15
     float:
-      address: {{ peer.firewall.float.name | lower }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}
-      port: {{ peer.p2p.ambassador }}
-      subject: {{ peer.firewall.float.subject }}
+      address: {{ org.services.float.name | lower }}.{{ org.name | lower }}.{{ org.services.float.external_url_suffix }}
+      port: {{ org.services.float.ports.ambassador_p2p_port }}
+      subject: {{ org.services.float.subject }}
     node:
-      messagingServerAddress: {{ (peer.name | lower) ~ '.' ~ component_ns }}
-      messagingServerPort: {{ peer.p2p.port }}
+      messagingServerAddress: {{ (org.services.peers[0].name | lower) ~ '.' ~ component_ns }}
+      messagingServerPort: {{ org.services.peers[0].p2p.port }}
     tunnel:
-      port: {{ peer.firewall.bridge.ambassadorTunnelPort }}
+      port: {{ org.services.float.ports.ambassador_tunnel_port }}

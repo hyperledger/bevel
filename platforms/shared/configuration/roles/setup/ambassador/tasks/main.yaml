@@ -49,7 +49,7 @@
     - notest
 - name: Install Ambassador with EIP for Indy
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ terminal.stdout }},{{ network.env.ambassadorPorts }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ terminal.stdout }},{{ network.env.ambassadorPorts }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador 
   tags:
     - ambassador
     - molecule-idempotence-notest
@@ -59,7 +59,7 @@
 
 - name: Install Ambassador with EIP for Besu
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador  
   tags:
     - ambassador
     - molecule-idempotence-notest
@@ -69,7 +69,7 @@
 
 - name: Install Ambassador for Corda/Quorum
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador 
   tags:
     - ambassador
     - molecule-idempotence-notest
@@ -77,7 +77,7 @@
 
 - name: Install Ambassador for Fabric
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.grpc=enabled --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.grpc=enabled --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador 
   tags:
     - ambassador
     - molecule-idempotence-notest
@@ -108,7 +108,7 @@
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up
   include_role:
-    name: "check/helm_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     namespace: default
     kubeconfig: "{{ kubeconfig_path }}"

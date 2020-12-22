@@ -70,7 +70,7 @@ const PostDeployKeeping = (abi, bytecode) =>{
             args['v'] && console.log(`build folder is created`);
         }
     }catch(e){
-        console.log("error",e)
+        console.log("Error",e)
     }
     try {
         fs.writeFileSync("./build/abi.json", JSON.stringify(abi)) // writing the ABI file

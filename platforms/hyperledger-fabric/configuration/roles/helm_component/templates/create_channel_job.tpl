@@ -1,12 +1,12 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: channel-{{ org.name | lower }}
+  name: channel-{{ org.name | lower }}-{{ component_name }}
   namespace: {{ component_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
-  releaseName: channel-{{ org.name | lower }}
+  releaseName: channel-{{ org.name | lower }}-{{ component_name }}
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
@@ -14,6 +14,8 @@ spec:
   values:
     metadata:
       namespace: {{ component_ns }}
+      network:
+        version {{ network.version }}
       images:
         fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}

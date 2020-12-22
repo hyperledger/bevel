@@ -42,6 +42,7 @@ The snapshot of the `env` section with example values is below
     type: "env-type"                # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
     ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
 ```
@@ -52,6 +53,7 @@ The fields under `env` section are
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports `ambassador` only as `haproxy` has not been implemented for Corda |
 | ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `15010,15020`. This is only valid if `proxy: ambassador`     |
+| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a large number if your kubernetes cluster is slow. |
 | external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -149,8 +151,8 @@ Each organization under the `organizations` section has the following fields.
 | k8s                                         | Kubernetes cluster deployment variables.|
 | vault                                       | Contains Hashicorp Vault server address and root-token in the example |
 | gitops                                      | Git Repo details which will be used by GitOps/Flux. |
-| credentials                                 | Only for **Corda Enterprise Networkmap**. Credentials consumed during crypto-material creation |
-| cordapps (optional)                         | Cordapps Repo details which will be used to store/fetch cordapps jar **Not Implemented for Corda Enterprise** |
+| Firewall                                    | Only for **Corda Enterprise Networkmap**. Contains firewall options and credentials |
+| cordapps (optional)                         | Cordapps Repo details which will be used to store/fetch cordapps jar |
 | services                                    | Contains list of services which could be peers/doorman/nms/notary/idman/signer | 
 
 
@@ -216,8 +218,9 @@ The `credentials` field under each organization contains
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | keystore    | Contains passwords for keystores                         |
-| truststore    | Contains passwords for truststores                         |
-| ssl    | Contains passwords for ssl keystores                         |
+| truststore  | Contains passwords for truststores                       |
+| ssl         | Contains passwords for ssl keystores                     |
+
 For organization as type `cenm` the credential block looks like
 ```yaml
       credentials:
@@ -243,11 +246,7 @@ For organization as type `node` the credential section is under peers section an
           credentials:
             truststore: trustpass #node truststore password
             keystore: cordacadevpass #node keystore password
-            firewallca: firewallcapassword #firewallCA keystore and corresponding truststore password
-            float: floatpassword #float password
-            bridge: bridepassword #bridge password
 ```
-
 
 For cordapps fields the snapshot from the sample configuration file with the example values is below: This has not been implented for **Corda Enterprise**.
 ```yaml
@@ -272,7 +271,26 @@ The `cordapps` optional field under each organization contains
 | username                             | Cordapps Repository username |
 | password                             | Cordapps Repository password |
 
-The services field for each organization under `organizations` section of Corda contains list of `services` which could be doorman/idman/nms/notary/peers for opensource, and additionally idman/networkmap/signer for **Corda Enterprise**.
+For **Corda Enterprise**, following additional fields have been added under each `organisation`.
+```yaml
+      firewall:
+        enabled: true       # true if firewall components are to be deployed
+        subject: "CN=Test Firewall CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+        credentials:
+            firewallca: firewallcapassword
+            float: floatpassword
+            bridge: bridgepassword
+```
+
+The `Firewall` field under each node type organization contains; valid only for enterprise corda
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| enabled     | true/false for enabling firewall (external bridge and float)   |
+| subject     | Certificate Subject for firewall, format at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| credentials | Contains credentials for bridge and float                |
+
+The services field for each organization under `organizations` section of Corda contains list of `services` which could be doorman/idman/nms/notary/peers for opensource, and additionally idman/networkmap/signer/bridge/float for **Corda Enterprise**.
 
 The snapshot of doorman service with example values is below
 ```yaml
@@ -435,6 +453,63 @@ The fields under `notary` service are
 | dbweb.port                | Corda Notary dbweb port. Used to expose dbweb to other services                                            |
 | dbweb.targetPort          | Corda Notary dbweb target port. Port where the dbweb services are running                                  |
 
+The snapshot of float service with example values is below
+```yaml
+      float: 
+        name: float
+        subject: "CN=Test Float Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+        external_url_suffix: test.cordafloat.blockchaincloudpoc.com
+        cloud_provider: aws   # Options: aws, azure, gcp
+        aws:
+          access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+          secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+        k8s:
+          context: "float_cluster_context"
+          config_file: "float_cluster_config"
+        vault:
+          url: "float_vault_addr"
+          root_token: "float_vault_root_token"
+        gitops:
+          git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
+          branch: "develop"           # Git branch where release is being made
+          release_dir: "platforms/r3-corda-ent/releases/float" # Relative Path in the Git repo for flux sync per environment. 
+          chart_source: "platforms/r3-corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
+          git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
+          username: "git_username"          # Git Service user who has rights to check-in in all branches
+          password: "git_access_token"          # Git Server user password/access token
+          email: "git_email"                # Email to use in git config
+          private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+        ports:
+          p2p_port: 40000
+          tunnelport: 39999
+          ambassador_tunnel_port: 15021
+          ambassador_p2p_port: 15020
+```
+
+The fields under `float` service are below. Valid for corda enterprise only.
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the float service                                                                                 |
+| subject                    | Certificate Subject for Float service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| external_url_suffix                         | Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider.|
+| cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure or gcp |
+| aws                                         | When the organization cluster is on AWS |
+| k8s                                         | Kubernetes cluster deployment variables.|
+| vault                                       | Contains Hashicorp Vault server address and root-token in the example |
+| gitops                                      | Git Repo details which will be used by GitOps/Flux. |
+| ports.p2p_port                              | Peer to peer service port                           |
+| ports.tunnel_port                           | Tunnel port for tunnel between float and bridge service |
+| port.ambassador_tunnel_port                 | Ambassador port for tunnel between float and bridge service |
+| gitops                                      | Ambassador port Peer to peer  |
+
+The fields under `bridge` service are below. Valid for corda enterprise only. 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the bridge service                                                                                 |
+| subject                    | Certificate Subject for bridge service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+
 The snapshot of peer service with example values is below
 ```yaml
       # The participating nodes are named as peers 
@@ -486,40 +561,3 @@ The fields under each `peer` service are
 | springboot.targetPort         | Springboot server  target port. Port where the springboot services are running                               |
 | expressapi.port               | Expressapi port. Used to expose expressapi to other services                                                     |
 | expressapi.targetPort         | Expressapi target port. Port where the expressapi services are running                                        |
-
-For **Corda Enterprise**, following additional fields have been added under each `peer`.
-```yaml
-          firewall:
-            enabled: true                   # true if firewall components are to be deployed
-            dmz: true                       # true if a separate k8s cluster is being used for Corda Float. false if same cluster is used.
-            dmz_k8s:                        # DMZ cluster details. Must be under the same Cloud provider as the main cluster.
-              context: "dmz_cluster_context"
-              config_file: "dmz_cluster_config"
-            float: 
-              name: float
-              port: 39999
-              subject: "CN=Float Local,O=Local Only,L=London,C=GB"
-            bridge:
-              name: bridge
-              subject: "CN=Bridge Local,O=Local Only,L=London,C=GB"
-              port: 40000
-              tunnelport: 40000
-              ambassadorTunnelPort: 15011
-          hsm:                              # hsm support for future release
-            enabled: false 
-```
-
-| Field       | Description                                              |
-|-------------|----------------------------------------------------------|
-| firewall.enabled  | Can be true/false. True, if Corda Firewall components are to be deployed. False, if Firewall is not needed. Corda recommends usage of Firewall for all production deployments.|
-| firewall.dmz | Can be true/false. True, if Corda Firewall components are to be deployed on a separate DMZ Kubernetes cluster. False, if Firewall components are to be deployed on same Kubernetes cluster as the Node. Corda recommends usage of separate DMS cluster for all production deployments. |
-| firewall.dmz_k8s | This is used only id `dmz: true`. Contains the Kubernetes cluster context and config file path of the DMZ cluster. Note that the cluster should be in the same Cloud provider account as the Node cluster. |
-| firewall.float.name | Name of the Float component |
-| firewall.float.port | Internal port of the Float component |
-| firewall.float.subject | Subject of the Float component |
-| firewall.bridge.name | Name of the Bridge component |
-| firewall.bridge.port | Internal port of the Bridge component |
-| firewall.bridge.tunnelport | Tunnel port of the Bridge component |
-| firewall.bridge.ambassadorTunnelPort | Ambassador Tunnel port of the Bridge component |
-| firewall.bridge.subject | Subject of the Bridge component |
-| hsm.enabled      | This is kept for future HSM integration  |

@@ -48,3 +48,5 @@ This tasks push the created value files into repository by calling git_push role
 - *`GIT_BRANCH`: The name of the current branch, where the Helm releases are pushed; uses `{{ gitops.branch }}` from `network.yaml`
  - `GIT_RESET_PATH`: The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
  - `msg` - The commit message to use when pushing deployment files.
+#### 4. "Copy the network-parameter file into the float pod"
+This task copies network-parameter file into the float pod.

@@ -51,6 +51,15 @@ metadata:
   {{- end }}
 spec:
   type: LoadBalancer
+{{- if first .Values.ambassador.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges: 
+{{- range .Values.ambassador.loadBalancerSourceRanges }}
+   - {{ . }} 
+{{- end }}
+{{- else }}
+  loadBalancerSourceRanges: 
+  - 0.0.0.0/0
+{{- end }}  
   externalTrafficPolicy: Local
   ports:
    - port: {{ .Values.ambassador.port }}

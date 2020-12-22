@@ -17,7 +17,7 @@ There are following playbooks.
 
 * `deploy-api.yaml` : Creates the value files for Corda springboot-server, Fabric REST-server and respective express-api and commits them into gitops repository.
 
-* `deploy-supplychain-smartContract.yaml` : Deploys the Smart Contract on a Quorum node in an existing Quorum network using a javascript file.
+* `deploy-supplychain-smartContract.yaml` : Deploys the Smart Contract on a Quorum node in an existing Quorum or Hyperledger-Besu network using a javascript file.
 
 ## To Deploy the Supply-Chain APIs:
 
@@ -98,7 +98,7 @@ Please use the samples provided in **samples** folder to get the examples for ea
 Sample format of network.yaml
 ```
 network:
-  type: quorum
+  type: quorum  # besu for hyperledger-besu 
   version: 2.5.0
   cloud_provider: aws
   ...
@@ -130,14 +130,14 @@ network:
                 ambassador: 15023
               db:                       
                 port: 3306
+              geth_url: "http://manufacturer.test.corda.blockchaincloudpoc.com:15021" 
               smart_contract:
                 name: "General"           
                 contract_path: "./contracts"  
                 deployjs_path: "examples/supplychain-app/quorum/smartContracts"    
                 iterations: 200           
                 entrypoint: "General.sol"
-                private_for: ""   # Add comma separated list of public tm keys
-                geth_url: "http://manufacturer.test.corda.blockchaincloudpoc.com:15021"          
+                private_for: ""   # Add comma separated list of transaction manager public keys         
 ```
 
 #### Step 2

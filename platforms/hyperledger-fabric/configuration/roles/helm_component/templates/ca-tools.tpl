@@ -20,10 +20,9 @@ spec:
 
     image:
       repository: hyperledger/fabric-ca-tools
-      tag: 1.2.0
+      tag: 1.2.1
       pullPolicy: IfNotPresent
       
     storage:
       storageclassname: {{ component | lower }}sc
       storagesize: 512Mi
-

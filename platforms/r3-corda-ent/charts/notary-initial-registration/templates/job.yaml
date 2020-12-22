@@ -51,7 +51,6 @@ spec:
                       exit 1
                   fi
                 }
-
                 # setting up env to get secrets from vault
                 echo "Getting secrets from Vault Server"
                 KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -59,10 +58,8 @@ spec:
                 validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
                 
                 echo "logged into vault"
-
                 # Creating dirs for storing the certificate
                 mkdir -p ${MOUNT_PATH}/trust-stores
-
                 # Fetching network-root-truststore certificates from vault
                 COUNTER=1
                 while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
@@ -80,7 +77,6 @@ spec:
                     fi 
                     COUNTER=`expr "$COUNTER" + 1`
                 done
-
                 if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
                 then
                   # printing number of trial done before giving up
@@ -94,12 +90,10 @@ spec:
                 validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
                 IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
                 echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/idman.crt
-
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
                 validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
                 NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
                 echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
-
                 #Fetching truststore credentials from vault
                 mkdir -p ${MOUNT_PATH}/truststore
                 OUTPUT_PATH=${MOUNT_PATH}/truststore;
@@ -109,7 +103,6 @@ spec:
                 echo "${ROOTCA_TRUSTSTORE}"> ${OUTPUT_PATH}/rootcats
                 TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["trustStorePassword"]')
                 echo "${TRUSTSTORE_PASSWORD}"> ${OUTPUT_PATH}/ts
-
                 #Fetching keystore credentials from vault
                 mkdir -p ${MOUNT_PATH}/keystore
                 OUTPUT_PATH=${MOUNT_PATH}/keystore;
@@ -136,7 +129,6 @@ spec:
             do
               DB_NODE={{ .Values.dataSourceProperties.dbUrl }}:{{ .Values.dataSourceProperties.dbPort }}
               STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
-
               if [ "$STATUS" == 0 ]
               then
                   FLAG=false
@@ -156,7 +148,6 @@ spec:
                   break
               fi
             done
-
             if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ]
             then
                 echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
@@ -190,7 +181,6 @@ spec:
             notary {
                 validating = "{{ .Values.nodeConf.notary.validating }}"
             }
-
             devMode = {{ .Values.nodeConf.devMode }}
             emailAddress : "{{ .Values.nodeConf.email }}"
             myLegalName : "{{ .Values.nodeConf.legalName }}"
@@ -205,7 +195,6 @@ spec:
                 standAloneBroker="{{ .Values.service.rpc.standAloneBroker }}"
                 useSsl="{{ .Values.service.rpc.useSSL }}"
             }
-
             rpcUsers=[
                 {
                     username="{{ .Values.service.rpc.users.username }}"
@@ -215,15 +204,13 @@ spec:
                     ]
                 }
             ]' >> etc/notary.conf
-
             export TRUSTSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/truststore/ts)
             sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" etc/notary.conf
             export KEYSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/keystore/ks)
             sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/notary.conf
-
             rm -r ${BASE_DIR}/certificates/done.txt
-            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
-            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
             
             
             
@@ -255,7 +242,6 @@ spec:
                     break
                 fi
             done
-
             if [ "${EXIT_CODE}" -ne "0" ]
             then
                 HOW_LONG={{ .Values.sleepTimeAfterError }}
@@ -279,7 +265,7 @@ spec:
             # Get the nodeInfo file name and store it in a variable
             nodeInfoFile=$(basename $(ls additional-node-infos/nodeInfo*))
             export nodeInfoFile
-            envsubst <<"EOF" > additional-node-infos/network-parameters-initial.conf.tmp
+            cat <<EOF > additional-node-infos/network-parameters-initial.conf.tmp
             notaries : [
               {
                 notaryNodeInfoFile: "notary-nodeinfo/${nodeInfoFile}"
@@ -291,10 +277,8 @@ spec:
             maxTransactionSize = 10485760
             eventHorizonDays = 1
             EOF
-
             mv additional-node-infos/network-parameters-initial.conf.tmp additional-node-infos/network-parameters-initial.conf
             echo "Created the network-parameters-initial.conf file"
-
             touch ${BASE_DIR}/certificates/done.txt
           volumeMounts:
           - name: notary-etc
@@ -336,7 +320,6 @@ spec:
                  exit 1
               fi
             }           
-
             # perform check if certificates are ready or not, and upload certificate into vault when ready
             COUNTER=1
             cd ${BASE_DIR}/certificates

@@ -33,6 +33,13 @@ spec:
       networkmapName: "{{ network | json_query('network_services[?type==`networkmap`].name') | first }}"
     vault:
       address: {{ org.vault.url }}
+{% if org.firewall.enabled == true %}
+      floatVaultAddress: {{ org.services.float.vault.url }}
+      authpathFloat: cordaent{{ org.name | lower }}float
+{% else %}
+      floatVaultAddress: ""
+      authpathFloat: ""
+{% endif %}
       role: vault-role
       authpath: cordaent{{ org.name | lower }}
       serviceaccountname: vault-auth
@@ -41,15 +48,15 @@ spec:
       retries: 30
       retryInterval: 30
     firewall:
-      enabled: {{ peer.firewall.enabled }}
+      enabled: {{ org.firewall.enabled }}
     nodeConf:
       ambassador:
         external_url_suffix: {{ org.external_url_suffix }}
         p2pPort: {{ peer.p2p.ambassador }}
-{% if peer.firewall.enabled == true %}
-        p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+{% if org.firewall.enabled == true %}
+        p2pAddress: {{ org.services.float.name }}.{{ org.name | lower }}.{{ org.services.float.external_url_suffix }}:{{ org.services.float.ports.ambassador_p2p_port | default('10002') }}
 {% else %}
-        p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
+        p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
 {% endif %}
       legalName: "{{ org.subject }}"
       emailAddress: dev-node@baf.com
@@ -69,13 +76,8 @@ spec:
           limits: 1524M
           requests: 1524M
     service:
-{% if peer.firewall.enabled %}
-      p2pAddress: {{ peer.firewall.float.name }}.{{ peer.name | lower }}.{{ org.external_url_suffix }}
-{% else %}
+      p2pPort: {{ peer.p2p.port }}
       p2pAddress: {{ peer.name | lower }}.{{ component_ns }}
-{% endif %}
-      p2pPort: {{ peer.p2p.ambassador if peer.firewall.enabled == true else peer.p2p.port }}
-      p2pAddress: {{ peer.firewall.float.name ~ '.' ~ component_ns if peer.firewall.enabled == true else (peer.name | lower) ~ '.' ~ component_ns }}
       messagingServerPort: {{ peer.p2p.port }}
       ssh:
         enabled: true

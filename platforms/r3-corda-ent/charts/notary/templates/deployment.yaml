@@ -217,7 +217,8 @@ spec:
         - |-
           # crearting cordapps dir in volume to keep jars
           {{- if .Values.cordapps.getcordapps }}
-            mkdir -p ${BASE_DIR}/cordapps
+          # Created cordapps directory using permission 'm755' to provide access to user
+            mkdir -p -m775 ${BASE_DIR}/cordapps
             mkdir -p /tmp/downloaded-jars
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -306,10 +307,10 @@ spec:
           rm -rf ${BASE_DIR}/network-parameters
 
           # add idman and networkmap certificates to java keystore
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts          
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
 
-          #!/bin/sh
+          /bin/sh
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
           if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
           then
@@ -322,7 +323,7 @@ spec:
           else
               echo "Missing notary jar file in {{ .Values.nodeConf.jarPath }} folder:"
               ls -al {{ .Values.nodeConf.jarPath }}
-              EXIT_CODE=110
+              EXIT_CODE=1
           fi
 
           if [ "${EXIT_CODE}" -ne "0" ]

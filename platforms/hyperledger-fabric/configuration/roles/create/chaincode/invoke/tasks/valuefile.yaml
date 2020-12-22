@@ -2,7 +2,39 @@
 ############################################################################################
 # This role creates the invoke_chaincode value file
 
-# Check or Wait if install-chaincode is already run
+# Check or Wait if commit-chaincode is already run for v.2.x
+- name: "Waiting for chaincode to be commited on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "commitchaincode-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.chaincode is defined and '2.' in network.version
+    - add_new_org is not defined or add_new_org == 'false'
+
+# Check or Wait if approve-chaincode is already run for v.2.x when adding a new org
+- name: "Waiting for chaincode to be approved on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "approvechaincode-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.chaincode is defined and '2.' in network.version 
+    - add_new_org is defined and add_new_org == 'true'
+
+# Check or Wait if install-chaincode is already run for v.1.4.x
 - name: "Waiting for chaincode to be installed on {{ peer.name }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -14,7 +46,36 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
+  when: peer.chaincode is defined and '1.4' in network.version 
+
+# Check if invoke-chaincode is already run
+- name: 'Check for invoke-chaincode job'
+  k8s_info:
+    kind: "Job"
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "app = invokechaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  vars:
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  register: invoke_chaincode
   when: peer.chaincode is defined
+  
+- name: "Write all endorsing orgs certificates to vault"
+  include_tasks: write.yaml
+  vars:
+    namespace: "{{ org.name |lower }}-net"
+    vault: "{{ org.vault }}"
+    peers: "{{ organization.services.peers | first }}"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: organization
+  when: organization.type == 'peer' and '2.' in network.version
 
 # Nested task for chanincode invocation
 - name: "Create value file for chaincode invocation"
@@ -38,6 +99,9 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
+  when: 
+    - peer.chaincode is defined
+    - invoke_chaincode.results[0].resources|length == 0 or add_new_org == 'true'
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -52,3 +116,4 @@
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing chaincode invocation files"
+  when: invoke_chaincode.results[0].resources|length == 0 or add_new_org == 'true'

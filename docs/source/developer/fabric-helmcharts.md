@@ -136,8 +136,7 @@ This folder consists create_channel helm charts which are used by the ansible pl
   
   - configmap.yaml
       The configmap.yaml file through template engine generate configmaps.In Kubernetes, a ConfigMap is a container for storing configuration data.Things like pods, can access the data in a ConfigMap. 
-	  The configmap.yaml file creates two configmaps namely genesis-block-peer and peer-config . When Tiller reads this configmap.yaml template,
-	  it sends it to Kubernetes as-is.
+	  The configmap.yaml file creates two configmaps namely genesis-block-peer and peer-config.
 	  For Create_channel component , it creates two configmaps, one for the channel creation having various data fields such as channel , peer and orderer details and other for the generation of channel artifacts containing the channel transaction (channeltx) block and other labels.
 	   
   - create_channel.yaml
@@ -251,8 +250,7 @@ This folder consists join_channel helm charts which are used by the ansible play
   
   - configmap.yaml
       The configmap.yaml file through template engine generate configmaps.In Kubernetes, a ConfigMap is a container for storing configuration data.Things like pods, can access the data in a ConfigMap. 
-	  The configmap.yaml file creates two configmaps namely genesis-block-peer and peer-config . When Tiller reads this configmap.yaml template,
-	  it sends it to Kubernetes as-is.
+	  The configmap.yaml file creates two configmaps namely genesis-block-peer and peer-config.
 	  For join_channel component , it creates two configmaps, one for the channel creation having various data fields such as channel , peer and orderer details and other for the generation of channel artifacts containing the channel transaction (channeltx) block and other labels.
 	   
   - join_channel.yaml
@@ -296,8 +294,7 @@ This folder consists Orderer helm charts which are used by the ansible playbooks
   
   - configmap.yaml
       The configmap.yaml file through template engine generate configmaps.In Kubernetes, a ConfigMap is a container for storing configuration data.Things like pods, can access the data in a ConfigMap. 
-	  The configmap.yaml file creates two configmaps namely genesis-block-orderer and orderer-config . When Tiller reads this configmap.yaml template,
-	  it sends it to Kubernetes as-is.
+	  The configmap.yaml file creates two configmaps namely genesis-block-orderer and orderer-config.
 	  
   - deployment.yaml
       This file is used as a basic manifest for creating a Kubernetes deployment.For the Orderer node, this file creates orderer deployment.
@@ -349,9 +346,7 @@ This folder consists Peer helm charts which are used by the ansible playbooks fo
   
   - configmap.yaml
       The configmap.yaml file through template engine generate configmaps.In Kubernetes, a ConfigMap is a container for storing configuration data.Things like pods, can access the data in a ConfigMap. 
-	  The configmap.yaml file creates two configmaps namely genesis-block-peer and peer-config . When Tiller reads this configmap.yaml template,
-	  it sends it to Kubernetes as-is.
-	  
+	  The configmap.yaml file creates two configmaps namely genesis-block-peer and peer-config.
   - service.yaml
       This template is used as a basic manifest for creating a service endpoint for our deployment.This service.yaml creates peer service endpoint.
 	  

@@ -1,0 +1,88 @@
+# This playbook removes an organization from a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook remove-organization.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run and a DLT network exists.
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+
+    #Generate script to modify the fetched configuration block
+    - include_role:
+        name: "create/delete_org_script"
+      vars:
+        build_path: "./build"
+        participants: "{{ channel.participants }}"
+        channel_name: "{{ channel.channel_name | lower}}"
+      loop: "{{ network['channels'] }}"
+      loop_control:
+        loop_var: channel
+      
+    # This role is to start the existing peer cli
+    # Fetch the configuration block and modify the block
+    - include_role:
+        name: "setup/config_block/fetch"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+
+    # #This role fetch the block from the ansible host and get it signed from each existing organization admin
+    - include_role:
+        name: "setup/config_block/sign_and_update"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+
+    # Delete Vault and Kubernetes secrets.
+    - include_role: 
+        name: "delete/vault_secrets"
+      vars:
+        component_name: "{{ item.name | lower }}-net"
+        org_name: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower }}"
+        services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.org_status == 'delete'
+    
+    # Change this file if you have new Helreleases to delete
+    - include_role:
+        name: "delete/flux_releases"
+      vars:
+        component_name: "{{ item.name | lower }}-net"
+        org_name: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.org_status == 'delete'
+
+    # Delete Gitops file and check-in
+    - include_role:
+        name: "delete/gitops_files"
+      vars:
+        gitops: "{{ item.gitops }}"
+        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name|lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.org_status == 'delete'
+
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

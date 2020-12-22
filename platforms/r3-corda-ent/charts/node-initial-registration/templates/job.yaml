@@ -338,8 +338,12 @@ spec:
           env:
             - name: VAULT_ADDR
               value: {{ $.Values.vault.address }}
+            - name: FLOAT_VAULT_ADDR
+              value: {{ $.Values.vault.floatVaultAddress }}
             - name: KUBERNETES_AUTH_PATH
               value: {{ $.Values.vault.authpath }}
+            - name: KUBERNETES_AUTH_PATH_FLOATVAULT
+              value: {{ $.Values.vault.authpathFloat }}
             - name: VAULT_APP_ROLE
               value: {{ $.Values.vault.role }}
             - name: BASE_DIR
@@ -374,6 +378,15 @@ spec:
                   (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/nodekeystore
                   (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore
                   (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore
+                  if [ "$FLOAT_VAULT_ADDR" != "" ]
+                  then
+                    echo "Getting vault token for float vault and putting certificates in it.."
+                    VAULT_TOKEN_FLOAT=$(curl -sS --request POST ${FLOAT_VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH_FLOATVAULT}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                    validateVaultResponse 'vault login token' "${VAULT_TOKEN_FLOAT}"
+                    # Put in the certs in float vault is firewall is enabled
+                    (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN_FLOAT}" -d @- ${FLOAT_VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore
+                    (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN_FLOAT}" -d @- ${FLOAT_VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore
+                  fi
                   break
                 else
                   echo "certificates are not ready, sleeping for the defined time"

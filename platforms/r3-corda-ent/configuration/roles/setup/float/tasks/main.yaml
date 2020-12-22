@@ -1,18 +1,16 @@
 # This role creates the the value file for float chart and pushes it to the git repository
-
-#TODO: CHECK for the previous entity to be running/completed
-
 # This task will will create the value file for float
 - name: Create value file for float
   include_role:
     name: helm_component
   vars:
-    component_name: "{{ peer.firewall.float.name }}"
+    component_name: "{{ org.services.float.name }}"
     type: float
     name: "{{ org.name | lower }}"
     corda_service_version: "firewall-{{ org.version }}"
-    charts_dir: "{{ org.gitops.chart_source }}"
-    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    vault: "{{ org.services.float.vault }}"
+    charts_dir: "{{ gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}"
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -20,11 +18,11 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_REPO: "{{ org.gitops.git_push_url }}"
-    GIT_USERNAME: "{{ org.gitops.username }}"
-    GIT_EMAIL: "{{ org.gitops.email }}"
-    GIT_PASSWORD: "{{ org.gitops.password }}"
-    GIT_BRANCH: "{{ org.gitops.branch }}"
+    GIT_REPO: "{{ gitops.git_push_url }}"
+    GIT_USERNAME: "{{ gitops.username }}"
+    GIT_EMAIL: "{{ gitops.email }}"
+    GIT_PASSWORD: "{{ gitops.password }}"
+    GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
     msg: "[ci skip] Pushing float files"
 
@@ -35,8 +33,8 @@
   vars:
     component_type: "Pod"
     namespace: "{{ component_ns }}"
-    component_name: "{{ peer.firewall.float.name }}"
-    kubernetes: "{{ org.k8s }}"
+    component_name: "{{ org.services.float.name }}"
+    kubernetes: "{{ k8s }}"
     label_selectors:
       - app = {{ component_name }}
 
@@ -44,7 +42,7 @@
 # This task copies network-parameter file into the float pod 
 - name: Copy the network-parameter file into the float pod 
   shell: |
-    export FLOAT_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.firewall.float.name }} | grep {{ peer.firewall.float.name }}  | awk '{print $1}')
-    export PEER_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.name }} | grep {{ peer.name }} | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ peer.name }}
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/np-{{ peer.name }} {{ component_ns }}/${FLOAT_POD}:base/network-parameters
+    export FLOAT_POD=$(KUBECONFIG={{ k8s.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.services.float.name }} | grep {{ org.services.float.name }}  | awk '{print $1}')
+    export PEER_POD=$(KUBECONFIG={{ k8s.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.name }} | grep {{ org.name }} | awk '{print $1}')
+    KUBECONFIG={{ k8s.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ org.name }}
+    KUBECONFIG={{ k8s.config_file }} kubectl cp ./build/np-{{ org.name }} {{ component_ns }}/${FLOAT_POD}:base/network-parameters

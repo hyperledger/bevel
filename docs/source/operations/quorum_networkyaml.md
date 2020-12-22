@@ -45,7 +45,8 @@ The snapshot of the `env` section with example value is below
     ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043  
+    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043
+    loadBalancerSourceRanges: 0.0.0.0/0 # Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'  
     retry_count: 50                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
 ```
@@ -56,6 +57,7 @@ The fields under `env` section are
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Quorum |
 | ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
+| loadBalancerSourceRanges | Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
