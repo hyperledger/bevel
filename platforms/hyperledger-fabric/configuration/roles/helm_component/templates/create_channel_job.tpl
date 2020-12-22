@@ -1,12 +1,12 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: createchannel-{{component_name}}-{{ org.name | lower }}
+  name: channel-{{ org.name | lower }}-{{ component_name }}
   namespace: {{ component_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
-  releaseName: createchannel-{{ component_name }}-{{ org.name | lower }}
+  releaseName: channel-{{ org.name | lower }}-{{ component_name }}
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}

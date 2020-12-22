@@ -117,23 +117,6 @@
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   when: org.type == 'cenm'
 
-# This task deletes crypto material
-- name: Delete Crypto material for CENM Notaries
-  shell: |
-    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/tlscerts
-    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/nodekeystore
-    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/sslkeystore
-    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/truststore
-    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/nodeInfo
-    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/networkparam
-  environment:
-    VAULT_ADDR: "{{ org.vault.url }}"
-    VAULT_TOKEN: "{{ org.vault.root_token }}"
-  loop: "{{ org.services.notaries }}"
-  loop_control:
-    loop_var: notary
-  when: org.type == 'cenm'
-
 ############################################################################################
 # This task deletes crypto material
 - name: Delete Crypto material for nodes

@@ -260,6 +260,25 @@ spec:
             fi
 
             sleep ${HOW_LONG}
+            echo
+            
+            # Get the nodeInfo file name and store it in a variable
+            nodeInfoFile=$(basename $(ls additional-node-infos/nodeInfo*))
+            export nodeInfoFile
+            cat <<EOF > additional-node-infos/network-parameters-initial.conf.tmp
+            notaries : [
+              {
+                notaryNodeInfoFile: "notary-nodeinfo/${nodeInfoFile}"
+                validating = "{{ .Values.nodeConf.notary.validating }}"
+              }
+            ]
+            minimumPlatformVersion = 1
+            maxMessageSize = 10485760
+            maxTransactionSize = 10485760
+            eventHorizonDays = 1
+            EOF
+            mv additional-node-infos/network-parameters-initial.conf.tmp additional-node-infos/network-parameters-initial.conf
+            echo "Created the network-parameters-initial.conf file"
             touch ${BASE_DIR}/certificates/done.txt
           volumeMounts:
           - name: notary-etc
