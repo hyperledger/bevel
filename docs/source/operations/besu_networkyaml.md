@@ -28,7 +28,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum/besu, here in the example its **besu**.
 
-`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.4.4**.
+`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.5.5**.
 
 
 `env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
@@ -91,8 +91,8 @@ The snapshot of the `config` section with example values is below
     transaction_manager: "orion"    # Option is orion only
     # This is the version of "orion" docker image that will be deployed
     # Supported versions #
-    # orion: 1.5.2 (for besu 1.4.4)
-    tm_version: "1.5.2"               # This is the version of "orion" docker image that will be deployed
+    # orion: 1.6.0 (for besu 1.5.5)
+    tm_version: "1.6.0"               # This is the version of "orion" docker image that will be deployed
     # TLS can be True or False for the orion tm
     tm_tls: True
     # Tls trust value
@@ -108,7 +108,7 @@ The fields under `config` are
 | consensus   | Currently supports `ibft`.                                 |
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
 | transaction_manager    | Currently supports `orion`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. |
-| tm_version         | This is the version of `orion` docker image that will be deployed. Supported versions: `1.5.2` for `orion`. |
+| tm_version         | This is the version of `orion` docker image that will be deployed. Supported versions: `1.6.0` for `orion`. |
 | tm_tls | Options are `True` and `False`. This enables TLS for the transaction manager and Besu node. `False` is not recommended for production. |
 | tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for orion]( https://docs.orion.pegasys.tech/en/latest/Tutorials/TLS/ ).|
 | genesis | This is the path where `genesis.json` will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file. |
