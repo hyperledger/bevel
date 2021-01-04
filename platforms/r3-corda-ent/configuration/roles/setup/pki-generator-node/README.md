@@ -38,7 +38,7 @@ This task will create the deployment files for the generate-pki-node job by call
 This tasks push the created value files into repository by calling git_push role from shared.
 ##### Input Variables
 - `GIT_DIR` - The base path of the GIT repository, default `{{ playbook_dir }}/../../../`
-- *`GIT_REPO` - HTTPS URL for GIT repository, used for pushing deployment files; uses the variable `{{ gitops.git_push_url }}` from `network.yaml`
+- *`GIT_REPO` - HTTPS URL for GIT repository, used for pushing deployment files; uses the variable `{{ gitops.git_url }}` from `network.yaml`
 - *`GIT_USERNAME`: Username with access to the GIT repository; uses `{{ gitops.username }}` from `network.yaml`
 - *`GIT_EMAIL`: Email associated with the username above; uses `{{ gitops.email }}` from `network.yaml`
 - *`GIT_PASSWORD`: Password (most of the time access token) with write access to the GIT repository; uses `{{ gitops.password }}` from `network.yaml`

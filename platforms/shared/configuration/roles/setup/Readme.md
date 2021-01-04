@@ -75,11 +75,6 @@ This task first creates the HelmRelease Custom resource, and then deploys Flux h
 #### 5. wait for pods to come up
 This checks for the flux Pods to come up. It runs when *flux_service.resources* is not there i.e. flux is not found, until kubectl_get_pods gives a positive result.
 
-#### 6. Get ssh key
-This tasks gets the ssh key. Stores the result in *ssh_key*.
-
-#### 7. Output ssh key
-It outputs the ssh key stored in *ssh_key*.
 
 -------------
 
