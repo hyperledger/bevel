@@ -238,6 +238,44 @@ For final checking of the validity of the indy network.
 
 Upon successful connection, should display a `Pool Connected Successfully` msg.
 
+
+---  
+
+
+## R3 Corda Checks
+
+The flow chart shows the R3 Corda process. To verify the steps of deployment, follow the Verification Table 'R', to troubleshoot the general errors.
+
+![](./../_static/corda_flowchart.png)
+
+----
+### R3 Corda Troubleshooting
+### Table 'N'
+
+|Section|Sub-Section|Problem|Possible Cause|Solution|
+|-------|-----------|-------|--------------|--------|
+| R1 | a | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/certificates/ambassador <br>**Task:** Copy generated ambassador tls certs to given build location. <br>**Error:** Destination directory, example: /home/[user]/build/corda/doorman/tls, does not exist | Folder to copy tls certs does not exist. | **network.network_services.certificate** value is either misspelled or directory doesn't exist. |
+| R1 | b | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** setup/vault_kubernetes <br>**Task:** Write reviewer token <br>**Error:** Error writing data to auth/cordadoormanjv/config: Error making API request. Code: 403. Errors: permission denied. | Vault root_token might be incorrect. | **network.organizations.organization.vault.root_token** value is incorrect. |
+| R1 | c | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** check/k8_component <br>**Task:** Wait for Namespace supplychainjv-ns <br>**Error:** Out of retries... | URI might be misspelled. | **network.network_services.uri** value is either misspelled or using the wrong port. |
+| R2 | a | **Init container failed** <br> <br>**Error:** Notary DB Failed  | Various reasons | Please check the logs as described below for detailed error. |
+| R3 | a | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/node_component <br>**Task:** create value file for notaryjv job <br>**Error:** AnsibleUndefinedVariable: 'dict object' has no attribute 'corda-X.X' | Corda version is not supported | **network.version** value must be a supported Corda version. |
+| R3 | b | **Init container failed** <br> <br>**Error:** Notary DB Failed  | Notary registration not happened properly | Check the notary registration container logs (see below). |
+| R3 | c | **Init container failed** <br> <br>**Error:** Notary DB Failed  | Notary store certificates failed |  Check vault path /credentials for nodekeystore, sslkeystore and truststore certificates or check for error in log (see below) store-certs container of notary-registration job. |
+
+----
+### Final R3 Corda (Network) Validation
+
+|What?|How?|Comments|
+|-----|----|--------|
+| Check if all* pods are running | `kubectl get pods -A` or `kubectl get pods -A <pipe> grep <name>` | *Keep in mind that pods are still initializing after Ansibel is finished. |
+| Check registration of Corda |	`kubectl logs <podname> -n <namespace> node-initial-registration` |	
+| Check Corda logging |	`kubectl logs <podname> -n <namespace> -c corda-logs`	|
+| Check Corda status |	`kubectl logs <podname> -n <namespace> -c corda-node` |
+| Check DB pods |	`kubectl logs <podname> -n <namespace> -c corda-node`	|
+| Verify that all* the nodes are shown in the network map |	Go to the URL, example: https://networkmap.rc.dev.aws.blockchain.com:8443, specified in the network.yaml |	*Keep in mind that pods (nodes) are still initializing after Ansible is finished. |
+
+---
+
 ## Quorum Checks
 
 The flow chart shows the Quorum Deployment process. To verify the steps of deployment, follow the verification Table 'Q', to troubleshoot the general errors.
