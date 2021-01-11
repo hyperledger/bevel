@@ -24,7 +24,7 @@ The objective of BAF is to provide a consistent means by which developers can de
 ![](../images/blockchain-automation-framework-overview.png)
 
 ## **How is it different from other BaaS?**
-- The Blockchain Automation Framework deployment scripts can be reused across cloud providers like AWS, Azure, GCP, and OpenShift
+- The Blockchain Automation Framework deployment scripts can be reused across cloud providers like AWS, Azure, GCP, DigitalOcean and OpenShift
 - Can deploy networks and smart contracts across different DLT/Blockchain platforms
 - Supports heterogeneous deployments in a multi-cloud, multi-owner model where each node is completely owned and managed by separate organizations
 - Bring Your Own Infrastructure (BYOI) - You provide GIT, Kubernetes cluster(s), and Hashicorp Vault services provisioned to meet your specific requirements and enterprise standards
