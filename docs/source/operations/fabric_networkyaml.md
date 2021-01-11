@@ -211,7 +211,7 @@ The snapshot of an organization field with sample values is below
       ca_data:
         url: ca.supplychain-net:7054
         certificate: file/server.crt        # This has not been implemented 
-      cloud_provider: aws   # Options: aws, azure, gcp, minikube
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
 ```
 Each `organization` under the `organizations` section has the following fields. 
 
