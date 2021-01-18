@@ -9,7 +9,7 @@ spec:
   releaseName: {{ name }}-springboot
   chart:
     path: {{ component_gitops.chart_source }}/springbootwebserver
-    git: "{{ component_gitops.git_ssh }}"
+    git: "{{ component_gitops.git_url }}"
     ref: "{{ component_gitops.branch }}"
   values:
     nodeName: {{ name }}-springboot

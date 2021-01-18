@@ -9,7 +9,7 @@ spec:
   releaseName: {{ component_name }}-acme
   chart:
     path: {{ chart_path }}/acme
-    git: {{ gitops.git_ssh }}
+    git: {{ gitops.git_url }}
     ref: {{ gitops.branch }}
   values:
     metadata:
