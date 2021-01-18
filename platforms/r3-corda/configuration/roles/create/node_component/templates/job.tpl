@@ -9,7 +9,7 @@ spec:
   releaseName: {{ component_name }}-initial-registration
   chart:
     path: {{ gitops.chart_source }}/{{ chart }}-initial-registration
-    git: {{ gitops.git_ssh }}
+    git: {{ gitops.git_url }}
     ref: {{ gitops.branch }}
   values:
     nodeName: {{ component_name }}

@@ -33,7 +33,7 @@ network:
   cloud_provider: aws
   ...
   gitops:
-    git_ssh: "git_ssh"
+    git_url: "git_url"
     branch: "git_branch"
     release_dir: "platforms/r3-corda/releases/dev"  
     chart_source: "platforms/r3-corda/charts"

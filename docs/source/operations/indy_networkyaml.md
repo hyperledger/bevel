@@ -196,15 +196,16 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_password
       gitops:
-        git_ssh: "gitops_ssh_url"                   # Gitops ssh url for flux value files like "ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "gitops_ssh_url"                   # Gitops https or ssh url for flux value files like "https://github.com/hyperledger-labs/blockchain-automation-framework.git"
         branch: "gitops_branch"                     # Git branch where release is being made
         release_dir: "gitops_release_dir"           # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"               # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "gitops_push_url"             # Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_repo: "gitops_repo_url"             # Gitops git repository URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"                    # Git Service user who has rights to check-in in all branches
         password: "git_password"                    # Git Server user password
         email: "git_email"                          # Email to use in git config
-        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
 
 ```
 
@@ -212,11 +213,11 @@ The `gitops` field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| git_ssh                              | SSH url of the repository where flux should be synced                                                            |
+| git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_push_url                         | Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
 | password                             | Password of the user which has access rights to read/write on repository                                         |
 | email                                | Email of the user to be used in git config                                                                       |

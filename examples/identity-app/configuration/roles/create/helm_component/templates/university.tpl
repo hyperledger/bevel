@@ -9,7 +9,7 @@ spec:
   releaseName: {{ component_name }}-faber
   chart:
     path: {{ chart_path }}/faber
-    git: {{ gitops.git_ssh }}
+    git: {{ gitops.git_url }}
     ref: {{ gitops.branch }}
   values:
     metadata:
