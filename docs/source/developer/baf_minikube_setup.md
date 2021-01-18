@@ -98,8 +98,8 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
      url: "http://<Your Vault local IP address>:8200" # Use the local IP address rather than localhost e.g. http://192.168.0.1:8200
      root_token: "<your vault_root_token>"
    gitops:
-     git_ssh: "<ssh url of your forked repo>" #e.g. "ssh://git@github.com/hyperledger-labs/blockchain-automation-framework.git"
-     git_push_url: "<https url of your forked repo without the https://>" #e.g. "github.com/hyperledger-labs/blockchain-automation-framework.git"
+     git_url: "<https/ssh url of your forked repo>" #e.g. "https://github.com/hyperledger-labs/blockchain-automation-framework.git"
+     git_repo: "<https url of your forked repo without the https://>" #e.g. "github.com/hyperledger-labs/blockchain-automation-framework.git"
      username: "<github_username>"
      password: "<github token/password>"
      email: "<github_email>"

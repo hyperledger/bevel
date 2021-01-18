@@ -9,7 +9,7 @@ spec:
   releaseName: {{ component_name }}db
   chart:
     path: {{ gitops.chart_source }}/h2
-    git: {{ gitops.git_ssh }}
+    git: {{ gitops.git_url }}
     ref: {{ gitops.branch }}
   values:
     replicaCount: 1

@@ -11,7 +11,7 @@ spec:
   releaseName: mongodb-{{ nodename }}
   chart:
     path: {{ org.gitops.chart_source }}/{{ chart }}
-    git: {{ org.gitops.git_ssh }}
+    git: {{ org.gitops.git_url }}
     ref: {{ org.gitops.branch }}
   values:
     nodeName: mongodb-{{ nodename }}
