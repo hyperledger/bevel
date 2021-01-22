@@ -3,7 +3,68 @@ This role creates helm value file for the deployment of chaincode_install job.
 ### main.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Create value file for chaincode installation
+#### 1. Create value file for chaincode installation for fabric version 1.4.x
+This task create value file for chaincode installation.
+##### Input Variables
+
+    *name: Name of Item
+    *namespace: Namespace of Item
+    *component_type: Type of component
+    *component_peers: Peers Details Patch fetched using {{ item.services.peers }}
+    *vault: Vault details from Network yaml
+    *kubernetes: Kubernetes Cluster info
+    *git_url: Git Repo SSH url
+    *git_branch: Git branch name
+    *charts_dir: Charts directory path
+    *values_dir: Destination directory which stores the generated value file.
+**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
+**loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+#### 2. Create value file for chaincode installation for first pod in fabric version 2.2.x
+This task create value file for chaincode installation.
+##### Input Variables
+
+    *name: Name of Item
+    *namespace: Namespace of Item
+    *component_type: Type of component
+    *component_peers: Peers Details Patch fetched using {{ item.services.peers }}
+    *vault: Vault details from Network yaml
+    *kubernetes: Kubernetes Cluster info
+    *git_url: Git Repo SSH url
+    *git_branch: Git branch name
+    *charts_dir: Charts directory path
+    *values_dir: Destination directory which stores the generated value file.
+**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
+**loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+#### 3. 'Waiting for chaincode to be installed on peer0'
+This tasks checks/Wait for install-chaincode job.
+
+##### Input Variables
+
+    kind: The kind of task i.e. here `Job`
+    name: Name of join channel job. Format: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+    namespace: Namespace of component
+    label_selectors:
+      - app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
+    kubeconfig: The config file of the cluster
+    kubernetes: The kubernetes patch from network yaml
+    context: The context of kubernetes
+##### Output Variables
+
+    component_data: This variable stores the output of install-chaincode query.
+	
+   **until**: This condition checks until *component_data.resources* variable exists and is not empty.
+   **retries**: No of retries
+   **delay**: Specifies the delay between every retry
+
+#### 4. Create value file for chaincode installation for fabric version 2.2.x
 This task create value file for chaincode installation.
 ##### Input Variables
 
