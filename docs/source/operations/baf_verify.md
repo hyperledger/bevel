@@ -238,6 +238,49 @@ For final checking of the validity of the indy network.
 
 Upon successful connection, should display a `Pool Connected Successfully` msg.
 
+
+---  
+
+
+## R3 Corda Checks
+
+The flow chart shows the R3 Corda process. To verify the steps of deployment, follow the Verification Table 'R', to troubleshoot the general errors.
+
+![](./../_static/corda_flowchart.png)
+
+----
+### R3 Corda Troubleshooting
+### Table 'N'
+
+|Section|Sub-Section|Problem|Possible Cause|Solution|
+|-------|-----------|-------|--------------|--------|
+| R1 | a | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/certificates/ambassador <br>**Task:** Copy generated ambassador tls certs to given build location. <br>**Error:** Destination directory, example: /home/[user]/build/corda/doorman/tls, does not exist | Folder to copy tls certs does not exist. | **network.network_services.certificate** value is either misspelled or directory doesn't exist. |
+| R1 | b | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** setup/vault_kubernetes <br>**Task:** Write reviewer token <br>**Error:** Error writing data to auth/cordadoormanjv/config: Error making API request. Code: 403. Errors: permission denied. | Folder permission might be incorrect. | Fix the folder permission with chmod to grand access to the cert-file. |
+| R1 | c | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** setup/vault_kubernetes <br>**Task:** Write reviewer token <br>**Error:** Error writing data to auth/cordadoormanjv/config: Error making API request. Code: 403. Errors: permission denied. | Vault root_token might be incorrect. | **network.organizations.organization.vault.root_token** value is incorrect. |
+| R1 | d | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** *gitops_role* <br>**Task:** *gitops_task* <br>**Error:** *gitops_related_error* | Gitops variables are wrongly configured. | Please verify **all** the Gitops blocks in your network.yaml. |
+| R1 | e | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/certificates/doorman <br>**Task:** *Any task that interacts with vault* <br>**Error:** Vault timeout or related error. | Vault was unavailable due to connection issues. | Please verify **all** Vault configuration field in the network.yaml. Additionally check if the Vault service/instance is online and reachable. |
+| R1 | f | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/certificates/nms <br>**Task:** *Any task that interacts with vault* <br>**Error:** Vault timeout or related error. | Vault was unavailable due to connection issues. | Please verify **all** Vault configuration field in the network.yaml. Additionally check if the Vault service/instance is online and reachable. |
+| R1 | g | **Ansible playbook failed** <br> <br>**Error:** Doorman/NMS are unreachable HTTP error. <br>**Role:** ** <br>**Task:** Check that network services uri are reachable. | URI/URL could be misconfigured in the network.yaml. Something else went wrong that caused a timeout. | Reset network and retry, in addition you could you the logs for detailed reasons in why the init container is failing to start. |
+| R2 | a | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/certificates/notary <br>**Task:** *Any task that interacts with vault* <br>**Error:** Vault timeout or related error. | Vault was unavailable due to connection issues. | Please verify **all** Vault configuration field in the network.yaml. Additionally check if the Vault service/instance is online and reachable. |
+| R3 | a | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/node_component <br>**Task:** create value file for notaryjv job <br>**Error:** AnsibleUndefinedVariable: 'dict object' has no attribute 'corda-X.X' | Corda version is not supported | **network.version** value must be a supported Corda version. |
+| R3 | b | **Init container failed** <br> <br>**Error:** Notary DB Failed | Notary registration not happened properly or Notary store certificates failed. | Check the notary registration container logs (see below). Check vault path '/credentials' for nodekeystore, sslkeystore and truststore certificates or check for error in log (see below) store-certs container of notary-registration job. |
+| R4 | a | **Ansible playbook failed** <br>Playbook execution terminated at <br>**Role:** create/certificates/node <br>**Task:** *Any task that interacts with vault* <br>**Error:** Vault timeout or related error. | Vault was unavailable due to connection issues. | Please verify **all** Vault configuration field in the network.yaml. Additionally check if the Vault service/instance is online and reachable. |
+| R5 | a | One or more organization(s) are missing from the overview. | Something went wrong with the registration or connection issues occured. | Check the status of the pods to make sure they are running. Use the commands in the table below to confirm the succesful registration. |
+
+----
+### Final R3 Corda (Network) Validation
+
+|What?|How?|Comments|
+|-----|----|--------|
+| Check if all* pods are running | `kubectl get pods -A` or `kubectl get pods -n <namespace>` <br><br> Example: <br> ![](./../_static/corda_getpods_example.png) | *Keep in mind that pods are still initializing after Ansible is finished. |
+| Check registration of notary nodes |	`kubectl logs <podname> -n <namespace> notary-initial-registration` <br><br> Example: <br> ![](./../_static/corda_notary_registration.png) |	
+| Check Corda logging |	`kubectl logs <podname> -n <namespace> -c corda-logs`	|
+| Check Corda status |	`kubectl logs <podname> -n <namespace> -c corda-node` <br><br> Example: <br> ![](./../_static/corda_node_output.png) |
+| Check DB pods |	`kubectl logs <podname> -n <namespace>` <br><br> Example: <br> ![](./../_static/corda_nodedb_output.png)	|
+| Verify that all* the nodes are shown in the network map |	Go to the URL, example: **https://[orderer].[name].[environment_name].aws.blockchain.com:8443**, specified in the network.yaml. <br><br> Example: ![](./../_static/corda_networkmap.png) |	*It takes time for the URL to become available. |
+
+---
+
 ## Quorum Checks
 
 The flow chart shows the Quorum Deployment process. To verify the steps of deployment, follow the verification Table 'Q', to troubleshoot the general errors.
