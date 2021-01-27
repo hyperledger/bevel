@@ -102,9 +102,6 @@ network:
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
       # This is not used for Besu as Besu does not support DNS hostnames currently. Here for future use
       external_url_suffix: test.besu.blockchaincloudpoc.com
-      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
-      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
-      publicIps: ["3.221.78.194","21.23.74.154"]  # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster        
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
