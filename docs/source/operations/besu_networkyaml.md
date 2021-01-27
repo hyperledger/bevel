@@ -125,10 +125,7 @@ The snapshot of an organization field with sample values is below
       name: carrier
       type: member
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
-      external_url_suffix: test.besu.blockchaincloudpoc.com
-      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
-      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
-      publicIps: ["3.221.78.194","21.23.74.154"] # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster        
+      external_url_suffix: test.besu.blockchaincloudpoc.com 
       cloud_provider: aws   # Options: aws, azure, gcp, minikube
 ```
 Each `organization` under the `organizations` section has the following fields. 
@@ -137,8 +134,7 @@ Each `organization` under the `organizations` section has the following fields.
 |------------------------------------------|-----------------------------------------------------|
 | name                                        | Name of the organization     |
 | type | Can be `member` for peer/member organization and `validator` for Validator organization.|
-| external_url_suffix                         | Public url suffix for the cluster. This is used to discover Orion nodes between different clusters.         |
-| publicIps | List of all public IP addresses of each availability zone from all organizations in the same k8s cluster. The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list. |
+| external_url_suffix                         | Public url suffix for the cluster. This is used to discover Orion nodes between different clusters and to establish communication between nodes         |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | Contains the AWS CLI credentials when the organization cluster is on AWS |
 | k8s                                         | Kubernetes cluster deployment variables.|
