@@ -56,17 +56,30 @@ General
     - |tick| EKS upgrade to 1.16
     - |run| Ambassador upgrade to 1.9.1  
     - |hand| Java version upgrades
-    - |pin| HL Fabric v1.4.x upgrade
-    - |pin| R3 Corda version 4.x upgrade
+    - |pin| Improve logging/error messaging in playbooks
+    - |pin| Proxy as none option in DLT platforms
+   
 
 Platforms
 ---------
--  |tick| HL Fabric 2.2 version upgrade
--  |run| Corda Ent. OFE*
+- |tick| HL Fabric 2.2 version upgrade
+- |pin| HL Fabric v1.4.x upgrade
+- |run| Corda Ent. operational feature enhancements
     - |run| Enable mutiple notaries
     - |pin| Addition of notaries
+    - |pin| R3 Corda version 4.x upgrade
+    - |pin| CENM version upgrade
     - |hand| Removable of node
--  |run| HL Fabric operational feature enhancements
+- |run| HL Fabric operational feature enhancements
+    - |pin| External chaincode for Fabric 2.2.x
+    - |pin| CI/CD piplelines for chaincode deployment 
+    - |pin| Multi Orderer organisation option for RAFT
+    - |run| Feature for user identities
+- |run| HL Besu operational feature enhancements
+    - |tick| Enable DNS support
+    - |pin| Addition of new validator node
+    - |pin| Enable bootnodes
+
 
 Application
 -----------
