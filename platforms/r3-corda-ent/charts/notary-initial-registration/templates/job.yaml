@@ -260,25 +260,6 @@ spec:
             fi
 
             sleep ${HOW_LONG}
-            echo
-            
-            # Get the nodeInfo file name and store it in a variable
-            nodeInfoFile=$(basename $(ls additional-node-infos/nodeInfo*))
-            export nodeInfoFile
-            cat <<EOF > additional-node-infos/network-parameters-initial.conf.tmp
-            notaries : [
-              {
-                notaryNodeInfoFile: "notary-nodeinfo/${nodeInfoFile}"
-                validating = "{{ .Values.nodeConf.notary.validating }}"
-              }
-            ]
-            minimumPlatformVersion = 1
-            maxMessageSize = 10485760
-            maxTransactionSize = 10485760
-            eventHorizonDays = 1
-            EOF
-            mv additional-node-infos/network-parameters-initial.conf.tmp additional-node-infos/network-parameters-initial.conf
-            echo "Created the network-parameters-initial.conf file"
             touch ${BASE_DIR}/certificates/done.txt
           volumeMounts:
           - name: notary-etc
@@ -342,36 +323,16 @@ spec:
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
-            # perform check if network-parameters are ready or not, and upload it into vault when ready
-            COUNTER=1
+            # setting up env to get secrets from vault
             cd ${BASE_DIR}/additional-node-infos
-            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
-            do
-                if [ -e network-parameters-initial.conf ]
-                then
-                  # setting up env to get secrets from vault
-                  KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-                  VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-                  validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-                  # getting the nodeInfo name
-                  nodeInfoName=$(basename $(ls nodeInfo*))
-                  # Encoding binary file and putting it in file, to make sure binary gets correctly put in Vault
-                  base64 ${BASE_DIR}/additional-node-infos/nodeInfo* > ${BASE_DIR}/file
-                  (echo '{"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '","nodeInfoName": "'; echo $nodeInfoName; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nodeInfo
-                  (echo '{"network-parameters-initial": "'; base64 ${BASE_DIR}/additional-node-infos/network-parameters-initial.conf; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/networkparam
-                  break
-                else
-                  echo "node info not ready, sleeping sleeping for {{ $.Values.vault.retryInterval }} seconds"
-                  sleep {{ $.Values.vault.retryInterval }}
-                  COUNTER=`expr "$COUNTER" + 1`
-                fi
-            done
-            if [ "$COUNTER" -gt {{ $.Values.vault.retries }} ]
-            then
-                echo "Retry attempted $COUNTER times, no files found. Giving up!"
-                exit 1
-                break
-            fi
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+            # getting the nodeInfo name
+            nodeInfoName=$(basename $(ls nodeInfo*))
+            # Encoding binary file and putting it in file, to make sure binary gets correctly put in Vault
+            base64 ${BASE_DIR}/additional-node-infos/nodeInfo* > ${BASE_DIR}/file
+            (echo '{"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '","nodeInfoName": "'; echo $nodeInfoName; echo '","validating": "'; echo {{ .Values.nodeConf.notary.validating }}; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nodeInfo
           volumeMounts:
           - name: notary-nodeinfo
             mountPath: {{ $.Values.nodeConf.volume.baseDir }}/additional-node-infos

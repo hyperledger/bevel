@@ -35,7 +35,6 @@ spec:
       signerName: {{ services.signer.name }}
       idmanName: {{ services.idman.name }}
       networkmapName: {{ services.networkmap.name }}
-      notaryName: {{ services.notary.name }}
     identityManager:
       publicIp: {{ org.services.idman.name }}.{{ org.external_url_suffix }}
       publicPort: 8443

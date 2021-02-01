@@ -49,8 +49,10 @@ spec:
         domain: {{ idman_url.split(':')[1] | regex_replace('/', '') }}
         host: {{ org.services.idman.name }}.{{ component_ns }}
         port: 5052
-      notary:
-        name: {{ org.services.notary.name }}
+      notary: 
+{% for notary in org.services.notaries %}
+        - {{ notary.name }}
+{% endfor %}
     database:
       driverClassName: "org.h2.Driver"
       url: "jdbc:h2:file:./h2/networkmap-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
