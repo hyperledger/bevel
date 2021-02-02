@@ -72,41 +72,37 @@ spec:
               mkdir -p ${MOUNT_PATH}/trust-stores;
               mkdir -p ${MOUNT_PATH}/crl-files;
 
-              # Getting intitial network parameters from Vault
-              COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
-              do 
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.serviceLocations.notary.name }}/networkparam | jq -r 'if .errors then . else . end')
-                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                  then
-                    sleep {{ $.Values.vault.sleepTimeAfterError }}
-                  else
-                   initial_param=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-parameters-initial"]')
-                   echo "${initial_param}" | base64 -d > ${NODEINFO_MOUNT_PATH}/network-parameters-initial.conf
-                   echo "Successfully got initial network parameters"
-                   break
-                fi
-                COUNTER=`expr "$COUNTER" + 1`
-              done  
-
               # Getting node Info File from Vault
-              COUNTER=1
-              while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
-              do 
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.serviceLocations.notary.name }}/nodeInfo | jq -r 'if .errors then . else . end')
-                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                  then
-                    sleep {{ $.Values.vault.sleepTimeAfterError }}
-                  else
-                  notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
-                  notary_nodeinfo_name=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoName"]')
-                  echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/${notary_nodeinfo_name}
-                  echo "Successfully got node info file"
-                  break
-                fi
-                COUNTER=`expr "$COUNTER" + 1`
+              
+              notaries=$(echo {{ $.Values.serviceLocations.notary }} | tr -d '[]')
+              file="${NODEINFO_MOUNT_PATH}/network-parameters-initial.conf"
+              echo "notaries : [" > $file
+              for notary in $notaries
+              do
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${notary}/nodeInfo | jq -r 'if .errors then . else . end')
+              if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                then
+                  sleep {{ $.Values.vault.sleepTimeAfterError }}
+                else
+                notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
+                notary_nodeinfo_name=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoName"]')
+                validating=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["validating"]')
+                echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/${notary_nodeinfo_name}
+                echo "Successfully got node info file"
+
+                echo "  {" >> $file
+                echo "    notaryNodeInfoFile: \"notary-nodeinfo/${notary_nodeinfo_name}\"" >> $file
+                echo "    validating = \"${validating}\"" >> $file
+                echo "  }" >> $file
+
+              fi
               done
-                  
+              echo "]" >> $file
+              echo "minimumPlatformVersion = 4" >> $file
+              echo "maxMessageSize = 10485760" >> $file
+              echo "maxTransactionSize = 10485760" >> $file
+              echo "eventHorizonDays = 1" >> $file
+           
               # Fetching ssl-idman certificates from vault
               COUNTER=1
               while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
@@ -220,7 +216,7 @@ spec:
                 echo "crl certificates might not have been put in vault. Giving up!!!"
                 exit 1
               fi
-              echo "Done"
+              echo "Done all certificates"
         volumeMounts:
         - name: certificates
           mountPath: /DATA
