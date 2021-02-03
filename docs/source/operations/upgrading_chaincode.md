@@ -62,11 +62,11 @@ This can be done by using the following command
 
 ## Run playbook for Fabric version 2.2.x
 
-The playbook [chaincode-install-instantiate.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-install-instantiate.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 2.2.x.
+The playbook [chaincode-ops.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 2.2.x.
 This can be done by using the following command
 
 ```
-    ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-install-instantiate.yaml --extra-vars "@path-to-network.yaml" -e "add_new_org='false'"
+    ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml" -e "add_new_org='false'"
 ```
 
 ---

@@ -14,7 +14,7 @@ Hyperledger Fabric network deployed and network.yaml configuration file already 
 
 Refer [this guide](./fabric_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organizations.services.peers.chaincode` section, which is consumed when the chaincode-install-instantiate playbook is run
+The `network.yaml` file should contain the specific `network.organizations.services.peers.chaincode` section, which is consumed when the chaincode-ops playbook is run
 
 For reference, following snippet shows that section of `network.yaml`
 
@@ -48,13 +48,14 @@ network:
 ```
 
 <a name = "run_network"></a>
-## Running playbook to install and instantiate chaincode in BAF deployed Hyperledger Fabric network
+## Chaincode Operations in BAF for the deployed Hyperledger Fabric network
 
-The playbook [chaincode-install-instantiate.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-install-instantiate.yaml) is used to install and instantiate chaincode for the existing fabric network.
+The playbook [chaincode-ops.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to install and instantiate chaincode for the existing fabric network.
+For Fabric v2.2 multiple operations such as approve, commit and invoke the chaincode are available in the same playbook. 
 This can be done by using the following command
 
 ```
-    ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-install-instantiate.yaml --extra-vars "@path-to-network.yaml"
+    ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
 ```
 
 ---

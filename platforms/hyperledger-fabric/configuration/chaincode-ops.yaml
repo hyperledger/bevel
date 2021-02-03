@@ -3,7 +3,7 @@
 # 1. Installs chaincode provided in network.yaml from each peer
 # 2. Instantiates chaincode from the creator participant peer of the channel( For Fabric 1.4.x)
 # 3. Approves chaincode for Org and Commits chaincode on the peer (Fabric 2.2.X)
-# 4. Upgrade chaincode by repeating the cahincode installation process on peers ( Fabric 2.2.x )
+# 4. Upgrade chaincode by repeating the chaincode installation process on peers ( Fabric 2.2.x )
 ##########################################################################################
 # DO NOT RUN THIS IF YOU HAVE NOT RUN deploy-network.yaml and deployed the Fabric network
 ##########################################################################################
@@ -40,7 +40,7 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
-      when: participants is defined and '2.' in network.version
+      when: participants is defined and '2.2.' in network.version
 
     - name: Commit chaincode
       include_role:
@@ -50,7 +50,7 @@
         docker_url: "{{ network.docker.url }}"
         approvers: "{{ item.endorsers }}"
       loop: "{{ network['channels'] }}"
-      when: add_new_org == 'false' and '2.' in network.version    
+      when: add_new_org == 'false' and '2.2.' in network.version    
         
     # This task invokes chaincode after the chaincode has been commited in v2 and
     # after chaincode installation for the new organization to be added in existing network
@@ -62,7 +62,7 @@
         docker_url: "{{ network.docker.url }}"
         approvers: "{{ item.endorsers | default(' ', true) }}"
       loop: "{{ network['channels'] }}"
-      when: add_new_org == 'true' or '2.' in network.version    
+      when: add_new_org == 'true' or '2.2.' in network.version    
 
     # delete build directory
     - name: Remove build directory
