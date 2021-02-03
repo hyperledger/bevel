@@ -78,7 +78,7 @@ The files have all been provided to use and require the user to populate the `ne
 This is the relative location of the Helm charts for the supplychain app.
 3. Make sure that you have deployed the smart contracts for the platform of choice; along with the correct `network.yaml` for the DLT.
     - For R3 Corda, run the `platforms\r3-corda\configuration\deploy-cordapps.yaml`
-    - For Hyperledger Fabric, run the `platforms/hyperledger-fabric/configuration/chaincode-install-instantiate.yaml`
+    - For Hyperledger Fabric, run the `platforms/hyperledger-fabric/configuration/chaincode-ops.yaml`
     - For Quorum, no smart contracts need to be deployed beforehand.
 
 ## Deploying the supplychain-app
