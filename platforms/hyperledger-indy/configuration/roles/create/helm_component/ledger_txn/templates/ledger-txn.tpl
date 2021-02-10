@@ -9,7 +9,7 @@ spec:
   releaseName: {{ component_name }}-{{ identity_name }}-transaction
   chart:
     path: {{ gitops.chart_source }}/{{ chart }}
-    git: {{ gitops.git_ssh }}
+    git: {{ gitops.git_url }}
     ref: {{ gitops.branch }}
   values:
     metadata:

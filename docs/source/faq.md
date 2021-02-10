@@ -13,7 +13,7 @@ A **common scenario** that an operator would like to leverage the Blockchain Aut
 
 **Unique values** in scenarios like this provisioned by the Blockchain Automation Framework repository are: (a) efficiency and rapid deployment (b) consistent quality (c) open-source (d) cloud infrastructure independence (e) optimization via scalability, modularity and security and (f) accelerated go-to-market. 
 
-Essentially, an operator would be able to set up a large-size DLT/Blockchain network in a production environment by using this repository as per the tutorials in this website along with the instructions in the readme files in the repository. The network requirements such as which DLT/Blockchain platform (e.g. Fabric/Corda) and which cloud platform (e.g. AWS/GCP/Azure etc) would be used should have been pre-determined already before using this repository. The operator would ensure that the Blockchain Automation Framework repo is set up and deployed properly. Eventually, BAF would speed up the whole DLT/Blockchain network set-up process and would require less DLT/Blockchain developers enabling the operator to retain the budgets and man-power for other activities. 
+Essentially, an operator would be able to set up a large-size DLT/Blockchain network in a production environment by using this repository as per the tutorials in this website along with the instructions in the readme files in the repository. The network requirements such as which DLT/Blockchain platform (e.g. Fabric/Corda) and which cloud platform (e.g. AWS/GCP/Azure/DigitalOcean etc) would be used should have been pre-determined already before using this repository. The operator would ensure that the Blockchain Automation Framework repo is set up and deployed properly. Eventually, BAF would speed up the whole DLT/Blockchain network set-up process and would require less DLT/Blockchain developers enabling the operator to retain the budgets and man-power for other activities. 
 
 (2) **Developers**:
 A developer can be a DevOps or Full Stack Developer who would have knowledge on multiple programming languages, basic knowledge of DLT/Blockchain networks and smart contracts, Ansible and DevOps. Daily work might include developing applications and using DevOps tools. 
@@ -43,7 +43,7 @@ Unfortunately, there are no existing training for using the Blockchain Automatio
 Yes, you can add additional nodes to a running DLT/Blockchain network using the Blockchain Automation Framework (BAF). Unfortunately, BAF does not support removing nodes in a running DLT/Blockchain network, but this significant feature is in our future roadmap, and we will add this feature in a future release.
 
 ### Does the Blockchain Automation Framework support multiple versions of Fabric and Corda? What are the minimum versions for Fabric and Corda supported in the Blockchain Automation Framework?
-The Blockchain Automation Framework currently only supports version 1.4.0, 1.4.4 & 2.0.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda. Corda Enterprise 4.4 is available as per Release 0.6.0.0. Please check the [latest releases](https://github.com/hyperledger-labs/blockchain-automation-framework/releases) for version upgrades and deprecations.
+The Blockchain Automation Framework currently only supports version 1.4.4, 1.4.8 & 2.2.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda. Corda Enterprise 4.4 is available as per Release 0.6.0.0. Please check the [latest releases](https://github.com/hyperledger-labs/blockchain-automation-framework/releases) for version upgrades and deprecations.
 
 ## 2.FAQs for Operators Guide
 
@@ -51,7 +51,7 @@ The Blockchain Automation Framework currently only supports version 1.4.0, 1.4.4
 To run the Blockchain Automation Framework repository, you need to have a managed/non-managed Kubernetes clusters ready as well as an unsealed Hashicorp Vault service available. 
 
 ### What would be the recommended/required cloud service?
-We recommand to use Cloud Services such as Aamzon Web Services (AWS), Microsoft Azure and Google Cloud Platform (GCP), as their managed Kubernetes clusters services are being or will be tested for this repository. We have fully tested this repository in AWS, and testing it on Azure and GCP is in our future roadmap.
+We recommand to use Cloud Services such as Aamzon Web Services (AWS), Microsoft Azure, Google Cloud Platform (GCP) and DigitalOcean (DO) as their managed Kubernetes clusters services are being or will be tested for this repository. We have fully tested this repository in AWS, and testing it on Azure, GCP, DO is in our future roadmap.
 
 ### Do I have to use AWS? 
 No, AWS is not mandatory, but is recommended because it is the first cloud platform we have tested on. Theoretically, the Blockchain Automation Framework repository should work in any cloud platforms as long as a Kubernetes Cluster service is provisioned, but there is no 100% guarantee it will work, since there might be unseen/unknown features in these managed Kubernetes clusters environments we are not aware of.

@@ -32,7 +32,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric, here in the example its Fabric
 
-`version` defines the version of platform being used. The current Fabric version support is 1.4.0, 1.4.4 and 2.0.0
+`version` defines the version of platform being used. The current Fabric version support is 1.4.4, 1.4.8 & 2.2.0
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -211,7 +211,7 @@ The snapshot of an organization field with sample values is below
       ca_data:
         url: ca.supplychain-net:7054
         certificate: file/server.crt        # This has not been implemented 
-      cloud_provider: aws   # Options: aws, azure, gcp, minikube
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
 ```
 Each `organization` under the `organizations` section has the following fields. 
 
@@ -265,11 +265,12 @@ For gitops fields the snapshot from the sample configuration file with the examp
 ```yaml
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
-        git_ssh: "git@github.com/<username>/blockchain-automation-framework.git" # Gitops ssh url for flux value files
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops htpps or ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "github.com/<username>/blockchain-automation-framework.git" # without https://
+        git_repo: "github.com/<username>/blockchain-automation-framework.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
         password: "<password>"          # Git Server user password/personal token
         email: "<git_email>"              # Email to use in git config
@@ -280,11 +281,11 @@ The gitops field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| git_ssh                              | SSH url of the repository where flux should be synced                                                            |
+| git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_push_url                         | Gitops https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
 | password                             | Password of the user which has access rights to read/write on repository                                         |
 | email                                | Email of the user to be used in git config                                                                       |

@@ -43,7 +43,7 @@
     echo ${data} | tr -d '"' | sed 's/\ /\\,/g'
   register: allocation_ips
   when: 
-    - (network.type == 'indy' and item.services.stewards is defined ) or network['type'] == 'besu'
+    - (network.type == 'indy' and item.services.stewards is defined )
     - item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal' #As this shell code is specific to AWS, cloud provider check has been added
   tags:
     - notest
@@ -57,23 +57,13 @@
     - network.type == 'indy'
     - allocation_ips.stdout is defined
 
-- name: Install Ambassador with EIP for Besu
-  shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador  
-  tags:
-    - ambassador
-    - molecule-idempotence-notest
-  when: 
-    - network.type == 'besu'
-    - allocation_ips.stdout is defined
-
-- name: Install Ambassador for Corda/Quorum
+- name: Install Ambassador for Corda/Quorum/Besu
   shell: |
     KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set ambassador.otherPorts={"{{ network.env.ambassadorPorts }}"} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador 
   tags:
     - ambassador
     - molecule-idempotence-notest
-  when: network.type == 'corda' or network.type == 'quorum' or network.type == 'corda-enterprise'
+  when: network.type == 'corda' or network.type == 'quorum' or network.type == 'corda-enterprise' or network.type == 'besu'
 
 - name: Install Ambassador for Fabric
   shell: |

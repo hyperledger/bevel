@@ -20,7 +20,7 @@ spec:
 
     staticnodes:
 {% for enode in enode_data_list %}
-      - "enode://{{ enode.enodeval }}@{{ enode.peer_publicIP }}:{{ enode.p2p_ambassador }}"
+      - "enode://{{ enode.enodeval }}@{{ enode.external_url }}:{{ enode.p2p_ambassador }}"
 {% endfor %}
 
     metadata:

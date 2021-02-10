@@ -39,7 +39,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: besu
-  version: 1.4.4  #this is the version of Besu docker image that will be deployed.
+  version: 1.5.5  #this is the version of Besu docker image that will be deployed.
 
   #Environment section for Kubernetes setup
   env:
@@ -69,7 +69,7 @@ network:
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
     transaction_manager: "orion"    # Transaction manager is "orion"
     # This is the version of "orion" docker image that will be deployed
-    tm_version: "1.5.2"               
+    tm_version: "1.6.0"               
     # TLS can be True or False for the orion tm
     tm_tls: True
     # Tls trust value
@@ -102,9 +102,6 @@ network:
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
       # This is not used for Besu as Besu does not support DNS hostnames currently. Here for future use
       external_url_suffix: test.besu.blockchaincloudpoc.com
-      # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
-      # The Ambassador will be set up using these static IPs. The child services will be assigned the first IP in this list.
-      publicIps: ["3.221.78.194","21.23.74.154"]  # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster        
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -123,15 +120,16 @@ network:
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
-        git_ssh: "ssh://git@github.com/<username>/blockchain-automation-framework.git"         # Gitops ssh url for flux value files 
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_push_url: "github.com/<username>/blockchain-automation-framework.git"   # Gitops https URL for git push 
+        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
       # The participating nodes are named as peers
       services:
         peers:

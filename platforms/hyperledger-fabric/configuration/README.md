@@ -40,7 +40,7 @@ ansible-playbook platforms/hyperledger-fabric/deploy-network.yaml -e "@/path/to/
 ### Step 3
 After `deploy-network.yaml` has run successfully and your Fabric orderer(s) and peer(s) are all running, and channels are created. To install and instantiate a chaincode, run the following command (from the `platforms/hyperledger-fabric/configuration` directory) using the same `network.yaml`, but with the `chaincode` sections updated.
 ```
-ansible-playbook chaincode-install-instantiate.yaml -e "@./network.yaml" -e "add_new_org='false'"
+ansible-playbook chaincode-ops.yaml -e "@./network.yaml" -e "add_new_org='false'"
 ```
 This playbook will deploy the Kubernetes jobs which will install the chaincode for all peers and instantiate the chaincode from the Creator participant.
 
@@ -74,7 +74,7 @@ We are working on a verification document for Hyperledger Fabric.
 
 5. After adding a new organization, if you want to explicitly install chaincode for new orgnization, then run the following command from the `platforms/hyperledger-fabric/configuration` directory
     ```
-    ansible-playbook chaincode-install-instantiate.yaml -e "@/path/to/network-fabric.yaml" -e "add_new_org='true'"
+    ansible-playbook chaincode-ops.yaml -e "@/path/to/network-fabric.yaml" -e "add_new_org='true'"
     ```
     The playbook will create resources in the Kubernetes cluster(s) and will intermittently wait for resources to be created before proceeding. You may want to check the cluster(s) about any errors.
 

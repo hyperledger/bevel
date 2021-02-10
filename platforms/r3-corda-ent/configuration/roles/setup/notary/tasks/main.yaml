@@ -19,9 +19,12 @@
   include_role:
     name: create/certificates/cenm
   vars:
-    tlscert_path: "./build/ambassador/{{ org.services.notary.name }}"
-    service_name: "{{ org.services.notary.name }}"
-    dest_path: "./build/ambassador/{{ org.services.notary.name }}/notary.crt"
+    tlscert_path: "./build/ambassador/{{ notary.name }}"
+    service_name: "{{ notary.name }}"
+    dest_path: "./build/ambassador/{{ notary.name }}/notary.crt"
+  loop: "{{ org.services.notaries }}"
+  loop_control:
+    loop_var: notary
 
 # Create deployment file for CENM notary service
 - name: Create value file for notary
@@ -29,7 +32,7 @@
     name: helm_component
   vars:
     type: "notary"
-    notary_service: "{{ org.services.notary }}"
+    notary_service: "{{ notary }}"
     component_name: "{{ notary_service.name | lower }}"
     name: "{{ org.name | lower }}"
     values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
@@ -39,6 +42,9 @@
     networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
     networkmap_domain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
     corda_service_version: notary-{{ network.version }}
+  loop: "{{ org.services.notaries }}"
+  loop_control:
+    loop_var: notary
 
 # Push the notary deployment files to repository
 - name: Push the created deployment files to repository
@@ -46,7 +52,7 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_REPO: "{{ org.gitops.git_push_url }}"
+    GIT_REPO: "{{ org.gitops.git_repo }}"
     GIT_USERNAME: "{{ org.gitops.username }}"
     GIT_EMAIL: "{{ org.gitops.email }}"
     GIT_PASSWORD: "{{ org.gitops.password }}"
