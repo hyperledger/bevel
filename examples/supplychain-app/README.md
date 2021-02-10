@@ -35,7 +35,7 @@ Edit the Supplychain application configuration file (from `examples\supplychain-
 ### Step 3
 Ensure that following are completed already:
 * For Corda platform, the CorDapps are installed by using `platforms\r3-corda\configuration\deploy-cordapps.yaml` playbook.
-* For Fabric platform, the chaincodes are installed by using `platforms\hyperledger-fabric\configuration\chaincode-install-instantiate.yaml` playbook.
+* For Fabric platform, the chaincodes are installed by using `platforms\hyperledger-fabric\configuration\chaincode-ops.yaml` playbook.
 
 ### Step 4
 Execute the ansible playbook
