@@ -212,16 +212,35 @@ spec:
             echo "Chaincode installed for Fabric v.1.4.X"         
           else
             echo "Installing Chaincode for ${NETWORK_VERSION}"
-            ## packaging chaincode
-            peer lifecycle chaincode package ${CHAINCODE_NAME}.tar.gz --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANGUAGE} --label ${CHAINCODE_NAME}_${CHAINCODE_VERSION}
+            if [ $PEER_NAME = "peer0" ];then
+              ## packaging chaincode
+              echo "Packaging chaincode for the first peer"
+              peer lifecycle chaincode package ${CHAINCODE_NAME}.tar.gz --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANGUAGE} --label ${CHAINCODE_NAME}_${CHAINCODE_VERSION}
+            else
+              export CORE_PEER_ADDRESS=${PEER0_ADDRESS}
+              echo "Extracting package id"
+              peer lifecycle chaincode queryinstalled > log.txt
+              PACKAGE_ID=$(cat log.txt | grep "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" | sed -n "/${CC_NAME}_${CC_VERSION}/{s/^Package ID: //; s/, Label:.*$//; p;}")
+              echo "Package Id Extracted ${PACKAGE_ID}"
+              peer lifecycle chaincode getinstalledpackage --package-id ${PACKAGE_ID}
+              export CORE_PEER_ADDRESS=${PEER_ADDRESS}
+              export CHAINCODE_NAME=${PACKAGE_ID}
+              echo "installing ${CHAINCODE_NAME} on ${CORE_PEER_ADDRESS}"
+            fi
             ## Installing Chaincode
             peer lifecycle chaincode install ${CHAINCODE_NAME}.tar.gz
-            echo "Chaincode installed for Fabric v.2.2.X"
+            echo "Chaincode installed for Fabric v.2.X"
             #query installed
             echo "peer query installed"
             peer lifecycle chaincode queryinstalled
           fi
         env:
+        - name: PEER_NAME
+          value: {{ $.Values.peer.name }}
+        - name: PEER0_ADDRESS
+          value: peer0.{{ $.Values.metadata.namespace }}:7051
+        - name: PEER_ADDRESS
+          value: {{ $.Values.peer.address }}
         - name: CORE_VM_ENDPOINT
           value: unix:///host/var/run/docker.sock
         - name: FABRIC_LOGGING_SPEC
@@ -235,7 +254,7 @@ spec:
         - name: CORE_PEER_TLS_ENABLED
           value: "{{ $.Values.peer.tlsstatus }}"
         - name: CORE_PEER_TLS_ROOTCERT_FILE
-          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/cacerts/ca.crt
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt
         - name: ORDERER_CA
           value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
         - name: ORDERER_URL
