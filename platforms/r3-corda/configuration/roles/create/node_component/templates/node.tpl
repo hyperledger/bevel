@@ -139,8 +139,9 @@ spec:
     healthcheck:
       readinesscheckinterval: 20
       readinessthreshold: 20
+{% if network.env.proxy == 'ambassador' %}
     ambassador:
       component_name: {{ component_name | e }}
       external_url_suffix: {{ item.external_url_suffix }}
       p2p_ambassador: {{ node.p2p.ambassador | default('10002') }}
-      
+{% endif %}
