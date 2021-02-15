@@ -53,7 +53,10 @@ spec:
           - containerPort: {{ .Values.service.targetPort }}
         volumeMounts:
           - name: {{ .Values.nodeName }}-servicedata
-            mountPath: "{{ .Values.image.mountPath.basePath }}/db/"
+            mountPath: "{{ .Values.image.mountPath.basePath }}/db"
+            readOnly: false
+          - name: {{ .Values.nodeName }}-logs
+            mountPath: "{{ .Values.image.mountPath.basePath }}/logs"
             readOnly: false
           - name: certs
             mountPath: "{{ .Values.image.mountPath.basePath }}/db/certs"
@@ -61,6 +64,36 @@ spec:
           - name: creds
             mountPath: "/opt/creds"
             readOnly: false
+      - name: logs
+        image: "{{ .Values.image.initContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          cd /opt/networkmap/
+          COUNTER=1
+          NETWORK_ROOT_TRUST=/opt/networkmap/network-map-truststore.jks
+          while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+          do
+            curl http://localhost:8080/network-map/truststore --output network-map-truststore.jks
+            if [ -f "$NETWORK_ROOT_TRUST" ]
+            then
+              echo "SUCCESS!"
+              echo "NMS running and fetched truststore"
+              break
+            else
+              COUNTER=`expr "$COUNTER" + 1`
+              sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+            fi   
+          done 
+          if ["$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] 
+          then 
+            exit 1 
+          fi
+          while true; do tail -f ./logs/*.log 2>/dev/null; sleep 5; done
+        volumeMounts:
+        - name: {{ .Values.nodeName }}-logs
+          mountPath: "{{ .Values.image.mountPath.basePath }}/logs"
       initContainers:
       - name: init-certificates
         image: {{ .Values.image.initContainerName }}
@@ -232,6 +265,9 @@ spec:
         - name: {{ .Values.nodeName }}-servicedata
           persistentVolumeClaim:
             claimName: {{ .Values.nodeName }}-pvc
+        - name: {{ .Values.nodeName }}-logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-pvc-logs
         - name: certs
           emptyDir:
             medium: Memory
