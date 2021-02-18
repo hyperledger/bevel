@@ -9,18 +9,18 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - name: ambassador-admin
+  - name: ambassador-admin-port
     port: 80
     targetPort: 8877
   selector:
-    service: ambassador
+    app.kubernetes.io/name: ambassador
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: ambassador
-  namespace: default
-  {{- if .Values.ambassador.eip }}
+  name: {{ include "ambassador.fullname" . }}
+  namespace: {{ include "ambassador.namespace" . }}
+{{- if .Values.ambassador.eip }}
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
@@ -50,8 +50,38 @@ metadata:
         x_forwarded_proto_redirect: true
   {{- end }}
 spec:
-  type: LoadBalancer
-{{- if first .Values.ambassador.loadBalancerSourceRanges }}
+  type: {{ .Values.service.type }}
+  {{- if .Values.service.loadBalancerIP }}
+  loadBalancerIP: "{{ .Values.service.loadBalancerIP }}"
+  {{- end }}
+  {{- if .Values.service.externalTrafficPolicy }}
+  externalTrafficPolicy: "{{ .Values.service.externalTrafficPolicy }}"
+  {{- end }}
+  ports:
+   - port: {{ .Values.ambassador.port | int }}
+     name: webhttps
+     targetPort: {{ .Values.ambassador.targetPort }}
+{{- with .Values.ambassador.otherPorts.portRange}}
+{{- if and .from .to }}
+  {{- range untilStep (.from | int) (.to | int) 1 }}
+   - port: {{ . }}
+     name: port-{{- . }}
+     targetPort: {{ . }}
+  {{- end }}
+   - port: {{ .to }}
+     name: port-{{- .to }}
+     targetPort: {{ .to }}
+{{- end }}
+{{- end }}
+{{- range .Values.ambassador.otherPorts.ports }}
+   - port: {{ . | int }}
+     name: port-{{- . }}
+     targetPort: {{ . | int }}
+{{- end }}
+  selector:
+    service: {{ include "ambassador.name" . }}
+  {{- with .Values.loadBalancerSourceRanges }}
+  {{- if first .Values.ambassador.loadBalancerSourceRanges }}
   loadBalancerSourceRanges: 
 {{- range .Values.ambassador.loadBalancerSourceRanges }}
    - {{ . }} 
@@ -60,17 +90,6 @@ spec:
   loadBalancerSourceRanges: 
   - 0.0.0.0/0
 {{- end }}  
-  externalTrafficPolicy: Local
-  ports:
-   - port: {{ .Values.ambassador.port }}
-     name: webhttps
-     targetPort: {{ .Values.ambassador.targetPort }}
-{{- if .Values.ambassador.otherPorts }}
-{{- range .Values.ambassador.otherPorts }}
-   - port: {{ . }}
-     name: port-{{- . }}
-     targetPort: {{ . }}
-{{- end }}
-{{- end }}
-  selector:
-    service: ambassador
+  externalIPs:
+    {{- toYaml .Values.service.externalIPs | nindent 4 }}
+  {{- end }}
