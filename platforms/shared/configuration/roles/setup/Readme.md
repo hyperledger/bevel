@@ -6,7 +6,7 @@ This roles setups Ambassador.
 #### Tasks Included
 ##### 1. Install Ambassador
 
-This task deploys the ambassador helmchart from ```platforms/shared/charts/ambassador``` directory. Additional Ambassador ports can be opened by providing comma-separated `network.env.ambassadorPorts` value in network.yaml.
+This task deploys the ambassador helmchart from ```platforms/shared/charts/ambassador``` directory. Additional Ambassador ports can be opened by providing `network.env.ambassadorPorts` values in network.yaml.
 
 ##### 2. wait for pods to come up
 This checks for the Ambassador Pods to come up.

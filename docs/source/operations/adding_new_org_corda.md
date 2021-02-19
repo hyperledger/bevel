@@ -38,9 +38,15 @@ network:
   
   #Environment section for Kubernetes setup
   env:
-    type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "env_type"                # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange: 
+        from: 15010 
+        to: 15043
+    # ports: 
+    #   - 3000
+    #   - 4000 
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
 
