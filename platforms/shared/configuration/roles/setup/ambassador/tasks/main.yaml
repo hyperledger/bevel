@@ -62,7 +62,7 @@
     fi
   register: ambassadorRange
 
-- name: Format ambassador ports for Fabric/Corda/Besu/Quorum
+- name: Format ambassador ports for Corda/Besu/Quorum
   args:
     executable: /bin/bash
   shell: |
@@ -91,11 +91,6 @@
   register: ambassadorPortsIndy
   when: network.type == 'indy'
 
-- name: Delete ambassador service account
-  shell: |
-      KUBECONFIG={{ kubeconfig_path }} kubectl delete sa ambassador
-  ignore_errors: yes
-
 - name: Install Ambassador with EIP for Indy
   shell: |
     KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPortsIndy.stdout }} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador 
@@ -105,25 +100,15 @@
   when: 
     - network.type == 'indy'
     - allocation_ips.stdout is defined
-
     
 - name: Install Ambassador for Corda/Quorum/Besu
   shell: |
-      KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPorts.stdout }} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+      KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPorts.stdout }} --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   tags:
     - ambassador
     - molecule-idempotence-notest
   when: (network.type == 'corda' or network.type == 'quorum' or network.type == 'corda-enterprise' or network.type == 'besu')
   
-
-- name: Install Ambassador for Fabric
-  shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPorts.stdout }} --set ambassador.grpc=enabled --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador 
-  tags:
-    - ambassador
-    - molecule-idempotence-notest
-  when: network.type == 'fabric'
-
 - name: Enable external DNS
   shell: |
     KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "external-dns.alpha.kubernetes.io/hostname=*.{{ item.external_url_suffix }}."

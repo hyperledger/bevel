@@ -6,23 +6,18 @@
 # Manually set metadata for the Release.
 #
 # Defaults to .Chart.Name
-ambassador:
-  targetPort: "443"
-  port: "8443"
-  image: quay.io/datawire/ambassador
-  tag: "1.3.2"
-  loadBalancerSourceRanges: 
-  otherPorts:
-    portRange: 
-      from: 15010
-      to: 15020
-    #ports: 3000,4000
-
 nameOverride: ""
 # Defaults to .Release.Name-.Chart.Name unless .Release.Name contains "ambassador"
 fullnameOverride: ""
 # Defaults to .Release.Namespace
 namespaceOverride: ""
+
+ambassador:
+  loadBalancerSourceRanges: 
+  otherPorts:
+    portRange: 
+      from: 15010
+      to: 15020
 
 replicaCount: 3
 daemonSet: false
@@ -131,7 +126,7 @@ security:
 
 image:
   repository: docker.io/datawire/aes
-  tag: 1.9.1
+  tag: 1.11.0
   pullPolicy: IfNotPresent
 
 dnsPolicy: "ClusterFirst"
@@ -162,6 +157,10 @@ service:
       # nodePort: 30222
 
   externalTrafficPolicy:
+
+  sessionAffinity:
+
+  sessionAffinityConfig:
 
   externalIPs: []
 
@@ -308,8 +307,8 @@ ambassadorConfig: ""
 
 crds:
   enabled: true
-  create: true
-  keep: true
+  create: false
+  keep: false
 
 # Prometheus Operator ServiceMonitor configuration
 # See documentation: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor
@@ -328,13 +327,13 @@ metrics:
 # Go to https://{ambassador-host}/edge_stack/admin/#dashboard to register
 # for a community license key.
 
-enableAES: false
+enableAES: true
 
 # Set createSecret: false is installing multiple releases of The Ambassador
 # Edge Stack in the same namespace.
 licenseKey:
   value:
-  createSecret: false
+  createSecret: true
   secretName:
   # Annotations to attach to the license-key-secret.
   annotations:
@@ -342,7 +341,7 @@ licenseKey:
 
 # The DevPortal is exposed at /docs/ endpoint in the AES container.
 # Setting this to true will automatically create routes for the DevPortal.
-createDevPortalMappings: false
+createDevPortalMappings: true
 
 # The Ambassador Edge Stack uses a redis instance for managing authentication,
 # rate limiting, and sharing minor configuration details between pods for
@@ -388,7 +387,7 @@ redis:
 # the External Filter to communicate with a custom authentication service.
 # https://www.getambassador.io/reference/filter-reference/#filter-type-external
 authService:
-  create: false
+  create: true
   # Set additional configuration options. See https://www.getambassador.io/reference/services/auth-service for more information
   optional_configurations:
     # include_body:
@@ -407,7 +406,7 @@ authService:
 # Configures the RateLimitService in the Ambassador Edge Stack.
 # Keep this enabled to configure RateLimits in AES.
 rateLimit:
-  create: false
+  create: true
 
 # Projects are a beta feature of Ambassador that allow developers to stage and
 # deploy code with nothing more than a Github repository.
