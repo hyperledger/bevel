@@ -1,25 +1,20 @@
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    service: ambassador-admin
-  name: ambassador-admin
-  namespace: default
-spec:
-  type: ClusterIP
-  ports:
-  - name: ambassador-admin-port
-    port: 80
-    targetPort: 8877
-  selector:
-    app.kubernetes.io/name: ambassador
----
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "ambassador.fullname" . }}
   namespace: {{ include "ambassador.namespace" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "ambassador.name" . }}
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+    helm.sh/chart: {{ include "ambassador.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- if .Values.deploymentTool }}
+    app.kubernetes.io/managed-by: {{ .Values.deploymentTool }}
+    {{- else }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- end }}
+    app.kubernetes.io/component: ambassador-service
+    product: aes
 {{- if .Values.ambassador.eip }}
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
@@ -57,10 +52,20 @@ spec:
   {{- if .Values.service.externalTrafficPolicy }}
   externalTrafficPolicy: "{{ .Values.service.externalTrafficPolicy }}"
   {{- end }}
+  {{- if .Values.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.service.sessionAffinity }}
+  {{- end }}
+  {{- if .Values.service.sessionAffinityConfig }}
+  sessionAffinityConfig:
+    {{- toYaml .Values.service.sessionAffinityConfig | nindent 4 }}
+  {{- end }}
   ports:
-   - port: {{ .Values.ambassador.port | int }}
-     name: webhttps
-     targetPort: {{ .Values.ambassador.targetPort }}
+   - port: 80
+     name: http
+     targetPort: 8080
+   - port: 443
+     name: https
+     targetPort: 8443
 {{- with .Values.ambassador.otherPorts.portRange}}
 {{- if and .from .to }}
   {{- range untilStep (.from | int) (.to | int) 1 }}
@@ -79,7 +84,8 @@ spec:
      targetPort: {{ . | int }}
 {{- end }}
   selector:
-    service: {{ include "ambassador.name" . }}
+    app.kubernetes.io/name: {{ include "ambassador.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
   {{- with .Values.loadBalancerSourceRanges }}
   {{- if first .Values.ambassador.loadBalancerSourceRanges }}
   loadBalancerSourceRanges: 
