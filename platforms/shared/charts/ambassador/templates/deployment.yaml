@@ -1,36 +1,3 @@
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
-metadata:
-  name: ambassador
-rules:
-- apiGroups: [""]
-  resources:
-  - namespaces
-  - services
-  - secrets
-  - endpoints
-  verbs: ["get", "list", "watch"]
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ambassador
-  namespace: default
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: ambassador
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: ambassador
-subjects:
-- kind: ServiceAccount
-  name: ambassador
-  namespace: default
----
 apiVersion: apps/v1
 {{- if .Values.daemonSet }}
 kind: DaemonSet
@@ -111,7 +78,7 @@ spec:
       {{- if .Values.restartPolicy }}
       restartPolicy: {{ .Values.restartPolicy }}
       {{- end }}
-      serviceAccountName: ambassador #{{ include "ambassador.serviceAccountName" . }}
+      serviceAccountName: {{ include "ambassador.serviceAccountName" . }}
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName | quote }}
       {{- end }}
