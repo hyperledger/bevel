@@ -20,8 +20,10 @@ Profiles:
     Consortiums:
       {{channel.consortium}}:
         Organizations:
-{% for org in channel.participants %}
+{% for org in network.organizations %}
+{% if org.type != 'orderer' %}
           - *{{org.name}}Org
+{% endif %}          
 {% endfor %}
   {{channel.channel_name}}:
     <<: *ChannelDefaults
