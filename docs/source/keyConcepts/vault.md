@@ -15,7 +15,7 @@ There are two approaches to installing Vault:
 Downloading a precompiled binary is easiest and provides downloads over TLS along with SHA256 sums to verify the binary. Hashicorp also distributes a PGP signature with the SHA256 sums that should be verified.
 
 ## Securing RPC Communication with TLS Encryption
-Securing your cluster with TLS encryption is an important step for production deployments. The recomended tool for vault certificate management is Consul. Hashicorp Consul is a networking tool that provides a fully featured service-mesh control plane, service discovery, configuration, and segmentation. 
+Securing your cluster with TLS encryption is an important step for production deployments. The recommended tool for vault certificate management is Consul. Hashicorp Consul is a networking tool that provides a fully featured service-mesh control plane, service discovery, configuration, and segmentation. 
 
 Consul supports using TLS to verify the authenticity of servers and clients. To enable TLS, Consul requires that all servers have certificates that are signed by a single Certificate Authority (CA). Clients should also have certificates that are authenticated with the same CA.
 
