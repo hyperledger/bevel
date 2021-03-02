@@ -18,21 +18,21 @@
 
 # Check if approve-chaincode is already run
 - name: 'Check for approve-chaincode job'
-  k8s_info:
-    kind: "Job"
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app = approvechaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
+    component_type: "OneTimeJob"
     namespace: "{{ org.name |lower }}-net"
     kubernetes: "{{ org.k8s }}"
+    component_name: "approvechaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  register: approve_chaincode
   when: peer.chaincode is defined
+
+- name: "Set Variable approve_chaincode"
+  set_fact:
+    approve_chaincode: "{{ result }}"
 
 # Nested task for chanincode approve
 - name: "Create value file for chaincode approve"
@@ -56,7 +56,7 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: peer.chaincode is defined and approve_chaincode.results[0].resources|length == 0
+  when: peer.chaincode is defined and approve_chaincode.resources|length == 0
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -71,4 +71,4 @@
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing chaincode approve files"
-  when: approve_chaincode.results[0].resources|length == 0
+  when: approve_chaincode.resources|length == 0
