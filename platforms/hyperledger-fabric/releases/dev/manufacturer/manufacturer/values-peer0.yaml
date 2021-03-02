@@ -1,0 +1,63 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: manufacturer-peer0
+  namespace: manufacturer-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: manufacturer-peer0
+  chart:
+    git: https://github.com/vmeng/blockchain-automation-framework.git
+    ref: local
+    path: platforms/hyperledger-fabric/charts/peernode    
+  values:
+    metadata:
+      namespace: manufacturer-net
+      images:
+        couchdb: couchdb:3.1
+        peer: hyperledger/fabric-peer:2.2.0
+        alpineutils: hyperledgerlabs/alpine-utils:1.0
+        
+    peer:
+      name: peer0
+      gossippeeraddress: peer0.manufacturer-net:7051
+      gossipexternalendpoint: peer0.manufacturer-net:7051
+      localmspid: manufacturerMSP
+      loglevel: info
+      tlsstatus: true
+      builder: hyperledger/fabric-ccenv:2.2.0
+      couchdb:
+        username: manufacturer-user
+
+    storage:
+      peer:
+        storageclassname: manufacturersc
+        storagesize: 512Mi
+      couchdb:
+        storageclassname: manufacturersc
+        storagesize: 1Gi
+
+    vault:
+      role: vault-role
+      address: http://192.168.1.207:8200
+      authpath: manufacturer-net-auth
+      secretprefix: secret/crypto/peerOrganizations/manufacturer-net/peers/peer0.manufacturer-net
+      secretambassador: secret/crypto/peerOrganizations/manufacturer-net/ambassador
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      secretcouchdbpass: secret/credentials/manufacturer-net/couchdb/manufacturer?user
+
+    service:
+      servicetype: ClusterIP
+      ports:
+        grpc:
+          clusteripport: 7051
+        events:
+          clusteripport: 7053
+        couchdb:
+          clusteripport: 5984
+          
+    proxy:
+      provider: none
+      external_url_suffix: develop.local.com
