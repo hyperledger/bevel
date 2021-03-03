@@ -1,0 +1,43 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: supplychain-net-ca
+  namespace: supplychain-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: supplychain-net-ca
+  chart:
+    git: https://github.com/vmeng/blockchain-automation-framework.git
+    ref: local
+    path: platforms/hyperledger-fabric/charts/ca    
+  values:
+    metadata:
+      namespace: supplychain-net
+      images:
+        alpineutils: hyperledgerlabs/alpine-utils:1.0
+        ca: hyperledger/fabric-ca:1.4.8
+    server:
+      name: ca
+      tlsstatus: true
+      admin: supplychain-admin
+    storage:
+      storageclassname: supplychainsc
+      storagesize: 512Mi 
+    vault:
+      role: vault-role
+      address: http://192.168.1.207:8200
+      authpath: supplychain-net-auth
+      secretcert: secret/crypto/ordererOrganizations/supplychain-net/ca?ca.supplychain-net-cert.pem
+      secretkey: secret/crypto/ordererOrganizations/supplychain-net/ca?supplychain-net-CA.key
+      secretadminpass: secret/credentials/supplychain-net/ca/supplychain?user
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    service:
+      servicetype: ClusterIP
+      ports:
+        tcp:
+          port: 7054
+    proxy:
+      provider: none
+      type: orderer
