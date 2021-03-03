@@ -1,0 +1,41 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: joinchannel-peer0-join-allchannel-manufacturer-peer0
+  namespace: manufacturer-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: joinchannel-peer0-join-allchannel-manufacturer-peer0
+  chart:
+    git: https://github.com/vmeng/blockchain-automation-framework.git
+    ref: local
+    path: platforms/hyperledger-fabric/charts/join_channel
+  values:
+    metadata:
+      namespace: manufacturer-net
+      images:
+        fabrictools: hyperledger/fabric-tools:2.2.0
+        alpineutils: hyperledgerlabs/alpine-utils:1.0
+
+    peer:
+      name: peer0
+      address: peer0.manufacturer-net:7051
+      localmspid: manufacturerMSP
+      loglevel: debug
+      tlsstatus: true
+
+    vault:
+      role: vault-role
+      address: http://192.168.1.207:8200
+      authpath: manufacturer-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/manufacturer-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/manufacturer-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    channel:
+      name: allchannel      
+    orderer:
+      address: orderer1.supplychain-net:7050
+
