@@ -212,7 +212,7 @@ read -p "Enter disk space to be used by minikube(MB): " DISKSIZE
 minikube config set memory ${RAMSIZE}
 minikube config set cpus ${CPUCOUNT}
 minikube config set disk-size ${DISKSIZE}
-minikube config set kubernetes-version v1.15.4
+minikube config set kubernetes-version v1.16.5
 minikube start --vm-driver=virtualbox
 minikube status
 
