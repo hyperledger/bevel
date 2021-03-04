@@ -1,0 +1,63 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: carrier-peer0
+  namespace: carrier-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: carrier-peer0
+  chart:
+    git: https://github.com/vmeng/blockchain-automation-framework.git
+    ref: local
+    path: platforms/hyperledger-fabric/charts/peernode    
+  values:
+    metadata:
+      namespace: carrier-net
+      images:
+        couchdb: couchdb:3.1
+        peer: hyperledger/fabric-peer:2.2.0
+        alpineutils: hyperledgerlabs/alpine-utils:1.0
+        
+    peer:
+      name: peer0
+      gossippeeraddress: peer0.carrier-net:7051
+      gossipexternalendpoint: peer0.carrier-net:7051
+      localmspid: carrierMSP
+      loglevel: info
+      tlsstatus: true
+      builder: hyperledger/fabric-ccenv:2.2.0
+      couchdb:
+        username: carrier-user
+
+    storage:
+      peer:
+        storageclassname: carriersc
+        storagesize: 512Mi
+      couchdb:
+        storageclassname: carriersc
+        storagesize: 1Gi
+
+    vault:
+      role: vault-role
+      address: http://192.168.1.207:8200
+      authpath: carrier-net-auth
+      secretprefix: secret/crypto/peerOrganizations/carrier-net/peers/peer0.carrier-net
+      secretambassador: secret/crypto/peerOrganizations/carrier-net/ambassador
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      secretcouchdbpass: secret/credentials/carrier-net/couchdb/carrier?user
+
+    service:
+      servicetype: ClusterIP
+      ports:
+        grpc:
+          clusteripport: 7051
+        events:
+          clusteripport: 7053
+        couchdb:
+          clusteripport: 5984
+          
+    proxy:
+      provider: none
+      external_url_suffix: develop.local.com
