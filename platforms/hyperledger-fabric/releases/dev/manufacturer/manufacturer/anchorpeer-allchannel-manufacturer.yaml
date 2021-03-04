@@ -1,0 +1,43 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: anchorpeer-allchannel-manufacturer
+  namespace: manufacturer-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: anchorpeer-allchannel-manufacturer
+  chart:
+    git: https://github.com/vmeng/blockchain-automation-framework.git
+    ref: local
+    path: platforms/hyperledger-fabric/charts/anchorpeer
+  values:
+    metadata:
+      namespace: manufacturer-net
+      images:
+        fabrictools: hyperledger/fabric-tools:2.2.0
+        alpineutils: hyperledgerlabs/alpine-utils:1.0
+
+    peer:
+      name: peer0
+      address: peer0.manufacturer-net:7051
+      localmspid: manufacturerMSP
+      loglevel: debug
+      tlsstatus: true
+
+    vault:
+      role: vault-role
+      address: http://192.168.1.207:8200
+      authpath: manufacturer-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/manufacturer-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/manufacturer-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    channel:
+      name: allchannel      
+    orderer:
+      address: orderer1.supplychain-net:7050
+    anchorstx: |-
+      CscCChgKFggCGgYI47+BggYiCmFsbGNoYW5uZWwSqgIKpwIKCmFsbGNoYW5uZWwSaBJmCgtBcHBsaWNhdGlvbhJXCAESUwoPbWFudWZhY3R1cmVyTVNQEkAaBwoDTVNQEgAiDwoLRW5kb3JzZW1lbnQSACILCgdSZWFkZXJzEgAiCwoHV3JpdGVycxIAIgoKBkFkbWlucxIAGq4BEqsBCgtBcHBsaWNhdGlvbhKbAQgBEpYBCg9tYW51ZmFjdHVyZXJNU1ASggEIARo2CgtBbmNob3JQZWVycxInEh0KGwoWcGVlcjAubWFudWZhY3R1cmVyLW5ldBCLNxoGQWRtaW5zGgcKA01TUBIAIgoKBkFkbWlucxIAIg8KC0VuZG9yc2VtZW50EgAiCwoHUmVhZGVycxIAIgsKB1dyaXRlcnMSACoGQWRtaW5z
+
