@@ -27,7 +27,7 @@ NO_OF_PEERS={{ peer_count | e }}
 NO_OF_NEW_PEERS={{ new_peer_count | e }}
 
 # Copy exisitng org certs
-cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+cp ${ORG_HOME}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
 
 # Copy existing org certs
 cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem

@@ -31,7 +31,7 @@ fabric-ca-client enroll -d -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --
 ## Get the CA cert and store in Org MSP folder
 fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
 mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
-cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+cp ${ORG_HOME}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
 
 # Add affiliation for organisation
 fabric-ca-client affiliation add ${AFFILIATION} -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
