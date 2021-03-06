@@ -1,0 +1,36 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: ephasus-authority-authority-trustee-auth-job
+  annotations:
+    fluxcd.io/automated: "false"
+  namespace: ephasus-authority-ns
+spec:
+  releaseName: ephasus-authority-authority-trustee-auth-job
+  chart:
+    path: platforms/hyperledger-indy/charts/indy-auth-job
+    git: git@github.com:jsarica/blockchain-automation-framework.git
+    ref: local
+  values:
+    metadata:
+      name: ephasus-authority-authority-trustee-auth-job
+      namespace: ephasus-authority-ns
+    network:
+      name: ephasus
+      kubernetes_url: https://192.168.99.114:8443
+    image:
+      name: ephasus-authority
+      repository: alpine:3.9.4
+    vault:
+      address: http://0.0.0.0:8200
+      keyPath: ephasus-authority.trustees
+      identity: authority-trustee
+      admin_auth_path: kubernetes-ephasus-authority-admin-auth
+      policy: ephasus-authority-authority-trustee-ro
+      policy_content: path \"/ephasus-authority/trustees/authority-trustee/*\" { capabilities = [ \"read\", \"list\" ] }
+      auth_path: kubernetes-ephasus-authority-authority-trustee-auth
+    account:
+      admin_service: ephasus-authority-admin-vault-auth
+      admin_role: rw
+      service: ephasus-authority-authority-trustee-vault-auth
+      role: ro

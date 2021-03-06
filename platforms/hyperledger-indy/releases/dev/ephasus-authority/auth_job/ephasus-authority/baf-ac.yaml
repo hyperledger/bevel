@@ -1,0 +1,36 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: ephasus-authority-baf-ac-auth-job
+  annotations:
+    fluxcd.io/automated: "false"
+  namespace: ephasus-authority-ns
+spec:
+  releaseName: ephasus-authority-baf-ac-auth-job
+  chart:
+    path: platforms/hyperledger-indy/charts/indy-auth-job
+    git: git@github.com:jsarica/blockchain-automation-framework.git
+    ref: local
+  values:
+    metadata:
+      name: ephasus-authority-baf-ac-auth-job
+      namespace: ephasus-authority-ns
+    network:
+      name: ephasus
+      kubernetes_url: https://192.168.99.114:8443
+    image:
+      name: ephasus-authority
+      repository: alpine:3.9.4
+    vault:
+      address: http://0.0.0.0:8200
+      keyPath: ephasus-authority.baf-ac
+      identity: baf-ac
+      admin_auth_path: kubernetes-ephasus-authority-admin-auth
+      policy: ephasus-authority-baf-ac-ro
+      policy_content: path \"/ephasus-authority/+/+/+/public*\" { capabilities = [ \"read\", \"list\" ] }
+      auth_path: kubernetes-ephasus-authority-baf-ac-auth
+    account:
+      admin_service: ephasus-authority-admin-vault-auth
+      admin_role: rw
+      service: ephasus-authority-baf-ac-vault-auth
+      role: ro
