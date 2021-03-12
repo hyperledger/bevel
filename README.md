@@ -111,7 +111,12 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
-
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/jagpreetsinghsasan"><img src="https://avatars.githubusercontent.com/u/56861721?v=4" width="100px;" alt=""/><br /><sub><b>Jagpreet Singh Sasan</b></sub></a></td>
+    <td align="center"><a href="https://web.ist.utl.pt/~ist180970/"><img src="https://avatars.githubusercontent.com/u/11261236?v=4" width="100px;" alt=""/><br /><sub><b>Rafael Belchior</b></sub></a></td>
+  </tr>
+</table>
 
 <!-- markdownlint-restore -->
 <!-- prettier-ignore-end -->
