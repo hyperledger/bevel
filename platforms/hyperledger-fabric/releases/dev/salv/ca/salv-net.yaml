@@ -1,0 +1,44 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: salv-net-ca
+  namespace: salv-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: salv-net-ca
+  chart:
+    git: https://github.com/alvaropicazo/blockchain-automation-framework.git
+    ref: ca-certs-fix
+    path: platforms/hyperledger-fabric/charts/ca    
+  values:
+    metadata:
+      namespace: salv-net
+      images:
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+        ca: hyperledger/fabric-ca:1.4.8
+    server:
+      name: ca
+      tlsstatus: true
+      admin: salv-admin
+    storage:
+      storageclassname: salvsc
+      storagesize: 512Mi 
+    vault:
+      role: vault-role
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      authpath: salv-net-auth
+      secretcert: secret/crypto/ordererOrganizations/salv-net/ca?ca.salv-net-cert.pem
+      secretkey: secret/crypto/ordererOrganizations/salv-net/ca?salv-net-CA.key
+      secretadminpass: secret/credentials/salv-net/ca/salv?user
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    service:
+      servicetype: ClusterIP
+      ports:
+        tcp:
+          port: 7054
+    proxy:
+      provider: haproxy
+      type: orderer
+      external_url_suffix: hf.dev2.aws.blockchaincloudpoc-develop.com
