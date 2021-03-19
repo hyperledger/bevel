@@ -10,9 +10,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.6
@@ -24,6 +22,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install molecule==3.0.6 yamllint ansible-lint docker==4.2.2 openshift
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+        sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+        sudo apt-get update && sudo apt-get install vault
+        # export the bin path
+        export PATH=~/bin:$PATH
       if: |
         contains(github.event.pull_request.title, '[shared]') ||
         contains(github.event.pull_request.title, '[corda]') ||
@@ -31,8 +34,6 @@ jobs:
     - name: Test Stage Shared default
       run: |
         cd ./platforms/shared/configuration
-        # export the bin path 
-        export PATH=~/bin:$PATH
         molecule test -s default
       if: contains(github.event.pull_request.title, '[shared]')
     - name: Test Stage kubernetes-corda
@@ -45,12 +46,17 @@ jobs:
         cd ./platforms/shared/configuration
         molecule test -s kubernetes-fabric
       if: contains(github.event.pull_request.title, '[shared]')
-    # Below tests needs to be fixed in molecule tests before makeing this active 
+    - name: Test Stage kubernetes-indy
+      run: |
+        cd ./platforms/shared/configuration
+        molecule test -s kubernetes-indy
+      if: contains(github.event.pull_request.title, '[shared]')
+    # Below tests needs to be fixed in molecule tests before makeing this active
     - name: Test Stage Fabric default
       run: | 
         cd ./platforms/hyperledger-fabric/configuration
         molecule test -s default
-      if: contains(github.event.pull_request.title, '[fabric]')  
+      if: contains(github.event.pull_request.title, '[fabric]')
     - name: Test Stage Fabric crypto
       run: | 
         cd ./platforms/hyperledger-fabric/configuration
