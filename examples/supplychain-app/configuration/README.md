@@ -123,8 +123,8 @@ network:
                 port: 8546
                 ambassador: 15021       
               transaction_manager:
-                port: 8443          
-                ambassador: 8443    
+                port: 443          
+                ambassador: 443    
               raft:                     
                 port: 50401
                 ambassador: 15023
