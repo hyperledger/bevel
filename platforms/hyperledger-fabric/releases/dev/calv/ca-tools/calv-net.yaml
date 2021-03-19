@@ -1,0 +1,28 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: calv-net-ca-tools
+  namespace: calv-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: calv-net-ca-tools
+  chart:
+    git: https://github.com/alvaropicazo/blockchain-automation-framework.git
+    ref: ca-certs-fix
+    path: platforms/hyperledger-fabric/charts/catools
+  values:
+    metadata:
+      namespace: calv-net
+      name: ca-tools
+
+    replicaCount: 1
+
+    image:
+      repository: hyperledger/fabric-ca-tools
+      tag: 1.2.1
+      pullPolicy: IfNotPresent
+      
+    storage:
+      storageclassname: calvsc
+      storagesize: 512Mi
