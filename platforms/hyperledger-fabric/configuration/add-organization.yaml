@@ -93,8 +93,8 @@
         component_type: "{{ item.type | lower}}"
         orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'
-    
+      when: item.org_status == 'new'  
+      
     # Generate script to modify the fetched configuration block
     - include_role:
         name: "create/new_organization/create_block"
@@ -144,19 +144,25 @@
         build_path: "./build"
         genesis: "{{ item.genesis }}"
         channel_name: "{{ item.channel_name | lower}}"
+        fetch_certs: "false"
         profile_name: "{{ item.channel_name }}"
       loop: "{{ network['channels'] }}"
 
-    # This role is to start the existing peer cli
-    # Fetch the configuration block and modify the block
+    # This role adds the new org to the existing consortium and updates the block  
+    
     - include_role:
-        name: "setup/config_block/fetch"
+        name: "create/new_organization/syschannel_block"
       vars:
         build_path: "./build"
-        participants: "{{ item.participants }}"
+        orderers: "{{ org.services.orderers }}"
         docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
-    
+        channel_name: "syschannel"
+        update_type: "tls"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == 'orderer' 
+
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
     - include_role:
@@ -175,14 +181,26 @@
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer' and item.org_status == 'new'
 
-    # This role fetch the block from the ansible host and get it signed from each existing organization admin
+
+    # This role is to start the existing peer cli
+    # Fetch the configuration block and modify the block
     - include_role:
-        name: "setup/config_block/sign_and_update"
+        name: "setup/config_block/fetch"
       vars:
         build_path: "./build"
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
+
+     # This role fetch the block from the ansible host and get it signed from each existing organization admin
+    - include_role:
+        name: "setup/config_block/sign_and_update"
+      vars:
+        build_path: "./build"
+        channel_sys: "syschannel"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"      
 
     # This role fetches block 0 and joins peers of new organizaion to the channel
     - include_role:
@@ -191,10 +209,11 @@
         build_path: "./build"
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
+      loop: "{{ network['channels'] }}"  
 
     # Create CLI pod for peers with cli option enabled
-    - include_role:
+    - name: Create CLI pod for each peer with it enabled
+      include_role:
         name: "create/cli_pod"
       vars:
         peers: "{{ org.services.peers }}"
@@ -202,7 +221,7 @@
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
-      when: org.type == "peer" and org.org_status == "new"
+      when: org.type == 'peer' and org.org_status == 'new'
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges

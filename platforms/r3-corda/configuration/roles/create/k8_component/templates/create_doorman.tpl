@@ -75,8 +75,7 @@ spec:
       annotations: {}
     pvc:
       annotations: {}
+{% if network.env.proxy == 'ambassador' %}
     ambassador:
       external_url_suffix: {{item.external_url_suffix}}
-      
-    
-        
+{% endif %}

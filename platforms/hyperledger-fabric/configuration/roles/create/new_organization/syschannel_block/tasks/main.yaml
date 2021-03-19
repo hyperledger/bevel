@@ -1,0 +1,28 @@
+############################################################################################
+# This task creates the generate_block.sh file for new organizations
+- name: "Create create-syschannel-block.sh script file for new orderer"
+  template:
+    src: "syschannel_update_script.tpl"
+    dest: "./build/syschannel-update-script.sh"
+  vars:
+    component_name: "{{ org.name | lower }}"
+    new_org_query: "organizations[?org_status=='new']"
+    new_org: "{{ network | json_query(new_org_query) | first }}"
+    channel: "{{ network.channels | first }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+
+# This task calls nested_create_cli to generate the cli value files for the orderer organization
+- name: Call nested_create_cli for the first orderer
+  include_tasks: nested_create_cli.yaml
+  vars:
+    orderer: "{{ org.services.orderers | first }}"
+    new_org_query: "participants[?org_status=='new']"
+    channel: "{{ chann }}"
+    new_org: "{{ chann | json_query(new_org_query) | first }}"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: chann
+  when: new_org != ""

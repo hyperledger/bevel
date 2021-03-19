@@ -7,8 +7,6 @@ network:
   type: quorum
   version: 2.5.0  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
 
-  frontend: enabled #Flag for frontend to enabled for nodes/peers
-
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
@@ -19,9 +17,10 @@ network:
       portRange: 
         from: 15010 
         to: 15043
-    # ports: 
-    #   - 3000
-    #   - 4000   
+      # ports: 
+      #   - 3000
+      #   - 4000 
+    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
@@ -61,6 +60,10 @@ network:
       - "https://manufacturer.test.quorum.blockchaincloudpoc.com"
       - "https://store.test.quorum.blockchaincloudpoc.com"
       - "https://warehouse.test.quorum.blockchaincloudpoc.com"
+
+    staticnodes: "/home/user/blockchain-automation-framework/build/quorum_staticnodes" # Location where staticnodes will be saved
+    genesis: "/home/user/blockchain-automation-framework/build/quorum_genesis"   # Location where genesis file will be saved
+    # NOTE for the above paths, the directories should exist
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -97,11 +100,6 @@ network:
         password: "git_access_token"          # Git Server user password
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
-      
-      #variables for frontend application
-      app:
-        google_maps_api: "api_key"
-      
       # The participating nodes are named as peers
       services:
         peers:
@@ -109,8 +107,8 @@ network:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
-          consortium_role: admin
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          lock: false        # true or false: Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -125,21 +123,13 @@ network:
             ambassador: 15013
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
-          expressapi:
-            port: 3000
-            targetPort: 3000
-          frontend:
-            targetPort: 80
-            port: 8080
-          # Geth url for the the node. Formed by http://(peer.name).(org.external_url_suffix):(ambassador rpc port)
-          geth_url: "http://carrier.test.corda.blockchaincloudpoc.com:15011" 
-          
+           
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: manufacturer
       unit: Manufacturer
-      external_url_suffix: test.corda.blockchaincloudpoc.com      
+      external_url_suffix: test.quorum.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -156,7 +146,7 @@ network:
         root_token: "vault_root_token"
         secret_path: "secret"
       # Git Repo details which will be used by GitOps/Flux.
-      # Do not check-in git_access_token
+      # IMPORTANT: Do not check-in your password, the git_access_token!
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
@@ -169,10 +159,6 @@ network:
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
 
-      #variables for frontend application
-      app:
-        google_maps_api: "api_key"
-      
       # The participating nodes are named as peers 
       services:
         peers:
@@ -181,6 +167,7 @@ network:
           subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          lock: false        # true or false: Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -195,26 +182,11 @@ network:
             ambassador: 15023
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
-          expressapi:
-            port: 3000
-            targetPort: 3000
-          frontend:
-            targetPort: 80
-            port: 8080
-          geth_url: "http://manufacturer.test.corda.blockchaincloudpoc.com:15021" 
-          # smartcontract to be deployed only from one node (should not be repeated in other nodes)
-          smart_contract:
-            name: "General"           # Name of the smart contract or Name of the main Smart contract Class
-            deployjs_path: "examples/supplychain-app/quorum/smartContracts" # Relative location of folder containing all smartcontracts
-            contract_path: "./contracts"       # Path of the smart contract folder under deployjs_path
-            iterations: 200           # Number of Iteration of execution to which the gas and the code is optimised
-            entrypoint: "General.sol" # Main entrypoint solidity file of the contract 
-            private_for: "FxaY4uzuyaFoQrEdrC6glrIwmEUcQQFh+XEB7N1QcDo=,CXtt5UNdZkJyA2CYWBhjmTSmyhMqjWGq4CBMKijhYFQ=" # Sample Public keys for the privateFor, leave empty if not needed
 
     - organization:
       name: store
       unit: Store
-      external_url_suffix: test.corda.blockchaincloudpoc.com      
+      external_url_suffix: test.quorum.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -222,7 +194,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
@@ -232,7 +203,7 @@ network:
         root_token: "vault_root_token"
         secret_path: "secret"
       # Git Repo details which will be used by GitOps/Flux.
-      # Do not check-in git_access_token
+      # IMPORTANT: Do not check-in your password, the git_access_token!
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
@@ -245,10 +216,6 @@ network:
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
 
-      #variables for frontend application
-      app:
-        google_maps_api: "api_key"
-
       services:
         peers:
         - peer:
@@ -256,6 +223,7 @@ network:
           subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          lock: false        # true or false: Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -270,18 +238,11 @@ network:
             ambassador: 15033
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
-          expressapi:
-            port: 3000
-            targetPort: 3000
-          frontend:
-            targetPort: 80
-            port: 8080
-          geth_url: "http://store.test.corda.blockchaincloudpoc.com:15031" 
 
     - organization:
       name: warehouse
       unit: Warehouse
-      external_url_suffix: test.corda.blockchaincloudpoc.com      
+      external_url_suffix: test.quorum.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -289,7 +250,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
@@ -312,10 +272,6 @@ network:
         email: "git_email"                # Email to use in git config
         private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
 
-      #variables for frontend application
-      app:
-        google_maps_api: "api_key"
-
       services:
         peers:
         - peer:
@@ -323,6 +279,7 @@ network:
           subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          lock: false        # true or false: Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -337,10 +294,3 @@ network:
             ambassador: 15043
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
-          expressapi:
-            port: 3000
-            targetPort: 3000
-          frontend:
-            targetPort: 80
-            port: 8080
-          geth_url: "http://warehouse.test.corda.blockchaincloudpoc.com:15041" 

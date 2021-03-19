@@ -18,34 +18,25 @@
         path: "./build"
         state: absent
 
-    # Create or get Orderer crypto materials
-    - include_role:
-        name: "create/crypto/orderer"
+    #Setup Vault-Kubernetes accesses and Regcred for docker registry
+    - name: Setup Vault Kubernetes for each organization
+      include_role: 
+        name: "setup/vault_kubernetes"
       vars:
-        component_name: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
-        org_name: "{{ item.name }}"
-        services: "{{ item.services }}"
-        subject: "{{ item.subject }}"
+        component_name: "{{ item.name | lower }}-net"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer'
-    
-    # Create or get Organization crypto materials
+        component_type: "{{ item.type | lower }}"
+        auth_path: "{{ item.name | lower }}-net-auth"
+      loop: "{{ network['organizations'] }}"        
+        
+    # Create generate_crypto script for each organization
     - include_role:
-        name: "create/crypto/peer"
+        name: "create/crypto_script"
       vars:
-        component_name: "{{ item.name | lower}}-net"
         component_type: "{{ item.type | lower}}"
-        org_name: "{{ item.name }}"
-        services: "{{ item.services }}"
-        subject: "{{ item.subject }}"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        add_new_org: "false"
+        orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'
 
     # Creating channel artifacts 
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
@@ -64,6 +55,7 @@
         channel_name: "{{ item.channel_name | lower}}"
         profile_name: "{{ item.channel_name }}"
         add_new_org: 'false'
+        fetch_certs: "true"
       loop: "{{ network['channels'] }}"
       when: item.channel_status == 'new'
 

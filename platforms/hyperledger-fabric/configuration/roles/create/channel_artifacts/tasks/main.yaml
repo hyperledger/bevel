@@ -19,6 +19,61 @@
   tags:
     - molecule-idempotence-notest
 
+  #Fetch msp files from Vault 
+- name: Check if msp admincerts already created
+  vars:
+    query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
+    query_vault_url: "organizations[?name=='{{organization.name}}'].vault.url"
+    query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token" 
+  shell: |
+    vault kv get -field=admincerts {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > Admin@{{ organization.name | lower }}-net-cert.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/admincerts/
+    mv Admin@{{ organization.name | lower }}-net-cert.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/admincerts/
+  environment:
+    VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
+    VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   
+  loop: "{{ item['participants'] }}"
+  loop_control:
+    loop_var: organization    
+  when: fetch_certs == 'true'
+
+ #Fetch msp files from Vault 
+
+- name: Check if msp cacerts already created
+  vars:
+    query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
+    query_vault_url: "organizations[?name=='{{organization.name}}'].vault.url"
+    query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token" 
+  shell: |
+    vault kv get -field=cacerts {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first}}.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/cacerts/
+    mv ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
+    VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   
+  loop: "{{ item['participants'] }}"
+  loop_control:
+    loop_var: organization    
+  when: fetch_certs == 'true'
+  
+  #Fetch msp files from Vault 
+- name: Check if msp tlscacerts already created
+  vars:
+    query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
+    query_vault_url: "organizations[?name=='{{organization.name}}'].vault.url"
+    query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token"
+  shell: |
+    vault kv get -field=tlscacerts {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/tlscacerts/
+    mv ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
+    VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   
+  loop: "{{ item['participants'] }}"
+  loop_control:
+    loop_var: organization    
+  when: fetch_certs == 'true'     
+
 ############################################################################################
 # This task fetches the configtx gen tar file from the mentioned URL
 - name: "Getting the configtxgen binary tar"
