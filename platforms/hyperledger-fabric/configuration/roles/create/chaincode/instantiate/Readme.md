@@ -81,7 +81,7 @@ This is the nested Task for chaincode instantiation.
 **loop_control**: Specify conditions for controlling the loop.
                 
     loop_var: loop variable used for iterating the loop.
-**when** : It runs when chaincode is not instantiated i.e. *instantiate_chaincode.results[0].resources* == 0.
+**when** : It runs when chaincode is not instantiated i.e. *instantiate_chaincode.resources.length* == 0.
 
 #### 4. Git Push
 This task pushes the above generated value files to git repo.

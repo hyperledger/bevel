@@ -26,7 +26,7 @@
     component_type: "Job"
     namespace: "{{ org.name |lower }}-net"
     kubernetes: "{{ org.k8s }}"
-    component_name: "approvechaincode-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+    component_name: "approvechaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
@@ -50,21 +50,23 @@
 
 # Check if invoke-chaincode is already run
 - name: 'Check for invoke-chaincode job'
-  k8s_info:
-    kind: "Job"
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "app = invokechaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
+    component_type: "OneTimeJob"
     namespace: "{{ org.name |lower }}-net"
     kubernetes: "{{ org.k8s }}"
+    component_name: "invokechaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
   register: invoke_chaincode
   when: peer.chaincode is defined
+
+- name: "Set Variable invoke_chaincode"
+  set_fact:
+    invoke_chaincode: "{{ result }}"
+
   
 - name: "Write all endorsing orgs certificates to vault"
   include_tasks: write.yaml
@@ -101,7 +103,7 @@
     loop_var: peer
   when: 
     - peer.chaincode is defined
-    - invoke_chaincode.results[0].resources|length == 0 or add_new_org == 'true'
+    - invoke_chaincode.resources|length == 0 or add_new_org == 'true'
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -116,4 +118,4 @@
     GIT_BRANCH: "{{ org.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing chaincode invocation files"
-  when: invoke_chaincode.results[0].resources|length == 0 or add_new_org == 'true'
+  when: invoke_chaincode.resources|length == 0 or add_new_org == 'true'
