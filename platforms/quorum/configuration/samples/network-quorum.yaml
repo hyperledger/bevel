@@ -34,7 +34,7 @@ network:
   
   # Following are the configurations for the common Quorum network
   config:    
-    consensus: "raft"                 # Options are "raft" and "ibft"
+    consensus: "ibft"                 # Options are "raft" and "ibft"
     ## Certificate subject for the root CA of the network. 
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
@@ -56,10 +56,10 @@ network:
     # The above domain name is formed by the http://(peer.name).(org.external_url_suffix):(ambassador constellation port)/
     # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix):(ambassador default port)
     tm_nodes: 
-      - "https://carrier.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://manufacturer.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://store.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://warehouse.test.quorum.blockchaincloudpoc.com:8443"
+      - "https://carrier.test.quorum.blockchaincloudpoc.com"
+      - "https://manufacturer.test.quorum.blockchaincloudpoc.com"
+      - "https://store.test.quorum.blockchaincloudpoc.com"
+      - "https://warehouse.test.quorum.blockchaincloudpoc.com"
 
     staticnodes: "/home/user/blockchain-automation-framework/build/quorum_staticnodes" # Location where staticnodes will be saved
     genesis: "/home/user/blockchain-automation-framework/build/quorum_genesis"   # Location where genesis file will be saved
@@ -70,6 +70,7 @@ network:
     # Specification for the 1st organization. Each organization should map to a VPC and a separate k8s cluster for production deployments
     - organization:
       name: carrier
+      unit: Carrier
       external_url_suffix: test.quorum.blockchaincloudpoc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -107,7 +108,7 @@ network:
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          lock: true/false        # Sets Quorum node to lock or unlock mode
+          lock: false        # true or false: Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -115,8 +116,8 @@ network:
             port: 8546
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15012 when transaction_manager = "constellation"
+            port: 443          # use port: 9001 when transaction_manager = "constellation"
+            ambassador: 443    # use ambassador: 15012 when transaction_manager = "constellation"
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15013
@@ -127,6 +128,7 @@ network:
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: manufacturer
+      unit: Manufacturer
       external_url_suffix: test.quorum.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -165,7 +167,7 @@ network:
           subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          lock: true/false        # Sets Quorum node to lock or unlock mode
+          lock: false        # true or false: Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -173,8 +175,8 @@ network:
             port: 8546
             ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15022 when transaction_manager = "constellation"
+            port: 443          # use port: 9001 when transaction_manager = "constellation"
+            ambassador: 443    # use ambassador: 15022 when transaction_manager = "constellation"
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15023
@@ -183,6 +185,7 @@ network:
 
     - organization:
       name: store
+      unit: Store
       external_url_suffix: test.quorum.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -191,7 +194,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
@@ -221,7 +223,7 @@ network:
           subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          lock: true/false        # Sets Quorum node to lock or unlock mode
+          lock: false        # true or false: Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -229,8 +231,8 @@ network:
             port: 8546
             ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15032 when transaction_manager = "constellation"
+            port: 443          # use port: 9001 when transaction_manager = "constellation"
+            ambassador: 443    # use ambassador: 15032 when transaction_manager = "constellation"
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15033
@@ -239,6 +241,7 @@ network:
 
     - organization:
       name: warehouse
+      unit: Warehouse
       external_url_suffix: test.quorum.blockchaincloudpoc.com      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -247,7 +250,6 @@ network:
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        region: "cluster_region"
         context: "cluster_context"
         config_file: "cluster_config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
@@ -277,7 +279,7 @@ network:
           subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
           type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          lock: true/false        # Sets Quorum node to lock or unlock mode
+          lock: false        # true or false: Sets Quorum node to lock or unlock mode
           p2p:
             port: 21000
             ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -285,8 +287,8 @@ network:
             port: 8546
             ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15042 when transaction_manager = "constellation"
+            port: 443          # use port: 9001 when transaction_manager = "constellation"
+            ambassador: 443    # use ambassador: 15042 when transaction_manager = "constellation"
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15043

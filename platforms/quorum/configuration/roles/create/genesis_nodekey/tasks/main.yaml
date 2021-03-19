@@ -1,6 +1,6 @@
-#This task checks if nodekey is present in the vault or not, if present, skip all the below tasks
-- name: Check if nodekey is present in vault
-  include_tasks: nodekey_vault_check.yaml
+#This task checks if genesis file is present in the vault or not, if present, skip all the below tasks
+- name: Check if genesis file is present in vault
+  include_tasks: vault_genesis_check.yaml
   vars:
     component_ns: "{{ org.name }}-quo"
     vault: "{{ org.vault }}"
@@ -63,6 +63,19 @@
     dest: "{{ network.config.genesis }}"
     follow: yes
     force: yes
+  when: vault_check|default(0)|int != 0 and ( not add_new_org )
+
+# This tasks copy the crypto material to the vault
+- name: Copy the crypto material to Vault
+  include_tasks: add_to_vault.yaml
+  vars:
+    component_ns: "{{ org.name }}-quo"
+    vault: "{{ org.vault }}"
+    peers: "{{ org.services.peers }}"
+    genesis: "{{ lookup('file', './build/genesis.json') | b64encode }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
   when: vault_check|default(0)|int != 0 and ( not add_new_org )
 
 # This task rename the above created directories to the org_name/node_name 
