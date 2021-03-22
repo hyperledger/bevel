@@ -3,9 +3,35 @@
   hosts: localhost
   connection: local
   vars:
+    add_new_org:
     network:
       env:
         proxy: haproxy
+      version: "1.4.4"
+      orderers:
+      - orderer:
+        type: orderer
+        name: orderer1
+        org_name: supplychain               #org_name should match one organization definition below in organizations: key
+        uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+        certificate: ./build/orderer1.crt
+      organizations:
+        - organization:
+          name: testorderer
+          type: orderer
+          cloud_provider: aws
+          external_url_suffix: test_url
+          services:
+            consensus:
+              name: "raft"
+              replicas: 3
+            orderers:
+              - orderer:
+                name: testorderer
+                type: orderer
+                consensus: kafka
+                grpc:
+                  port: 7050
     kubernetes: 
       config_file: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
