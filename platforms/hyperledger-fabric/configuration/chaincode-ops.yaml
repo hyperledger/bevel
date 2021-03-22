@@ -20,9 +20,12 @@
       include_role:
         name: "create/chaincode/install"
       vars:
+        participants: "{{ channel.participants }}"
         docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer' and item.org_status == 'new'
+      loop: "{{ network['channels'] }}"
+      loop_control:
+        loop_var: channel
+      when: participants is defined
 
     - name: Instantiate chaincode
       include_role:
