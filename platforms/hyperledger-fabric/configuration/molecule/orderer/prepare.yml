@@ -1,0 +1,81 @@
+---
+- name: Prepare for Molecule Test
+  hosts: k8s
+  gather_facts: no
+  vars:
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') }}"
+  tasks:
+  - name: delete the kubeconfig if present
+    file:
+      path: '{{ kubeconfig }}'
+      state: absent
+    delegate_to: localhost
+
+  - name: Fetch the kubeconfig
+    fetch:
+      dest: '{{ kubeconfig }}'
+      flat: yes
+      src: /root/.kube/config
+
+  - name: Change the kubeconfig port to the proper value
+    replace:
+      regexp: '8443'
+      replace: "{{ lookup('env', 'KIND_PORT') }}"
+      path: '{{ kubeconfig }}'
+    delegate_to: localhost
+
+  - name: Wait for the Kubernetes API to become available (this could take a minute)
+    uri:
+      url: "http://localhost:10080/kubernetes-ready"
+      status_code: 200
+      validate_certs: no
+    register: result
+    until: (result.status|default(-1)) == 200
+    retries: 60
+    delay: 5
+
+  - name: Wait for the Vault API to become available (this could take a minute)   # Waits for vault to be ready
+    uri:
+      url: "http://localhost:9090/ui/"
+      status_code: 200
+    register: _result
+    until: (_result.status|default(-1)) == 200
+    retries: 7
+    delay: 5
+    delegate_to: localhost
+
+  - name: Delete any existing vault secret path
+    shell: |
+      vault secrets disable secret/
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    delegate_to: localhost
+
+  - name: create/enable new vault secret path
+    shell: |
+      vault secrets enable -version=1 -path=secret kv
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    changed_when: false
+    delegate_to: localhost
+
+  - name: create testpeer namespace
+    shell: |
+      kubectl create namespace testpeer
+    changed_when: false
+    delegate_to: localhost
+
+- hosts: localhost
+  connection: local
+  tasks:
+  - name: Create .build genesis directory
+    file:
+      path: "./build/channel-artifacts"
+      state: directory
+
+  - name: Create .build genesis file
+    file:
+      path: "./build/channel-artifacts/genesis.block.base64"
+      state: touch
