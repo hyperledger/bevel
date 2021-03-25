@@ -59,16 +59,28 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'
+      when: item.type == 'peer' and item.org_status == 'new'
 
     # This role fetches block 0 and joins peers of new organizaion to the channel
     - include_role:
-        name: "create/channels_join"
+        name: "create/add_new_peer/update_block"
       vars:
         build_path: "./build"
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
+
+    # Create CLI pod for peers with cli option enabled
+    - name: Create CLI pod for each peer with it enabled
+      include_role:
+        name: "create/cli_pod"
+      vars:
+        peers: "{{ org.services.peers }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == 'peer' and org.org_status == 'new'      
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
