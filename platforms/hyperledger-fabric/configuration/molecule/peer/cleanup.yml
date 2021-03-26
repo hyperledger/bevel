@@ -1,0 +1,37 @@
+---
+- name: Cleanup
+  hosts: localhost
+  tasks:
+
+#####################################################################################
+    #This task deletes the temporarily created build directory
+    - name: Delete the build directory
+      file:
+        path: "./build"
+        state: absent
+
+#####################################################################################
+    #This task deletes the temporarily created test directory
+    - name: Delete the test directory
+      file:
+        path: "./test"
+        state: absent
+
+#####################################################################################
+    #This task deletes the temporarily copied openssl.conf file
+    - name: Delete openssl.conf
+      file:
+        path: "openssl.conf"
+        state: absent
+
+    #This task deletes the temporarily created shared directory
+    - name: Delete the temp roles folder
+      file:
+        path: "{{ playbook_dir }}/../../shared"
+        state: absent
+
+#####################################################################################
+    #This task prunes the empty docker volumes
+    - name: "Prunes the empty docker volumes"
+      shell: |
+        docker volume prune -f
