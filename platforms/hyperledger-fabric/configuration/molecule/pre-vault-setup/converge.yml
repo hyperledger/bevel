@@ -3,9 +3,17 @@
   hosts: localhost
   connection: local
   vars:
+    add_new_org:
     network:
       env:
         proxy: haproxy
+      orderers:
+      - orderer:
+          type: orderer
+          name: testorderer1
+          org_name: testorg
+          uri: orderer1.test.com
+          certificate: ./build/orderer1.crt
     kubernetes: 
       config_file: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
@@ -102,7 +110,7 @@
     # Testing create/crypto/orderer
     - name: "Include create/crypto/orderer"
       include_role:
-        name: "orderer"
+        name: "configuration/roles/create/crypto/orderer"
       vars:
         component_type: orderer
         component_name: testorderer
@@ -122,7 +130,7 @@
     # Testing create/crypto/peer
     - name: "Include create/crypto/peer"
       include_role:
-        name: "peer"
+        name: "configuration/roles/create/crypto/peer"
       vars:
         component_type: peer
         component_name: testpeer
