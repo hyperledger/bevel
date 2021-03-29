@@ -205,12 +205,26 @@ spec:
           args:
           - |-
               #!/usr/bin/env sh
-               validateVaultResponse () {
-                 if echo ${2} | grep "errors"; then
-                    echo "ERROR: unable to retrieve ${1}: ${2}"
-                    exit 1
-                 fi
-               }
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
 
               # setting up env to get secrets from vault
               echo "Getting secrets from Vault Server"
@@ -417,12 +431,26 @@ spec:
           args:
           - |-
                #!/usr/bin/env sh
-               validateVaultResponse () {
-               if echo ${2} | grep "errors"; then
-                echo "ERROR: unable to retrieve ${1}: ${2}"
-                exit 1
-                fi
-               }
+                validateVaultResponse () {
+                  if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                  fi
+                  if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                  then
+                    http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                    --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                    ${VAULT_ADDR}/v1/${1})
+                    curl_response=$?
+                    if test "$http_code" != "200" ; then
+                        echo "Http response code from Vault - $http_code"
+                        if test "$curl_response" != "0"; then
+                          echo "Error: curl command failed with error code - $curl_response"
+                          exit 1
+                        fi
+                    fi
+                  fi
+                }
                # setting up env to get secrets from vault
                echo "Getting secrets from Vault Server"
                KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -433,25 +461,25 @@ spec:
                
                # get nodekeystore.jks from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/nodekeystore)" "${LOOKUP_SECRET_RESPONSE}"
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/nodekeystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekeystore.jks"]')
                echo "${TLS_NODEKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/nodekeystore.jks
 
                # get sslkeystore.jks from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/sslkeystore)" "${LOOKUP_SECRET_RESPONSE}"
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/sslkeystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["sslkeystore.jks"]')
                echo "${TLS_SSLKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/sslkeystore.jks
 
                # get truststore.jks from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
                echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks
                 
                # get network-map-truststore.jks from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmaptruststore | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/networkmaptruststore)" "${LOOKUP_SECRET_RESPONSE}"
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/networkmaptruststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                TLS_NMS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-map-truststore"]')
                echo "${TLS_NMS}" | base64 -d > ${OUTPUT_PATH}/network-map-truststore.jks
 
@@ -462,12 +490,12 @@ spec:
                    mkdir -p ${OUTPUT_PATH}/doorman
 
                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmap | jq -r 'if .errors then . else . end')
-                   validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/networkmap)" "${LOOKUP_SECRET_RESPONSE}"
+                   validateVaultResponse "${CERTS_SECRET_PREFIX}/networkmap" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                    NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.crt"]')
                    echo "${NETWORKMAP_CRT}" | base64 -d > ${OUTPUT_PATH}/networkmap/networkmap.crt
 
                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/doorman | jq -r 'if .errors then . else . end')
-                   validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/doorman)" "${LOOKUP_SECRET_RESPONSE}"
+                   validateVaultResponse "${CERTS_SECRET_PREFIX}/doorman" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                    DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["doorman.crt"]')
                    echo "${DOORMAN_CRT}" | base64 -d > ${OUTPUT_PATH}/doorman/doorman.crt
                fi
@@ -480,12 +508,12 @@ spec:
                   SSL_CERT_PATH={{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}
                   SSL_KEYSTORE_FILE_NAME_KEY={{ .Values.nodeConf.rpcSettings.ssl.sslKeystoreFileName }}
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${SSL_KEYSTORE_FILE_NAME_KEY} | jq -r 'if .errors then . else . end')
-                  validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/${SSL_KEYSTORE_FILE_NAME_KEY})" "${LOOKUP_SECRET_RESPONSE}"
+                  validateVaultResponse "${CERTS_SECRET_PREFIX}/${SSL_KEYSTORE_FILE_NAME_KEY}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                   SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["SSL_KEYSTORE_FILE_NAME_KEY"]')
                   echo "${SSLKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/${SSL_CERT_PATH}/${SSL_KEYSTORE_FILE_NAME_KEY}
                   TRUSTKEYSTORE_FILE_NAME_KEY={{ .Values.nodeConf.rpcSettings.ssl.sslKeystoreFileName }}
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${TRUSTKEYSTORE_FILE_NAME_KEY} | jq -r 'if .errors then . else . end')
-                  validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/${TRUSTKEYSTORE_FILE_NAME_KEY})" "${LOOKUP_SECRET_RESPONSE}"
+                  validateVaultResponse "${CERTS_SECRET_PREFIX}/${TRUSTKEYSTORE_FILE_NAME_KEY}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                   TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["TRUSTKEYSTORE_FILE_NAME_KEY"]')
                   echo "${TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/${SSL_CERT_PATH}/${TRUSTKEYSTORE_FILE_NAME_KEY}
                else

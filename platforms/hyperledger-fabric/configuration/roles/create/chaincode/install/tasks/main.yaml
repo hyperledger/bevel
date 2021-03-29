@@ -1,83 +1,10 @@
----
-#############################################################################################
-# This role creates value file for the deployment of chaincode install
-#############################################################################################
-
-############################################################################################
-# Create value file for chaincode installation for fabric version 1.4.x
-- name: "Create value file for chaincode installation for fabric version 1.4.x"
-  include_tasks: valuefile.yaml
-  vars:      
-    name: "{{ item.name | lower}}"
-    namespace: "{{ item.name | lower}}-net"
-    component_type: "{{ item.type | lower}}"
-    component_peers: "{{ item.services.peers }}"
-    vault: "{{ item.vault }}"
-    kubernetes: "{{ item.k8s }}"
-    git_url: "{{ item.gitops.git_url }}"
-    git_branch: "{{ item.gitops.branch }}"
-    charts_dir: "{{ item.gitops.chart_source }}"
-    values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-  loop: "{{ component_peers }}"
-  loop_control:
-    loop_var: peer
-  when: 
-    - peer.chaincode is defined and '1.4' in network.version
-
-# Create value file for chaincode installation for first pod in fabric version 2.2.x
-- name: "Create value file for chaincode installation for first pod in fabric version 2.2.x"
-  include_tasks: valuefile.yaml
-  vars:      
-    name: "{{ item.name | lower}}"
-    namespace: "{{ item.name | lower}}-net"
-    component_type: "{{ item.type | lower}}"
-    component_peers: "{{ item.services.peers }}"
-    vault: "{{ item.vault }}"
-    kubernetes: "{{ item.k8s }}"
-    git_url: "{{ item.gitops.git_url }}"
-    git_branch: "{{ item.gitops.branch }}"
-    charts_dir: "{{ item.gitops.chart_source }}"
-    values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-  loop: "{{ component_peers }}"
-  loop_control:
-    loop_var: peer
-  when: 
-    - peer.chaincode is defined and '2.' in network.version
-    - peer.name == 'peer0'
-
-# Check or Wait if install-chaincode is already run
-- name: "Waiting for chaincode to be installed on peer0"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+# call nested install for each org from network.org that is also in participants list
+- name: "Call nested  main from here"
+  include_tasks: nested_install.yaml
   vars:
-    component_type: "Job"
-    namespace: "{{ item.name |lower }}-net"
-    kubernetes: "{{ item.k8s }}"
-    component_name: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
-  loop: "{{ item.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: 
-    - peer.chaincode is defined and '2.' in network.version
-    - peer.name == 'peer0'
-
-# Create value file for chaincode installation for fabric version 2.2.x
-- name: "Create value file for chaincode installation for fabric version 2.2.x"
-  include_tasks: valuefile.yaml
-  vars:      
-    name: "{{ item.name | lower}}"
-    namespace: "{{ item.name | lower}}-net"
-    component_type: "{{ item.type | lower}}"
-    component_peers: "{{ item.services.peers }}"
-    vault: "{{ item.vault }}"
-    kubernetes: "{{ item.k8s }}"
-    git_url: "{{ item.gitops.git_url }}"
-    git_branch: "{{ item.gitops.branch }}"
-    charts_dir: "{{ item.gitops.chart_source }}"
-    values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-  loop: "{{ component_peers }}"
-  loop_control:
-    loop_var: peer
-  when: 
-    - peer.chaincode is defined and '2.' in network.version
-    - peer.name != 'peer0'
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+  loop: "{{ participants }}"
+  loop_control: 
+    loop_var: participant
+  when: participant.org_status == 'new' and org.type == 'peer'
