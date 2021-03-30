@@ -54,3 +54,24 @@ spec:
     {{- if $.Values.service.ports.tcp.nodeport }}
     nodePort: {{ $.Values.service.ports.tcp.nodeport }}
     {{- end }}
+
+{{- if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $.Values.server.name }}
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+    ingress.kubernetes.io/ssl-passthrough: "true"  
+spec:
+  rules:
+  - host: ca.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ $.Values.server.name }}
+          servicePort: {{ $.Values.service.ports.tcp.clusteripport }}    
+{{- end }}
