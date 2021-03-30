@@ -6,13 +6,12 @@ BAF current roadmap
     title BAF current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    Platforms and components upgrade: active, 21-01-07, 90d
-    Corda Ent. OFE*: active, 20-11-15, 120d
-    Fabric OFE*: active, 20-10-15, 150d
-    Besu OFE*: 21-01-07, 45d
-    Git Action Migration: active, 21-01-07, 30d
+    Platforms and components upgrade: active, 21-01-07, 180d
+    Corda Ent. OFE*: active, 20-11-15, 180d
+    Fabric OFE*: active, 20-10-15, 240d
+    Besu OFE*: active, 21-01-07, 150d
     section Application
-    Besu Ref App: active, b4, 20-10-15, 120d
+    Besu Ref App: b4, 20-10-15, 120d
 
 .. |pin| image:: _static/pin.png
     :width: 15pt
@@ -55,36 +54,35 @@ General
     - |tick| Helm3 upgrade
     - |tick| EKS upgrade to 1.16
     - |run| Ambassador upgrade to 1.9.1  
-    - |hand| Java version upgrades
     - |pin| Improve logging/error messaging in playbooks
-    - |pin| Proxy as none option in DLT platforms
-   
+    - |pin| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric  
+    - |hand| Java version upgrades
 
 Platforms
 ---------
-- |tick| HL Fabric 2.2 version upgrade
-- |pin| HL Fabric v1.4.x upgrade
 - |run| Corda Ent. operational feature enhancements
-    - |run| Enable mutiple notaries
-    - |pin| Addition of notaries
+    - |tick| Enable mutiple notaries
+    - |pin| Addition of notary node to an existing network
     - |pin| R3 Corda version 4.x upgrade
     - |pin| CENM version upgrade
     - |hand| Removable of node
 - |run| HL Fabric operational feature enhancements
-    - |pin| External chaincode for Fabric 2.2.x
-    - |pin| CI/CD piplelines for chaincode deployment 
-    - |pin| Multi Orderer organisation option for RAFT
+    - |tick| HL Fabric 2.2 version upgrade
+    - |tick| HL Fabric v1.4.8 upgrade
     - |run| Feature for user identities
+    - |pin| External chaincode for Fabric 2.2.x
+    - |pin| Multi Orderer organisation option for RAFT
+    - |pin| CI/CD piplelines for chaincode deployment 
 - |run| HL Besu operational feature enhancements
     - |tick| Enable DNS support
-    - |pin| Addition of new validator node
-    - |pin| Enable bootnodes
+    - |pin| Enable deployment without proxy (proxy as none option)
+    - |hand| Addition of new validator node
+    - |hand| Enable bootnodes
 
 
 Application
 -----------
-
--  |run| Hyperledger Besu reference application
+-  |hand| Hyperledger Besu reference application
 
 
 Histroic DLT/Blockchain support releases
