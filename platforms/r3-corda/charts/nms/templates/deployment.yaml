@@ -53,7 +53,10 @@ spec:
           - containerPort: {{ .Values.service.targetPort }}
         volumeMounts:
           - name: {{ .Values.nodeName }}-servicedata
-            mountPath: "{{ .Values.image.mountPath.basePath }}/db/"
+            mountPath: "{{ .Values.image.mountPath.basePath }}/db"
+            readOnly: false
+          - name: {{ .Values.nodeName }}-logs
+            mountPath: "{{ .Values.image.mountPath.basePath }}/logs"
             readOnly: false
           - name: certs
             mountPath: "{{ .Values.image.mountPath.basePath }}/db/certs"
@@ -61,6 +64,36 @@ spec:
           - name: creds
             mountPath: "/opt/creds"
             readOnly: false
+      - name: logs
+        image: "{{ .Values.image.initContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          cd /opt/networkmap/
+          COUNTER=1
+          NETWORK_ROOT_TRUST=/opt/networkmap/network-map-truststore.jks
+          while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+          do
+            curl http://localhost:8080/network-map/truststore --output network-map-truststore.jks
+            if [ -f "$NETWORK_ROOT_TRUST" ]
+            then
+              echo "SUCCESS!"
+              echo "NMS running and fetched truststore"
+              break
+            else
+              COUNTER=`expr "$COUNTER" + 1`
+              sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+            fi   
+          done 
+          if ["$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] 
+          then 
+            exit 1 
+          fi
+          while true; do tail -f ./logs/*.log 2>/dev/null; sleep 5; done
+        volumeMounts:
+        - name: {{ .Values.nodeName }}-logs
+          mountPath: "{{ .Values.image.mountPath.basePath }}/logs"
       initContainers:
       - name: init-certificates
         image: {{ .Values.image.initContainerName }}
@@ -82,12 +115,26 @@ spec:
         args:
         - |-
              #!/usr/bin/env sh
-             validateVaultResponse () {
-             if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-              fi
-             }
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
 
              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
              echo "Getting secrets from Vault Server"
@@ -98,7 +145,7 @@ spec:
 
              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.certsecretprefix }} | jq -r 'if .errors then . else . end')
 
-             validateVaultResponse "secret (${{ .Values.vault.certsecretprefix }})" "${LOOKUP_SECRET_RESPONSE}"
+             validateVaultResponse "${{ .Values.vault.certsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
              ROOTCA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootcakey"]')
              mkdir -p ${OUTPUT_PATH}/root;
@@ -135,12 +182,26 @@ spec:
         args:
         - |-
              #!/usr/bin/env sh
-             validateVaultResponse () {
-             if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-              fi
-             }
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
 
              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
              echo "Getting secrets from Vault Server"
@@ -151,6 +212,7 @@ spec:
              OUTPUT_PATH=${MOUNT_PATH}
              
              LOOKUP_PWD_RESPONSE_DB_PASS=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${DB_CRED_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+             validateVaultResponse "${DB_CRED_SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE_DB_PASS}" "LOOKUPSECRETRESPONSE"
              MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE_DB_PASS} | jq -r '.data["mongodbPassword"]')
           
              echo "${MONGODB_PASSWORD}" >> ${MOUNT_PATH}/db_root_password
@@ -232,6 +294,9 @@ spec:
         - name: {{ .Values.nodeName }}-servicedata
           persistentVolumeClaim:
             claimName: {{ .Values.nodeName }}-pvc
+        - name: {{ .Values.nodeName }}-logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-pvc-logs
         - name: certs
           emptyDir:
             medium: Memory

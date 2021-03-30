@@ -6,6 +6,13 @@
     network:
       env:
         proxy: haproxy
+      orderers:
+      - orderer:
+        type: orderer
+        name: testorderer1
+        org_name: testorg
+        uri: orderer1.test.com
+        certificate: ./build/orderer1.crt
     kubernetes: 
       config_file: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
@@ -94,7 +101,7 @@
 
 #####################################################################################
     # Testing create/crypto_script role for orderer
-    - name: "Include configuration/roles/create/crypto_script"
+    - name: "Include configuration/roles/create/crypto_script for orderer"
       include_role:
         name: "configuration/roles/create/crypto_script"
       vars:
@@ -119,7 +126,7 @@
 
 # #####################################################################################
     # Testing create/crypto_script for peers
-    - name: "Include configuration/roles/create/crypto_script"
+    - name: "Include configuration/roles/create/crypto_script for peers"
       include_role:
         name: "configuration/roles/create/crypto_script"
       vars:
@@ -128,7 +135,7 @@
         item:
           name: test_name
           country: test_country
-          subject: test_subject
+          subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
           state: test_state
           location: test_location
           external_url_suffix: test_url
@@ -144,14 +151,14 @@
     # Testing create/crypto/orderer
     - name: "Include create/crypto/orderer"
       include_role:
-        name: "orderer"
+        name: "configuration/roles/create/crypto/orderer"
       vars:
         org_name: testorg
         component_type: orderer
         component_name: testorderer
-        cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
+        cert_subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
         item:
-          external_url_suffix: "test.url.com"
+          external_url_suffix: test_url
         services:
           orderers:
           - orderer:
@@ -161,8 +168,9 @@
     # Testing create/crypto/peer
     - name: "Include create/crypto/peer"
       include_role:
-        name: "peer"
+        name: "configuration/roles/create/crypto/peer"
       vars:
+        add_new_org: "false"
         component_type: peer
         component_name: testpeer
         orderers:
@@ -170,10 +178,10 @@
             name: testorderer1
             component_name: testorderer
         item:
-          external_url_suffix: "test.url.com"
+          external_url_suffix: test_url
         peer:
-          name: testpeer
-        cert_subject: "O=Mj/OU=Mj/L=47.38;8.54;Zurich/C=CH"
+          name: testpeer1
+        cert_subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
         services:
           peers:
           - peer:
@@ -188,6 +196,7 @@
       include_role:
         name: "configuration/roles/create/configtx"
       vars:
+        add_new_org: "false"
         config_file: "./build/configtx.yaml"
         values_dir: "./"
         name: build
@@ -245,6 +254,7 @@
         name: "configuration/roles/create/channel_artifacts"
       vars:
         add_new_org: "false"
+        fetch_certs: "false"
         build_path: "./build"
         values_dir: "."
         name: build

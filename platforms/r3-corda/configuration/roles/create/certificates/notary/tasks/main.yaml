@@ -28,7 +28,26 @@
     url: "{{ nms_url }}/network-map/truststore"
     dest: "{{ notary_certs }}/network-map-truststore.jks"
     validate_certs: no
-  when: truststore_result.failed == True
+  when: truststore_result.failed == True and network.env.proxy != 'none'
+
+# Wait till the nms is running
+- name: Waiting for nms pod to come up
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ item.services.nms.name | lower }}"
+    kubernetes: "{{ item.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
+# This task downloads the certificates from NMS
+- name: "Downloads certs from nms pod"
+  shell: |
+    export NMS_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ item.services.nms.name | lower }} | grep {{ item.services.nms.name | lower }}  | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${NMS_POD}:../../opt/networkmap/network-map-truststore.jks -c logs {{ notary_certs }}/network-map-truststore.jks
+  when: truststore_result.failed == True and network.env.proxy == 'none'
 
 ########################################################################################
 # This task loads the certificates to vault
@@ -124,4 +143,4 @@
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"
-    
+  when: network.env.proxy != 'none'
