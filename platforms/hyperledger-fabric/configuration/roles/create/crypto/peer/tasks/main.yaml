@@ -50,8 +50,10 @@
 
 - name: Call common.yaml for each peer
   include_tasks: common.yaml
-  tags:
-    - notest
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.peerstatus is not defined or peer.peerstatus == 'new'
 
 - name: Call peer.yaml for each peer
   include_tasks: peer.yaml
@@ -81,14 +83,31 @@
     NodeOUs:
       Enable: true
       ClientOUIdentifier:
+        Certificate: cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
+        OrganizationalUnitIdentifier: client
+      PeerOUIdentifier:
+        Certificate: cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
+        OrganizationalUnitIdentifier: peer
+    EOF
+  when: not msp_file_status.stat.exists and  network.env.proxy!= 'none'
+  changed_when: false
+
+# This task creates the MSP config.yaml file for organizations
+- name: Create the MSP config.yaml file for orgs
+  shell: |
+    cd ./build/crypto-config/peerOrganizations/{{ component_name }}/msp
+    cat <<EOF > config.yaml
+    NodeOUs:
+      Enable: true
+      ClientOUIdentifier:
         Certificate: cacerts/ca-{{ component_name }}-7054.pem
         OrganizationalUnitIdentifier: client
       PeerOUIdentifier:
         Certificate: cacerts/ca-{{ component_name }}-7054.pem
         OrganizationalUnitIdentifier: peer
     EOF
-  when: not msp_file_status.stat.exists
-  changed_when: false
+  when: not msp_file_status.stat.exists and network.env.proxy == 'none'
+  changed_when: false  
 
 # Check orderer-certificate file exists
 - name: Check that orderer-certificate file exists
@@ -203,13 +222,24 @@
 - name: Copy organization level certificates for orgs
   shell: |
     vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.key)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/admincerts/Admin@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_admin_result.failed == True or vault_admin_result.stdout == '' and network.env.proxy != 'none'
+  tags:
+    - molecule-idempotence-notest
+
+- name: Copy organization level certificates for orgs
+  shell: |
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.key)"
     vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/admincerts/Admin@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_admin_result.failed == True or vault_admin_result.stdout == ''
+  when: vault_admin_result.failed == True or vault_admin_result.stdout == '' and network.env.proxy == 'none'
   tags:
-    - molecule-idempotence-notest
+    - molecule-idempotence-notest    
 
 # Check user msp already created
 - name: Check if user msp already created
@@ -225,10 +255,21 @@
 - name: Copy user certificates for orgs
   shell: |
     vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.key)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/admincerts/User1@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_user_result.failed == True or vault_user_result.stdout == '' and network.env.proxy != 'none'
+  tags:
+    - molecule-idempotence-notest
+
+- name: Copy user certificates for orgs
+  shell: |
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.key)"
     vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/admincerts/User1@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_user_result.failed == True or vault_user_result.stdout == ''
+  when: vault_user_result.failed == True or vault_user_result.stdout == '' and network.env.proxy == 'none'
   tags:
     - molecule-idempotence-notest
