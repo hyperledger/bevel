@@ -6,7 +6,7 @@ Orderer: &OrdererDefaults
 {% endif %}
   Addresses:
 {% for orderer in orderers %}
-{% if provider == 'minikube' %}
+{% if provider == 'none' %}
     - {{orderer.name}}.{{ component_ns }}:7050
 {% else %}
     - {{orderer.name}}.{{ item.external_url_suffix }}:8443

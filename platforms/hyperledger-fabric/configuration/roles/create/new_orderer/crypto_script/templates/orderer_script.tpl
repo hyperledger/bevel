@@ -54,6 +54,9 @@ fabric-ca-client enroll -d -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_CYPTO_FO
 
 # Create the TLS CA directories of the MSP folder if they don't exist.
 mkdir ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
+if [ {{ proxy }} != "none"]; then
+	mv ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${ALTERNATIVE_ORG_NAMES}-8443.pem
+fi
 cp ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
 
 # Copy the peer org's admin cert into target MSP directory
