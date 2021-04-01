@@ -4,7 +4,8 @@ set -x
 
 CURRENT_DIR=${PWD}
 FULLY_QUALIFIED_ORG_NAME="{{ component_ns }}"
-ALTERNATIVE_ORG_NAMES="{{ item.external_url_suffix }}"
+EXTERNAL_URL_SUFFIX="{{ item.external_url_suffix }}"
+ALTERNATIVE_ORG_NAMES=("{{ item.external_url_suffix }}")
 ORG_NAME="{{ component_name }}"
 SUBJECT="C={{ component_country }},ST={{ component_state }},L={{ component_location }},O={{ component_name }}"
 SUBJECT_PEER="{{ component_subject }}"
@@ -27,12 +28,12 @@ fabric-ca-client enroll -d -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --
 
 ## Get the CA cert and store in Org MSP folder
 fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
+
+if [ "{{ proxy }}" != "none" ]; then
+    mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
+fi
 mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
 cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
-
-if [ {{ proxy }} != "none"]; then
-    mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${ALTERNATIVE_ORG_NAMES}-8443.pem
-fi
 
 ## Register and enroll admin for Org and populate admincerts for MSP
 fabric-ca-client register -d --id.name ${ORG_ADMIN_USER} --id.secret ${ORG_ADMIN_PASS} --csr.names "${SUBJECT_PEER}" --id.attrs "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.AffiliationMgr=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
@@ -48,8 +49,8 @@ cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_HOME}/admin/msp/admincerts/${ORG_ADMI
 mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
 cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
 
-if [ {{ proxy }} != "none"]; then
-    mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${ALTERNATIVE_ORG_NAMES}-8443.pem
+if [ "{{ proxy }}" != "none" ]; then
+    mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
 fi
 
 # Get TLS cert for admin and copy to appropriate location

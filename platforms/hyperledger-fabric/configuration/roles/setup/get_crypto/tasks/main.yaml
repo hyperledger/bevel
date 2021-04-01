@@ -21,6 +21,10 @@
 # Save the cacerts file
 - name: Save cacerts
   local_action: copy content="{{ vault_output['data'].cacerts }}" dest="{{msp_path}}/cacerts/ca-{{component_name}}-7054.pem"
+  when: network.env.proxy == 'none'
+- name: Save cacerts for other proxy
+  local_action: copy content="{{ vault_output['data'].cacerts }}" dest="{{msp_path}}/cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem"
+  when: network.env.proxy != 'none'
 
 # Ensure tlscacerts directory is present in build
 - name: Ensure tlscacerts directory exists
@@ -31,3 +35,7 @@
 # Save the tlscacerts file
 - name: Save tlscacerts
   local_action: copy content="{{ vault_output['data'].tlscacerts }}" dest="{{msp_path}}/tlscacerts/ca-{{component_name}}-7054.pem"
+  when: network.env.proxy == 'none'
+- name: Save tlscacerts
+  local_action: copy content="{{ vault_output['data'].tlscacerts }}" dest="{{msp_path}}/tlscacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem"
+  when: network.env.proxy != 'none'

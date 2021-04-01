@@ -228,7 +228,9 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_admin_result.failed == True or vault_admin_result.stdout == '' and network.env.proxy != 'none'
+  when: 
+    - vault_admin_result.failed == True or vault_admin_result.stdout == '' 
+    - network.env.proxy != 'none'
   tags:
     - molecule-idempotence-notest
 
@@ -239,7 +241,9 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_admin_result.failed == True or vault_admin_result.stdout == '' and network.env.proxy == 'none'
+  when: 
+   - vault_admin_result.failed == True or vault_admin_result.stdout == ''
+   - network.env.proxy == 'none'
   tags:
     - molecule-idempotence-notest    
 
@@ -269,11 +273,13 @@
 - name: Copy user certificates for orgs
   shell: |
     vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/client.key)"
-    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/admincerts/User1@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)"
+    vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/admincerts/User1@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/cacerts/*.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/User1@{{ component_name }}/tls/ca.crt)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_user_result.failed == True or vault_user_result.stdout == '' and network.env.proxy != 'none'
+  when: 
+    - vault_user_result.failed == True or vault_user_result.stdout == '' 
+    - network.env.proxy != 'none'
   tags:
     - molecule-idempotence-notest
 
@@ -284,6 +290,8 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_user_result.failed == True or vault_user_result.stdout == '' and network.env.proxy == 'none'
+  when: 
+    - vault_user_result.failed == True or vault_user_result.stdout == '' 
+    - network.env.proxy == 'none'
   tags:
     - molecule-idempotence-notest
