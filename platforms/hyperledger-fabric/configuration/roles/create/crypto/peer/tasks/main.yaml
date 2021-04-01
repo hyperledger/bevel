@@ -192,7 +192,7 @@
 # Check admin msp already created
 - name: Check if admin msp already created
   shell: |
-    vault kv get -field=admincerts {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -208,6 +208,18 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_admin_result.failed == True or vault_admin_result.stdout == ''
+  tags:
+    - molecule-idempotence-notest
+
+# Get Admin MSP info
+- name: Get Peer Admin MSP info
+  include_role: 
+    name: "{{ playbook_dir }}/roles/setup/get_crypto"
+  vars:
+    vault_output: "{{ vault_admin_result.stdout | from_yaml }}"
+    type: "peer"
+    msp_path: "./build/crypto-config/peerOrganizations/{{ component_name }}/msp"
+  when: vault_admin_result.failed == False
   tags:
     - molecule-idempotence-notest
 

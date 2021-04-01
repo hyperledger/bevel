@@ -4,14 +4,14 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: fabric
-  version: 1.4.4                 # currently tested 1.4.4 and 1.4.8
+  version: 1.4.4                   # currently tested 1.4.4, 1.4.8 and 2.2.0
 
   frontend: enabled #Flag for frontend to enabled for nodes/peers
 
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: haproxy                  # values can be 'haproxy' or 'ambassador'
+    proxy: haproxy                  # values can be 'haproxy' or 'none'
     ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
@@ -161,7 +161,6 @@ network:
       type: orderer
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
       org_status: new
-      cli: disabled
       ca_data:
         url: ca.supplychain-net:7054
         certificate: file/server.crt        # This has not been implemented in 0.2.0.0
@@ -249,7 +248,6 @@ network:
       type: peer
       external_url_suffix: org2ambassador.blockchaincloudpoc.com
       org_status: new
-      cli: enabled
       ca_data:
         url: ca.manufacturer-net:7054
         certificate: file/server.crt
@@ -338,7 +336,6 @@ network:
       type: peer
       external_url_suffix: org3ambassador.blockchaincloudpoc.com
       org_status: new
-      cli: enabled
       ca_data:
         url: ca.carrier-net:7054
         certificate: file/server.crt
@@ -424,7 +421,6 @@ network:
       type: peer
       external_url_suffix: org3ambassador.blockchaincloudpoc.com
       org_status: new
-      cli: enabled
       ca_data:
         url: ca.store-net:7054
         certificate: file/server.crt
@@ -459,14 +455,8 @@ network:
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
-
-      #Optional for infrastructure configuration files.
-      infrastructure:
-        target_state: "present"  # Options: present, absent, planned            
-        refresh_inventory: yes  
-
-        
+        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo 
+       
       services:
         ca:
           name: ca
@@ -517,7 +507,6 @@ network:
       type: peer
       external_url_suffix: org2ambassador.blockchaincloudpoc.com
       org_status: new
-      cli: disabled
       ca_data:
         url: ca.warehouse-net:7054
         certificate: file/server.crt
