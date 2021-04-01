@@ -27,19 +27,6 @@
   loop_control:
     loop_var: orderer
 
-# Check admin msp already created
-- name: Check if admin msp already created
-  shell: |
-    vault kv get -field=admincerts {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_admin_result
-  ignore_errors: yes
-  changed_when: false
-
-
-
 - name: Copy organization level certificates for orgs
   shell: |
     vault write {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/users/admin/tls ca.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/ordererOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.key)"

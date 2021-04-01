@@ -11,6 +11,8 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
+  tags:
+    - molecule-idempotence-notest
 
 ############################################################################################
 # This task is the nested task for main.yaml which helps to iterate over all peers
@@ -26,7 +28,7 @@
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     peer_name: "{{ peer.name }}"
     peer_ns: "{{ namespace }}"
-    provider: "{{ item.cloud_provider }}"
+    provider: "{{ network.env.proxy }}"
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer 
@@ -45,6 +47,8 @@
     GIT_BRANCH: "{{ item.gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing Peer files"
+  tags:
+    - notest
 
 # Wait for peer pods to be in the state of running
 - name: "Waiting for peer pod {{ peer.name }} in {{ item.name | lower }}-net"
