@@ -44,3 +44,4 @@ spec:
     proxy:
       provider: {{ network.env.proxy }}
       type: peer
+      external_url_suffix: {{ external_url_suffix }}
