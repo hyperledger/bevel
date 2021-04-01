@@ -1,6 +1,6 @@
 #!/bin/bash
-if [ $# -lt 6 ]; then
-	echo "Usage : . $0 orderer|peer <namespace> <nodename> <no of users: min 1> <affiliation> <subject>"
+if [ $# -lt 7 ]; then
+	echo "Usage : . $0 orderer|peer <namespace> <nodename> <no of users: min 1> <affiliation> <subject> <ca-server-url>"
 	exit
 fi
 
@@ -15,7 +15,7 @@ NO_OF_USERS=$4
 AFFILIATION=$5
 SUBJECT=$6
 
-CA="ca.${FULLY_QUALIFIED_ORG_NAME}:7054"
+CA=$7
 
 if [ "$1" != "peer" ]; then
 	ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
