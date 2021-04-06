@@ -1,11 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+  name: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
   namespace: {{ $.Values.metadata.namespace }}
   labels:
-    app: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
-    app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+    app: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+    app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -15,8 +15,8 @@ spec:
   template:
     metadata:
       labels:
-        app: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
-        app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}{{ $.Values.chaincode.version }}
+        app: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+        app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
@@ -159,11 +159,15 @@ spec:
           then
             ## approve for myorg
             echo "peer query approve without endorsement"
-            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_VERSION} --init-required > log.txt
+            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} \
+              --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence {{ $.Values.chaincode.sequence }} \
+              --init-required > log.txt
           else
             ## approve for myorg
             echo "peer query approve with endorsement policies"
-            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_VERSION} --init-required --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt  
+            peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} \
+              --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence {{ $.Values.chaincode.sequence }} \
+              --init-required --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt  
           fi
           
         env:
