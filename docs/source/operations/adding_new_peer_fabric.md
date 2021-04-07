@@ -5,7 +5,6 @@
   - [Prerequisites](#prerequisites)
   - [Modifying Configuration File](#modifying-configuration-file)
   - [Run playbook](#run-playbook)
-  - [Chaincode Installation](#chaincode-installation)
 
 
 <a name = "prerequisites"></a>
@@ -17,7 +16,7 @@ To add a new peer a fully configured Fabric network must be present already, i.e
 
 ---
 
-<a name = "modifying-configuration-file"></a>
+<a name = "create_config_file"></a>
 ## Modifying Configuration File
 
 Refer [this guide](./fabric_networkyaml.md) for details on editing the configuration file.
@@ -36,7 +35,6 @@ While modifying the configuration file(`network.yaml`) for adding new peer, all 
             ..
             ..
             peerstatus: new  # new for new peers(s)
-            gossipAddress: peer0.xxxx.com # gossip Address must be one existing peer
           - peer:
             ..
             ..
@@ -48,7 +46,6 @@ and under `network.organizations` as
     network:
       organizations:
         - organization:
-          org_status: existing  # org_status must be existing when adding peer
           ..
           ..
           services:
@@ -57,40 +54,25 @@ and under `network.organizations` as
               ..
               ..
               peerstatus: new   # new for new peers(s)
-              gossipAddress: peer0.xxxx.com # gossip Address must be one existing peer
             - peer:
               ..
               ..
               peerstatus: existing   # existing for existing peers(s)
             
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information. And the `org_status` must be `existing` when adding peer.
+The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information.
 
 
 For reference, see `network-fabric-add-peer.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples).
 
-<a name = "run-playbook"></a>
+<a name = "run_network"></a>
 ## Run playbook
 
 The [add-peer.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/add-peer.yaml) playbook is used to add a new peer to an existing organization in the existing network. This can be done using the following command
 
 ```
-ansible-playbook add-peer.yaml --extra-vars "@path-to-network.yaml"
+ansible-playbook add-peer.yaml --extra-vars "@path-to-network.yaml" -e "add_new_org='false'" -e "add_peer='true'"
 ```
 
 ---
-**NOTE:** The `peerstatus` is not required when the network is deployed for the first time but is mandatory for addition of new peer. If you have additional applications, please deploy them as well.
-
----
-
-<a name = "chaincode-install"></a>
-## Chaincode Installation
-
-Use the same network.yaml if you need to install chaincode on the new peers.
-
----
-**NOTE:** With Fabric 2.2 chaincode lifecyle, re-installing chaincode on new peer is not needed as when the blocks are synced, the new peer will have access to already committed chaincode. If still needed, you can upgrade the version of the chaincode and install on all peers.
-
----
-
-Refer [this guide](./install_instantiate_chaincode.md) for details on installing chaincode.
+**NOTE:** The `peerstatus` is not required when the network is deployed for the first time. If you have additional applications, please deploy them as well.

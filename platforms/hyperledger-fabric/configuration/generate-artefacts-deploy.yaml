@@ -13,18 +13,16 @@
       file:
         path: "./build"
         state: directory
-    # Create generate_crypto script for each organization    
-    - name: Create generate_crypto.sh for each organization
-      include_role:
+    # Create generate_crypto script for each organization
+    - include_role:
         name: "create/crypto_script"
       vars:
-        component_type: "{{ item.type | lower}}"        
+        component_type: "{{ item.type | lower}}"
         orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
 
     # Create Orderer crypto materials
-    - name: Create crypto materials for each orderer
-      include_role:
+    - include_role:
         name: "create/crypto/orderer"
       vars:
         component_name: "{{ item.name | lower}}-net"
@@ -32,7 +30,6 @@
         org_name: "{{ item.name }}"
         services: "{{ item.services }}"
         subject: "{{ item.subject }}"
-        ca_url: "{{ item.ca_data.url }}"
         cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
@@ -40,8 +37,7 @@
       when: item.type == 'orderer'
     
     # Create Organization crypto materials
-    - name: Create crypto materials for each peer
-      include_role:
+    - include_role:
         name: "create/crypto/peer"
       vars:
         component_name: "{{ item.name | lower}}-net"
@@ -49,44 +45,32 @@
         org_name: "{{ item.name }}"
         services: "{{ item.services }}"
         subject: "{{ item.subject }}"
-        ca_url: "{{ item.ca_data.url }}"
         cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer'
 
-    # Creating channel artifacts and putting them in vault
+    #Creating channel artifacts and putting them in vault
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
     # which is then consumed by configtxgen tool
-    - name: Create configtx.yaml
-      include_role:
+    - include_role:
         name: "create/configtx"
       vars:
         config_file: "./build/configtx.yaml"
 
-    # This role generate genesis block and channeltx
-    - name: Create channel artifacts for all channels
-      include_role:
+    # This role generate genesis block and channel
+    - include_role:
         name: "create/channel_artifacts"
       vars:
         build_path: "./build"
+        genesis: "{{ item.genesis }}"
         channel_name: "{{ item.channel_name | lower}}"
         profile_name: "{{ item.channel_name }}"
-        fetch_certs: "false"
       loop: "{{ network['channels'] }}"
-
-    - name: "Create genesis block"
-      include_role: 
-        name: "create/genesis"
-      vars:
-        build_path: "./build"
-        genesis: "{{ item.genesis }}"
-      loop: "{{ network['channels'] }}"
-    
+   
     # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
-    - name: Create all orderers
-      include_role:
+    - include_role:
         name: "create/orderers"
       vars:
         build_path: "./build"
@@ -104,8 +88,7 @@
 
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
-    - name: Create all peers
-      include_role:
+    - include_role:
         name: "create/peers"
       vars:
         build_path: "./build"
@@ -119,19 +102,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'    
-
-    # Create CLI pod for peers with cli option enabled
-    - name: Create CLI pod for each peer with it enabled
-      include_role:
-        name: "create/cli_pod"
-      vars:
-        peers: "{{ org.services.peers }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network.organizations }}"
-      loop_control:
-        loop_var: org
-      when: org.type == "peer" and org.org_status == "new"
+      when: item.type == 'peer'
     
     # delete build directory
     - name: Remove build directory

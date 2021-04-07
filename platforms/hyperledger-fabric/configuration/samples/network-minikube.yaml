@@ -4,7 +4,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: fabric
-  version: 1.4.8                 # currently tested 1.4.4 and 2.2.0
+  version: 1.4.4                 # currently tested 1.4.0, 1.4.4 and 2.0.0
 
   #Environment section for Kubernetes setup
   env:
@@ -75,19 +75,20 @@ network:
       location: London
       subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
       type: orderer
-      external_url_suffix: develop.local.com   # Ignore for proxy none
+      external_url_suffix: develop.local.com   # Ignore for minikube
       org_status: new
+      cli: disabled
       ca_data:
         url: ca.supplychain-net:7054
         certificate: file/server.crt           # This has not been implemented yet
   
-      cloud_provider: aws   # Options: aws, azure, gcp
+      cloud_provider: minikube   # Options: minikube, azure, gcp
   
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
         region: "cluster_region"
-        context: "cluster_context"
+        context: "minikube"
         config_file: "/home/blockchain-automation-framework/build/config"
 
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
@@ -111,7 +112,7 @@ network:
         private_key: "/home/blockchain-automation-framework/build/gitops"               # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
      
       # Services maps to the pods that will be deployed on the k8s cluster
-      # This sample is an orderer service and includes a zk-raft consensus
+      # This sample is an orderer service and includes a zk-kafka consensus
       services:
         ca:
           name: ca
@@ -121,7 +122,7 @@ network:
             port: 7054
         
         consensus:
-          name: raft
+          name: kafka
           type: broker
           replicas: 3
           grpc:
@@ -133,7 +134,7 @@ network:
         - orderer:
           name: orderer1
           type: orderer
-          consensus: raft
+          consensus: kafka
           grpc:
             port: 7050       
 
@@ -145,19 +146,20 @@ network:
       location: Zurich
       subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
       type: peer
-      external_url_suffix: develop.local.com  # Ignore for proxy none
+      external_url_suffix: develop.local.com  # Ignore for minikube
       org_status: new
+      cli: enabled
       ca_data:
         url: ca.manufacturer-net:7054
         certificate: file/server.crt
 
-      cloud_provider: aws   # Options: aws, azure, gcp
+      cloud_provider: minikube   # Options: minikube, azure, gcp
         
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
         region: "cluster_region"
-        context: "cluster_context"
+        context: "minikube"
         config_file: "/home/blockchain-automation-framework/build/config"
 
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
@@ -228,19 +230,20 @@ network:
       location: London
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
       type: peer
-      external_url_suffix: develop.local.com  #Ignore for proxy none
+      external_url_suffix: develop.local.com  #Ignore for minikube
       org_status: new
+      cli: enabled
       ca_data:
         url: ca.carrier-net:7054
         certificate: file/server.crt
       
-      cloud_provider: aws   # Options: aws, azure, gcp
+      cloud_provider: minikube   # Options: minikube, azure, gcp
         
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
         region: "cluster_region"
-        context: "cluster_context"
+        context: "minikube"
         config_file: "/home/blockchain-automation-framework/build/config"
 
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
