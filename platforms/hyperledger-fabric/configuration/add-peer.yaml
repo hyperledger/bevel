@@ -90,6 +90,18 @@
       loop_var: org
     when: org.type == "peer"
 
+    # Create CLI pod for peers with cli option enabled
+    - name: Create CLI pod for each peer with it enabled
+      include_role:
+        name: "create/cli_pod"
+      vars:
+        peers: "{{ org.services.peers }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == 'peer' and org.org_status == 'new'      
+
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
