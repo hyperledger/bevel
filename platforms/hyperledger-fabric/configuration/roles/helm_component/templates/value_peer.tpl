@@ -22,7 +22,7 @@ spec:
     peer:
       name: {{ peer_name }}
       gossippeeraddress: {{ peer.gossippeeraddress }}
-{% if provider == 'none' %}
+{% if provider == 'minikube' %}
       gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}:7051
 {% else %}
       gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:8443
@@ -72,5 +72,5 @@ spec:
 {% endif %}
           
     proxy:
-      provider: "{{ network.env.proxy }}"
+      provider: {{ network.env.proxy }}
       external_url_suffix: {{ item.external_url_suffix }}

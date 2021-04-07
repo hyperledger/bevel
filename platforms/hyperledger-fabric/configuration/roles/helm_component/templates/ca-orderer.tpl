@@ -44,4 +44,3 @@ spec:
     proxy:
       provider: {{ network.env.proxy }}
       type: orderer
-      external_url_suffix: {{ external_url_suffix }}

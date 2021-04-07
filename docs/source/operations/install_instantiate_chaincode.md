@@ -3,7 +3,7 @@
 
 - [Pre-requisites](#pre_req)
 - [Modifying configuration file](#create_config_file)
-- [Chaincode Operations in BAF for the deployed Hyperledger Fabric network](#run_network)
+- [Running playbook to install and instantiate chaincode in BAF deployed Hyperledger Fabric network](#run_network)
 
 <a name = "pre_req"></a>
 ## Pre-requisites

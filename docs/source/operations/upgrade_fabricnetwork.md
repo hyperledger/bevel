@@ -8,16 +8,27 @@
 ## Pre-requisites
 Hyperledger Fabric image versions, which are compatible with the target fabric version need to be known. 
 
-For example, for Fabric v1.4.8, these are the image tags of the supporting docker images 
+For example, for Fabric v1.4.4, these are the image tags of the supporting docker images 
 
 | Fabric component | Fabric image tag |
 |------------------|------------------|
 | kafka            | 0.4.18           |
 | zookeeper        | 0.4.18           |
 | couchDB          | 0.4.18           |
-| orderer          | 1.4.8            |
-| peer             | 1.4.8            |
+| orderer          | 1.4.4            |
+| peer             | 1.4.4            |
 | ca               | 1.4.4            |
+
+And, for Fabric v2.0.0, these are the image tags of the supporting docker images 
+
+| Fabric component | Fabric image tag |
+|------------------|------------------|
+| kafka            | 0.4.18           |
+| zookeeper        | 0.4.18           |
+| couchDB          | 0.4.18           |
+| orderer          | 2.0.0            |
+| peer             | 2.0.0            |
+| ca               | 1.4.5            |
 
 ---
 **NOTE:** This change only upgrades the docker images, any other configuration changes is not covered by this guide. Please refer to Fabric documentation for any specific configuration changes.
@@ -31,7 +42,7 @@ For example:
 
 
 	network:
-	  version: 1.4.8
+	  version: 1.4.4
 
 2 files need to be edited in order to support version change for kafka, zookeeper and couchDB 
 
