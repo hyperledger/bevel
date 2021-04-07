@@ -40,10 +40,12 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: nms_root_certs
   ignore_errors: yes
+  tags:
+    - molecule-idempotence-notest
 
 - name: Get root certs
   include_role: 
-    name: "{{ playbook_dir }}/roles/setup/get_crypto"
+    name: "setup/get_crypto"
   vars:
     vault_output: "{{ nms_root_certs.stdout | from_yaml }}"
     type: "rootca"
@@ -76,6 +78,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: networkmap_certs
   ignore_errors: yes
+  tags:
+    - molecule-idempotence-notest
 
 # creating nms certificates
 - name: Generate NMS certificate
@@ -91,6 +95,8 @@
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: networkmap_certs.failed == True
+  tags:
+    - molecule-idempotence-notest
 
 # checking root certificates for mongodb
 - name: Check if mongoroot certs already created
@@ -102,6 +108,8 @@
   register: mongoCA_certs
   ignore_errors: yes
   when: services.nms.tls == 'on'
+  tags:
+    - molecule-idempotence-notest
 
 - name: check mongoroot certs
   stat:
@@ -127,7 +135,8 @@
   register: mongodb_certs
   ignore_errors: yes
   when: services.nms.tls == 'on'
-
+  tags:
+    - molecule-idempotence-notest
 
 # Generating mongodb certificates.
 - name: Generating mongodb certificates
@@ -137,6 +146,8 @@
     openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
   when: services.nms.tls == 'on' and mongodb_certs.failed == True
+  tags:
+    - molecule-idempotence-notest
 
 - name: Putting certs to vault for root
   shell: |
@@ -145,6 +156,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: nms_root_certs.failed == True
+  tags:
+    - molecule-idempotence-notest
 
 - name: Putting certs and credential to vault for networkmap
   shell: |
@@ -155,6 +168,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: networkmap_certs.failed == True
+  tags:  
+    - molecule-idempotence-notest
 
 
 - name: Create Ambassador certificates
