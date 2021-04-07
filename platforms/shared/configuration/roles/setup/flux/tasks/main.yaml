@@ -18,6 +18,8 @@
     ssh-keyscan {{ git_host }} > flux_known_hosts
     chmod -R 777 flux_known_hosts
   when: flux_service.resources|length == 0 and git_protocol == "ssh"
+  tags:
+    - molecule-idempotence-notest
 
 - name: Helm repo add
   shell: |
@@ -25,6 +27,7 @@
   when: flux_service.resources|length == 0
   tags:
     - flux
+    - molecule-idempotence-notest
 
 - name: Install flux for over https connection
   shell: |
@@ -35,6 +38,7 @@
   when: flux_service.resources|length == 0 and git_protocol == "https" 
   tags:
     - flux
+    - molecule-idempotence-notest
 
 - name: Install flux for over ssh connection
   shell: |
@@ -45,6 +49,7 @@
   when: flux_service.resources|length == 0 and git_protocol == "ssh" 
   tags:
     - flux
+    - molecule-idempotence-notest
 
 # Wait for flux pod to start running
 - name: wait for pods to come up
