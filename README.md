@@ -1,7 +1,5 @@
 # Blockchain Automation Framework [![join the chat][rocketchat-image]][rocketchat-url]
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
+
 [rocketchat-url]: https://chat.hyperledger.org/channel/blockchain-automation-framework
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
@@ -105,28 +103,6 @@ docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/
 - [jonathan-m-hamilton](https://github.com/jonathan-m-hamilton)
 - [sownak](https://github.com/sownak)
 
-
-## Contributors ✨
-
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tr>
-    <td align="center"><a href="https://github.com/jagpreetsinghsasan"><img src="https://avatars.githubusercontent.com/u/56861721?v=4" width="100px;" alt=""/><br /><sub><b>Jagpreet Singh Sasan</b></sub></a></td>
-    <td align="center"><a href="https://github.com/alvaropicazo"><img src="https://avatars.githubusercontent.com/u/76157062?v=4" width="100px;" alt=""/><br /><sub><b>Alvaro Picazo</b></sub></a></td>
-    <td align="center"><a href="https://github.com/suvajit-sarkar"><img src="https://avatars.githubusercontent.com/u/55580532?v=4" width="100px;" alt=""/><br /><sub><b>suvajit-sarkar</b></sub></a></td>
-  </tr>
-</table>
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-This project follows the [all-contributors](https://allcontributors.org) specification.
-Contributions of any kind are welcome!
 
 ## Sponsor
 Mark Wagner (Github: [n1zyz](https://github.com/n1zyz), email: [mwagner@redhat.com](mailto:mwagner@redhat.com)) - TSC Member
