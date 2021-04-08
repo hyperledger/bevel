@@ -120,6 +120,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <table>
   <tr>
     <td align="center"><a href="https://github.com/alvaropicazo"><img src="https://avatars.githubusercontent.com/u/76157062?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Alvaro Picazo</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=alvaropicazo" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/suvajit-sarkar"><img src="https://avatars.githubusercontent.com/u/55580532?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Suvajit Sarkar</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=suvajit-sarkar" title="Code">💻</a> <a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=suvajit-sarkar" title="Documentation">📖</a></td>
   </tr>
 </table>
 
