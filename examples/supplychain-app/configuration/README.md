@@ -8,7 +8,7 @@ These playbooks deploys the smart contract in case of Quorum.
 ## Prerequisites
 
 To run the playbooks and deploy the APIs, following are the pre-requisites
-1. Ansible and Git are required to be setup on the machine and Ansible's k8s module requires the openshift python package (>= 0.6).
+1. Ansible and Git are required to be setup on the machine.
 2. The DLT network setup should be complete using the Blockchain Automation Framework, which includes the GitOps setup.
 3. A complete input configuration file: *network.yaml* as described in **Step 1**.
 
