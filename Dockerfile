@@ -41,7 +41,7 @@ RUN chmod 755 /home/reset.sh
 ENV PATH=/root/bin:/root/.local/bin/:$PATH
 
 # The mounted repo should contain a build folder with the following files
-# 1) K8s config file as config
+# 1) K8s config file as config and Ansible's k8s module requires the openshift python package (>= 0.6).
 # 2) Network specific configuration file as network.yaml
 # 3) Private key file which has write-access to the git repo
 
