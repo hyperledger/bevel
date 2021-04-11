@@ -78,4 +78,5 @@ RUN curl -O https://download.java.net/java/GA/jdk14/076bab302c7b4508975440c56f6c
 
 # CMD ["/sbin/init"]
 # default command: display Ansible version
+# Ansible's k8s module requires the openshift python package (>= 0.6)
 CMD [ "ansible", "--version" ]
