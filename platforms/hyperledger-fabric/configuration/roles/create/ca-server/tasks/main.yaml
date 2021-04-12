@@ -92,13 +92,17 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   register: get_secret
+  when: 
+    - network.env.proxy == 'ambassador'
 
 #####################################################################################################################
 # This task creates the Ambassador TLS credentials
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls ca-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem --key=./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key -n default
-  when: get_secret.resources|length == 0
+  when: 
+    - network.env.proxy == 'ambassador'
+    - get_secret.resources|length == 0
 
 ############################################################################################
 # This task creates the CA value file for Orderer

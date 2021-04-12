@@ -1,14 +1,14 @@
-# This playbook adds a new peer to an exisitng organization in an existing Fabric DLT network on existing Kubernetes clusters
+# This playbook adds a new peer to an exisitng organization in an existing Fabric DLT network
 # The Kubernetes clusters should already be created and the infomation to connect to the
 #  clusters be updated in the network.yaml file that is used as an input to this playbook
 ###########################################################################################
 # To Run this playbook from this directory, use the following command (network.yaml also in this directory)
-#  ansible-playbook add-peer.yaml -e "@./network.yaml" -e "add_new_org='false'" -e "add_peer='true'"
+#  ansible-playbook add-peer.yaml -e "@/path/to/network.yaml" -e "add_new_org='false'" -e "add_peer='true'"
 ############################################################################################
 # Please ensure that the ../../shared/configuration playbooks have been run and a DLT network exists.
 # Please ensure the orderer certificates are placed on the paths mentioned in orderer.certificate in network.yaml
 ---
-  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
@@ -18,7 +18,52 @@
     file:
       path: "./build"
       state: absent
+  # Create Namespaces and Vault-rbac kubernetes-value files for new organization
+  - include_role:
+      name: "create/namespace_vaultauth"
+    vars:
+      component_name: "{{ item.name | lower }}-net"
+      component_type_name: "{{ item.type | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+  
+  #Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
+  - include_role: 
+      name: "setup/vault_kubernetes"
+    vars:
+      component_name: "{{ item.name | lower }}-net"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+      component_type: "{{ item.type | lower }}"
+      auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
+    loop: "{{ network['organizations'] }}"
 
+  # Create Storageclass for new organization
+  - include_role:
+      name: "create/storageclass"
+    vars:
+      sc_name: "{{ item.name | lower}}sc"
+      component_type: "{{ item.type | lower}}"
+      kubernetes: "{{ item.k8s }}"
+      release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+
+  # Create CA Tools helm-value files and check-in
+  - name: Create CA tools for each organization
+    include_role:
+      name: "create/ca-tools"
+    vars:
+      component_name: "{{ item.name | lower}}-net"
+      component: "{{ item.name | lower}}"
+      component_type: "{{ item.type | lower}}"
+      component_services: "{{ item.services }}"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+      ca: "{{ item.services.ca }}"
+      gitops: "{{ item.gitops }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
   # Create generate_crypto script for new organization
   - include_role:
       name: "create/add_new_peer/crypto_script"
@@ -89,18 +134,6 @@
     loop_control:
       loop_var: org
     when: org.type == "peer"
-
-    # Create CLI pod for peers with cli option enabled
-    - name: Create CLI pod for each peer with it enabled
-      include_role:
-        name: "create/cli_pod"
-      vars:
-        peers: "{{ org.services.peers }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network.organizations }}"
-      loop_control:
-        loop_var: org
-      when: org.type == 'peer' and org.org_status == 'new'      
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges

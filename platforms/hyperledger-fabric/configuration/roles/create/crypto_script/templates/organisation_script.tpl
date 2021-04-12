@@ -41,10 +41,9 @@ cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
 # Add affiliation for organisation
 fabric-ca-client affiliation add ${AFFILIATION} -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
 ## Register and enroll admin for Org and populate admincerts for MSP
-fabric-ca-client register -d --id.name ${ORG_ADMIN_USER} --id.secret ${ORG_ADMIN_PASS} --csr.names "${SUBJECT_PEER}" --id.affiliation ${AFFILIATION} --id.attrs "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.AffiliationMgr=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+fabric-ca-client register -d --id.name ${ORG_ADMIN_USER} --id.secret ${ORG_ADMIN_PASS} --id.type admin --csr.names "${SUBJECT_PEER}" --id.affiliation ${AFFILIATION} --id.attrs "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.AffiliationMgr=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
 
 fabric-ca-client enroll -d -u https://${ORG_ADMIN_USER}:${ORG_ADMIN_PASS}@${CA} --id.affiliation ${AFFILIATION} --tls.certfiles ${ROOT_TLS_CERT} --home ${ORG_HOME}/admin  --csr.names "${SUBJECT_PEER}"
-
 
 mkdir -p ${ORG_CYPTO_FOLDER}/msp/admincerts
 cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
@@ -85,7 +84,6 @@ while [  ${COUNTER} -lt ${NO_OF_PEERS} ]; do
 	# Enroll to get peers TLS cert
 	fabric-ca-client enroll -d --enrollment.profile tls -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_HOME}/cas/peers/tls --csr.hosts "${CSR_HOSTS}" --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
 
-
 	# Copy the TLS key and cert to the appropriate place
 	mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls
 	cp ${ORG_HOME}/cas/peers/tls/keystore/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/server.key
@@ -97,10 +95,8 @@ while [  ${COUNTER} -lt ${NO_OF_PEERS} ]; do
 	# Enroll again to get the peer's enrollment certificate (default profile)
 	fabric-ca-client enroll -d -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
 
-
-
 	# Create the TLS CA directories of the MSP folder if they don't exist.
-	mkdir ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts	
+	mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts	
 	
 	# Copy the peer org's admin cert into target MSP directory
 	mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
