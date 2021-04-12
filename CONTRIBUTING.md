@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest to contribute to BAF! 🎉
+Thank you for your interest to contribute to BAF!
 
 We welcome contributions to the Blockchain Automation Framework Project in many forms, and
 there's always plenty to do!
@@ -21,21 +21,33 @@ Consider picking up a [“help-wanted”](https://github.com/hyperledger-labs/bl
 If you can commit to full-time/part-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework ) to work through logistics!
 
 Please visit the
-[Developer Guide](developerguide.md) in the docs to learn how to make contributions to this exciting project.
+[Developer Guide](https://blockchain-automation-framework.readthedocs.io/en/latest/developerguide.html) in the docs to learn how to make contributions to this exciting project.
 
  #### Pull Request Process :
 
 For source code integrity , Blockchain Automation Framework GitHub pull requests are accepted from forked repositories only. There are also quality standards identified and documented here that will be enhanced over time.
 
-1. Fork BAF via Github UI
-2. Clone the fork to your local machine
-3. Complete the desired changes and where possible test locally (more detail to come here)
+1. Fork BAF via Github UI.
+2. Clone the fork to your local machine.
+3. Complete the desired changes and where possible test locally:
+     - Go to `platforms/shared/configuration` directory
+     - Execute `molecule test --all`
+     - Go to your changed platform directory like `platforms/r3-corda/configuration` (use respective platform directories)
+     - Execute `molecule test --all`
 4. Commit your changes         
-     i) Make sure you sign your commit using git commit -s for more information see [here](https://gist.github.com/tkuhrt/10211ae0a26a91a8c030d00344f7d11b)             
-     ii)  Make sure your commit message follows [Conventional Commits syntax](https://www.conventionalcommits.org/en/v1.0.0-beta.4/#specification); this aids in release notes generation
-5. Push your changes to your feature branch
-6. Initiate a pull request from your fork to the base repository ( develop branch , unless it is a critical bug, in that case initiate to the master branch)
-7. Await DCO & linting quality checks ( CI to come soon ), as well as any feedback from reviewers.
+     - Make sure you sign your commit using git commit -s for more information see [here](https://gist.github.com/tkuhrt/10211ae0a26a91a8c030d00344f7d11b).
+     - Squash all commits to a single commit.
+     - Make sure your commit message follows [Conventional Commits syntax](https://www.conventionalcommits.org/en/v1.0.0-beta.4/#specification) and contains the platform changed:
+          - `[corda]` for Corda Opensource changes
+          - `[corda-ent]` for Corda Enterprise changes
+          - `[fabric]` for Hyperledger Fabric changes
+          - `[besu]` for Hyperledger Besu changes
+          - `[indy]` for Hyperledger Indy changes
+          - `[quorum]` for Quorum changes
+          - `[shared]` for all common and other changes
+5. Push your changes to your feature branch.
+6. Initiate a pull request from your fork to the base repository ( `develop` branch , unless it is a critical bug, in that case initiate to the `master` branch)
+7. Await DCO & linting quality checks and GitActions to complete, as well as any feedback from reviewers.
 8. Work on the feedbacks to revise the PR if there are any comments
 9. If not, the PR gets approved , delete feature branch post the merge
 

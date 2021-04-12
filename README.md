@@ -1,10 +1,13 @@
 # Blockchain Automation Framework [![join the chat][rocketchat-image]][rocketchat-url]
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 [rocketchat-url]: https://chat.hyperledger.org/channel/blockchain-automation-framework
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/blockchain-automation-framework/badge/?version=latest)](https://blockchain-automation-framework.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
-[![Build Status](https://travis-ci.com/hyperledger-labs/blockchain-automation-framework.svg?branch=master)](https://travis-ci.com/hyperledger-labs/blockchain-automation-framework)
+[![Build Status](https://circleci.com/gh/hyperledger-labs/blockchain-automation-framework.svg?style=shield)](https://circleci.com/gh/hyperledger-labs/blockchain-automation-framework)
 
 - [Short Description](#short-description)
 - [Scope of Lab](#scope-of-lab)
@@ -76,17 +79,7 @@ We welcome your questions & feedback on our [Rocketchat channel](https://chat.hy
 ## Contributing
 We welcome contributions to BAF in many forms, and there’s always plenty to do!
 
-First things first, please review the [Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct) before participating.
-
-There are many ways to contibute to BAF, both as a user and as a developer.
-
-As a user, this can inlcude:
-* [Making Feature/Enhancement Proposals](https://github.com/hyperledger-labs/blockchain-automation-framework/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=)
-* [Reporting bugs](https://github.com/hyperledger-labs/blockchain-automation-framework/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-
-As a developer:
-* if you only have a little time, consider picking up a [“help-wanted”](https://github.com/hyperledger-labs/blockchain-automation-framework/labels/help%20wanted) or ["good-first-issue"](https://github.com/hyperledger-labs/blockchain-automation-framework/labels/good%20first%20issue) task
-* If you can commit to full-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework) to work through logistics
+Please review [contributing](./CONTRIBUTING.md) guidelines to get started.
 
 # Build
 If you are not using the provided Jenkins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster.
@@ -104,7 +97,10 @@ docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/
 - [sownak](https://github.com/sownak)
 
 
-## Contributors ✨
+## Sponsor
+Mark Wagner (Github: [n1zyz](https://github.com/n1zyz), email: [mwagner@redhat.com](mailto:mwagner@redhat.com)) - TSC Member
+
+## Contributors
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
@@ -113,8 +109,10 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- markdownlint-disable -->
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/jagpreetsinghsasan"><img src="https://avatars.githubusercontent.com/u/56861721?v=4" width="100px;" alt=""/><br /><sub><b>Jagpreet Singh Sasan</b></sub></a></td>
-    <td align="center"><a href="https://github.com/alvaropicazo"><img src="https://avatars.githubusercontent.com/u/76157062?v=4" width="100px;" alt=""/><br /><sub><b>Alvaro Picazo</b></sub></a></td>
+    <td align="center"><a href="https://github.com/alvaropicazo"><img src="https://avatars.githubusercontent.com/u/76157062?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Alvaro Picazo</b></sub></a><br /><a href="#maintenance-alvaropicazo" title="Maintenance">🚧</a></td>
+    <td align="center"><a href="https://github.com/suvajit-sarkar"><img src="https://avatars.githubusercontent.com/u/55580532?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Suvajit Sarkar</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=suvajit-sarkar" title="Code">💻</a> <a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=suvajit-sarkar" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/deepakkumardbd"><img src="https://avatars.githubusercontent.com/u/57094817?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Deepak Kumar</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=deepakkumardbd" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/jagpreetsinghsasan"><img src="https://avatars.githubusercontent.com/u/56861721?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jagpreet Singh Sasan</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=jagpreetsinghsasan" title="Code">💻</a> <a href="#maintenance-jagpreetsinghsasan" title="Maintenance">🚧</a></td>
   </tr>
 </table>
 
@@ -122,8 +120,5 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
-This project follows the [all-contributors](https://allcontributors.org) specification.
-Contributions of any kind are welcome!
 
-## Sponsor
-Mark Wagner (Github: [n1zyz](https://github.com/n1zyz), email: [mwagner@redhat.com](mailto:mwagner@redhat.com)) - TSC Member
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
