@@ -1,0 +1,15 @@
+- name: "Check peer pod is up for {{ org.name | lower }}-net"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org.name | lower }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = {{ peer_name }}
+  loop: "{{ peers_data | from_yaml }}"
+  loop_control:
+    loop_var: peer_name
+  register: get_peer
+  until: ("Running" in get_peer|json_query('resources[*].status.phase'))
+  retries: "{{ network.env.retry_count}}"
+  delay: 40

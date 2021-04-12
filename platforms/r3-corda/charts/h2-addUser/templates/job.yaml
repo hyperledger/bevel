@@ -77,18 +77,33 @@ spec:
         args:
         - |-
              #!/usr/bin/env sh
-             validateVaultResponse () {
-             if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-              fi
-             }
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
              
              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')          
              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
              
              LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${DB_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+             validateVaultResponse "${DB_SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE}" "LOOKUPSECRETRESPONSE"
              SA_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["sa"]')
              echo "${SA_PASSWORD}" >> ${MOUNT_PATH}/db_cred
              {{- range .Values.users }}

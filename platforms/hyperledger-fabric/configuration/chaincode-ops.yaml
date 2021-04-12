@@ -15,60 +15,62 @@
 - hosts: ansible_provisioners
   gather_facts: no
   tasks:
-
-    - name: Install chaincode
-      include_role:
-        name: "create/chaincode/install"
-      vars:
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer' and item.org_status == 'new'
-
-    - name: Instantiate chaincode
-      include_role:
-        name: "create/chaincode/instantiate"
-      vars:
-        participants: "{{ item.participants }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
-      when: add_new_org == 'false' and '1.4' in network.version
-
-    - name: "Approve chaincode"
-      include_role:
-        name: "create/chaincode/approve"
-      vars:
-        participants: "{{ item.participants }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
-      when: participants is defined and '2.2.' in network.version
-
-    - name: Commit chaincode
-      include_role:
-        name: "create/chaincode/commit"
-      vars:
-        participants: "{{ item.participants }}"
-        docker_url: "{{ network.docker.url }}"
-        approvers: "{{ item.endorsers }}"
-      loop: "{{ network['channels'] }}"
-      when: add_new_org == 'false' and '2.2.' in network.version    
-        
-    # This task invokes chaincode after the chaincode has been commited in v2 and
-    # after chaincode installation for the new organization to be added in existing network
-    - name: Invoke chaincode
-      include_role:
-        name: "create/chaincode/invoke"
-      vars:
-        participants: "{{ item.participants }}"
-        docker_url: "{{ network.docker.url }}"
-        approvers: "{{ item.endorsers | default(' ', true) }}"
-      loop: "{{ network['channels'] }}"
-      when: add_new_org == 'true' or '2.2.' in network.version    
-
-    # delete build directory
-    - name: Remove build directory
-      file:
-        path: "./build"
-        state: absent
+  # delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+  # Install chaincode on all participants
+  - name: Install chaincode
+    include_role:
+      name: "create/chaincode/install"
+    vars:
+      participants: "{{ channel.participants }}"
+      docker_url: "{{ network.docker.url }}"
+    loop: "{{ network['channels'] }}"
+    loop_control:
+      loop_var: channel
+    when: participants is defined
+  # Instantiate chaincode on all participants for Fabric 1.4
+  - name: Instantiate chaincode
+    include_role:
+      name: "create/chaincode/instantiate"
+    vars:
+      participants: "{{ item.participants }}"
+      docker_url: "{{ network.docker.url }}"
+    loop: "{{ network['channels'] }}"
+    when: add_new_org == 'false' and '1.4' in network.version
+  # Approve chaincode on all participants for Fabric 2.2
+  - name: "Approve chaincode"
+    include_role:
+      name: "create/chaincode/approve"
+    vars:
+      participants: "{{ item.participants }}"
+      docker_url: "{{ network.docker.url }}"
+    loop: "{{ network['channels'] }}"
+    when: participants is defined and '2.2.' in network.version
+  # Commit chaincode on all participants for Fabric 2.2
+  - name: Commit chaincode
+    include_role:
+      name: "create/chaincode/commit"
+    vars:
+      participants: "{{ item.participants }}"
+      docker_url: "{{ network.docker.url }}"
+      approvers: "{{ item.endorsers }}"
+    loop: "{{ network['channels'] }}"
+    when: add_new_org == 'false' and '2.2.' in network.version    
+      
+  # This task invokes chaincode after the chaincode has been commited in v2 and
+  # after chaincode installation for the new organization to be added in existing network
+  - name: Invoke chaincode
+    include_role:
+      name: "create/chaincode/invoke"
+    vars:
+      participants: "{{ item.participants }}"
+      docker_url: "{{ network.docker.url }}"
+      approvers: "{{ item.endorsers | default(' ', true) }}"
+    loop: "{{ network['channels'] }}"
+    when: add_new_org == 'true' or '2.2.' in network.version    
     
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
