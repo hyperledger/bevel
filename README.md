@@ -100,7 +100,7 @@ docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/
 ## Sponsor
 Mark Wagner (Github: [n1zyz](https://github.com/n1zyz), email: [mwagner@redhat.com](mailto:mwagner@redhat.com)) - TSC Member
 
-## Contributors
+## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
