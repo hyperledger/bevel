@@ -1,0 +1,61 @@
+###########################################################################################
+# This task calls nested_sign_and_update and nested_update_channel tasks
+############################################################################################
+
+############################################################################################
+# This task creates the add_peer.sh file for new peer
+- name: "Create create-block-{{ item.channel_name | lower }}.sh script file for new peer"
+  template:
+    src: "add_peer.tpl"
+    dest: "./build/add_peer{{ component_name }}.sh"
+  vars:
+    component_name: "{{ participant.name | lower }}"
+    channel_name: "{{ item.channel_name | lower }}"
+    orderer_address: " {{ participant.ordererAddress }} "    
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    peer_query: "peers[?peerstatus=='new']"
+    peer: "{{ org.services | json_query(peer_query) | first | default() }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: 
+    - peer is defined and peer.name is defined
+    - peer.peerstatus is not defined or peer.peerstatus == 'new'
+
+# This task calls nested_create_cli to generate the cli value files for the creator organization
+- name: Call nested_create_cli for the peer
+  include_tasks: nested_create_cli.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    peer_query: "peers[?peerstatus=='new']"
+    peer: "{{ org.services | json_query(peer_query) | first | default() }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: 
+    - peer is defined and peer.name is defined
+    - peer.peerstatus is not defined or peer.peerstatus == 'new'
+
+# Creator signs the config block and updates the channel with latest config block  
+- name: Call nested_update_channel for the peer
+  include_tasks: nested_update_channel.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    peer_query: "peers[?peerstatus=='new']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"
+    peer: "{{ org.services | json_query(peer_query) | first | default() }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: 
+    - peer is defined and peer.name is defined
+    - peer.peerstatus is not defined or peer.peerstatus == 'new'
+    - peer.type == "anchor"

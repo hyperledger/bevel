@@ -108,10 +108,24 @@ spec:
         - |-
            #!/usr/bin/env sh
             validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
-             echo "ERROR: unable to retrieve ${1}: ${2}"
-             exit 1
-             fi
+              if echo ${2} | grep "errors"; then
+                echo "ERROR: unable to retrieve ${1}: ${2}"
+                exit 1
+              fi
+              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+              then
+                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${1})
+                curl_response=$?
+                if test "$http_code" != "200" ; then
+                    echo "Http response code from Vault - $http_code"
+                    if test "$curl_response" != "0"; then
+                      echo "Error: curl command failed with error code - $curl_response"
+                      exit 1
+                    fi
+                fi
+              fi
             }
             echo "Getting secrets from Vault Server"
            
@@ -121,6 +135,10 @@ spec:
 
             OUTPUT_PATH=${MOUNT_PATH}
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+
+            validateVaultResponse "${SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+
             MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["mongodbPassword"]')
             
             echo "${MONGODB_PASSWORD}" >> ${MOUNT_PATH}/db_root_password
@@ -129,7 +147,7 @@ spec:
             LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERT_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
             
             # Validating vault response for mongodb certificates. 
-            validateVaultResponse "secret ${CERT_SECRET_PREFIX}" "${LOOKUP_SECRET_RESPONSE}"
+            validateVaultResponse "${CERT_SECRET_PREFIX}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
             
             # Getting certificates of server from vault and storing into /etc/ssl.
             SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ $.Values.nodeName }}.pem"]')
