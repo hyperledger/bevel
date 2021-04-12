@@ -58,7 +58,7 @@ spec:
 {% else %}
         p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
 {% endif %}
-      legalName: "{{ org.subject }}"
+      legalName: "{{ peer.subject }}"
       emailAddress: dev-node@baf.com
       crlCheckSoftFail: true
       tlsCertCrlDistPoint: ""
