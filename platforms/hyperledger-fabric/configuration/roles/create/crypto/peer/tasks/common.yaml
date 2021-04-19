@@ -9,7 +9,7 @@
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get pods -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p /root/ca-tools/{{org_name|lower}}
-  when: vault_msp_result.failed == True
+  when: vault_msp_result.failed or vault_admin_result.failed or vault_user_result.failed
 
 ############################################################################################
 # Copy generate-crypto script from scrips directory
@@ -23,7 +23,7 @@
     - generate-user-crypto.sh
   loop_control:
     loop_var: files
-  when: vault_msp_result.failed == True
+  when: vault_msp_result.failed or vault_admin_result.failed or vault_user_result.failed
 
 ############################################################################################
 # This task changes the permission for msp
@@ -36,7 +36,7 @@
     - generate-user-crypto.sh
   loop_control:
     loop_var: files
-  when: vault_msp_result.failed == True
+  when: vault_msp_result.failed or vault_admin_result.failed or vault_user_result.failed
 
 ############################################################################################
 # This task copy the generate_crypto.sh and cert files in the respective CA Tools CLI
@@ -46,7 +46,7 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-crypto-{{ org_name|lower }}.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-crypto.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-user-crypto.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-user-crypto.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/crypto-config/{{component_type}}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem {{ component_name }}/${CA_TOOL_CLI}:crypto-config/{{component_type}}Organizations/{{ component_name }}/ca/
-  when: vault_msp_result.failed == True or ( add_peer is defined and add_peer | bool == True )
+  when: vault_msp_result.failed or ( add_peer is defined and add_peer | bool == True ) or vault_admin_result.failed or vault_user_result.failed
 
 
 ############################################################################################
@@ -55,9 +55,14 @@
 - name: Generate crypto material for organization peers
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-crypto.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-crypto.sh    
+  when: vault_msp_result.failed or vault_admin_result.failed
+
+- name: Generate crypto material for organization users
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')    
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-user-crypto.sh peer {{component_name}} {{org_name|lower}} 1 {{org_name}} "{{subject}}" "{{ca_url}}"
-  when: vault_msp_result.failed == True
+  when: vault_user_result.failed
 
 ############################################################################################
 # This task copies the generated crypto material from the respective CA Tools CLI
@@ -66,4 +71,4 @@
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
-  when: vault_msp_result.failed == True
+  when: vault_msp_result.failed or vault_admin_result.failed or vault_user_result.failed

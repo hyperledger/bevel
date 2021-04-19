@@ -22,25 +22,62 @@
     path: "./build/crypto-config/peerOrganizations/{{ component_name }}/ca"
     state: directory
 
-# Check if CA certs exists in vault, if not this should fail. If yes, get the certificate
+# Check if CA certs exists in vault
 - name: Check if ca certs already created
   shell: |
-    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
-    mv ca.{{ component_name }}-cert.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/ca/
+    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca    
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_ca_result
   changed_when: false
+  ignore_errors: yes
 
-# Check if CA key exists in vault, if not this should fail. If yes, get the certificate
-- name: Check if ca key already created
+# This task creates the folder to store crypto material
+- name: "creating the directory ./build/crypto-config/peerOrganizations/{{ component_name }}/ca"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "./build/crypto-config/peerOrganizations/{{ component_name }}/ca"
+    check: "ensure_dir"
+
+- name: Get ca certs and key
   shell: |
+    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
+    mv ca.{{ component_name }}-cert.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/ca/
     vault kv get -field={{ component_name }}-CA.key {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca > {{ component_name }}-CA.key
     mv {{ component_name }}-CA.key ./build/crypto-config/peerOrganizations/{{ component_name }}/ca/
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_ca_result.failed == False
   changed_when: false
+
+# This task reads the CA cert from provided path
+- name: Copy tls ca.crt from given path to crypto path
+  copy:
+    src: "{{ item.ca_data.certificate }}"
+    dest: "./build/crypto-config/peerOrganizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem"    
+    follow: no
+    force: yes
+  when: 
+    - vault_ca_result.failed == True
+    - add_peer is defined and add_peer == 'true'
+  changed_when: false
+  tags:
+    - notest
+
+# This task generate empty ca.key file if it is not present
+- name: Create dummy ca.key
+  file:
+    path: "./build/crypto-config/peerOrganizations/{{ component_name }}/ca/{{ component_name }}-CA.key"
+    state: touch
+  when: 
+    - vault_ca_result.failed == True
+    - add_peer is defined and add_peer == 'true'
+  changed_when: false
+  tags:
+    - notest
 
 - name: Call peercheck.yaml for each peer
   include_tasks: peercheck.yaml
@@ -48,12 +85,31 @@
   loop_control:
     loop_var: peer
 
+# Check admin msp already created
+- name: Check if admin msp already created
+  shell: |
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_admin_result
+  ignore_errors: yes
+  changed_when: false
+
+# Check user msp already created
+- name: Check if user msp already created
+  shell: |
+    vault kv get -field=admincerts {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_user_result
+  ignore_errors: yes
+  changed_when: False
+
+# common.yaml should be called only once, do not add a loop on peers
 - name: Call common.yaml for each peer
-  include_tasks: common.yaml
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: peer.peerstatus is not defined or peer.peerstatus == 'new'
+  include_tasks: common.yaml  
   tags:
     - notest
 
@@ -90,6 +146,12 @@
       PeerOUIdentifier:
         Certificate: cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
         OrganizationalUnitIdentifier: peer
+      AdminOUIdentifier:
+          Certificate: cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
+          OrganizationalUnitIdentifier: admin
+      OrdererOUIdentifier:
+        Certificate: cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
+        OrganizationalUnitIdentifier: orderer
     EOF
   when: not msp_file_status.stat.exists and  network.env.proxy!= 'none'
   changed_when: false
@@ -107,6 +169,12 @@
       PeerOUIdentifier:
         Certificate: cacerts/ca-{{ component_name }}-7054.pem
         OrganizationalUnitIdentifier: peer
+      AdminOUIdentifier:
+        Certificate: cacerts/ca-{{ component_name }}-7054.pem
+        OrganizationalUnitIdentifier: admin
+      OrdererOUIdentifier:
+        Certificate: cacerts/ca-{{ component_name }}-7054.pem
+        OrganizationalUnitIdentifier: orderer
     EOF
   when: not msp_file_status.stat.exists and network.env.proxy == 'none'
   changed_when: false  
@@ -210,17 +278,6 @@
   tags:
     - notest
 
-# Check admin msp already created
-- name: Check if admin msp already created
-  shell: |
-    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_admin_result
-  ignore_errors: yes
-  changed_when: false
-
 - name: Copy organization level certificates for orgs
   shell: |
     vault write {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/Admin@{{ component_name }}/tls/client.key)"
@@ -229,7 +286,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: 
-    - vault_admin_result.failed == True or vault_admin_result.stdout == '' 
+    - vault_admin_result.failed or vault_admin_result.stdout == '' 
     - network.env.proxy != 'none'
   tags:
     - molecule-idempotence-notest
@@ -258,17 +315,6 @@
   when: vault_admin_result.failed == False
   tags:
     - molecule-idempotence-notest
-
-# Check user msp already created
-- name: Check if user msp already created
-  shell: |
-    vault kv get -field=admincerts {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_user_result
-  ignore_errors: yes
-  changed_when: False
 
 - name: Copy user certificates for orgs
   shell: |
