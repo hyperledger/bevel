@@ -1,5 +1,5 @@
 ---
-# This is a sample configuration file for SupplyChain App which has 5 nodes.
+# This is a sample configuration file to add new Peers to existing Organizations and channels.
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
@@ -76,9 +76,125 @@ network:
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
   # then these services should be listed in this section as well.
-  organizations:
+  organizations:      
+    # Specification for the Existing Peer organization.
+    - organization:
+      name: carrier
+      country: GB
+      state: London
+      location: London
+      subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
+      type: peer
+      external_url_suffix: org3ambassador.blockchaincloudpoc.com
+      org_status: existing  # org_status must be existing when adding peer
+      ca_data:
+        url: ca.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # CA Server URL must be public when adding peer on new cluster
+        certificate: /path/to/caserver.crt                                    # CA Server public cert must be provided when adding peer on new cluster
+      
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+  
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      # This will be different from original org when adding peer on new cluster 
+      k8s:
+        region: "cluster_region"
+        context: "cluster_context"
+        config_file: "cluster_config"
 
-    # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Both Kubernetes cluster and ansible controller should have access to same Vault when adding peer on new cluster 
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        secret_path: "secret"
+
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        branch: "develop"           # Git branch where release is being made
+        # When adding peer on new cluster, if using same git branch, ensure release_dir is different
+        release_dir: "platforms/hyperledger-fabric/releases/dev[1/2]" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-fabric/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push  (without https://)
+        username: "git_username"          # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"          # Git Server user password
+        email: "git_email"                # Email to use in git config
+        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+
+      services:
+        # When adding peer on new cluster, ca as a service is removed
+        # Ensure existing peers are listed with peerstatus = existing
+        peers:
+        - peer:
+          name: peer0          
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
+          gossippeeraddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # No change from original configuration
+          peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          peerstatus: existing    # old peers should have status as existing
+          cli: disabled           # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
+          grpc:
+            port: 7051         
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001 
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          chaincode:
+            name: "chaincode_name"   #This has to be replaced with the name of the chaincode
+            version: "chaincode_version"   #This has to be replaced with the version of the chaincode
+            maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
+            repository:
+              username: "git_username"          # Git Service user who has rights to check-in in all branches
+              password: "git_access_token"
+              url: "github.com/<username>/blockchain-automation-framework.git"
+              branch: develop 
+              path: "chaincode_src"    #The path to the chaincode 
+            arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
+            endorsements: ""          #Endorsements (if any) provided along with the chaincode
+        - peer:
+          name: peer1         
+          type: nonanchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
+          gossippeeraddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External address of the existing anchor peer
+          peerAddress: peer1.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          peerstatus: new     # new peers should have status as new
+          cli: disabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
+          grpc:
+            port: 7051         
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001 
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          chaincode:
+            name: "chaincode_name"   #This has to be replaced with the name of the chaincode
+            version: "chaincode_version"   #This has to be replaced with the version of the chaincode            
+            maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
+            repository:
+              username: "git_username"          # Git Service user who has rights to check-in in all branches
+              password: "git_access_token"
+              url: "github.com/<username>/blockchain-automation-framework.git"
+              branch: develop 
+              path: "chaincode_src"    #The path to the chaincode 
+            arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
+            endorsements: ""          #Endorsements (if any) provided along with the chaincode
+    
+    # Specification for the Existing Orderer organization. Not needed when just adding new peer.
     - organization:
       name: supplychain
       country: UK
@@ -155,120 +271,4 @@ network:
           type: orderer
           consensus: kafka
           grpc:
-            port: 7050      
-            
-    - organization:
-      name: carrier
-      country: GB
-      state: London
-      location: London
-      subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
-      type: peer
-      external_url_suffix: org3ambassador.blockchaincloudpoc.com
-      org_status: existing  # org_status must be existing when adding peer
-      ca_data:
-        url: ca.carrier-net.org3ambassador.blockchaincloudpoc.com:8443
-        certificate: file/server.crt
-      
-      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
-      aws:
-        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
-        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-  
-      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
-      # the cluster has already been created.
-      k8s:
-        region: "cluster_region"
-        context: "cluster_context"
-        config_file: "cluster_config"
-
-      # Hashicorp Vault server address and root-token. Vault should be unsealed.
-      # Do not check-in root_token
-      vault:
-        url: "vault_addr"
-        root_token: "vault_root_token"
-        secret_path: "secret"
-      # Git Repo details which will be used by GitOps/Flux.
-      # Do not check-in git_access_token
-      gitops:
-        git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
-        branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/hyperledger-fabric/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push  (without https://)
-        username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password
-        email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
-
-      services:
-        ca:
-          name: ca
-          subject: "/C=GB/ST=London/L=London/O=Carrier/CN=ca.carrier-net.org3ambassador.blockchaincloudpoc.com"
-          type: ca
-          grpc:
-            port: 7054
-        peers:
-        - peer:
-          name: peer0          
-          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
-          gossippeeraddress: peer1.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer
-          peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-          peerstatus: existing    # old peers should have status as existing
-          cli: disabled           # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
-          grpc:
-            port: 7051         
-          events:
-            port: 7053
-          couchdb:
-            port: 5984
-          restserver:
-            targetPort: 20001
-            port: 20001 
-          expressapi:
-            targetPort: 3000
-            port: 3000
-          chaincode:
-            name: "chaincode_name"   #This has to be replaced with the name of the chaincode
-            version: "chaincode_version"   #This has to be replaced with the version of the chaincode
-            maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
-            repository:
-              username: "git_username"          # Git Service user who has rights to check-in in all branches
-              password: "git_access_token"
-              url: "github.com/<username>/blockchain-automation-framework.git"
-              branch: develop 
-              path: "chaincode_src"    #The path to the chaincode 
-            arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
-            endorsements: ""          #Endorsements (if any) provided along with the chaincode
-        - peer:
-          name: peer1         
-          type: peer    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
-          gossippeeraddress: peer0.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer
-          peerAddress: peer1.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-          peerstatus: new     # new peers should have status as new
-          cli: disabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
-          grpc:
-            port: 7051         
-          events:
-            port: 7053
-          couchdb:
-            port: 5984
-          restserver:
-            targetPort: 20001
-            port: 20001 
-          expressapi:
-            targetPort: 3000
-            port: 3000
-          chaincode:
-            name: "chaincode_name"   #This has to be replaced with the name of the chaincode
-            version: "chaincode_version"   #This has to be replaced with the version of the chaincode            
-            maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
-            repository:
-              username: "git_username"          # Git Service user who has rights to check-in in all branches
-              password: "git_access_token"
-              url: "github.com/<username>/blockchain-automation-framework.git"
-              branch: develop 
-              path: "chaincode_src"    #The path to the chaincode 
-            arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
-            endorsements: ""          #Endorsements (if any) provided along with the chaincode
+            port: 7050   

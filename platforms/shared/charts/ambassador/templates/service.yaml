@@ -15,14 +15,20 @@ metadata:
     {{- end }}
     app.kubernetes.io/component: ambassador-service
     product: aes
-{{- if .Values.ambassador.eip }}
+{{- if .Values.service.annotations }}
+  annotations:
+  {{- range $key, $value := .Values.service.annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}  
+  {{- if .Values.ambassador.eip }}
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
     service.beta.kubernetes.io/aws-load-balancer-eip-allocations: "{{ .Values.ambassador.eip }}"
     getambassador.io/config: |
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind:  Module
       name:  ambassador
       config:
@@ -35,7 +41,7 @@ metadata:
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
     getambassador.io/config: |
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind:  Module
       name:  ambassador
       config:
@@ -60,42 +66,49 @@ spec:
     {{- toYaml .Values.service.sessionAffinityConfig | nindent 4 }}
   {{- end }}
   ports:
-   - port: 80
-     name: http
-     targetPort: 8080
-   - port: 443
-     name: https
-     targetPort: 8443
-{{- with .Values.ambassador.otherPorts.portRange}}
+  {{- range .Values.service.ports }}
+    - name: {{ .name }}
+      port: {{ int .port }}
+      {{- if .targetPort }}
+      targetPort: {{ int .targetPort }}
+      {{- end }}
+      {{- if .nodePort }}
+      nodePort: {{ int .nodePort }}
+      {{- end }}
+      {{- if .protocol }}
+      protocol: {{ .protocol }}
+      {{- end }}
+  {{- end }}
+{{- with .Values.ambassador.otherPorts.portRange }}
 {{- if and .from .to }}
   {{- range untilStep (.from | int) (.to | int) 1 }}
-   - port: {{ . }}
-     name: port-{{- . }}
-     targetPort: {{ . }}
+    - port: {{ . }}
+      name: port-{{- . }}
+      targetPort: {{ . }}
   {{- end }}
-   - port: {{ .to }}
-     name: port-{{- .to }}
-     targetPort: {{ .to }}
+    - port: {{ .to }}
+      name: port-{{- .to }}
+      targetPort: {{ .to }}
 {{- end }}
 {{- end }}
 {{- range .Values.ambassador.otherPorts.ports }}
-   - port: {{ . | int }}
-     name: port-{{- . }}
-     targetPort: {{ . | int }}
+    - port: {{ . | int }}
+      name: port-{{- . }}
+      targetPort: {{ . | int }}
 {{- end }}
   selector:
     app.kubernetes.io/name: {{ include "ambassador.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-  {{- with .Values.loadBalancerSourceRanges }}
-  {{- if first .Values.ambassador.loadBalancerSourceRanges }}
-  loadBalancerSourceRanges: 
-{{- range .Values.ambassador.loadBalancerSourceRanges }}
+  {{- if .Values.ambassador.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+  {{- range .Values.ambassador.loadBalancerSourceRanges }}
    - {{ . }} 
-{{- end }}
-{{- else }}
+  {{- end }}
+  {{- else }}
   loadBalancerSourceRanges: 
   - 0.0.0.0/0
-{{- end }}  
+  {{- end }} 
+  {{- if .Values.service.externalIPs }}
   externalIPs:
     {{- toYaml .Values.service.externalIPs | nindent 4 }}
   {{- end }}

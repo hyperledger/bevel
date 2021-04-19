@@ -20,7 +20,7 @@ spec:
 
     staticnodes:
 {% for enode in enode_data_list %}
-      - "enode://{{ enode.enodeval }}@{{ enode.external_url }}:{{ enode.p2p_ambassador }}"
+      - "enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ enode.external_url }}:{{ enode.p2p_ambassador }}"
 {% endfor %}
 
     metadata:
@@ -47,7 +47,7 @@ spec:
       name: {{ peer.name }}
       tls: {{ network.config.tm_tls }}
       consensus: {{ consensus }}
-      mountPath: /etc/genesis
+      mountPath: /opt/besu/data
       servicetype: ClusterIP
       imagePullSecret: regcred
       ports:
