@@ -7,7 +7,7 @@
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/blockchain-automation-framework/badge/?version=latest)](https://blockchain-automation-framework.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
-[![Build Status](https://travis-ci.com/hyperledger-labs/blockchain-automation-framework.svg?branch=master)](https://travis-ci.com/hyperledger-labs/blockchain-automation-framework)
+[![Build Status](https://circleci.com/gh/hyperledger-labs/blockchain-automation-framework.svg?style=shield)](https://circleci.com/gh/hyperledger-labs/blockchain-automation-framework)
 
 - [Short Description](#short-description)
 - [Scope of Lab](#scope-of-lab)
@@ -79,17 +79,7 @@ We welcome your questions & feedback on our [Rocketchat channel](https://chat.hy
 ## Contributing
 We welcome contributions to BAF in many forms, and there’s always plenty to do!
 
-First things first, please review the [Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct) before participating.
-
-There are many ways to contibute to BAF, both as a user and as a developer.
-
-As a user, this can inlcude:
-* [Making Feature/Enhancement Proposals](https://github.com/hyperledger-labs/blockchain-automation-framework/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=)
-* [Reporting bugs](https://github.com/hyperledger-labs/blockchain-automation-framework/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-
-As a developer:
-* if you only have a little time, consider picking up a [“help-wanted”](https://github.com/hyperledger-labs/blockchain-automation-framework/labels/help%20wanted) or ["good-first-issue"](https://github.com/hyperledger-labs/blockchain-automation-framework/labels/good%20first%20issue) task
-* If you can commit to full-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework) to work through logistics
+Please review [contributing](./CONTRIBUTING.md) guidelines to get started.
 
 # Build
 If you are not using the provided Jenkins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster.

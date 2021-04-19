@@ -45,7 +45,7 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
-      authpath: {{ namespace }}-auth
+      authpath: {{ network.env.type }}{{ namespace }}-auth
       secretprefix: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
       secretambassador: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/ambassador
       serviceaccountname: vault-auth

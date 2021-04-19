@@ -26,7 +26,7 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
-      authpath: {{ namespace | e }}-auth
+      authpath: {{ network.env.type }}{{ namespace | e }}-auth
       adminsecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/users/admin
       orderersecretprefix: secret/crypto/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth

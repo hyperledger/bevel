@@ -33,7 +33,7 @@ echo "Registering and enrolling $PEER with csr hosts ${CSR_HOSTS}"
 
 
 # Register the peer
-fabric-ca-client register -d --id.name ${PEER} --id.secret ${PEER}-pw --id.type peer --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+fabric-ca-client register -d --id.name ${PEER} --id.secret ${PEER}-pw --id.type orderer --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
 
 # Enroll to get peers TLS cert
 fabric-ca-client enroll -d --enrollment.profile tls -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_HOME}/cas/orderers/tls --csr.hosts "${CSR_HOSTS}" --tls.certfiles ${ROOT_TLS_CERT} --csr.names "${SUBJECT_PEER}"

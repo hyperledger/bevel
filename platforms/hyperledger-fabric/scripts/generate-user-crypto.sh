@@ -40,9 +40,9 @@ while [ ${USER} -lt ${NO_OF_USERS} ]; do
 	ORG_USERPASS="User${USER}@${FULLY_QUALIFIED_ORG_NAME}-pw"
 
 	if [ "$1" = "peer" ]; then
-		fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type user --csr.names "${SUBJECT}" --id.affiliation ${AFFILIATION} --id.attrs "hf.Revoker=true" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+		fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.affiliation ${AFFILIATION} --id.attrs "hf.Revoker=true" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
 	else
-		fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type user --csr.names "${SUBJECT}" --id.attrs "hf.Revoker=true" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+		fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.attrs "hf.Revoker=true" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
 	fi
 
 	fabric-ca-client enroll -d -u https://${ORG_USER}:${ORG_USERPASS}@${CA} --csr.names "${SUBJECT}" --tls.certfiles ${ROOT_TLS_CERT} --home ${ORG_HOME}/client${USER}
