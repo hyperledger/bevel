@@ -1,0 +1,88 @@
+#############################################################################################
+# This role creates the block modification script for system channel.
+#############################################################################################
+
+# Check or wait for the Orderer pod
+- name: "Wait for the new orderer pod"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"    
+    kubernetes: "{{ neworg.k8s }}"
+    label_selectors:
+      - app = {{ orderer.name | lower }}
+  when: update_type == "address"
+
+# Ensure channel-artifacts dir exists
+- name: Ensure channel-artifacts dir exists
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+
+# remove old consenters file
+- name: Remove old consenters file
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name }}-consenter"
+    state: absent
+
+# creating new file for the conserters
+- name: Creating new consenters file
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name }}-consenter"
+    state: touch
+
+# Create syschannel-orderer-tls for tls certificate information
+- name: "adding orderers information to the file"
+  shell: |    
+    if [ {{ network.env.proxy }} == 'none' ]
+    then
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name }}.{{ component_ns }}\",\"port\":{{ orderer.grpc.port }},\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter      
+    else
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name }}.{{ neworg.external_url_suffix }}\",\"port\":8443,\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter
+    fi
+  when: update_type == "tls"
+
+# Create syschannel-orderer for adding new endpoint information
+- name: "Adding new endpoint information"
+  shell: |
+    if [ {{ network.env.proxy }} == 'none' ]
+    then
+      echo -n '"{{ orderer.name }}.{{ component_ns }}:{{ orderer.grpc.port }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter
+    else
+      echo -n '"{{ orderer.name }}.{{ neworg.external_url_suffix }}:8443"' >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter 
+    fi    
+  when: update_type == "address"
+
+# This task creates the create-orderer.sh file for new organizations
+- name: "Create create-orderer.sh script file for new orderer"
+  template:
+    src: "orderer_org.tpl"
+    dest: "{{ build_path }}/syschannel-update-script.sh"
+  vars:    
+    channel: "{{ network.channels | first }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  when: update_type == "tls"
+
+# This task creates the generate_block.sh file for new organizations
+- name: "Create create-syschannel-block.sh script file for new orderer"
+  template:
+    src: "syschannel_update_address_script.tpl"
+    dest: "{{ build_path }}/syschannel-update-script.sh"
+  vars:
+    component_name: "{{ neworg.name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  when: update_type == "address"
+
+# This task calls create_orderer.yaml to generate the update block
+- name: Call create_orderer.yaml to add the new orderer to the existing network
+  include_tasks: create_orderer.yaml
+  vars:    
+    org_query: "organizations[? type=='orderer' && org_status=='existing']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"
+    orderer: "{{ org.services.orderers | first }}"

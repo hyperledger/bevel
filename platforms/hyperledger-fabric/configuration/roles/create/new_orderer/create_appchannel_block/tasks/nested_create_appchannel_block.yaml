@@ -35,28 +35,22 @@
 # Create orderer-tls for tls certificate information
 - name: "adding tls certificate information"
   shell: |
-    if [ -s {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls ]
+    if [ {{ network.env.proxy }} == 'none' ]
     then
-        echo -n "," >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name|lower }}.{{ component_ns }}\",\"port\":{{ orderer.grpc.port }},\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
+    else
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name|lower }}.{{ org.external_url_suffix }}\",\"port\":8443,\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
     fi
-    echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ org.name|lower }}-net/orderers/{{ orderer.name|lower }}.{{ org.name|lower }}-net/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name|lower }}.{{ org.external_url_suffix }}\",\"port\":8443,\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ org.name|lower }}-net/orderers/{{ orderer.name|lower }}.{{ org.name|lower }}-net/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
-  loop: "{{ orderers }}"
-  loop_control:
-    loop_var: orderer
-  when: orderer.status == 'new'
 
 # Create orderer file for adding new endpoint information
 - name: "adding new endpoint information"
   shell: |
-    if [ -s {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer ]
+    if [ {{ network.env.proxy }} == 'none' ]
     then
-        echo -n "," >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer  
+      echo -n '"{{ orderer.name }}.{{ component_ns }}:{{ orderer.grpc.port }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
+    else
+      echo -n '"{{ orderer.name }}.{{ org.external_url_suffix }}:8443"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
     fi
-    echo -n '"{{ orderer.name }}.{{ org.external_url_suffix }}:8443"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer 
-  loop: "{{ orderers }}"
-  loop_control:
-    loop_var: orderer
-  when: orderer.status == 'new'
 
 # Create the values for orderer files
 - name: "adding new org peers anchor peer information"
@@ -69,7 +63,7 @@
 - name: "Create update-channel-script.sh script file for new orderer"
   template:
     src: "update_channel_script.tpl"
-    dest: "./build/update-channel-script.sh"
+    dest: "{{ build_path }}/update-channel-script.sh"
   vars:
     component_name: "{{ org.name | lower }}"
     os: "{{ fabric.os }}"
