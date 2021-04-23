@@ -20,7 +20,7 @@
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     channel_name: "{{ channel_name }}"
     storage_class: "{{ org.name }}sc"
-    release_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}"
+    release_dir: "{{ build_path }}"
     orderer_component: "{{ orderer.name | lower }}.{{ org.name | lower }}-net"
     orderer_address: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
 
@@ -28,7 +28,7 @@
 # Create the value first orderer in orderer organization
 - name: "start cli"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
 
 # waiting for fabric cli
 - name: "Check if fabric cli is present"
@@ -51,13 +51,13 @@
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ org.name }}-net | grep "cli" | head -n 1 | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/update-channel-script.sh {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/update_consenter.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/channel-artifacts/{{ channel_name | lower}}-orderer {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/orderer
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/channel-artifacts/{{ channel_name | lower}}-orderer-tls {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/orderer-tls
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/update-channel-script.sh {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/orderer
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/orderer-tls
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- chmod 777 ./update_consenter.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} --  sh ./update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- sh ./update_consenter.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- peer channel update -f {{ channel_name }}_update_in_envelope.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_modified_config.json ./build/{{ channel_name }}_config_block_with_added_content.json  
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_modified_config.json {{ build_path }}/{{ channel_name }}_config_block_with_added_content.json  
   environment:
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
   vars: 
@@ -70,15 +70,9 @@
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ org.name }}-net | grep "cli" | head -n 1 | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_latest_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_latest_config_block.pb ./build/{{ channel_name }}_config_block.pb
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_latest_config_block.pb {{ build_path }}/{{ channel_name }}_config_block.pb
   environment:
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
   vars: 
     kubernetes: "{{ org.k8s }}"
     ordererAddress: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
-
-############################################################################################
-# Delete the orderer cli   
-- name: "delete cli {{ orderer.name }}-{{ org.name }}-cli"
-  shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm uninstall {{ orderer.name }}-{{ org.name }}-cli
