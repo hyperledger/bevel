@@ -1,7 +1,6 @@
 <a name = "adding-new-peer-to-existing-organization-in-a-running-fabric-network"></a>
 # Adding a new peer to existing organization in Hyperledger Fabric
 
-- [Adding a new peer to existing organization in Hyperledger Fabric](#adding-a-new-peer-to-existing-organization-in-hyperledger-fabric)
   - [Prerequisites](#prerequisites)
   - [Modifying Configuration File](#modifying-configuration-file)
   - [Run playbook](#run-playbook)

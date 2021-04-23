@@ -4,6 +4,7 @@ set -x
 
 CURRENT_DIR=${PWD}
 FULLY_QUALIFIED_ORG_NAME="{{ component_ns }}"
+EXTERNAL_URL_SUFFIX="{{ item.external_url_suffix }}"
 ALTERNATIVE_ORG_NAMES=("{{ item.external_url_suffix }}")
 ORG_NAME="{{ component_name }}"
 SUBJECT="C={{ component_country }},ST={{ component_state }},L={{ component_location }},O={{ component_name }}"
@@ -41,9 +42,7 @@ fabric-ca-client enroll -d --enrollment.profile tls -u https://${PEER}:${PEER}-p
 # Copy the TLS key and cert to the appropriate place
 mkdir -p ${ORG_CYPTO_FOLDER}/orderers/${PEER}/tls
 cp ${ORG_HOME}/cas/orderers/tls/keystore/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/tls/server.key
-
 cp ${ORG_HOME}/cas/orderers/tls/signcerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/tls/server.crt
-
 cp ${ORG_HOME}/cas/orderers/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/tls/ca.crt
 
 rm -rf ${ORG_HOME}/cas/orderers/tls
@@ -54,8 +53,8 @@ fabric-ca-client enroll -d -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_CYPTO_FO
 
 # Create the TLS CA directories of the MSP folder if they don't exist.
 mkdir ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
-if [ {{ proxy }} != "none"]; then
-	mv ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${ALTERNATIVE_ORG_NAMES}-8443.pem
+if [ {{ proxy }} != "none" ]; then
+	mv ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
 fi
 cp ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
 
