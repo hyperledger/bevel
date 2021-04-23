@@ -20,6 +20,9 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: truststore_result
   ignore_errors: yes
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 ########################################################################################
 # This task downloads the certificates from NMS
@@ -29,6 +32,9 @@
     dest: "{{ node_certs }}/network-map-truststore.jks"
     validate_certs: no
   when: truststore_result.failed == True and network.env.proxy != 'none'
+  tags:
+    - notest
+    - molecule-idempotence-notest
 
 # This task downloads the certificates from NMS pod
 - name: "Downloads certs from nms pod"
@@ -39,6 +45,9 @@
     export NMS_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ nms_namespace }} -l app={{ nms_name | lower }} | grep {{ nms_name | lower }}  | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ nms_namespace }}/${NMS_POD}:../../opt/networkmap/network-map-truststore.jks -c logs {{ node_certs }}/network-map-truststore.jks
   when: truststore_result.failed == True and network.env.proxy == 'none'
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 ########################################################################################
 # This task loads the certificates to vault
@@ -49,6 +58,9 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: truststore_result.failed == True
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: Check if certificates already created
   shell: |
@@ -58,6 +70,9 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: certs_result
   ignore_errors: yes
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: Generate node certs
   shell: |
@@ -68,6 +83,9 @@
     openssl pkcs12 -export -in {{ component_name }}.cer -inkey {{ component_name }}.key -out testkeystore.p12 -passin pass:'cordacadevpass' -passout pass:'cordacadevpass'
     keytool -importkeystore -srckeystore testkeystore.p12 -srcstoretype pkcs12 -srcstorepass cordacadevpass -destkeystore nodekeystore.jks -deststorepass cordacadevpass -deststoretype JKS
   when: certs_result.failed == True
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: "Write certificates to vault"
   shell: |
@@ -77,6 +95,9 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: certs_result.failed == True
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: Check if doorman certs already created
   shell: |
@@ -86,6 +107,9 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: doorman_result
   ignore_errors: yes
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: "Write certificates to vault"
   shell: |
@@ -94,6 +118,9 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: doorman_result.failed == True and doorman_cert_file != ''
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: Check if networkmap certs already created
   shell: |
@@ -103,6 +130,9 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: networkmap_result
   ignore_errors: yes
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: "Write certificates to vault"
   shell: |
@@ -111,6 +141,9 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: networkmap_result.failed == True
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: "Write credentials to vault"
   shell: |
@@ -122,6 +155,9 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: "Write cordapps credentials to vault"
   shell: |
@@ -130,6 +166,9 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: cordapps_details != "" 
+  tags:
+    - molecule-idempotence-notest
+  changed_when: false
 
 - name: Create Ambassador certificates
   include_role: 

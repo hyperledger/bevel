@@ -19,16 +19,16 @@ spec:
       port: {{ peer_restserver_port }}
       localmspid: {{ name }}MSP
       image: {{ network.docker.url }}/supplychain_fabric:rest_server_latest
-      username: admin
-      cert_path: "/secret/tls/admin.cert"
-      key_path: "/secret/tls/admin.pem"
+      username: user1
+      cert_path: "/secret/tls/user1.cert"
+      key_path: "/secret/tls/user1.pem"
     storage:
       storageclassname: {{ name }}sc
       storagesize: 512Mi
     vault:
       address: {{ component_vault.url }}
       role: vault-role
-      authpath: {{ component_ns }}-auth
+      authpath: {{ network.env.type }}{{ component_ns }}-auth
       secretprefix: {{ component_vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_ns }}
       serviceaccountname: vault-auth
       imagesecretname: regcred

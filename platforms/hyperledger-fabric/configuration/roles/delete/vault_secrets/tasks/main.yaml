@@ -71,7 +71,7 @@
 # This task deletes vault auth
 - name: Delete vault-auth path
   shell: |
-    vault delete sys/auth/{{ component_name }}-auth
+    vault delete sys/auth/{{ network.env.type }}{{ component_name }}-auth
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
@@ -119,6 +119,19 @@
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   when: component_type == 'peer'
+
+- name: Remove all endorsers
+  args:
+    executable: /bin/bash
+  shell: |    
+    for path in $(vault list {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/endorsers);
+    do
+      vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/endorsers/${path}/users/admin/msp;
+    done
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  ignore_errors: yes
 
 - name: Delete policy
   shell: |

@@ -9,7 +9,7 @@ storage:
 vault:
   role: vault-role
   address: {{ vault.url }}
-  authpath: {{ component_ns }}-auth
+  authpath: {{ network.env.type }}{{ component_ns }}-auth
   adminsecretprefix: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_ns }}/users/admin
   orderersecretprefix: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer_component }}
   serviceaccountname: vault-auth
