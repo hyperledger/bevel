@@ -1,0 +1,49 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: anchorpeer-allchannel-cakd
+  namespace: cakd-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: anchorpeer-allchannel-cakd
+  chart:
+    git: https://github.com/deepakkumardbd/blockchain-automation-framework.git
+    ref: dev
+    path: platforms/hyperledger-fabric/charts/anchorpeer
+  values:
+    metadata:
+      namespace: cakd-net
+      images:
+        fabrictools: hyperledger/fabric-tools:2.2.0
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    peer:
+      name: peer0
+      address: peer0.cakd-net.hf.dev2.aws.blockchaincloudpoc-develop.com:8443
+      localmspid: cakdMSP
+      loglevel: debug
+      tlsstatus: true
+
+    vault:
+      role: vault-role
+      address: http://a0444dfa88c894a34871b0a1725c8647-1759960141.eu-west-1.elb.amazonaws.com:20002
+      authpath: kdcakd-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/cakd-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/cakd-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    channel:
+      name: allchannel      
+    orderer:
+      address: ordererkd1.hf.dev2.aws.blockchaincloudpoc-develop.com:8443
+    anchorstx: |-
+      CtoCChgKFggCGgYI/fSehAYiCmFsbGNoYW5uZWwSvQIKugIKCmFsbGNoYW5uZWwSYBJeCgtBcHBs
+      aWNhdGlvbhJPCAESSwoHY2FrZE1TUBJAGgcKA01TUBIAIgsKB1JlYWRlcnMSACILCgdXcml0ZXJz
+      EgAiCgoGQWRtaW5zEgAiDwoLRW5kb3JzZW1lbnQSABrJARLGAQoLQXBwbGljYXRpb24StgEIARKx
+      AQoHY2FrZE1TUBKlAQgBGlkKC0FuY2hvclBlZXJzEkoSQAo+CjlwZWVyMC5jYWtkLW5ldC5oZi5k
+      ZXYyLmF3cy5ibG9ja2NoYWluY2xvdWRwb2MtZGV2ZWxvcC5jb20Q+0EaBkFkbWlucxoHCgNNU1AS
+      ACILCgdXcml0ZXJzEgAiCgoGQWRtaW5zEgAiDwoLRW5kb3JzZW1lbnQSACILCgdSZWFkZXJzEgAq
+      BkFkbWlucw==
+
