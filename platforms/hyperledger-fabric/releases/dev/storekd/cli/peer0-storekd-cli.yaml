@@ -1,0 +1,38 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: peer0-storekd-cli
+  namespace: storekd-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: peer0-storekd-cli
+  chart:
+    git: https://github.com/deepakkumardbd/blockchain-automation-framework.git
+    ref: dev
+    path: platforms/hyperledger-fabric/charts/fabric_cli    
+  values:
+    metadata:
+      namespace: storekd-net
+      images:
+        fabrictools: hyperledger/fabric-tools:2.2.0
+        alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+    storage:
+      class: storekdsc
+      size: 256Mi
+    vault:
+      role: vault-role
+      address: http://a0444dfa88c894a34871b0a1725c8647-1759960141.eu-west-1.elb.amazonaws.com:20002
+      authpath: kdstorekd-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/storekd-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/storekd-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      tls: false
+    peer:
+      name: peer0
+      localmspid: storekdMSP
+      tlsstatus: true
+      address: peer0.storekd-net.hf.dev2.aws.blockchaincloudpoc-develop.com:8443
+    orderer:
+      address: ordererkd1.hf.dev2.aws.blockchaincloudpoc-develop.com:8443
