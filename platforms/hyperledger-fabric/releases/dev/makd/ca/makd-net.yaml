@@ -1,0 +1,44 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: makd-net-ca
+  namespace: makd-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: makd-net-ca
+  chart:
+    git: https://github.com/deepakkumardbd/blockchain-automation-framework.git
+    ref: dev
+    path: platforms/hyperledger-fabric/charts/ca    
+  values:
+    metadata:
+      namespace: makd-net
+      images:
+        alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+        ca: hyperledger/fabric-ca:1.4.8
+    server:
+      name: ca
+      tlsstatus: true
+      admin: makd-admin
+    storage:
+      storageclassname: makdsc
+      storagesize: 512Mi
+    vault:
+      role: vault-role
+      address: http://a0444dfa88c894a34871b0a1725c8647-1759960141.eu-west-1.elb.amazonaws.com:20002
+      authpath: kdmakd-net-auth
+      secretcert: secret/crypto/peerOrganizations/makd-net/ca?ca.makd-net-cert.pem
+      secretkey: secret/crypto/peerOrganizations/makd-net/ca?makd-net-CA.key
+      secretadminpass: secret/credentials/makd-net/ca/makd?user
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    service:
+      servicetype: ClusterIP
+      ports:
+        tcp:
+          port: 7054
+    proxy:
+      provider: haproxy
+      type: peer
+      external_url_suffix: hf.dev2.aws.blockchaincloudpoc-develop.com
