@@ -1,0 +1,41 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: joinchannel-peer0-join-allchannel-cakd-peer0
+  namespace: cakd-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: joinchannel-peer0-join-allchannel-cakd-peer0
+  chart:
+    git: https://github.com/deepakkumardbd/blockchain-automation-framework.git
+    ref: dev
+    path: platforms/hyperledger-fabric/charts/join_channel
+  values:
+    metadata:
+      namespace: cakd-net
+      images:
+        fabrictools: hyperledger/fabric-tools:2.2.0
+        alpineutils: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+
+    peer:
+      name: peer0
+      address: peer0.cakd-net.hf.dev2.aws.blockchaincloudpoc-develop.com:8443
+      localmspid: cakdMSP
+      loglevel: debug
+      tlsstatus: true
+
+    vault:
+      role: vault-role
+      address: http://a0444dfa88c894a34871b0a1725c8647-1759960141.eu-west-1.elb.amazonaws.com:20002
+      authpath: kdcakd-net-auth
+      adminsecretprefix: secret/crypto/peerOrganizations/cakd-net/users/admin
+      orderersecretprefix: secret/crypto/peerOrganizations/cakd-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    channel:
+      name: allchannel      
+    orderer:
+      address: ordererkd1.hf.dev2.aws.blockchaincloudpoc-develop.com:8443
+
