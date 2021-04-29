@@ -41,7 +41,7 @@ The Blockchain Automation Framework configuration is essentially Ansible scripts
 Please note that this machine (also called **Ansible Controller**) should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s). And it is essential to install the [git client](https://git-scm.com/download) on the Ansible Controller. 
 
 ---
-**NOTE:** The current Blockchain Automation Framework requires minimum **Ansible version 2.9.4** and **Python3**
+**NOTE:** The current Blockchain Automation Framework requires minimum **Ansible version 2.9.4** and **Python3** also Ansible's k8s module requires the **openshift python package (>= 0.6)**.
 
 **NOTE (MacOS):** Ansible requires GNU tar. Install it on MacOS through Homebrew `brew install gnu-tar`
 

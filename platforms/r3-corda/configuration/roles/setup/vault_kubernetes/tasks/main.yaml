@@ -54,6 +54,7 @@
   ignore_errors: yes
   tags:
     - notest  
+  changed_when: false
 
 # This tasks checks if the kubeconfig cert is there or not 
 - name: "check if dir exists or not"
@@ -67,6 +68,7 @@
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ component_ns }}.ca.cert"
   when: not vault_auth_status and (not kubeconfig_check.stat.exists)
+  changed_when: false
 
 ################################################################################################
 # This task writes the Service Account token to the vault for various corda entity(nms,doorman,notary,nodes)
@@ -80,6 +82,7 @@
   when: not vault_auth_status
   tags:
     - notest  
+  changed_when: false
 
 # This task checks if the vault secret path
 - name: Check if secret-path already created for Organization
@@ -91,6 +94,7 @@
   register: secrets_list
   tags:
     - notest  
+  changed_when: false
 
 # This task creates the secret-path
 - name: Create Vault secrets path
@@ -102,6 +106,7 @@
   when: not vault_auth_status
   tags:
     - notest  
+  changed_when: false
 
 # This task checks if the vault-ro polict already exists
 - name: Check if policy exists
@@ -114,6 +119,7 @@
   ignore_errors: yes
   tags:
     - notest  
+  changed_when: false
 
 - name: "check if file exists or not"
   stat:
@@ -132,6 +138,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_policy_result.failed == True and ( not policy_check.stat.exists )    # Run if policy check failed
+  changed_when: false
+
 # This task writes the access policy to the vault
 - name: Write policy to the vault
   shell: |
@@ -143,6 +151,7 @@
   when: vault_policy_result.failed == True    # Run if policy check failed
   tags:
     - notest
+  changed_when: false
 
 # This task creates the vault auth
 - name: Create Vault auth role
@@ -154,3 +163,4 @@
   when: not vault_auth_status    # Run when auth_path is not found
   tags:
     - notest  
+  changed_when: false

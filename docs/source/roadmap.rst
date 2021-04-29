@@ -53,9 +53,13 @@ General
 -  |run| Platforms and components upgrade:
     - |tick| Helm3 upgrade
     - |tick| EKS upgrade to 1.16
-    - |run| Ambassador upgrade to 1.9.1  
+    - |run| Ambassador upgrade to 1.9.1
+    - |run| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric
+    - |pin| Setup AWS cloudwatch exporter
+    - |pin| Grafana and Promethus integration 
+    - |pin| Flux version upgrade
+    - |pin| Support for HashiCorp vault kv version 2
     - |pin| Improve logging/error messaging in playbooks
-    - |pin| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric  
     - |hand| Java version upgrades
 
 Platforms
@@ -63,19 +67,22 @@ Platforms
 - |run| Corda Ent. operational feature enhancements
     - |tick| Enable mutiple notaries
     - |pin| Addition of notary node to an existing network
-    - |pin| R3 Corda version 4.x upgrade
-    - |pin| CENM version upgrade
+    - |run| Test R3 Corda version 4.x upgrade
+    - |pin| Test CENM version upgrade
+    - |pin| Enable PostGreSQL support for Corda Enterprise
     - |hand| Removable of node
 - |run| HL Fabric operational feature enhancements
     - |tick| HL Fabric 2.2 version upgrade
     - |tick| HL Fabric v1.4.8 upgrade
+    - |tick| Multi Orderer organisation option for RAFT
     - |run| Feature for user identities
-    - |pin| External chaincode for Fabric 2.2.x
-    - |pin| Multi Orderer organisation option for RAFT
-    - |pin| CI/CD piplelines for chaincode deployment 
+    - |run| External chaincode for Fabric 2.2.x
+    - |pin| CI/CD piplelines for chaincode deployment
+
 - |run| HL Besu operational feature enhancements
     - |tick| Enable DNS support
     - |pin| Enable deployment without proxy (proxy as none option)
+    - |pin| Add clique consensus mechanism support 
     - |hand| Addition of new validator node
     - |hand| Enable bootnodes
 

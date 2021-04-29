@@ -1,0 +1,30 @@
+############################################################################################
+## Adding the New Orderer to the json file that will be used inside the orderer cli
+- name: "Creating JSON configuration for new organization"
+  shell: |
+    cd {{ build_path }}
+    export FABRIC_CFG_PATH=$PWD
+    ./configtxgen -printOrg {{ neworg.name | lower }}MSP > ./channel-artifacts/{{ channel_name }}.json
+  register: result
+
+# This task calls nested_main for each new RAFT orderer
+- name: Call nested_main.yaml for each orderer under organization
+  include_tasks: nested_main.yaml  
+  vars:
+    component_name: "{{ neworg.name | lower }}"
+    component_ns: "{{ neworg.name | lower }}-net"
+  loop: "{{ neworg.services.orderers }}"
+  loop_control:
+    loop_var: orderer
+ 
+# Delete the orderer cli   
+- name: "delete cli {{ orderer.name }}-{{ org.name }}-cli"
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} helm uninstall {{ orderer.name }}-{{ org.name }}-cli
+  vars:
+    orderer: "{{ org.services.orderers | first }}"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer'
+  ignore_errors: yes
