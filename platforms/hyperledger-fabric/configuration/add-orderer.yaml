@@ -18,15 +18,21 @@
         path: "./build"
         state: absent
 
-    # Create generate_crypto script for new organization
-    - name: "Generate crypto script for new orderer"
-      include_role:
-        name: "create/new_orderer/crypto_script"
-      vars:
-        component_type: "{{ item.type | lower}}"
-        orderers: "{{ item.services.orderers }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'
+  # Generate script to modify the fetched configuration block
+  - name: "Modify the system channel with tls information of new orderer"
+    include_role:
+      name: "create/new_orderer/create_syschannel_block"
+    vars:
+      build_path: "./build"
+      orderers: "{{ org.services.orderers }}"
+      docker_url: "{{ network.docker.url }}"
+      channel_name: "syschannel"
+      update_type: "tls"
+      component_ns: "{{ org.name | lower}}-net"
+    loop: "{{ network.organizations }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'orderer'
 
     # Create Orderer crypto materials
     - name: "Generate crypto for new orderer"
@@ -44,20 +50,21 @@
       loop: "{{ network['organizations'] }}"
       when: item.type == 'orderer'
 
-    # Generate script to modify the fetched configuration block
-    - name: "Modify the system channel with tls information of new orderer"
-      include_role:
-        name: "create/new_orderer/create_syschannel_block"
-      vars:
-        build_path: "./build"
-        orderers: "{{ org.services.orderers }}"
-        docker_url: "{{ network.docker.url }}"
-        channel_name: "syschannel"
-        update_type: "tls"
-      loop: "{{ network.organizations }}"
-      loop_control:
-        loop_var: org
-      when: org.type == 'orderer'
+  # Generate script to modify the fetched configuration block
+  - name: "Modify the system channel with endpoint information of new orderer"
+    include_role:
+      name: "create/new_orderer/create_syschannel_block"
+    vars:
+      build_path: "./build"
+      orderers: "{{ org.services.orderers }}"
+      docker_url: "{{ network.docker.url }}"
+      channel_name: "syschannel"
+      update_type: "address"
+      component_ns: "{{ org.name | lower}}-net"
+    loop: "{{ network.organizations }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'orderer'
 
     # This role creates value file new orderer
     - name: "create new orderer"

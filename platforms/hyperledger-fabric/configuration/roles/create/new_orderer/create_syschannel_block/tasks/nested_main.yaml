@@ -1,0 +1,110 @@
+#############################################################################################
+# This role creates the block modification script for system channel.
+#############################################################################################
+
+# Check or wait for the Orderer pod
+- name: "Wait for the new orderer pod"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"    
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ orderer.name | lower }}
+  when: update_type == "address"
+
+# Ensure channel-artifacts dir exists
+- name: Ensure channel-artifacts dir exists
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+    
+# remove old orderer file
+- name: Remove old orderer file
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer"
+    state: absent
+
+# creating new orderer file
+- name: Creating new orderer file
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer"
+    state: touch
+
+# Create syschannel-orderer-tls for tls certificate information
+- name: "adding tls certificate information"
+  shell: |
+    if [ {{ network.env.proxy }} == 'none' ]
+    then
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name | lower }}.{{ component_ns }}\",\"port\":{{ orderer.grpc.port }},\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer 
+    else
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name | lower }}.{{ org.external_url_suffix }}\",\"port\":8443,\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer 
+    fi
+  when: update_type == "tls"
+
+# Create syschannel-orderer for adding new endpoint information
+- name: "Adding new endpoint information"
+  shell: |
+    if [ {{ network.env.proxy }} == 'none' ]
+    then
+      echo -n '"{{ orderer.name }}.{{ component_ns }}:{{ orderer.grpc.port }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
+    else
+      echo -n '"{{ orderer.name }}.{{ org.external_url_suffix }}:8443"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer 
+    fi    
+  when: update_type == "address"
+
+# Adding information to orderer file
+- name: "adding information to orderer file"
+  shell: |
+    echo -n "[$(cat {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer )]" > {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
+
+############################################################################################
+# This task creates the generate_block.sh file for new organizations
+- name: "Create create-syschannel-block.sh script file for new orderer"
+  template:
+    src: "syschannel_update_consenter_script.tpl"
+    dest: "{{ build_path }}/syschannel-update-script.sh"
+  vars:
+    component_name: "{{ org.name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  when: update_type == "tls"
+
+# This task creates the generate_block.sh file for new organizations
+- name: "Create create-syschannel-block.sh script file for new orderer"
+  template:
+    src: "syschannel_update_address_script.tpl"
+    dest: "{{ build_path }}/syschannel-update-script.sh"
+  vars:
+    component_name: "{{ org.name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  when: update_type == "address"
+
+############################################################################################
+# This task calls nested_create_cli to generate the cli value files for the orderer organization
+- name: Call nested_create_cli for the first orderer
+  include_tasks: nested_create_cli.yaml
+  vars:
+    orderer: "{{ org.services.orderers | first }}"
+
+# This task creates the genesis block by consuming the latest config block
+- name: "Create genesis block"
+  shell: |
+    cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/genesis.block.base64
+  when: update_type == "tls"
+  tags:
+    - molecule-idempotence-notest
+
+# add new genesis block to the vault
+- name: "Write genesis block to Vault"  
+  shell: |
+    vault write {{ org.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_ns }}  {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  tags:
+    - molecule-idempotence-notest

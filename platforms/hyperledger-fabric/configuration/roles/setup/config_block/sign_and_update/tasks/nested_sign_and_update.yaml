@@ -28,13 +28,13 @@
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     channel_name: "{{ channel_name }}"
     storage_class: "{{ participant.name }}sc"
-    release_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/"
+    release_dir: "./build"
   when: existing_cli.resources|length == 0
 
 # Starts the cli with valuefile generated above
 - name: "start cli {{peer.name}}-{{ org.name }}"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
   when: existing_cli.resources|length == 0
 
 # waiting for fabric cli
