@@ -1,29 +1,29 @@
 ---
-- name: Prepare for Molecule Test
-  hosts: k8s
+- name: Prepare for Molecule Test                       # This is a test scenario preparation file
+  hosts: k8s                                            # refers to the inventory group we defined in molecule.yml
   gather_facts: no
-  vars:
-    kubeconfig: "{{ lookup ('env', 'KUBECONFIG') }}"
-  tasks:
-  - name: Delete the kubeconfig if present
+  vars:                                                     # reads the KUBECONFIG variable from molecule.yml and creates a local var
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') }}"
+  tasks:           
+  - name: delete the kubeconfig if present                  # deletes old kubeconfig file
     file:
-      path: "{{ kubeconfig }}"
+      path: '{{ kubeconfig }}'
       state: absent
     delegate_to: localhost
-
-  - name: Fetch the kubeconfig
+ 
+  - name: Fetch the kubeconfig                              # Gets the kubeconfig file from that src path in the docker container
     fetch:
-      src: /root/.kube/config
-      dest: "{{ kubeconfig }}"
+      dest: '{{ kubeconfig }}'
       flat: yes
-
-  - name: Change the kubeconfig port to the proper value
+      src: /root/.kube/config
+ 
+  - name: Change the kubeconfig port to the proper value    # Updates the file with exposed ports (10443 in this case)
     replace:
       regexp: '8443'
       replace: "{{ lookup('env', 'KIND_PORT') }}"
-      path: "{{ kubeconfig }}"
+      path: '{{ kubeconfig }}'
     delegate_to: localhost
-
+ 
   - name: Wait for the Kubernetes API to become available (this could take a minute)    # Waits for kind to be ready
     uri:
       url: "http://localhost:10080/kubernetes-ready"
@@ -43,7 +43,7 @@
     retries: 7
     delay: 5
     delegate_to: localhost
-
+ 
   - name: Delete any existing vault secret path
     shell: |
       vault secrets disable secret/
@@ -51,19 +51,10 @@
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
     delegate_to: localhost
-
+ 
   - name: create/enable new vault secret path
     shell: |
-      vault secrets enable -version=1 -path=networkmap kv
-    environment:
-      VAULT_ADDR: "http://localhost:9090"
-      VAULT_TOKEN: "root"
-    changed_when: false
-    delegate_to: localhost
-
-  - name: create/enable new vault secret path
-    shell: |
-      vault secrets enable -version=1 -path=manufacturer kv
+      vault secrets enable -version=1 -path=secret kv
     environment:
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"

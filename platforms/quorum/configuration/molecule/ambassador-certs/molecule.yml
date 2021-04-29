@@ -3,7 +3,7 @@ dependency:
   name: galaxy
 driver:
   name: docker
-lint: |
+lint: |   
   yamllint .
 platforms:
   - name: kind-default
@@ -15,10 +15,10 @@ platforms:
     exposed_ports:
       - 8443/tcp
       - 10080/tcp
-    published_ports: 
+    published_ports:
       - 0.0.0.0:${TEST_CLUSTER_PORT:-10443}:8443/tcp
     pre_build_image: yes
-  - name: vault-default
+  - name: vault-default                         # This is the ansible inventory group
     image: index.docker.io/vault:1.0.1
     privileged: True
     override_command: True
@@ -26,7 +26,7 @@ platforms:
     exposed_ports:
       - 8200/tcp
     published_ports:
-      - 0.0.0.0:9090:8200/tcp
+      - 0.0.0.0:9090:8200/tcp    # Map exposed ports to localhost
     pre_build_image: yes
 provisioner:
   name: ansible
@@ -42,4 +42,3 @@ verifier:
   name: ansible
   lint: |
     ansible-lint
-    

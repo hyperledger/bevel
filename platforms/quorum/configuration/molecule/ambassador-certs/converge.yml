@@ -1,6 +1,6 @@
 ---
 - name: Converge
-  hosts: all
+  hosts: localhost
   connection: local
   vars:
     network:
@@ -11,6 +11,8 @@
         url: "test_url"
         username: "test_username"
         password: "test_password"
+      config:
+        subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
       env:
         type: "dev"
         proxy: ambassador
@@ -85,44 +87,34 @@
       file:
         path: "{{ playbook_dir }}/../../shared/configuration"
         state: directory
-
+        
     - name: Copy the roles
       copy:
         src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
         dest: "{{ playbook_dir }}/../../shared/configuration"
 
   tasks:
+    - name: "Copy openssl.conf to molecule directory"                 # Copying openssl.conf to molecule playbook directory
+      copy:
+        src: "{{ playbook_dir }}/../../openssl.conf"
+        dest: "{{ playbook_dir }}"
+        
     - name: "Test ambassador-certs role"
       include_role:
         name: "configuration/roles/create/certificates/ambassador"
       vars:
-        auth_lists:
-          stdout: "abc"
         root_certs:
           failed: True
-        doorman_certs:
-          failed: True
-        mongoCA_certs:
-          failed: True
-        mongodb_certs:
-          failed: True
         ambassador_tls_certs:
-          failed: True 
-        truststore_result:
-          failed: True
-        vault_policy_result:
           failed: True
         certs_result:
           failed: True
-        doorman_result:
-          failed: True
-        nodekeystore_result:
-          failed: True
-        # services:
-        #   peers: "{{ item.services.peers }}"
-        # organisation: "{{ item.name | lower }}"
-        # component_ns: "{{ item.name | lower }}-quo"
-        # component_name: testname
+        services:
+          peers: "{{ item.services.peers }}"
+        organisation: "{{ item.name | lower }}"
+        component_ns: "{{ item.name | lower }}-quo"
+        component_name: "{{ item.name | lower }}"
+        node_name: "{{ node.name | lower }}"
         kubernetes:
           config_file: "/tmp/molecule/kind-default/kubeconfig"
           context: "kind"
@@ -131,12 +123,6 @@
           url: http://localhost:9090/
           root_token: root
           secret_path: "secret"
-      #   item:
-      #     subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
-      #     external_url_suffix: test_url
-      #     gitops:
-      #       git_url: test_git_ssh
-      #       branch: test_branch
-      #       chart_source: test_chart_source
-      #     cloud_provider: aws
+        root_subject: "{{ network.config.subject }}"
+        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
       loop: "{{ network['organizations'] }}"

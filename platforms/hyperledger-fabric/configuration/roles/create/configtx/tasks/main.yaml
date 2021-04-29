@@ -35,9 +35,9 @@
     block: "{{ lookup('template', 'configtxinit.tpl') }}"
     marker: "#"
   vars:
-    consensus: "{{ item.services.consensus }}"
-  loop: "{{ network['organizations'] }}"
-  when: item.type == 'orderer'
+    consensus: "{{ org.services.consensus }}"
+    org_query: "organizations[?type=='orderer']"
+    org: "{{ network | json_query(org_query) | first }}"
   tags:
     - molecule-idempotence-notest
 
