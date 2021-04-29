@@ -21,8 +21,10 @@ peer:
   tlsstatus: true
 {% if network.env.proxy == 'none' %}
   address: {{ orderer_name }}.{{ component_ns }}:7051
+orderer:
+  address: {{ orderer_name }}.{{ component_ns }}:7051
 {% else %}
   address: {{ orderer_address }}
-{% endif %}
 orderer:
   address: {{ orderer_address }}
+{% endif %}

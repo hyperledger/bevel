@@ -2,13 +2,16 @@
 # docker build . -t baf-build
 # docker run -v $(pwd):/home/blockchain-automation-framework/ baf-build
 
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 # Create working directory
 WORKDIR /home/
+ENV PYTHON_VERSION='3.6.5'
+ENV OPENSHIFT_VERSION='0.10.1'
 
 RUN apt-get update -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        wget\
         curl \
         unzip \
         build-essential \
@@ -17,17 +20,26 @@ RUN apt-get update -y && \
         gcc \
         git \
         libdb-dev libleveldb-dev libsodium-dev zlib1g-dev libtinfo-dev \
-        jq \
-        python \
-        python3-dev \
-        python3-pip && \
-        pip3 install --no-cache --upgrade pip setuptools wheel && \
+        jq
+
+# Install Python 3.6.5
+RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz \
+    && tar xvf Python-${PYTHON_VERSION}.tar.xz \
+    && rm Python-${PYTHON_VERSION}.tar.xz \
+    && cd Python-${PYTHON_VERSION} \
+    && ./configure \
+    && make altinstall \
+    && cd / \
+    && rm -rf Python-${PYTHON_VERSION}
+
+RUN apt-get update && apt-get install -y \
+    python3-pip && \
+    pip3 install --no-cache --upgrade pip setuptools wheel && \
+    pip3 install ansible && \
+    pip3 install jmespath && \
+    pip3 install openshift==${OPENSHIFT_VERSION} && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-RUN pip3 install ansible && \
-    pip3 install jmespath && \
-    pip3 install openshift==0.10.1
 
 RUN rm /etc/apt/apt.conf.d/docker-clean
 RUN mkdir /etc/ansible/
