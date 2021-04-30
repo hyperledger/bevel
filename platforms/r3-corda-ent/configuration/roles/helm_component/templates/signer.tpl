@@ -42,7 +42,7 @@ spec:
         host: {{ org.services.idman.name }}.{{ org.name | lower }}-ent
         publicIp: {{ org.services.idman.name }}.{{ org.external_url_suffix }}
         port: 5052
-        publicPort: 8443
+        publicPort: 443
       networkMap:
         host: {{ org.services.networkmap.name }}.{{ org.name | lower }}-ent
         port: 5050
