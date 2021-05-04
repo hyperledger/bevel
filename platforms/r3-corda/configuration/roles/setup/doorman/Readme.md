@@ -115,13 +115,8 @@ This tasks creates deployment file for doorman node by calling create/k8_compone
 #### 12. "Push the created deployment files to repository"
 This tasks push the created value files into repository by calling git_push role from shared.
 ##### Input Variables
-
-    *GIT_DIR: GIT directory path
-    *GIT_REPO: Gitops ssh url for flux value files
-    *GIT_USERNAME:  Git Service user who has rights to check-in in all branches
-    *GIT_PASSWORD: Git Server user password
-    *GIT_EMAIL: Email for git config
-    *GIT_BRANCH: Git branch where release is being made
-    GIT_RESET_PATH: path to specific folder to ignore when pushing files
-    msg: commit message
+    GIT_DIR: "The path of directory which needs to be pushed"    
+    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
+    msg: "Message for git commit"
   
