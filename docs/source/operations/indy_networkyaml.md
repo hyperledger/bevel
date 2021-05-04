@@ -203,9 +203,9 @@ For gitops fields the snapshot from the sample configuration file with the examp
         chart_source: "gitops_charts"               # Relative Path where the Helm charts are stored in Git repo
         git_repo: "gitops_repo_url"             # Gitops git repository URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"                    # Git Service user who has rights to check-in in all branches
-        password: "git_password"                    # Git Server user password
+        password: "git_password"                    # Git Server user password/ user token (Optional for ssh; Required for https)
         email: "git_email"                          # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
 ```
 
@@ -213,15 +213,16 @@ The `gitops` field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
+| git_protocol | Option for git over https or ssh. Can be `https` or `ssh` |
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
 | git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
-| password                             | Password of the user which has access rights to read/write on repository                                         |
+| password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)  |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |
+| private_key                          | Path to the private key file which has write-access to the git repo  (Optional for https; Required for ssh)    |
 
 
 The services field for each organization under `organizations` section of Indy contains list of `services` which could be trustee/steward/endorser

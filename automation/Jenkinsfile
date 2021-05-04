@@ -52,6 +52,7 @@ pipeline {
     //SSH config
     SSH_SERVER_ALIVE_INTERVAL=60
     SSH_SERVER_ALIVE_COUNT_MAX=20
+    PUBLIC_IP=""
   }
 
   parameters {
@@ -112,7 +113,7 @@ pipeline {
         sh """
           chmod 400 ${LOCAL_BUILD_PATH}/gitops.pem
           chmod 400 ${VAULT_FILE}
-          curl https://ipv4.icanhazip.com/
+          ssh-keyscan innersource.accenture.com >> ~/.ssh/known_hosts
           ssh-keyscan ${VAULT_BASTION} >> ~/.ssh/known_hosts
           echo "127.0.0.1 ${VAULT_SERVER}" > /etc/hosts
           echo "ServerAliveInterval ${SSH_SERVER_ALIVE_INTERVAL}" >> ~/.ssh/config
@@ -252,7 +253,10 @@ pipeline {
               git config --global user.name ${USERNAME}
               git config --global user.password ${PASSWORD}
               git config --global push.default matching
-              
+
+              curl https://ipv4.icanhazip.com/ > ./build/localip
+
+              sed -i -e "s*PUBLIC_IP*\$(sed 's:/:\\/:g' ./build/localip)*g" build/network.yaml                           
               sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/network.yaml
               sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/network.yaml
               sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/network.yaml
