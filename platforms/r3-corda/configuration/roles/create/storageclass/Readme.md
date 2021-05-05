@@ -30,12 +30,10 @@ This task creates value file for storageclass by calling create/k8_component rol
 #### 3. Push the created deployment files to repository
 This task pushes the generated value file to gitops repository by calling shared/configuration/roles/git_push role.
 ##### Input Variables
-
-    GIT_REPO: The git repository path where files willl be pushed to.
-    GIT_USERNAME: The git repository ,where files willl be pushed to, username.
-    GIT_PASSWORD: The git repository password, where files willl be pushed to, password.
-    GIT_EMAIL: Email for git config
-    GIT_BRANCH: The git repository branch.
+    GIT_DIR: "The path of directory which needs to be pushed"    
+    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
+    msg: "Message for git commit"
 
 #### 4. Wait for Storageclass creation for {{ component_name }}
 This task checks storageclass is created or not by calling role check/k8_component role. 

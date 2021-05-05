@@ -90,15 +90,10 @@ This task is called only when nodekeystore_result is failed i.e. only when first
 #### 11. Push the node deployment files to repository
 This tasks push the created value files into repository by calling git_push role from shared.
 ##### Input Variables
-
-    *GIT_DIR: GIT directory path
-    *GIT_REPO: Gitops ssh url for flux value files
-    *GIT_USERNAME:  Git Service user who has rights to check-in in all branches
-    *GIT_PASSWORD: Git Server user password
-    *GIT_EMAIL: Email for git config
-    *GIT_BRANCH: Git branch where release is being made
-    GIT_RESET_PATH: path to specific folder to ignore when pushing files
-    msg: commit message
+    GIT_DIR: "The path of directory which needs to be pushed"    
+    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
+    msg: "Message for git commit"
 
 #### 12. "Wait for node db pod creation"
 This tasks checks and creates pod for node db by calling check/node_component role.
@@ -130,13 +125,8 @@ This tasks create deployment file for node by calling create/node_component role
 #### 15. 'Push node deployment files'
 This tasks push the deployment files for h2, job and node to repository by calling git_push role.
 ##### Input Variables
-
-    *GIT_DIR: GIT directory path
-    *GIT_REPO: Gitops ssh url for flux value files
-    *GIT_USERNAME:  Git Service user who has rights to check-in in all branches
-    *GIT_PASSWORD: Git Server user password
-    *GIT_EMAIL: Email for git config
-    *GIT_BRANCH: Git branch where release is being made
-    GIT_RESET_PATH: path to specific folder to ignore when pushing files
-    msg: commit message
+    GIT_DIR: "The path of directory which needs to be pushed"    
+    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
+    msg: "Message for git commit"
     

@@ -66,12 +66,12 @@
   args:
     executable: /bin/bash
   shell: |
-    ports= echo $('{{ network.env.ambassadorPorts.ports | default('') }}' | sed -e 's/\[/\{/' -e 's/\]/\}/')
+    ports=$(echo '{{ network.env.ambassadorPorts.ports | default('') }}' | sed -e 's/\[/\{/' -e 's/\]/\}/')
     if [ -z "$ports" ] 
     then
       echo ""
     else
-      echo "--set ambassador.otherPorts.ports='${ports}'"
+      echo "--set ambassador.otherPorts.ports={'${ports}'}"
     fi
   register: ambassadorPorts
   when: network.type != 'indy'
@@ -80,13 +80,13 @@
   args:
     executable: /bin/bash
   shell: |
-    ports=echo $( '{{ network.env.ambassadorPorts.ports | default('') }}' | tr [ { | tr ] })
+    ports=$(echo '{{ network.env.ambassadorPorts.ports | default('') }}' | sed -e 's/\[/\{/' -e 's/\]/\}/')
     terminalPorts='{{ terminal.stdout | default('') }}'
     if [ -z "$ports" ] 
     then
       echo ""
     else
-      echo "--set ambassador.otherPorts.ports=${ports},${terminalPorts}"
+      echo "--set ambassador.otherPorts.ports={'${ports},${terminalPorts}'}"
     fi
   register: ambassadorPortsIndy
   when: network.type == 'indy'
