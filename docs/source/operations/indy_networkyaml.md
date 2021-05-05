@@ -41,12 +41,10 @@ The snapshot of the `env` section with example values is below
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
     # Must be different from all steward ambassador ports specified in the rest of this network yaml
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange: 
-        from: 15010 
-        to: 15043
-    # ports: 
-    #   - 3000
-    #   - 4000 
+      # portRange:              # For a range of ports 
+      #   from: 15010 
+      #   to: 15043
+      ports: 15010,15023,15024,15033,15034,15043,15044  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened 
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: disabled           # Should be enabled if using external-dns for automatic route configuration

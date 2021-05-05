@@ -42,12 +42,10 @@ The snapshot of the `env` section with example values is below
     type: "env-type"                # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange: 
+      portRange:              # For a range of ports 
         from: 15010 
         to: 15043
-    # ports: 
-    #   - 3000
-    #   - 4000 
+    # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
