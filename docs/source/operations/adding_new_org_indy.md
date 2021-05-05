@@ -49,12 +49,10 @@ For reference, sample `network.yaml` file looks like below (but always check the
       proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
       # Must be different from all other ports specified in the rest of this network yaml
       ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-        portRange: 
+        portRange:              # For a range of ports 
           from: 15010 
           to: 15043
-      # ports: 
-      #   - 3000
-      #   - 4000  
+      # ports: 15020,15021      # For specific ports
       retry_count: 40                 # Retry count for the checks
       external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
