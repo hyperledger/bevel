@@ -39,9 +39,12 @@ The snapshot of the `env` section with example values is below
   env:
     type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
-    # Any additional Ambassador ports can be given below, must be comma-separated without spaces. 
     # Must be different from all steward ambassador ports specified in the rest of this network yaml
-    ambassadorPorts: 15010,15020,15030,15040 
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      # portRange:              # For a range of ports 
+      #   from: 15010 
+      #   to: 15043
+      ports: 15010,15023,15024,15033,15034,15043,15044  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened 
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: disabled           # Should be enabled if using external-dns for automatic route configuration
@@ -52,7 +55,7 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Indy |
-|ambassadorPorts|Provide additional Ambassador ports for Identity sample app, must be comma-separated without spaces. These ports must be different from all steward ambassador ports specified in the rest of this network yaml |
+|ambassadorPorts|Provide additional Ambassador ports for Identity sample app. These ports must be different from all steward ambassador ports specified in the rest of this network yaml |
 | loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks.|
 | external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. Must be `enabled` for Identity sample app.  |

@@ -44,8 +44,8 @@ Execute the ansible playbook
 
 ### Step 5
 Wait for the pods to come up. Then access the frontend and API endpoints at:
-* For Corda Manufacturer Frontend (using Ambassador): https://manufacturerweb.rc.demo.aws.blockchaincloudpoc.com:8443/
-* For Corda Manufacturer API (using Ambassador): https://manufacturerapi.rc.demo.aws.blockchaincloudpoc.com:8443/
+* For Corda Manufacturer Frontend (using Ambassador): https://manufacturerweb.rc.demo.aws.blockchaincloudpoc.com/
+* For Corda Manufacturer API (using Ambassador): https://manufacturerapi.rc.demo.aws.blockchaincloudpoc.com/
 * For Fabric Manufacturer Frontend (using HAProxy): https://manufacturerweb.hf.demo.aws.blockchaincloudpoc.com/
 * For Fabric Manufacturer API (using HAProxy): https://manufacturerapi.hf.demo.aws.blockchaincloudpoc.com/
 

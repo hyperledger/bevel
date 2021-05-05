@@ -81,13 +81,13 @@ spec:
 {% if organizationItem.cloud_provider != 'minikube' and network.env.proxy == 'ambassador' %}
       annotations: |-
         ---
-        apiVersion: ambassador/v1
+        apiVersion: ambassador/v2
         kind: TCPMapping
         name: {{ component_name|e }}-node-mapping
         port: {{ stewardItem.node.ambassador }}
         service: {{ component_name|e }}.{{ component_ns }}:{{ stewardItem.node.targetPort }}
         ---
-        apiVersion: ambassador/v1
+        apiVersion: ambassador/v2
         kind: TCPMapping
         name: {{ component_name|e }}-client-mapping
         port: {{ stewardItem.client.ambassador }}

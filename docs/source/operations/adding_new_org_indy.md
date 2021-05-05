@@ -47,9 +47,12 @@ For reference, sample `network.yaml` file looks like below (but always check the
     env:
       type: indy             # tag for the environment. Important to run multiple flux on single cluster
       proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
-      # Any additional Ambassador ports can be given below, must be comma-separated without spaces. 
       # Must be different from all other ports specified in the rest of this network yaml
-      ambassadorPorts: 15110,15123,15124,15133,15134,15143,15144 
+      ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+        portRange:              # For a range of ports 
+          from: 15010 
+          to: 15043
+      # ports: 15020,15021      # For specific ports
       retry_count: 40                 # Retry count for the checks
       external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
