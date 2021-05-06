@@ -24,12 +24,13 @@
   roles:
     - role: create/storageclass
       vars:
+        storageclass_name: awsstorageclass
+        kubernetes:
+          config_file: "/tmp/molecule/kind-default/kubeconfig"
+          context: kind
         org:
           name: test
           cloud_provider: aws
-          k8s:
-            config_file: "/tmp/molecule/kind-default/kubeconfig"
-            context: kind
           gitops:
             release_dir: "test"
             git_repo: testurl
@@ -42,15 +43,19 @@
             retry_count: 100
     - role: create/namespace_serviceaccount
       vars:
+        component_ns: test-quo
         org:
           name: test
-          k8s:
-            config_file: "/tmp/molecule/kind-default/kubeconfig"
-            context: kind
+          cloud_provider: aws
           gitops:
             release_dir: "test"
-            git_repo: testurl
-            username: testusername
-            email: testemail
-            password: testpassword
-            branch: testbranch
+        gitops:
+          release_dir: "test"
+          git_repo: testurl
+          username: testusername
+          email: testemail
+          password: testpassword
+          branch: testbranch
+        kubernetes:
+          config_file: "/tmp/molecule/kind-default/kubeconfig"
+          context: kind
