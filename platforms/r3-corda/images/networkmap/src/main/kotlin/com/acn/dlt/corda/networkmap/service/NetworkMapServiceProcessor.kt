@@ -2,22 +2,30 @@
 
 package com.acn.dlt.corda.networkmap.service
 
+import io.bluebank.braid.core.async.mapUnit
 import com.acn.dlt.corda.networkmap.changeset.Change
 import com.acn.dlt.corda.networkmap.changeset.changeSet
+import com.acn.dlt.corda.networkmap.serialisation.NetworkParametersMixin
 import com.acn.dlt.corda.networkmap.serialisation.deserializeOnContext
+import com.acn.dlt.corda.networkmap.serialisation.parseWhitelist
+import com.acn.dlt.corda.networkmap.service.NetworkMapService.Companion.ADMIN_REST_ROOT
 import com.acn.dlt.corda.networkmap.utils.*
 import io.netty.handler.codec.http.HttpHeaderNames
 import io.netty.handler.codec.http.HttpHeaderValues
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
+import io.swagger.annotations.ApiResponse
+import io.swagger.annotations.ApiResponses
 import io.vertx.core.Future
 import io.vertx.core.Future.failedFuture
 import io.vertx.core.Future.succeededFuture
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
+import io.vertx.core.json.Json
 import io.vertx.ext.web.RoutingContext
 import net.corda.core.crypto.SecureHash
 import net.corda.core.crypto.sha256
+import net.corda.core.internal.CertRole
 import net.corda.core.node.NetworkParameters
 import net.corda.core.node.NotaryInfo
 import net.corda.core.serialization.serialize
@@ -41,14 +49,15 @@ class NetworkMapServiceProcessor(
   vertx: Vertx,
   private val storages: ServiceStorages,
   private val certificateManager: CertificateManager,
-  val paramUpdateDelay: Duration
+  val paramUpdateDelay: Duration,
+  private val allowNodeKeyChange: Boolean
 ) {
   companion object {
     private val logger = loggerFor<NetworkMapServiceProcessor>()
     const val EXECUTOR = "network-map-pool"
 
     private val templateNetworkParameters = NetworkParameters(
-      minimumPlatformVersion = 1,
+      minimumPlatformVersion = 4,
       notaries = listOf(),
       maxMessageSize = 10485760,
       maxTransactionSize = Int.MAX_VALUE,
@@ -62,9 +71,9 @@ class NetworkMapServiceProcessor(
   private val executor = vertx.createSharedWorkerExecutor(EXECUTOR, 1)
   private lateinit var certs: CertificateAndKeyPair
 
-  fun start(): Future<Unit> {
+  fun start(networkParameters: NetworkParameters): Future<Unit> {
     certs = certificateManager.networkMapCertAndKeyPair
-    return execute { createNetworkParameters().mapUnit() }
+    return execute { createNetworkParameters(networkParameters).mapUnit() }
   }
 
   fun stop() {}
@@ -80,24 +89,26 @@ class NetworkMapServiceProcessor(
       return storages.nodeInfo.getAll()
         .onSuccess { nodes ->
           // flatten the current nodes to Party -> PublicKey map
-          val registered = nodes.flatMap { namedSignedNodeInfo ->
-            namedSignedNodeInfo.value.verified().legalIdentitiesAndCerts.map { partyAndCertificate ->
-              partyAndCertificate.party.name to partyAndCertificate.owningKey
+          if(!allowNodeKeyChange) {
+            val registered = nodes.flatMap { namedSignedNodeInfo ->
+              namedSignedNodeInfo.value.verified().legalIdentitiesAndCerts.map { partyAndCertificate ->
+                partyAndCertificate.party.name to partyAndCertificate.owningKey
+              }
+            }.toMap()
+  
+            // now filter the party and certs of the nodeinfo we're trying to register
+            val registeredWithDifferentKey = partyAndCerts.filter {
+              // looking for where the public keys differ
+              registered[it.party.name].let { pk ->
+                pk != null && pk != it.owningKey
+              }
             }
-          }.toMap()
-
-          // now filter the party and certs of the nodeinfo we're trying to register
-          val registeredWithDifferentKey = partyAndCerts.filter {
-            // looking for where the public keys differ
-            registered[it.party.name].let { pk ->
-              pk != null && pk != it.owningKey
+            if (registeredWithDifferentKey.any()) {
+              val names = registeredWithDifferentKey.joinToString("\n") { it.name.toString() }
+              val msg = "node failed to register because the following names have already been registered with different public keys $names"
+              logger.warn(msg)
+              throw RuntimeException(msg)
             }
-          }
-          if (registeredWithDifferentKey.any()) {
-            val names = registeredWithDifferentKey.joinToString("\n") { it.name.toString() }
-            val msg = "node failed to registered because the following names have already been registered with different public keys $names"
-            logger.warn(msg)
-            throw RuntimeException(msg)
           }
         }
         .compose {
@@ -126,15 +137,7 @@ class NetworkMapServiceProcessor(
     consumes = MediaType.APPLICATION_OCTET_STREAM
   )
   fun postNonValidatingNotaryNodeInfo(nodeInfoBuffer: Buffer): Future<String> {
-    logger.info("adding non-validating notary")
-    return try {
-      val nodeInfo = nodeInfoBuffer.bytes.deserializeOnContext<SignedNodeInfo>().verified()
-      val updater = changeSet(Change.AddNotary(NotaryInfo(nodeInfo.legalIdentities.first(), false)))
-      updateNetworkParameters(updater, "admin updating adding non-validating notary").map { "OK" }
-    } catch (err: Throwable) {
-      logger.error("failed to add validating notary", err)
-      Future.failedFuture(err)
-    }
+      return processNotaryNodeInfo(nodeInfoBuffer, false)
   }
 
   @Suppress("MemberVisibilityCanBePrivate")
@@ -147,15 +150,36 @@ class NetworkMapServiceProcessor(
     consumes = MediaType.APPLICATION_OCTET_STREAM
   )
   fun postValidatingNotaryNodeInfo(nodeInfoBuffer: Buffer): Future<String> {
-    logger.info("adding validating notary")
-    return try {
-      val nodeInfo = nodeInfoBuffer.bytes.deserializeOnContext<SignedNodeInfo>().verified()
-      val updater = changeSet(Change.AddNotary(NotaryInfo(nodeInfo.legalIdentities.first(), true)))
-      updateNetworkParameters(updater, "admin adding validating notary").map { "OK" }
-    } catch (err: Throwable) {
-      logger.error("failed to add validating notary", err)
-      Future.failedFuture(err)
+    return processNotaryNodeInfo(nodeInfoBuffer, true)
+  }
+
+  fun processNotaryNodeInfo(nodeInfoBuffer: Buffer, validating: Boolean) : Future<String> {
+    val notaryType = if (validating) {
+      "validating"
+    } else {
+      "non-validating"
     }
+    return try {
+      logger.info("adding $notaryType notary")
+      val nodeInfo = nodeInfoBuffer.bytes.deserializeOnContext<SignedNodeInfo>().verified()
+      val notary = nodeInfo.legalIdentitiesAndCerts
+        .firstOrNull { CertRole.extract(it.certificate) == CertRole.SERVICE_IDENTITY }?.party
+        ?: nodeInfo.legalIdentities.first()
+      val notaryInfo = NotaryInfo(notary, validating)
+      addNotaryInfo(notaryInfo)
+    } catch (err: Throwable) {
+      logger.error("failed to add $notaryType notary", err)
+      failedFuture(err)
+    }
+  }
+
+  private fun addNotaryInfo(notaryInfo: NotaryInfo): Future<String> {
+    return addNotaryInfos(listOf(notaryInfo))
+  }
+
+  internal fun addNotaryInfos(notaryInfos: List<NotaryInfo>): Future<String> {
+    val updater = changeSet(notaryInfos.map { Change.AddNotary(it) })
+    return updateNetworkParameters(updater, "admin adding notaries $notaryInfos").map { "OK" }
   }
 
   @ApiOperation(value = "append to the whitelist")
@@ -163,7 +187,7 @@ class NetworkMapServiceProcessor(
     logger.info("appending to whitelist:\n$append")
     return try {
       logger.info("web request to append to whitelist $append")
-      val parsed = append.toWhiteList()
+      val parsed = append.parseWhitelist()
       val updater = changeSet(Change.AppendWhiteList(parsed))
       updateNetworkParameters(updater, "admin appending to the whitelist")
         .onSuccess {
@@ -174,7 +198,7 @@ class NetworkMapServiceProcessor(
         }
         .mapUnit()
     } catch (err: Throwable) {
-      Future.failedFuture(err)
+      failedFuture(err)
     }
   }
 
@@ -182,11 +206,11 @@ class NetworkMapServiceProcessor(
   fun replaceWhitelist(replacement: String): Future<Unit> {
     logger.info("replacing current whitelist with: \n$replacement")
     return try {
-      val parsed = replacement.toWhiteList()
+      val parsed = replacement.parseWhitelist()
       val updater = changeSet(Change.ReplaceWhiteList(parsed))
       updateNetworkParameters(updater, "admin replacing the whitelist").mapUnit()
     } catch (err: Throwable) {
-      Future.failedFuture(err)
+      failedFuture(err)
     }
   }
 
@@ -198,7 +222,7 @@ class NetworkMapServiceProcessor(
       val updater = changeSet(Change.ClearWhiteList)
       updateNetworkParameters(updater, "admin clearing the whitelist").mapUnit()
     } catch (err: Throwable) {
-      Future.failedFuture(err)
+      failedFuture(err)
     }
   }
 
@@ -230,7 +254,7 @@ class NetworkMapServiceProcessor(
       val nameHash = SecureHash.parse(nodeKey)
       updateNetworkParameters(changeSet(Change.RemoveNotary(nameHash)), "admin deleting validating notary").mapUnit()
     } catch (err: Throwable) {
-      Future.failedFuture(err)
+      failedFuture(err)
     }
   }
 
@@ -242,7 +266,7 @@ class NetworkMapServiceProcessor(
       val nameHash = SecureHash.parse(nodeKey)
       updateNetworkParameters(changeSet(Change.RemoveNotary(nameHash)), "admin deleting non-validating notary").mapUnit()
     } catch (err: Throwable) {
-      Future.failedFuture(err)
+      failedFuture(err)
     }
   }
 
@@ -253,11 +277,22 @@ class NetworkMapServiceProcessor(
     return storages.nodeInfo.delete(nodeKey)
   }
 
+  @Suppress("MemberVisibilityCanBePrivate")
+  @ApiOperation(value = "delete all nodeinfos")
+  fun deleteAllNodes(): Future<Unit> {
+    logger.info("deleting all nodeinfos")
+    return try {
+      storages.nodeInfo.clear()
+    } catch (err: Throwable) {
+      failedFuture(err)
+    }
+  }
+
   @ApiOperation(value = "serve set of notaries", response = SimpleNotaryInfo::class, responseContainer = "List")
   fun serveNotaries(routingContext: RoutingContext) {
     logger.trace("serving current notaries")
     createNetworkMap()
-      .compose { storages.getNetworkParameters(it.networkParameterHash)}
+      .compose { storages.getNetworkParameters(it.networkParameterHash) }
       .map { networkParameters ->
         networkParameters.notaries.map {
           SimpleNotaryInfo(it.identity.name.serialize().hash.toString(), it)
@@ -277,13 +312,30 @@ class NetworkMapServiceProcessor(
                               pageSize: Int,
                               @ApiParam(name = "page", value = "the page to load", defaultValue = "1")
                               @QueryParam("page")
-                              page: Int) : Future<Map<String, NetworkParameters>> {
-    return storages.networkParameters.getPage(page, pageSize)
+                              page: Int): Future<Map<String, NetworkParameters>> {
+    assert(page > 0) { "page should be 1 or greater - received $page" }
+    assert(pageSize > 0) { "pageSize should 1 or greater - received $page" }
+    return storages.networkParameters.getKeys().map {
+      it.drop((page - 1) * pageSize)
+    }.compose { storages.networkParameters.getAll(it) }
       .map { networkParams -> networkParams.mapValues { entry -> entry.value.verified() } }
   }
 
+  @ApiOperation(value = "replace current network map", response = String::class)
+  fun replaceAllNetworkParameters(networkParametersMixin: NetworkParametersMixin): Future<String> {
+    logger.info("replacing all network parameters")
+    return try {
+      val newNetworkParameters = Json.mapper.convertValue(networkParametersMixin, NetworkParameters::class.java)
+      val updater = changeSet(Change.ReplaceAllNetworkParameters(newNetworkParameters))
+      updateNetworkParameters(updater, "admin replacing all network parameters").map { "OK" }
+    } catch (err: Throwable) {
+      logger.error("failed to replace the network parameters", err)
+      failedFuture(err)
+    }
+  }
+
   @ApiOperation(value = "serve current network map as a JSON document", response = NetworkMap::class)
-  fun getCurrentNetworkMap() : Future<NetworkMap> {
+  fun getCurrentNetworkMap(): Future<NetworkMap> {
     return createNetworkMap()
   }
 
@@ -308,6 +360,77 @@ class NetworkMapServiceProcessor(
   }
 
   @Suppress("MemberVisibilityCanBePrivate")
+  @ApiOperation(value = "retrieve nodeinfos size and total number of pages", response = NodeInfoPagingSummary::class)
+  @ApiResponses(
+    value = [
+      ApiResponse(code = 200, message = "OK"),
+      ApiResponse(code = 400, message = "pageSize should be greater than zero"),
+      ApiResponse(code = 500, message = "Internal server error")
+    ]
+  )
+  fun nodeInfoPagingSummary(@ApiParam(
+    name="pageSize",
+    required = false,
+    defaultValue = "10",
+    value = "page size - must be greater than zero"
+  ) pageSize: Int = 10): Future<NodeInfoPagingSummary> {
+    logger.info("retrieving the paging summary of nodeInfos")
+    check(pageSize > 0) { "pageSize should be greater than zero" }
+    return storages.nodeInfo.size()
+      .map { size ->
+        NodeInfoPagingSummary(
+          size,
+          size.div(pageSize),
+          pageSize
+        )
+      }
+  }
+
+  @ApiOperation(value = "serve a page of node Infos", response = NodeInfosByPage::class)
+  @ApiResponses(
+    value = [
+      ApiResponse(code = 200, message = "OK"),
+      ApiResponse(code = 400, message = "pageSize should be greater than zero"),
+      ApiResponse(code = 400, message = "page should be greater than zero"),
+      ApiResponse(code = 404, message = "requested page should be lesser than total pages"),
+      ApiResponse(code = 500, message = "Internal server error")
+    ]
+  )
+  fun getNodeInfoByPage(@ApiParam(defaultValue = "1", name="page", required = true, value = "page number - must be greater than 0")
+                        @QueryParam("page") page: Int,
+                        @ApiParam(defaultValue = "10", name="pageSize", required = true, value = "page size - must be greater than zero")
+                        @QueryParam("pageSize") pageSize: Int): Future<NodeInfosByPage> {
+    var nextPageUrl: String? = null
+    check(pageSize > 0) { "pageSize should be greater than zero" }
+    check(page > 0) { "page should be greater than zero" }
+    return storages.nodeInfo.size()
+      .onSuccess {
+        assert(it != 0) { "Error while getting total number of nodes" }
+        val totalPages = it / pageSize
+        assert(page <= totalPages) { "requested page should be lesser than total pages" }
+        nextPageUrl = if (page < totalPages) "$ADMIN_REST_ROOT/nodes/page?pageSize=$pageSize&page=${page + 1}" else null
+      }
+      .compose {
+        storages.nodeInfo.getPage(page, pageSize)
+      }
+      .map { mapOfNodes ->
+        val simpleNodeInfos = mapOfNodes.map { namedNodeInfo ->
+          val node = namedNodeInfo.value.verified()
+          SimpleNodeInfo(
+            nodeKey = namedNodeInfo.key,
+            addresses = node.addresses,
+            parties = node.legalIdentitiesAndCerts.map { NameAndKey(it.name, it.owningKey) },
+            platformVersion = node.platformVersion
+          )
+        }
+        NodeInfosByPage(
+          simpleNodeInfos,
+          nextPageUrl
+        )
+      }
+  }
+
+  @Suppress("MemberVisibilityCanBePrivate")
   @ApiOperation(value = "Retrieve the current network parameters",
     produces = MediaType.APPLICATION_JSON, response = NetworkParameters::class)
   fun getCurrentNetworkParameters(context: RoutingContext) {
@@ -326,13 +449,13 @@ class NetworkMapServiceProcessor(
     return updateNetworkParameters(update, description, Instant.now().plus(paramUpdateDelay))
   }
 
-  private fun createNetworkParameters(): Future<SecureHash> {
+  private fun createNetworkParameters(networkParameters: NetworkParameters): Future<SecureHash> {
     logger.info("creating network parameters ...")
     logger.info("retrieving current network parameter ...")
     return storages.getCurrentSignedNetworkParameters().map { it.raw.hash }
       .recover {
         logger.info("could not find network parameters - creating one from the template")
-        storages.storeNetworkParameters(templateNetworkParameters, certs)
+        storages.storeNetworkParameters(networkParameters, certs)
           .compose { hash -> storages.storeCurrentParametersHash(hash) }
           .onSuccess { result ->
             logger.info("network parameters saved $result")
@@ -442,3 +565,6 @@ class NetworkMapServiceProcessor(
   }
   // END: utility functions
 }
+
+data class NodeInfoPagingSummary(val totalNoOfNodeInfos: Int, val totalPages: Int, val pageSize: Int)
+data class NodeInfosByPage(val simpleNodeInfos: List<SimpleNodeInfo>, val nextPage: String?)

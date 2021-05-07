@@ -1,4 +1,4 @@
-# Cortite Stats Site
+# Cordite Stats Site
 
 This is a rough and ready example of the network map
 
@@ -8,3 +8,12 @@ This is a rough and ready example of the network map
 * Clusters and zoom, a click on the cluster should not zoom in too far
 * Possible select box to choose your network
 * Login page
+
+## Building
+
+This sub project must be rebuilt and `./public` must be checked-in.
+
+```bash
+npm i
+npm run build
+```

@@ -12,22 +12,25 @@
   <name>network-map-service</name>
 
   <properties>
+    <nms.version>${project.version}</nms.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <kotlin.version>1.1.60</kotlin.version>
-    <junit.version>4.13.1</junit.version>
-    <vertx.version>3.5.1</vertx.version>
-    <corda.version>3.4-corda</corda.version>
+    <kotlin.version>1.2.71</kotlin.version>
+    <junit.version>4.12</junit.version>
+    <vertx.version>3.7.1</vertx.version>
+    <corda.version>4.1</corda.version>
     <dockerfile-maven.version>1.4.0</dockerfile-maven.version>
     <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
+    <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
     <jar.name>network-map-service</jar.name>
     <log4j.version>2.11.1</log4j.version>
     <env.CI_REGISTRY_IMAGE>local/${jar.name}</env.CI_REGISTRY_IMAGE>
     <env.CI_PIPELINE_ID>local</env.CI_PIPELINE_ID>
-    <braid.version>3.3.1</braid.version>
+    <braid.version>4.1.0</braid.version>
     <argLine>-javaagent:lib/quasar.jar</argLine>
-    <npm.skip>false</npm.skip>
     <logback.version>1.2.3</logback.version>
     <flapdoodle.version>2.1.1</flapdoodle.version>
+    <node.version>v8.6.0</node.version>
+    <dokka.version>0.9.18</dokka.version>
   </properties>
 
   <repositories>
@@ -53,7 +56,11 @@
       <url>https://ci-artifactory.corda.r3cev.com/artifactory/corda-dependencies</url>
     </repository>
     <repository>
-      <id>3_jitpack</id>
+      <id>3_r3</id>
+      <url>https://ci-artifactory.corda.r3cev.com/artifactory/corda-releases</url>
+    </repository>
+    <repository>
+      <id>4_jitpack</id>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -61,6 +68,18 @@
         <enabled>true</enabled>
       </snapshots>
       <url>https://jitpack.io</url>
+    </repository>
+    <repository>
+      <id>5_jcenter</id>
+      <url>https://jcenter.bintray.com</url>
+    </repository>
+    <repository>
+      <id>6_exposed</id>
+      <name>bintray</name>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <url>https://dl.bintray.com/kotlin/exposed</url>
     </repository>
   </repositories>
 
@@ -71,10 +90,17 @@
     </license>
   </licenses>
 
+  <scm>
+    <connection>scm:git:https://gitlab.com/cordite/network-map-service.git</connection>
+    <developerConnection>scm:git:git@gitlab.com:cordite/network-map-service.git</developerConnection>
+    <url>https://gitlab.com/cordite/network-map-service/tree/${project.scm.tag}</url>
+    <tag>master</tag>
+  </scm>
+
   <dependencies>
     <dependency>
       <groupId>org.jetbrains.kotlin</groupId>
-      <artifactId>kotlin-stdlib</artifactId>
+      <artifactId>kotlin-stdlib-jdk8</artifactId>
       <version>${kotlin.version}</version>
     </dependency>
     <dependency>
@@ -216,7 +242,7 @@
     <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongodb-driver-reactivestreams</artifactId>
-      <version>1.10.0</version>
+      <version>1.11.0</version>
     </dependency>
     <dependency>
       <groupId>io.reactivex</groupId>
@@ -239,6 +265,11 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency>
+      <groupId>org.jetbrains.exposed</groupId>
+      <artifactId>exposed</artifactId>
+      <version>0.13.7</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -255,44 +286,22 @@
     </resources>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>1.8</version>
+        <!-- Create the property $buildNumber holding the current Git revision -->
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>1.4</version>
         <executions>
           <execution>
-            <id>clean-website</id>
-            <phase>clean</phase>
+            <phase>validate</phase>
             <goals>
-              <goal>run</goal>
+              <goal>create</goal>
             </goals>
-            <configuration>
-              <target>
-                <delete dir="website/public"/>
-                <delete dir="website/node_modules"/>
-              </target>
-            </configuration>
-          </execution>
-          <execution>
-            <id>build-website</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target>
-                <exec executable="${npm.exe}" failonerror="true" dir="website">
-                  <arg value="install"/>
-                </exec>
-                <exec executable="${npm.exe}" failonerror="true" dir="website">
-                  <arg value="run"/>
-                  <arg value="build"/>
-                </exec>
-              </target>
-            </configuration>
           </execution>
         </executions>
         <configuration>
-          <skip>${npm.skip}</skip>
+          <doCheck>false</doCheck>
+          <doUpdate>false</doUpdate>
+          <timestampFormat>{0,date,yyyy-MM-dd HH:mm:ss}</timestampFormat>
         </configuration>
       </plugin>
       <plugin>
@@ -318,20 +327,26 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.0</version>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
+        <version>3.1.1</version>
         <configuration>
           <archive>
             <manifest>
-              <addClasspath>true</addClasspath>
-              <mainClass>com.acn.dlt.corda.networkmap.NetworkMapApp</mainClass>
+              <mainClass>io.cordite.networkmap.NetworkMapApp</mainClass>
             </manifest>
           </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+        <configuration>
+          <systemPropertyVariables>
+            <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory
+            </vertx.logger-delegate-factory-class-name>
+            <buildDirectory>${project.build.directory}</buildDirectory>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
       <plugin>
@@ -349,6 +364,7 @@
             <exclude>build/**</exclude>
             <exclude>LICENSE</exclude>
             <exclude>**/.babelrc</exclude>
+            <exclude>website/public/**/*</exclude>
           </excludes>
           <includes>
             <include>**/*.kt</include>
@@ -379,10 +395,43 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <executions>
+          <execution>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>write-project-properties</goal>
+            </goals>
+            <configuration>
+              <outputFile>
+                ${project.build.outputDirectory}/nms.build.properties
+              </outputFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.6</version>
+        <version>3.1.1</version>
         <executions>
+          <execution>
+            <id>dist</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <descriptors>
+                <descriptor>src/main/assembly/distribution.xml</descriptor>
+              </descriptors>
+              <finalName>${project.artifactId}</finalName>
+              <appendAssemblyId>false</appendAssemblyId>
+              <archiveBaseDirectory>${project.basedir}</archiveBaseDirectory>
+            </configuration>
+          </execution>
           <execution>
             <id>make-assembly</id>
             <phase>package</phase>
@@ -400,6 +449,7 @@
               </descriptorRefs>
               <appendAssemblyId>false</appendAssemblyId>
               <finalName>${jar.name}</finalName>
+              <archiveBaseDirectory>${project.basedir}</archiveBaseDirectory>
             </configuration>
           </execution>
         </executions>
@@ -428,37 +478,81 @@
   </build>
   <profiles>
     <profile>
-      <id>windows</id>
-      <activation>
-        <os>
-          <family>window</family>
-        </os>
-      </activation>
+      <id>release</id>
       <properties>
-        <npm.exe>npm.cmd</npm.exe>
+        <gpg.keyfile>${env.GPG_KEY_FILE}</gpg.keyfile>
+        <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
       </properties>
-    </profile>
-    <profile>
-      <id>linux</id>
-      <activation>
-        <os>
-          <family>linux</family>
-        </os>
-      </activation>
-      <properties>
-        <npm.exe>npm</npm.exe>
-      </properties>
-    </profile>
-    <profile>
-      <id>mac</id>
-      <activation>
-        <os>
-          <family>mac</family>
-        </os>
-      </activation>
-      <properties>
-        <npm.exe>npm</npm.exe>
-      </properties>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>jcenter</id>
+          <name>JCenter</name>
+          <url>https://jcenter.bintray.com/</url>
+        </pluginRepository>
+      </pluginRepositories>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.jetbrains.dokka</groupId>
+            <artifactId>dokka-maven-plugin</artifactId>
+            <version>${dokka.version}</version>
+            <executions>
+              <execution>
+                <phase>pre-site</phase>
+                <goals>
+                  <goal>javadocJar</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <outputFormat>javadoc</outputFormat>
+              <jdkVersion>8</jdkVersion>
+              <reportNotDocumented>false</reportNotDocumented>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <extensions>true</extensions>
+            <configuration>
+              <serverId>oss</serverId>
+              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+              <autoReleaseAfterClose>false</autoReleaseAfterClose>
+              <skipLocalStaging>true</skipLocalStaging>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.kohsuke</groupId>
+            <artifactId>pgp-maven-plugin</artifactId>
+            <version>1.1</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <configuration>
+                  <secretkey>keyfile:${gpg.keyfile}</secretkey>
+                  <passphrase>literal:${gpg.passphrase}</passphrase>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

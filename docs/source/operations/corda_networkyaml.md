@@ -30,7 +30,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/quorum. Use `corda` for **Corda Opensource** and `corda-enterprise` for **Corda Enterprise**.
 
-`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 and 4.4 is also supported and should be used. Please note only 4.4 is supported for **Corda Enterprise**.
+`version` defines the version of platform being used, here in example the Corda version is 4.0, the corda version 4.7 is supported by latest release. Please note only 4.4 above is supported for **Corda Enterprise**.
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -419,8 +419,9 @@ The snapshot of notary service with example values is below
 ```yaml
         # Currently only supporting a single notary cluster, but may want to expand in the future
         notary:
-          name: notaryskar
+          name: notary1
           subject: "O=Notary,OU=Notary,L=London,C=GB"
+          serviceName: "O=Notary Service,OU=Notary,L=London,C=GB" # available for Corda 4.7 onwards to support HA Notary
           type: notary          
           p2p:
             port: 10002
@@ -444,7 +445,8 @@ The fields under `notary` service are
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | name                     | Name of the notary service   |
-| subject                   | Certificate Subject for notary service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| subject                   | Certificate Subject for notary node. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| serviceName            | Certificate Subject for notary service applicable from Corda 4.7 onwards. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | type                      | Service type must be `notary`  |
 | validating | Only for **Corda Enterprise Notary**. Determines if Notary is validating or non-validating. Use `true` or `false` |
 | emailAddress | Only for **Corda Enterprise Notary**. Email address in the notary conf. |

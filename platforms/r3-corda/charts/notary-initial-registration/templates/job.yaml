@@ -61,6 +61,7 @@ spec:
             #changing password of nodekeystore.jks certificate.
             keytool -keypasswd -alias cordaclientca -keypass ${DEFAULT_KEYSTORE_PASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${KEYSTORE_PASSWORD}
             keytool -keypasswd -alias identity-private-key -keypass ${DEFAULT_KEYSTORE_PASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${KEYSTORE_PASSWORD}
+            keytool -keypasswd -alias distributed-notary-private-key -keypass ${DEFAULT_KEYSTORE_PASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${KEYSTORE_PASSWORD}
 
             #changing password of sslkeystore.jks certificate.
             keytool -keypasswd -alias cordaclienttls -keypass ${DEFAULT_KEYSTORE_PASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/sslkeystore.jks -storepass ${KEYSTORE_PASSWORD}
@@ -200,6 +201,7 @@ spec:
             attachmentContentCacheSizeMegaBytes : {{ .Values.nodeConf.attachmentContentCacheSizeMegaBytes }}
             attachmentCacheBound : {{ .Values.nodeConf.attachmentCacheBound }}
             notary : {
+                serviceLegalName : "{{ .Values.nodeConf.notary.serviceLegalName }}"
                 validating : {{ .Values.nodeConf.notary.validating }}
             }
             detectPublicIp = {{ .Values.nodeConf.detectPublicIp }}
@@ -212,7 +214,6 @@ spec:
                 dataSource.password = "${CONF_DATASOURCEPASSWORD}"
             }
             database = {
-                transactionIsolationLevel = {{ .Values.nodeConf.database.transactionIsolationLevel }}
                 exportHibernateJMXStatistics = {{ .Values.nodeConf.database.exportHibernateJMXStatistics }}
             }
             jarDirs = ["{{ .Values.nodeConf.jarPath }}"]
