@@ -1,4 +1,4 @@
-# Supplychain Corda Api microservice
+# Supplychain Corda API microservice
 
 This project contains an Express Node.js application which does request transformation for API requests from the front end react application for supplychain to the appropriate format for the Rest servers for corda.
 
@@ -8,8 +8,16 @@ The deployment has been made easy for Docker. The provided docker file will crea
 
 The following will create the image called express_corda_app and then run the service on port 3000 for the manufacturer
 ```bash
-docker build -t express_corda_app .
-docker run -p 3000:3000 -e "API_URL=https://partyaapi.blockchaincloudpoc.com/api/v1 PORT=3000" express_corda_app
+sudo docker build -t express_corda_app:latest .
+sudo docker run -p 3000:3000 -e "API_URL=https://partyaapi.blockchaincloudpoc.com/api/v1 PORT=3000" express_corda_app:latest
+```
+
+## Publish to Docker repo
+To publish the docker image to a docker repo, run the following commands:
+```bash
+sudo docker tag express_corda_app:latest hyperledgerlabs/supplychain_corda:express_app_latest
+	sudo docker push hyperledgerlabs/supplychain_corda:express_app_latest
+
 ```
 
 

@@ -4,6 +4,7 @@ import com.mongodb.reactivestreams.client.MongoClient
 import com.acn.dlt.corda.networkmap.keystore.toKeyStore
 import com.acn.dlt.corda.networkmap.serialisation.deserializeOnContext
 import com.acn.dlt.corda.networkmap.storage.file.CertificateAndKeyPairStorage
+import net.corda.core.crypto.SecureHash
 import net.corda.nodeapi.internal.SignedNodeInfo
 import net.corda.nodeapi.internal.crypto.CertificateAndKeyPair
 import net.corda.nodeapi.internal.network.ParametersUpdate
@@ -44,8 +45,19 @@ class SignedNetworkParametersStorage(client: MongoClient, databaseName: String, 
   companion object {
     const val DEFAULT_BUCKET_NAME = "signed-network-parameters"
   }
-
+  
   override fun deserialize(data: ByteArray): SignedNetworkParameters {
+    return data.deserializeOnContext()
+  }
+}
+
+class SecureHashStorage(client: MongoClient, databaseName: String, bucketName: String = DEFAULT_BUCKET_NAME)
+  : AbstractMongoFileStorage<SecureHash>(client, databaseName, bucketName){
+  companion object {
+    const val DEFAULT_BUCKET_NAME = "secure-hash"
+  }
+  
+  override fun deserialize(data: ByteArray): SecureHash {
     return data.deserializeOnContext()
   }
 }

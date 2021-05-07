@@ -1,12 +1,20 @@
+apply plugin: 'kotlin'
+apply plugin: 'net.corda.plugins.cordapp'
+apply plugin: 'net.corda.plugins.cordformation'
+apply plugin: 'net.corda.plugins.quasar-utils'
+apply plugin: 'org.sonarqube'
+apply plugin: 'maven-publish'
+
 buildscript {
     ext {
         corda_release_group = 'net.corda'
-        corda_release_version = '4.4'             
-        corda_gradle_plugins_version = '5.0.6'  
+        corda_release_version = '4.7'             
+        corda_gradle_plugins_version = '5.0.12'  
         kotlin_version = '1.2.71'
         junit_version = '4.12'
         testng_version = '6.10'
-        quasar_version = '0.7.12_r3'
+        quasar_version = '0.7.13_r3'
+        quasar_classifier=''
         spring_boot_version = '2.1.3.RELEASE'
         spring_boot_gradle_plugin_version = '2.0.2.RELEASE'
         springfox_version = '2.9.2'
@@ -44,34 +52,6 @@ allprojects {
     }
 }
 
-apply plugin: 'kotlin'
-apply plugin: 'net.corda.plugins.cordapp'
-apply plugin: 'net.corda.plugins.cordformation'
-apply plugin: 'net.corda.plugins.quasar-utils'
-apply plugin: 'org.sonarqube'
-apply plugin: 'maven-publish'
-
-publishing{
-    publications {
-    maven1(MavenPublication) {
-        artifactId = 'cordapp-supply-chain'
-        artifact('build/cordapp-supply-chain-0.1.jar')
-            }
-    maven2(MavenPublication) {
-        artifactId = 'cordapp-contracts-states'
-        artifact('build/cordapp-contracts-states-0.1.jar')
-            }
-        }
-        repositories {
-        maven {
-            url project.repoURI
-            credentials {
-                username project.repoUser
-                password project.repoPassword
-                }
-            }
-        }
-}
 
 sourceSets {
     main {
@@ -125,7 +105,6 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         javaParameters = true   // Useful for reflection.
     }
 }
-
 
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     directory "./build/nodes"
@@ -221,5 +200,31 @@ task deployWebapps(type: Copy, dependsOn: [
 sonarqube {
     properties {
         property "sonar.sourceEncoding", "UTF-8"
+    }
+}
+
+publishing{
+    publications {
+        publishSupplychain(MavenPublication) {
+            groupId 'com.supplychain.bcc'
+            artifactId 'cordapp-supply-chain'
+            version "${project.version}"
+            artifact("cordapp-supply-chain/build/libs/cordapp-supply-chain-$version"+".jar")
+        }
+        publishContracts(MavenPublication) {
+            groupId 'com.supplychain.bcc'
+            artifactId 'cordapp-contracts-states'
+            version "${project.version}"
+            artifact("cordapp-contracts-states/build/libs/cordapp-contracts-states-$version"+".jar")
+        }
+    }
+    repositories {
+        maven {
+            url project.repoURI
+            credentials {
+                username project.repoUser
+                password project.repoPassword
+            }
+        }
     }
 }
