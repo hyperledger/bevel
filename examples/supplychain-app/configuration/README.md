@@ -15,9 +15,7 @@ To run the playbooks and deploy the APIs, following are the pre-requisites
 ## Playbook Description 
 There are following playbooks.
 
-* `deploy-api.yaml` : Creates the value files for Corda springboot-server, Fabric REST-server and respective express-api and commits them into gitops repository.
-
-* `deploy-supplychain-smartContract.yaml` : Deploys the Smart Contract on a Quorum node in an existing Quorum or Hyperledger-Besu network using a javascript file.
+* `deploy-supplychain-app.yaml` : Deploys the Smart Contract/ Chaincode on a DLT network.
 
 ## To Deploy the Supply-Chain APIs:
 

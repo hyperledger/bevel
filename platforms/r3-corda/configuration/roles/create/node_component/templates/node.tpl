@@ -50,10 +50,10 @@ spec:
       {% if chart == 'notary' %}      
       notary:
         validating: false
+        serviceLegalName: {{ node.serviceName | default() }}
       {% endif %} 
       detectPublicIp: false
       database:
-        transactionIsolationLevel: READ_COMMITTED
         exportHibernateJMXStatistics: false
       dbUrl: {{ component_name|e }}db
       dbPort: {{ node.dbtcp.port|e }}
