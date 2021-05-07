@@ -43,12 +43,26 @@ spec:
           args:
           - |-
               #!/usr/bin/env sh
-               validateVaultResponse () {
-                 if echo ${2} | grep "errors"; then
-                    echo "ERROR: unable to retrieve ${1}: ${2}"
-                    exit 1
-                 fi
-               }
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
 
               # Setting up the environment to get secrets/certificates from Vault
               echo "Getting secrets/certificates from Vault server"
@@ -65,6 +79,7 @@ spec:
                 echo "Certficates absent in vault. Ignore error warning"
                 touch ${MOUNT_PATH}/absent.txt
               else
+                validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/firewall" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                 echo "Certificates present in vault"
                 touch ${MOUNT_PATH}/present.txt
               fi 
@@ -97,8 +112,22 @@ spec:
               #!/usr/bin/env sh
               validateVaultResponse () {
                 if echo ${2} | grep "errors"; then
-                    echo "ERROR: unable to retrieve ${1}: ${2}"
-                    exit 1
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
                 fi
               }
 
@@ -120,7 +149,7 @@ spec:
 
               # Fetching credentials for truststores
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials)" "${LOOKUP_SECRET_RESPONSE}"
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
               FIREWALL_CA=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["firewallca"]')
               echo "${FIREWALL_CA}"> ${MOUNT_PATH}/firewallca
