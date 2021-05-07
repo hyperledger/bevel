@@ -55,8 +55,22 @@ spec:
               #!/usr/bin/env sh
               validateVaultResponse () {
                 if echo ${2} | grep "errors"; then
-                   echo "ERROR: unable to retrieve ${1}: ${2}"
-                   exit 1
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
                 fi
               }
 
@@ -83,6 +97,7 @@ spec:
                   then
                     sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
+                    validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                     idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-identity-manager-keys.jks"]')
                     echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/idman/corda-ssl-identity-manager-keys.jks
                     echo "Successfully got SSL Idman certifcates"
@@ -108,6 +123,7 @@ spec:
                   then
                     sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
+                    validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                     root_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
                     echo "${root_ssl}" | base64 -d > ${MOUNT_PATH}/root/corda-ssl-trust-store.jks
                     echo "Successfully got Root SSL certifcates"
@@ -133,6 +149,7 @@ spec:
                   then
                     sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
+                    validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.nodeName }}/crls" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                     tls_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tls.crl"]')
                     echo "${tls_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/tls.crl
 
@@ -157,14 +174,14 @@ spec:
               # Fetching the idman ssl credentials from vault
               OUTPUT_PATH=${MOUNT_PATH}/ssl;
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/ssl)" "${LOOKUP_SECRET_RESPONSE}"
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/ssl" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
               IDMAN_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
               echo "${IDMAN_SSL}"> ${OUTPUT_PATH}/idmanssl
 
               #Fetching ssl truststore from vault
               OUTPUT_PATH=${MOUNT_PATH}/truststore;
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
               SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
               echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
 
