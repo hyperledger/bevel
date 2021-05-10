@@ -61,6 +61,8 @@
       echo "--set ambassador.otherPorts.portRange.from=${from} --set ambassador.otherPorts.portRange.to=${to}"
     fi
   register: ambassadorRange
+  tags:
+    - molecule-idempotence-notest
 
 - name: Format ambassador ports for Corda/Besu/Quorum
   args:
@@ -75,6 +77,8 @@
     fi
   register: ambassadorPorts
   when: network.type != 'indy'
+  tags:
+    - molecule-idempotence-notest
 
 - name: Format ambassador ports for Indy
   args:
@@ -90,46 +94,48 @@
     fi
   register: ambassadorPortsIndy
   when: network.type == 'indy'
+  tags:
+    - molecule-idempotence-notest
 
 - name: Install Ambassador with EIP for Indy
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPortsIndy.stdout }} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador 
-  tags:
-    - ambassador
-    - molecule-idempotence-notest
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPortsIndy.stdout }} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   when: 
     - network.type == 'indy'
     - allocation_ips.stdout is defined
+  tags:
+    - ambassador
+    - molecule-idempotence-notest
     
 - name: Install Ambassador for Corda/Quorum/Besu
   shell: |
       KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPorts.stdout }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+  when: network.type != 'indy'
   tags:
     - ambassador
     - molecule-idempotence-notest
-  when: (network.type == 'corda' or network.type == 'quorum' or network.type == 'corda-enterprise' or network.type == 'besu')
   
 - name: Enable external DNS
   shell: |
     KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "external-dns.alpha.kubernetes.io/hostname=*.{{ item.external_url_suffix }}."
-  tags:
-    - ambassador
-    - molecule-idempotence-notest
   when: 
     - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
     - network.env.external_dns is defined
     - network.env.external_dns == 'enabled'
+  tags:
+    - ambassador
+    - molecule-idempotence-notest
 
 # Disable TLS1.0 for the AWS Loadbalancer
 - name: Disable TLS1.0 for the AWS
   shell: |
     KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy=ELBSecurityPolicy-TLS-1-2-2017-01"
-  tags:
-    - ambassador
-    - molecule-idempotence-notest
   when: 
     - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
     - item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal'
+  tags:
+    - ambassador
+    - molecule-idempotence-notest
 
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up
