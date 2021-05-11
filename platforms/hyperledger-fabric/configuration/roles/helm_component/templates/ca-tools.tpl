@@ -15,7 +15,6 @@ spec:
     metadata:
       namespace: {{ component_name }}
       name: ca-tools
-
     replicaCount: 1
 
     image:
