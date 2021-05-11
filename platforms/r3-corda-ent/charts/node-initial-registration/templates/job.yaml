@@ -182,9 +182,7 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            rm -r certificates/done.txt
-            mkdir bin
-
+            rm -f certificates/done.txt
             echo 'myLegalName: "{{ .Values.nodeConf.legalName }}"
             emailAddress: "{{ .Values.nodeConf.emailAddress }}"
             p2pAddress: "{{ .Values.service.p2pAddress }}:{{ .Values.service.p2pPort }}"
@@ -243,24 +241,20 @@ spec:
             }
             database = {
             {{- if eq .Values.dataSourceProperties.dataSource.dataSourceClassName "oracle.jdbc.pool.OracleDataSource" }}
-                transactionIsolationLevel = READ_COMMITTED
                 schema = xe
             {{- end}}
-                runMigration = true
             }' > etc/node.conf
 
             export TRUSTSTORE_PASSWORD=$(cat DATA/credentials/truststorepass)
             sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" etc/node.conf
             export KEYSTORE_PASSWORD=$(cat DATA/credentials/keystorepass)
             sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/node.conf
-
-            cp corda.jar bin/
-            chmod +x bin/*
-            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+  
+            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
+            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
             
             /bin/sh
-
+                      
             # Network root trust store path and password
             NETWORK_ROOT_TRUSTSTORE=DATA/trust-stores/network-root-truststore.jks
             NETWORK_ROOT_TRUSTSTORE_PASSWORD=$(cat DATA/credentials/rootpass)
