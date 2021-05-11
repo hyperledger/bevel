@@ -15,9 +15,9 @@ spec:
     metadata:
       namespace: {{ component_name }}
       name: ca-tools
+{% if network.env.annotations is defined %}
     annotations:  
       service:
-{% if network.env.annotations is defined %}
 {% for item in network.env.annotations.service %}
 {% for key, value in item.items() %}
         - {{ key }}: {{ value | quote }}

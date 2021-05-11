@@ -17,31 +17,28 @@ spec:
       images:
         alpineutils: {{ alpine_image }}
         ca: {{ ca_image }}
-    annotations:  
-      service:
 {% if network.env.annotations is defined %}
-{% for item in network.env.annotations.service %}
-{% for key, value in item.items() %}
-        - {{ key }}: {{ value | quote }}
-{% endfor %}
-{% endfor %}
-{% endif %}
-      pvc:
-{% if network.env.annotations is defined %}
-{% for item in network.env.annotations.pvc %}
-{% for key, value in item.items() %}
-        - {{ key }}: {{ value | quote }}
-{% endfor %}
-{% endfor %}
-{% endif %}
-      deployment:
-{% if network.env.annotations is defined %}
+    deployment:
+      annotations:
 {% for item in network.env.annotations.deployment %}
 {% for key, value in item.items() %}
         - {{ key }}: {{ value | quote }}
 {% endfor %}
 {% endfor %}
-{% endif %}        
+    annotations:  
+      service:
+{% for item in network.env.annotations.service %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+      pvc:
+{% for item in network.env.annotations.pvc %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+{% endif %}       
     server:
       name: {{ component_services.ca.name }}
       tlsstatus: true
