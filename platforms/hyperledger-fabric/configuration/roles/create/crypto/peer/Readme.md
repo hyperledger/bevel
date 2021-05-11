@@ -158,7 +158,6 @@ This tasks Check if Orderer certs exists in vault. If yes, get the certificate
 ##### Input Variables
     *orderer.org_name: The org name of the orderer.
 **local_action**:  A shorthand syntax that you can use on a per-task basis
-
 **loop_control**: Specify conditions for controlling the loop.
                 
     loop_var: loop variable used for iterating the loop.

@@ -1,6 +1,5 @@
 ## delete/gitops_files
 This role deletes all the gitops release files
-
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
 #### 1. Delete release files
