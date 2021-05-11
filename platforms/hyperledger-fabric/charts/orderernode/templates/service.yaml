@@ -3,8 +3,15 @@ kind: Service
 metadata:
   name: {{ $.Values.orderer.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+    {{- if eq $.Values.proxy.provider "ambassador" }}  
     getambassador.io/config: | 
       ---
       apiVersion: ambassador/v2
