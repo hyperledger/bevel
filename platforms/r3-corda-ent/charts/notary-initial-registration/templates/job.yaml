@@ -181,6 +181,7 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
+            rm -f certificates/done.txt
             echo 'networkServices {
                 doormanURL="{{ .Values.networkServices.doormanURL }}"
                 networkMapURL="{{ .Values.networkServices.networkMapURL }}"
@@ -194,6 +195,7 @@ spec:
                 dataSourceClassName = "{{ .Values.dataSourceProperties.dataSourceClassName }}"
             }
             notary {
+                serviceLegalName : "{{ .Values.nodeConf.notary.serviceLegalName }}"
                 validating = "{{ .Values.nodeConf.notary.validating }}"
             }
             devMode = {{ .Values.nodeConf.devMode }}
@@ -224,15 +226,15 @@ spec:
             export KEYSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/keystore/ks)
             sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/notary.conf
             rm -r ${BASE_DIR}/certificates/done.txt
-            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
+            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
             
             
             
             /bin/sh
             NETWORK_ROOT_TRUSTSTORE={{ $.Values.nodeConf.volume.baseDir }}/DATA/trust-stores/network-root-truststore.jks
             NETWORK_ROOT_TRUSTSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/truststore/rootcats)
-            
+
             while true
             do
                 if [ ! -f certificates/nodekeystore.jks ] || [ ! -f certificates/sslkeystore.jks ] || [ ! -f certificates/truststore.jks ]
@@ -246,6 +248,7 @@ spec:
                     --config-file={{ .Values.nodeConf.configPath }}/notary.conf \
                     --log-to-console \
                     --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \
+                    --base-directory=${BASE_DIR} \
                     --network-root-truststore-password ${NETWORK_ROOT_TRUSTSTORE_PASSWORD}
                     
                     EXIT_CODE=${?}
