@@ -12,6 +12,32 @@ spec:
     ref: {{ git_branch }}
     path: {{ charts_dir }}/ca    
   values:
+    deployment:
+      annotations:
+{% if network.env.annotations is defined %}
+{% for item in network.env.annotations.deployment %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+    annotations:  
+      service:
+{% if network.env.annotations is defined %}
+{% for item in network.env.annotations.service %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+      pvc:
+{% if network.env.annotations is defined %}
+{% for item in network.env.annotations.pvc %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+{% endif %}
     metadata:
       namespace: {{ component_name | e }}
       images:
