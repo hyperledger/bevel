@@ -31,6 +31,8 @@
     cd build
     istanbul setup --num {{ validator_node_list | length }} --nodes --quorum --save --verbose
   when: vault_check|default(0)|int != 0
+  tags:
+    molecule-idempotence-notest
 
 # Update txnSizeLimit in genesis file
 - name: Update txnSizeLimit in genesis file
@@ -83,6 +85,8 @@
   copy: src=build/{{item.0}}/ dest=build/{{item.1.org}}/{{item.1.node}}
   with_indexed_items: "{{ validator_node_list }}"
   when: vault_check|default(0)|int != 0
+  tags:
+    molecule-idempotence-notest
 
 # Delete the numbered directories
 - name: Delete the numbered directories
@@ -91,3 +95,5 @@
     state: absent
   with_indexed_items: "{{ validator_node_list }}"
   when: vault_check|default(0)|int != 0
+  tags:
+    molecule-idempotence-notest
