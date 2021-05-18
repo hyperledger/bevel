@@ -40,6 +40,8 @@ Use the below command to run the container and the provisioning scripts, the com
 ```shell
 docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
 ```
+**NOTE**. baf-build image is using jdk14 but Corda and Corda Enterprise requires jdk8. In this case, you can build the baf-build image using Dockerfile.jdk8 or use the prebuild image tag *jdk8*  hyperledgerlabs/baf-build:jdk8
+
 Before running the above command add a build folder in the root directory of the repository, this build folder should have the following files:
 
 1) K8s config file as config  

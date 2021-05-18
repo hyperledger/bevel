@@ -172,6 +172,8 @@ kubectl get pods --all-namespaces -w
 
 **NOTE:** If you need public address for nodes in your `network.yaml` file, you can use the output of `minikube ip`.
 
+**NOTE**. baf-build image is using jdk14 but Corda and Corda Enterprise requires jdk8. In this case, you can use the prebuild image tag *jdk8*  hyperledgerlabs/baf-build:jdk8
+
 ## Troubleshooting
 
 **`Failed to establish a new connection: [Errno 111] Connection refused`**
