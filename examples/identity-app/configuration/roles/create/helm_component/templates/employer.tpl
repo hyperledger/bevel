@@ -29,6 +29,7 @@ spec:
       ports: 
         service: {{ endorser.server.httpPort }}
         endpoint: {{ endorser.server.apiPort }}
+        webhook: {{ endorser.server.webhookPort }}
 {% if organization.cloud_provider == 'minikube' %}     
       address: {{ minikube_ip }}
 {% else %}      

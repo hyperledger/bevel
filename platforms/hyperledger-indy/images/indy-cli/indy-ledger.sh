@@ -103,5 +103,5 @@ if [[ ${file} =~ \|[[:space:]]([[:alnum:]]*)[[:space:]]\|[[:space:]](${identity_
   exit 0
 else
   echo "Transaction Failed."
-  ecit 1
+  exit 1
 fi

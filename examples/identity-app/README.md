@@ -80,7 +80,7 @@ Agent for Student Alice don't have Ansible roles created. These agents have to b
 - Create environment variable for kubernetes config: `export KUBECONFIG=/home/blockchain-automation-framework/build/config`
 - Fill all variables in `value.yaml` file in helm [chart of alice](./charts/alice)
 - Create Helm release for Student Alice with command: `helm install --name alice examples/identity-app/charts/alice/`
-- If you reset the network, please delete the alice helm release manually: `helm delete --purge alice`
+- If you reset the network, please delete the alice helm release manually: `helm uninstall alice`
 
 ### Step 7
 Identity App is running and agents API via Swagger are available on IP address of your cluster with ports which you defined for your agents in `value.yaml` file.
@@ -90,6 +90,13 @@ For example, with the given sample network.yaml your Agent's Swagger will be ava
 
 ### Step 8
 Follow the [steps](./tests/README.md) to test the API using Postman. You can also follow [these steps](https://github.com/hyperledger/aries-cloudagent-python/blob/master/demo/AriesOpenAPIDemo.md#using-the-openapiswagger-user-interface) as per the Aries Demo on this Identity App.
+
+---
+
+**NOTE**: This Sample Application uses `issue-credential` version 1.0 API
+
+---
+
 
 ### Challenge
 Similar to the Aries Demo challenge, you may want to run the Acme Endorser as well. Configure and run network.yaml accordingly.

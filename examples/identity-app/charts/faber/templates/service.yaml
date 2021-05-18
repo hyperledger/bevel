@@ -20,6 +20,13 @@ metadata:
       host: {{ .Values.service.address }}
       port: {{ .Values.service.ports.endpoint }}
       service: {{ .Values.metadata.name }}.{{ .Values.metadata.namespace }}:{{ .Values.service.ports.endpoint }}
+      ---
+      apiVersion: ambassador/v2
+      kind: TCPMapping
+      name: {{ .Values.metadata.name }}-wh
+      host: {{ .Values.service.address }}
+      port: {{ .Values.service.ports.webhook }}
+      service: {{ .Values.metadata.name }}.{{ .Values.metadata.namespace }}:{{ .Values.service.ports.webhook }}
     {{- end }}
 spec:
 {{ if eq $.Values.proxy.provider "minikube" }}
@@ -40,5 +47,8 @@ spec:
 {{ if eq $.Values.proxy.provider "minikube" }}
     nodePort: {{ $.Values.service.ports.endpoint }}
 {{ end }}
+  - name: indy-faber-webhook
+    port: {{ $.Values.service.ports.webhook }}
+    targetPort: {{ $.Values.service.ports.webhook }}
   selector:
     app: "{{ $.Values.metadata.name }}"
