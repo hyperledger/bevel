@@ -4,7 +4,7 @@ USER root
 
 ARG ROCKS_DB_VERSION=5.8.8
 ARG LIBINDY_CRYPTO_VERSION=0.4.5
-ARG INDY_NODE_VERSION=v1.11.0
+ARG INDY_NODE_VERSION=1.12.1
 
 ENV VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3 \
     WORKON_HOME=$HOME/.virtualenvs \
@@ -33,6 +33,8 @@ RUN apt-get update && \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
     apt-get install -y python3.5 python3-pip python3.5-dev jq
+
+RUN pip3 install --upgrade "pip < 21.0" setuptools
 
 # Installing virtualenvwrapper
 RUN pip3 install virtualenvwrapper
@@ -63,19 +65,9 @@ RUN apt-get install -y libindy libindy-crypto=${LIBINDY_CRYPTO_VERSION}
 # Installing indy node and plenum
 RUN mkdir -p ${INDY_HOME}
 WORKDIR ${INDY_HOME}
-RUN apt-get update && \
-    apt-get install -y git && \
-    git clone https://github.com/hyperledger/indy-plenum.git && \
-    git clone https://github.com/hyperledger/indy-node.git
-RUN cd ${INDY_HOME}/indy-node && \
-    git checkout ${INDY_NODE_VERSION} && \
-    cd ${INDY_HOME}/indy-plenum && \
-    git checkout ${INDY_NODE_VERSION}
-WORKDIR ${INDY_HOME}
 COPY config/indy_config.py ${INDY_CONFIG_DIR}
-RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv -p python3.5 ${NETWORK_NAME}; workon ${NETWORK_NAME}; pushd indy-node; pip3 install -e .[tests]; popd"  && \
-    /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; pushd indy-plenum; pip3 uninstall -y indy-plenum; pip3 install -e .[tests]; popd" && \
-    /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install requests"
+RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv ${NETWORK_NAME}; workon ${NETWORK_NAME}; pip3 install indy-node==${INDY_NODE_VERSION}"  && \    
+    /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install flake8 requests"
 
 COPY src/identity_crypto_generator.py /.virtualenvs/${NETWORK_NAME}/lib/python3.5/site-packages/plenum/common/identity_crypto_generator.py
 COPY src/generate_identity /.virtualenvs/${NETWORK_NAME}/bin/generate_identity
