@@ -1,0 +1,193 @@
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    network:
+      type: quorum
+      version: 2.5.0
+      frontend: enabled
+      docker:
+        url: "index.docker.io/hyperledgerlabs"
+        username: "docker_username"
+        password: "docker_password"
+      config:
+        consensus: "raft"
+        subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+        genesis: "./build/quorum_genesis"
+      env:
+        type: "dev"
+        proxy: ambassador
+        ambassadorPorts:
+          portRange:
+            from: 15010
+            to: 15043
+        retry_count: 20
+        external_dns: enabled
+      organizations:
+        - organization:
+          name: store
+          unit: Store
+          external_url_suffix: test.corda.blockchaincloudpoc.com
+          cloud_provider: aws
+          aws:
+            access_key: "aws_access_key"
+            secret_key: "aws_secret_key"
+          k8s:
+            region: "cluster_region"
+            context: "cluster_context"
+            config_file: "cluster_config"
+          vault:
+            url: http://localhost:9090
+            root_token: root
+            secret_path: secret
+          gitops:
+            git_protocol: "https"
+            git_url: "https://github.com/<username>/blockchain-automation-framework.git"
+            branch: "develop"
+            release_dir: "platforms/quorum/releases/dev"
+            chart_source: "platforms/quorum/charts"
+            git_repo: "github.com/<username>/blockchain-automation-framework.git"
+            username: "git_username"
+            password: "git_access_token"
+            email: "git_email"
+            private_key: "path_to_private_key"
+
+          app:
+            google_maps_api: "api_key"
+
+          services:
+            peers:
+            - peer:
+              name: store
+              subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
+              type: validator
+              geth_passphrase: 12345
+              p2p:
+                port: 21000
+                ambassador: 15030
+              rpc:
+                port: 8546
+                ambassador: 15031
+              transaction_manager:
+                port: 8443
+                ambassador: 8443
+              expressapi:
+                port: 3000
+                targetPort: 3000
+              frontend:
+                port: 8080
+                targetPort: 80
+              geth_url: "http://store.test.corda.blockchaincloudpoc.com:15031"
+  
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+
+  tasks:
+    - name: "Copy openssl.conf to molecule directory"
+      copy:
+        src: "{{ playbook_dir }}/../../openssl.conf"
+        dest: "{{ playbook_dir }}"
+
+    - name: "Test the setup/istanbul role"
+      include_role:
+        name: "configuration/roles/setup/istanbul"
+      vars:
+        root_certs:
+          failed: True
+        ambassador_tls_certs:
+          failed: True
+        certs_result:
+          failed: True
+        vault_nodekey_result:
+          failed: True
+        peers: "{{ item.services.peers }}"
+        bin_install_dir:  "~/bin"
+        install_os: "linux"
+        install_arch:  "amd64"
+        organisation: "{{ item.name | lower }}"
+        component_ns: "{{ item.name | lower }}-quo"
+        component_name: "{{ item.name | lower }}"
+        node_name: "{{ node.name | lower }}"
+        kubernetes:
+          config_file: "/tmp/molecule/kind-default/kubeconfig"
+          context: "kind"
+        vault:
+          vault: "{{ item.vault }}"
+          url: http://localhost:9090/
+          root_token: root
+          secret_path: "secret"
+        root_subject: "{{ network.config.subject }}"
+        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
+      loop: "{{ network['organizations'] }}"
+    
+    - name: "Test the create/genesis_nodekey role"
+      include_role:
+        name: "configuration/roles/create/genesis_nodekey"
+      vars:
+        root_certs:
+          failed: True
+        ambassador_tls_certs:
+          failed: True
+        certs_result:
+          failed: True
+        peers: "{{ item.services.peers }}"
+        bin_install_dir:  "~/bin"
+        install_os: "linux"
+        install_arch:  "amd64"
+        add_new_org: False
+        organisation: "{{ item.name | lower }}"
+        component_ns: "{{ item.name | lower }}-quo"
+        component_name: "{{ item.name | lower }}"
+        node_name: "{{ node.name | lower }}"
+        kubernetes:
+          config_file: "/tmp/molecule/kind-default/kubeconfig"
+          context: "kind"
+        vault:
+          vault: "{{ item.vault }}"
+          url: http://localhost:9090/
+          root_token: root
+          secret_path: "secret"
+        root_subject: "{{ network.config.subject }}"
+        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
+      loop: "{{ network['organizations'] }}"
+
+    - name: "Test the crypto-ibft role"
+      include_role:
+        name: "configuration/roles/create/crypto/ibft"
+      vars:
+        root_certs:
+          failed: True
+        ambassador_tls_certs:
+          failed: True
+        certs_result:
+          failed: True
+        vault_nodekey_result:
+          failed: True
+        peers: "{{ item.services.peers }}"
+        bin_install_dir:  "~/bin"
+        install_os: "linux"
+        install_arch:  "amd64"
+        organisation: "{{ item.name | lower }}"
+        component_ns: "{{ item.name | lower }}-quo"
+        component_name: "{{ item.name | lower }}"
+        node_name: "{{ node.name | lower }}"
+        kubernetes:
+          config_file: "/tmp/molecule/kind-default/kubeconfig"
+          context: "kind"
+        vault:
+          vault: "{{ item.vault }}"
+          url: http://localhost:9090/
+          root_token: root
+          secret_path: "secret"
+        root_subject: "{{ network.config.subject }}"
+        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
+      loop: "{{ network['organizations'] }}"
