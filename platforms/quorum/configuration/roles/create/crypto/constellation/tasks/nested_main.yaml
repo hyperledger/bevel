@@ -7,6 +7,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_tm_result
   ignore_errors: yes
+  tags:
+    molecule-idempotence-notest
 
 # This task creates the build directory if it does not exist
 - name: "Creating build directory"
@@ -16,12 +18,16 @@
     path: "build/{{ component_name }}/{{ node.name }}"
     check: "ensure_dir"
   when: vault_tm_result.failed == True
+  tags:
+    molecule-idempotence-notest
 
 - name: Generate Crypto for constellation
   shell: |
     cd build/{{ component_name }}/{{ node.name }}
     printf '\n' | constellation-node --generatekeys=tm
   when: vault_tm_result.failed == True
+  tags:
+    molecule-idempotence-notest
 
 - name: Copy the crypto into vault
   shell: |
@@ -30,3 +36,5 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_tm_result.failed == True
+  tags:
+    molecule-idempotence-notest
