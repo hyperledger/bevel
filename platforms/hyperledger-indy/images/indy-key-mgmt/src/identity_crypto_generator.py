@@ -8,6 +8,7 @@ import base58
 
 from crypto.bls.bls_crypto import BlsGroupParamsLoader
 from crypto.bls.bls_factory import BlsFactoryCrypto
+from plenum.bls.bls_crypto_factory import BlsFactoryIndyCrypto
 from crypto.bls.bls_key_manager import BlsKeyManager
 from crypto.bls.indy_crypto.bls_crypto_indy_crypto import BlsCryptoSignerIndyCrypto, BlsGroupParamsLoaderIndyCrypto
 
@@ -73,7 +74,7 @@ class IdentityCryptoGenerator:
         return file
 
 
-class BlsGenerator(BlsFactoryCrypto):
+class BlsGenerator(BlsFactoryIndyCrypto):
 
     def __init__(self, seed):
         self.seed = seed
