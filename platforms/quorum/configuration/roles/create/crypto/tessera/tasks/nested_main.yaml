@@ -7,6 +7,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_tmkey_result
   ignore_errors: yes
+  tags:
+    molecule-idempotence-notest
 
 # This task creates the build directory if it does not exist
 - name: "Creating the build directory"
@@ -16,6 +18,8 @@
     path: "build/{{ component_name }}/{{ peer.name }}"
     check: "ensure_dir"
   when: vault_tmkey_result.failed == True 
+  tags:
+    molecule-idempotence-notest
 
 # This task checks if the tessera app jar exits
 - name: Check if tessera jar file exists
@@ -23,6 +27,8 @@
     path: build/tessera-app.jar
   register: tessera_app_jar_result
   when: vault_tmkey_result.failed == True
+  tags:
+    molecule-idempotence-notest
 
 # This task downloads the tessera jar file
 - name: Download tessera jar
@@ -30,6 +36,8 @@
     url: "{{ tessera.repo }}"
     dest: build/tessera-app.jar
   when: vault_tmkey_result.failed == True and tessera_app_jar_result.stat.exists == False
+  tags:
+    molecule-idempotence-notest
 
 # This task generates keys for node tm
 - name: Generate node tm keys
@@ -37,6 +45,8 @@
     cd build/{{ component_name }}/{{ peer.name}}
     printf '\n\n' | java -jar ../../tessera-app.jar -keygen -filename tm
   when: vault_tmkey_result.failed == True
+  tags:
+    molecule-idempotence-notest
 
 # This task copies the crypto material to the vault
 - name: Copy the crypto material to Vault
@@ -46,3 +56,5 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_tmkey_result.failed == True
+  tags:
+    molecule-idempotence-notest
