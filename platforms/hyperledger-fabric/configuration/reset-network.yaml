@@ -8,6 +8,7 @@
   # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
 - hosts: ansible_provisioners
   gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
     # Delete Vault and Kubernetes secrets.
     - include_role: 
@@ -24,9 +25,10 @@
     # remove this if not needed
     - name: Uninstall flux
       shell: |
-        KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }}
-        KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}
-        KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}-helm-operator
+        KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }} -n flux-{{ network.env.type }}
+        KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }} -n flux-{{ network.env.type }}
+        KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}-helm-operator -n flux-{{ network.env.type }}
+        KUBECONFIG={{ kubernetes.config_file }} kubectl delete namespace flux-{{ network.env.type }}
       vars:
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"

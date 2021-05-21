@@ -10,6 +10,7 @@ import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
+import net.corda.core.identity.CordaX500Name
 import java.util.*
 
 /********************************************************
@@ -66,7 +67,9 @@ class UnPackageItem (val productTrackingID: UUID, val containerTrackingID: UUID)
         //Generate ContainerState output with the product removed from the container
         val containerOutput = containerInput.state.data.withRemovedProduct(productTrackingID)
 
-        val txBuilder = TransactionBuilder(serviceHub.networkMapCache.notaryIdentities.first())
+        val notary = serviceHub.networkMapCache.getNotary(CordaX500Name.parse("O=Notary Service,OU=Notary,L=London,C=GB"))
+                    ?: throw IllegalStateException("Notary not found on network")    
+        val txBuilder = TransactionBuilder(notary)        
                 .addInputState(trackInput)
                 .addInputState(containerInput)
                 .addOutputState(trackOutput, SupplyChainContract.ID)

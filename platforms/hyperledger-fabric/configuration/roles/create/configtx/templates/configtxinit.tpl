@@ -67,4 +67,3 @@ Channel: &ChannelDefaults
     <<: *ChannelCapabilities
 
 Organizations:
-

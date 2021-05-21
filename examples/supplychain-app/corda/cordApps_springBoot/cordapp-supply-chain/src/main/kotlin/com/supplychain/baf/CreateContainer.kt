@@ -13,6 +13,7 @@ import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
+import net.corda.core.identity.CordaX500Name
 import java.sql.Timestamp
 import java.util.*
 
@@ -76,8 +77,9 @@ class CreateContainer (val request: CreateContainerRequest) : FlowLogic<UUID>() 
                 timestamp,
                 participants = participants
         )
-
-        val txBuilder = TransactionBuilder(serviceHub.networkMapCache.notaryIdentities.first())
+        val notary = serviceHub.networkMapCache.getNotary(CordaX500Name.parse("O=Notary Service,OU=Notary,L=London,C=GB"))
+                    ?: throw IllegalStateException("Notary not found on network")    
+        val txBuilder = TransactionBuilder(notary)        
                 .addOutputState(output, SupplyChainContract.ID)
                 .addCommand(SupplyChainContract.Commands.CreateContainer(), participants.map { it.owningKey })
 

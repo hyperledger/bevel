@@ -37,7 +37,7 @@ spec:
       networkmapName: {{ services.networkmap.name }}
     identityManager:
       publicIp: {{ org.services.idman.name }}.{{ org.external_url_suffix }}
-      publicPort: 8443
+      publicPort: 443
     subjects:
       tlscrlsigner: "{{ services.signer.subject }}"
       tlscrlissuer: "{{ services.idman.crlissuer_subject }}"

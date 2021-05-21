@@ -1,0 +1,38 @@
+name: Chaincode tests
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install molecule==3.0.6 yamllint ansible-lint docker==4.2.2 openshift jmespath
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+        sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+        sudo apt-get update && sudo apt-get install vault
+        wget -c https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz -O - | sudo tar -xz -C /usr/local
+        # export the bin path
+        export PATH=~/bin:$PATH
+        export GOROOT=/usr/local/go
+        export GOPATH=/opt/gopath
+        export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+        mkdir -p $GOPATH/src/github.com
+        ln -s ./examples/supplychain-app/fabric/chaincode_rest_server/chaincode $GOPATH/src/github.com
+      if: |
+        contains(github.event.pull_request.title, 'Fabric') ||
+        contains(github.event.pull_request.title, 'fabric')
+##########################################################################
+    - name: Test Stage all chaincodes.
+      run: |
+        cd $GOPATH/src/github.com/chaincode/supplychain
+        dep ensure
+        go test -v
+      if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')

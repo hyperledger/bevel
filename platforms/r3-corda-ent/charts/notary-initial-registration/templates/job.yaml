@@ -47,8 +47,22 @@ spec:
                 #!/usr/bin/env sh
                 validateVaultResponse () {
                   if echo ${2} | grep "errors"; then
-                      echo "ERROR: unable to retrieve ${1}: ${2}"
-                      exit 1
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                  fi
+                  if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                  then
+                    http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                    --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                    ${VAULT_ADDR}/v1/${1})
+                    curl_response=$?
+                    if test "$http_code" != "200" ; then
+                        echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                        if test "$curl_response" != "0"; then
+                          echo "Error: curl command failed with error code - $curl_response"
+                          exit 1
+                        fi
+                    fi
                   fi
                 }
                 # setting up env to get secrets from vault
@@ -70,6 +84,7 @@ spec:
                     then
                       sleep {{ $.Values.vault.retryInterval }}
                     else
+                      validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                       network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
                       echo "${network_root_truststore}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
                       echo "Successfully got network truststore certifcates"
@@ -87,18 +102,18 @@ spec:
                 
                 mkdir -p ${MOUNT_PATH}/tlscerts
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+                validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                 IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
                 echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/idman.crt
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
+                validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                 NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
                 echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
                 #Fetching truststore credentials from vault
                 mkdir -p ${MOUNT_PATH}/truststore
                 OUTPUT_PATH=${MOUNT_PATH}/truststore;
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+                validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                 ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
                 echo "${ROOTCA_TRUSTSTORE}"> ${OUTPUT_PATH}/rootcats
                 TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["trustStorePassword"]')
@@ -107,7 +122,7 @@ spec:
                 mkdir -p ${MOUNT_PATH}/keystore
                 OUTPUT_PATH=${MOUNT_PATH}/keystore;
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
-                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
+                validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/keystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                 KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keyStorePassword"]')
                 echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/ks
                 
@@ -166,6 +181,7 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
+            rm -f certificates/done.txt
             echo 'networkServices {
                 doormanURL="{{ .Values.networkServices.doormanURL }}"
                 networkMapURL="{{ .Values.networkServices.networkMapURL }}"
@@ -179,6 +195,7 @@ spec:
                 dataSourceClassName = "{{ .Values.dataSourceProperties.dataSourceClassName }}"
             }
             notary {
+                serviceLegalName : "{{ .Values.nodeConf.notary.serviceLegalName }}"
                 validating = "{{ .Values.nodeConf.notary.validating }}"
             }
             devMode = {{ .Values.nodeConf.devMode }}
@@ -209,15 +226,15 @@ spec:
             export KEYSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/keystore/ks)
             sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/notary.conf
             rm -r ${BASE_DIR}/certificates/done.txt
-            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
+            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
+            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
             
             
             
             /bin/sh
             NETWORK_ROOT_TRUSTSTORE={{ $.Values.nodeConf.volume.baseDir }}/DATA/trust-stores/network-root-truststore.jks
             NETWORK_ROOT_TRUSTSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/truststore/rootcats)
-            
+
             while true
             do
                 if [ ! -f certificates/nodekeystore.jks ] || [ ! -f certificates/sslkeystore.jks ] || [ ! -f certificates/truststore.jks ]
@@ -231,6 +248,7 @@ spec:
                     --config-file={{ .Values.nodeConf.configPath }}/notary.conf \
                     --log-to-console \
                     --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \
+                    --base-directory=${BASE_DIR} \
                     --network-root-truststore-password ${NETWORK_ROOT_TRUSTSTORE_PASSWORD}
                     
                     EXIT_CODE=${?}

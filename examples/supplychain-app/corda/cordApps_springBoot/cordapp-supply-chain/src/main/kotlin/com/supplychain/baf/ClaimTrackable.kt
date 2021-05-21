@@ -9,6 +9,7 @@ import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
+import net.corda.core.identity.CordaX500Name
 import java.sql.Timestamp
 import java.util.*
 
@@ -57,8 +58,9 @@ class ClaimTrackable(val trackingID: UUID) : FlowLogic<UUID>() {
         val timestamp = Timestamp(System.currentTimeMillis()).time
 
         val output = input.state.data.withNewTracking(custodian = ourIdentity, timestamp = timestamp)
-
-        val txBuilder = TransactionBuilder(serviceHub.networkMapCache.notaryIdentities.first())
+        val notary = serviceHub.networkMapCache.getNotary(CordaX500Name.parse("O=Notary Service,OU=Notary,L=London,C=GB"))
+                    ?: throw IllegalStateException("Notary not found on network")    
+        val txBuilder = TransactionBuilder(notary)        
                 .addInputState(input)
                 .addOutputState(output, SupplyChainContract.ID)
                 .addCommand(SupplyChainContract.Commands.ClaimTrackable(), output.participants.map { it.owningKey })

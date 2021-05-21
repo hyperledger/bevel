@@ -57,12 +57,7 @@ This task creates value file for clusterrolebinding by calling create/k8_compone
 #### 6. Push the created deployment files to repository
 This task pushes all the value files created to the git repo.
 ##### Input Variables
-    
-    GIT_DIR: root directory of the git cloned repository
-    GIT_REPO: Url of the git repo
-    GIT_USERNAME: username for git repo
-    GIT_PASSWORD: password for git repo
-    GIT_EMAIL: Email for git config
-    GIT_BRANCH: The branch where the files will be checked
-    GIT_RESET_PATH: Any path that needs to be ignored.
-    msg: Git commit message
+    GIT_DIR: "The path of directory which needs to be pushed"    
+    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
+    msg: "Message for git commit"

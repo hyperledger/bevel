@@ -38,9 +38,13 @@ network:
   
   #Environment section for Kubernetes setup
   env:
-    type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "env_type"                # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
 
@@ -105,9 +109,9 @@ network:
         chart_source: "gitops_charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "gitops_repo_url"   # Gitops git repository URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_password"          # Git Server user password
+        password: "git_password"          # Git Server user access token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       services:
         peers:

@@ -10,10 +10,17 @@ metadata:
   # Otherwise as ambassador is not able to passthrough TLS connection, grpc over ambassador is not going to work
   # hence we have used a HAProxy ingress whoich does ssl-passthrough.  
   annotations:
-  {{- if eq $.Values.proxy.provider "ambassador" }}
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+    {{- if eq $.Values.proxy.provider "ambassador" }} 
     getambassador.io/config: |
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TLSContext
       name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       hosts:
@@ -21,7 +28,7 @@ metadata:
       secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
       alpn_protocols: h2
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: Mapping
       tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       grpc: True
@@ -32,7 +39,7 @@ metadata:
       rewrite: /
       service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: Mapping
       tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       grpc: True

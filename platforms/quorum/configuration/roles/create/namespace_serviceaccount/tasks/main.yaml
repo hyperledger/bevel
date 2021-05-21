@@ -57,12 +57,7 @@
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
-    GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_REPO: "{{ gitops.git_repo }}"
-    GIT_USERNAME: "{{ gitops.username }}"
-    GIT_EMAIL: "{{ gitops.email }}"
-    GIT_PASSWORD: "{{ gitops.password }}"
-    GIT_BRANCH: "{{ gitops.branch }}"
+    GIT_DIR: "{{ playbook_dir }}/../../../"    
     GIT_RESET_PATH: "platforms/quorum/configuration"
     msg: "[ci skip] Pushing deployment files for namespace and service accounts"
 
@@ -70,6 +65,8 @@
 - name: "Checking for the {{ component_ns }}-role-tokenreview-binding"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  tags:
+    - notest
   vars:
     component_type: "ClusterRoleBinding"
     component_name: "{{ component_ns }}-role-tokenreview-binding"
@@ -79,6 +76,8 @@
 - name: "Including the check for ServiceAccount vault-reviewer in {{ component_ns }} "
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  tags:
+    - notest
   vars:
     component_type: "ServiceAccount"
     component_name: "vault-reviewer"
@@ -88,6 +87,8 @@
 - name: "Including the check for ServiceAccount vault-auth in {{ component_ns }} "
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  tags:
+    - notest
   vars:
     component_type: "ServiceAccount"
     component_name: "vault-auth"

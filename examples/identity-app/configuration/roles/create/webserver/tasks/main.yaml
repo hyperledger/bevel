@@ -26,7 +26,9 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined
 
 - name: "Set Variable"
   set_fact:
@@ -34,7 +36,10 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined and organization.cloud_provider == 'minikube'
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined
+  - organization.cloud_provider == 'minikube'
 
 - name: "Set Variable"
   set_fact:
@@ -42,24 +47,24 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined and organization.cloud_provider != 'minikube'
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined
+  - organization.cloud_provider != 'minikube'
 
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_REPO: "{{ gitops.git_repo }}"
-    GIT_USERNAME: "{{ gitops.username }}"
-    GIT_EMAIL: "{{ gitops.email }}"
-    GIT_PASSWORD: "{{ gitops.password }}"
-    GIT_BRANCH: "{{ gitops.branch }}"
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
     msg: "[ci skip] Pushing deployment files for indy webserver"
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined
 
 - name: "Wait until Indy WebServer will be up"
   include_role:
@@ -73,4 +78,6 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined  

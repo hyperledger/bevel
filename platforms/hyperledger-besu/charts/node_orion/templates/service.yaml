@@ -8,19 +8,19 @@ metadata:
     {{- if eq $.Values.proxy.provider "ambassador" }}
     getambassador.io/config: |
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TCPMapping
       name: {{ .Values.node.name }}-json-rpc
       port: {{ .Values.proxy.rpc }}
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TCPMapping
       name: {{ .Values.node.name }}-rlpx
       port: {{ .Values.proxy.p2p }}
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.p2p }}
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TCPMapping
       name: {{ .Values.node.name }}-tmport      
       host: {{ .Values.proxy.external_url }}
@@ -28,12 +28,13 @@ metadata:
       service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.orion.ports.nodeport }}
       tls: {{ .Values.node.name }}_mapping_tlscontext
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TLSContext
       name: {{ .Values.node.name }}_mapping_tlscontext
       hosts:
       - {{ .Values.proxy.external_url }}
-      secret: {{ .Values.node.name }}-ambassador-certs
+      secret: {{ .Values.node.name }}-ambassador-certs.default
+      secret_namespacing: true
     {{- end }}
   creationTimestamp: null
   labels:
