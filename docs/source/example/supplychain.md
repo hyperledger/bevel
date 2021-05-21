@@ -12,8 +12,9 @@ The application has been implemented for Hyperledger Fabric, Quorum and R3 Corda
 In the context of the supplychain, there are two types of items that can be tracked, products and containers. Below you will find a definition of the item and its properties:
 
 **Product**
-| Field                  | Description                                                                                                                                                   |
-|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+| Field  | Description                                                          |
+|----------|------------------------------------------------------------------------------------|
 | `trackingID`           | A predefined unique UUID                                                                                                                                      |
 | `type`                 | The type for the object, in this case `product`                                                                                                               |
 | `productName`          | The name of the product                                                                                                                                       |
@@ -38,7 +39,7 @@ The creator of the product will be marked as its initial custodian.  As a custod
 When handling an item, you can package it. It then stores data in an object called `ContainerState`, which is structured as such:
 
 | Field                  | Description                                                                                                                                                   |
-|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|-------------|-----------------------------------------------------------------------------------|
 | `trackingID`           | A predefined unique UUID                                                                                                                                      |
 | `type`                 | The type for the object, in this case `container`                                                                                                             |
 | `health`*              | Data from IOT sensors regarding condition of the item                                                                                                         |

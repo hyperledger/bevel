@@ -64,6 +64,7 @@ spec:
       notaryPublicIP: {{ notary_service.name }}.{{ org.external_url_suffix }}
       devMode: false
       notary:
+        serviceLegalName: {{ notary_service.serviceName }}
         validating: {{ notary_service.validating }}
       p2p:
         url: {{ notary_name }}.{{ component_ns }}
@@ -71,7 +72,7 @@ spec:
         p2pPort: {{ notary_service.p2p.ambassador | default('10002') }}
         external_url_suffix: {{ org.external_url_suffix }}
         p2pAddress: {{ component_name }}.{{ org.external_url_suffix }}:{{ notary_service.p2p.ambassador | default('10002') }}
-      jarPath: /opt/corda
+      jarPath: bin
       configPath: etc
       cordaJar:
         memorySize: 1524

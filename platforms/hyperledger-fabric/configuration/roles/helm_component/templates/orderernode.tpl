@@ -17,7 +17,27 @@ spec:
       images:
         orderer: {{ orderer_image }}
         alpineutils: {{ alpine_image }}
-
+{% if network.env.annotations is defined %}
+    annotations:  
+      service:
+{% for item in network.env.annotations.service %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+      pvc:
+{% for item in network.env.annotations.pvc %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+      deployment:
+{% for item in network.env.annotations.deployment %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+{% endif %}
     orderer:
       name: {{ orderer.name }}
       loglevel: info

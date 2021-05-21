@@ -4,11 +4,18 @@ kind: Service
 metadata:
   name: {{ $.Values.server.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+    {{- if eq $.Values.proxy.provider "ambassador" }}  
     getambassador.io/config: |
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind:  Mapping
       {{ if eq $.Values.proxy.type "orderer" }}
       name:  ca_orderer_{{ $.Values.metadata.namespace }}_mapping
@@ -24,7 +31,7 @@ metadata:
       tls: ca_{{ $.Values.metadata.namespace }}_tls
       {{ end }}
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TLSContext
       {{ if eq $.Values.proxy.type "orderer" }}
       name: ca_orderer_{{ $.Values.metadata.namespace }}_tls
@@ -64,7 +71,7 @@ metadata:
   namespace:  {{ $.Values.metadata.namespace }}
   annotations:
     kubernetes.io/ingress.class: "haproxy"
-    ingress.kubernetes.io/ssl-passthrough: "true"  
+    ingress.kubernetes.io/ssl-passthrough: "true"
 spec:
   rules:
   - host: ca.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}

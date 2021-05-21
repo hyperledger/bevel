@@ -45,7 +45,7 @@ helm install --values=${PATH_TO_VALUES}/<node name>/values-node.yaml ${PATH_TO_H
 If you need to delete the chart use:
 
 ```
-helm delete --purge <helm name> --kube-context=<kube context>
+helm uninstall <helm name> -n <namespace> --kube-context=<kube context>
 ```
 
 # Chart Functionalities

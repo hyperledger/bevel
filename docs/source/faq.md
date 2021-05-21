@@ -43,7 +43,7 @@ Unfortunately, there are no existing training for using the Blockchain Automatio
 Yes, you can add additional nodes to a running DLT/Blockchain network using the Blockchain Automation Framework (BAF). Unfortunately, BAF does not support removing nodes in a running DLT/Blockchain network, but this significant feature is in our future roadmap, and we will add this feature in a future release.
 
 ### Does the Blockchain Automation Framework support multiple versions of Fabric and Corda? What are the minimum versions for Fabric and Corda supported in the Blockchain Automation Framework?
-The Blockchain Automation Framework currently only supports version 1.4.8 & 2.2.0 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda. Corda Enterprise 4.4 is available as per latest release. Please check the [latest releases](https://github.com/hyperledger-labs/blockchain-automation-framework/releases) for version upgrades and deprecations.
+The Blockchain Automation Framework currently only supports version 1.4.8 & 2.2.2 for Fabric and version 4.1 and 4.4 for Corda as minimum versions, and will only support future higher versions for Fabric and Corda. Corda Enterprise 4.7 is available as per latest release. Please check the [latest releases](https://github.com/hyperledger-labs/blockchain-automation-framework/releases) for version upgrades and deprecations.
 
 ## 2.FAQs for Operators Guide
 
@@ -90,7 +90,7 @@ Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-aut
 Honestly speaking, we don't know. The latest version Blockchain Automation Framework has been tested on specific client versions of these tools, see below:
 (1) Kubectl: v1.14.2 for Kubernetes 1.14, v1.16.13 for Kubernetes 1.16
 (2) Helm: v2.14.1 for Kubernetes 1.14, v2.16.10 for Kubernetes 1.16
-(3) HashiCorp Vault: v1.0.1
+(3) HashiCorp Vault: v1.7.0
 (4) AWS-Authenticator: v1.10.3
 
 It is assumed that newer versions of these tools would be backward compatible, which is beyond our control. One can raise a new ticket to the Blockchain Automation Framework GitHub repository, if any major updates would break the system down.

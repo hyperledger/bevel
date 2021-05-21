@@ -10,9 +10,18 @@ network:
   env:
     type: "local"                   # tag for the environment. Important to run multiple flux on single cluster
     proxy: none                     # 'none' only minikube does not use a proxy
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15020
+    # ports: 15020,15021      # For specific ports
     retry_count: 50                 # Retry count for the checks
     external_dns: disabled          # Should be disabled for minikube
+    annotations:              # Additional annotations that can be used for some pods (ca, ca-tools, orderer and peer nodes)
+      service: 
+       - example1: example2
+      deployment: {} 
+      pvc: {}
 
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry.
@@ -106,9 +115,9 @@ network:
         chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"       # Gitops git repository URL for git push  (without https://)
         username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "github_token"                                                        # Git Server user password or token
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "github_email"                                                           # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops"               # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "/home/blockchain-automation-framework/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
      
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample is an orderer service and includes a zk-raft consensus
@@ -176,9 +185,9 @@ network:
         chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"       # Gitops git repository URL for git push  (without https://)
         username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "github_token"                                                        # Git Server user password or token
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "github_email"                                                           # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops"               # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "/home/blockchain-automation-framework/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # The participating nodes are peers
       # This organization hosts it's own CA server
@@ -259,9 +268,9 @@ network:
         chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"       # Gitops git repository URL for git push  (without https://)
         username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "github_token"                                                        # Git Server user password or token
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "github_email"                                                           # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops"               # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "/home/blockchain-automation-framework/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       services:
         ca:

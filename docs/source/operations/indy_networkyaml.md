@@ -39,9 +39,12 @@ The snapshot of the `env` section with example values is below
   env:
     type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
-    # Any additional Ambassador ports can be given below, must be comma-separated without spaces. 
     # Must be different from all steward ambassador ports specified in the rest of this network yaml
-    ambassadorPorts: 15010,15020,15030,15040 
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      # portRange:              # For a range of ports 
+      #   from: 15010 
+      #   to: 15043
+      ports: 15010,15023,15024,15033,15034,15043,15044  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened 
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: disabled           # Should be enabled if using external-dns for automatic route configuration
@@ -52,7 +55,7 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Indy |
-|ambassadorPorts|Provide additional Ambassador ports for Identity sample app, must be comma-separated without spaces. These ports must be different from all steward ambassador ports specified in the rest of this network yaml |
+|ambassadorPorts|Provide additional Ambassador ports for Identity sample app. These ports must be different from all steward ambassador ports specified in the rest of this network yaml |
 | loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks.|
 | external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. Must be `enabled` for Identity sample app.  |
@@ -203,9 +206,9 @@ For gitops fields the snapshot from the sample configuration file with the examp
         chart_source: "gitops_charts"               # Relative Path where the Helm charts are stored in Git repo
         git_repo: "gitops_repo_url"             # Gitops git repository URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
         username: "git_username"                    # Git Service user who has rights to check-in in all branches
-        password: "git_password"                    # Git Server user password
+        password: "git_password"                    # Git Server user password/ user token (Optional for ssh; Required for https)
         email: "git_email"                          # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
 ```
 
@@ -213,15 +216,16 @@ The `gitops` field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
+| git_protocol | Option for git over https or ssh. Can be `https` or `ssh` |
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
 | git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
-| password                             | Password of the user which has access rights to read/write on repository                                         |
+| password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)  |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |
+| private_key                          | Path to the private key file which has write-access to the git repo  (Optional for https; Required for ssh)    |
 
 
 The services field for each organization under `organizations` section of Indy contains list of `services` which could be trustee/steward/endorser

@@ -7,6 +7,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_nodekey_result
   ignore_errors: yes
+  tags:
+    molecule-idempotence-notest
 
 # This task creates the build directory if it does not exist
 - name: "Creating the build directory"
@@ -24,6 +26,8 @@
     geth account new --datadir build/{{ component_name }}/{{ peer.name }} --password build/{{ component_name }}/{{ peer.name }}/password
     cp build/{{ component_name }}/{{ peer.name }}/keystore/* build/{{ component_name }}/{{ peer.name }}/keystore.json
   when: vault_nodekey_result.failed == True
+  tags:
+    molecule-idempotence-notest
 
 # This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
@@ -33,3 +37,5 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_nodekey_result.failed == True
+  tags:
+    molecule-idempotence-notest

@@ -5,7 +5,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: corda
-  version: 4.4
+  version: 4.7
 
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
 
@@ -13,7 +13,11 @@ network:
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15020
+    # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -30,11 +34,11 @@ network:
   network_services:
     - service:
       type: doorman
-      uri: https://doorman.test.corda.blockchaincloudpoc.com:8443
+      uri: https://doorman.test.corda.blockchaincloudpoc.com
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
     - service:
       type: networkmap
-      uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
+      uri: https://networkmap.test.corda.blockchaincloudpoc.com
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
   
   # Allows specification of one or many organizations that will be connecting to a network.
@@ -78,9 +82,9 @@ network:
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
@@ -119,6 +123,7 @@ network:
         notary:
           name: notary
           subject: "O=Notary,OU=Notary,L=London,C=GB"
+          serviceName: "O=Notary Service,OU=Notary,L=London,C=GB"
           type: notary            
           p2p:
             port: 10002
@@ -174,9 +179,9 @@ network:
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
@@ -256,9 +261,9 @@ network:
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
@@ -337,9 +342,9 @@ network:
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
@@ -418,9 +423,9 @@ network:
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:

@@ -51,7 +51,7 @@ helm install --set-file "awscliscript=<aws-cli script name>" -f ${PATH_TO_VALUES
 If you need to delete the chart use:
 
 ```
-helm delete --purge <helm name> --kube-context=<kube context>
+helm uninstall <helm name> -n <namespace> --kube-context=<kube context>
 ```
 
 # Chart Functionalities

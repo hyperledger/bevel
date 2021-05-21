@@ -4,13 +4,18 @@
 #########################
 - hosts: ansible_provisioners
   gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
-  # ----------------------------------------------------------------------
-  # Create namespaces for organizations
+  # clean build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+  
+  # Validate input network.yaml
   - name: "Validating network.yaml"
     include_role:
       name: check/validation
-    when: network['type'] == 'indy'
 
   # Create namespaces for organizations
   - name: 'Create namespace'
@@ -24,7 +29,7 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy'
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
 
   # Create service accounts
   - name: 'Create service accounts'
@@ -40,7 +45,7 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy'
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
 
   # Create StorageClass
   - name: Create Storage Class
@@ -58,7 +63,7 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy'
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
 
   # Admin K8S auth
   - name: Admin K8S auth
@@ -75,7 +80,7 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy'
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
 
   # Generate auth job
   - name: 'Generate auth job'
@@ -92,7 +97,7 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy'
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
 
   # Get Vault AC Token via Service Account
   - name: Get Vault AC Token via Service Account
@@ -107,8 +112,7 @@
       kubernetes: "{{ organizationItem.k8s }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organizationItem
-    when: network['type'] == 'indy'
+      loop_var: organizationItem   
 
   # Generate indy crypto and insert into Vault
   - name: 'Generate indy crypto and insert into Vault'
@@ -126,22 +130,41 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy'
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
 
   # Create and deploy domain genesis
   - name: 'Create domain genesis'
     include_role:
       name: setup/domain_genesis
-    when: network['type'] == 'indy' and (network.genesis.add_org is not defined or network.genesis.add_org)
 
   # Create and deploy pool genesis
   - name: 'Create pool genesis'
     include_role:
       name: setup/pool_genesis
-    when: network['type'] == 'indy' and (network.genesis.add_org is not defined or network.genesis.add_org)
 
+  # Add new trustee from existing trustee
+  - name: "Add New Trustee Node via existing Trustee"
+    include_role:
+      name: setup/trustee
+    vars:
+      new_org_query: "organizations[?org_status=='new']"
+      neworg: "{{ network | json_query(new_org_query) | first }}"
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}"      
+      kubernetes: "{{ organizationItem.k8s }}"
+      gitops: "{{ organizationItem.gitops }}"  
+      vault: "{{ organizationItem.vault }}"
+      genesis: "{{ network.genesis }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when:
+    - network.genesis.add_org is defined and network.genesis.add_org    
+    - organizationItem.org_status is not defined or organizationItem.org_status == 'existing'
+  
   # Transfer DID and Seed Values between Vaults
-  - name: "Transfer DID and Seed Values between Vaults"
+  - name: "Transfer DID and Seed Values from trustee to steward"
     include_role:
       name: copy/vault_crypto_values
     vars:
@@ -150,11 +173,13 @@
       component_name: "{{ organization }}"
       services: "{{ organizationItem.services }}"
       vault: "{{ organizationItem.vault }}"
-      genesis: "{{ network.genesis }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy' and organizationItem.type == 'peer' and (network.genesis.add_org is not defined or network.genesis.add_org)
+    when:
+    - network.genesis.add_org is defined and network.genesis.add_org    
+    - organizationItem.org_status is not defined or organizationItem.org_status == 'new'
+    - organizationItem.type == 'peer'
 
   # Deploy all other nodes
   - name: 'Deploy nodes'
@@ -171,7 +196,9 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy' and organizationItem.type == 'peer'
+    when: 
+    - organizationItem.type == 'peer'
+    - organizationItem.org_status is not defined or organizationItem.org_status == 'new'
 
   # Create and deploy Identities
   - name: 'Create Endorser Identities'
@@ -187,10 +214,4 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-    when: network['type'] == 'indy'
-
-  # delete build directory
-  - name: Remove build directory
-    file:
-      path: "./build"
-      state: absent
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'

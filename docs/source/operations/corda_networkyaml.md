@@ -30,7 +30,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/quorum. Use `corda` for **Corda Opensource** and `corda-enterprise` for **Corda Enterprise**.
 
-`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 and 4.4 is also supported and should be used. Please note only 4.4 is supported for **Corda Enterprise**.
+`version` defines the version of platform being used, here in example the Corda version is 4.0, the corda version 4.7 is supported by latest release. Please note only 4.4 above is supported for **Corda Enterprise**.
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -41,7 +41,11 @@ The snapshot of the `env` section with example values is below
   env:
     type: "env-type"                # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -52,7 +56,7 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports `ambassador` only as `haproxy` has not been implemented for Corda |
-| ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `15010,15020`. This is only valid if `proxy: ambassador`     |
+| ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`     |
 | loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a large number if your kubernetes cluster is slow. |
 | external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
@@ -194,24 +198,25 @@ For gitops fields the snapshot from the sample configuration file with the examp
         chart_source: "platforms/r3-corda/charts"      # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/<username>/blockchain-automation-framework.git"
         username: "<username>"          # Git Service user who has rights to check-in in all branches
-        password: "<password>"          # Git Server user password/personal token
+        password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
         email: "<git_email>"              # Email to use in git config
-        private_key: "<path to gitops private key>"
+        private_key: "<path to gitops private key>" # Path to private key (Optional for https; Required for ssh)
 ```
 
 The `gitops` field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
+| git_protocol | Option for git over https or ssh. Can be `https` or `ssh` |
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
 | git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
-| password                             | Password of the user which has access rights to read/write on repository                                         |
+| password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)  |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |   
+| private_key                          | Path to the private key file which has write-access to the git repo (Optional for https; Required for ssh)       |   
 
 
 The `credentials` field under each organization contains
@@ -414,8 +419,9 @@ The snapshot of notary service with example values is below
 ```yaml
         # Currently only supporting a single notary cluster, but may want to expand in the future
         notary:
-          name: notaryskar
+          name: notary1
           subject: "O=Notary,OU=Notary,L=London,C=GB"
+          serviceName: "O=Notary Service,OU=Notary,L=London,C=GB" # available for Corda 4.7 onwards to support HA Notary
           type: notary          
           p2p:
             port: 10002
@@ -439,7 +445,8 @@ The fields under `notary` service are
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | name                     | Name of the notary service   |
-| subject                   | Certificate Subject for notary service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| subject                   | Certificate Subject for notary node. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| serviceName            | Certificate Subject for notary service applicable from Corda 4.7 onwards. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | type                      | Service type must be `notary`  |
 | validating | Only for **Corda Enterprise Notary**. Determines if Notary is validating or non-validating. Use `true` or `false` |
 | emailAddress | Only for **Corda Enterprise Notary**. Email address in the notary conf. |
@@ -477,9 +484,9 @@ The snapshot of float service with example values is below
           chart_source: "platforms/r3-corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
           git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
           username: "git_username"          # Git Service user who has rights to check-in in all branches
-          password: "git_access_token"          # Git Server user password/access token
+          password: "git_access_token"          # Git Server user password/access token (Optional for ssh; Required for https)
           email: "git_email"                # Email to use in git config
-          private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+          private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
         ports:
           p2p_port: 40000
           tunnelport: 39999

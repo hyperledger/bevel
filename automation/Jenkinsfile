@@ -30,7 +30,7 @@ pipeline {
     // Default path where vault key will be stored
     VAULT_FILE="~/.ssh/devinstance.pem"
     //Service User credentials from Jenkins used to check-in to git
-    GIT_CREDS="sownak-innersource"
+    GIT_CREDS="sownak-github"
     //Secret file with Kubernetes config
     KUBE_CREDS="aws_demo_kubeconfig"
     //Secret which contains Jenkins gitops private key
@@ -52,19 +52,20 @@ pipeline {
     //SSH config
     SSH_SERVER_ALIVE_INTERVAL=60
     SSH_SERVER_ALIVE_COUNT_MAX=20
+    PUBLIC_IP=""
   }
 
   parameters {
     choice(choices: 'no\nyes', description: 'Force rebuild? To force building [ci skip] commits', name: 'FORCE_ACTION')
     choice(choices: 'yes\nno', description: 'Reset Network at start?', name: 'RESET_ACTION')
     choice(choices: 'no\nyes', description: 'Reset Only? Use this to reset only after manual testing or failure.', name: 'RESETONLY_ACTION')
-    choice(choices: '2_2_0\n1_4_4', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
+    choice(choices: '2_2_2\n1_4_4', description: 'What is the Fabric version?', name: 'FABRIC_VERSION')
     choice(choices: 'raft\nkafka', description: 'What is the Fabric Consensus?', name: 'FABRIC_CONSENSUS')
-    choice(choices: '4_4\n4_1', description: 'What is the Corda version?', name: 'CORDA_VERSION')
+    choice(choices: '4_7\n4_4', description: 'What is the Corda version?', name: 'CORDA_VERSION')
     choice(choices: '2_5_0\n2_x_x', description: 'What is the Quorum version?', name: 'QUORUM_VERSION')
     choice(choices: 'ibft\nraft', description: 'What is the Quorum Consensus?', name: 'QUORUM_CONSENSUS')
     choice(choices: 'tessera\nconstellation', description: 'What is the Quorum TM?', name: 'QUORUM_TM')
-    choice(choices: '1_11_0\n1_9_2', description: 'What is the Indy version?', name: 'INDY_VERSION')    
+    choice(choices: '1_12_1\n1_11_0', description: 'What is the Indy version?', name: 'INDY_VERSION')    
   }
 
   stages {
@@ -112,7 +113,7 @@ pipeline {
         sh """
           chmod 400 ${LOCAL_BUILD_PATH}/gitops.pem
           chmod 400 ${VAULT_FILE}
-          curl https://ipv4.icanhazip.com/
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
           ssh-keyscan ${VAULT_BASTION} >> ~/.ssh/known_hosts
           echo "127.0.0.1 ${VAULT_SERVER}" > /etc/hosts
           echo "ServerAliveInterval ${SSH_SERVER_ALIVE_INTERVAL}" >> ~/.ssh/config
@@ -200,7 +201,7 @@ pipeline {
       steps {
         script {
           env.CONSENSUS = "ibft"
-          env.VERSION = "1_4_4"
+          env.VERSION = "1_5_5"
           env.TM = "orion"
           env.JDK_VERSION = "14"
         }
@@ -221,7 +222,7 @@ pipeline {
       }
       steps {   
         dir('build/baf-configuration') {
-          git credentialsId: "${GIT_CREDS}", url: 'https://innersource.accenture.com/scm/blockofz/baf-configuration.git'
+          git credentialsId: "${GITOPS_CREDS}", url: 'ssh://git@innersource.accenture.com/blockofz/baf-configuration.git'
           sh """#!/bin/bash
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}.yaml ../network.yaml
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.VERSION}addorg.yaml ../addorg.yaml
@@ -252,7 +253,10 @@ pipeline {
               git config --global user.name ${USERNAME}
               git config --global user.password ${PASSWORD}
               git config --global push.default matching
-              
+
+              curl https://ipv4.icanhazip.com/ > ./build/localip
+
+              sed -i -e "s*PUBLIC_IP*\$(sed 's:/:\\/:g' ./build/localip)*g" build/network.yaml                           
               sed -i -e 's*GIT_USERNAME*${USERNAME}*g' build/network.yaml
               sed -i -e 's+GIT_PASSWORD+${PASSWORD}+g' build/network.yaml
               sed -i -e 's+GIT_USEREMAIL+${USERNAME}@accenture.com+g' build/network.yaml
@@ -366,7 +370,7 @@ pipeline {
       }
       steps {              
         sh """
-          ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/application.yaml" -e "reset='true'" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/application.yaml" -e "reset='true'" -e "no_ansible_log=true" -e "ansible_python_interpreter=/usr/bin/python3"
         """            
       }
     }
@@ -392,7 +396,7 @@ pipeline {
             PATH=/opt/jdk-14/bin:\$PATH
           fi
           java -version
-          ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "no_ansible_log=true" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
     }
@@ -413,7 +417,7 @@ pipeline {
             JAVA_HOME=/opt/jdk-14
             PATH=/opt/jdk-14/bin:\$PATH
           fi
-          ansible-playbook platforms/hyperledger-fabric/configuration/remove-organization.yaml -e "@./build/removeorg.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook platforms/hyperledger-fabric/configuration/remove-organization.yaml -e "@./build/removeorg.yaml" -e "no_ansible_log=true" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
     }
@@ -425,8 +429,7 @@ pipeline {
         not {
           anyOf {
             branch 'master';
-            branch 'develop';
-            branch 'indy'
+            branch 'develop'
           }
         }
         expression { params.RESETONLY_ACTION != 'yes' }
@@ -439,7 +442,7 @@ pipeline {
             JAVA_HOME=/opt/jdk-14
             PATH=/opt/jdk-14/bin:\$PATH
           fi
-          ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@./build/addorg.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@./build/addorg.yaml" -e "no_ansible_log=true" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
     }
@@ -461,7 +464,7 @@ pipeline {
       }
       steps {        
         sh """
-          ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@./build/application.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@./build/application.yaml" -e "no_ansible_log=true" -e "ansible_python_interpreter=/usr/bin/python3"
         """        
       }
     }
@@ -473,7 +476,7 @@ pipeline {
       }
       steps {        
         sh """
-          ansible-playbook examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/application.yaml" -e "ansible_python_interpreter=/usr/bin/python3"
+          ansible-playbook examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/application.yaml" -e "no_ansible_log=true" -e "ansible_python_interpreter=/usr/bin/python3"
           helm upgrade --install alice -f ./build/baf-configuration/demo/indy/alice.yaml examples/identity-app/charts/alice
         """        
       }
@@ -572,7 +575,7 @@ pipeline {
           if ( didTimeout || userInput ) {           
             echo 'Resetting network'
             sh """
-              ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/application.yaml" -e "reset='true'" -e "ansible_python_interpreter=/usr/bin/python3"
+              ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/application.yaml" -e "reset='true'" -e "no_ansible_log=true" -e "ansible_python_interpreter=/usr/bin/python3"
             """   
           } else {
             echo "Network deployment successful and is live."

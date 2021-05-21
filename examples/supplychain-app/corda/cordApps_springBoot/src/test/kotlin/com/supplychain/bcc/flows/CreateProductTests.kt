@@ -8,7 +8,6 @@ import kotlin.test.assertEquals
 import kotlin.test.fail
 
 
-
 class CreateProductTests : SupplyChainTests() {
 
     @Test

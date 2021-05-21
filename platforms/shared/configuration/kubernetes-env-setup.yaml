@@ -7,6 +7,7 @@
 #######################################
 - hosts: ansible_provisioners
   gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
   - include_role:
       name:  setup/flux
@@ -14,11 +15,11 @@
       kubeconfig_path: "{{ item.k8s.config_file }}"
       kubecontext: "{{ item.k8s.context }}"
       git_username: "{{ item.gitops.username }}"
-      git_password: "{{ item.gitops.password }}"
       git_repo: "{{ item.gitops.git_repo }}"
+      git_password: "{{ item.gitops.password }}"
       git_branch: "{{ item.gitops.branch }}"
       git_path: "{{ item.gitops.release_dir }}"
-      git_host: "{{ item.gitops.git_repo.split('/')[0] | lower }}" # extract the hostname from the git_url
+      git_host: "{{ item.gitops.git_repo.split('/')[0] | lower }}" # extract the hostname from the git_repo
       git_protocol: "{{ item.gitops.git_protocol | default('https') }}"
       git_url: "{{ item.gitops.git_url }}"
       git_key: "{{ item.gitops.private_key | default() }}"

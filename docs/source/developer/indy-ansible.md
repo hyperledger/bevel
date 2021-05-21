@@ -39,16 +39,6 @@ Roles in ansible are a combination of logically inter-related tasks.
 To deploy the indy network, run the deploy-network.yaml in `blockchain-automation-framework\platforms\hyperledger-indy\configuration\`
 The roles included in the file are as follows.
 
-## **check/auth_job**
-This role checks all auth jobs completing.
-
-* Check if Indy  auth job pod for trustee is completed
-* Check if Indy  auth job pod for stewards is completed
-* Check if Indy  auth job pod for endorser is completed
-* Check if Indy  auth job pod for baf-ac is completed
-
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/auth_job) for detailed information.
-
 ## **check/crypto**
 This role is checking if all crypto jobs are completed and all crypto data are in Vault.
 
@@ -60,13 +50,6 @@ This role is checking if all crypto jobs are completed and all crypto data are i
 * Check endorser in vault
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/crypto) for detailed information.
-
-## **check/endorser**
-This role check transaction job is done
-
-* Check if endorser job pod is completed for organization {{ component_name }}
-
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/endorser) for detailed information.
 
 ## **check/k8_component**
 This role is used for waiting to kubernetes component.
@@ -94,6 +77,7 @@ This role checks for validation of network.yaml
 * Print error and end playbook if total trustee count limit fails
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/check/validation) for detailed information.
+
 ## **clean/flux**
 The role deletes the Helm release of Flux and git authentication secret from Kubernetes.
 
@@ -135,6 +119,11 @@ This role get vault root token for organization and remove Indy crypto from vaul
 * Remove Kubernetes Authentication Methods of {{ organization }} of endorsers
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/clean/vault) for detailed information.
+
+## **copy/vault_crypto_values**
+This role copies the crypto from trustee to stewards for the same organization
+
+* Transfer DID and Seed Values between Vaults
 
 ## **create/helm_component/auth_job**
 #### This role create the job value file for creating Vault auth methods
@@ -279,11 +268,6 @@ This role creates value files for storage class
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/create/storageclass) for detailed information.
 
-## **copy/vault_crypto_values**
-This role generates transfers the crypto across secrets engine in the vault
-
-* Transfer DID and Seed Values between Vaults
-
 ## **setup/auth_job**
 This role generates Helm releases of kubernetes jobs, which create Auth Methods into HashiCorp Vault for getting Vault token by Kubernetes Service Accounts
 
@@ -314,7 +298,6 @@ This role creates the values files for organizations domain genesis and pushes t
 
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/domain_genesis) for detailed information.
-
 
 ## **setup/endorsers**
 This role creates the deployment files for endorsers and pushes them to repository
@@ -350,6 +333,21 @@ This role creates the values files for organizations domain genesis and pushes t
 * Wait until pool genesis configmap are created
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis) for detailed information.
+
+## **setup/trustee**
+This role creates the deployment files for adding new trustee to existing network
+
+* Wait for namespace creation
+* Create image pull secret for identities
+* Create Deployment files for Identities
+  * Select Admin Identity for Organisation {{ component_name }}
+  * Inserting file into Variable
+  * Calling Helm Release Development Role...
+  * Delete file
+  * Push the created deployment files to repository
+* Wait until identities are creating
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/configuration/roles/setup/trustee) for detailed information.
 
 ## **setup/vault_kubernetes**
 This role setups communication between the vault and kubernetes cluster and install neccessary configurations.
