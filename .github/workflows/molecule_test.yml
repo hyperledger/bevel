@@ -7,11 +7,21 @@ name: Molecule Test Workflow
 on:
   pull_request:
     branches: [ develop ]
+    types: [opened, edited, synchronize, reopened]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - uses: deepakputhraya/action-pr-title@master
+      with:
+        regex: '\[.*\].*' # Regex the title should match.
+        allowed_prefixes: '[shared],[docs],[indy],[fabric],[corda],[besu],[quorum],[corda-ent]' # title should start with the given prefix
+        disallowed_prefixes: 'feat/,hotfix' # title should not start with the given prefix
+        prefix_case_sensitive: true # title prefix are case insensitive
+        min_length: 6 # Min length of the title
+        max_length: 100 # Max length of the title
+        github_token: ${{ github.token }} # Default: ${{ github.token }}
     - uses: actions/checkout@v2
     - name: Set up Python 3.6
       uses: actions/setup-python@v2
