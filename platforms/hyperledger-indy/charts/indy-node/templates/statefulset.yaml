@@ -34,8 +34,6 @@ spec:
            value: {{ $.Values.vault.nodeId }}
          - name: ORGANIZATION_NAME
            value: "{{ $.Values.organization.name }}"
-         - name: DOMAIN_GENESIS
-           value: "{{ $.Values.genesis.domain }}"
          - name: ADD_ORG
            value: "{{ $.Values.genesis.add_org }}"
         command:
@@ -64,7 +62,7 @@ spec:
 
           if $ADD_ORG ; 
           then
-            mkdir -p ${KEY_PATH}/bls_keys ${KEY_PATH}/private_keys ${KEY_PATH}/public_keys ${KEY_PATH}/sig_keys ${KEY_PATH}/verif_keys ${KEY_PATH}C/private_keys ${KEY_PATH}C/public_keys ${KEY_PATH}C/sig_keys ${KEY_PATH}C/verif_keys ${KEY_PATH}/identity ${KEY_PATH}/identity/private ${KEY_PATH}/identity/public ${KEY_PATH}/admin ${KEY_PATH}/admin/private ${KEY_PATH}/admin/public ${KEY_PATH}/trustee ${KEY_PATH}/trustee/private ${KEY_PATH}/trustee/public ${KEY_PATH}/genesis;
+            mkdir -p ${KEY_PATH}/bls_keys ${KEY_PATH}/private_keys ${KEY_PATH}/public_keys ${KEY_PATH}/sig_keys ${KEY_PATH}/verif_keys ${KEY_PATH}C/private_keys ${KEY_PATH}C/public_keys ${KEY_PATH}C/sig_keys ${KEY_PATH}C/verif_keys ${KEY_PATH}/identity ${KEY_PATH}/identity/private ${KEY_PATH}/identity/public ${KEY_PATH}/trustee ${KEY_PATH}/trustee/private ${KEY_PATH}/trustee/public ${KEY_PATH}/genesis;
           else
             mkdir -p ${KEY_PATH}/bls_keys ${KEY_PATH}/private_keys ${KEY_PATH}/public_keys ${KEY_PATH}/sig_keys ${KEY_PATH}/verif_keys ${KEY_PATH}C/private_keys ${KEY_PATH}C/public_keys ${KEY_PATH}C/sig_keys ${KEY_PATH}C/verif_keys; 
           fi;
@@ -155,15 +153,6 @@ spec:
             echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.did" > ${KEY_PATH}/trustee/public/did;
             chmod 644 ${KEY_PATH}/trustee/public/did;
 
-            LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"${ORGANIZATION_NAME}"/stewards/${NODE_ID}/admin/private | jq -r 'if .errors then . else . end');
-            validateVaultResponse "secret (${NODE_ID}/admin/private)" "${LOOKUP_SECRET_RESPONSE}";
-            echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.seed" > ${KEY_PATH}/admin/private/seed;
-            chmod 644 ${KEY_PATH}/admin/private/seed;
-
-            LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"${ORGANIZATION_NAME}"/stewards/${NODE_ID}/admin/public | jq -r 'if .errors then . else . end');
-            validateVaultResponse "secret (${NODE_ID}/admin/public)" "${LOOKUP_SECRET_RESPONSE}";
-            echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.did" > ${KEY_PATH}/admin/public/did;
-            chmod 644 ${KEY_PATH}/admin/public/did;
           fi;
         volumeMounts:
         - name: ebs-indy-node-keys
@@ -177,23 +166,16 @@ spec:
         args:
         - |-
           apt-get install curl -y
-          mkdir -p /var/lib/indy/genesis/${INDY_NETWORK_NAME};
-
-          echo ${POOL_GENESIS} | base64 -d | sed -e 's/[ \t]*//' >> /var/lib/indy/genesis/${INDY_NETWORK_NAME}/pool_transactions_genesis;
 
           KEY_PATH=/var/lib/indy/keys/${INDY_NETWORK_NAME}/keys/${INDY_NODE_NAME};
-
-          ADMIN_DID=$(cat ${KEY_PATH}/admin/public/did);
-          ADMIN_SEED=$(cat ${KEY_PATH}/admin/private/seed);
+                    
           TRUSTEE_DID=$(cat ${KEY_PATH}/trustee/public/did);
           TRUSTEE_SEED=$(cat ${KEY_PATH}/trustee/private/seed);
           TRUSTEE_VERKEY=$(cat ${KEY_PATH}/verif_keys/trustee-verification-key)
-          TRUSTEE_ROLE=TRUSTEE;
+          
           STEWARD_DID=$(cat ${KEY_PATH}/identity/public/did);
           STEWARD_SEED=$(cat ${KEY_PATH}/identity/private/seed);
           STEWARD_VERKEY=$(cat ${KEY_PATH}/verif_keys/verification-key)
-
-          ./home/indy-ledger.sh $ADMIN_DID $ADMIN_SEED $TRUSTEE_DID $TRUSTEE_ROLE $TRUSTEE_VERKEY $POOL_GENESIS_PATH;
 
           echo "{
           \"version\": 1,
@@ -224,11 +206,10 @@ spec:
           exit" > init_node_txn;
 
           indy-cli init_node_txn > init_node_txn.log;
+          cat init_node_txn.log;
         env:
           - name: POOL_GENESIS_PATH
             value: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
-          - name: POOL_GENESIS
-            value: "{{ $.Values.genesis.pool }}"
           - name: INDY_NETWORK_NAME
             value: "{{ $.Values.network.name }}"
           - name: INDY_NODE_NAME
@@ -244,6 +225,12 @@ spec:
         volumeMounts:
           - name: ebs-indy-node-keys
             mountPath: /var/lib/indy/keys
+          - name: {{ $.Values.organization.name }}-domain-transactions-genesis
+            mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/domain_transactions_genesis
+            subPath: domain_transactions_genesis
+          - name: {{ $.Values.organization.name }}-pool-transactions-genesis
+            mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
+            subPath: pool_transactions_genesis
 {{- end }}            
       containers:
         - name: "{{ $.Values.image.indyNode.name }}"
@@ -252,9 +239,6 @@ spec:
           ports:
             - containerPort: {{ $.Values.node.port }}
             - containerPort: {{ $.Values.client.port }}
-{{- if eq $.Values.genesis.add_org true }}
-          command: ["sh", "-c"]
-{{- end }}          
           env:
             - name: INDY_NODE_NAME
               value: "{{ $.Values.node.name }}"
@@ -268,25 +252,6 @@ spec:
               value: "{{ $.Values.client.port }}"
             - name: INDY_NETWORK_NAME
               value: "{{ $.Values.network.name }}"
-            - name: POOL_GENESIS
-              value: "{{ $.Values.genesis.pool }}"
-            - name: DOMAIN_GENESIS
-              value: "{{ $.Values.genesis.domain }}"
-{{- if eq $.Values.genesis.add_org true }}              
-          args:
-          - |-
-            apt-get update;             
-
-            mkdir -p /var/lib/indy/genesis/${INDY_NETWORK_NAME};
-
-            KEY_PATH=/var/lib/indy/keys/${INDY_NETWORK_NAME}/keys/${INDY_NODE_NAME};
-
-            echo ${POOL_GENESIS} | base64 -d | sed -e 's/[ \t]*//' > /var/lib/indy/genesis/${INDY_NETWORK_NAME}/pool_transactions_genesis;
-            echo ${DOMAIN_GENESIS} | base64 -d | sed -e 's/[ \t]*//' > /var/lib/indy/genesis/${INDY_NETWORK_NAME}/domain_transactions_genesis;
-
-            chmod +x /var/lib/indy/start-indy-node.sh;
-            /var/lib/indy/start-indy-node.sh;
-{{- end }}            
           volumeMounts:
             - name: ebs-indy-node-data
               mountPath: /var/lib/indy/data
@@ -295,28 +260,24 @@ spec:
             - name: {{ $.Values.metadata.name }}-config
               mountPath: /etc/indy/indy_config.py
               subPath: indy_config.py
-{{- if eq $.Values.genesis.add_org false }}              
             - name: {{ $.Values.organization.name }}-domain-transactions-genesis
               mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/domain_transactions_genesis
               subPath: domain_transactions_genesis
             - name: {{ $.Values.organization.name }}-pool-transactions-genesis
               mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
               subPath: pool_transactions_genesis
-{{- end }}              
       imagePullSecrets:
         - name: "{{ $.Values.image.pullSecret }}"
       volumes:
         - name: {{ $.Values.metadata.name }}-config
           configMap:
             name: {{ $.Values.metadata.name }}-config
-{{- if eq $.Values.genesis.add_org false }}            
         - name:  {{ $.Values.organization.name }}-domain-transactions-genesis
           configMap:
             name: {{ $.Values.organization.name }}-dtg
         - name: {{ $.Values.organization.name }}-pool-transactions-genesis
           configMap:
             name: {{ $.Values.organization.name }}-ptg
-{{- end }}            
   volumeClaimTemplates:
     - metadata:
         name: ebs-indy-node-data

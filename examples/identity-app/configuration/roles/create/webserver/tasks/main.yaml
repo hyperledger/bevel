@@ -26,7 +26,9 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined
 
 - name: "Set Variable"
   set_fact:
@@ -34,7 +36,10 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined and organization.cloud_provider == 'minikube'
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined
+  - organization.cloud_provider == 'minikube'
 
 - name: "Set Variable"
   set_fact:
@@ -42,7 +47,10 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined and organization.cloud_provider != 'minikube'
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined
+  - organization.cloud_provider != 'minikube'
 
 - name: "Push the created deployment files to repository"
   include_role:
@@ -54,7 +62,9 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined
 
 - name: "Wait until Indy WebServer will be up"
   include_role:
@@ -68,4 +78,6 @@
   loop: "{{ services.trustees }}"
   loop_control:
     loop_var: trustee
-  when: services.trustees is defined
+  when: 
+  - services.trustees is defined
+  - trustee.server is defined  

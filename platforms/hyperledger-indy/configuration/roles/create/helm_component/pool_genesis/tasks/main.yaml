@@ -57,9 +57,32 @@
     {% endif %}
     echo -e ${pool_genesis}
   register: pool_genesis
+  when: network.genesis.state == 'absent'
+
+# Create the pool genesis directories if it is not present 
+- name: Create the pool genesis directory if it does not exist
+  file:
+    path: "{{ network.genesis.pool | dirname }}"
+    state: directory
+  when: network.genesis.state == 'absent'
+
+# Save the pool genesis in file
+- name: "Save pool_genesis in path provided"
+  local_action: copy content="{{ pool_genesis.stdout }}" dest="{{ network.genesis.pool }}"  
+  when: network.genesis.state == 'absent'
+
+- name: Set pool_genesis_values when state is absent
+  set_fact:
+    pool_genesis_values: "{{ pool_genesis.stdout }}"
+  when: network.genesis.state == 'absent'
+
+- name: Set pool_genesis_values when state is present
+  set_fact:
+    pool_genesis_values: "{{ lookup('file', '{{ network.genesis.pool }}') }}"
+  when: network.genesis.state == 'present'
 
 # ################################################################################################
-# This task creates values file for domain genesis config map.
+# This task creates values file for pool genesis config map.
 - name: "create value file for {{ component_name }} {{ component_type }}"
   template:
     src: "{{ dlt_templates[component_type] }}"
@@ -70,9 +93,9 @@
     gitops: "{{ organizationItem.gitops }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
     component_name: "{{ organizationItem.name }}-ptg"
-    pool_genesis_values: "{{ pool_genesis.stdout }}"
     values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
     chart: "indy-pool-genesis"
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: organizationItem
+  when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'

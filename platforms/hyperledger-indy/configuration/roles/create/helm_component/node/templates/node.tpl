@@ -20,8 +20,6 @@ spec:
     organization:
       name: {{ organizationItem.name }}
     genesis:
-      pool: {{ genesis.pool | indent(width=8) | b64encode }}
-      domain: {{ genesis.domain | indent(width=8) | b64encode }}
       add_org: {{ genesis.add_org | default(false) }}
     image:
       pullSecret: regcred

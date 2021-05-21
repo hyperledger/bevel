@@ -49,6 +49,7 @@ Indy operations
     :maxdepth: 1
 
     operations/indy_networkyaml
+    operations/adding_new_org_indy
     
 Quorum operations
 -------------------------  
