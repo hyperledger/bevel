@@ -4,8 +4,15 @@ kind: Service
 metadata:
   name: {{ $.Values.server.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+    {{- if eq $.Values.proxy.provider "ambassador" }}  
     getambassador.io/config: |
       ---
       apiVersion: ambassador/v2
@@ -64,7 +71,7 @@ metadata:
   namespace:  {{ $.Values.metadata.namespace }}
   annotations:
     kubernetes.io/ingress.class: "haproxy"
-    ingress.kubernetes.io/ssl-passthrough: "true"  
+    ingress.kubernetes.io/ssl-passthrough: "true"
 spec:
   rules:
   - host: ca.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
