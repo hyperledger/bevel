@@ -13,6 +13,7 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
+  changed_when: false
 
 - name: "Delete service creds"
   include_tasks: nested_main.yaml
@@ -35,8 +36,8 @@
     loop_var: node
   when: component_type == 'node'
   ignore_errors: yes
+  changed_when: false
 
- 
 ############################################################################################
 # This task deletes vault auth
 - name: Delete vault-auth path
@@ -49,6 +50,8 @@
   loop_control:
     loop_var: node
   when: component_type == 'node'
+  tags:
+    molecule-idempotence-notest
 
 ############################################################################################
 # This task deletes crypto materials from vault
@@ -62,6 +65,8 @@
   loop_control:
     loop_var: node
   when: component_type == 'node'
+  tags:
+    molecule-idempotence-notest
 
 # This task deletes the policies
 - name: Delete policy
@@ -74,3 +79,5 @@
   loop_control:
     loop_var: node
   when: component_type == 'node'
+  tags:
+    molecule-idempotence-notest
