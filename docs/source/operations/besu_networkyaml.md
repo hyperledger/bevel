@@ -28,7 +28,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum/besu, here in the example its **besu**.
 
-`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.5.5**.
+`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.5.5** and **21.1.1**.
 
 
 `env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
@@ -95,6 +95,7 @@ The snapshot of the `config` section with example values is below
     # This is the version of "orion" docker image that will be deployed
     # Supported versions #
     # orion: 1.6.0 (for besu 1.5.5)
+    # orion: 21.1.0 (for besu 21.1.1)
     tm_version: "1.6.0"               # This is the version of "orion" docker image that will be deployed
     # TLS can be True or False for the orion tm
     tm_tls: True
