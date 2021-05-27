@@ -418,27 +418,27 @@ spec:
             }' >> {{ .Values.configPath }}/pki.conf
 
             #replacement of the variables in the pki conf file
-            export ROOTCA_TRUSTSTORE=$(cat /opt/corda/credentials/truststore/rootcats)
+            export ROOTCA_TRUSTSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/truststore/rootcats)
             sed -i -e "s*ROOTCA_TRUSTSTORE*${ROOTCA_TRUSTSTORE}*g" {{ .Values.configPath }}/pki.conf
-            export SSL_TRUSTSTORE=$(cat /opt/corda/credentials/truststore/sslts)
+            export SSL_TRUSTSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/truststore/sslts)
             sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g" {{ .Values.configPath }}/pki.conf
-            export IDMAN_KEYSTORE=$(cat /opt/corda/credentials/keystore/idmanks)
+            export IDMAN_KEYSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/keystore/idmanks)
             sed -i -e "s*IDMAN_KEYSTORE*${IDMAN_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
-            export NETWORKMAP_KEYSTORE=$(cat /opt/corda/credentials/keystore/networkmapks)
+            export NETWORKMAP_KEYSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/keystore/networkmapks)
             sed -i -e "s*NETWORKMAP_KEYSTORE*${NETWORKMAP_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
-            export SUBORDINATECA_KEYSTORE=$(cat /opt/corda/credentials/keystore/subordinatecaks)
+            export SUBORDINATECA_KEYSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/keystore/subordinatecaks)
             sed -i -e "s*SUBORDINATECA_KEYSTORE*${SUBORDINATECA_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
-            export ROOTCA_KEYSTORE=$(cat /opt/corda/credentials/keystore/rootcaks)
+            export ROOTCA_KEYSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/keystore/rootcaks)
             sed -i -e "s*ROOTCA_KEYSTORE*${ROOTCA_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
-            export TLSCRLSIGNER_KEYSTORE=$(cat /opt/corda/credentials/keystore/tlscrlsignerks)
+            export TLSCRLSIGNER_KEYSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/keystore/tlscrlsignerks)
             sed -i -e "s*TLSCRLSIGNER_KEYSTORE*${TLSCRLSIGNER_KEYSTORE}*g" {{ .Values.configPath }}/pki.conf
-            export IDMAN_SSL=$(cat /opt/corda/credentials/ssl/idmanssl)
+            export IDMAN_SSL=$(cat {{ .Values.volume.baseDir }}/credentials/ssl/idmanssl)
             sed -i -e "s*IDMAN_SSL*${IDMAN_SSL}*g" {{ .Values.configPath }}/pki.conf
-            export NETWORKMAP_SSL=$(cat /opt/corda/credentials/ssl/networkmapssl)
+            export NETWORKMAP_SSL=$(cat {{ .Values.volume.baseDir }}/credentials/ssl/networkmapssl)
             sed -i -e "s*NETWORKMAP_SSL*${NETWORKMAP_SSL}*g" {{ .Values.configPath }}/pki.conf
-            export SIGNER_SSL=$(cat /opt/corda/credentials/ssl/signerssl)
+            export SIGNER_SSL=$(cat {{ .Values.volume.baseDir }}/credentials/ssl/signerssl)
             sed -i -e "s*SIGNER_SSL*${SIGNER_SSL}*g" {{ .Values.configPath }}/pki.conf
-            export ROOT_SSL=$(cat /opt/corda/credentials/ssl/rootssl)
+            export ROOT_SSL=$(cat {{ .Values.volume.baseDir }}/credentials/ssl/rootssl)
             sed -i -e "s*ROOT_SSL*${ROOT_SSL}*g" {{ .Values.configPath }}/pki.conf
 
 
@@ -451,11 +451,11 @@ spec:
           - name: certcheck
             mountPath: /certcheck
           - name: credentials
-            mountPath: /opt/corda/credentials
+            mountPath: {{ .Values.volume.baseDir }}/credentials
           - name: pkitool-certs-keys
-            mountPath: /opt/corda/DATA
+            mountPath: {{ .Values.volume.baseDir }}/DATA
           - name: pkitool-etc
-            mountPath: /opt/corda/etc
+            mountPath: {{ .Values.volume.baseDir }}/etc
           resources:
             requests:
               memory: {{ .Values.cordaJarMx }}M
@@ -609,7 +609,7 @@ spec:
           - name: certcheck
             mountPath: /certcheck
           - name: pkitool-certs-keys
-            mountPath: /opt/corda/DATA
+            mountPath: {{ .Values.volume.baseDir }}/DATA
             readOnly: false
         imagePullSecrets:
           - name: {{ .Values.image.imagePullSecret }}

@@ -51,7 +51,7 @@ spec:
       runMigration: "true"
     config:
       volume:
-        baseDir: /opt/corda
+        baseDir: /opt/cenm
       jarPath: bin
       configPath: etc
       cordaJar:
