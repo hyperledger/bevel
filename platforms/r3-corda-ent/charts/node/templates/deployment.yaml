@@ -72,7 +72,7 @@ spec:
             echo "Getting secrets from Vault Server"
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-            
+
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
             echo "logged into vault"
             COUNTER=1
@@ -86,7 +86,7 @@ spec:
                 else
                   validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                   break
-                fi 
+                fi
                 COUNTER=`expr "$COUNTER" + 1`
             done
 
@@ -348,7 +348,7 @@ spec:
           {{- if eq .Values.dataSourceProperties.dataSource.dataSourceClassName "oracle.jdbc.pool.OracleDataSource" }}
               schema = xe
           {{- end}}
-          }' >> ${BASE_DIR}/node.conf
+          }' > ${BASE_DIR}/node.conf
 
           export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/truststorepass)
           sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/node.conf
@@ -357,10 +357,10 @@ spec:
 
           # to clean network-parameters on every restart
           rm -rf ${BASE_DIR}/network-parameters
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/node.crt -storepass changeit -alias {{ .Values.nodeName }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-          
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/networkmap.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.networkMapDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/idman.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.idmanDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/node.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.nodeName }} -keystore ${BASE_DIR}/certificates/truststore.jks
+
           /bin/sh
           
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
@@ -370,7 +370,12 @@ spec:
               echo "Starting Node node ..."
               echo
               # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
-              java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/node.conf --base-directory ${BASE_DIR}
+              java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks \
+                   -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks \
+                   -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} \
+                   -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
+                   -f ${BASE_DIR}/node.conf --base-directory ${BASE_DIR} \
+                   --log-to-console
               EXIT_CODE=${?}
           else
               echo "Missing node jar file in {{ .Values.nodeConf.jarPath }} folder:"
@@ -388,6 +393,7 @@ spec:
               echo
               sleep ${HOW_LONG}
           fi
+          sleep 1200
           echo "DONE"
         volumeMounts:
         - name: node-volume

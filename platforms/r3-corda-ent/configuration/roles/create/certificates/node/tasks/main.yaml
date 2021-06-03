@@ -79,7 +79,7 @@
 - name: Check if Ambassador creds exists
   k8s_info:
     kind: Secret
-    namespace: default
+    namespace: "{{ namespace }}"
     name: "{{ node_name }}-ambassador-certs"
     kubeconfig: "{{ k8s.config_file }}"
     context: "{{ k8s.context }}"
@@ -88,5 +88,5 @@
 # Create the ambassador secret if it doesn't exist
 - name: Create the Ambassador credentials
   shell: |
-    KUBECONFIG={{ k8s.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert="./build/ambassador/{{ node_name }}/ambassador.pem" --key="./build/ambassador/{{ node_name }}/ambassador.key" -n default
+    KUBECONFIG={{ k8s.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert="./build/ambassador/{{ node_name }}/ambassador.pem" --key="./build/ambassador/{{ node_name }}/ambassador.key" -n {{ namespace }}
   when: get_ambassador_secret.resources|length == 0

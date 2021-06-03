@@ -250,8 +250,10 @@ spec:
             export KEYSTORE_PASSWORD=$(cat DATA/credentials/keystorepass)
             sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/node.conf
   
-            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
+            SSL_TRUSTSTORE_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13)
+            CORDA_SSL_TRUSTSTORE=DATA/trust-stores/corda-ssl-custom-trust-store.jks
+            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass $SSL_TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.networkMapDomain }} -keystore $CORDA_SSL_TRUSTSTORE
+            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass $SSL_TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.idmanDomain }} -keystore $CORDA_SSL_TRUSTSTORE
             
             /bin/sh
                       
@@ -280,6 +282,9 @@ spec:
             # Check for Idman and networkmap service links are up
             server=$(echo {{ .Values.networkServices.doormanURL }} | sed 's/.*\/\/\(.*\):\(.*\)/\1/' )
             port=$(echo {{ .Values.networkServices.doormanURL }} | sed 's/.*\/\/\(.*\):\(.*\)/\2/' )
+            #handle when no port is provided
+            [[ ${server} = ${port} ]] && port=443
+            server=$(echo $server|sed 's/.*\/\/\(.*\)/\1/')
             printf "IdMan server:%s" "${server}"
             printf "  IdMan port:%s" "${port}"
             timeout 10m bash -c 'until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do sleep 1; done' ${server} ${port}
@@ -292,7 +297,8 @@ spec:
                     echo "Node: running initial registration ..."
                     echo
                     pwd
-                    java -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
+                    java -Djavax.net.ssl.trustStore=${CORDA_SSL_TRUSTSTORE} \
+                      -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
                       initial-registration \
                     --config-file={{ .Values.nodeConf.configPath }}/node.conf \
                     --log-to-console \
