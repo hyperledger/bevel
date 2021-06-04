@@ -13,19 +13,19 @@ BAF current roadmap
     section Application
     Besu Ref App: b4, 20-10-15, 120d
 
-.. |pin| image:: _static/pin.png
+.. |pin| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4cc.png?v8
     :width: 15pt
     :height: 15pt
-.. |tick| image:: _static/tick.png
+.. |tick| image:: https://github.githubassets.com/images/icons/emoji/unicode/2714.png?v8
     :width: 15pt
     :height: 15pt
-.. |run| image:: _static/run.png
+.. |run| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f3c3-2642.png?v8
     :width: 15pt
     :height: 15pt
-.. |muscle| image:: _static/muscle.png
+.. |muscle| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4aa.png?v8
     :width: 15pt
     :height: 15pt
-.. |hand| image:: _static/hand.png
+.. |hand| image:: https://github.githubassets.com/images/icons/emoji/unicode/270b.png?v8
     :width: 15pt
     :height: 15pt
 
