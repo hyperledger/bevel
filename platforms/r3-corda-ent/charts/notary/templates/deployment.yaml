@@ -162,16 +162,13 @@ spec:
               TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
               echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks
 
-              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
-              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
-              echo "${IDMAN_CERT}" | base64 -d > ${OUTPUT_PATH}/idman.crt
+              # get ca ssl-truststore.jks from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+              echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/corda-ssl-trust-store.jks 
 
-              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
-              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
-              echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/networkmap.crt             
-              echo "Done fetching all certificates from vault"
+               echo "Done fetching all certificates from vault"
 
               # Fetching keystore credentials from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
@@ -183,7 +180,13 @@ spec:
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
               KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["trustStorePassword"]')
-              echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/tspass
+              echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/tspass    
+
+              # Fetching ssl truststore credentials from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+              echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/sslpass 
               echo "Fetched credentials from vault"
         volumeMounts:
         - name: notary-certificates
@@ -325,9 +328,10 @@ spec:
 
           sshd {
               port={{ .Values.service.sshdPort }}
-          }' >> ${BASE_DIR}/etc/notary.conf
+          }' > ${BASE_DIR}/etc/notary.conf
 
           export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/tspass)
+          export SSLTRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/sslpass)
           sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
           export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
           sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
@@ -337,9 +341,8 @@ spec:
           rm -rf ${BASE_DIR}/network-parameters
 
           # add idman and networkmap certificates to java keystore
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-
+          keytool -importkeystore -srckeystore ${BASE_DIR}/certificates/corda-ssl-trust-store.jks -srcstorepass $SSLTRUSTSTORE_PASSWORD -destkeystore ${BASE_DIR}/certificates/truststore.jks -deststorepass $TRUSTSTORE_PASSWORD -srcalias cordasslrootca -destalias cordasslrootca
+          
           /bin/sh
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
           if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
@@ -348,7 +351,7 @@ spec:
               echo "CENM: starting Notary node ..."
               echo
               # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
-              java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/etc/notary.conf --base-directory=${BASE_DIR} 
+              java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks -Djavax.net.ssl.trustStorePassword=$TRUSTSTORE_PASSWORD -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/etc/notary.conf --base-directory=${BASE_DIR} -v --logging-level=DEBUG
               EXIT_CODE=${?}
           else
               echo "Missing notary jar file in {{ .Values.nodeConf.jarPath }} folder:"

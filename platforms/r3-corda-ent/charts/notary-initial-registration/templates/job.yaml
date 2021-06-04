@@ -87,6 +87,9 @@ spec:
                       validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                       network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
                       echo "${network_root_truststore}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
+                      # ssl trust store
+                      corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+                      echo "${corda_ssl_trust_store}" | base64 -d > ${MOUNT_PATH}/trust-stores/corda-ssl-trust-store.jks
                       echo "Successfully got network truststore certifcates"
                       break
                     fi 
@@ -220,18 +223,17 @@ spec:
                         ALL
                     ]
                 }
-            ]' >> etc/notary.conf
+            ]' > etc/notary.conf
             export TRUSTSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/truststore/ts)
             sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" etc/notary.conf
             export KEYSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/keystore/ks)
             sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/notary.conf
             rm -r ${BASE_DIR}/certificates/done.txt
-            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-            yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-            
-            
-            
+            #yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
+            #yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
+
             /bin/sh
+            CORDA_SSL_TRUSTSTORE={{ $.Values.nodeConf.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks
             NETWORK_ROOT_TRUSTSTORE={{ $.Values.nodeConf.volume.baseDir }}/DATA/trust-stores/network-root-truststore.jks
             NETWORK_ROOT_TRUSTSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/truststore/rootcats)
 
@@ -243,8 +245,8 @@ spec:
                     echo "Notary: running initial registration ..."
                     echo
                     pwd
-                    java -Dcapsule.jvm.args='-Xmx{{ .Values.nodeConf.cordaJar.memorySize }}{{ .Values.nodeConf.cordaJar.unit }}' -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
-                      initial-registration \
+                    java -Dcapsule.jvm.args='-Xmx{{ .Values.nodeConf.cordaJar.memorySize }}{{ .Values.nodeConf.cordaJar.unit }}' -Djavax.net.ssl.trustStore=${CORDA_SSL_TRUSTSTORE} \
+                    -jar {{ .Values.nodeConf.jarPath }}/corda.jar initial-registration \
                     --config-file={{ .Values.nodeConf.configPath }}/notary.conf \
                     --log-to-console \
                     --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \

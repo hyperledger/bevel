@@ -39,7 +39,9 @@ RUN apt-get update && apt-get install -y \
     pip3 install jmespath && \
     pip3 install openshift==${OPENSHIFT_VERSION} && \
     apt-get clean && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
     rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3-venv
 
 RUN rm /etc/apt/apt.conf.d/docker-clean
 RUN mkdir /etc/ansible/
