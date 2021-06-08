@@ -1,0 +1,15 @@
+# This task creates the node public key for each peer of new organization 
+- name: Voting by every existing validator
+  uri:
+    url: "{{ node }}"
+    method: POST
+    validate_certs: no
+    return_content: yes
+    body_format: json
+    body: '{"jsonrpc":"2.0","method":"ibft_proposeValidatorVote","params":[{{ validator_address }}, true],"id":1}'
+    headers:
+      Content-Type: "application/json"
+  register: peer_id
+  until: peer_id.status == 200
+  retries: "{{ network.env.retry_count }}"
+  delay: 50
