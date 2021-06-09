@@ -21,7 +21,7 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org
-
+    
 # This task creates the staticnodes file from the template
 - name: Create staticnodes file
   template:
@@ -48,12 +48,16 @@
   retries: "{{ network.env.retry_count }}"
   delay: 50
   when: add_new_org and network.config.consensus == 'raft'
-
+  tags:
+    - notest
+  
 # This task fetches the new peer_id 
 - name: Get peer_id
   set_fact:
     peer_id: "{{ peer_id.results[0].json.result }}"
   when: add_new_org and network.config.consensus == 'raft'
+  tags:
+    - notest
 
 # This task creates the Tessera Transaction Manager value files for each node of organization
 - name: Create value file for Tessera TM for each node
@@ -67,7 +71,7 @@
   loop: "{{ peers }}"
   loop_control:
     loop_var: peer
-  
+    
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
@@ -77,3 +81,5 @@
     gitops: "{{ item.gitops }}"
     GIT_RESET_PATH: "platforms/quorum/configuration"
     msg: "[ci skip] Pushing Peer files"
+  tags:
+    - notest
