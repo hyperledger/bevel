@@ -106,6 +106,8 @@
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kubecontext }}"
   register: default_ambassador_default_state    
+  tags:
+    - molecule-idempotence-notest  
 
 # Create and store selfsigned ambassador default certificate
 - name: Create Ambassador default certificate
@@ -114,6 +116,8 @@
     openssl req -x509 -out default_ambassador_tls.pem -keyout default_ambassador_tls.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ item.external_url_suffix }}"
     KUBECONFIG={{ kubeconfig_path }} kubectl create secret tls ambassador-default-tls --cert="default_ambassador_tls.pem" --key="default_ambassador_tls.key" -n default
   when: default_ambassador_default_state.resources|length == 0
+  tags:
+    - molecule-idempotence-notest  
 
 - name: Install Ambassador with EIP for Indy
   shell: |
