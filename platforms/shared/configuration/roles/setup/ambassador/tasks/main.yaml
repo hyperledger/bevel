@@ -115,7 +115,10 @@
     mkdir -p ./build/ambassador && cd ./build/ambassador/
     openssl req -x509 -out default_ambassador_tls.pem -keyout default_ambassador_tls.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ item.external_url_suffix }}"
     KUBECONFIG={{ kubeconfig_path }} kubectl create secret tls ambassador-default-tls --cert="default_ambassador_tls.pem" --key="default_ambassador_tls.key" -n default
-  when: default_ambassador_default_state.resources|length == 0
+  when: 
+    - default_ambassador_default_state.resources|length == 0
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
   tags:
     - molecule-idempotence-notest  
 
