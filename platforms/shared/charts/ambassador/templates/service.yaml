@@ -21,12 +21,18 @@ metadata:
     {{ $key }}: {{ $value | quote }}
   {{- end }}
 {{- end }}  
-  {{- if .Values.ambassador.eip }}
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: nlb
-    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
-    service.beta.kubernetes.io/aws-load-balancer-eip-allocations: "{{ .Values.ambassador.eip }}"
     getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v2
+      kind: TLSContext
+      name: ambassador_context
+      hosts:
+      - "*"
+      secret: ambassador-default-tls.default
+      secret_namespacing: true
+      min_tls_version: v1.2
+  {{- if .Values.ambassador.eip }}
       ---
       apiVersion: ambassador/v2
       kind:  Module
@@ -34,12 +40,11 @@ metadata:
       config:
         use_proxy_proto: true
         use_remote_address: false
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp        
+    service.beta.kubernetes.io/aws-load-balancer-eip-allocations: "{{ .Values.ambassador.eip }}"
   {{- end }}
   {{- if .Values.ambassador.grpc }}
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: nlb
-    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
-    getambassador.io/config: |
       ---
       apiVersion: ambassador/v2
       kind:  Module
@@ -49,6 +54,8 @@ metadata:
         enable_grpc_web: true
         use_remote_address: false
         x_forwarded_proto_redirect: true
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp        
   {{- end }}
 spec:
   type: {{ .Values.service.type }}
