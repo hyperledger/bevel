@@ -14,3 +14,13 @@
 - set_fact:
     generate_crypto_orion: True
   when: vault_result.failed is defined and vault_result.failed == True
+
+# This task adds the passphrase to Vault
+- name: Copy the crypto material to Vault
+  shell: |
+    vault kv put {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ item.name }}/orion password="{{ item.geth_passphrase }}"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  with_items: "{{ peers }}"
+  when: vault_result.failed is defined and vault_result.failed == True

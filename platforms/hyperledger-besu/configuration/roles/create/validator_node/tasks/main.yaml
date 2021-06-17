@@ -16,8 +16,7 @@
 # This task checks if the new validator has any entry in the vault
 - name: Check for the crypto material in the vault
   include_tasks: check_vault.yaml
-  vars:
-    component_ns: "{{ org.name }}-bes"
+  vars:    
     vault: "{{ org.vault }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
@@ -97,7 +96,7 @@
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
-    path: "{{ playbook_dir }}/{{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data"
+    path: "{{ playbook_dir }}/{{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data"
     check: "ensure_dir"
   with_indexed_items: "{{ enode_validator_list }}"
   when:  
@@ -127,7 +126,7 @@
 # Create the validator address array
 - name: Get node data
   shell: |
-    echo "\"$(cat {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data/nodeAddress)\"" >> {{ build_path }}/validatorinfo
+    echo "\"$(cat {{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data/nodeAddress)\"" >> {{ build_path }}/validatorinfo
   with_indexed_items: "{{ enode_validator_list }}"
   when:  
     - item[1].type == "validator"
@@ -148,10 +147,10 @@
 # This task copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   include_tasks: add_to_vault.yaml
-  vars:
-    component_ns: "{{ org.name }}-bes"
+  vars:    
     vault: "{{ org.vault }}"
     peers: "{{ org.services.validators }}"
+    component_name: "{{ org.name | lower }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org

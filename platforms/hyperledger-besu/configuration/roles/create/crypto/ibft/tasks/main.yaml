@@ -7,7 +7,7 @@
 - name: Check for the crypto material in the vault
   include_tasks: check_vault.yaml
   vars:
-    component_ns: "{{ org.name }}-bes"
+    component_ns: "{{ org.name | lower }}-bes"
     vault: "{{ org.vault }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
@@ -122,7 +122,7 @@
 
 # This task rename the above created directories to the org_name/node_name 
 - name: Rename the directories created above with the elements of node_list
-  copy: src={{ file.path }}/ dest={{ build_path }}/crypto/{{node_list[index].org}}-bes/{{node_list[index].node}}/data
+  copy: src={{ file.path }}/ dest={{ build_path }}/crypto/{{node_list[index].org}}/{{node_list[index].node}}/data
   loop: "{{ folder.files }}"
   loop_control:
     loop_var: file
@@ -136,7 +136,7 @@
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
-    path: "{{ playbook_dir }}/{{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data"
+    path: "{{ playbook_dir }}/{{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data"
     check: "ensure_dir"
   with_indexed_items: "{{ node_list }}"
   when:  
@@ -146,14 +146,14 @@
 # This task creates the node address for each peer 
 - name: Generate the nodeAddress for each peer
   shell: |
-    {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu --data-path {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data public-key export-address --to {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data/nodeAddress
+    {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu --data-path {{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data public-key export-address --to {{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data/nodeAddress
   with_indexed_items: "{{ node_list }}"
   when: generate_crypto is defined and generate_crypto == True
 
 # This task creates the node public key for each peer of new organization 
 - name: Generate the key.pub for each peer of new organization
   shell: |
-    {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu --data-path {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data public-key export --to {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data/key.pub
+    {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu --data-path {{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data public-key export --to {{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data/key.pub
   with_indexed_items: "{{ node_list }}"
   when:  
     - generate_crypto is defined and generate_crypto == True
@@ -189,7 +189,7 @@
 # Create the validator address array
 - name: Get node data
   shell: |
-    echo "\"$(cat {{ build_path }}/crypto/{{item[1].org}}-bes/{{item[1].node}}/data/nodeAddress)\"" >> {{ build_path }}/validatorinfo
+    echo "\"$(cat {{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data/nodeAddress)\"" >> {{ build_path }}/validatorinfo
   with_indexed_items: "{{ node_list }}"
   when:  
     - item[1].type == "validator"
@@ -230,7 +230,8 @@
 - name: Copy the crypto material to Vault
   include_tasks: add_to_vault.yaml
   vars:
-    component_ns: "{{ org.name }}-bes"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-bes"
     vault: "{{ org.vault }}"
     peers: "{{ org.services.peers }}"
     genesis: "{{ lookup('file', '{{ build_path }}/crypto/newGenesis.json') | b64encode }}"
