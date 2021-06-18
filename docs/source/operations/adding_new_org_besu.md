@@ -23,7 +23,7 @@ To add a new organization in Besu, an existing besu network should be running, e
 
 Refer [this guide](./besu_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the enode information, genesis file in base64 encoding and orion transaction manager details
+The `network.yaml` file should contain the specific `network.organization` details along with the enode information, genesis file in base64 encoding and orion transaction manager details
 
 ---
 **NOTE**: Make sure that the genesis flie is provided in base64 encoding. Also, if you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
@@ -158,7 +158,8 @@ network:
            
 
 ```
-Three new sections are added to the network.yaml
+Three new sections are added to the network.yaml   
+
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | tm_nodes | Existing network's transaction manager nodes public addresses with nodeport provided as an array.|

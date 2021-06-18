@@ -20,7 +20,7 @@ To add a new channel a fully configured Fabric network must be present already, 
 
 Refer [this guide](./fabric_networkyaml.md) for details on editing the configuration file.
 
-While modifying the configuration file(`network.yaml`) for adding new channel, all the existing channel should have `channel_status` tag as `existing` and the new channel should have `channel_status` tag as `new` under `network.channels` eg.
+While modifying the configuration file(`network.yaml`) for adding new channel, all the existing channel should have `channel_status` tag as `existing` and the new channel should have `channel_status` tag as `new` under `network.channels` e.g.
 
     network:
       channels:
@@ -48,7 +48,7 @@ While modifying the configuration file(`network.yaml`) for adding new channel, a
           ..
 
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information.
+The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
 For reference, see `network-fabric-add-channel.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples).

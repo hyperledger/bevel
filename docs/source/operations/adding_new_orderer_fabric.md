@@ -40,7 +40,7 @@ While modifying the configuration file(`network.yaml`) for adding new orderer, t
               ..
               status: new # new for new orderer
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information.
+The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
 For reference, see `network-fabric-add-orderer.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples).

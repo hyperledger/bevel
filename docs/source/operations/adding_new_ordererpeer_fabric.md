@@ -44,7 +44,7 @@ While modifying the configuration file(`network.yaml`) for adding new peer, all 
               status: existing   # existing for existing peers(s)
             
 
-The `network.yaml` file should contain the specific `network.organization` patch.
+The `network.yaml` file should contain the specific `network.organization` details.
 
 Ensure the following is considered when adding the new orderer on a different cluster:
 - The CA server is accessible publicly or at least from the new cluster.

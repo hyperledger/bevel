@@ -2,7 +2,7 @@
 
 [Ansible](https://docs.ansible.com/ansible/latest/index.html) is an automation command line tool that helps IT technicians easily achieve system configuration, software deployment and other complex tasks in orchestration.
 
-Ansible provisions several types of command line tools such as ansible, ansible-playbook and ansible-galaxy etc. Each serves different scenarios so that a user can choose the most appropriate one or more to be adopted in the chosen scenario(s).
+Ansible provisions several types of command line tools such as ansible, ansible-playbook and ansible-galaxy, etc. Each serves different scenarios so that a user can choose the most appropriate one or more to be adopted in the chosen scenario(s).
 
 Below gives a simple description of the three mentioned above, and a user can use the link to find more information for each of them.
 - [ansible](https://docs.ansible.com/ansible/latest/user_guide/intro_getting_started.html): it is the simplistic command line tool that enables a user to quickly achieve simple IT tasks, e.g. list one or more local/remote machines' information.

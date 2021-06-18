@@ -294,7 +294,7 @@ The snapshot of endorser service with example values is below
           full_name: Some Decentralized Identity Mobile Services Provider
           avatar: https://provider.com/avatar.png
           # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
-          # Eg. In this sample https://provider-endorser.indy.blockchaincloudpoc.com:15020/
+          # E.g. In this sample https://provider-endorser.indy.blockchaincloudpoc.com:15020/
           # For minikube: http://<minikubeip>>:15020
           server:
             httpPort: 15020

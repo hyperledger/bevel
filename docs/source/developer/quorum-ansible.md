@@ -48,7 +48,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 This role calls for ambassador certificate creation for each node.
 * Create Ambassador certificates
-* Ensure rootca dir exists
+* Ensure rootCA dir exists
 * Ensure ambassador tls dir exists
 * Check if certs already created
 * Get root certs

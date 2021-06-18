@@ -119,6 +119,7 @@ The fields under `config` are
 
 
 The `organizations` section contains the specifications of each organization.  
+
 In the sample configuration example, we have four organization under the `organizations` section.
 
 The snapshot of an organization field with sample values is below

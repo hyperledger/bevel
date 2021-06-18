@@ -23,7 +23,7 @@ A Sample configuration file for adding new peer is available [here](https://gith
 
 For generic instructions on the Fabric configuration file, refer [this guide](./fabric_networkyaml.md).
 
-While modifying the configuration file(`network.yaml`) for adding new peer, all the existing peers should have `peerstatus` tag as `existing` and the new peers should have `peerstatus` tag as `new` under `network.channels` eg.
+While modifying the configuration file(`network.yaml`) for adding new peer, all the existing peers should have `peerstatus` tag as `existing` and the new peers should have `peerstatus` tag as `new` under `network.channels` e.g.
 
     network:
       channels:
@@ -65,7 +65,7 @@ and under `network.organizations` as
               peerstatus: existing   # existing for existing peers(s)
             
 
-The `network.yaml` file should contain the specific `network.organization` patch. Orderer information is needed if you are going to install/upgrade the existing chaincodes, otherwise it is not needed. And the `org_status` must be `existing` when adding peer.
+The `network.yaml` file should contain the specific `network.organization` details. Orderer information is needed if you are going to install/upgrade the existing chaincodes, otherwise it is not needed. And the `org_status` must be `existing` when adding peer.
 
 Ensure the following is considered when adding the new peer on a different cluster:
 - The CA server is accessible publicly or at least from the new cluster.

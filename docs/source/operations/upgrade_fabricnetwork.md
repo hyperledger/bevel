@@ -17,7 +17,7 @@ For example, for Fabric v1.4.8, these are the image tags of the supporting docke
 | couchDB          | 0.4.18           |
 | orderer          | 1.4.8            |
 | peer             | 1.4.8            |
-| ca               | 1.4.4            |
+| CA               | 1.4.4            |
 
 ---
 **NOTE:** This change only upgrades the docker images, any other configuration changes is not covered by this guide. Please refer to Fabric documentation for any specific configuration changes.
@@ -45,4 +45,4 @@ For example:
 The playbook [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/)) can be run after the configuration file (for example: [network.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) for Fabric) has been updated.
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
-``
+```

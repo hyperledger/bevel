@@ -21,7 +21,7 @@ Addition of new Orderer organization only works with Fabric 2.2.2 and RAFT Servi
 
 Refer [this guide](./fabric_networkyaml.md) for details on editing the configuration file.
 
-While modifying the configuration file(`network.yaml`) for adding new orderer organization, all the existing organizations should have `org_status` tag as `existing` and the new organization should have `org_status` tag as `new` under `network.channels` eg.
+While modifying the configuration file(`network.yaml`) for adding new orderer organization, all the existing organizations should have `org_status` tag as `existing` and the new organization should have `org_status` tag as `new` under `network.channels` e.g.
 
     network:
       channels:
@@ -51,7 +51,7 @@ and under `network.organizations` as
           ..
           org_status: existing  # existing for old organization(s)
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information.
+The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
 For reference, see `network-fabric-add-ordererorg.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/add-orderer-organization.yaml).

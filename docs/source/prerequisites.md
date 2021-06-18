@@ -7,7 +7,7 @@ on which you'll be deploying blockchain networks from and/or operating
 the Blockchain Automation Framework.
 
 ## Git Repository
-As you may have read in the [key concepts](keyconcepts), the Blockchain Automation Framework (BAF) uses GitOps method for deployment to Kubernetes clusters. So, a Git repository is needed for BAF (this can be a [GitHub](https://github.com/) repository as well).
+As you may have read in the [key concepts](keyconcepts), the Blockchain Automation Framework (BAF) uses GitOps method for deployment to Kubernetes clusters, so a Git repository is needed for BAF (this can be a [GitHub](https://github.com/) repository as well).
 Fork or import the [BAF GitHub repo](https://github.com/hyperledger-labs/blockchain-automation-framework) to this Git repository.
 
 The Operator should have a user created on this repo with full access to the Git Repository. 
@@ -18,12 +18,12 @@ BAF recommends one Kubernetes cluster per organization for production-ready proj
 Also, a user needs to make sure that the Kubernetes clusters can support the number of pods and persistent volumes that will be created by BAF.
 
 ---
-**NOTE:** BAF DLT platforms are tested on Kubernetes Cluster of AWS instances with suppot on both Kubernetes version 1.16 and 1.14. For the current release BAF has been tested and being actively developed on Amazon EKS with Kubernetes version 1.16. AWS cli credentials are also required.
+**NOTE:** BAF DLT platforms are tested on Kubernetes Cluster of AWS instances with support on both Kubernetes version 1.16 and 1.14. For the current release, BAF has been tested and is being actively developed on Amazon EKS with Kubernetes version 1.16. AWS CLI credentials are also required.
 
 ---
 
 Please follow [Amazon instructions](https://aws.amazon.com/eks/getting-started/) to set-up your required Kubernetes cluster(s).
-To connect to Kubernetes cluster(s), you would also need kubectl Command Line Interface (CLI). Please refer [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/) for installation instructions, although the Blockchain Automation Framework configuration code (Ansible scripts) installs this automatically.
+To connect to Kubernetes cluster(s), you will also need kubectl Command Line Interface (CLI). Please refer [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/) for installation instructions, although the Blockchain Automation Framework configuration code (Ansible scripts) installs this automatically.
 
 ## HashiCorp Vault
 In this current release, [Hashicorp Vault](https://www.vaultproject.io/) is mandatory for the Blockchain Automation Framework (BAF) as the certificate and key storage solution; so to use BAF, at least one Vault server should be available. BAF recommends one Vault per organization for production-ready projects. 
@@ -69,7 +69,7 @@ command from a terminal prompt:
     docker --version
 ```
 
-For storing private docker images, a private docker registry can be used. Information such as registry url, username, password etc. can be configured in the configuration file like [Fabric configuration file](./operations/fabric_networkyaml.md).
+For storing private docker images, a private docker registry can be used. Information such as registry url, username, password, etc. can be configured in the configuration file like [Fabric configuration file](./operations/fabric_networkyaml.md).
 
 ### Docker Build for dev environments
 

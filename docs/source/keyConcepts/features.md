@@ -4,7 +4,7 @@
 The Blockchain Automation Framework's scripts do not stick to any one of the Cloud service provider. On the contrary, they can be used on any Cloud platform as long as all the [prerequisites](../gettingstarted.md) are met.
 
 ## **Multi-DLT/Blockchain platforms support**
-The Blockchain Automation Framework supports an environment of multi-clusters for the spin-up of a DLT/Blockchain network (e.g. Hyperledger Fabric or R3 Corda). Regardless of unique components (e.g. channels and orderers in Fabric, and Doorman, Notary in Corda) designed in each platform which makes the DLT/Blockchain ecosystems be heterogeneous, the Blockchain Automation Framework does remove this complexity and challenge by leveraing a uniquely-designed [network.yaml](../operations/fabric_networkyaml.md) file, which enables set-up of a DLT/Blockchain network on either platform to be consistent.
+The Blockchain Automation Framework supports an environment of multi-clusters for the spin-up of a DLT/Blockchain network (e.g. Hyperledger Fabric or R3 Corda). Regardless of unique components (e.g. channels and orderers in Fabric, and Doorman, Notary in Corda) designed in each platform which make the DLT/Blockchain ecosystems become heterogeneous, the Blockchain Automation Framework does remove this complexity and challenge by leveraing a uniquely-designed [network.yaml](../operations/fabric_networkyaml.md) file, which enables the set-up of a DLT/Blockchain network on either platform to be consistent.
 
 ## **No dependency on managed K8s services**
 Setting up a DLT network does not depend on a managed K8s services, which means non-managed K8s clusters can be used to make a DLT network set-up happen.

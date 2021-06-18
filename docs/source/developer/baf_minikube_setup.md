@@ -64,7 +64,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
    git config --global core.autocrlf false
    ```
 
-1. If not, update the EOL to LF for platforms/hyperledger-fabric/scripts/\*.sh files.
+1. If not, update the EOL to LF for platforms/hyperledger-fabric/scripts/\*.ssh files.
 
 1. Execute following to correctly set docker environment.
    ```bash
@@ -91,7 +91,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
      username: "<your docker username>"
      password: "<your docker password/token>"
    ```
-1. For each `organization`, update ONLY the following and leave everything else as-is:
+1. For each `organization`, update ONLY the following and leave everything else as is:
 
    ```yaml
    vault:
@@ -184,10 +184,10 @@ This is because you have re-created minikube but have not updated K8s `config` f
 
 This is because you have not removed the absolute paths to the certificates in `config` file. Repeat _"Update kubeconfig file"_ step 4 and try again.
 
-**`error during connect: Get http://%2F%2F.%2Fpipe%2Fdocker_engine/v1.40/version: open //./pipe/docker_engine: The system cannot find the file specified. In the default daemon configuration on Windows, the docker client must be run elevated to connect. This error may also indicate that the docker daemon is not running`**
+**`error during connect: Get http://%2F%2F.%2Fpipe%2Fdocker_engine/v1.40/version: open //./pipe/docker_engine:<br/> The system cannot find the file specified. In the default daemon configuration on Windows,<br/> the docker client must be run elevated to connect. This error may also indicate that the docker daemon is not running`**
 
 This is because docker isn't running. To start it, just close all the instances of  Docker Quickstart Terminal and open again.
 
-**`ERROR! the playbook: /home/blockchain-automation-framework/platforms/shared/configuration/site.yaml could not be found`**
+**`ERROR! the playbook: /home/blockchain-automation-framework/platforms/shared/configuration/site.yaml<br/> could not be found`**
 
 This is because the blockchain-automation-framework repository isn't mounted to the default VM. Check [this step](#windows_mount)).
