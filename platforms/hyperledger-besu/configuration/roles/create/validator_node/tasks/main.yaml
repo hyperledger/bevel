@@ -1,12 +1,12 @@
 # Set enode_data_list to empty
 - name: Set enode_validator_list to []
   set_fact:
-    enode_validator_list: [] 
+    enode_validator_list: []
 
 # Set enode_data_list to empty
-- name: Set enode_data_list to []
+- name: Set new_validator_nodes to []
   set_fact:
-    enode_data_list: []
+    new_validator_nodes: [] 
 
 # Set node_list to empty
 - name: Set node_list to []
@@ -101,7 +101,7 @@
   with_indexed_items: "{{ enode_validator_list }}"
   when:  
     - generate_crypto is defined and generate_crypto == True
-    
+
 # This task generates the enode for the new validator
 - name: "Creating the enode and pub key for the new validator"
   include_tasks: create_enode.yaml
@@ -131,50 +131,39 @@
   when:  
     - item[1].type == "validator"
     - generate_crypto is defined and generate_crypto == True
-    - add_new_org is not defined or add_new_org|bool == False
+
+# This file used by besu binary to generate the extra data information
+- name: Touch toEncode.json file
+  file:
+    path: "{{ build_path }}/toEncode.json"
+    state: touch
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+    
+# This task displays the JSON file content
+- name: Convert validatorInfo to json format
+  shell: |
+    cat {{ build_path }}/validatorinfo | paste -sd "," -| awk '{print "["$0"]"}'> {{ build_path }}/toEncode.json
 
 # This task displays the JSON file content
-- name: Display the validatorinfo
+- name: Convert validatorInfo to json format
   shell: |
-    cat {{ build_path }}/validatorinfo
+    cat {{ build_path }}/toEncode.json
   register: result
-  
+    
 # This task saves the JSON data to a variable for future use
 - name: Save the data to a Variable as a Fact
   set_fact:
     validator_address: "{{ result.stdout }}"    
 
-# This task copy the crypto material to the vault
-- name: Copy the crypto material to Vault
-  include_tasks: add_to_vault.yaml
-  vars:    
-    vault: "{{ org.vault }}"
-    peers: "{{ org.services.validators }}"
-    component_name: "{{ org.name | lower }}"
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-  when: generate_crypto is defined and generate_crypto == True and org.type == 'validator'
-
-# Get enode data for all orgs
-- name: Get enode data for each node of all organization
-  include_tasks: enode_data.yaml
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-
-# Get nodelist for all peers
-- name: Get enode data for each node of all organization
-  include_tasks: nodelist.yaml
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'validator'
-
 # This task contains the voting from the existing validators for the new validator to be added
 - name: Voting for the addition of newest validator
   include_tasks: validator_vote.yaml
-  loop: "{{ network.config.besu_nodes }}"
-  loop_control:
-    loop_var: node
+  vars:
+    besu_nodes: "{{ network.config.besu_nodes }}"
+    validator_addr: "{{ item.0 }}"
+    validator_name: "{{ item.1 }}"
+  with_together:
+    - "{{ validator_address }}"
+    - "{{ enode_validator_list }}"
   when: generate_crypto is defined and generate_crypto == True

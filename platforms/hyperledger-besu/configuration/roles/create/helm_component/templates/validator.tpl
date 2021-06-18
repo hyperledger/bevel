@@ -20,7 +20,9 @@ spec:
 
     staticnodes:
 {% for enode in enode_data_list %}
+{% if enode.enodeval != '' %}
       - "enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ enode.external_url }}:{{ enode.p2p_ambassador }}"
+{% endif %}      
 {% endfor %}
 
     metadata:

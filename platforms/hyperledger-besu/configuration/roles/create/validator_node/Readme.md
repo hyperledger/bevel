@@ -4,8 +4,8 @@ This role creates the new enode data for the new validator nodes for an existing
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)    
 
-#### 1. Set enode_data_list, enode_data and node_list to an empty list
-This task initializes the enode_data_list, enode_data and node_list variables to an empty string
+#### 1. Set enode_validator_list, new_validator_nodes and node_list to an empty list
+This task initializes the enode_validator_list, new_validator_nodes and node_list variables to an empty array of string
 
 **set_fact**: This module sets the variable assignment as globally accessible variable
 
@@ -18,16 +18,13 @@ This task tries to get enode from the vault for the new validator just to check 
                 
     loop_var: loop variable used for iterating the loop.
 
-#### 3. Get enode data
+#### 3. Get validator nodes data
 This task gets the enode data in the format of
+org_name
 peer_name
-enodeval
-p2p_ambassador
-raft_ambassador
-node_ambassador
-peer_publicIP
+org_type
 
-**include_task**: enode_data.yaml
+**include_task**: node_data.yaml
 **loop**: loop over the organizations
 **loop_control**: Specify conditions for controlling the loop.
                 
@@ -93,9 +90,14 @@ This task extracts the besu binary dependencies and place it at appropriate path
 **when**: *add_new_org* is true.
 
 #### 12. Generate the nodeAddress for and key.pub for new validator
- This task creates the node address for each peer 
+ This task creates the node address and pub key for each new peer 
+
+**include_task**: enode_data.yaml
 **shell**: This task generates the nodeAddress and public key for the new validator node placed in node directories
-**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
+**loop**: loop over the new peers of validator organizations
+**loop_control**: validator new needs to have the variable status as new.
+                
+    loop_var: loop variable used for iterating the loop.
 
 #### 13. Touch file to store information for validators
  This file stores the address of the validator nodes
@@ -112,22 +114,10 @@ This task extracts the besu binary dependencies and place it at appropriate path
 **shell**: This task generates the validator address array 
 **when**: *generate_crypto* count is *True*.
 
-#### 16. Copy the crypto material to Vault
-This task adds the crypto material to Vault
-**include_tasks**: add_to_vault
-**loop**: loops over all the node in a validator organisation
-**loop_control**: Specifies the condition for controlling the loop.
-    loop_var: loop variable used for iterating over the loop.
-##### Input Variables
-     *component_ns: Organization namespace   
-     *vault: Vault uri and token read from network.yaml
-     *peers: Peers in the organization
-**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
-
-#### 17. Voting for the new validator node to be added
-This task does the voting from every existing validator node for adding the new one.
-**include_tasks**: validator_vote
-**loop**: loops over all the node in a validator organisation
+#### 16. Voting for the new validator node to be added
+This task does the voting from every existing validator node for adding the new one (or new ones).
+**include_tasks**: validator_vote.yaml
+**loop**: loops over all the new nodes that will be added
 **loop_control**: Specifies the condition for controlling the loop.
     loop_var: loop variable used for iterating over the loop.
 ##### Input Variables
@@ -188,3 +178,76 @@ This task creates the build directory if it does not exist
 
 **set_fact**: This modules sets the enode_data_list variable globally to Get information about each validator node present in network.yaml and store it as a list of org, node.
 
+----------------
+
+### validator_vote.yaml
+### Tasks
+
+#### 1. Copy the crypto material to Vault
+This task adds the crypto material to Vault
+**include_tasks**: add_to_vault
+**loop**: loops over all the node in an organisation
+**loop_control**: Specifies the condition for controlling the loop.
+    loop_var: loop variable used for iterating over the loop.
+##### Input Variables
+     *component_ns: Organization namespace   
+     *vault: Vault uri and token read from network.yaml
+     *peers: Peers in the organization
+**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
+
+#### 2. Set enode_data_list to an empty list
+This task initializes the enode_data_list to an empty array of string
+
+#### 3. Get enode data
+This task gets the enode data in the format of
+peer_name
+enodeval
+p2p_ambassador
+raft_ambassador
+node_ambassador
+peer_publicIP
+
+**include_task**: enode_data.yaml
+**loop**: loop over the organizations
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+#### 4. creates nodelist data
+**include_task**: nested_nodelist.yaml
+**loop**: loop over peers in the organization
+**loop_control**: Specify the conditions for controlling the loop.
+
+    loop_var: loop variable used for iterating the loop.
+
+### nested_nodelist.yaml
+### Tasks
+
+#### Check if enode is present in the build directory or not
+ This task checks if enode is present in the build directory or not
+
+**stat**: This module checks the file exist or not.
+##### Input variables
+    *path: path to the enode.
+##### Output variables
+    *file_status: output of the enode exists or not task
+
+#### 5. Voting proposal
+**include_task**: nested_validator_vote.yaml
+**loop**: loop over peers in the organization
+**loop_control**: Specify the conditions for controlling the loop.
+
+    loop_var: loop variable used for iterating the loop.
+
+### nested_validator_vote.yaml
+### Tasks
+
+#### 1. Voting by the validator nodes that were already in the network
+ This task does the voting part by the existing validator nodes
+
+#### 2. Voting by the new validator nodes that have been previously accepted in the same deployment
+ This task does the voting part by the new validator nodes that have been already accepted
+
+#### 3. Adding the new validator address to the new_validator_nodes array for future voting participation
+ This task adds the url of the new added validator node to be used in Task 2 if new validator nodes are pending to be accepted
+    
