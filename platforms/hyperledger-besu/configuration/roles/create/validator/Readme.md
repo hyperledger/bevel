@@ -25,13 +25,13 @@ peer_publicIP
     loop_var: loop variable used for iterating the loop.
 
 #### 5. Create Value files for validator for each node
-This task creates the value file by calling the helm_component role
+This task creates the value file by calling the create/helm_component role
 ##### Input Variables
 
     *genesis: "The genesis file fetched from the url defined by the network.yaml" 
     *component_name: "The name of the component"
     type: "node_orion"
-**include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here helm_component
+**include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here create/helm_component
 **loop**: loops over peers list fetched using *{{ peers }}* from network yaml
 **loop_control**: Specify conditions for controlling the loop.
                 
