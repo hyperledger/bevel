@@ -63,7 +63,7 @@
 # This task runs only when {{auth_path}} is not already created
 - name: Get Kubernetes cert files for organizations
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ component_name }}.ca.cert"
+    KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_name }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_name }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ component_name }}.ca.cert"
   when: not vault_auth_status
 
 #####################################################################################################################
