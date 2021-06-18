@@ -16,6 +16,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_genesis_result
   ignore_errors: yes
+  changed_when: false
 
 #This task only runs when there is no local genesis file
 - name: Copy genesis from vault to correct path
@@ -25,6 +26,7 @@
   when: 
   - not vault_genesis_result.failed
   - not add_new_org
+  changed_when: false
 
 # This task creates the genesis file from the template
 - name: Create genesis.yaml
@@ -43,7 +45,7 @@
   - vault_genesis_result.failed
   - not add_new_org
 
-# This task converts the above read variable into json format and writes it in the gensis.json file
+# This task converts the above read variable into json format and writes it in the genesis.json file
 - name: Create genesis.json file
   copy:
     content: "{{ genesis_yaml | to_nice_json }}"
