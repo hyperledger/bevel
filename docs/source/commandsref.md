@@ -82,7 +82,7 @@ Below are various debugging commands that can be used
 * To delete an existing helm installation
     ```
     helm uninstall HELM_RELEASE_NAME -n NAMESPACE
-    Ex. helm uninstall carrier-CA -n carrier-ns
+    Ex. helm uninstall carrier-ca -n carrier-ns
     ```
 
 ## Docker related debugging

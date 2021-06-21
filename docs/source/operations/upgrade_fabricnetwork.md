@@ -17,7 +17,7 @@ For example, for Fabric v1.4.8, these are the image tags of the supporting docke
 | couchDB          | 0.4.18           |
 | orderer          | 1.4.8            |
 | peer             | 1.4.8            |
-| CA               | 1.4.4            |
+| ca               | 1.4.4            |
 
 ---
 **NOTE:** This change only upgrades the docker images, any other configuration changes is not covered by this guide. Please refer to Fabric documentation for any specific configuration changes.

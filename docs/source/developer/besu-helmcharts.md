@@ -51,5 +51,5 @@ This folder consists of Hyperledger-Besu node charts which is used by the ansibl
 
   - service.yaml   
 
-      This tempalate is used as a basic manifest for creating service enpoints for our deployment.
+      This template is used as a basic manifest for creating service enpoints for our deployment.
       This service.yaml creates enpoints for the besu node.

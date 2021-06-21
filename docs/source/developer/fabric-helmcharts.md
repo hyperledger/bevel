@@ -150,7 +150,7 @@ This folder consists of create_channel helm charts which are used by the ansible
   - create_channel.yaml   
 
       This file creates channel creation job where in the createchannel container the create channel peer commands are fired based on checking the results obtained from fetching channeltx block to see if channel has already been created or not.
-	  Additionally, the commands are fired based on the tls status whether it is enabled or not. The init container is used to setup vault configurations, and certificates are obatined from the volume mount paths.
+	  Additionally, the commands are fired based on the tls status whether it is enabled or not. The init container is used to setup vault configurations, and certificates are obtained from the volume mount paths.
            
 #### Chart.yaml
 - This file contains the information about the chart such as apiversion, appversion, name etc.

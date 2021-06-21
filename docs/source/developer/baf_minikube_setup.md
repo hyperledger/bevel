@@ -64,7 +64,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
    git config --global core.autocrlf false
    ```
 
-1. If not, update the EOL to LF for platforms/hyperledger-fabric/scripts/\*.ssh files.
+1. If not, update the EOL to LF for platforms/hyperledger-fabric/scripts/\*.sh files.
 
 1. Execute following to correctly set docker environment.
    ```bash

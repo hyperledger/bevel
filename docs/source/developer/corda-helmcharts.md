@@ -464,7 +464,7 @@ This folder contains node-initial-registration helm charts which are used by the
 #### templates
 - This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for node-initial-registration implementation.
 - This folder contains following template files for  node-initial-registration implementation
-  - job.yaml:   
+  - job.yaml:  
 
       It is used as a basic manifest for creating a Kubernetes deployment for initial node
       registration. The file basically describes the container and volume specifications of the node. corda-node container is used for running corda jar.store-certs-in-vault container is used for putting certificate into the vault. init container is used for creating node.conf which is used by corda node, download corda jar, download certificate from vault,getting passwords of keystore from vault  and also performs health checks
