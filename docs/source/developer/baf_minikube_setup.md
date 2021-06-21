@@ -190,4 +190,4 @@ This is because docker isn't running. To start it, just close all the instances 
 
 **`ERROR! the playbook: /home/blockchain-automation-framework/platforms/shared/configuration/site.yaml could not be found`**
 
-This is because the blockchain-automation-framework repository isn't mounted to the default VM. Check [this step](#windows_mount)).
+This is because the blockchain-automation-framework repository isn't mounted to the default VM. Check [this step](#windows_mount).
