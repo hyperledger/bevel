@@ -74,5 +74,5 @@ Configure Multi-branch pipeline with the forked repo as the source. In case you 
 1. `Deploy Identity-App`: Deploys the Identity app. Only for Indy.
 1. `Run SupplyChain API tests`: Runs Supplychain API test using newman. This step has a try-catch so that the whole pipeline does not fail if only API tests fail. Re-run the tests manually if only API tests fail. Not enabled for Indy. Corda Enterprise and Besu are in the future roadmap.
 1. `Run Identity API tests`: Runs Identity API test using newman. This step has a try-catch so that the whole pipeline does not fail if only API tests fail. Re-run the tests manually if only API tests fail. Only for Indy.
-1 `Manual Approval for resetting the deployment`: Waits for 20 minutes before resetting the network. If you want to keep the network for demo, Abort at this stage.
+1. `Manual Approval for resetting the deployment`: Waits for 20 minutes before resetting the network. If you want to keep the network for demo, Abort at this stage.
 1. `Reset network again`: Resets the network after the 20 minutes is over or you chose to reset. Keeps the network running if the previous step was aborted.
