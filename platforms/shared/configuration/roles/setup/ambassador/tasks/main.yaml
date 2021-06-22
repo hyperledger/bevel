@@ -97,9 +97,34 @@
   tags:
     - molecule-idempotence-notest
 
+# Check if default selfsigned ambassador tls is already created
+- name: Check Ambassador cred exists
+  k8s_info:
+    kind: Secret
+    namespace: default
+    name: "ambassador-default-tls"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+  register: default_ambassador_default_state    
+  tags:
+    - molecule-idempotence-notest  
+
+# Create and store selfsigned ambassador default certificate
+- name: Create Ambassador default certificate
+  shell: |
+    mkdir -p ./build/ambassador && cd ./build/ambassador/
+    openssl req -x509 -out default_ambassador_tls.pem -keyout default_ambassador_tls.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ item.external_url_suffix }}"
+    KUBECONFIG={{ kubeconfig_path }} kubectl create secret tls ambassador-default-tls --cert="default_ambassador_tls.pem" --key="default_ambassador_tls.key" -n default
+  when: 
+    - default_ambassador_default_state.resources|length == 0
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+  tags:
+    - molecule-idempotence-notest  
+
 - name: Install Ambassador with EIP for Indy
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPortsIndy.stdout }} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.targetPort={{ ambassador.targetPort }} --set ambassador.port={{ ambassador.port }} --set ambassador.tag={{ ambassador.tag }} --set ambassador.image={{ ambassador.image }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPortsIndy.stdout }} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
   when: 
     - network.type == 'indy'
     - allocation_ips.stdout is defined
@@ -122,17 +147,6 @@
     - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
     - network.env.external_dns is defined
     - network.env.external_dns == 'enabled'
-  tags:
-    - ambassador
-    - molecule-idempotence-notest
-
-# Disable TLS1.0 for the AWS Loadbalancer
-- name: Disable TLS1.0 for the AWS
-  shell: |
-    KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy=ELBSecurityPolicy-TLS-1-2-2017-01"
-  when: 
-    - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
-    - item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal'
   tags:
     - ambassador
     - molecule-idempotence-notest

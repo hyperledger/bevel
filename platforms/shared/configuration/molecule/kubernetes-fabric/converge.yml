@@ -15,11 +15,7 @@
         url: "index.docker.io/hyperledgerlabs"
       env:
         type: test
-        proxy: ambassador
-        ambassadorPorts:
-          portRange:
-            from: 15010 
-            to: 15020          
+        proxy: haproxy       
         retry_count: 20
         external_dns: disabled
   pre_tasks:
@@ -65,22 +61,6 @@
         git_host: "github.com"
         git_protocol: "ssh"
         helm_operator_version: "1.2.0"
-    - role: setup/ambassador
-      vars:
-        item:
-          cloud_provider: "aws"
-          k8s:
-            config_file: "/tmp/molecule/kind-default/kubeconfig"
-            context: "kind"
-        aws:
-          access_key: test
-          secret_key: test
-        ambassador:
-          version: "2.1.0"
-          targetPort: "443"
-          port: "8443"
-          image: quay.io/datawire/ambassador
-          tag: "0.53.1"
     - role: setup/haproxy-ingress
       vars:
         item:

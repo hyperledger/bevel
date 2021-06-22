@@ -111,7 +111,18 @@
       name: create/crypto/orion  
     vars:
       build_path: "{{ playbook_dir }}/build"
-    when: network.config.transaction_manager == 'orion'
+      component_ns: "{{ org.name }}-bes"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - org.type == 'member'
+      - network.config.transaction_manager == 'orion'
 
   # This role deploy nodes with Orion transaction manager and IBFT consensus
   - name: "Deploy nodes with orion Transaction Manager and IBFT consensus"
