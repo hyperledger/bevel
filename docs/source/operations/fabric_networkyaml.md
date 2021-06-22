@@ -2,7 +2,8 @@
 A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
 ![](./../_static/TopLevelClass-Fabric.png)
 
-Before setting up a Fabric DLT/Blockchain network, this file needs to be updated with the required specifications.  
+Before setting up a Fabric DLT/Blockchain network, this file needs to be updated with the required specifications.
+
 A sample configuration file is provided in the repo path:  
 `platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml` 
 
@@ -28,7 +29,7 @@ Here is the snapshot from the sample configuration file
 
 ![](./../_static/NetworkYamlFabric1.png)
 
-The sections in the sample configuration file are  
+The sections in the sample configuration file are:  
 
 `type` defines the platform choice like corda/fabric, here in the example its Fabric
 
@@ -197,6 +198,7 @@ Each `organization` field under `participants` field of the channel contains the
 
 
 The `organizations` section contains the specifications of each organization.  
+
 In the sample configuration example, we have five organization under the `organizations` section
 
 The snapshot of an organization field with sample values is below
@@ -229,7 +231,7 @@ Each `organization` under the `organizations` section has the following fields.
 | type                                        | This field can be orderer/peer            |
 | external_url_suffix                         | Public url suffix of the cluster.         |
 | org_status         | `new` (for inital setup) or `existing` (for add new org) | 
-| ca_data                                     | Contains the certificate authority url and certificate path; This has not been implemented yet |
+| ca_data                                     | Contains the certificate authority url and certificate path; this has not been implemented yet |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | When the organization cluster is on AWS |
 | k8s                                         | Kubernetes cluster deployment variables.|
@@ -298,7 +300,7 @@ The gitops field under each organization contains
 
 The services field for each organization under `organizations` section of Fabric contains list of `services` which could be ca/orderers/consensus/peers based on if the type of organization. 
 
-Each organization will have a ca service under the service field. The snapshot of ca service with example values is below
+Each organization will have a CA service under the service field. The snapshot of CA service with example values is below
 ```yaml
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample is an orderer service and includes a zk-kafka consensus

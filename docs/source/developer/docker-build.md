@@ -48,7 +48,8 @@ Before running the above command add a build folder in the root directory of the
 2) Network specific configuration file as network.yaml  
 3) Private key file which has write-access to the git repo
 
-Screen shot of the folder structure is below:  
+Screen shot of the folder structure is below:   
+
 ![](./../_static/DockerBuildFolder.png)
 
 The paths in network configuration file should be changed accordingly.

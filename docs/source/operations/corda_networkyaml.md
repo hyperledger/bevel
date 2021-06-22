@@ -234,8 +234,8 @@ For organization as type `cenm` the credential block looks like
           keystore: cordacadevpass #notary keystore password
           idman: password #idman keystore password
           networkmap: password #networkmap keystore password
-          subordinateca: password #subordinateca keystore password
-          rootca: password # rootca keystore password
+          subordinateca: password #subordinateCA keystore password
+          rootca: password # rootCA keystore password
           tlscrlsigner: password #tls-crl-signer keystore password
         truststore:
           truststore: trustpass #notary truststore password

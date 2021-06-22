@@ -3,6 +3,7 @@ A network.yaml file is the base configuration file designed in the Blockchain Au
 ![](./../_static/TopLevelClass-Quorum.png)
 
 Before setting up a Quorum DLT/Blockchain network, this file needs to be updated with the required specifications.  
+
 A sample configuration file is provided in the repo path:  
 `platforms/quorum/configuration/samples/network-quorum.yaml` 
 
@@ -147,6 +148,7 @@ The fields under `config` are
 
 
 The `organizations` section contains the specifications of each organization.  
+
 In the sample configuration example, we have four organization under the `organizations` section.
 
 The snapshot of an organization field with sample values is below

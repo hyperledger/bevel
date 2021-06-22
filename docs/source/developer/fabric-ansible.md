@@ -48,13 +48,13 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 ## **create/ca_server**
 
-* Check if ca certs already created
+* Check if CA certs already created
 * Ensures crypto dir exists
-* Get ca certs and key
+* Get CA certs and key
 * Generate the CA certificate
 * Copy the crypto material to Vault
-* Check if ca admin credentials are already created
-* Write the ca server admin credentials to Vault
+* Check if CA admin credentials are already created
+* Write the CA server admin credentials to Vault
 * Check Ambassador cred exists
 * Create the Ambassador credentials
 * Create CA server values for Orderer
@@ -166,9 +166,9 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 ## **create/crypto/orderer**
 * Call orderercheck.yaml for orderer
 *  Check if CA-tools is running
-* Ensure ca directory exists
-* Check if ca certs already created
-* Check if ca key already created
+* Ensure CA directory exists
+* Check if CA certs already created
+* Check if CA key already created
 * Call orderer.yaml for each orderer
 * Check if orderer msp already created
 * Get MSP info
@@ -180,7 +180,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Changing the permission of msp files
 * Copy the generate_crypto.sh file into the CA Tools 
 * Generate crypto material for organization orderers
-* Copy the crypto config folder from the ca tools
+* Copy the crypto config folder from the CA tools
 * Copy the crypto material for orderer
 * Check Ambassador cred exists
 * Check if orderer ambassador secrets already created
@@ -194,9 +194,9 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 ## **create/crypto/peer**
 
 * Check if CA-tools is running
-* Ensure ca directory exists
-* Check if ca certs already created
-* Check if ca key already created
+* Ensure CA directory exists
+* Check if CA certs already created
+* Check if CA key already created
 * Call peercheck.yaml for each peer
 * Check if peer msp already created
 * Get MSP info
@@ -206,7 +206,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Changing the permission of msp files
 * Copy the generate_crypto.sh file into the CA Tools 
 * Generate crypto material for organization peers
-* Copy the crypto config folder from the ca tools
+* Copy the crypto config folder from the CA tools
 * Check that orderer-certificate file exists
 * Ensure orderer tls cert directory exists
 * Copy tls ca.crt from auto-generated path to given path

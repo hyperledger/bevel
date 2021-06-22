@@ -71,7 +71,7 @@ For more details, refer: [Jenkins Slave](https://wiki.jenkins.io/pages/viewpage.
 ### Jenkins Stages
 A stage block in Jenkins defines a conceptually distinct subset of tasks performed through the entire Pipeline (e.g. "Build", "Test" and "Deploy" stages), which is used by many plugins to visualize or present Jenkins Pipeline status/progress.
 ### Kubeconfig File
-A kubeconfig file is a file used to configure access to Kubernetes when used in conjunction with the kubectl command line tool (or other clients). This is usually refer to an environment variable called KUBECONFIG.
+A kubeconfig file is a file used to configure access to Kubernetes when used in conjunction with the kubectl command line tool (or other clients). This is usually referred to an environment variable called KUBECONFIG.
 ### Kubernetes
 Kubernetes (K8s) is an open-source container-orchestration system for automating application deployment, scaling, and management. It was originally designed by Google, and is now maintained by the Cloud Native Computing Foundation.
 For more details, refer: [Kubernetes](https://kubernetes.io/)

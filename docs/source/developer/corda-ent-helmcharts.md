@@ -43,7 +43,7 @@ This chart deploys the Bridge component of Corda Enterprise filewall. The folder
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for bridge.
@@ -86,7 +86,7 @@ This chart deploys the Float component of Corda Enterprise filewall. The folder 
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for float.
@@ -128,7 +128,7 @@ This chart deploys the Generate-PKI job on Kubernetes. The folder contents are b
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for PKI.
@@ -162,12 +162,12 @@ This chart deploys the H2 database pod on Kubernetes. The folder contents are be
 ### Charts description
       
 #### Chart.yaml
-- This file contains the information about the chart such as apiversion, appversion, name etc
+- This file contains the information about the chart such as apiversion, appversion, name, etc
 #### templates
 - This folder contains template structures which when combined with values, will generate        valid Kubernetes manifest files for H2 implementation. This folder contains following template files:
    - deployment.yaml: This file is used as a basic manifest for creating a Kubernetes deployment. For the H2 node, this file creates H2 pod.
 	- pvc.yaml: This yaml is used to create persistent volumes claim for the H2 deployment. This file creates h2-pvc for, the volume claim for H2.
-	- service.yaml: This template is used as a basic manifest for creating a service endpoint for our deployment.This service.yaml creates H2 service endpoint.
+	- service.yaml: This template is used as a basic manifest for creating a service endpoint for our deployment. This service.yaml creates H2 service endpoint.
 #### values.yaml
 - This file contains the default configuration values for the chart.
 
@@ -197,7 +197,7 @@ This chart deploys the Idman component of Corda CENM. The folder contents are be
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for idman.
@@ -244,7 +244,7 @@ This chart deploys the NetworkMap component of Corda CENM. The folder contents a
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for nmap.
@@ -291,7 +291,7 @@ This chart deploys the Node component of Corda Enterprise. The folder contents a
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for Corda node.
@@ -335,7 +335,7 @@ This chart deploys the Node-Registration job for Corda Enterprise. The folder co
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for Corda node.
@@ -376,7 +376,7 @@ This chart deploys the Notary component of Corda Enterprise. The folder contents
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for Corda Notary.
@@ -421,7 +421,7 @@ This chart deploys the Notary-Registration job for Corda Enterprise. The folder 
 ### Charts description
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for Corda Notary.
@@ -463,7 +463,7 @@ This chart deploys the Signer component of Corda CENM. The folder contents are b
 ### Charts description 
 
 #### Chart.yaml 
-- This file contains the information about the chart such as apiversion, appversion, name etc.
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
 
 #### files
 - This folder contains the configuration files needed for signer.

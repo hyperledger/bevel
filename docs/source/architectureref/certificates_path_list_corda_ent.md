@@ -12,7 +12,7 @@ Certificate Paths on Vault for Corda Enterprise
 | /secret/`cenm_orgname_lowercase`/root/certs          | network-root-truststore.jks       | Network Root certificates truststore |
 | /secret/`cenm_orgname_lowercase`/root/certs          | corda-ssl-root-keys.jks           | SSL Root keystore |
 | /secret/`cenm_orgname_lowercase`/root/certs          | tls-crl-signer-key-store.jks      | Keystore containing tlscrlsigner key |
-| /secret/`cenm_orgname_lowercase`/root/certs          | subordinate-key-store.jks         | Keystore containing subordinateca key |
+| /secret/`cenm_orgname_lowercase`/root/certs          | subordinate-key-store.jks         | Keystore containing subordinateCA key |
 | /secret/`cenm_orgname_lowercase`/`signer_service_name`/certs        | corda-ssl-signer-keys.jks         | Signer keystore |
 | /secret/`cenm_orgname_lowercase`/`signer_service_name`/certs        | identity-manager-key-store.jks    | Idman keystore |
 | /secret/`cenm_orgname_lowercase`/`signer_service_name`/certs        | network-map-key-store.jks         | Networkmap keystore |
@@ -36,11 +36,11 @@ Certificate Paths on Vault for Corda Enterprise
 | /secret/`cenm_orgname_lowercase`/`notary_service_name`/tlscerts                          | tlskey                     | Notary Ambassador Private key |
 | /secret/`cenm_orgname_lowercase`/credentials/keystore                          | idman                     | Idman keystore password |
 | /secret/`cenm_orgname_lowercase`/credentials/keystore                          | networkmap                     | Networkmap keystore password |
-| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | subordinateca                     | SubordinateCA keystore password |
-| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | rootca                     | Root keystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | subordinateCA                     | SubordinateCA keystore password |
+| /secret/`cenm_orgname_lowercase`/credentials/keystore                          | rootCA                     | Root keystore password |
 | /secret/`cenm_orgname_lowercase`/credentials/keystore                          | tlscrlsigner                     | Signer keystore password |
 | /secret/`cenm_orgname_lowercase`/credentials/keystore                          | keyStorePassword                     | Notary keystore password |
-| /secret/`cenm_orgname_lowercase`/credentials/truststore                          | rootca                     | Network root truststore password |
+| /secret/`cenm_orgname_lowercase`/credentials/truststore                          | rootCA                     | Network root truststore password |
 | /secret/`cenm_orgname_lowercase`/credentials/truststore                          | ssl                     | SSL truststore password |
 | /secret/`cenm_orgname_lowercase`/credentials/truststore                          | trustStorePassword                     | Notary truststore password |
 | /secret/`cenm_orgname_lowercase`/credentials/ssl                          | idman                     | Idman sslkeystore password |
@@ -70,7 +70,7 @@ Certificate Paths on Vault for Corda Enterprise
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | root                 | Network root truststore password |
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | truststore                 | Node truststore password |
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | keystore                 | Node keystore password |
-| /secret/`orgname_lowercase`/`peer_name`/credentials                   | firewallca                 | FirewallCA keystore and corresponding truststore password |
+| /secret/`orgname_lowercase`/`peer_name`/credentials                   | firewallCA                 | FirewallCA keystore and corresponding truststore password |
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | float                 | Float keystore password |
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | bridge                 | Bridge keystore password |
 | /secret/`orgname_lowercase`/`peer_name`/credentials                   | `peer_name`                 | Rpc user password |

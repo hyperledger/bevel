@@ -23,7 +23,7 @@ To add a new organization in Indy, an existing Indy network should be running, p
 
 Refer [this guide](./indy_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the genesis information and `genesis.add-org` as `true`.
+The `network.yaml` file should contain the specific `network.organization` details along with the genesis information and `genesis.add-org` as `true`.
 
 ---
 **NOTE**: If you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml

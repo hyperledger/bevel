@@ -175,7 +175,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 ## **setup/credentials**
 
-* Writes keystore,truststore,ssl passwords for CENM services
+* Writes keystore, truststore, ssl passwords for CENM services
 * Writes node keystore, node truststore, network root-truststore passwords for CENM services
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/credentials) for detailed information.
@@ -263,7 +263,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 ## **setup/vault_kubernetes**
 * Creates vault auth path if it does not exist
-* Gets Kubernetes ca certs
+* Gets Kubernetes CA certs
 * Enables Kubernetes and Vault authentication
 * Creates Vault policies if they do not exist
 * Creates docker credentials if they do not exist

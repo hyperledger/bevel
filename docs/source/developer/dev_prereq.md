@@ -1,7 +1,8 @@
 # Developer Prerequisites
 
-The following mandatory pre-requisites must be completed to set up a development environment for BAF.   
-The process of setting up developer pre-requisites can be done manually or via an automation script(currently script is for windows OS only)
+The following mandatory pre-requisites must be completed to set up a development environment for BAF.  
+
+The process of setting up developer pre-requisites can be done manually or via an automation script (currently script is for windows OS only)
 
 ## Script Based Setup
 You can use the scripts [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/scripts) to setup developer prerequisites for Windows or Mac systems.   
@@ -132,7 +133,7 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
 1. To install the precompiled binary, [download](https://www.vaultproject.io/downloads/) the appropriate package for your system.
 1. Once the zip is downloaded, unzip it into any directory. The `vault` binary inside is all that is necessary to run Vault (or `vault.exe` for Windows). Any additional files, if any, aren't required to run Vault.
 
-1. Create a directory `project/bin` and copy the binary there. Add `project/bin` directory to your `PATH`. Run following fron git bash.
+1. Create a directory `project/bin` and copy the binary there. Add `project/bin` directory to your `PATH`. Run following from git bash.
    ```
    mkdir ~/project/bin
    mv vault.exe ~/project/bin
@@ -170,7 +171,7 @@ _Estimated Time: 15 minutes_
 For development environment, minikube can be used as the Kubernetes cluster on which the DLT network will be deployed.
 
 1. Follow platform specific [instructions](https://kubernetes.io/docs/tasks/tools/install-minikube/) to install minikube on your local machine. Also install [Virtualbox](https://www.virtualbox.org/wiki/Downloads) as the Hypervisor. (If you already have **HyperV** it should be removed or disabled.)
-1. minikube is also a binary, so move it into your `~/project/bin` directory as it is already added to `PATH`.
+1. Minikube is also a binary, so move it into your `~/project/bin` directory as it is already added to `PATH`.
 1. Configure minikube to use 4GB memory and default kubernetes version
    ```bash
    minikube config set memory 4096

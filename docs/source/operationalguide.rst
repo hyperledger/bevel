@@ -1,6 +1,6 @@
 Operations Guide
 =================
-This section defines the pre-requisites installation and steps for setup of a DLT network. If this is your first time, do refer Key-Concepts, Getting-Started and Architecture-References before moving ahead.
+This section defines the pre-requisites installation and steps for setup of a DLT network. If this is your first time, do refer to Key-Concepts, Getting-Started and Architecture-References before moving ahead.
 
 Pre-requisites
 -----------------

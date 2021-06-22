@@ -19,7 +19,7 @@ To add a new organization in Quorum, an existing quorum network should be runnin
 
 Refer [this guide](./quorum_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the enode information, genesis block in base64 encoding and geth account details
+The `network.yaml` file should contain the specific `network.organization` details along with the enode information, genesis block in base64 encoding and geth account details
 
 ---
 **NOTE**: Make sure that the genesis block information is given in base64 encoding. Also, if you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
