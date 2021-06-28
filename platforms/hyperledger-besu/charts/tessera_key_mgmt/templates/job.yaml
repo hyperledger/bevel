@@ -24,7 +24,7 @@ spec:
         - name: "{{ $.Values.image.pullSecret }}"
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       containers:
-        - name:  "orion-crypto"
+        - name:  "tessera-crypto"
           image: "{{ $.Values.image.repository }}"
           imagePullPolicy: IfNotPresent
           env:
@@ -34,13 +34,14 @@ spec:
             value: {{ $.Values.vault.authpath }}
           - name: VAULT_APP_ROLE
             value: {{ $.Values.vault.role }}
-          - name: VAULT_ORION_SECRET_PREFIX
+          - name: VAULT_SECRET_PREFIX
             value: "{{ $.Values.vault.tmprefix }}"
-          command: ["/bin/bash", "-c"]
+          command: ["sh", "-c"]
           args:
             - |-
-              curl -L -o /opt/orion/bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
-              chmod +x /opt/orion/bin/jq
+              apk update && apk add jq curl
+              alias tessera="java -jar /tessera/tessera-app.jar"
+              
               validateVaultResponse () {
                 if echo ${2} | grep "errors"; then
                   echo "ERROR: unable to retrieve ${1}: ${2}"
@@ -72,25 +73,19 @@ spec:
                 jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
 
-              vault_secret_key="${VAULT_ORION_SECRET_PREFIX}"
-              echo "Getting Orion password using key $vault_secret_key"
-              
-              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+              vault_secret_key="${VAULT_SECRET_PREFIX}"
 
-              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
-              GETH_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]')
-              echo ${GETH_PASSWORD} > password_file
-              orion -g nodeKey < password_file
+              # Generate tessera keys
+              tessera -keygen -filename nodeKey < /dev/null
 
               #encode to base64 to update to vault otherwise json format is creating problems with vault api
-              nodekey_base64=$(cat nodeKey.key | base64 -w 0)
+              nodekey_base64=$(base64 nodeKey.key | tr -d \\n)
 
               # Save the generated keys to VAULT
               LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
                 -H "Content-Type: application/json" \
                 -X POST \
-                -d '{"key":"'"$nodekey_base64"'","key_pub":"'"$(cat nodeKey.pub)"'","password":"'"$(cat password_file)"'"}' \
+                -d '{"key":"'"$nodekey_base64"'","key_pub":"'"$(cat nodeKey.pub)"'"}' \
                 ${VAULT_ADDR}/v1/${vault_secret_key} | \
                 jq -r 'if .errors then . else .auth.client_token end')
               

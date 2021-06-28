@@ -1,4 +1,4 @@
-# Check if the keystore.json exist in build directory
+# Check if the enode exist in build directory
 - name: Check if enode is present in the build directory or not
   stat:
     path: "{{ build_path }}/{{ org.name }}/{{ validator.name }}/nodelist"
@@ -27,7 +27,10 @@
   with_items: "{{ enode_data_list }}"
   loop_control:
     loop_var: enode_item
-  when: enode_item.peer_name != validator.name and network.config.tm_tls == True and enode_item.node_ambassador is defined
+  when: 
+  - enode_item.peer_name != validator.name 
+  - network.config.tm_tls 
+  - enode_item.node_ambassador is defined
 
 # Add othernodes data to the file when tls is false
 - name: nodelist loop when tls is false
@@ -37,7 +40,10 @@
   with_items: "{{ enode_data_list }}"
   loop_control:
     loop_var: enode_item
-  when: enode_item.peer_name != validator.name and network.config.tm_tls == False and enode_item.node_ambassador is defined
+  when: 
+  - enode_item.peer_name != validator.name 
+  - not network.config.tm_tls
+  - enode_item.node_ambassador is defined
 
 # Add othernodes data from the networkyaml
 - name: nodelist loop for networkyaml list of tm_nodes
