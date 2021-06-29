@@ -56,10 +56,8 @@ spec:
           configMap:
             name: tessera-config-{{ .Values.node.name }}
             items:
-              - key: tessera-config-enhanced.json.tmpl
-                path: tessera-config-enhanced.json.tmpl
-              - key: tessera-config-9.0.json.tmpl
-                path: tessera-config-9.0.json.tmpl
+              - key: tessera-config.json.tmpl
+                path: tessera-config.json.tmpl
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
@@ -162,6 +160,7 @@ spec:
         - "mkdir -p $QUORUM_DATA_DIR;
           cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
             if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
+              echo \"running geth init\";
               /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
               date > $QUORUM_DATA_DIR/genesis_created;
             fi;
@@ -211,44 +210,25 @@ spec:
           PASSWORD=$(cat $QUORUM_HOME/crypto/keys/password);
 
           printenv;
-          wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.15.tar.gz;
-          tar -xf mysql-connector-java-8.0.15.tar.gz;
-          cp /mysql-connector-java-8.0.15/mysql-connector-java-8.0.15.jar $QUORUM_HOME;
-          SQL_JAR=$QUORUM_HOME/mysql-connector-java-8.0.15.jar;
+          wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.25.tar.gz;
+          tar -xf mysql-connector-java-8.0.25.tar.gz;
+          cp /mysql-connector-java-8.0.25/mysql-connector-java-8.0.25.jar $QUORUM_HOME;
+          SQL_JAR=$QUORUM_HOME/mysql-connector-java-8.0.25.jar;
 
+          # Extracting version from manifest incase we want to add version specific steps/config
           TESSERA_VERSION=$(unzip -p /tessera/tessera-app.jar META-INF/MANIFEST.MF | grep Tessera-Version | cut -d\" \" -f2);
           echo \"Tessera version (extracted from manifest file): ${TESSERA_VERSION}\";
+          
           TESSERA_JAR=/tessera/tessera-app.jar;
-
-          TESSERA_VERSION=\"${TESSERA_VERSION}-suffix\";
-          Tess_Ver_First=$(echo ${TESSERA_VERSION} | awk -F. '{print $1}');
-          Tess_Ver_Second=$(echo ${TESSERA_VERSION} | awk -F. '{print $2}');
-          Tess_Ver_Third=$(echo ${TESSERA_VERSION} | awk -F. '{print $3}');
-          echo \"version: first [$Tess_Ver_First], second [$Tess_Ver_Second], third [$Tess_Ver_Third]\";
-          echo \"Tessera version - suffix ${TESSERA_VERSION}\";
-          TESSERA_CONFIG_TYPE=;
-
-          if [ \"${Tess_Ver_Second}\" -ge \"8\" ]; then TESSERA_CONFIG_TYPE=\"-enhanced\"; fi;
-          if [[ \"${Tess_Ver_Second}\" -ge \"9\" ]]; then TESSERA_CONFIG_TYPE=\"-9.0\"; fi;
-
-          echo Config type ${TESSERA_CONFIG_TYPE};
-
-          CONFIG_TMPL=$(cat ${QUORUM_HOME}/tessera-config${TESSERA_CONFIG_TYPE}.json.tmpl);
-
-          PRIV_KEY=$(cat $QUORUM_HOME/crypto/keys/tm.key)
-          PUB_KEY=$(cat $QUORUM_HOME/crypto/keys/tm.pub)
-
-          CONFIG_FINAL=$(echo $CONFIG_TMPL | sed \"s@%THIS_PRIV_KEY%@${PRIV_KEY}@g\" |  sed \"s@%THIS_PUB_KEY%@${PUB_KEY}@g\");
-          CONFIG_FINAL_9_0=$(echo $CONFIG_TMPL | sed \"s@%THIS_PRIV_KEY%@${QUORUM_HOME}/crypto/keys/tm.key@g\" |  sed \"s@%THIS_PUB_KEY%@${QUORUM_HOME}/crypto/keys/tm.pub@g\");
-          if [[ \"${Tess_Ver_Second}\" -ge \"9\" ]]; then CONFIG_FINAL=${CONFIG_FINAL_9_0}; fi;
+           
+          CONFIG_TMPL=$(cat ${QUORUM_HOME}/tessera-config.json.tmpl);
+          CONFIG_FINAL=$(echo $CONFIG_TMPL | sed \"s@%THIS_PRIV_KEY%@${QUORUM_HOME}/crypto/keys/tm.key@g\" |  sed \"s@%THIS_PUB_KEY%@${QUORUM_HOME}/crypto/keys/tm.pub@g\");
+          
           echo $CONFIG_FINAL >  ${DDIR}/tessera-config-with-hosts.json;
           cat  ${DDIR}/tessera-config-with-hosts.json;
 
-          TESSERA_MAIN=com.quorum.tessera.Launcher;
-          if [[ \"${Tess_Ver_Second}\" -ge \"10\" ]]; then
-            TESSERA_MAIN=com.quorum.tessera.launcher.Main;
-          fi;
-          java -Xms128M -Xmx128M -cp $SQL_JAR:$TESSERA_JAR:. $TESSERA_MAIN -configfile ${DDIR}/tessera-config-with-hosts.json --jdbc.password $PASSWORD;
+          TESSERA_MAIN=com.quorum.tessera.launcher.Main;
+          java -Xms128M -Xmx128M -cp $SQL_JAR:$TESSERA_JAR:. $TESSERA_MAIN -configfile ${DDIR}/tessera-config-with-hosts.json -o jdbc.password=$PASSWORD;
         "
         ports:
           - containerPort: {{ .Values.node.ports.tm }}
@@ -265,12 +245,6 @@ spec:
           - name: tessera-config
             mountPath: {{ .Values.node.mountPath }}/tessera-config.json.tmpl
             subPath: tessera-config.json.tmpl
-          - name: tessera-config
-            mountPath: {{ .Values.node.mountPath }}/tessera-config-enhanced.json.tmpl
-            subPath: tessera-config-enhanced.json.tmpl
-          - name: tessera-config
-            mountPath: {{ .Values.node.mountPath }}/tessera-config-9.0.json.tmpl
-            subPath: tessera-config-9.0.json.tmpl
       - name: quorum
         image: "{{ .Values.images.node }}"
         command: ["sh"]
@@ -286,9 +260,6 @@ spec:
           cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
           cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
           cp $QUORUM_HOME/crypto/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
-          
-          echo what in this dir;
-          ls  $QUORUM_DATA_DIR;
 
           rm -f $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
           rm -f $QUORUM_HOME/crypto/keys/nodekey
@@ -303,19 +274,21 @@ spec:
             NODE_STATUS={{ .Values.node.status }}
           fi;
           if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'additional' ]; then
-            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft --raftjoinexisting {{ .Values.node.peer_id }}";
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,debug,web3,eth,txpool,personal,miner,net,quorumExtension,raft --raftjoinexisting {{ .Values.node.peer_id }}";
           fi;
           if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'default' ]; then
-            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,debug,web3,eth,txpool,personal,raft,miner,net,quorumExtension";
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
+            args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,debug,web3,eth,txpool,personal,istanbul,miner,net,quorumExtension"
+                                                                                              
+            
           fi;
 
           LOCK_STATUS={{ .Values.node.lock }}
           if [ $LOCK_STATUS = false ]
           then
-            args=" ${args} --unlock 0 " 
+            args=" ${args} --unlock 0 "
           fi
 
           /usr/local/bin/geth \
@@ -332,9 +305,9 @@ spec:
            --rpcaddr 0.0.0.0 \
            --rpcport {{ .Values.node.ports.rpc }} \
            --rpcvhosts=* \
+           --allow-insecure-unlock \
            --port {{ .Values.node.ports.quorum }} \
            --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
-           
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
           - containerPort: {{ .Values.node.ports.quorum }}
@@ -360,7 +333,7 @@ spec:
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
       restartPolicy: Always
-  volumeClaimTemplates: 
+  volumeClaimTemplates:
     - metadata:
         name: {{ .Values.node.name }}-pv
       spec:
