@@ -100,9 +100,11 @@
     [alt_names]
     DNS.1 = {{ domain_name_pub }}
     DNS.2 = {{ domain_name_priv }}
+    DNS.3 = {{ domain_name_tessera }}
     EOF
   vars:
     domain_name_priv: "{{ node_name }}.{{ component_ns }}"
+    domain_name_tessera: "{{ node_name }}-tessera.{{ component_ns }}"
     domain_name_pub: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
   when: certs.failed == True or root_certs.failed == True
 
@@ -133,11 +135,11 @@
     eval "echo "changeme" > {{ node_name }}-password"
     eval "openssl x509 -in {{node_name}}-certchain.pem -noout -fingerprint -sha256 > {{node_name}}-certchain-sha256"
     eval "export DIGEST=$(awk '{print $2}' {{node_name}}-certchain-sha256 | sed -n 's/Fingerprint=\(.*\)/\1/p')"
-    eval "printf '%s\n' '{{ node_name }}.{{ component_ns }}:{{ node.tm_clientport.port | default('8888') }} $DIGEST' '{{ common_name }} $DIGEST' > {{ node_name }}-knownServer"
+    eval "printf '%s\n' '{{ node_name }}-tessera.{{ component_ns }}:{{ node.tm_clientport.port | default('8888') }} $DIGEST' '{{ common_name }} $DIGEST' > {{ node_name }}-knownServer"
   vars:
     common_name: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
   when: 
-    - network.config.tm_tls == True  
+    - network.config.tm_tls 
     - certs.failed == True or True and root_certs.failed == True
 
 # Stores the genreated ambassador tls certificates to vault if tls is off for network
@@ -148,7 +150,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: 
-    - network.config.tm_tls == False
+    - not network.config.tm_tls
     - root_certs.failed == True or certs.failed == True 
 
 # This task stores the genreated ambassador tls certificates to vault
@@ -159,7 +161,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: 
-    - network.config.tm_tls == True
+    - network.config.tm_tls
     - root_certs.failed == True or certs.failed == True
 
 # This task checks if Ambassador credentials exist already

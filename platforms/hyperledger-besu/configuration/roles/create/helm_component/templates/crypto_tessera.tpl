@@ -8,7 +8,7 @@ metadata:
 spec:
   releaseName: {{ component_name }}
   chart:
-    path: {{ charts_dir }}/orion_key_mgmt
+    path: {{ charts_dir }}/tessera_key_mgmt
     git: {{ gitops.git_url }}
     ref: {{ gitops.branch }}
   values:
@@ -16,7 +16,7 @@ spec:
       name: {{ component_name }}
       namespace: {{ component_ns }}    
     image:      
-      repository: pegasyseng/orion:{{ network.config.tm_version }}
+      repository: quorumengineering/tessera:{{ network.config.tm_version }}
       pullSecret: regcred
     vault:
       address: {{ vault.url }}

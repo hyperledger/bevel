@@ -161,7 +161,9 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
    ```bash
    export VAULT_ADDR='http://<Your Vault local IP address>:8200' #e.g. http://192.168.0.1:8200
    export VAULT_TOKEN="<Your Vault root token>"
-   vault secrets enable -version=1 -path=<Your Secret Engine> kv
+
+   # enable Secrets v1
+   vault secrets enable -version=1 -path=secret kv   
    ```
 
 ### Setting up Minikube

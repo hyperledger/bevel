@@ -37,16 +37,21 @@ network:
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "orion"    # Transaction manager is "orion"
-    # This is the version of "orion" docker image that will be deployed
+    transaction_manager: "tessera"    # Transaction manager can be "tessera" or "orion"; 21.x.x features are same for both
+    # This is the version of transaction_manager docker image that will be deployed
     tm_version: "21.1.0"               
-    # TLS can be True or False for the orion tm
+    # TLS can be True or False for the transaction manager
     tm_tls: True
     # Tls trust value
-    tm_trust: "ca-or-tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
+    tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## File location for saving the genesis file should be provided.
     genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
-    
+    ## At least one Transaction Manager nodes public addresses should be provided.
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15022" for orion
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
+    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
+    tm_nodes: 
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com"
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -186,9 +191,11 @@ network:
             ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
-            port: 15022             # Port exposed on ambassador service must be same
-            ambassador: 15022    
+            port: 443          # use port: 15022 when transaction_manager = "orion"
+            ambassador: 443    # use ambassador: 15022 when transaction_manager = "orion"
           tm_clientport:
             port: 8888           
 
@@ -246,9 +253,11 @@ network:
             ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
-            port: 15032             # Port exposed on ambassador service must be same
-            ambassador: 15032    
+            port: 443          # use port: 15032 when transaction_manager = "orion"
+            ambassador: 443    # use ambassador: 15032 when transaction_manager = "orion"
           tm_clientport:
             port: 8888
 
@@ -304,9 +313,11 @@ network:
             ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
-            port: 15042             # Port exposed on ambassador service must be same
-            ambassador: 15042    
+            port: 443          # use port: 15042 when transaction_manager = "orion"
+            ambassador: 443    # use ambassador: 15042 when transaction_manager = "orion"
           tm_clientport:
             port: 8888
 
@@ -362,8 +373,10 @@ network:
             ambassador: 15051       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
-            port: 15052             # Port exposed on ambassador service must be same
-            ambassador: 15052    
+            port: 443          # use port: 15052 when transaction_manager = "orion"
+            ambassador: 443    # use ambassador: 15052 when transaction_manager = "orion"
           tm_clientport:
             port: 8888
