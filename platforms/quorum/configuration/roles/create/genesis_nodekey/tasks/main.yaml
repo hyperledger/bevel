@@ -34,29 +34,20 @@
   tags:
     molecule-idempotence-notest
 
-# Update txnSizeLimit in genesis file
-- name: Update txnSizeLimit in genesis file
-  lineinfile:
-    path: ./build/genesis.json
-    regexp: '"txnSizeLimit":'
-    line: '        "txnSizeLimit": 128,'  # 8 spaces necessary to keep format of json file
+# Update the genesis file
+- name: Update genesis file
+  shell: |
+    cd build
+    tmp=$(mktemp)
+    # Remove any maxCodeSize key from the json file
+    jq 'del(..| .maxCodeSize?)' genesis.json > "$tmp" && mv "$tmp" genesis.json
+    
+    # Update values for existing keys
+    jq '.config.txnSizeLimit = 128 | .config.byzantiumBlock = 0' genesis.json > "$tmp" && mv "$tmp" genesis.json
+    
+    # Add addition key and values
+    jq '.config += {"petersburgBlock": 0,"istanbulBlock": 0,"maxCodeSizeConfig": [{"block": 0,"size": 128}]}' genesis.json > "$tmp" && mv "$tmp" genesis.json
   when: vault_check|default(0)|int != 0
-
-# Update maxCodeSize in genesis file
-- name: Update maxCodeSize in genesis file
-  lineinfile:
-    path: ./build/genesis.json
-    regexp: '"maxCodeSize":'
-    line: '        "maxCodeSize": 128,'   # 8 spaces necessary to keep format of json file
-  when: vault_check|default(0)|int != 0
-
-# Update byzantiumBlock in genesis file
-- name: Update byzantiumBlock in genesis file
-  lineinfile:
-    path: ./build/genesis.json
-    regexp: '"byzantiumBlock":'
-    line: '        "byzantiumBlock": 1,'   # 8 spaces necessary to keep format of json file
-  when: vault_check|default(0)|int != 0  
 
 # This task copies the generated json file to the path provided in network.config
 - name: Copy genesis.json file
