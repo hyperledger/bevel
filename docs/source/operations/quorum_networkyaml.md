@@ -29,10 +29,10 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum, here in the example its **quorum**.
 
-`version` defines the version of platform being used. The current Quorum version support is only for **2.5.0**
+`version` defines the version of platform being used. The current Quorum version support is only for **21.4.2**
 
 ---
-**NOTE**: Use Quorum Version 2.5.0 if you are deploying Supplychain smartcontracts from examples.
+**NOTE**: Use Quorum Version 21.4.2 if you are deploying Supplychain smartcontracts from examples.
 
 ---
 
@@ -100,8 +100,7 @@ The snapshot of the `config` section with example values is below
     # This is the version of "tessera" or "constellation" docker image that will be deployed
     # Supported versions #
     # constellation: 0.3.2 (For all versions of quorum)
-    # tessera: 0.10.4 (for quorum 2.5.0)
-    tm_version: "0.10.4"               # This is the version of "tessera" and "constellation" docker image that will be deployed
+    tm_version: "21.4.0"               # This is the version of "tessera" and "constellation" docker image that will be deployed
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
@@ -138,7 +137,7 @@ The fields under `config` are
 | consensus   | Currently supports `raft` or `ibft`. Please update the remaining items according to the consensus chosen as not all values are valid for both the consensus.                                 |
 | subject     | This is the subject of the root CA which will be created for the Quorum network. The root CA is for development purposes only, production networks should already have the root certificates.   |
 | transaction_manager    | Options are `tessera` and `constellation`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager. |
-| tm_version         | This is the version of `tessera` and `constellation` docker image that will be deployed. Supported versions: `0.10.4` and `0.9.2` for `tessera` and `0.3.2` for `constellation`. |
+| tm_version         | This is the version of `tessera` and `constellation` docker image that will be deployed. Supported versions: `21.4.0` for `tessera` and `0.3.2` for `constellation`. |
 | tm_tls | Options are `strict` and `off`. This enables TLS for the transaction managers, and is not related to the actual Quorum network. `off` is not recommended for production. |
 | tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for tessera]( https://github.com/jpmorganchase/tessera/wiki/TLS) and [for consellation](https://github.com/jpmorganchase/constellation/blob/master/sample.conf).|
 | tm_nodes | The Transaction Manager nodes public addresses should be provided. For `tessera`, all participating nodes should be provided, for `constellation`, only one bootnode should be provided. NOTE The difference in the addresses for Tessera and Constellation. |
