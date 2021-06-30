@@ -19,7 +19,7 @@ To add a new organization Corda Doorman and Networkmap services should already b
 
 Refer [this guide](./corda_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the network service information about the networkmap and doorman service.
+The `network.yaml` file should contain the specific `network.organization` details along with the network service information about the networkmap and doorman service.
 
 ---
 **NOTE**: Make sure the doorman and networkmap service certificates are in plain text and not encoded in base64 or any other encoding scheme, along with correct paths to them mentioned in network.yaml.

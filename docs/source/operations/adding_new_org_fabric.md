@@ -20,7 +20,7 @@ To add a new organization a fully configured Fabric network must be present alre
 
 Refer [this guide](./fabric_networkyaml.md) for details on editing the configuration file.
 
-While modifying the configuration file(`network.yaml`) for adding new organization, all the existing organizations should have `org_status` tag as `existing` and the new organization should have `org_status` tag as `new` under `network.channels` eg.
+While modifying the configuration file(`network.yaml`) for adding new organization, all the existing organizations should have `org_status` tag as `existing` and the new organization should have `org_status` tag as `new` under `network.channels` e.g.
 
     network:
       channels:
@@ -50,7 +50,7 @@ and under `network.organizations` as
           ..
           org_status: existing  # existing for old organization(s)
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the orderer information.
+The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
 For reference, see `network-fabric-add-organization.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples).

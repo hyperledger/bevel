@@ -28,7 +28,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum/besu, here in the example its **besu**.
 
-`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.5.5**.
+`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.5.5** and **21.1.1**.
 
 
 `env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
@@ -91,17 +91,24 @@ The snapshot of the `config` section with example values is below
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "orion"    # Option is orion only
-    # This is the version of "orion" docker image that will be deployed
+    transaction_manager: "tessera"    # Transaction manager can be "tessera" or "orion"; 21.x.x features are same for both
+    # This is the version of transaction_manager docker image that will be deployed
     # Supported versions #
     # orion: 1.6.0 (for besu 1.5.5)
-    tm_version: "1.6.0"               # This is the version of "orion" docker image that will be deployed
-    # TLS can be True or False for the orion tm
+    # orion/tessra: 21.1.1 (for besu 21.1.1)
+    tm_version: "21.1.1"
+    # TLS can be True or False for the transaction manager
     tm_tls: True
     # Tls trust value
-    tm_trust: "ca-or-tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
+    tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## File location for saving the genesis file should be provided.
     genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
+    ## At least one Transaction Manager nodes public addresses should be provided.
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15022" for orion
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
+    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
+    tm_nodes: 
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com"
 
 ```
 The fields under `config` are
@@ -110,14 +117,16 @@ The fields under `config` are
 |-------------|----------------------------------------------------------|
 | consensus   | Currently supports `ibft`.                                 |
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
-| transaction_manager    | Currently supports `orion`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. |
-| tm_version         | This is the version of `orion` docker image that will be deployed. Supported versions: `1.6.0` for `orion`. |
+| transaction_manager    | Supports `orion` or `tessera`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera.  |
+| tm_version         | This is the version of transaction manager docker image that will be deployed. Supported versions: `1.6.0` for `orion` and `21.1.1` for `tessera` and `orion`. |
 | tm_tls | Options are `True` and `False`. This enables TLS for the transaction manager and Besu node. `False` is not recommended for production. |
-| tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for orion]( https://docs.orion.pegasys.tech/en/latest/Tutorials/TLS/ ).|
+| tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [on modes here]( https://docs.tessera.consensys.net/en/stable/HowTo/Configure/TLS/#trust-modes ).|
 | genesis | This is the path where `genesis.json` will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file. |
+| tm_nodes | This is an array. Provide at least one tessera/orion node details which will act as bootstrap for other tessera/orion nodes |
 
 
 The `organizations` section contains the specifications of each organization.  
+
 In the sample configuration example, we have four organization under the `organizations` section.
 
 The snapshot of an organization field with sample values is below
@@ -220,6 +229,8 @@ Each organization with type as `member` will have a peers service. The snapshot 
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
             port: 8888         
             ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
@@ -238,9 +249,10 @@ The fields under `peer` service are
 | rpc.port   | RPC port for Besu|
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
 | ws.port   | Webservice port for Besu|
-| tm_nodeport.port   | Port used by Transaction manager `orion`. |
+| db.port   | Port for MySQL database which is only applicable for `tessera`|
+| tm_nodeport.port   | Port used by Transaction manager `orion` or `tessera`. |
 | tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
-| tm_clientport.port   | Client Port used by Transaction manager `orion`. |
+| tm_clientport.port   | Client Port used by Transaction manager `orion` or `tessera`. This is the port where Besu nodes connect to their respective transaction manager. |
 
 The peer in an organization with type as `member` can be used to deploy the smarcontracts with additional field `peer.smart_contract`. The snapshot of peers service with example values is below
 ```yaml
@@ -262,7 +274,7 @@ The peer in an organization with type as `member` can be used to deploy the smar
             ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
           tm_clientport:
             port: 8080       
-            geth_url: "http://manufacturerl.test.besu.blockchaincloudpoc.com:15011"  # geth url of the node
+          geth_url: "http://manufacturerl.test.besu.blockchaincloudpoc.com:15011"  # geth url of the node
           # smartcontract to be deployed only from one node (should not be repeated in other nodes)
           smart_contract:
             name: "General"           # Name of the smart contract or Name of the main Smart contract Class
@@ -272,28 +284,17 @@ The peer in an organization with type as `member` can be used to deploy the smar
             entrypoint: "General.sol" # Main entrypoint solidity file of the contract 
             private_for: "hPFajDXpdKzhgGdurWIrDxOimWFbcJOajaD3mJJVrxQ=,7aOvXjjkajr6gJm5mdHPhAuUANPXZhJmpYM5rDdS5nk=" # Orion Public keys for the privateFor         
 ```
-The fields under `peer` service are
+The additional fields under `peer` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| name            | Name of the peer                |
-| subject     | This is the alternative identity of the peer node    |
-| geth_passphrase | This is the passphrase used to generate the geth account. |
-| p2p.port   | P2P port for Besu|
-| p2p.ambassador | The P2P Port when exposed on ambassador service|
-| rpc.port   | RPC port for Besu|
-| rpc.ambassador | The RPC Port when exposed on ambassador service|
-| ws.port   | Webservice port for Besu|
-| tm_nodeport.port   | Port used by Transaction manager `orion`. |
-| tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
-| tm_clientport.port   | Client Port used by Transaction manager `orion`. |
 | geth_url  | RPC url for the `besu` node  |
 | smart_contract.name | Name of the main smartcontract class  |
 | smart_contract.deployjs_path | location of folder containing deployment script relative to BAF directory  |
 | smart_contract.contract_path | Path of the smart contract folder relative to deployjs_path  |
 | smart_contract.iterations | Number of Iteration of executions for which the gas and the code is optimised  |
 | smart_contract.entrypoint | Main entrypoint solidity file of the smart contract   |
-| smart_contract.private_for | Comma seperated string of `Orion` Public keys for the `privateFor`  |
+| smart_contract.private_for | Comma seperated string of `orion` or `tessera` Public keys for the `privateFor`  |
 
 Each organization with type as `validator` will have a validator service. The snapshot of validator service with example values is below
 ```yaml

@@ -16,8 +16,8 @@ spec:
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
-      signerContainerName: {{ network.docker.url }}/corda/enterprise-signer:1.2-zulu-openjdk8u242
+      initContainerName: {{ network.docker.url }}/{{ init_image }}
+      signerContainerName: {{ network.docker.url }}/{{ docker_image }}
       imagePullSecret: regcred
       pullPolicy: Always
     acceptLicense: YES
@@ -63,7 +63,7 @@ spec:
           interval: 1m
     config:
       volume:
-        baseDir: /opt/corda
+        baseDir: /opt/cenm
       jarPath: bin
       configPath: etc
       cordaJar:

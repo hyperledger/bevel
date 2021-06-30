@@ -13,19 +13,19 @@ BAF current roadmap
     section Application
     Besu Ref App: b4, 20-10-15, 120d
 
-.. |pin| image:: _static/pin.png
+.. |pin| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4cc.png?v8
     :width: 15pt
     :height: 15pt
-.. |tick| image:: _static/tick.png
+.. |tick| image:: https://github.githubassets.com/images/icons/emoji/unicode/2714.png?v8
     :width: 15pt
     :height: 15pt
-.. |run| image:: _static/run.png
+.. |run| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f3c3-2642.png?v8
     :width: 15pt
     :height: 15pt
-.. |muscle| image:: _static/muscle.png
+.. |muscle| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4aa.png?v8
     :width: 15pt
     :height: 15pt
-.. |hand| image:: _static/hand.png
+.. |hand| image:: https://github.githubassets.com/images/icons/emoji/unicode/270b.png?v8
     :width: 15pt
     :height: 15pt
 
@@ -53,8 +53,8 @@ General
 -  |run| Platforms and components upgrade:
     - |tick| Helm3 upgrade
     - |tick| EKS upgrade to 1.16
-    - |run| Ambassador upgrade to 1.9.1
-    - |run| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric
+    - |tick| Ambassador upgrade to 1.9.1
+    - |tick| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric
     - |pin| Setup AWS cloudwatch exporter
     - |pin| Grafana and Promethus integration 
     - |pin| Flux version upgrade
@@ -66,9 +66,9 @@ Platforms
 ---------
 - |run| Corda Ent. operational feature enhancements
     - |tick| Enable mutiple notaries
+    - |tick| Test R3 Corda version 4.7 upgrade
+    - |tick| Test CENM version upgrade to 1.5
     - |pin| Addition of notary node to an existing network
-    - |run| Test R3 Corda version 4.x upgrade
-    - |pin| Test CENM version upgrade
     - |pin| Enable PostGreSQL support for Corda Enterprise
     - |hand| Removable of node
 - |run| HL Fabric operational feature enhancements
@@ -83,7 +83,7 @@ Platforms
     - |tick| Enable DNS support
     - |pin| Enable deployment without proxy (proxy as none option)
     - |pin| Add clique consensus mechanism support 
-    - |hand| Addition of new validator node
+    - |run| Addition of new validator node
     - |hand| Enable bootnodes
 
 

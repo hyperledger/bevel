@@ -130,8 +130,10 @@
 # This task creates the Ambassador TLS credentials for ambassador
 - name: Create the Ambassador credentials
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert={{ ambassadortls }}/{{ node_name }}-certchain.pem --key={{ ambassadortls }}/{{node_name}}.key -n default
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert={{ ambassadortls }}/{{ node_name }}-certchain.pem --key={{ ambassadortls }}/{{node_name}}.key -n {{ component_ns }}
   when: get_ambassador_secret.resources|length == 0
+  tags:
+    molecule-idempotence-notest
 
 # Store all generated certifactes to the vault
 - name: Putting certs to vault

@@ -103,13 +103,13 @@ spec:
           nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.oriondir }}" 
+          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
-          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]')  
+          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]' | base64 -d)  
           orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key_pub"]')    
           orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]') 
           echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key

@@ -16,11 +16,11 @@ jobs:
     - uses: deepakputhraya/action-pr-title@master
       with:
         regex: '\[.*\].*' # Regex the title should match.
-        allowed_prefixes: '[shared],[docs],[indy],[fabric],[corda],[besu],[quorum],[corda-ent]' # title should start with the given prefix
-        disallowed_prefixes: 'feat/,hotfix' # title should not start with the given prefix
-        prefix_case_sensitive: true # title prefix are case insensitive
-        min_length: 6 # Min length of the title
-        max_length: 100 # Max length of the title
+        allowed_prefixes: '[shared],[docs],[indy],[fabric],[corda],[besu],[quorum],[corda-ent]' # title should start with the given prefix.
+        disallowed_prefixes: 'feat/,hotfix' # title should not start with the given prefix.
+        prefix_case_sensitive: true # title prefix are case insensitive.
+        min_length: 6 # Min length of the title.
+        max_length: 100 # Max length of the title.
         github_token: ${{ github.token }} # Default: ${{ github.token }}
     - uses: actions/checkout@v2
     - name: Set up Python 3.6
@@ -34,17 +34,18 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
         sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-        sudo apt-get update && sudo apt-get install vault
+        sudo apt-get update && sudo apt-get install vault && sudo apt-get install build-essential libdb-dev libleveldb-dev libsodium-dev zlib1g-dev libtinfo-dev
+        
+        # Creating symbolic links for the lib for specific requirements.
+        sudo ln -s /usr/lib/x86_64-linux-gnu/libsodium.so /usr/lib/x86_64-linux-gnu/libsodium.so.18
+        sudo ln -s /usr/lib/x86_64-linux-gnu/libleveldb.so /usr/lib/x86_64-linux-gnu/libleveldb.so.1
+        
         # export the bin path
         export PATH=~/bin:$PATH
       if: |
-        contains(github.event.pull_request.title, 'Shared') ||
         contains(github.event.pull_request.title, 'shared') ||
-        contains(github.event.pull_request.title, 'Corda') ||
         contains(github.event.pull_request.title, 'corda') ||
-        contains(github.event.pull_request.title, 'Fabric') ||
         contains(github.event.pull_request.title, 'fabric') ||
-        contains(github.event.pull_request.title, 'Quorum') ||
         contains(github.event.pull_request.title, 'quorum')
 #######################################################################################
   #the below test within the /shared folder
@@ -52,75 +53,75 @@ jobs:
       run: |
         cd ./platforms/shared/configuration
         molecule test -s default
-      if: contains(github.event.pull_request.title, 'Shared') || contains(github.event.pull_request.title, 'shared')
+      if: contains(github.event.pull_request.title, 'shared')
 
     - name: Test Stage kubernetes-corda
       run: |
         cd ./platforms/shared/configuration
         molecule test -s kubernetes-corda
-      if: contains(github.event.pull_request.title, 'Shared') || contains(github.event.pull_request.title, 'shared')
+      if: contains(github.event.pull_request.title, 'shared')
 
     - name: Test Stage kubernetes-fabric
       run: |
         cd ./platforms/shared/configuration
         molecule test -s kubernetes-fabric
-      if: contains(github.event.pull_request.title, 'Shared') || contains(github.event.pull_request.title, 'shared')
+      if: contains(github.event.pull_request.title, 'shared')
 
     - name: Test Stage kubernetes-indy
       run: |
         cd ./platforms/shared/configuration
         molecule test -s kubernetes-indy
-      if: contains(github.event.pull_request.title, 'Shared') || contains(github.event.pull_request.title, 'shared')
+      if: contains(github.event.pull_request.title, 'shared')
 #######################################################################################
   #the below test within the /hyperledger-fabric folder
     - name: Test Stage Fabric default
       run: | 
         cd ./platforms/hyperledger-fabric/configuration
         molecule test -s default
-      if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')
+      if: contains(github.event.pull_request.title, 'fabric')
 
     - name: Test Stage Fabric crypto
       run: | 
         cd ./platforms/hyperledger-fabric/configuration
         molecule test -s crypto
-      if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')
+      if: contains(github.event.pull_request.title, 'fabric')
 
     - name: Test Stage Fabric orderer
       run: | 
         cd ./platforms/hyperledger-fabric/configuration
         molecule test -s orderer
-      if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')
+      if: contains(github.event.pull_request.title, 'fabric')
 
     - name: Test Stage Fabric peer
       run: | 
         cd ./platforms/hyperledger-fabric/configuration
         molecule test -s peer
-      if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')
+      if: contains(github.event.pull_request.title, 'fabric')
 
     - name: Test Stage Fabric pre-vault-setup
       run: | 
         cd ./platforms/hyperledger-fabric/configuration
         molecule test -s pre-vault-setup
-      if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')
+      if: contains(github.event.pull_request.title, 'fabric')
 #######################################################################################
   #the below test within the /r3-corder folder
     - name: Test Stage Corda default
       run: | 
         cd ./platforms/r3-corda/configuration
         molecule test -s default
-      if: contains(github.event.pull_request.title, 'Corda') || contains(github.event.pull_request.title, 'corda')
+      if: contains(github.event.pull_request.title, 'corda')
 
     - name: Test Stage Corda doorman
       run: | 
         cd ./platforms/r3-corda/configuration
         molecule test -s doorman
-      if: contains(github.event.pull_request.title, 'Corda') || contains(github.event.pull_request.title, 'corda')
+      if: contains(github.event.pull_request.title, 'corda')
 
     - name: Test Stage Corda notary
       run: | 
         cd ./platforms/r3-corda/configuration
         molecule test -s notary
-      if: contains(github.event.pull_request.title, 'Corda') || contains(github.event.pull_request.title, 'corda')
+      if: contains(github.event.pull_request.title, 'corda')
 
     - name: Test Stage Corda networkmap
       run: |
@@ -139,13 +140,13 @@ jobs:
       run: | 
         cd ./platforms/quorum/configuration
         molecule test -s default
-      if: contains(github.event.pull_request.title, 'Quorum') || contains(github.event.pull_request.title, 'quorum')
+      if: contains(github.event.pull_request.title, 'quorum')
    
     - name: Test Stage Quorum crypto-constellation
       run: | 
         cd ./platforms/quorum/configuration
         molecule test -s crypto-constellation
-      if: contains(github.event.pull_request.title, 'Quorum') || contains(github.event.pull_request.title, 'quorum')
+      if: contains(github.event.pull_request.title, 'quorum')
 
     - name: Test Stage Quorum ambassador-certs
       run: |

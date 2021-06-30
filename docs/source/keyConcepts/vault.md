@@ -22,4 +22,4 @@ Consul supports using TLS to verify the authenticity of servers and clients. To 
 After generating the necessary client and server certificates, the values.yaml file `tls` field can be populated with the `ca.cert` certificates. Populating this field will enable or disable TLS for vault communication if a value present.  
 
 The latest documentation on generating tls material with consul can be found at: 
-https://learn.hashicorp.com/consul/security-networking/certificates
+[(https://learn.hashicorp.com/consul/security-networking/certificates])

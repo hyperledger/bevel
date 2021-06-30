@@ -62,11 +62,35 @@
     domain_name: "{{ service_name }}.{{ org.external_url_suffix }}"
   when: not openssl_conf_check.stat.exists
 
+# Check if tls ca file exists
+- name: Check if tls ca file exists
+  stat:
+    path: "./build/ambassador/corda-ssl-root-ca.key"
+  register: corda_ssl_ca_check
+
+# download from vault tls ca and convert from jks to p12
+- name: Get Corda SSL root ca
+  shell: |
+    echo $TRUSTSTORE_PASS
+    vault read -field=corda-ssl-root-keys.jks {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/root/certs |base64 -d > ./build/ambassador/corda-ssl-root-keys.jks
+    yes|keytool -importkeystore -srcstorepass $TRUSTSTORE_PASS -srckeystore ./build/ambassador/corda-ssl-root-keys.jks  -deststorepass $TRUSTSTORE_PASS -destkeystore ./build/ambassador/corda-ssl-root-keys.p12 -deststoretype PKCS12
+    openssl pkcs12 -in ./build/ambassador/corda-ssl-root-keys.p12 -passin pass:$TRUSTSTORE_PASS -nokeys -out ./build/ambassador/corda-ssl-root-ca.crt
+    openssl pkcs12 -in ./build/ambassador/corda-ssl-root-keys.p12 -passin pass:$TRUSTSTORE_PASS -nocerts -nodes -out ./build/ambassador/corda-ssl-root-ca.key 
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+    TRUSTSTORE_PASS: "{{ org.credentials.truststore.ssl }}"
+  when: not corda_ssl_ca_check.stat.exists
+
 # Create ambassador certificates
 - name: Create Ambassador certificates
   shell: |
-    cd {{ tlscert_path }}
-    openssl req -x509 -out ambassador.pem -keyout ambassador.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ domain_name }}" -extensions EXT -config openssl.conf
+    # generate new key
+    openssl genrsa -out {{ tlscert_path }}/ambassador.key 2048
+    # create request
+    openssl req -new -key {{ tlscert_path }}/ambassador.key -out {{ tlscert_path }}/ambassador.csr -config {{ tlscert_path }}/openssl.conf -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ domain_name }}" -extensions EXT
+    # sign with CA key
+    openssl x509 -req -in {{ tlscert_path }}/ambassador.csr -CA ./build/ambassador/corda-ssl-root-ca.crt -CAkey ./build/ambassador/corda-ssl-root-ca.key -CAcreateserial -outform PEM -out {{ tlscert_path }}/ambassador.pem -days 730 -extensions EXT -extfile {{ tlscert_path }}/openssl.conf 
   vars:
     domain_name: "{{ service_name }}.{{ org.external_url_suffix }}"
   when: ambassador_tls_certs.failed == True
@@ -80,11 +104,11 @@
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   when: ambassador_tls_certs.failed == True
 
-# Check if the ambassador secret is created in the default namespace
+# Check if the ambassador secret is created in the org namespace
 - name: Check Ambassador cred exists
   k8s_info:
     kind: Secret
-    namespace: default
+    namespace: "{{ namespace }}"
     name: "{{ service_name }}-ambassador-certs"
     kubeconfig: "{{ org.k8s.config_file }}"
     context: "{{ org.k8s.context }}"
@@ -93,7 +117,7 @@
 # Create the ambassador secret if it doesn't exist
 - name: Create the Ambassador credentials
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} kubectl create secret tls {{ service_name }}-ambassador-certs --cert="{{ tlscert_path }}/ambassador.pem" --key="{{ tlscert_path }}/ambassador.key" -n default
+    KUBECONFIG={{ org.k8s.config_file }} kubectl create secret tls {{ service_name }}-ambassador-certs --cert="{{ tlscert_path }}/ambassador.pem" --key="{{ tlscert_path }}/ambassador.key" -n {{ namespace }}
   when: get_ambassador_secret.resources|length == 0
 
 # Copy generated crt to build location

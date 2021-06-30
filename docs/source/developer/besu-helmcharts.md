@@ -33,19 +33,23 @@ This folder consists of Hyperledger-Besu node charts which is used by the ansibl
 ### Charts description
 
 ### templates
-- This folder contains template structures which when combined with values, will generate valid Kuberetenes manifest files for Hyperledger-Besu node implementation.
+- This folder contains template structures which, when combined with values, will generate valid Kuberetenes manifest files for Hyperledger-Besu node implementation.
 - This folder contains following template files for node implementation
 
-  - _helpers.tpl
-      This file doesn't output a Kubernets manifest file as it begins with underscore (_). And its a place to put template helpers that we can re-use throught the chart.
+  - _helpers.tpl   
+
+      This file doesn't output a Kubernets manifest file as it begins with underscore (_). And it's a place to put template helpers that we can re-use throught the chart.
       That file is the default location for template partials, as we have defined a template to encapsulate a Kuberntes block label for node.
 
-  - configmap.yaml
+  - configmap.yaml   
+
       The configmap contains the genesis file data encoded in base64 format.
 
-  - deployment.yaml
-      This file is used a basic manifest for creating a Kubernetes deployment. For the node, this file creates a deployment. The file defines where containers are defined and the respective Hyperledger-Besu images. It also contain the initial containers where the crypto material is fetched from the vault.
+  - deployment.yaml   
 
-  - service.yaml
-      This tempalate is used ts a basic manifest for creating service enpoints for our deployment.
+      This file is used as a basic manifest for creating a Kubernetes deployment. For the node, this file creates a deployment. The file defines where containers are defined and the respective Hyperledger-Besu images. It also contain the initial containers where the crypto material is fetched from the vault.
+
+  - service.yaml   
+
+      This template is used as a basic manifest for creating service enpoints for our deployment.
       This service.yaml creates enpoints for the besu node.

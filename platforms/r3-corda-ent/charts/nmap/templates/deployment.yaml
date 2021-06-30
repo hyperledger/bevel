@@ -309,11 +309,11 @@ spec:
             sshdPort = {{ .Values.service.shell.sshdPort }}
             user = "{{ .Values.service.shell.user }}"
             password = "{{ .Values.service.shell.password }}"
-          }' >> etc/nmap.conf
+          }' > etc/nmap.conf
 
-          export NETWORKMAP_SSL=$(cat /opt/corda/DATA/ssl/networkmapssl)
+          export NETWORKMAP_SSL=$(cat {{ .Values.config.volume.baseDir }}/DATA/ssl/networkmapssl)
           sed -i -e "s*NETWORKMAP_SSL*${NETWORKMAP_SSL}*g" etc/nmap.conf
-          export SSL_TRUSTSTORE=$(cat /opt/corda/DATA/truststore/sslts)
+          export SSL_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/truststore/sslts)
           sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g" etc/nmap.conf
 
           # /bin/sh
@@ -329,7 +329,7 @@ spec:
                     sleep 1
                 done
             fi
-            ROOTCA_TRUSTSTORE=$(cat /opt/corda/DATA/truststore/rootcats)
+            ROOTCA_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/truststore/rootcats)
             echo "Waiting for notary-nodeinfo/network-parameters-initial.conf ... done."
             ls -al notary-nodeinfo/network-parameters-initial.conf
             cp notary-nodeinfo/network-parameters-initial.conf {{ .Values.config.configPath }}/
@@ -375,15 +375,15 @@ spec:
           fi
         volumeMounts:
         - name: notary-nodeinfo
-          mountPath: /opt/corda/notary-nodeinfo
+          mountPath: {{ .Values.config.volume.baseDir }}/notary-nodeinfo
         - name: nmap-etc
-          mountPath: /opt/corda/etc
+          mountPath: {{ .Values.config.volume.baseDir }}/etc
         - name: certificates
-          mountPath: /opt/corda/DATA
+          mountPath: {{ .Values.config.volume.baseDir }}/DATA
         - name: nmap-logs
-          mountPath: /opt/corda/logs
+          mountPath: {{ .Values.config.volume.baseDir }}/logs
         - name: nmap-h2
-          mountPath: /opt/corda/h2
+          mountPath: {{ .Values.config.volume.baseDir }}/h2
         resources:
           requests:
             memory: {{ .Values.config.pod.resources.requests }}
@@ -423,15 +423,15 @@ spec:
           fi
         volumeMounts:
         - name: notary-nodeinfo
-          mountPath: /opt/corda/notary-nodeinfo
+          mountPath: {{ .Values.config.volume.baseDir }}/notary-nodeinfo
         - name: nmap-h2
-          mountPath: /opt/corda/h2
+          mountPath: {{ .Values.config.volume.baseDir }}/h2
         - name: nmap-etc
-          mountPath: /opt/corda/etc
+          mountPath: {{ .Values.config.volume.baseDir }}/etc
         - name: nmap-logs
-          mountPath: /opt/corda/logs
+          mountPath: {{ .Values.config.volume.baseDir }}/logs
         - name: certificates
-          mountPath: /opt/corda/DATA
+          mountPath: {{ .Values.config.volume.baseDir }}/DATA
         resources:
           requests:
             memory: {{ .Values.config.pod.resources.requests }}
@@ -446,13 +446,13 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cd /opt/corda/
+          cd {{ .Values.config.volume.baseDir }}/
           while true; do tail -f logs/network-map/*.log 2>/dev/null; sleep 5; done
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
         - name: nmap-logs
-          mountPath: /opt/corda/logs
+          mountPath: {{ .Values.config.volume.baseDir }}/logs
       imagePullSecrets:
       - name: {{ .Values.image.imagePullSecret }}
       volumes:

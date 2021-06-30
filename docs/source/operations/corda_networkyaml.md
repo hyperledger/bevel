@@ -148,7 +148,7 @@ Each organization under the `organizations` section has the following fields.
 | subject                                     | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | subordinate_ca_subject | Only for **Corda Enterprise**. Subordinate CA Subject for the CENM.|
 | type                                        | This field can be doorman-nms-notary/node/cenm              |
-| version | Defines the CENM version. Only for **Corda Enterprise**, must be `1.2` |
+| version | Defines the CENM version. Only for **Corda Enterprise**, must be `1.5` |
 | external_url_suffix                         | Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider.|
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure or gcp |
 | aws                                         | When the organization cluster is on AWS |
@@ -234,8 +234,8 @@ For organization as type `cenm` the credential block looks like
           keystore: cordacadevpass #notary keystore password
           idman: password #idman keystore password
           networkmap: password #networkmap keystore password
-          subordinateca: password #subordinateca keystore password
-          rootca: password # rootca keystore password
+          subordinateca: password #subordinateCA keystore password
+          rootca: password # rootCA keystore password
           tlscrlsigner: password #tls-crl-signer keystore password
         truststore:
           truststore: trustpass #notary truststore password

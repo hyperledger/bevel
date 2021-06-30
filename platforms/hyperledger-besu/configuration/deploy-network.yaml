@@ -111,10 +111,61 @@
       name: create/crypto/orion  
     vars:
       build_path: "{{ playbook_dir }}/build"
-    when: network.config.transaction_manager == 'orion'
+      component_ns: "{{ org.name }}-bes"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - org.type == 'member'
+      - network.config.transaction_manager == 'orion'
 
-  # This role deploy nodes with Orion transaction manager and IBFT consensus
-  - name: "Deploy nodes with orion Transaction Manager and IBFT consensus"
+  # This role generates the crypto materials for tessera tm
+  - name: "Generate crypto for the Tessera transaction manager"
+    include_role:
+      name: create/crypto/tessera  
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name }}-bes"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - org.type == 'member'
+      - network.config.transaction_manager == 'tessera'
+
+  # This role deploys  Tessera nodes
+  - name: "Deploy Tessera nodes"
+    include_role:
+      name: create/tessera  
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name }}-bes"
+      storageclass_name: "{{ org.cloud_provider }}storageclass"
+      external_url: "{{ org.external_url_suffix }}"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - org.type == 'member'
+      - network.config.transaction_manager == 'tessera'
+
+  # This role deploy nodes with for IBFT consensus
+  - name: "Deploy Besu nodes for IBFT consensus"
     include_role:
       name: create/ibft
     vars:
@@ -131,12 +182,11 @@
       git_branch: "{{ item.gitops.branch }}"
       docker_url: "{{ network.docker.url }}"
       charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
     loop: "{{ network['organizations'] }}"
     when: 
       - network.config.consensus == 'ibft' 
       - item.type == 'member'
-      - network.config.transaction_manager == 'orion'
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS

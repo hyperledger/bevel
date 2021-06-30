@@ -22,7 +22,7 @@ spec:
       pullPolicy: Always
     acceptLicense: YES
     volume:
-      baseDir: /opt/corda
+      baseDir: /opt/cenm
     vault:
       address: {{ vault.url }}
       role: vault-role

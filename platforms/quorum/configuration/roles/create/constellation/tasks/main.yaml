@@ -48,12 +48,16 @@
   retries: "{{ network.env.retry_count }}"
   delay: 50
   when: network.config.consensus == 'raft' and add_new_org
+  tags:
+    - notest
 
 # This task fetches the new peer_id 
 - name: Get peer_id
   set_fact:
     peer_id: "{{ peer_id.results[0].json.result }}"
   when: network.config.consensus == 'raft' and add_new_org
+  tags:
+    - notest
 
 # This task creates the Constellation Manager value file for each node of organization
 - name: Create value file for constellation TM for each node in the organization
@@ -76,3 +80,5 @@
     gitops: "{{ item.gitops }}"
     GIT_RESET_PATH: "platforms/quorum/configuration"
     msg: "[ci skip] Pushing Peer files"
+  tags:
+    - notest
