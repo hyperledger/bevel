@@ -162,13 +162,25 @@ spec:
               TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
               echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks
 
+              {{- if eq .Values.nodeConf.notary.type "cenm" }}
               # get ca ssl-truststore.jks from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
               TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
-              echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/corda-ssl-trust-store.jks 
+              echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/corda-ssl-trust-store.jks              
+              {{- else }}
+              # get idman and networkmap certs
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+              echo "${IDMAN_CERT}" | base64 -d > ${OUTPUT_PATH}/idman.crt
 
-               echo "Done fetching all certificates from vault"
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+              echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/networkmap.crt
+              {{- end }}
+              echo "Done fetching all certificates from vault"
 
               # Fetching keystore credentials from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
@@ -302,7 +314,7 @@ spec:
           }
 
           devMode = {{ .Values.nodeConf.devMode }}
-          emailAddress : "{{ .Values.nodeConf.email }}"
+          emailAddress : "{{ .Values.nodeConf.emailAddress }}"
           myLegalName : "{{ .Values.nodeConf.legalName }}"
           p2pAddress : "{{ .Values.nodeConf.p2p.url }}:{{ .Values.service.p2pPort }}"
           trustStorePassword: "TRUSTSTORE_PASSWORD"
@@ -331,7 +343,6 @@ spec:
           }' > ${BASE_DIR}/etc/notary.conf
 
           export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/tspass)
-          export SSLTRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/sslpass)
           sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
           export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
           sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
@@ -340,8 +351,15 @@ spec:
           # to clean network-parameters on every restart
           rm -rf ${BASE_DIR}/network-parameters
 
-          # add idman and networkmap certificates to java keystore
+          {{- if eq .Values.nodeConf.notary.type "cenm" }}
+          # add ssl-truststore to truststore
+          export SSLTRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/sslpass)
           keytool -importkeystore -srckeystore ${BASE_DIR}/certificates/corda-ssl-trust-store.jks -srcstorepass $SSLTRUSTSTORE_PASSWORD -destkeystore ${BASE_DIR}/certificates/truststore.jks -deststorepass $TRUSTSTORE_PASSWORD -srcalias cordasslrootca -destalias cordasslrootca
+          {{- else }}
+          # add idman and networkmap certificates to truststore          
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.networkMapDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.idmanDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks          
+          {{- end }}
           
           /bin/sh
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)

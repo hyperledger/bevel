@@ -7,7 +7,7 @@
 - name: Delete docker creds
   k8s:
     kind: Secret
-    namespace: "{{ org.name | lower }}"
+    namespace: "{{ org.name | lower }}-ent"
     name: "regcred"
     state: absent
     kubeconfig: "{{ org.k8s.config_file }}"
@@ -19,7 +19,7 @@
 - name: Delete Ambassador creds for idman
   k8s:
     kind: Secret
-    namespace: default
+    namespace: "{{ org.name | lower }}-ent"
     name: "{{ org.services.idman.name }}-ambassador-certs"
     kubeconfig: "{{ org.k8s.config_file }}"
     context: "{{ org.k8s.context }}"
@@ -31,7 +31,7 @@
 - name: Delete Ambassador creds for networkmap
   k8s:
     kind: Secret
-    namespace: default
+    namespace: "{{ org.name | lower }}-ent"
     name: "{{ org.services.networkmap.name }}-ambassador-certs"
     kubeconfig: "{{ org.k8s.config_file }}"
     context: "{{ org.k8s.context }}"
@@ -43,7 +43,7 @@
 - name: Delete Ambassador creds for notary
   k8s:
     kind: Secret
-    namespace: default
+    namespace: "{{ org.name | lower }}-ent"
     name: "{{ notary.name }}-ambassador-certs"
     kubeconfig: "{{ org.k8s.config_file }}"
     context: "{{ org.k8s.context }}"
@@ -52,13 +52,13 @@
   loop_control:
     loop_var: notary
   ignore_errors: yes
-  when: org.type == 'cenm'
+  when: org.type == 'cenm' or org.type == 'notary'
 
 # Delete the Ambassador Creds for each peer of all nodes
 - name: Delete Ambassador creds for each peer of all nodes
   k8s:
     kind: Secret
-    namespace: default
+    namespace: "{{ org.name | lower }}-ent"
     name: "{{ peer.name }}-ambassador-certs"
     kubeconfig: "{{ org.k8s.config_file }}"
     context: "{{ org.k8s.context }}"
@@ -80,8 +80,7 @@
 
 # This task deletes vault auth for float
 - name: Delete vault-auth path for organizations float vault
-  shell: |
-    vault delete sys/auth/cordaent{{ org.name | lower }}
+  shell: |    
     vault delete sys/auth/cordaent{{ org.name | lower }}float
     vault delete sys/auth/cordaentfloat{{ org.name | lower }}
   environment:
@@ -124,8 +123,7 @@
     vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/nodekeystore
     vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/sslkeystore
     vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/truststore
-    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/nodeInfo
-    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/networkparam
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/nodeInfo    
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -133,6 +131,28 @@
   loop_control:
     loop_var: notary
   when: org.type == 'cenm'
+
+# This task deletes crypto material for additional notaries
+- name: Delete Crypto material for Notary orgs
+  shell: |
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/root/certs
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/tlscerts
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/tlscerts
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/nodekeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/sslkeystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/truststore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/nodeInfo    
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/credentials/keystore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/credentials/truststore
+    vault delete {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/credentials/cordapps
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  loop: "{{ org.services.notaries }}"
+  loop_control:
+    loop_var: notary
+  when: org.type == 'notary'
+  ignore_errors: yes
 
 ############################################################################################
 # This task deletes crypto material
