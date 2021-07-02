@@ -6,12 +6,14 @@ BAF current roadmap
     title BAF current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    Platforms and components upgrade: active, 21-01-07, 180d
-    Corda Ent. OFE*: active, 20-11-15, 180d
-    Fabric OFE*: active, 20-10-15, 240d
-    Besu OFE*: active, 21-01-07, 150d
+    Platforms and components upgrade: active, 21-05-01, 180d
+    Corda Ent. OFE*: active, 21-06-01, 120d
+    Fabric OFE*: active, 21-05-01, 120d
+    Besu OFE*: active, 21-06-01, 60d
+    Quorum OFE*: active, 21-06-15, 60d
+    Ansible Decoupling: active, 21-06-20, 90d
     section Application
-    Besu Ref App: b4, 20-10-15, 120d
+    Besu Ref App: active, 21-06-15, 60d
 
 .. |pin| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4cc.png?v8
     :width: 15pt
@@ -52,24 +54,26 @@ General
 -  |run| Improve the existing ``readthedocs`` documentations
 -  |run| Platforms and components upgrade:
     - |tick| Helm3 upgrade
-    - |tick| EKS upgrade to 1.16
     - |tick| Ambassador upgrade to 1.9.1
     - |tick| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric
+    - |run| EKS upgrade to 1.19
     - |pin| Setup AWS cloudwatch exporter
     - |pin| Grafana and Promethus integration 
     - |pin| Flux version upgrade
     - |pin| Support for HashiCorp vault kv version 2
     - |pin| Improve logging/error messaging in playbooks
-    - |hand| Java version upgrades
 
 Platforms
 ---------
+- |run| Reduce/Decouple ansible dependecy in DLT platforms automation
 - |run| Corda Ent. operational feature enhancements
     - |tick| Enable mutiple notaries
     - |tick| Test R3 Corda version 4.7 upgrade
     - |tick| Test CENM version upgrade to 1.5
-    - |pin| Addition of notary node to an existing network
+    - |run| Addition of notary node organisation to an existing network
+    - |pin| HA Notary options
     - |pin| Enable PostGreSQL support for Corda Enterprise
+    - |pin| CENM 1.5 serives (Auth, Gateway and Zone)
     - |hand| Removable of node
 - |run| HL Fabric operational feature enhancements
     - |tick| HL Fabric 2.2 version upgrade
@@ -78,18 +82,21 @@ Platforms
     - |run| Feature for user identities
     - |run| External chaincode for Fabric 2.2.x
     - |pin| CI/CD piplelines for chaincode deployment
-
 - |run| HL Besu operational feature enhancements
     - |tick| Enable DNS support
+    - |tick| Addition of new validator node
+    - |tick| Add tessera transaction manager support
     - |pin| Enable deployment without proxy (proxy as none option)
     - |pin| Add clique consensus mechanism support 
-    - |run| Addition of new validator node
+    - |pin| Add ethash consensus mechanism support
     - |hand| Enable bootnodes
-
+- |run| Quorum operational feature enhancements
+    - |tick| Version upgrade (Tessera and Quorum node) - v21.4.x 
+    - |pin| Implement private transactions
 
 Application
 -----------
--  |hand| Hyperledger Besu reference application
+-  |run| Hyperledger Besu reference application
 
 
 Histroic DLT/Blockchain support releases
