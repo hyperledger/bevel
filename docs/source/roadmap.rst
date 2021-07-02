@@ -65,19 +65,19 @@ General
 
 Platforms
 ---------
-- |run| Reduce/Decouple ansible dependecy in DLT platforms automation
-- |run| Corda Ent. operational feature enhancements
+- |run| Reduce/decouple ansible dependecy in DLT platforms automation
+- |run| Corda Enterprise operational feature enhancements
     - |tick| Enable mutiple notaries
-    - |tick| Test R3 Corda version 4.7 upgrade
-    - |tick| Test CENM version upgrade to 1.5
+    - |tick| R3 Corda version 4.7 upgrade
+    - |tick| CENM version 1.5 upgrade
     - |run| Addition of notary node organisation to an existing network
     - |pin| HA Notary options
     - |pin| Enable PostGreSQL support for Corda Enterprise
-    - |pin| CENM 1.5 serives (Auth, Gateway and Zone)
-    - |hand| Removable of node
+    - |pin| CENM 1.5 services (Auth, Gateway and Zone) support
+    - |hand| Removal of node
 - |run| HL Fabric operational feature enhancements
     - |tick| HL Fabric 2.2 version upgrade
-    - |tick| HL Fabric v1.4.8 upgrade
+    - |tick| HL Fabric 1.4.8 upgrade
     - |tick| Multi Orderer organisation option for RAFT
     - |run| Feature for user identities
     - |run| External chaincode for Fabric 2.2.x
@@ -87,8 +87,8 @@ Platforms
     - |tick| Addition of new validator node
     - |tick| Add tessera transaction manager support
     - |pin| Enable deployment without proxy (proxy as none option)
-    - |pin| Add clique consensus mechanism support 
-    - |pin| Add ethash consensus mechanism support
+    - |run| Add clique consensus mechanism support 
+    - |run| Add ethash consensus mechanism support
     - |hand| Enable bootnodes
 - |run| Quorum operational feature enhancements
     - |tick| Version upgrade (Tessera and Quorum node) - v21.4.x 
@@ -101,4 +101,4 @@ Application
 
 Histroic DLT/Blockchain support releases
 -----------------------------------------
-This section has been moved to the compatibilitymatrix
+This section has been moved to the :doc:`compatibilitymatrix`
