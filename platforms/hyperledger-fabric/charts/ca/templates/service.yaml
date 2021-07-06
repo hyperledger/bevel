@@ -65,7 +65,7 @@ spec:
 
 {{- if eq $.Values.proxy.provider "haproxy" }}
 ---
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $.Values.server.name }}
@@ -79,7 +79,10 @@ spec:
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ $.Values.server.name }}
-          servicePort: {{ $.Values.service.ports.tcp.clusteripport }}    
+          service:
+            name: {{ $.Values.server.name }}
+            port:
+              number: {{ $.Values.service.ports.tcp.clusteripport }}    
 {{- end }}

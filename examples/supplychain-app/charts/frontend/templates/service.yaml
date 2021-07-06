@@ -41,7 +41,7 @@ spec:
         
 {{- if eq $.Values.proxy.provider "haproxy" }}
 ---
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Values.nodeName }}
@@ -58,7 +58,10 @@ spec:
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ .Values.proxy.peer_name }}-frontend
-          servicePort: {{ .Values.frontend.nodePorts.port }}
+          service:
+            name: {{ .Values.proxy.peer_name }}-frontend
+            port:
+              number: {{ .Values.frontend.nodePorts.port }}
 {{- end }}
