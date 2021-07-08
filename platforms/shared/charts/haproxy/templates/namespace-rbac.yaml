@@ -13,7 +13,7 @@ metadata:
 
 ---
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: ingress-controller
 rules:
@@ -43,9 +43,11 @@ rules:
       - list
       - watch
   - apiGroups:
-      - "extensions"
+      - extensions
+      - networking.k8s.io
     resources:
       - ingresses
+      - ingressclasses
     verbs:
       - get
       - list
@@ -58,14 +60,15 @@ rules:
       - create
       - patch
   - apiGroups:
-      - "extensions"
+      - extensions
+      - networking.k8s.io
     resources:
       - ingresses/status
     verbs:
       - update
 ---
 kind: Role
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: ingress-controller
   namespace: {{ .Values.metadata.namespace }}
@@ -83,18 +86,6 @@ rules:
       - ""
     resources:
       - configmaps
-    verbs:
-      - get
-      - update
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - create
-  - apiGroups:
-      - ""
-    resources:
       - endpoints
     verbs:
       - get
@@ -102,7 +93,7 @@ rules:
       - update
 ---
 kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: ingress-controller
 roleRef:
@@ -118,7 +109,7 @@ subjects:
     name: ingress-controller
 ---
 kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: ingress-controller
   namespace: {{ .Values.metadata.namespace }}

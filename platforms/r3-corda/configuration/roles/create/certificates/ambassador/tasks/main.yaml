@@ -55,12 +55,19 @@
     [req]
     distinguished_name = dn
     [EXT]
-    subjectAltName=DNS:{{ domain_name }}
     keyUsage=digitalSignature
     extendedKeyUsage=serverAuth
+    subjectAltName = @alt_names
+
+    [alt_names]
+    DNS.1 = {{ domain_name }}
+    DNS.2 = {{ domain_name_api }}
+    DNS.3 = {{ domain_name_web }}
     EOF
   vars:
     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
+    domain_name_api: "{{ component_name }}api.{{ item.external_url_suffix }}"
+    domain_name_web: "{{ component_name }}web.{{ item.external_url_suffix }}"   
   when: ambassador_tls_certs.failed == True  and (not openssl_conf_check.stat.exists)
 
 # Generates the ambassador tls certificates if already not generated
@@ -86,7 +93,7 @@
 - name: Check Ambassador cred exists
   k8s_info:
     kind: Secret
-    namespace: default
+    namespace: "{{ component_ns }}"
     name: "{{ component_name }}-ambassador-certs"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
@@ -95,7 +102,7 @@
 # This task creates the Ambassador TLS credentials for ambassador
 - name: Create the Ambassador credentials
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ component_name }}-ambassador-certs --cert={{ ambassadortls }}/ambassador.crt --key={{ ambassadortls }}/ambassador.key -n default
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ component_name }}-ambassador-certs --cert={{ ambassadortls }}/ambassador.crt --key={{ ambassadortls }}/ambassador.key -n {{ component_ns }}
   when: get_ambassador_secret.resources|length == 0
 
 # Copy generated crt to build location for doorman and networkmap

@@ -34,6 +34,7 @@ Corda operations
     operations/corda_networkyaml
     operations/adding_cordapps
     operations/adding_new_org_corda
+    operations/adding_new_notary_corda
 
 Besu operations
 -----------------------

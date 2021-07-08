@@ -202,7 +202,7 @@ spec:
                 validating = "{{ .Values.nodeConf.notary.validating }}"
             }
             devMode = {{ .Values.nodeConf.devMode }}
-            emailAddress : "{{ .Values.nodeConf.email }}"
+            emailAddress : "{{ .Values.nodeConf.emailAddress }}"
             myLegalName : "{{ .Values.nodeConf.legalName }}"
             p2pAddress : "{{ .Values.nodeConf.p2p.url }}:{{ .Values.service.p2pPort }}"
             trustStorePassword: "TRUSTSTORE_PASSWORD"
@@ -229,11 +229,18 @@ spec:
             export KEYSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/keystore/ks)
             sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" etc/notary.conf
             rm -r ${BASE_DIR}/certificates/done.txt
-            #yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
-            #yes | keytool -importcert -file {{ $.Values.nodeConf.volume.baseDir }}/DATA/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/java-1.8-zulu8/jre/lib/security/cacerts
+
+            {{- if eq .Values.nodeConf.notary.type "cenm" }}
+            CORDA_SSL_TRUSTSTORE={{ $.Values.nodeConf.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks
+            {{- else }}
+            SSL_TRUSTSTORE_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13)
+            CORDA_SSL_TRUSTSTORE=DATA/trust-stores/corda-ssl-custom-trust-store.jks
+            yes | keytool -importcert -file DATA/tlscerts/networkmap.crt -storepass $SSL_TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.networkMapDomain }} -keystore $CORDA_SSL_TRUSTSTORE
+            yes | keytool -importcert -file DATA/tlscerts/idman.crt -storepass $SSL_TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.idmanDomain }} -keystore $CORDA_SSL_TRUSTSTORE          
+            {{- end }}
 
             /bin/sh
-            CORDA_SSL_TRUSTSTORE={{ $.Values.nodeConf.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks
+            
             NETWORK_ROOT_TRUSTSTORE={{ $.Values.nodeConf.volume.baseDir }}/DATA/trust-stores/network-root-truststore.jks
             NETWORK_ROOT_TRUSTSTORE_PASSWORD=$(cat {{ $.Values.nodeConf.volume.baseDir }}/DATA/truststore/rootcats)
 
@@ -245,7 +252,8 @@ spec:
                     echo "Notary: running initial registration ..."
                     echo
                     pwd
-                    java -Dcapsule.jvm.args='-Xmx{{ .Values.nodeConf.cordaJar.memorySize }}{{ .Values.nodeConf.cordaJar.unit }}' -Djavax.net.ssl.trustStore=${CORDA_SSL_TRUSTSTORE} \
+                    java -Dcapsule.jvm.args='-Xmx{{ .Values.nodeConf.cordaJar.memorySize }}{{ .Values.nodeConf.cordaJar.unit }}' \
+                    -Djavax.net.ssl.trustStore=${CORDA_SSL_TRUSTSTORE} \
                     -jar {{ .Values.nodeConf.jarPath }}/corda.jar initial-registration \
                     --config-file={{ .Values.nodeConf.configPath }}/notary.conf \
                     --log-to-console \

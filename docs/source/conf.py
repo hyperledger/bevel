@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Blockchain Automation Framework'
-copyright = u'2020, Blockchain Automation Framework'
+copyright = u'2021, Blockchain Automation Framework'
 author = u'Blockchain Automation Framework'
 
 # The version info for the project you're documenting, acts as replacement for

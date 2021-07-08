@@ -75,7 +75,7 @@
 
 #####################################################################################################################
 # This task creates the access policy for various corda-ent entity
-- name: Create policy for Access Control for CENM
+- name: Create policy for Access Control
   shell: |
     cd ./build    
     echo "path \"{{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/*\" {
@@ -85,19 +85,7 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True and component_type  == "cenm"    # Run if policy check failed
-
-- name: Create policy for Access Control for nodes
-  shell: |
-    cd ./build    
-    echo "path \"{{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/*\" {
-        capabilities = [\"read\", \"list\", \"create\"]
-    }"  >>  vault-crypto-{{ org.name | lower }}-ro.hcl
-    vault write sys/policy/vault-crypto-{{ org.type }}-{{ org.name | lower }}-ro policy="@vault-crypto-{{ org.name | lower }}-ro.hcl"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_policy_result.failed == True and  component_type == 'node'   # Run if policy check failed
+  when: vault_policy_result.failed == True  # Run if policy check failed
 
 # This task creates the vault auth
 - name: Create Vault auth role
