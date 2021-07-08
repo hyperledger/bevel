@@ -62,7 +62,7 @@ This task deletes Ambassador credentials for notary
 - `*kubeconfig` - The config file of the K8s cluster
 - `*context` - The context of the K8s cluster
 
-**when**: runs this task when the `org.type == 'cenm'` 
+**when**: runs this task when the `org.type == 'cenm' or org.type == 'notary'` 
 
 **ignore_errors**: This flag ignores the any errors and proceeds further.
 

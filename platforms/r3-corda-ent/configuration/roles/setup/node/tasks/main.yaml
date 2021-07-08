@@ -133,6 +133,11 @@
 - name: Create value file for node registration
   include_role:
     name: setup/node_registration
+  vars:
+    node_name: "{{ peer.name | lower }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
 
 # Create value file for node
 - name: "Create value file for node"
@@ -140,6 +145,7 @@
     name: helm_component
   vars:
     helm_lint: "true"
+    type: node
     git_url: "{{ org.gitops.git_url }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
@@ -147,8 +153,7 @@
     node_name: "{{ peer.name | lower }}"
     values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     name: "{{ org.name | lower }}"
-    corda_service_version: node-{{ org.version }}
-    type: node
+    corda_service_version: node-{{ network.version }}    
     doorman_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
     networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
   loop: "{{ org.services.peers }}"

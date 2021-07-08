@@ -43,13 +43,13 @@ spec:
         users:
           username: notary
           password: notaryP
-    networkServices:
-      idmanName: {{ org.services.idman.name }}
+    networkServices:      
       doormanURL: {{ idman_url }}
-      idmanDomain: {{ idman_domain }}
-      networkmapName: {{ org.services.networkmap.name }}
+      idmanDomain: {{ idman_domain }}      
       networkMapURL: {{ networkmap_url }}
       networkMapDomain: {{ networkmap_domain }}
+      idmanName: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"
+      networkmapName: "{{ network | json_query('network_services[?type==`networkmap`].name') | first }}"
     dataSourceProperties:
       dataSource:
         password: "{{ notary_service.name }}-db-password"
@@ -66,6 +66,7 @@ spec:
       notary:
         serviceLegalName: {{ notary_service.serviceName }}
         validating: {{ notary_service.validating }}
+        type: {{ org.type }}
       p2p:
         url: {{ notary_name }}.{{ component_ns }}
       ambassador:

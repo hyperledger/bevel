@@ -91,12 +91,19 @@
     [req]
     distinguished_name = dn
     [EXT]
-    subjectAltName=DNS:{{ domain_name }}
     keyUsage=digitalSignature
     extendedKeyUsage=serverAuth
+    subjectAltName = @alt_names
+
+    [alt_names]
+    DNS.1 = {{ domain_name }}
+    DNS.2 = {{ domain_name_api }}
+    DNS.3 = {{ domain_name_web }}
     EOF
   vars:
     domain_name: "{{ node_name }}.{{ item.external_url_suffix }}"
+    domain_name_api: "{{ node_name }}api.{{ item.external_url_suffix }}"
+    domain_name_web: "{{ node_name }}web.{{ item.external_url_suffix }}"
   when: ambassador_tls_certs.failed == True
   tags:
     molecule-idempotence-notest
@@ -121,7 +128,7 @@
 - name: Check Ambassador cred exists
   k8s_info:
     kind: Secret
-    namespace: default
+    namespace: "{{ component_ns }}"
     name: "{{ node_name }}-ambassador-certs"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
