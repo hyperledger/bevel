@@ -21,7 +21,7 @@ This task initaiates the nested_main role for each node in the organisation
 #### 1. Check if tm key already present in the vault
 This tasks checks if tm key is already present in the vault
 
-**shell**: This module runs the vault read command in a shell
+**shell**: This module runs the vault kv get command in a shell
 
 ##### Input Variables
 

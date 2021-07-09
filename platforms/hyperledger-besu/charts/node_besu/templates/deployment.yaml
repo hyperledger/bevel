@@ -110,7 +110,7 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]') 
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
@@ -120,7 +120,7 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          tm_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key_pub"]')    
+          tm_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key_pub"]')    
           echo "${tm_key_pub}" > ${MOUNT_PATH}/tm_key.pub
         
           if [ {{ $.Values.tm.tls }} == "true" ]
@@ -133,9 +133,9 @@ spec:
               jq -r 'if .errors then . else . end')
             validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
             
-            tm_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["knownServer"]'| base64 -d) 
-            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')  
-            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]' | base64 -d)
+            tm_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["knownServer"]'| base64 -d) 
+            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
+            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' | base64 -d)
 
             echo "${tm_known_server}" > ${MOUNT_PATH}/known_server
             echo "${keystore}" > ${MOUNT_PATH}/keystore

@@ -80,12 +80,12 @@ spec:
 
               #encode to base64 to update to vault otherwise json format is creating problems with vault api
               nodekey_base64=$(base64 nodeKey.key | tr -d \\n)
-
+              
               # Save the generated keys to VAULT
               LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
                 -H "Content-Type: application/json" \
                 -X POST \
-                -d '{"key":"'"$nodekey_base64"'","key_pub":"'"$(cat nodeKey.pub)"'"}' \
+                -d '{"data": {"key":"'"$nodekey_base64"'","key_pub":"'"$(cat nodeKey.pub)"'"}}' \
                 ${VAULT_ADDR}/v1/${vault_secret_key} | \
                 jq -r 'if .errors then . else .auth.client_token end')
               

@@ -38,12 +38,12 @@
 # This task deletes crypto material
 - name: Delete Crypto material 
   shell: |
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/data
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tm
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/credentials
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tls
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/genesis
-    vault delete {{ item.vault.secret_path | default('secret') }}/besu-{{ network.env.type }}/rootca
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/data
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tm
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/credentials
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tls
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/genesis
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/besu-{{ network.env.type }}/rootca
   loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"

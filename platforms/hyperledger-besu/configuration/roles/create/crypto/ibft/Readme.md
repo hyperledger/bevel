@@ -163,7 +163,7 @@ This task adds the crypto material to Vault
 #### 1. Check if key already present in the vault
 This tasks checks if key is already present in the vault
 
-**shell**: This module runs the vault read command in a shell
+**shell**: This module runs the vault kv get command in a shell
 
 ##### Input Variables
 
