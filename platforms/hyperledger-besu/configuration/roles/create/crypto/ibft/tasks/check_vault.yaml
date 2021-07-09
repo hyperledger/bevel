@@ -1,7 +1,7 @@
 # This tasks checks for the crypto material to the vault
 - name: Check the crypto material in Vault
   shell: |
-    vault kv get -format=json {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ item.name }}/data
+    vault kv get -field=key_pub {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ item.name }}/data
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -9,7 +9,7 @@
   register: vault_result
   ignore_errors: yes
 
-# This sets a fact vault_result
+# This sets a fact generate_crypto
 - set_fact:
     generate_crypto: True
   when: vault_result.failed is defined and vault_result.failed == True

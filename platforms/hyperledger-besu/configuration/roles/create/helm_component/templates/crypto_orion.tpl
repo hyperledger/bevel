@@ -23,4 +23,4 @@ spec:
       authpath: besu{{ org.name | lower }}
       role: vault-role
       serviceaccountname: vault-auth
-      tmprefix: {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}/tm
+      tmprefix: {{ vault.secret_path | default('secret') }}/data/{{ component_ns }}/crypto/{{ peer.name }}/tm
