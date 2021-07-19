@@ -72,7 +72,7 @@
 - name: Write reviewer token for Organisations
   shell: |
     export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_name }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_name }} -o  jsonpath={.data.token} | base64 -d)
-    vault write auth/{{ auth_path }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_name }}.ca.cert"
+    vault kv put auth/{{ auth_path }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_name }}.ca.cert"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -115,7 +115,7 @@
 # This task writes the policies to the vault
 - name: Write Policy to Vault
   shell: |
-    vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@./build/vault-crypto-{{ component_name | lower }}-ro.hcl"
+    vault kv put sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@./build/vault-crypto-{{ component_name | lower }}-ro.hcl"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -124,7 +124,7 @@
 # This task creates the vault auth
 - name: Create Vault auth role
   shell: |
-    vault write auth/{{ auth_path }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_name }} policies="vault-crypto-{{ component_type }}-{{ component_name }}-ro" ttl=1200s
+    vault kv put auth/{{ auth_path }}/role/vault-role bound_service_account_names=vault-auth bound_service_account_namespaces={{ component_name }} policies="vault-crypto-{{ component_type }}-{{ component_name }}-ro" ttl=1200s
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

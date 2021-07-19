@@ -115,7 +115,7 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]') 
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
@@ -124,9 +124,9 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]' | base64 -d)  
-          orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key_pub"]')    
-          orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]') 
+          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' | base64 -d)  
+          orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key_pub"]')    
+          orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]') 
           echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key
           echo "${orion_key_pub}" > ${MOUNT_PATH}/orion_key.pub
           echo "${orion_password}" > ${MOUNT_PATH}/passwordFile 
@@ -139,12 +139,12 @@ spec:
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
               jq -r 'if .errors then . else . end')
             validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-            orion_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca_pem"]' | base64 -d)  
-            orion_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ambassadorcrt"]' | base64 -d)    
-            orion_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ambassadorkey"]' | base64 -d) 
-            orion_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["knownServer"]'| base64 -d) 
-            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')  
-            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]' | base64 -d)
+            orion_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' | base64 -d)  
+            orion_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorcrt"]' | base64 -d)    
+            orion_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorkey"]' | base64 -d) 
+            orion_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["knownServer"]'| base64 -d) 
+            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
+            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' | base64 -d)
             echo "${orion_ca}" > ${MOUNT_PATH}/orion_ca.pem
             echo "${orion_cer_pem}" > ${MOUNT_PATH}/orion_cer.pem
             echo "${orion_cer_key}" > ${MOUNT_PATH}/orion_cer.key

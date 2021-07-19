@@ -54,17 +54,16 @@
 # This task copy the CA certificates generated above, to the Vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault write {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca ca.{{ component_name }}-cert.pem="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem")" {{ component_name }}-CA.key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key")"
+    vault kv put {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca ca.{{ component_name }}-cert.pem="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem")" {{ component_name }}-CA.key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key")"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: vault_ca_result.failed == True
   changed_when: false
 
-
 - name: Check if ca admin credentials already created
   shell: |
-    vault kv get {{ vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ component }}
+    vault kv get -field=user {{ vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ component }}
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -76,7 +75,7 @@
 # This task write the CA server admin credentials to Vault
 - name: Write the ca server admin credentials to Vault
   shell: |
-    vault write {{ vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ component }} user="{{ component }}-adminpw"
+    vault kv put {{ vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ component }} user="{{ component }}-adminpw"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
