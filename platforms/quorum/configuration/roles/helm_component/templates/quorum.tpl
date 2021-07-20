@@ -11,7 +11,7 @@ spec:
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/node_tessera  
+    path: {{ charts_dir }}/node_quorum  
   values:
     replicaCount: 1
     metadata:
