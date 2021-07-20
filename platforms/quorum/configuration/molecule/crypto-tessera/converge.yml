@@ -29,16 +29,16 @@
 
       organizations:
         - organisation:
-          name: warehouse
-          unit: Warehouse
+          name: store
+          unit: Store
           external_url_suffix: test.quorum.blockchainpoc.com
           cloud_provider: aws
           aws:
             access_key: "aws_access_key"
             secret_key: "aws_secret_key"
           k8s:
-            context: "cluster_context"
-            config_file: "cluster_config"
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
           vault:
             url: http://localhost:9090
             root_token: root
@@ -59,8 +59,8 @@
           services:
             peers:
             - peer:
-              name: warehouse
-              subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"
+              name: store
+              subject: "O=Store,OU=Store,L=42.36/-71.06/Boston,C=US"
               type: validator
               geth_passphrase: 12345
               lock: false
@@ -87,12 +87,6 @@
         src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
         dest: "{{ playbook_dir }}/../../shared/configuration"
 
-  tasks:
-    - name: Copy openssl.conf to molecule directory
-      copy:
-        src: "{{ playbook_dir }}/../../openssl.conf"
-        dest: "{{ playbook_dir }}"
-
     - name: Test crypto-tessera role
       include_role:
         name: "configuration/roles/create/crypto/tessera"
@@ -103,19 +97,17 @@
           failed: True
         certs_results:
           failed: True
-        peers: "{{ item.services.peers }}"
-        organisation: "{{ item.name | lower }}"
-        component_ns: "{{ item.name | lower }}-quo"
-        component_name: "{{ item.name | lower }}"
+        peers: "{{ org.services.peers }}"
+        organisation: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-quo"
+        component_name: "{{ org.name | lower }}"
         node_name: "{{ node.name | lower }}"
-        kubernetes:
-          config_file: "/tmp/molecule/kind-default1/kubeconfig"
-          context: "kind"
-        vault:
-          vault: "{{ item.vault }}"
-          url: http://localhost:9090/
-          root_token: root
-          secret_path: "secret"
-        root_subject: "{{ network.config.subject }}"
-        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+        gitops: "{{ org.gitops }}"
+        kubernetes: "{{ org.k8s }}"
+        values_dir: "./build/{{org.gitops.release_dir}}"
+        charts_dir: "../../{{ org.gitops.chart_source }}"
+        vault: "{{ org.vault }}"
+        build_path: "{{ playbook_dir }}/build"
       loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
