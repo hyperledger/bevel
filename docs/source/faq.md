@@ -30,7 +30,7 @@ In simple words, the Blockchain Automation Framework works as an accelerator to 
 ### How do I find more about the Blockchain Automation Framework?
 Normally, when a user sees information in this section, it means that s/he has already known the existence of the Blockchain Automation Framework project, at least this readthedocs website. Basically, this website provisions a high-level background information of how to use the Blockchain Automation Framework GitHub repository. For detailed step-by-step instructions, one should go to the Blockchain Automation Framework's GitHub repository and find the readme files for a further reading. Upon finishing reading the tutorials in this website, one should be able to analyse whether the Blockchain Automation Framework would be the right solution in your case and reach a decision to use it or not.
 
-### How much would Blockchain Automation Framework cost? How much would it cost to run Fulcurm on a cloud platform?
+### How much would Blockchain Automation Framework cost? How much would it cost to run Blockchain Automation Framework on a cloud platform?
 As an open source repository, there will be no cost at all to use the Blockchain Automation Framework. However, by running the Blockchain Automation Framework repository on a cloud platform, there might be cost by using a cloud platform and it will depend on which cloud services you are going to use.
 
 ### Who can support me during this process and answer my questions?
