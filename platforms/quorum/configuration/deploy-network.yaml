@@ -104,17 +104,23 @@
     loop: "{{ network['organizations'] }}"
     when: network.config.consensus == 'ibft'
 
-  # This role generates the crypto material for quorum network based on tessera transaction manager and store it in vault
-  - name: "Generate crypto material for tessera transaction manager"
+  # This role generates the crypto materials for tessera tm
+  - name: "Generate crypto for the Tessera transaction manager"
     include_role:
-      name: create/crypto/tessera
+      name: create/crypto/tessera  
     vars:
-      component_name: "{{ item.name | lower }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      vault: "{{ item.vault }}"
-      peers: "{{ item.services.peers }}"
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name | lower }}-quo"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
     loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'tessera'
+    loop_control:
+      loop_var: org
+    when: 
+      - network.config.transaction_manager == 'tessera'
 
   # This role generates the crypto material for quorum network based on constellation transaction manager and store it in vault
   - name: "Generate crypto material for Constellation"

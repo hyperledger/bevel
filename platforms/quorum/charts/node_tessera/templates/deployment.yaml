@@ -4,20 +4,20 @@ metadata:
   namespace: {{ .Values.metadata.namespace }}
   creationTimestamp: null
   labels:
-    app.kubernetes.io/name: {{ .Values.node.name }}
+    app.kubernetes.io/name: {{ .Values.node.name }}-tessera
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }} 
     {{- include "labels.custom" . | nindent 2 }}
-  name: {{ .Values.node.name }}
+  name: {{ .Values.node.name }}-tessera
 spec:
-  serviceName: {{ .Values.node.name }}
+  serviceName: {{ .Values.node.name }}-tessera
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: consortiumchain
-      service.rpc: {{ .Values.node.name }}
-      app.kubernetes.io/name: {{ .Values.node.name }}
+      service.rpc: {{ .Values.node.name }}-tessera
+      app.kubernetes.io/name: {{ .Values.node.name }}-tessera
       helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
       app.kubernetes.io/managed-by: {{ .Release.Service }}
       app.kubernetes.io/instance: {{ .Release.Name }} 
@@ -27,16 +27,16 @@ spec:
       creationTimestamp: null
       labels:
         app: consortiumchain
-        name: {{ .Values.node.name }}
-        service.rpc: {{ .Values.node.name }}
-        app.kubernetes.io/name: {{ .Values.node.name }}
+        name: {{ .Values.node.name }}-tessera
+        service.rpc: {{ .Values.node.name }}-tessera
+        app.kubernetes.io/name: {{ .Values.node.name }}-tessera
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
         app.kubernetes.io/instance: {{ .Release.Name }} 
         {{- include "labels.custom" . | nindent 2 }}
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
-      hostname: {{ .Values.node.name }}
+      hostname: {{ .Values.node.name }}-tessera
       imagePullSecrets:
           - name: {{ .Values.node.imagePullSecret }}
       volumes:
@@ -46,12 +46,6 @@ spec:
         - name: mysql
           emptyDir:
             medium: Memory
-        - name: {{ .Values.node.name }}-genesis-volume
-          configMap:
-            name: genesis-{{ .Values.node.name }}
-            items:
-              - key: genesis.json.base64
-                path: genesis.json.base64
         - name: tessera-config
           configMap:
             name: tessera-config-{{ .Values.node.name }}
@@ -125,7 +119,7 @@ spec:
           
           echo -n "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt
           echo -n "${nodekey}" > ${OUTPUT_PATH}/nodekey
-          echo -n "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
+          echo -n "${keystore}" > ${OUTPUT_PATH}/keystore
           echo "${username}" > ${OUTPUT_PATH}/username
           echo "${password}" > ${OUTPUT_PATH}/password
 
@@ -140,8 +134,7 @@ spec:
           tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key_pub"]')
           tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]' | base64 -d )
           echo -n "${tmpub}" > ${OUTPUT_PATH}/tm.pub
-          echo -n "${tmkey}" > ${OUTPUT_PATH}/tm.key
-         
+          echo -n "${tmkey}" > ${OUTPUT_PATH}/tm.key         
         volumeMounts:
         - name: certificates
           mountPath: /secret
@@ -166,29 +159,6 @@ spec:
           mountPath: /docker-entrypoint-initdb.d
         - name: certificates
           mountPath: /secret
-      - name: quorum-genesis-init-container
-        image: "{{ .Values.images.node }}"
-        command: [ "sh" ]
-        args:
-        - "-cx"
-        - "mkdir -p $QUORUM_DATA_DIR;
-          cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
-            if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
-              echo \"running geth init\";
-              /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
-              date > $QUORUM_DATA_DIR/genesis_created;
-            fi;
-          "
-        env:
-          - name: QUORUM_DATA_DIR
-            value: {{ .Values.node.mountPath }}/dd
-          - name: QHOME
-            value: {{ .Values.node.mountPath }}
-        volumeMounts:
-        - name: {{ .Values.node.name }}-pv
-          mountPath: {{ .Values.node.mountPath }}
-        - name: {{ .Values.node.name }}-genesis-volume
-          mountPath: {{ .Values.node.mountPath }}/genesis
       containers:
       - name: mysql-db
         image: {{ .Values.images.mysql }}
@@ -254,102 +224,15 @@ spec:
         volumeMounts:
           - name: certificates
             mountPath: {{ .Values.node.mountPath }}/crypto/
-          - name: {{ .Values.node.name }}-pv
+          - name: {{ .Values.node.name }}-tessera-pv
             mountPath: {{ .Values.node.mountPath }}
           - name: tessera-config
             mountPath: {{ .Values.node.mountPath }}/tessera-config.json.tmpl
             subPath: tessera-config.json.tmpl
-      - name: quorum
-        image: "{{ .Values.images.node }}"
-        command: ["sh"]
-        args:
-        - "-cx"
-        - |-
-          #!/usr/bin/env sh
-          apk add curl;
-          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
-          mkdir -p $QUORUM_DATA_DIR/geth
-          mkdir -p $QUORUM_DATA_DIR/keystore          
-          # touch $qd/passwords.txt
-          cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
-          cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
-          cp $QUORUM_HOME/crypto/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
-
-          rm -f $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
-          rm -f $QUORUM_HOME/crypto/keys/nodekey
-          rm -f $QUORUM_HOME/crypto/keys/passwords.txt
-
-          until $(curl -k --output /dev/null --silent --head --fail {{ .Values.tessera.url }}/upcheck); do echo 'waiting for transaction manager to start...'; sleep 5; done;
-          echo transaction manager is up;
-
-          args=""
-          NODE_STATUS=""
-          if [ $CONSENSUS == 'raft' ]; then
-            NODE_STATUS={{ .Values.node.status }}
-          fi;
-          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'additional' ]; then
-            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,debug,web3,eth,txpool,personal,miner,net,quorumExtension,raft --raftjoinexisting {{ .Values.node.peer_id }}";
-          fi;
-          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'default' ]; then
-            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,debug,web3,eth,txpool,personal,raft,miner,net,quorumExtension";
-          fi;
-          if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,debug,web3,eth,txpool,personal,istanbul,miner,net,quorumExtension"
-                                                                                              
-            
-          fi;
-
-          LOCK_STATUS={{ .Values.node.lock }}
-          if [ $LOCK_STATUS = false ]
-          then
-            args=" ${args} --unlock 0 "
-          fi
-
-          /usr/local/bin/geth \
-           --datadir $QUORUM_DATA_DIR \
-           $args \
-           --identity {{ .Values.node.subject | quote }} \
-           --vmdebug \
-           --gcmode=archive \
-           --nodiscover \
-           --nat=none \
-           --verbosity 9 \
-           --emitcheckpoints \
-           --rpc \
-           --rpcaddr 0.0.0.0 \
-           --rpcport {{ .Values.node.ports.rpc }} \
-           --rpcvhosts=* \
-           --allow-insecure-unlock \
-           --port {{ .Values.node.ports.quorum }} \
-           --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
-        ports:
-          - containerPort: {{ .Values.node.ports.rpc }}
-          - containerPort: {{ .Values.node.ports.quorum }}
-{{- if eq $.Values.node.consensus "raft" }}
-          - containerPort: {{ .Values.node.ports.raft }}
-{{- end }}
-        env:
-          - name: PRIVATE_CONFIG
-            value: {{ .Values.node.mountPath }}/tm/tm.ipc
-          - name: QUORUM_DATA_DIR
-            value: {{ .Values.node.mountPath }}/dd
-          - name: QUORUM_HOME
-            value: {{ .Values.node.mountPath }}
-          - name: QHOME
-            value: {{ .Values.node.mountPath }}
-          - name: TM_HOME
-            value: {{ .Values.node.mountPath }}/tm/
-          - name: CONSENSUS
-            value: {{ .Values.node.consensus }}
-        volumeMounts:
-        - name: certificates
-          mountPath: {{ .Values.node.mountPath }}/crypto/
-        - name: {{ .Values.node.name }}-pv
-          mountPath: {{ .Values.node.mountPath }}
       restartPolicy: Always
   volumeClaimTemplates:
     - metadata:
-        name: {{ .Values.node.name }}-pv
+        name: {{ .Values.node.name }}-tessera-pv
       spec:
         storageClassName: {{ .Values.storage.storageclassname }}
         accessModes: [ "ReadWriteOnce" ]
