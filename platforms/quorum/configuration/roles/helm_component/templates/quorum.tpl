@@ -63,11 +63,10 @@ spec:
       dbusername: demouser
 {% if network.config.tm_tls == 'strict' %}
       url: "https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
-      clienturl: "http://{{ peer.name }}-tessera:{{ peer.tm_clientport.port }}"
 {% else %}
       url: "http://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
-      clienturl: "http://{{ peer.name }}-tessera:{{ peer.tm_clientport.port }}"
 {% endif %}
+      clienturl: "http://{{ peer.name }}-tessera:{{ peer.transaction_manager.clientport }}" #TODO: Enable tls strict for q2t
       othernodes:
 {% for tm_node in network.config.tm_nodes %}
         - url: {{ tm_node }}
