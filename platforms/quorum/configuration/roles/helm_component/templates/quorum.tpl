@@ -11,7 +11,7 @@ spec:
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/node_tessera  
+    path: {{ charts_dir }}/node_quorum  
   values:
     replicaCount: 1
     metadata:
@@ -82,7 +82,6 @@ spec:
       portTM: {{ peer.transaction_manager.ambassador }}
       rpcport: {{ peer.rpc.ambassador }}
       quorumport: {{ peer.p2p.ambassador }}
-      clientport: {{ peer.transaction_manager.clientport }}
 {% if network.config.consensus == 'raft' %}  
       portRaft: {{ peer.raft.ambassador }}
 {% endif %}
