@@ -1,0 +1,29 @@
+---
+#######################################
+# Playbook to validate Blockchain Automation Framework network configurations
+#  - checks for shared and DLT specific fields
+#######################################
+  - hosts: ansible_provisioners
+    gather_facts: yes
+    no_log: "{{ no_ansible_log | default(false) }}"
+    tasks: 
+    - name: install ajv-cli
+      npm: 
+        name: ajv-cli
+        global: yes
+    - set_fact:
+        tempNetworkyaml: '{ "network": {{ network }} }'
+    - name: "Ensures build dir exists"
+      include_role:
+        name: "check/setup"
+      vars:
+        path: "./build"
+        check: "ensure_dir"
+    - name: "run schema validator on network.yaml"
+      shell: |
+        echo  {{ tempNetworkyaml }} > ./build/temp.yaml
+        ajv validate -s ../../network-schema.json -d ./build/temp.yaml
+    - name: Remove the build directory and contents
+      file:
+        path: "./build"
+        state: absent
