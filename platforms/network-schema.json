@@ -12,6 +12,18 @@
               "docker": { "$ref":"#/definitions/shared_docker"}
           },
           "allOf":[
+            {"if": {"properties": { "type": { "const": "fabric" } } },
+             "then": {
+              "properties":{
+                "version":{ "type": "string","enum":["1.4.8","2.2.0","2.2.2"]},
+                "env": { "$ref":"#/definitions/shared_environment"},
+                "frontend": { "type": "string", "enum": ["enabled","disabled"]},
+                "orderers": { "type":"array","items":{ "$ref":"#/definitions/fabric_orderer"}},
+                "channels": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel"}},
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/fabric_organization"}}      
+               }
+             }
+            },              
             {"if": {"properties": { "type": { "const": "corda" } } },
              "then": {
               "properties":{
@@ -45,7 +57,7 @@
             "type": "object",
             "properties": {
               "type": { "type": "string","pattern": "^[a-z0-9-]{1,15}$", "description": "Environment type. Can be like dev/test/prod."},
-              "proxy": { "type": "string", "enum": ["haproxy", "ambassador"], "description": "Choice of the Cluster Ingress controller"},           
+              "proxy": { "type": "string", "enum": ["haproxy", "ambassador","none"], "description": "Choice of the Cluster Ingress controller. 'none' only minikube does not use a proxy"},           
               "retry_count": {"type": "integer", "minimum":5,"maximum":100,"description": "Retry count for the checks. Use a large number if your kubernetes cluster is slow."}, 
               "external_dns": { "type": "string", "enum": ["enabled", "disabled"], "description": "If the cluster has the external DNS service, this has to be set enabled so that the hosted zone is automatically updated."}
               },
@@ -164,7 +176,7 @@
             "service":{  "description": "deprecated."},
             "type": { "type": "string", "enum": ["doorman", "networkmap"]},   
             "uri": { "type": "string","pattern": "^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$"},
-            "certificate": { "type": "string", "description": "Absolute path to the public certificates"}
+            "certificate": { "type": "string", "pattern":"^(\/[^\/ ]*)+[^\/ ]+\\.crt$", "description": "Absolute path to the public certificates"}
            },
           "required": [ "type","uri","certificate"],
           "additionalProperties": false
@@ -176,7 +188,7 @@
             "type": { "type": "string", "enum": ["idman", "networkmap"]},  
             "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the service"},
             "uri": { "type": "string","pattern": "^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description": "External URL. This should be reachable from all nodes."},
-            "certificate": { "type": "string","description": "Absolute path to the public certificates"},
+            "certificate": { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+\\.crt$","description": "Absolute path to the public certificates"},
             "crlissuer_subject": { "type": "string", "description": "Subject of the CRL Issuer."},
             "truststore": { "type": "string","description": "Absolute path to the base64 encoded networkroot truststore."},
             "truststore_pass": { "type": "string", "description": "Truststore password"}
@@ -348,6 +360,204 @@
             },
           "required": [ "port","targetPort","ambassador"],
           "additionalProperties": false
-        }                           
-    }  
+        },
+        "fabric_orderer":{
+          "type": "object",
+          "properties": {
+            "orderer": { },
+            "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Name of the orderer service"},
+            "type": { "type": "string","enum": ["orderer"],"description":"orderer is the only valid type of orderers."},
+            "org_name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Name of the organization to which this orderer belongs to"},
+            "uri": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$"},
+            "certificate": { "type": "string", "pattern":"^(\/[^\/ ]*)+[^\/ ]+\\.crt$","description": "Absolute path to the public certificates"}
+            },         
+          "required": [ "name","type","org_name","uri","certificate"],
+          "additionalProperties": false
+        },    
+        "fabric_channel":{
+          "type": "object",
+          "properties": {
+            "channel": {},
+            "consortium": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description":"Name of the consortium, the channel belongs to"},
+            "channel_name": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description":"Name of the channel"},
+            "channel_status":{ "type": "string","enum": ["new","existing"],"description":" (only needed to add channel to existing org. Possible values are `new` or `existing`"},
+            "genesis": { "type": "object", "properties": {
+                "name": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description": "Name of the genesis block"}},
+              "required": [ "name"], "additionalProperties": false
+            },
+            "orderer": { "type": "object", "properties": {
+                "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Organization name to which the orderer belongs"}},
+              "required": [ "name"], "additionalProperties": false
+           }, 
+           "endorsers": { "type": "object", "properties": {
+               "name": { "type":"array", "items":{ "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the endorsers"}},
+               "corepeerAddress": { "type":"array", "items":{ "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description": "Address of the endorsers"}}},
+            "required": [ "name","corepeerAddress"], "additionalProperties": false
+          },            
+           "participants": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel_participant"}}        
+          },         
+          "required": [ "channel","consortium","channel_name","genesis","orderer","participants"],
+          "additionalProperties": false
+        },      
+        "fabric_channel_participant":{
+          "type": "object",
+          "properties": {
+            "organization": { },
+            "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Organization name of the peer participating in the channel"},
+            "type": { "type": "string","enum": ["creator","joiner"],"description":"This field can be creator/joiner of channel"},
+            "org_status": { "type": "string","enum": ["new","existing","delete"],"description":"new (for inital setup) or existing (for add new org)"},
+            "ordererAddress": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"URL of the orderer this peer connects to"},
+            "peers": {  "type":"array","items":{"type": "object", "properties": {
+              "peer": { },
+              "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the peer"},              
+              "peerstatus": { "type": "string","enum": ["new","existing"],"description":"Used for add new peer orgs. should be new/existing"},
+              "gossipAddress": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"Gossip address of the peer"},
+              "peerAddress": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"External address of the peer"}},
+            "required": [ "peer","name","gossipAddress","peerAddress"], "additionalProperties": false
+            }}
+          },             
+          "required": [ "organization","name","type","org_status","ordererAddress","peers"],
+          "additionalProperties": false
+        },                   
+        "fabric_organization":{
+          "type": "object",
+          "allOf":[{ "$ref":"#/definitions/shared_organization"}],
+          "properties": {
+            "type": { "type": "string","enum": ["orderer","peer"]},
+            "country": { "type": "string","description":"Country of the organization"},
+            "state": { "type": "string","description":"State of the organization"},
+            "location": { "type": "string","description":"Location of the organization"}, 
+            "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"},    
+            "external_url_suffix":  { "type": "string","description":"Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider."},
+            "org_status": { "type": "string","enum": ["new","existing","delete"]},
+            "ca_data": {  "type":"object", "description":"Contains the certificate authority url and certificate path; this has not been implemented yet","properties": {
+               "url": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"Gossip address of the peer"},
+               "certificate": { "type": "string","pattern":"^\/?([^\/ ]*\/)+[^\/ ]+\\.crt$","description":"Path to certificate"}},
+              "required": [ "url","certificate"], "additionalProperties": false
+              }
+            },   
+            "if": {"properties": { "type": { "const": "orderer" } } },"then":{
+              "properties": {
+                "services":  { "$ref":"#/definitions/fabric_orderer_services"}}
+            },"else":{
+              "properties": {
+                "services":  { "$ref":"#/definitions/fabric_peer_services"}}
+            },                   
+          "required": [ "type","country","state","location","subject","external_url_suffix","services"]
+        },
+        "fabric_orderer_services":{
+          "type": "object",
+          "properties": {
+            "ca":{ "$ref":"#/definitions/fabric_service_ca"},
+            "consensus":{ "$ref":"#/definitions/fabric_service_consensus"},
+            "orderers": { "type":"array","items":{ "$ref":"#/definitions/fabric_service_orderer"}}
+            },         
+          "required": [ "ca","consensus","orderers"],
+          "additionalProperties": false
+        },    
+        "fabric_peer_services":{
+          "type": "object",
+          "properties": {
+            "ca":{ "$ref":"#/definitions/fabric_service_ca"},
+            "peers": { "type":"array","items":{ "$ref":"#/definitions/fabric_service_peer"}}
+            },         
+          "required": [ "ca","peers"],
+          "additionalProperties": false
+        }, 
+        "fabric_service_ca":{
+          "type": "object",
+          "properties": {
+            "type": {"type":"string","const": "ca"},
+            "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Certificate Authority service name"},
+            "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"}, 
+            "grpc":{ "$ref":"#/definitions/shared_port"}   
+            },         
+          "required": [ "type","name","subject","grpc"],
+          "additionalProperties": false
+        },   
+        "fabric_service_consensus":{
+          "type": "object",
+          "properties": {
+            "name": {"type":"string","enum": ["kafka","raft"],"description":"Name of the Consensus service. Can be raft or kafka."}
+            },
+          "required":["name"],             
+          "if": {"properties": { "name": { "const": "kafka" } } },
+            "then": {
+             "properties":{
+               "type":{ "type": "string","enum":["broker"],"description":"Only for kafka. Consensus service type, only value supported is broker currently"},
+               "replicas": {"type": "integer", "minimum":1,"maximum":10,"description":"Only for kafka. Replica count of the brokers"},
+               "grpc":{ "$ref":"#/definitions/shared_port"}     
+              },
+              "required":["name","type","replicas","grpc"]
+           }
+        },          
+        "fabric_service_orderer":{
+          "type": "object",
+          "properties": {
+            "orderer":{},
+            "type": {"type":"string","const": "orderer"},
+            "status": {"type":"string","enum": ["new","existing"],"description":"(Only needed to add new orderer). Possible values are 'new' or 'existing'"},
+            "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Name of the Orderer service"},
+            "consensus": {"type":"string","enum": ["kafka","raft"]},
+            "grpc":{ "$ref":"#/definitions/shared_port"}   
+            },         
+          "required": [ "type","name","consensus","grpc"],
+          "additionalProperties": false
+        },         
+        "shared_port":{
+          "type": "object",
+          "properties": {
+            "port": { "type": "number"}
+            },
+          "required": [ "port"],
+          "additionalProperties": false
+        },
+        "fabric_service_peer":{
+          "type": "object",
+          "properties": {
+            "peer":{},
+            "type": {"type":"string","enum": ["anchor","nonanchor"],"description":"At least one peer should be anchor peer"},
+            "name": { "type": "string","pattern": "^peer[0-9]{1,2}$","description":"Name of the peer. Must be of the format peer0 for the first peer, peer1 for the second peer and so on."},
+            "gossippeeraddress":  { "type": "string","description":"Gossip address of another peer in the same Organization. If there is only one peer, then use that peer address. Must be internal as the peer is hosted in the same Kubernetes cluster."}, 
+            "peerAddress":  { "type": "string","description":"External address of this peer. Must be the HAProxy qualified address. If using minikube, this can be internal address."}, 
+            "peerstatus":{"type":"string","enum": ["new","existing"],"description":"Needed to add new peer organization to existing network."},
+            "certificate": { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+\\.crt$","description":"Certificate path for peer."}, 
+            "cli":  { "type": "string","enum": ["enabled","disabled"],"description":"Optional field. If enabled will deploy the CLI pod for this Peer. Default is disabled."}, 
+            "grpc":{ "$ref":"#/definitions/shared_port","description":"Grpc port"},
+            "events":{ "$ref":"#/definitions/shared_port","description":"Events port"},
+            "couchdb":{ "$ref":"#/definitions/shared_port","description":"Couchdb port"},
+            "restserver":{ "$ref":"#/definitions/corda_service_port","description":"Restserver target port"},
+            "expressapi":{ "$ref":"#/definitions/corda_service_port","description":"Express server port"},
+            "chaincode":{ "$ref":"#/definitions/fabric_chaincode","description":"chaincode data"}
+            },         
+          "required": [ "type","name","gossippeeraddress","peerAddress","grpc","events"],
+          "additionalProperties": false
+        }, 
+        "fabric_chaincode":{
+          "type": "object",
+          "properties": {
+            "name": { "type": "string","pattern": "^[a-z0-9-_]{1,30}$","description":"Name of the chaincode"},
+            "version":  { "type": "string","pattern": "^[0-9]{1,5}$","description":"Version of the chaincode. Please do not use . (dot) in the version."},
+            "maindirectory": { "type": "string","description":"Path of main.go file"},
+            "lang": {"type":"string","enum": ["golang","java"],"description":"The language in which the chaincode is written ( golang/ java)"},
+            "arguments": { "type": "string","description":"Arguments to the chaincode"},
+            "endorsements": { "type": "string","description":"Endorsements (if any) provided along with the chaincode"},
+            "repository": { "$ref":"#/definitions/fabric_chaincode_repository"}
+            },         
+          "required": [ "name","version","maindirectory","arguments","endorsements","repository"],
+          "additionalProperties": false
+        },   
+        "fabric_chaincode_repository":{
+          "type": "object",
+          "properties": {
+            "username": { "type": "string","description": "Username which has access to the git repo containing chaincode"}, 
+            "password": { "type": "string", "description": "Password of the user which has access to the git repo containing chaincode"}, 
+            "url": { "type": "string","description": "URL of the git repository containing the chaincode"}, 
+            "branch": { "type": "string","description": "Branch in the repository where the chaincode resides"}, 
+            "path": { "type": "string","description": "Path of the chaincode in the repository branch"}
+           },
+          "required": [ "username","password","branch","url","path"],
+          "additionalProperties": false
+        }   
+      }                     
   }
