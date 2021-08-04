@@ -108,11 +108,11 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekey"]')
-          keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
-          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["gethpassword"]')
-          username=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["db_user"]')
-          password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["db_password"]')
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekey"]')
+          keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
+          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["gethpassword"]')
+          username=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["db_user"]')
+          password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["db_password"]')
           
           OUTPUT_PATH="${MOUNT_PATH}/keys"
           mkdir -p ${OUTPUT_PATH}
@@ -131,10 +131,12 @@ spec:
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
 
-          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key_pub"]')
-          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]' | base64 -d )
+
+          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key_pub"]')
+          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' | base64 -d)
           echo -n "${tmpub}" > ${OUTPUT_PATH}/tm.pub
           echo -n "${tmkey}" > ${OUTPUT_PATH}/tm.key         
+
         volumeMounts:
         - name: certificates
           mountPath: /secret

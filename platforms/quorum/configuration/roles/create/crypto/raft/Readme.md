@@ -17,7 +17,7 @@ This role generates the crypto material for RAFT consensus
 #### 1. Check if nodekey already present in the vault
 This tasks checks if nodekey is already present in the vault
 
-**shell**: This module runs the vault read command in a shell
+**shell**: This module runs the vault kv get command in a shell
 
 ##### Input Variables
 
