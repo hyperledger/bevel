@@ -7,6 +7,10 @@ Before setting up a Fabric DLT/Blockchain network, this file needs to be updated
 A sample configuration file is provided in the repo path:  
 `platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml` 
 
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
+
 The configurations are grouped in the following sections for better understanding.
 
 * type
@@ -33,7 +37,7 @@ The sections in the sample configuration file are:
 
 `type` defines the platform choice like corda/fabric, here in the example its Fabric
 
-`version` defines the version of platform being used. The current Fabric version support is 1.4.8 & 2.2.0
+`version` defines the version of platform being used. The current Fabric version support is 1.4.8, 2.2.0 & 2.2.2
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -171,6 +175,17 @@ The snapshot of channels section with its fields and sample values is below
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
         peerAddress: peer0.manufacturer-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+    endorsers:
+      name:
+      - carrier
+      - warehouse
+      - manufacturer
+      - store
+      corepeerAddress:
+      - peer0.carrier-net.hf.demo.aws.blockchaincloudpoc.com:8443
+      - peer0.warehouse-net.hf.demo.aws.blockchaincloudpoc.com:8443
+      - peer0.manufacturer-net.hf.demo.aws.blockchaincloudpoc.com:8443
+      - peer0.store-net.hf.demo.aws.blockchaincloudpoc.com:8443      
     genesis:
       name: OrdererGenesis
 ```
@@ -183,6 +198,9 @@ The fields under the `channel` are
 | genesis.name                    | Name of the genesis block                                  |
 | orderer.name                    | Organization name to which the orderer belongs             |
 | participants                    | Contains list of organizations participating in the channel|
+| endorsers.name                  | Contains list of endorsers names (v2.2+)                   |
+| endorsers.corepeerAddress       | Contains list of endorsers addresses (v2.2+)                |
+| channel_status                  | (only needed to add channel to existing org. Possible values are `new` or `existing`|
 
 Each `organization` field under `participants` field of the channel contains the following fields
 
@@ -330,6 +348,7 @@ Each organization with type as peer will have a peers service. The snapshot of p
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          certificate: "/path/ca.crt" # certificate path for peer
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
             port: 7051         
@@ -364,6 +383,7 @@ The fields under `peer` service are
 | type                          | Type can be `anchor` and `nonanchor` for Peer                                                                    |
 | gossippeeraddress             | Gossip address of another peer in the same Organization. If there is only one peer, then use that peer address. Must be internal as the peer is hosted in the same Kubernetes cluster. |
 | peerAddress             | External address of this peer. Must be the HAProxy qualified address. If using minikube, this can be internal address. |
+| certificate             | Certificate path for peer. |
 | cli             | Optional field. If `enabled` will deploy the CLI pod for this Peer. Default is `disabled`. |
 | grpc.port                     | Grpc port                                                                                                        |
 | events.port                   | Events port                                                                                                      |
@@ -375,6 +395,7 @@ The fields under `peer` service are
 | chaincode.name                | Name of the chaincode                                                                                            |
 | chaincode.version             | Version of the chaincode. Please do not use . (dot) in the version.    |
 | chaincode.maindirectory       | Path of main.go file                                                                                             |
+| chaincode.lang       | The language in which the chaincode is written ( golang/ java)                                                                                            |
 | chaincode.repository.username | Username which has access to the git repo containing chaincode                                                   |
 | chaincode.repository.password | Password of the user which has access to the git repo containing chaincode                                       |
 | services.peer.chaincode.repository.url      | URL of the git repository containing the chaincode                                                 |
@@ -426,6 +447,7 @@ The fields under `orderer` service are
 | name                        | Name of the Orderer service                                                                                                     |
 | type          | This type must be `orderer`  |
 | consensus                   | Consensus type, for example: `kafka`, `raft`                                                                               |
+| status                   | (Only needed to add new orderer). Possible values are `new` or `existing`                                                                                             |
 | grpc.port                   | Grpc port of orderer                                                                                             |
 
 

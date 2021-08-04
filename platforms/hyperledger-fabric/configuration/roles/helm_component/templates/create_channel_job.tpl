@@ -40,4 +40,4 @@ spec:
     orderer:
       address: {{ peer.ordererAddress }}
     channeltx: |-
-{{ channeltx | indent(width=6, indentfirst=True) }}
+{{ channeltx | indent(width=6, first=True) }}
