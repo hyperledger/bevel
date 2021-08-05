@@ -87,11 +87,20 @@
   ignore_errors: yes
   changed_when: false
 
+- name: Get all ambassador secrets from Vault
+  shell: |
+    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ambassador
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: ambassador_peer_secrets
+  when: not vault_peer_ambassador.failed  
+
 - name: Get peer ambassador info
   include_role: 
     name: "setup/get_ambassador_crypto"
   vars:
-    vault_output: "{{ vault_peer_ambassador.stdout | from_yaml }}"
+    vault_output: "{{ ambassador_peer_secrets.stdout | from_yaml }}"
     type: "peer"
     peer_ambassador_path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}"
   when: 
