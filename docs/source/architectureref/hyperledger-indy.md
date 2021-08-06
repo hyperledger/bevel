@@ -24,9 +24,9 @@ The following diagram shows how Hyperledger Indy peer nodes will be deployed on 
 ### Docker Images
 The Blockchain Automation Framework creates/provides own Docker images, which are based on Ubuntu and consist with official Hyperledger Indy libraries (indy-plenum and indy-node).
 
-* [indy-cli](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/images/indy-cli) - Docker image contains Indy CLI, which is used to issue transactions again an Indy pool.
-* [indy-key-mgmt](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/images/indy-key-mgmt) - Docker image for indy key management, which generates identity crypto and stores it into Vault or displays it onto the terminal in json format.
-* [indy-node](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-indy/images/indy-node) - Docker image of an Indy node (runs using a Steward identity).
+* [indy-cli](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-indy/images/indy-cli) - Docker image contains Indy CLI, which is used to issue transactions again an Indy pool.
+* [indy-key-mgmt](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-indy/images/indy-key-mgmt) - Docker image for indy key management, which generates identity crypto and stores it into Vault or displays it onto the terminal in json format.
+* [indy-node](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-indy/images/indy-node) - Docker image of an Indy node (runs using a Steward identity).
 
 ### Ansible Playbooks
 Detailed information on ansible playbooks can be referred [here](../developer/indy-ansible.md) and the execution process can be referred [here](../operations/setting_dlt.md).

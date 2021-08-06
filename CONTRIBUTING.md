@@ -46,13 +46,13 @@ For source code integrity , Blockchain Automation Framework GitHub pull requests
           - `[quorum]` for Quorum changes
           - `[shared]` for all common and other changes
 5. Push your changes to your feature branch.
-6. Initiate a pull request from your fork to the base repository ( `develop` branch , unless it is a critical bug, in that case initiate to the `master` branch)
+6. Initiate a pull request from your fork to the base repository ( `develop` branch , unless it is a critical bug, in that case initiate to the `main` branch)
 7. Await DCO & linting quality checks and GitActions to complete, as well as any feedback from reviewers.
 8. Work on the feedbacks to revise the PR if there are any comments
 9. If not, the PR gets approved , delete feature branch post the merge
 
 ---
-**NOTE:** If you are a regular contributor , please make sure to take the latest pull from the develop branch everytime before making any pull request , master branch in case of a critical defect / bug .
+**NOTE:** If you are a regular contributor , please make sure to take the latest pull from the develop branch everytime before making any pull request , main branch in case of a critical defect / bug .
 
 ---
 

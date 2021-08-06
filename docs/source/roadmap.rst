@@ -1,6 +1,5 @@
 BAF current roadmap
 ===================
-.. mermaid::
 
    gantt
     title BAF current roadmap

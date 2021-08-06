@@ -34,13 +34,13 @@ For source code integrity , Blockchain Automation Framework GitHub pull requests
      i) Make sure you sign your commit using git commit -s for more information see [here](https://gist.github.com/tkuhrt/10211ae0a26a91a8c030d00344f7d11b)             
      ii)  Make sure your commit message follows [Conventional Commits syntax](https://www.conventionalcommits.org/en/v1.0.0-beta.4/#specification); this aids in release notes generation
 5. Push your changes to your feature branch
-6. Initiate a pull request from your fork to the base repository ( develop branch , unless it is a critical bug, in that case initiate to the master branch)
+6. Initiate a pull request from your fork to the base repository ( develop branch , unless it is a critical bug, in that case initiate to the main branch)
 7. Await DCO & linting quality checks ( CI to come soon ), as well as any feedback from reviewers.
 8. Work on the feedbacks to revise the PR if there are any comments
 9. If not, the PR gets approved , delete feature branch post the merge
 
 ---
-**NOTE:** If you are a regular contributor , please make sure to take the latest pull from the develop branch everytime before making any pull request , master branch in case of a critical defect / bug .
+**NOTE:** If you are a regular contributor , please make sure to take the latest pull from the develop branch everytime before making any pull request , main branch in case of a critical defect / bug .
 
 ---
 

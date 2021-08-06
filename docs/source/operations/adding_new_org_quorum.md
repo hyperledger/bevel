@@ -179,7 +179,7 @@ The `network.config.bootnode` field contains:
 <a name = "run_network"></a>
 ## Run playbook
 
-The [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
+The [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/site.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
