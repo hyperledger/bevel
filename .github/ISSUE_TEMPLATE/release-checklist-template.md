@@ -18,7 +18,7 @@ title: ''
     - [ ] All new functionality are manually tested on a release build ?
     - [ ] CI/CD verified and working ?
 - [ ] All stakeholders signed off for the release
-- [ ] The code is mergered into master
+- [ ] The code is mergered into main
 
 
 ## Post-release Test Checklist

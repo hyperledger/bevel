@@ -88,4 +88,4 @@ When having completed the Prerequisites and setup guide, deploy the supplychain 
 `ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@/path/to/application/network.yaml"`
 
 ## Testing/validating the supplychain-app
-For testing the application, there are API tests included. For instructions on how to set this up, follow the `README.md` [here](examples/supplychain-app/tests/README.md).
+For testing the application, there are API tests included. For instructions on how to set this up, follow the `README.md` [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/examples/supplychain-app/tests).

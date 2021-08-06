@@ -50,7 +50,7 @@ network:
 <a name = "run_network"></a>
 ## Chaincode Operations in BAF for the deployed Hyperledger Fabric network
 
-The playbook [chaincode-ops.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to install and instantiate chaincode for the existing fabric network.
+The playbook [chaincode-ops.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to install and instantiate chaincode for the existing fabric network.
 For Fabric v2.2 multiple operations such as approve, commit and invoke the chaincode are available in the same playbook. 
 This can be done by using the following command
 
