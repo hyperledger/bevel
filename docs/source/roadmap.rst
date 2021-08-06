@@ -1,6 +1,8 @@
 BAF current roadmap
 ===================
 
+.. mermaid::
+
    gantt
     title BAF current roadmap
     dateFormat  YY-MM-DD
