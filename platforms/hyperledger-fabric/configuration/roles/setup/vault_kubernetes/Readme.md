@@ -64,7 +64,7 @@ This task writes the Service Account token to the vault for Organisations.
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
     *component_name: The name of resource
 **shell** : Export command makes the variables, knowm to child processes.
-The vault write command writes the Service Account token to the vault for Organisations
+The vault kv put command writes the Service Account token to the vault for Organisations
 **when**: It runs only when the *auth_path* is not created
 
 #### 7. Check if policy exists
