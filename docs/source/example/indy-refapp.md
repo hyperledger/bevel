@@ -22,4 +22,4 @@ A network with 2 organizations:
 A Docker repository
 
 
-Find more at [Indy-Ref-App](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/examples/identity-app)
+Find more at [Indy-Ref-App](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/examples/identity-app)

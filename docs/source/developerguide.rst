@@ -29,7 +29,7 @@ This tool is needed to build the Blockchain Automation Framework documentation f
 **Sphinx installation:**
 Follow the `link <http://www.sphinx-doc.org/en/master/usage/installation.html>`_ to install sphinx documentation tool.
 
-All the Blockchain Automation Framework documentation and Sphinx Configuration files (``conf.py``) are located in `docs/source <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/docs/source>`_ folder.
+All the Blockchain Automation Framework documentation and Sphinx Configuration files (``conf.py``) are located in `docs/source <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/docs/source>`_ folder.
 To build the documentation, execute the following command from `docs` directory:
 
 .. code:: bash
@@ -41,7 +41,7 @@ To build the documentation, execute the following command from `docs` directory:
 .. _molecule:
 
 Molecule
-~~~~~~~~~~~
+~~~~~~~~
 
 `Molecule <https://molecule.readthedocs.io/en/latest/>`__ is designed to aid in the development and testing of `Ansible <https://ansible.com/>`_ roles.
 In BAF, Molecule is used to check for common coding standards, yaml errors and unit testing Ansible code/roles.
@@ -66,7 +66,7 @@ widely recommended `'\-\-user' flag`_ when invoking ``pip``.
 
     $ pip install --user 'molecule[docker]'
 
-The existing test scenarios are found in the `molecule` folder under configuration of each platform e.g. `platforms/shared/configuration/molecule <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/molecule>`__ folder.
+The existing test scenarios are found in the `molecule` folder under configuration of each platform e.g. `platforms/shared/configuration/molecule <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/molecule>`__ folder.
 
 Ansible Roles and Playbooks 
 ---------------------------

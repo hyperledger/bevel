@@ -147,7 +147,7 @@ network:
 <a name = "run_network"></a>
 ## Run playbook
 
-The [add-new-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/add-new-organization.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
+The [add-new-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/shared/configuration/add-new-organization.yaml --extra-vars "@path-to-network.yaml"

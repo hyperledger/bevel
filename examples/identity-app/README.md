@@ -89,7 +89,7 @@ For example, with the given sample network.yaml your Agent's Swagger will be ava
 - Alice: http://alice.id.example.blockchaincloudpoc.com:15040/
 
 ### Step 8
-Follow the [steps](./tests/README.md) to test the API using Postman. You can also follow [these steps](https://github.com/hyperledger/aries-cloudagent-python/blob/master/demo/AriesOpenAPIDemo.md#using-the-openapiswagger-user-interface) as per the Aries Demo on this Identity App.
+Follow the [steps](./tests/README.md) to test the API using Postman. You can also follow [these steps](https://github.com/hyperledger/aries-cloudagent-python/blob/main/demo/AriesOpenAPIDemo.md#using-the-openapiswagger-user-interface) as per the Aries Demo on this Identity App.
 
 ---
 

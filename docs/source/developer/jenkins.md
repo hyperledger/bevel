@@ -2,7 +2,7 @@
 Jenkins is a self-contained, open source automation server which can be used to automate all sorts of tasks related to building, testing, and delivering or deploying software.
 
 ## Jenkins in Blockchain Automation Framework
-In Blockchain Automation Framework, although Jenkins is not mandatory, we have [a single Jenkinsfile](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/automation/Jenkinsfile) as a sample to help you setup CI/CD Pipelines. 
+In Blockchain Automation Framework, although Jenkins is not mandatory, we have [a single Jenkinsfile](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/automation/Jenkinsfile) as a sample to help you setup CI/CD Pipelines. 
 
 ## Pre-requisites
 1. Setup Jenkins with slave configurations. Declare a slave-config called `ansible` with the Docker Image [hyperledgerlabs/baf-build:jenkins](https://hub.docker.com/r/hyperledgerlabs/baf-build/tags).
@@ -13,7 +13,7 @@ In Blockchain Automation Framework, although Jenkins is not mandatory, we have [
 1. A separate `baf-configuration` git repo where the templated network.yaml for different platforms are stored. Details of this repo needs to be updated in pipeline Stage `Create Configuration File`.
 
 ## Branch Configuration
-The Jenkinsfile is designed to ignore `develop` and `master` branches by default. So, create platform specific branches in your forked repo.
+The Jenkinsfile is designed to ignore `develop` and `main` branches by default. So, create platform specific branches in your forked repo.
 - `corda` for Opensource Corda
 - `corda-ent` for Enterprise Corda
 - `fabric` for Hyperledger Fabric

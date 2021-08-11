@@ -20,7 +20,7 @@ This works only for RAFT Orderer.
 <a name = "modifying-configuration-file"></a>
 ## Modifying Configuration File
 
-A Sample configuration file for adding new orderer is available [here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft-add-orderer.yaml). Please go through this file and all the comments there and edit accordingly.
+A Sample configuration file for adding new orderer is available [here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft-add-orderer.yaml). Please go through this file and all the comments there and edit accordingly.
 
 For generic instructions on the Fabric configuration file, refer [this guide](./fabric_networkyaml.md).
 
@@ -57,7 +57,7 @@ Ensure the following is considered when adding the new orderer on a different cl
 <a name = "run-playbook"></a>
 ## Run playbook
 
-The [add-orderer.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/add-orderer.yaml) playbook is used to add a new peer to an existing organization in the existing network. This can be done using the following command
+The [add-orderer.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/add-orderer.yaml) playbook is used to add a new peer to an existing organization in the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/hyperledger-fabric/configuration/add-orderer.yaml --extra-vars "@path-to-network.yaml"

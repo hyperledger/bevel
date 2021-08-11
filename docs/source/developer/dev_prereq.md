@@ -5,7 +5,7 @@ The following mandatory pre-requisites must be completed to set up a development
 The process of setting up developer pre-requisites can be done manually or via an automation script (currently script is for windows OS only)
 
 ## Script Based Setup
-You can use the scripts [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/scripts) to setup developer prerequisites for Windows or Mac systems.   
+You can use the scripts [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/scripts) to setup developer prerequisites for Windows or Mac systems.   
 
 ---
 

@@ -53,7 +53,7 @@ network:
 <a name = "run_network"></a>
 ## Run playbook for Fabric version 1.4.x
 
-The playbook [chaincode-upgrade.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-upgrade.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 1.4.x.
+The playbook [chaincode-upgrade.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/chaincode-upgrade.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 1.4.x.
 This can be done by using the following command
 
 ```
@@ -62,7 +62,7 @@ This can be done by using the following command
 
 ## Run playbook for Fabric version 2.2.x
 
-The playbook [chaincode-ops.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 2.2.x.
+The playbook [chaincode-ops.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 2.2.x.
 This can be done by using the following command
 
 ```

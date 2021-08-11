@@ -54,9 +54,9 @@ spec:
               curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "'"$VAULT_ROLE"'"}' $VAULT_ADDR/v1/auth/$VAULT_AUTH_PATH/login | jq -j '.auth.client_token' > token;
               X_VAULT_TOKEN=$(cat token);
 
-              LEDGER_SEED=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"{{ $.Values.organization.name }}"/trustees/{{ $.Values.vault.trusteeName }}/identity/private | jq -r 'if .errors then . else . end');
+              LEDGER_SEED=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"{{ $.Values.organization.name }}"/data/trustees/{{ $.Values.vault.trusteeName }}/identity/private | jq -r 'if .errors then . else . end');
               validateVaultResponse "secret ({{ $.Values.vault.trusteeName }}/identity/private)" "${LEDGER_SEED}";
-              echo ${LEDGER_SEED} | jq -j ".data.seed" > /keys/seed;
+              echo ${LEDGER_SEED} | jq -j ".data.data.seed" > /keys/seed;
               chmod 644 /keys/seed;
 
       containers:
