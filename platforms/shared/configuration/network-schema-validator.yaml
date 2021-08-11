@@ -19,9 +19,13 @@
       vars:
         path: "./build"
         check: "ensure_dir"
+    - name: "create tempNetwork yaml file"
+      copy:
+        content: |
+          {{ tempNetworkyaml |to_nice_yaml( width=50, explicit_start=True, explicit_end=True) }}
+        dest: ./build/temp.yaml             
     - name: "run schema validator on network.yaml"
       shell: |
-        echo  {{ tempNetworkyaml }} > ./build/temp.yaml
         ajv validate -s ../../network-schema.json -d ./build/temp.yaml
     - name: Remove the build directory and contents
       file:
