@@ -43,5 +43,5 @@ spec:
     orderer:
       address: {{ participant.ordererAddress }}
     anchorstx: |-
-{{ anchorstx | indent(width=6, indentfirst=True) }}
+{{ anchorstx | indent(width=6, first=True) }}
 

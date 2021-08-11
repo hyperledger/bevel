@@ -54,12 +54,12 @@ and under `network.organizations` as
 The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
-For reference, see `network-fabric-add-ordererorg.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/add-orderer-organization.yaml).
+For reference, see `network-fabric-add-ordererorg.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/add-orderer-organization.yaml).
 
 <a name = "run_network"></a>
 ## Run playbook
 
-The [add-orderer-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/add-orderer-organization.yaml) playbook is used to add a new Orderer organization to the existing network. This can be done using the following command
+The [add-orderer-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/add-orderer-organization.yaml) playbook is used to add a new Orderer organization to the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/hyperledger-fabric/configuration/add-orderer-organization.yaml --extra-vars "@path-to-network.yaml"

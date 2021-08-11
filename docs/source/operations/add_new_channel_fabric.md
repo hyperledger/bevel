@@ -51,12 +51,12 @@ While modifying the configuration file(`network.yaml`) for adding new channel, a
 The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
-For reference, see `network-fabric-add-channel.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples).
+For reference, see `network-fabric-add-channel.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/samples).
 
 <a name = "run_network"></a>
 ## Run playbook
 
-The [add-new-channel.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/add-new-channel.yaml) playbook is used to add a new channel to the existing network. This can be done using the following command
+The [add-new-channel.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/add-new-channel.yaml) playbook is used to add a new channel to the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/hyperledger-fabric/configuration/add-new-channel.yaml --extra-vars "@path-to-network.yaml"

@@ -45,7 +45,7 @@ This role calls for ambassador certificate creation for each node.
 * Putting certs to vault
 * Check Ambassador cred exists
 * Create the Ambassador credentials
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-besu/configuration/roles/create/certificates/ambassador) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/certificates/ambassador) for detailed information.
 
 ## **create/crypto/ibft**
 
@@ -56,7 +56,7 @@ This role creates crypto for ibft.
 * Generate enode url for each node and create a geth account and keystore
 * Copy the crypto material to Vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-besu/configuration/roles/create/crypto/ibft) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/crypto/ibft) for detailed information.
 
 ## **create/k8_component**
 
@@ -65,7 +65,7 @@ This role creates deployment files for nodes, namespace storageclass, service ac
 * create {{ component_type }} file for {{ component_name }}
 * Helm lint
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-besu/configuration/roles/create/k8_component) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/k8_component) for detailed information.
 
 ## **create/namespace_serviceaccount**
 
@@ -77,7 +77,7 @@ This role creates the deployment files for namespaces, vault-auth, vault-reviewe
 * Create clusterrolebinding for {{ organisation }}
 * Push the created deployment files to repository
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-besu/configuration/roles/create/namespace_serviceaccount) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/namespace_serviceaccount) for detailed information.
 
 ## **create/storageclass**
 
@@ -87,7 +87,7 @@ This role creates value files for storage class
 * Push the created deployment files to repository
 * Wait for Storageclass creation for {{ component_name }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-besu/configuration/roles/create/storageclass) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/storageclass) for detailed information.
 
 ## **setup/get_crypto**
 
@@ -98,7 +98,7 @@ This role saves the crypto from Vault into ansible_provisioner.
 * Save root keychain
 * Extracting root certificate from .jks
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-besu/configuration/roles/setup/get_crypto) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/setup/get_crypto) for detailed information.
 
 
 ## **setup/vault_kubernetes**
@@ -118,4 +118,4 @@ This role setups communication between the vault and kubernetes cluster and inst
 * Create Vault auth role
 * Create the docker pull credentials
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-besu/configuration/roles/setup/vault_kubernetes) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/setup/vault_kubernetes) for detailed information.

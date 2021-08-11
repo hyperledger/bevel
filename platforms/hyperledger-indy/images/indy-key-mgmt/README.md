@@ -6,18 +6,18 @@ Docker image for indy key management, which generates identity crypto and stores
 Ideally, the build of the image should be run from this directory.<br>
 For build run command below:
 ```bash
-docker build -t <docker_url>/indy-key-mgmt:1.11.0 .
+docker build -t <docker_url>/indy-key-mgmt:1.12.1 .
 ```
-*NOTE*: Version 1.11.0 is default version also for version of Hyperledger Indy in this Docker image.<br>
+*NOTE*: Version 1.12.1 is default version also for version of Hyperledger Indy in this Docker image.<br>
 When you would like to use older version, then override build arguments.<br>
-Example for use version 1.9.2:
+Example for use version 1.11.0:
 ```bash
 docker build --build-arg INDY_NODE_VERSION=v1.9.2 -t <docker_url>/indy-key-mgmt:1.9.2 .
 ```
 #### Build arguments with default values
  - ROCKS_DB_VERSION=5.8.8
  - LIBINDY_CRYPTO_VERSION=0.4.5
- - INDY_NODE_VERSION=v1.11.0
+ - INDY_NODE_VERSION=1.12.1
 
 ## How to use
 
@@ -30,21 +30,22 @@ In this Docker image is shell script generate_identity. The script can generate 
 | 1 | | Yes | Name of identity. |
 | 2 | | Yes | Vault path, where it will be saved in Vault and root structure in json output. |
 | 3 | console | No | Target of generated crypto. Can by as "vault" or "console" |
-| 4 | | No | Address of vault server. |
+| 4 | http://localhost:8200 | No | Address of vault server. |
+| 5 | 1 | No |  Vault KV version |
 
 ### Example:
 ```bash
-docker run -it --rm -e VAULT_TOKEN=<your_token> <docker_url>/indy-key-mgmt:1.11.0 generate_identity <your_identity_name> <your_vault_path> <your_target> http://<your_vault_address>:8200
+docker run -it --rm -e VAULT_TOKEN=<your_token> <docker_url>/indy-key-mgmt:1.12.1 generate_identity <your_identity_name> <your_vault_path> <your_target> http://<your_vault_address>:8200
 ```
 
 Insert to vault:
 ```bash
-docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" hyperledgerlabs/indy-key-mgmt:1.11.0 generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
+docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" hyperledgerlabs/indy-key-mgmt:1.12.1 generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
 ```
 
 Print on console:
 ```bash
-docker run -it --rm hyperledgerlabs/indy-key-mgmt:1.11.0 bash -c "generate_identity my-identity provider.stewards | jq"
+docker run -it --rm hyperledgerlabs/indy-key-mgmt:1.12.1 bash -c "generate_identity my-identity provider.stewards | jq"
 ```
 > You could use `| jq` for smooth printing of JSON
 

@@ -23,6 +23,7 @@ spec:
       pullSecret: regcred
     vault:
       address: {{ vault.url }}
+      version: "2"
       keyPath: {{ vault_path }}
       identity: {{ identity_name }}
       auth_path: kubernetes-{{ organization }}-admin-auth
