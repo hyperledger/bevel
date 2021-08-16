@@ -6,6 +6,10 @@ Before setting up a Hyperledger Besu DLT/Blockchain network, this file needs to 
 A sample configuration file is provided in the repo path:  
 `platforms/hyperledger-besu/configuration/samples/network-besu.yaml` 
 
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
+
 The configurations are grouped in the following sections for better understanding.
 
 * type
@@ -220,7 +224,8 @@ Each organization with type as `member` will have a peers service. The snapshot 
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
+          lock: true        # (for future use) Sets Besu node to lock or unlock mode. Can be true or false
           p2p:
             port: 30303
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -244,6 +249,7 @@ The fields under `peer` service are
 | name            | Name of the peer                |
 | subject     | This is the alternative identity of the peer node    |
 | geth_passphrase | This is the passphrase used to generate the geth account. |
+| lock   | (for future use). Sets Besu node to lock or unlock mode. Can be true or false|
 | p2p.port   | P2P port for Besu|
 | p2p.ambassador | The P2P Port when exposed on ambassador service|
 | rpc.port   | RPC port for Besu|
@@ -260,7 +266,7 @@ The peer in an organization with type as `member` can be used to deploy the smar
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
           p2p:
             port: 30303
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)

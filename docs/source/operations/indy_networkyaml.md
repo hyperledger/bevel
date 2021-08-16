@@ -6,6 +6,10 @@ Before setting up a Indy network, this file needs to be updated with the require
 A sample configuration file is provide in the repo path:  
 `platforms/hyperledger-indy/configuration/samples/network-indyv3.yaml`  
 
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
+
 The configurations are grouped in the following sections for better understanding.
 
 * type
@@ -101,8 +105,8 @@ The `genesis` section contains Information about pool transaction genesis and do
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | state        | State is placeholder for future, when there will be option to join to existing cluter. Currently only "absent" is supported. That means, that genesis will be always generated    |
-| pool         | Path to pool transaction genesis. [Readme here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis/).    |
-| domain | Path to domain transaction genesis. [Readme here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/configuration/roles/setup/domain_genesis/).      |
+| pool         | Path to pool transaction genesis. [Readme here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis/).    |
+| domain | Path to domain transaction genesis. [Readme here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-indy/configuration/roles/setup/domain_genesis/).      |
 
 
 The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. membership service, etc), then these services should be listed in this section as well.

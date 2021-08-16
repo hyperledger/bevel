@@ -42,7 +42,7 @@ This tasks creates deployment files for the notary by calling the `helm_componen
 - `idman_domain` - The domain of the idman
 - `networkmap_url` - The URL to the networkmap (nmap)
 - `networkmap_url` - The domain of the networkmap (nmap)
-- `corda_service_version` - `notary-{{ org.version }}`
+- `corda_service_version` - `notary-{{ network.version }}`
 - `p2p_port` - The notary p2p port
 - `ambassador_p2pPort` - The notary ambassador p2p port    
 

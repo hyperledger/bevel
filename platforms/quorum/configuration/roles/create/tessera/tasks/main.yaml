@@ -60,12 +60,25 @@
     - notest
 
 # This task creates the Tessera Transaction Manager value files for each node of organization
-- name: Create value file for Tessera TM for each node
+- name: Create value file for Tessera TM nodes
   include_role:
     name: helm_component
   vars:
     component_name: "{{ name }}{{ peer.name }}tessera"
     type: "tessera"
+    genesis: "{{ lookup('file', '{{ network.config.genesis }}') | b64encode }}"
+    staticnodes: "{{ lookup('file', '{{ network.config.staticnodes }}') | from_yaml | to_nice_json }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+
+# This task creates the Quorum value files for each node of organization
+- name: Create value file for Quorum Nodes
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ name }}{{ peer.name }}quroum"
+    type: "quorum"
     genesis: "{{ lookup('file', '{{ network.config.genesis }}') | b64encode }}"
     staticnodes: "{{ lookup('file', '{{ network.config.staticnodes }}') | from_yaml | to_nice_json }}"
   loop: "{{ peers }}"

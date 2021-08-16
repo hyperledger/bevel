@@ -23,7 +23,7 @@ CI and CD are two acronyms that are often mentioned when people talk about moder
 ### CLI
 A command-line interface (CLI) is a means of interacting with a computer program where the user (or client) issues commands to the program in the form of successive lines of text (command lines).
 ### Cluster
-In Kubernetes, a cluster consists of at least one cluster master and multiple worker machines called nodes.
+In Kubernetes, a cluster consists of at least one cluster Main node and multiple worker machines called nodes.
 For more details, refer: [Cluster](https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-architecture)
 ### Deployment
 Software deployment is all of the activities that make a software system available for use. The general deployment process consists of several interrelated activities with possible transitions between them. These activities can occur at the producer side or at the consumer side or both.

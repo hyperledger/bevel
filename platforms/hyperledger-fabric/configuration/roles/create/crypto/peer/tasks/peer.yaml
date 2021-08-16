@@ -121,10 +121,17 @@
     basicConstraints = critical, CA:TRUE
     keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
     subjectKeyIdentifier = hash
-    subjectAltName = DNS:*.{{ item.external_url_suffix }}
+    subjectAltName = @alt_names
+
+    [alt_names]
+    DNS.1 = {{ domain_name }}
+    DNS.2 = {{ domain_name_api }}
+    DNS.3 = {{ domain_name_web }}
     EOF
   vars:
-    domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"  
+    domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
+    domain_name_api: "{{ component_name }}api.{{ item.external_url_suffix }}"
+    domain_name_web: "{{ component_name }}web.{{ item.external_url_suffix }}"
   when: 
     - network.env.proxy == 'ambassador'
     - vault_peer_ambassador.failed 

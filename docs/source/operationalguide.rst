@@ -12,7 +12,7 @@ Pre-requisites
 
 
 Fabric operations
-----------------
+-----------------
 .. toctree::
     :maxdepth: 1
 
@@ -20,6 +20,7 @@ Fabric operations
     operations/upgrade_fabricnetwork.md
     operations/adding_new_org_fabric
     operations/adding_new_ordererorg_fabric
+    operations/add_new_channel_fabric
     operations/removing_org_fabric
     operations/adding_new_peer_fabric
     operations/adding_new_ordererpeer_fabric
@@ -34,6 +35,7 @@ Corda operations
     operations/corda_networkyaml
     operations/adding_cordapps
     operations/adding_new_org_corda
+    operations/adding_new_notary_corda
 
 Besu operations
 -----------------------

@@ -75,16 +75,16 @@ Please see this [page](./operations/setting_dlt.md) for detials.
 One could request a new feature on the Github repository for now. In the future, people might use Jira or Slack to do the same as well.
 
 ### Are CI/CD pipeline tools a mandatory to use the Blockchain Automation Framework?
-No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a user automate the set-up or testing of a new DLT/Blockchain network in different environments, once a user has a good understanding of using it. We have the master Jenkinsfile in `automation` folder which can be taken as a template.
+No, CI/CD pipeline tools like Jenkins are not mandatory, but it could help a user automate the set-up or testing of a new DLT/Blockchain network in different environments, once a user has a good understanding of using it. We have the main Jenkinsfile in `automation` folder which can be taken as a template.
 
 ### Is it required to run Ansible in a particular machine like AWS EC2?
 No, a user should be able to run the Ansible command on any machine as long as Ansible command CLI is installed.
 
 ### Is there an example ansible_hosts file?
-Yes, you can find an example ansible_hosts file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisioners). The configuration in this file means that all Ansible commands will be run in the same machine that works as both an Ansible client and server machine.
+Yes, you can find an example ansible_hosts file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/inventory/ansible_provisioners). The configuration in this file means that all Ansible commands will be run in the same machine that works as both an Ansible client and server machine.
 
 ### Can I specify the tools versions such as kubectl, helm in this project?
-Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [environment-setup.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/environment-setup.yaml).
+Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [environment-setup.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/environment-setup.yaml).
 
 ### How would system react if we plan to update tools versions (e.g. kubectl, helm)?
 Honestly speaking, we don't know. The latest version Blockchain Automation Framework has been tested on specific client versions of these tools, see below:
@@ -96,7 +96,7 @@ Honestly speaking, we don't know. The latest version Blockchain Automation Frame
 It is assumed that newer versions of these tools would be backward compatible, which is beyond our control. One can raise a new ticket to the Blockchain Automation Framework GitHub repository, if any major updates would break the system down.
 
 ### Why does the Flux K8s pod get a permission denied for this Blockchain Automation Framework GitHub repository?
-This usually means that the private key that you have used in your network.yaml for gitops does not have access to the GitHub repository. The corresponding public key must be added to your GitHub Account (or other git repository that you are using). Details can be found [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/).
+This usually means that the private key that you have used in your network.yaml for gitops does not have access to the GitHub repository. The corresponding public key must be added to your GitHub Account (or other git repository that you are using). Details can be found [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/).
 
 ### Why does the flux-helm-operator keep on reporting "Failed to list *v1beta1.HelmRelease: the server could not find the requested resource (get helmreleases.flux.weave.works)"?
 The HelmRelease CustomResourceDefinition (CRD) was missing from the cluster, according to https://github.com/fluxcd/flux, the following command has to be used to deploy it:

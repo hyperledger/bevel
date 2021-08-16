@@ -59,7 +59,7 @@ Also, Ansible's k8s module requires the **openshift python package (>= 0.6)**.
 ---
 ### Configuring Ansible Inventory file
 
-In the Blockchain Automation Framework, we connect to Kubernetes cluster through the **Ansible Controller** and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/inventory/ansible_provisioners). 
+In the Blockchain Automation Framework, we connect to Kubernetes cluster through the **Ansible Controller** and do not modify or connect to any other machine directly. The Blockchain Automation Framework's sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/inventory/ansible_provisioners). 
 
 Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
 

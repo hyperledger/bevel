@@ -69,7 +69,7 @@ This task creates deployment files for job for notary by calling the `helm_compo
 - `idman_domain` - The domain of the idman
 - `networkmap_url` - The URL of the networkmap
 - `networkmap_domain` - The domain of the networkmap
-- `corda_service_version` - `notary-{{ org.version }}`, this is used to find the Docker image from `helm_component/vars`
+- `corda_service_version` - `notary-{{ network.version }}`, this is used to find the Docker image from `helm_component/vars`
 
 **when** - This task is called only when `nodekeystore_result` is failed, i.e. only when first time set-up of network.
 

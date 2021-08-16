@@ -59,13 +59,14 @@ spec:
       role: vault-role
       authpath: quorum{{ name }}
     tessera:
-      dburl: "jdbc:mysql://{{ peer.name }}:3306/demodb"
+      dburl: "jdbc:mysql://{{ peer.name }}-tessera:3306/demodb"
       dbusername: demouser
 {% if network.config.tm_tls == 'strict' %}
       url: "https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
 {% else %}
       url: "http://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}"
 {% endif %}
+      clienturl: "http://{{ peer.name }}-tessera:{{ peer.transaction_manager.clientport }}" #TODO: Enable tls strict for q2t
       othernodes:
 {% for tm_node in network.config.tm_nodes %}
         - url: {{ tm_node }}
@@ -81,6 +82,7 @@ spec:
       portTM: {{ peer.transaction_manager.ambassador }}
       rpcport: {{ peer.rpc.ambassador }}
       quorumport: {{ peer.p2p.ambassador }}
+      clientport: {{ peer.transaction_manager.clientport }}
 {% if network.config.consensus == 'raft' %}  
       portRaft: {{ peer.raft.ambassador }}
 {% endif %}

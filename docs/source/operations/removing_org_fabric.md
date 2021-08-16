@@ -53,7 +53,7 @@ and under `network.organizations` as
 The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
-For reference, see `network-fabric-remove-organization.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/hyperledger-fabric/configuration/samples).
+For reference, see `network-fabric-remove-organization.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/samples).
 
 <a name = "run_network"></a>
 ## Run playbook

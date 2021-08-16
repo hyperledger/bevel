@@ -53,10 +53,18 @@
     [req]
     distinguished_name = dn
     [EXT]
-    subjectAltName=DNS:{{ domain_name }}
     keyUsage=digitalSignature
     extendedKeyUsage=serverAuth
+    subjectAltName = @alt_names
+
+    [alt_names]
+    DNS.1 = {{ domain_name }}
+    DNS.2 = {{ domain_name_api }}
+    DNS.3 = {{ domain_name_web }}
     EOF
+  vars:    
+    domain_name_api: "{{ node_name }}api.{{ org.external_url_suffix }}"
+    domain_name_web: "{{ node_name }}web.{{ org.external_url_suffix }}" 
   when: not openssl_conf_check.stat.exists
 
 # Create ambassador certificates
@@ -75,7 +83,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: ambassador_tls_certs.failed
 
-# Check if the ambassador secret is created in the default namespace
+# Check if the ambassador secret is created in the namespace
 - name: Check if Ambassador creds exists
   k8s_info:
     kind: Secret

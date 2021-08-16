@@ -74,3 +74,20 @@ spec:
       replicas: 1
     ambassador:
       external_url_suffix: "{{ org.external_url_suffix }}"
+{% if nmap_update is defined and nmap_update %}
+    nmapUpdate: true
+    addNotaries:
+{% for enode in node_list %}
+      - notary: 
+          nodeinfoFileName: {{ enode.nodeinfo_name }}
+          nodeinfoFile: {{ enode.nodeinfo }}
+          validating: {{ enode.validating }}
+{% endfor %}
+{% else %}
+    nmapUpdate: false
+    addNotaries:
+      - notary: 
+          nodeinfoFileName: dummy
+          nodeinfoFile: dummy
+          validating: false
+{% endif %}
