@@ -1,0 +1,49 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: mongodb-doormankav
+  annotations:
+    fluxcd.io/automated: "false"
+  namespace: supplychainkav-ns
+spec:
+  replicaCount: 1
+  replicas: 1
+  releaseName: mongodb-doormankav
+  chart:
+    path: platforms/r3-corda/charts/mongodb-tls
+    git: https://github.com/kaverikhaneja/blockchain-automation-framework.git
+    ref: corda/vaultv2
+  values:
+    nodeName: mongodb-doormankav
+    metadata:
+      namespace: supplychainkav-ns
+    image:
+      containerName: mongo:3.6.6
+      imagePullSecret: regcred
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+    storage:
+      memory: 512Mi
+      name: awsstorageclass
+      mountPath: /data/db
+      volname: hostvol
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      role: vault-role
+      authpath: cordadoormankav
+      secretprefix: doormankav/data/credentials/mongodb
+      serviceaccountname: vault-auth
+      certsecretprefix: doormankav/data/certs
+    service:
+      tcp:
+          port: 27017
+          targetPort: 27017
+      type: NodePort
+      annotations: {}
+    deployment:
+      annotations: {}
+    pvc:
+      annotations: {}
+    mongodb:
+      username: doormankav
+    cluster:
+      enabled: false

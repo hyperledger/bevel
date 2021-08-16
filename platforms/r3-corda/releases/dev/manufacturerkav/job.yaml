@@ -1,0 +1,106 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: manufacturerkav-initial-registration
+  annotations:
+    fluxcd.io/automated: "false"
+  namespace: manufacturerkav-ns
+spec:
+  releaseName: manufacturerkav-initial-registration
+  chart:
+    path: platforms/r3-corda/charts/node-initial-registration
+    git: https://github.com/kaverikhaneja/blockchain-automation-framework.git
+    ref: corda/vaultv2
+  values:
+    nodeName: manufacturerkav
+    replicas: 1
+    metadata:
+      namespace: manufacturerkav-ns  
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/corda:4.7-linuxkit
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+      doormanCertAlias: doormankav.rc.dev2.aws.blockchaincloudpoc-develop.com
+      networkmapCertAlias: networkmapkav.rc.dev2.aws.blockchaincloudpoc-develop.com
+    nodeConf:
+      p2p:
+        url: manufacturerkav.manufacturerkav-ns
+        port: 10002
+      ambassadorAddress: manufacturerkav.rc.dev2.aws.blockchaincloudpoc-develop.com:15046
+      rpcSettings:
+        useSsl: false
+        standAloneBroker: false
+        address: "0.0.0.0:10003"
+        adminAddress: "0.0.0.0:10005"
+        ssl:
+          certificatesDirectory: na-ssl-false
+          sslKeystorePath: na-ssl-false
+          trustStoreFilePath: na-ssl-false
+      legalName: O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH #use peer-node level subject for legalName
+      messagingServerAddress:
+      jvmArgs:
+      systemProperties:
+      sshd:
+        port:
+      exportJMXTo:
+      transactionCacheSizeMegaBytes: 8
+      attachmentContentCacheSizeMegaBytes: 10
+      attachmentCacheBound: 1024
+       
+      detectPublicIp: false
+      database:
+        exportHibernateJMXStatistics: false
+      dbUrl: manufacturerkavdb
+      dbPort: 9101
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      dataSourceUrl: "jdbc:h2:tcp://manufacturerkavdb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+      jarPath: "/data/corda-workspace/h2/bin"
+      networkMapURL: https://networkmapkav.rc.dev2.aws.blockchaincloudpoc-develop.com
+      doormanURL: https://doormankav.rc.dev2.aws.blockchaincloudpoc-develop.com
+      compatibilityZoneURL:
+      jarVersion: 4.7
+      devMode: false
+      env:
+        - name: JAVA_OPTIONS
+          value: -Xmx512m
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: BASE_DIR
+          value: /base/corda
+    credentials:
+      dataSourceUser: sa
+      rpcUser:
+        - name: manufacturerkavoperations
+          permissions: [ALL]
+
+    volume:
+      baseDir: /base/corda
+    resources:
+      limits: "512Mi"
+      requests: "512Mi"
+    
+    service:
+      type: ClusterIP
+      p2p:
+        port: 10002
+        targetPort: 10002
+      rpc:
+        port: 10003
+      rpcadmin:
+        port: 10005
+
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      role: vault-role
+      authpath: cordamanufacturerkav
+      serviceaccountname: vault-auth
+      dbsecretprefix: manufacturerkav/data/credentials/database
+      rpcusersecretprefix: manufacturerkav/data/credentials/rpcusers
+      tokensecretprefix: manufacturerkav/data/credentials/vaultroottoken
+      keystoresecretprefix: manufacturerkav/data/credentials/keystore
+      certsecretprefix: manufacturerkav/data/certs
+        
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 15

@@ -1,0 +1,130 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: notarykav
+  annotations:
+    fluxcd.io/automated: "false"
+  namespace: supplychainkav-ns
+spec:
+  releaseName: notarykav
+  chart:
+    path: platforms/r3-corda/charts/notary
+    git: https://github.com/kaverikhaneja/blockchain-automation-framework.git
+    ref: corda/vaultv2
+  values:
+    nodeName: notarykav
+    replicas: 1
+    metadata:
+      namespace: supplychainkav-ns
+    image:
+      containerName: adopblockchaincloud0502.azurecr.io/corda:4.7-linuxkit
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      imagePullSecret: regcred
+      privateCertificate: true
+      doormanCertAlias: doormankav.rc.dev2.aws.blockchaincloudpoc-develop.com
+      networkmapCertAlias: networkmapkav.rc.dev2.aws.blockchaincloudpoc-develop.com
+    nodeConf:
+      p2p:
+        url: notarykav.supplychainkav-ns
+        port: 10002
+      ambassadorAddress: notarykav.rc.dev2.aws.blockchaincloudpoc-develop.com:15045
+      rpcSettings:
+        useSsl: false
+        standAloneBroker: false
+        address: "0.0.0.0:10003"
+        adminAddress: "0.0.0.0:10005"
+        ssl:
+          certificatesDirectory: na-ssl-false
+          sslKeystorePath: na-ssl-false
+          trustStoreFilePath: na-ssl-false
+      legalName: O=Notary,OU=Notary,L=London,C=GB #use peer-node level subject for legalName
+      messagingServerAddress:
+      jvmArgs:
+      systemProperties:
+      sshd:
+        port:
+      exportJMXTo:
+      transactionCacheSizeMegaBytes: 8
+      attachmentContentCacheSizeMegaBytes: 10
+      attachmentCacheBound: 1024
+            
+      notary:
+        validating: True
+        serviceLegalName: O=Notary Service,OU=Notary,L=London,C=GB
+       
+      detectPublicIp: false
+      database:
+        exportHibernateJMXStatistics: false
+      dbUrl: notarykavdb
+      dbPort: 9101
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      dataSourceUrl: "jdbc:h2:tcp://notarykavdb:9101/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+      jarPath: "/data/corda-workspace/h2/bin"
+      networkMapURL: https://networkmapkav.rc.dev2.aws.blockchaincloudpoc-develop.com
+      doormanURL: https://doormankav.rc.dev2.aws.blockchaincloudpoc-develop.com
+      compatibilityZoneURL:
+      jarVersion: 4.7
+      devMode: false
+      env:
+        - name: JAVA_OPTIONS
+          value: -Xmx512m
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: BASE_DIR
+          value: /base/corda
+    credentials:
+      dataSourceUser: sa
+      rpcUser:
+        - name: notarykavoperations
+          permissions: [ALL]
+
+    cordapps:
+      getcordapps: false
+
+    volume:
+      baseDir: /base/corda
+    resources:
+      limits: "1Gi"
+      requests: "1Gi" 
+    pvc:
+      name: notarykav-pvc
+      annotations: {}
+      memory: 512Mi
+      storageClassName: awsstorageclass
+
+    service:
+      name: notarykav
+      type: ClusterIP
+      p2p:
+        port: 10002
+        targetPort: 10002
+      rpc:
+        port: 10003
+        targetPort: 10003 
+      rpcadmin:
+        port: 10005
+        targetPort: 10005
+         
+    deployment:
+      annotations: {}
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      role: vault-role
+      authpath: cordanotarykav
+      serviceaccountname: vault-auth
+      dbsecretprefix: notarykav/data/credentials/database
+      rpcusersecretprefix: notarykav/data/credentials/rpcusers
+      tokensecretprefix: notarykav/data/credentials/vaultroottoken
+      keystoresecretprefix: notarykav/data/credentials/keystore
+      certsecretprefix: notarykav/data/certs
+      networkmapsecretprefix: notarykav/data/credentials/networkmappassword
+      cordappsreposecretprefix: notarykav/data/credentials/cordapps
+
+          
+    healthcheck:
+      readinesscheckinterval: 20
+      readinessthreshold: 20
+    ambassador:
+      component_name: notarykav
+      external_url_suffix: rc.dev2.aws.blockchaincloudpoc-develop.com
+      p2p_ambassador: 15045
