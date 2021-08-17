@@ -49,7 +49,7 @@ spec:
       attachmentCacheBound: 1024
       {% if chart == 'notary' %}      
       notary:
-        validating: {{ node.validate }}
+        validating: {{ node.validating }}
         serviceLegalName: {{ node.serviceName | default() }}
       {% endif %} 
       detectPublicIp: false
