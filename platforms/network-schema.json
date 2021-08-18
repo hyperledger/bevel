@@ -65,7 +65,17 @@
                 "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/indy_organization"}}      
                }
              }
-            }                                     
+            },
+            {"if": {"properties": { "type": { "const": "quorum" } } },
+             "then": {
+              "properties":{
+                "version":{ "type": "string","enum":["21.4.2","2.5.0"]},
+                "env": { "$ref":"#/definitions/shared_env_ambassador"},
+                "config": {"$ref":"#/definitions/quorum_config"},                
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/quorum_organization"}}      
+               }
+             }
+            }                                                  
           ],
           "required": [ "type","version","env","docker","organizations" ]
         }
@@ -752,6 +762,79 @@
             },
           "required": [ "httpPort","apiPort"],
           "additionalProperties": false
-        }                                                                       
+        },
+        "quorum_config":{
+          "type": "object",
+          "properties": {
+            "consensus": { "type": "string","enum": ["ibft","raft"],"description":"Currently supports raft or ibft. Please update the remaining items according to the consensus chosen as not all values are valid for both the consensus."},
+            "subject":  { "type": "string","description":"This is the subject of the root CA which will be created for the Quorum network. The root CA is for development purposes only, production networks should already have the root certificates."},
+            "transaction_manager": { "type": "string","enum": ["tessera","constellation"],"description":"Options are tessera and constellation. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager."},
+            "tm_version":{},
+            "tm_tls": { "type": "string","enum":["strict","off"],"description":"Options are strict and off. This enables TLS for the transaction managers, and is not related to the actual Quorum network. off is not recommended for production."},
+            "tm_trust": { "type": "string","enum": ["whitelist","ca-or-tofu","ca","tofu"],"description":"This is the trust relationships for the transaction managers."},
+            "tm_nodes":{},
+            "staticnodes":{"type":"string","pattern":"^(\/[^\/ ]*)+[^\/ ]+$","description":"This is the path where staticnodes will be stored for a new network; for adding new node, the existing network's staticnodes should be available in yaml format in this file."},
+            "genesis":  { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+$","description":"This is the path where genesis.json will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file."},
+            "bootnode": { "$ref":"#/definitions/quorum_config_bootnode"}
+            },
+            "if": {"properties": { "transaction_manager": { "const": "tessera" } } },"then":{
+              "properties": {
+                "tm_version": { "type": "string","enum": ["21.4.0"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
+                "tm_nodes": { "type":"array","minItems": 1,
+                    "items":{"type":"string","pattern":"^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" }}
+              }},"else":{
+              "properties": {
+                "tm_version": { "type": "string","enum": ["0.3.2"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
+                "tm_nodes": { "type":"string","pattern":"^http:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?\/$" }
+    
+            }},
+          "required": [ "consensus","subject","transaction_manager","tm_version","tm_tls","tm_trust","tm_nodes","genesis"],
+          "additionalProperties": false
+        },
+        "quorum_config_bootnode":{
+          "type": "object",
+          "properties": {
+            "name": { "type": "string","pattern": "^[a-z0-9-_]{1,30}$","description":"name of the bootnode that matches one from existing node"},
+            "url": {  "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?(?:\\/[a-z0-9-]{1,61})*$","description":"ambassador url of the bootnode"},
+            "rpcport": { "type": "number","description":"rpc port of the bootnode"},
+            "nodeid": { "type": "number","description":"id of the bootnode"}
+            },
+          "required": [ "name","url","rpcport","nodeid"],
+          "additionalProperties": false
+        },
+        "quorum_organization":{
+          "type": "object",
+          "allOf":[{ "$ref":"#/definitions/shared_organization"}],
+          "properties": {
+            "external_url_suffix":  { "type": "string","description":"Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider."},
+            "services":{"type":"object","properties":{
+               "peers":{ "type":"array","items":{ "$ref":"#/definitions/quorum_service_peer"}}
+            }}}
+        },
+        "quorum_service_peer":{
+          "type": "object",
+          "properties": {
+            "peer": {},
+            "name": { "type": "string","pattern": "^[a-z0-9-_]{1,30}$","description":"Name of the peer"},
+            "subject": { "type": "string", "description": "This is the alternative identity of the peer node"},
+            "type":{"type":"string","enum":["validator","non-validator"],"description":"value can be validator or non-validator, only applicable if consensus = 'ibft'"},
+            "geth_passphrase": { "type": "string", "description": "This is the passphrase used to generate the geth account."},
+            "p2p":  { "$ref":"#/definitions/shared_port_ambassador"}, 
+            "rpc":  { "$ref":"#/definitions/shared_port_ambassador"}, 
+            "transaction_manager":  { "$ref":"#/definitions/quorum_tm_port_ambassador"}, 
+            "raft": { "$ref":"#/definitions/shared_port_ambassador","description":"Only used if consensus = 'raft'"},
+            "db": { "$ref":"#/definitions/shared_port","description":" Only used if transaction_manager = tessera"}
+            }
+        },
+        "quorum_tm_port_ambassador":{
+          "type": "object",
+          "properties": {
+            "port": { "type": "number"},
+            "ambassador": { "type": "number"},          
+            "clientport":  { "type": "number"}
+          },
+          "required": [ "port","ambassador"],
+          "additionalProperties": false          
+        }                                                                                                                          
       }                          
   }
