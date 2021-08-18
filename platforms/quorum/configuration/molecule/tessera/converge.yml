@@ -89,6 +89,7 @@
               transaction_manager:
                 port: 8443
                 ambassador: 8443
+                clientport: 8888
               raft:                     # Only used if consensus = 'raft'
                 port: 50401
                 ambassador: 15033
@@ -114,10 +115,10 @@
 
     - name: Generate crypto for raft consensus
       shell: |
-        bootnode -genkey ./build/store/store/nodekey
-        bootnode --nodekey=build/store/store/nodekey --writeaddress > build/store/store/enode
+        {{ bin_install_dir }}/bootnode -genkey ./build/store/store/nodekey
+        {{ bin_install_dir }}/bootnode --nodekey=build/store/store/nodekey --writeaddress > build/store/store/enode
         echo 12345 >> build/store/store/password
-        geth account new --datadir build/store/store --password build/store/store/password
+        {{ bin_install_dir }}/geth account new --datadir build/store/store --password build/store/store/password
         cp build/store/store/keystore/* build/store/store/keystore.json
       tags:
         molecule-idempotence-notest
