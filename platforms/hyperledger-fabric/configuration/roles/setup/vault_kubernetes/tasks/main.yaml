@@ -59,6 +59,16 @@
     path: "./build"
     check: "ensure_dir"
 
+#####################################################################################################################
+# This task creates the docker pull credentials for image registry
+- name: "Create vault_kubernetes secret"
+  include_role:
+    name: create/k8s_secrets
+  vars: 
+    namespace: "{{ item.name | lower}}-net"
+    kubernetes: "{{ item.k8s }}"
+    check: "docker_credentials"
+
 #############################################################################################
 # This task creates secrets for the root token and the reviewer token
 - name: "Create vault_kubernetes secrets tokens"
@@ -119,13 +129,3 @@
     namespace: "{{ item.name | lower}}-net"
     component_name: "{{ item.name | lower}}-vaultkubenertes-job"
     kubernetes: "{{ item.k8s }}"
-
-#####################################################################################################################
-# This task creates the docker pull credentials for image registry
-- name: "Create vault_kubernetes secret"
-  include_role:
-    name: create/k8s_secrets
-  vars: 
-    namespace: "{{ item.name | lower}}-net"
-    kubernetes: "{{ item.k8s }}"
-    check: "docker_credentials"

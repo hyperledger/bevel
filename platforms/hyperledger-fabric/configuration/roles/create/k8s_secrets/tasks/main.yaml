@@ -28,6 +28,8 @@
         config.yaml: |-
         token: "{{ vault.root_token }}"
     state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
   when: check == "token_secret" and root_token_secret.resources|length == 0 
 
 ############################################################################################
@@ -86,4 +88,6 @@
       data:
         .dockerconfigjson: "{{ dockerconfigjson | to_json | b64encode }}"
     state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
   when: check == "docker_credentials" and  get_regcred.resources|length == 0
