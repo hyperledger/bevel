@@ -29,9 +29,26 @@ This tasks downloads the certificates from NMS.
     dest: path to metwork-map-truststore.jks
     validate_certs: whether to validate the jks file or not.
 
-**when**:  It runs when *truststore_result.failed* == True, i.e. truststore is present . 
+**when**:  It runs when *truststore_result.failed* == True, i.e. truststore is present .
 
-#### 4. Write networkmaptruststore to vault
+#### 4. Wait till the nms is running
+This task  Waits for nms pod to come up
+##### Input Variables
+    component_type: Contains type of "Pod"
+    namespace: namespace is the variable called component_ns
+    component_name: The name of resource i.e notary
+    kubernetes: item.k8s can be found in your network yaml
+
+#### 5.Downloads certs from nms pod
+This task downloads the certificates from NMS
+ 
+ **shell**
+       exporting the networkmap pod by exporting the kubeconfig file .
+
+ **when**:  It runs when *truststore_result.failed* == True, i.e. truststore is present and network.env.proxy == 'none'.
+
+
+#### 6. Write networkmaptruststore to vault
 This task loads the certificates to vault.
 ##### Input Variables
 
@@ -41,7 +58,7 @@ This task loads the certificates to vault.
 
 **when**:  It runs when *truststore_result.failed* == True, i.e. truststore is present .
 
-#### 5. Check if certificates already created
+#### 7. Check if certificates already created
 This task check if certificates already created
 
 ##### Input Variables
@@ -56,7 +73,7 @@ This task check if certificates already created
 
     certs_result: This variable stores the output of notary customnodekeystore check query.
 
-#### 6. Generate node certs
+#### 8. Generate node certs
 This task generates notary certificates using openssl
 
 ##### Input Variables
@@ -67,7 +84,7 @@ This task generates notary certificates using openssl
 **when**:  It runs when *certs_result.failed* == True, i.e. notary certs are not present .
 
 
-#### 7. Write certificates to vault
+#### 9. Write certificates to vault
 This task generates the notary certificates.
 
 ##### Input Variables
@@ -77,7 +94,7 @@ This task generates the notary certificates.
 **shell**: It generates nodekeystore.key and notary.cer file in the rootca directory.
 **when**:  It runs when *certs_result.failed* == True and *rootca_stat_result.stat.exists* == False, i.e. notary certs are not present and notary key is also not present.
 
-#### 8.  Check if doorman certs already created.
+#### 10.  Check if doorman certs already created.
 This task checks whether the doorman certs already created or not
 
 ##### Input Variables
@@ -144,7 +161,10 @@ This task writes the corapps repository userpass credentials in Vault.
 
 **shell**:  It writes the credentials in Vault.
 
-**when**:  It runs when *cordapps_details* != "", i.e. cordapps repository details are provided in the configuration file.  
+**when**:  It runs when *cordapps_details* != "", i.e. cordapps repository details are provided in the configuration file. 
 
+#### 14. Create Ambassador certificates
+ 
+**when**: It runs when network.env.proxy != 'none' .
 #### Note: 
 vars folder has enviornment variable for notary role.
