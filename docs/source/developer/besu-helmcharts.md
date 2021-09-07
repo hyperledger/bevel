@@ -38,8 +38,8 @@ This folder consists of Hyperledger-Besu node charts which is used by the ansibl
 
   - _helpers.tpl   
 
-      This file doesn't output a Kubernets manifest file as it begins with underscore (_). And it's a place to put template helpers that we can re-use throught the chart.
-      That file is the default location for template partials, as we have defined a template to encapsulate a Kuberntes block label for node.
+      This file doesn't output a Kubernets manifest file as it begins with underscore (_). And it's a place to put template helpers that we can re-use throughout the chart.
+      That file is the default location for template partials, as we have defined a template to encapsulate a Kubernetes block label for node.
 
   - configmap.yaml   
 
@@ -51,5 +51,5 @@ This folder consists of Hyperledger-Besu node charts which is used by the ansibl
 
   - service.yaml   
 
-      This template is used as a basic manifest for creating service enpoints for our deployment.
-      This service.yaml creates enpoints for the besu node.
+      This template is used as a basic manifest for creating service endpoints for our deployment.
+      This service.yaml creates endpoints for the besu node.
