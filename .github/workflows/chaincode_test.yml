@@ -1,8 +1,10 @@
 name: Chaincode tests
-on: push
+on: 
+  pull_request:
 
 jobs:
-  validate_templates:
+  validate_fabric:
+    if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -26,13 +28,38 @@ jobs:
         export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         mkdir -p $GOPATH/src/github.com
         ln -s ./examples/supplychain-app/fabric/chaincode_rest_server/chaincode $GOPATH/src/github.com
-      if: |
-        contains(github.event.pull_request.title, 'Fabric') ||
-        contains(github.event.pull_request.title, 'fabric')
-##########################################################################
-    - name: Test Stage all chaincodes.
+    - 
+      name: Test Stage all chaincodes.
       run: |
         cd $GOPATH/src/github.com/chaincode/supplychain
         dep ensure
         go test -v
-      if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')
+
+##########################################################################  
+  validate_quorum:
+    if: contains(github.event.pull_request.title, 'Quorum') || contains(github.event.pull_request.title, 'quorum')
+    runs-on: ubuntu-latest
+    steps:
+    - 
+      uses: actions/checkout@v2
+    - 
+      name: Install dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install npm
+
+        npm version
+
+        npm install -g ganache-cli
+        npm install -g truffle
+        npm install -g truffle-export-abi
+    - 
+      name: Start local node
+      run: |
+        nohup ganache-cli --allowUnlimitedContractSize --gasLimit=68219752232 &
+        sleep 10
+    -  
+      name: Test quorum smartcontracts
+      run: |
+        pwd
+        cd examples/supplychain-app/quorum/smartContracts
+        truffle test --config ./truffle-config.js
