@@ -9,8 +9,8 @@ Certificate Paths on Vault for Quorum Network
 |-----------------------------------------------------------------------------------|-------------------------------|--------------|
 | secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | nodekey                       | Public Key (Identity for a node)   |
 | secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | keystore                      | Private Key Data for a node |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_user                       | Username for Quorum keystore     |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_password                   | Password for Quorum keystore     |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_user                       | Username for mysql db     |
+| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_password                   | Password for mysql db     |
 | secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | gethpassword                   | Password for geth    |
 
 
@@ -28,10 +28,10 @@ Certificate Paths on Vault for Quorum Network
 | Path                                                                         | Key Name                 | Description         |
 |------------------------------------------------------------------------------|-------------------------------|--------------|
 | secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootca                          |  JKS(Java KeyStore) Initial Root CA Certificates  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootcacertpkcs12                |  Root CA Certificate  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootcakeypkcs12                 |  Root CA Certificate  |
+| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootcacertpkcs12                |  Root CA pkcs certificate  |
+| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootcakeypkcs12                 |  Root CA pkcs key  |
 | secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootcapem                       |  Root CA Certificate  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootcakey                       |  Root CA Certificate  |
+| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootcakey                       |  Root CA Key  |
 | secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorcrt                   |  Certificate chain for Ambassador proxy  |
 | secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorkey                   |  Ambassador key  |
 
