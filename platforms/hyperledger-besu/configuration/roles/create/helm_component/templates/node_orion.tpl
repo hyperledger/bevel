@@ -29,13 +29,21 @@ spec:
 
     liveliness_check:
       enabled: false
-
+{% if network.env.proxy == 'ambassador' %} 
     proxy:
       provider: ambassador
       external_url: {{ name }}.{{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
       rpc: {{ peer.rpc.ambassador }}
       tmport: {{ peer.tm_nodeport.ambassador }}
+{% else %}      
+    proxy:
+      provider: none
+      external_url: {{ name }}.{{ component_ns }}
+      p2p: {{ peer.p2p.port }}
+      rpc: {{ peer.rpc.port }}
+      tmport: {{ peer.tm_nodeport.port }}
+{% endif %}
 
     images:
       node: hyperledger/besu:{{ network.version }}
