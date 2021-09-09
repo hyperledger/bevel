@@ -26,12 +26,19 @@ spec:
     healthcheck:
       readinessthreshold: 100
       readinesscheckinterval: 5
-
+{% if network.env.proxy == 'ambassador' %} 
     proxy:
       provider: ambassador
       external_url: {{ name }}.{{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
-      rpc: {{ peer.rpc.ambassador }}      
+      rpc: {{ peer.rpc.ambassador }}
+{% else %}      
+    proxy:
+      provider: none
+      external_url: {{ name }}.{{ component_ns }}
+      p2p: {{ peer.p2p.port }}
+      rpc: {{ peer.rpc.port }}
+{% endif %}
 
     images:
       node: hyperledger/besu:{{ network.version }}

@@ -7,6 +7,10 @@ Before setting up a Quorum DLT/Blockchain network, this file needs to be updated
 A sample configuration file is provided in the repo path:  
 `platforms/quorum/configuration/samples/network-quorum.yaml` 
 
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
+
 The configurations are grouped in the following sections for better understanding.
 
 * type

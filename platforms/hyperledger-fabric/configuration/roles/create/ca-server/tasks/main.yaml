@@ -3,16 +3,6 @@
 # Also, creates the value file for Certificate Authority (CA)
 #############################################################################################
 
-- name: Check if ca certs already created
-  shell: |
-    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_ca_result
-  changed_when: false
-  ignore_errors: yes
-
 ############################################################################################
 # This task creates the folder to store crypto material
 - name: "creating the directory ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
@@ -22,88 +12,74 @@
     path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
     check: "ensure_dir"
 
-- name: Get ca certs and key
-  shell: |
-    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca > ca.{{ component_name }}-cert.pem
-    mv ca.{{ component_name }}-cert.pem ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/
-    vault kv get -field={{ component_name }}-CA.key {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca > {{ component_name }}-CA.key
-    mv {{ component_name }}-CA.key ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_ca_result.failed == False
+#############################################################################################
+# This task creates secrets for the root token and the reviewer token
+- name: "Create ca-server secrets tokens"
+  include_role:
+    name: create/k8s_secrets
+  vars: 
+    namespace: "{{ component }}-net"
+    vault: "{{ item.vault }}"
+    kubernetes: "{{ item.k8s }}"
+    check: "token_secret"
 
+#####################################################################################################################
+# This tasks generate ca-server helmrelease file
+- name: "Create value file for ca-server"
+  include_role:
+    name: helm_component
+  vars: 
+    name: "{{ component }}"   
+    type: "ca_server_job"    
+    component_name: "{{ component }}-ca-server-job"
+    component_ns: "{{ component }}-net"
+    subject: "{{ ca.subject }}"
+    git_url: "{{ gitops.git_url }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+    vault: "{{ item.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}/{{ component }}"
 
-#####################################################################################
-  #This task checks if the CA key is already present or not
-- name: "Check if the CA.key is already present"
-  stat:
-    path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key"
-  register: ca_key_check
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing CA server files"
+  tags:
+    - notest
 
-############################################################################################
-# This task generates initial CA certificates
-- name: Generate the CA certificate
-  shell: |
-    cd "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
-    openssl ecparam -name prime256v1 -genkey -noout -out {{ component_name }}-CA.key
-    openssl req -x509 -config "{{playbook_dir}}/openssl.conf" -new -nodes -key {{ component_name }}-CA.key -days 1024 -out ca.{{ component_name }}-cert.pem -extensions v3_req -subj "{{ ca.subject }}"
-  when: vault_ca_result.failed == True and  not ca_key_check.stat.exists
-
-############################################################################################
-# This task copy the CA certificates generated above, to the Vault
-- name: Copy the crypto material to Vault
-  shell: |
-    vault kv put {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca ca.{{ component_name }}-cert.pem="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem")" {{ component_name }}-CA.key="$(cat "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key")"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_ca_result.failed == True
-  changed_when: false
-
-- name: Check if ca admin credentials already created
-  shell: |
-    vault kv get -field=user {{ vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ component }}
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_caadmin_result
-  ignore_errors: yes
-  changed_when: false
-
-############################################################################################
-# This task write the CA server admin credentials to Vault
-- name: Write the ca server admin credentials to Vault
-  shell: |
-    vault kv put {{ vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ component }} user="{{ component }}-adminpw"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_caadmin_result.failed == True  # run only when vault_caadmin_result failed
-
-
-# Check if Ambassador credentials exist already
-- name: Check Ambassador cred exists
-  k8s_info:
-    kind: Secret
-    namespace: default
-    name: ca-{{ component_name }}-ambassador-certs
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: get_secret
-  when: 
-    - network.env.proxy == 'ambassador'
+# Check if ca-server is completed
+- name: Check if ca-server job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: Job
+    namespace: "{{ component }}-net"
+    component_name: "{{ component }}-ca-server-job"
+    kubernetes: "{{ item.k8s }}"
+  tags:
+    - notest
 
 #####################################################################################################################
 # This task creates the Ambassador TLS credentials
-- name: Create the Ambassador credentials
-  shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls ca-{{ component_name }}-ambassador-certs --cert=./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem --key=./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca/{{ component_name }}-CA.key -n default
+- name: "Create the Ambassador credentials"
+  include_role:
+    name: create/k8s_secrets
+  vars: 
+    namespace: "{{ component }}-net"
+    vault: "{{ item.vault }}"
+    kubernetes: "{{ item.k8s }}"
+    check: "ambassador_creds"
   when: 
     - network.env.proxy == 'ambassador'
-    - get_secret.resources|length == 0
 
-############################################################################################
+# ############################################################################################
 # This task creates the CA value file for Orderer
 - name: "Create CA server values for Orderer"
   include_role:

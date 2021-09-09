@@ -53,6 +53,16 @@ This task deletes crypto materials for the nodes from vault.
 **shell** : This command deletes the crypto for nodes.
 **when**: Condition specified here, runs only when the *component_type* is 'nodes'.
 
+#### 6.Delete policy
+This task deletes the policies.
+##### Input Variables
+
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**loop**: loop through organization peers
+**shell** : This command deletes the policies for nodes.
+**when**: Condition specified here, runs only when the *component_type* is 'nodes'.
+
 ### nested_main.yaml
 
 #### 1. Delete Ambassador creds
@@ -81,3 +91,24 @@ This task deletes Crypto for services.
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
     *service.value['name']: name of the service
 **shell** : This command deletes the crypto for services.
+
+#### 4.Delete policy
+This task deletes the policies.
+##### Input Variables
+
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : This command deletes the policies for nodes.
+
+#### 5. Delete Ambassador creds
+This task deletes Ambassador credentials.
+##### Input Variables
+    kind: Secret, The kind of component
+    namespace: Namespace of the component
+    *name: {{ node.name }}-ambassador-certs
+    *kubeconfig: The config file of cluster
+    *context: The context of the cluster
+    state: absent ( This deletes any found result)
+**ignore_errors**: This flag ignores the any errors and proceeds further
+
+

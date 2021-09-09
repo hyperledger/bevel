@@ -91,7 +91,7 @@
     delegate_to: localhost
 
 #####################################################################################
-  #This task Write crypto material to Vault for orderer
+  #This task Write crypto material to Vault for peers
   - name: Write crypto material to Vault for peers
     shell: |
       vault kv put secretsv2/crypto/peerOrganizations/testpeer/ca ca.testpeer-cert.pem="TEST CA_TESTPEER_CERTIFICATE_PEM" testpeer-CA.key="12345"
@@ -104,7 +104,7 @@
   # This task write the CA server admin credentials to Vault
   - name: Write the ca server admin credentials to Vault
     shell: |
-      vault kv put secretsv2/credentials/testorderer/ca/testorderer user="testorderer-adminpw"
+      vault write secret/credentials/testpeer/ca/testpeer user="testorderer-adminpw"
     environment:
         VAULT_ADDR: "http://localhost:9090"
         VAULT_TOKEN: "root"
@@ -138,5 +138,17 @@
   - name: create testpeer namespace
     shell: |
       kubectl create namespace testpeer
+    changed_when: false
+    delegate_to: localhost
+  
+  - name: create testpeer-net namespace
+    shell: |
+      kubectl create namespace testpeer-net
+    changed_when: false
+    delegate_to: localhost
+  
+  - name: create testorderer-net namespace
+    shell: |
+      kubectl create namespace testorderer-net
     changed_when: false
     delegate_to: localhost
