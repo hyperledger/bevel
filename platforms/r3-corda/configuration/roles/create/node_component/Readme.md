@@ -31,7 +31,7 @@ This task creates value file from a template.
 
 **when**:  It runs when *node_type*==node, i.e. creates deployment file for nodes .
 
-#### 3. Helm lint
+#### 4. Helm lint
 This task tests the value file for syntax errors/ missing values by calling role shared/configuration/roles/helm_lint role. 
 ##### Input Variables
 

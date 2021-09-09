@@ -55,7 +55,9 @@ spec:
             
             # to clean network-parameters on every restart
             rm -rf ${BASE_DIR}/network-parameters
-                        
+            
+            # Run schema migration scripts for corDApps
+            java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=newpass $JAVA_OPTIONS -jar ${CORDA_HOME}/corda.jar run-migration-scripts --core-schemas --app-schemas --base-directory=${BASE_DIR}
             # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
             java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=newpass $JAVA_OPTIONS -jar ${CORDA_HOME}/corda.jar --base-directory=${BASE_DIR} 2>&1
           resources:
@@ -497,8 +499,8 @@ spec:
           args:
             - |-
               # crearting cordapps dir in volume to keep jars
+              mkdir -p {{ .Values.volume.baseDir }}/cordapps
               {{- if .Values.cordapps.getcordapps }}
-                mkdir -p {{ .Values.volume.baseDir }}/cordapps
                 mkdir -p /tmp/downloaded-jars
                 # setting up env to get secrets from vault
                 KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)

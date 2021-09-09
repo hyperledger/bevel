@@ -1,6 +1,6 @@
 # Blockchain Automation Framework [![join the chat][rocketchat-image]][rocketchat-url]
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-5-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-6-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 [rocketchat-url]: https://chat.hyperledger.org/channel/blockchain-automation-framework
@@ -114,6 +114,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/deepakkumardbd"><img src="https://avatars.githubusercontent.com/u/57094817?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Deepak Kumar</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=deepakkumardbd" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/jagpreetsinghsasan"><img src="https://avatars.githubusercontent.com/u/56861721?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jagpreet Singh Sasan</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=jagpreetsinghsasan" title="Code">💻</a> <a href="#maintenance-jagpreetsinghsasan" title="Maintenance">🚧</a></td>
     <td align="center"><a href="https://github.com/angelaalagbe"><img src="https://avatars.githubusercontent.com/u/54588164?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Angela.Alagbe</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=angelaalagbe" title="Documentation">📖</a> <a href="#content-angelaalagbe" title="Content">🖋</a></td>
+    <td align="center"><a href="https://github.com/mgCepeda"><img src="https://avatars.githubusercontent.com/u/83813093?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marina Gómez Cepeda</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=mgCepeda" title="Code">💻</a></td>
   </tr>
 </table>
 
