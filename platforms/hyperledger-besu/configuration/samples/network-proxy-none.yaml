@@ -1,7 +1,7 @@
 ---
 # yaml-language-server: $schema=../../../../platforms/network-schema.json
-# This is a sample configuration file to add a new validator organization to existing network
-# This DOES NOT support proxy=none
+# This is a sample configuration file for Hyperledger Besu network which has 4 nodes and created in a single Kubernetes cluster
+# proxy = none. DO NOT use this for production. Also, add-newnode will not work on such a network
 # All text values are case-sensitive
 network:
   # Network level configuration specifies the attributes required for each organization
@@ -11,14 +11,14 @@ network:
 
   #Environment section for Kubernetes setup
   env:
-    type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Besu
+    type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
+    proxy: none               # use 'none' when not using 'ambassador' for a single cluster environment
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 3 ports for each Node. These ports are again specified for each organization below
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
       portRange:              # For a range of ports 
-        from: 15020 
-        to: 15023
+        from: 15010 
+        to: 15052
     # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
@@ -39,29 +39,21 @@ network:
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "orion"    # Transaction manager is "orion"
-    # This is the version of "orion" docker image that will be deployed
+    transaction_manager: "tessera"    # Transaction manager can be "tessera" or "orion"; 21.x.x features are same for both
+    # This is the version of transaction_manager docker image that will be deployed
     tm_version: "21.1.1"               
-    # TLS can be True or False for the orion tm
+    # TLS can be True or False for the transaction manager
     tm_tls: True
     # Tls trust value
-    tm_trust: "ca-or-tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
+    tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## File location for saving the genesis file should be provided.
-    genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be fetched
-    ## Transaction Manager nodes public addresses should be provided.
-    #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15013"
-    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador orion node port)
+    genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
+    ## At least one Transaction Manager nodes public addresses should be provided.
+    #  - "https://carrier.carrier-bes:15022" for orion
+    #  - "https://carrier-tessera.carrier-bes" for tessera
+    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
     tm_nodes: 
-      - "https://carrier.test.besu.blockchaincloudpoc-develop.com:15022"
-    # Besu rpc public address list for existing validator and member nodes 
-    #  - "http://node.test.besu.blockchaincloudpoc-develop.com:15011"
-    # The above domain name is formed by the (http)://(peer.name).(org.external_url_suffix):(ambassador node rpc port)
-    besu_nodes:
-      - "http://validator1.test.besu.blockchaincloudpoc-develop.com:15011"
-      - "http://validator2.test.besu.blockchaincloudpoc-develop.com:15013"
-      - "http://validator3.test.besu.blockchaincloudpoc-develop.com:15015"
-      - "http://validator4.test.besu.blockchaincloudpoc-develop.com:15017"
-    
+      - "https://carrier-tessera.carrier-bes"
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -70,7 +62,8 @@ network:
       name: supplychain
       type: validator
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
-      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # This is same as the org namespace when proxy=none
+      external_url_suffix: supplychain-bes
       
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -106,7 +99,6 @@ network:
         validators:
         - validator:
           name: validator1
-          status: existing        # needed to know which  validator node exists
           bootnode: true          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
@@ -118,7 +110,6 @@ network:
             port: 8546
         - validator:
           name: validator2
-          status: existing        # needed to know which  validator node exists
           bootnode: true          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
@@ -130,7 +121,6 @@ network:
             port: 8546          
         - validator:
           name: validator3
-          status: existing        # needed to know which  validator node exists        
           bootnode: false          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
@@ -142,7 +132,6 @@ network:
             port: 8546          
         - validator:
           name: validator4
-          status: existing        # needed to know which  validator node exists        
           bootnode: false          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
@@ -152,12 +141,13 @@ network:
             ambassador: 15017       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
-            
+
     - organization:
       name: carrier
       type: member
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
-      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # This is same as the org namespace when proxy=none
+      external_url_suffix: carrier-bes
       
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -204,20 +194,24 @@ network:
             ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
-            port: 15022             # Port exposed on ambassador service must be same
-            ambassador: 15022    
+            port: 443          # use port: 15022 when transaction_manager = "orion"
+            ambassador: 443    # use ambassador: 15022 when transaction_manager = "orion"
           tm_clientport:
-            port: 8888  
+            port: 8888           
 
+    # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
-      name: supplychain2
-      type: validator
+      name: manufacturer
+      type: member
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
-      external_url_suffix: test.besu.blockchaincloudpoc.com
+      # This is same as the org namespace when proxy=none
+      external_url_suffix: manufacturer-bes
       
       cloud_provider: aws   # Options: aws, azure, gcp
-      aws:        
+      aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
         region: "aws_region"                # AWS Region where cluster and EIPs are created
@@ -245,30 +239,147 @@ network:
         password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git@email.com"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
-      # As this is the validator org, it is hosting a few validators as services
+
+      # The participating nodes are named as peers 
       services:
-        validators:
-        - validator:
-          name: validator5
-          status: new        # needed to know which  validator node exists
-          bootnode: true          # true if the validator node is used also a bootnode for the network
+        peers:
+        - peer:
+          name: manufacturer
+          subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
+          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
           p2p:
             port: 30303
-            ambassador: 15026       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15027       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
-        - validator:
-          name: validator6
-          status: new        # needed to know which  validator node exists
-          bootnode: true          # true if the validator node is used also a bootnode for the network
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
+          tm_nodeport:
+            port: 443          # use port: 15032 when transaction_manager = "orion"
+            ambassador: 443    # use ambassador: 15032 when transaction_manager = "orion"
+          tm_clientport:
+            port: 8888
+
+    - organization:
+      name: store
+      type: member        
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      # This is same as the org namespace when proxy=none
+      external_url_suffix: store-bes
+      
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+        region: "aws_region"                # AWS Region where cluster and EIPs are created
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        context: "cluster_context"
+        config_file: "cluster_config"
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        secret_path: "secret"
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        branch: "develop"           # Git branch where release is being made
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        username: "git_username"          # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      services:
+        peers:
+        - peer:
+          name: store
+          subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
+          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
           p2p:
             port: 30303
-            ambassador: 15028       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15029       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
-            port: 8546          
+            port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
+          tm_nodeport:
+            port: 443          # use port: 15042 when transaction_manager = "orion"
+            ambassador: 443    # use ambassador: 15042 when transaction_manager = "orion"
+          tm_clientport:
+            port: 8888
+
+    - organization:
+      name: warehouse
+      type: member         
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      # This is same as the org namespace when proxy=none
+      external_url_suffix: warehouse-bes
+      
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+        region: "aws_region"                # AWS Region where cluster and EIPs are created
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:        
+        context: "cluster_context"
+        config_file: "cluster_config"
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        secret_path: "secret"
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        branch: "develop"           # Git branch where release is being made
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        username: "git_username"          # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      services:
+        peers:
+        - peer:
+          name: warehouse
+          subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
+          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
+          p2p:
+            port: 30303
+            ambassador: 15050       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15051       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
+          tm_nodeport:
+            port: 443          # use port: 15052 when transaction_manager = "orion"
+            ambassador: 443    # use ambassador: 15052 when transaction_manager = "orion"
+          tm_clientport:
+            port: 8888

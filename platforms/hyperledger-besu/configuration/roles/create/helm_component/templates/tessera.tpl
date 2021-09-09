@@ -30,11 +30,19 @@ spec:
       dbusername: demouser
 {% if network.config.tm_tls %}
       tls: "STRICT"
-      url: "https://{{ peer.name }}.{{ external_url }}:{{ peer.tm_nodeport.ambassador }}"      
+{% if network.env.proxy == 'ambassador' %} 
+      url: "https://{{ peer.name }}.{{ external_url }}:{{ peer.tm_nodeport.ambassador }}"
+{% else %}      
+      url: "https://{{ peer.name }}-tessera.{{ component_ns }}:{{ peer.tm_nodeport.port }}"
+{% endif %}      
       clienturl: "https://{{ peer.name }}-tessera:{{ peer.tm_clientport.port }}"
 {% else %}
       tls: "OFF"
+{% if network.env.proxy == 'ambassador' %} 
       url: "http://{{ peer.name }}.{{ external_url }}:{{ peer.tm_nodeport.ambassador }}"
+{% else %}      
+      url: "http://{{ peer.name }}-tessera.{{ component_ns }}:{{ peer.tm_nodeport.port }}"
+{% endif %} 
       clienturl: "http://{{ peer.name }}-tessera:{{ peer.tm_clientport.port }}"
 {% endif %}
       othernodes:
@@ -67,11 +75,17 @@ spec:
       tlsdir: tls
       role: vault-role
       authpath: besu{{ org.name | lower }}
-    
+{% if network.env.proxy == 'ambassador' %} 
     proxy:
       provider: "ambassador"
       external_url: {{ peer.name }}.{{ external_url }}
       portTM: {{ peer.tm_nodeport.ambassador }}      
+{% else %}      
+    proxy:
+      provider: "none"
+      external_url: {{ peer.name }}.{{ component_ns }}
+      portTM: {{ peer.tm_nodeport.port }}      
+{% endif %}
     storage:
       storageclassname: {{ storageclass_name }}
       storagesize: 1Gi
