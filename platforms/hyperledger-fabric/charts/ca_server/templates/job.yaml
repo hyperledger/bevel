@@ -79,10 +79,14 @@ spec:
               mkdir -p ${MOUNT_PATH}
 
               # Check if certificates already present in the vault
-              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_CRYPTO_PATH} | jq -r 'if .errors then . else . end')
+              LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_CRYPTO_PATH} | jq -r 'if .errors then . else . end')
               if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
               then
                 echo "Certficates absent in vault. Ignore error warning"
+                touch ${MOUNT_PATH}/absent_cacert.txt
+              elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
+              then
+                echo "Certficates absent in vault2. Ignore error warning"
                 touch ${MOUNT_PATH}/absent_cacert.txt
               else
                 validateVaultResponse "${VAULT_SECRET_CRYPTO_PATH}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
@@ -96,6 +100,10 @@ spec:
               then
                 echo "Certficates absent in vault. Ignore error warning"
                 touch ${MOUNT_PATH}/absent_creds.txt
+              elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
+              then
+                echo "Certficates absent in vault2. Ignore error warning"
+                touch ${MOUNT_PATH}/absent_creds.txt
               else
                 validateVaultResponse "${VAULT_SECRET_CREDENTIALS_PATH}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                 echo "Certificates present in vault"
@@ -103,7 +111,7 @@ spec:
               fi 
 
               echo "Done checking for certificates in vault"
-                         
+           
           volumeMounts:
           - name: certcheck
             mountPath: /certcheck
@@ -181,8 +189,11 @@ spec:
                 
                 echo "
                   {
-                    \"ca.${COMPONENT_NAME}-cert.pem\": \"${PEM_CERTIFICATE}\",
-                    \"${COMPONENT_NAME}-CA.key\": \"${KEY_CERTIFICATE}\"
+                    \"data\": 
+                      {
+                        \"ca.${COMPONENT_NAME}-cert.pem\": \"${PEM_CERTIFICATE}\",
+                        \"${COMPONENT_NAME}-CA.key\": \"${KEY_CERTIFICATE}\"
+                      }  
                   }" > payload.json
 
                 # This command copy the CA certificates to the Vault
@@ -212,7 +223,7 @@ spec:
                     -H "X-Vault-Token:  $ROOT_TOKEN" \
                     -H "Content-Type: application/json" \
                     -X POST \
-                    -d '{"user":"'"$NAME-adminpw"'"}' \
+                    -d '{ "data": {"user":"'"$NAME-adminpw"'"}}' \
                     ${VAULT_ADDR}/v1/${VAULT_SECRET_CREDENTIALS_PATH}
 
                   # Check CA server admin credentials
@@ -221,7 +232,8 @@ spec:
                   ${VAULT_ADDR}/v1/${VAULT_SECRET_CREDENTIALS_PATH});
 
                   validateVaultResponse ${response_status};
-              fi      
+              fi
+
           volumeMounts:
           - name: certcheck
             mountPath: /certcheck
