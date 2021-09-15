@@ -24,8 +24,8 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_ns }}-auth
-      secretcryptoprefix: {{ vault.secret_path | default('secret') }}/crypto/{{ component_type }}Organizations/{{ component }}-net/ca
-      secretcredentialsprefix: {{ vault.secret_path | default('secret') }}/credentials/{{ component }}-net/ca/{{ component }}
+      secretcryptoprefix: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component }}-net/ca
+      secretcredentialsprefix: {{ vault.secret_path | default('secret') }}/data/credentials/{{ component }}-net/ca/{{ component }}
       serviceaccountname: vault-auth
       imagesecretname: regcred
       
