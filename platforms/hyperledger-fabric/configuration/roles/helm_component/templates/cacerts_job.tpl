@@ -1,16 +1,16 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: {{ name }}-ca-server-job
+  name: {{ name }}-cacerts-job
   namespace: {{ component_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
-  releaseName: {{ name }}-ca-server-job
+  releaseName: {{ name }}-cacerts-job
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/ca_server
+    path: {{ charts_dir }}/generate_cacerts
   values:
     metadata:
       name: {{ component }}
