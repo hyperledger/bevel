@@ -1,0 +1,65 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: warehousetessera
+  namespace: warehouse-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: warehousetessera
+  helmVersion: v3
+  chart:
+    git: https://github.com/Roshan13046/blockchain-automation-framework.git
+    ref: develop
+    path: platforms/hyperledger-besu/charts/node_tessera  
+  values:
+    replicaCount: 1
+    metadata:
+      namespace: warehouse-bes
+      labels:
+    images:      
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      tessera: quorumengineering/tessera:21.1.1
+      busybox: busybox
+      mysql: mysql/mysql-server:5.7
+      imagePullSecret: regcred
+    tessera:
+      name: warehouse-tessera
+      dbname: demodb      
+      dburl: "jdbc:mysql://warehouse-tessera:3306/demodb"
+      dbusername: demouser
+      tls: "STRICT"
+      
+      url: "https://warehouse-tessera.warehouse-bes:443"
+      
+      clienturl: "https://warehouse-tessera:8888"
+      othernodes:
+        - url: https://carrier.test.besu.blockchaincloudpoc-develop.com
+      trust: "TOFU"
+      
+      
+      servicetype: ClusterIP
+      ports:
+        tm: 443        
+        db: 3306
+        client: 8888
+      mountPath: /etc/tessera/data
+      ambassadorSecret: warehouse-ambassador-certs
+    vault:
+      address: http://10.128.0.26:8200
+      secretprefix: secret/warehouse-bes/crypto/warehouse
+      serviceaccountname: vault-auth
+      keyname: credentials
+      tm_keyname: tm
+      tlsdir: tls
+      role: vault-role
+      authpath: besuwarehouse
+      
+    proxy:
+      provider: "none"
+      external_url: warehouse.warehouse-bes
+      portTM: 443      
+    storage:
+      storageclassname: gcpstorageclass
+      storagesize: 1Gi
+      dbstorage: 1Gi
