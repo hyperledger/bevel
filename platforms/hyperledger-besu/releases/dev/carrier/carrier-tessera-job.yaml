@@ -1,0 +1,26 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: carrier-tessera-job
+  namespace: carrier-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: carrier-tessera-job
+  chart:
+    path: platforms/hyperledger-besu/charts/tessera_key_mgmt
+    git: https://github.com/Roshan13046/blockchain-automation-framework.git
+    ref: feature/510
+  values:
+    metadata:
+      name: carrier-tessera-job
+      namespace: carrier-bes    
+    image:      
+      repository: quorumengineering/tessera:21.1.1
+      pullSecret: regcred
+    vault:
+      address: http://10.128.0.26:8200
+      authpath: besucarrier
+      role: vault-role
+      serviceaccountname: vault-auth
+      tmprefix: secret/carrier-bes/crypto/carrier/tm
