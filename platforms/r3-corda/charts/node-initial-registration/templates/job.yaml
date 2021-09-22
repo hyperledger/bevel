@@ -115,7 +115,7 @@ spec:
 
             # get the root token from the vault, to upload secrets on vault
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${RT_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
-            ROOT_TOKEN=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["rootToken"]')
+            ROOT_TOKEN=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["rootToken"]')
 
             # perform check if certificates are ready or not, and upload certificate into vault when ready
             COUNTER=1
@@ -125,9 +125,9 @@ spec:
                 if [ -e nodekeystore.jks ] && [ -e sslkeystore.jks ] && [ -e truststore.jks ] && [ -e done.txt ]
                 then
                   echo "found certificates, performing vault put"
-                  (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore
-                  (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore
-                  (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore
+                  (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore
+                  (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore
+                  (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore
                   break
                 else
                   echo "certificates are not ready, sleeping for 10s"
@@ -185,12 +185,12 @@ spec:
 
             # save keyStorePassword & trustStorePassword from vault
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${KS_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
-            CONF_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["defaultKeyStorePassword"]')
-            CONF_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["defaultTrustStorePassword"]')
+            CONF_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["defaultKeyStorePassword"]')
+            CONF_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["defaultTrustStorePassword"]')
 
             # save dataSourceUserPassword from vault
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${DB_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
-            CONF_DATASOURCEPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["{{ .Values.credentials.dataSourceUser }}"]')
+            CONF_DATASOURCEPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["{{ .Values.credentials.dataSourceUser }}"]')
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${RPCUSER_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
 
             #For more information for node.Conf fields please refer to: https://docs.corda.r3.com/releases/4.0/corda-configuration-file.html
@@ -269,7 +269,7 @@ spec:
                echo 'rpcUsers : [' >> ${BASE_DIR}/node.conf
                {{- range $.Values.credentials.rpcUser }}
                echo '{ username={{ .name }} ,permissions={{ .permissions }} , ' >> ${BASE_DIR}/node.conf
-               echo " password=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["{{ .name }}"]') }" >> ${BASE_DIR}/node.conf
+               echo " password=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["{{ .name }}"]') }" >> ${BASE_DIR}/node.conf
                {{- end }}
                echo ']' >> ${BASE_DIR}/node.conf
             fi
@@ -283,8 +283,8 @@ spec:
                adminAddress = "{{ .Values.nodeConf.rpcSettings.adminAddress }}"
                useSsl = {{ .Values.nodeConf.rpcSettings.useSsl }}
                ssl = {
-                  keyStorePassword = $(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["sslkeyStorePassword"]')
-                  trustStorePassword = $(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["ssltrustStorePassword"]')
+                  keyStorePassword = $(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["sslkeyStorePassword"]')
+                  trustStorePassword = $(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["ssltrustStorePassword"]')
                   certificatesDirectory = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}
                   sslKeystore = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}/{{ .Values.nodeConf.rpcSettings.ssl.sslKeystoreFileName }}
                   trustStoreFile = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}/{{ .Values.nodeConf.rpcSettings.ssl.trustStoreFileName }}
@@ -374,13 +374,13 @@ spec:
 
             # get customnodekeystore from vault
             LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/customnodekeystore )
-            NODE_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekeystore.jks"]')
+            NODE_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekeystore.jks"]')
             validateVaultResponseCustomnodeKeystore "secret (${CERTS_SECRET_PREFIX}/customnodekeystore)" "${LOOKUP_SECRET_RESPONSE}"
 
             # get network-map-truststore.jks from vault
             LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmaptruststore | jq -r 'if .errors then . else . end')
             validateVaultResponse "${CERTS_SECRET_PREFIX}/networkmaptruststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-            TLS_NMS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-map-truststore"]')
+            TLS_NMS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-map-truststore"]')
             echo "${TLS_NMS}" | base64 -d > ${OUTPUT_PATH}/network-map-truststore.jks
 
             # To check if sslkeystore,nodekeystore,truststore are present in vault 
@@ -399,12 +399,12 @@ spec:
 
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmap | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/networkmap" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.crt"]')
+                NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["networkmap.crt"]')
                 echo "${NETWORKMAP_CRT}" | base64 -d > ${OUTPUT_PATH}/networkmap/networkmap.crt
 
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/doorman | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/doorman" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["doorman.crt"]')
+                DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["doorman.crt"]')
                 echo "${DOORMAN_CRT}" | base64 -d > ${OUTPUT_PATH}/doorman/doorman.crt
             fi
             chmod 777 -R ${BASE_DIR}/;
@@ -462,10 +462,10 @@ spec:
             # get keystore passwords from vault
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${KS_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
             validateVaultResponse "${KS_SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE}" "LOOKUPSECRETRESPONSE"
-            DEFAULT_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["defaultTrustStorePassword"]')
-            DEFAULT_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["defaultKeyStorePassword"]')
-            KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["keyStorePassword"]')
-            TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["trustStorePassword"]')
+            DEFAULT_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["defaultTrustStorePassword"]')
+            DEFAULT_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["defaultKeyStorePassword"]')
+            KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["keyStorePassword"]')
+            TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["trustStorePassword"]')
             echo "${DEFAULT_TRUSTSTOREPASSWORD}" >> ${BASE_DIR}/default_truststore_cred
             echo "${KEYSTOREPASSWORD}" >> ${BASE_DIR}/keystore_cred
             echo "${TRUSTSTOREPASSWORD}" >> ${BASE_DIR}/truststore_cred

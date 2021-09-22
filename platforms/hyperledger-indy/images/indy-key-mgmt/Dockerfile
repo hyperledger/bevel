@@ -70,10 +70,13 @@ RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv ${NET
     /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install flake8 requests"
 
 COPY src/identity_crypto_generator.py /.virtualenvs/${NETWORK_NAME}/lib/python3.5/site-packages/plenum/common/identity_crypto_generator.py
+COPY src/identity_crypto_generator_v2.py /.virtualenvs/${NETWORK_NAME}/lib/python3.5/site-packages/plenum/common/identity_crypto_generator_v2.py
 COPY src/generate_identity /.virtualenvs/${NETWORK_NAME}/bin/generate_identity
+COPY src/generate_identityv2 /.virtualenvs/${NETWORK_NAME}/bin/generate_identityv2
 COPY src/generate_identity.sh /usr/bin/generate_identity
-RUN chmod +x /.virtualenvs/${NETWORK_NAME}/bin/generate_identity && \
-    chmod +x /usr/bin/generate_identity
+COPY src/generate_identityv2.sh /usr/bin/generate_identityv2
+RUN chmod +x /.virtualenvs/${NETWORK_NAME}/bin/generate_identity* && \
+    chmod +x /usr/bin/generate_identity*
 
 RUN echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc && \
     echo 'workon ${NETWORK_NAME}' >> ~/.bashrc

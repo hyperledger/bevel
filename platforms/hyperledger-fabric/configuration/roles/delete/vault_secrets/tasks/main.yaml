@@ -71,7 +71,7 @@
 # This task deletes vault auth
 - name: Delete vault-auth path
   shell: |
-    vault delete sys/auth/{{ network.env.type }}{{ component_name }}-auth
+    vault kv delete sys/auth/{{ network.env.type }}{{ component_name }}-auth
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
@@ -80,13 +80,13 @@
 # This task deletes crypto materials from vault
 - name: Delete Crypto for orderers
   shell: |
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/ca
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/users/admin/tls
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/ambassador/{{orderer.name}}
-    vault delete {{ item.vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ org_name }}
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/ca
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/users/admin/tls
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name }}/ambassador/{{orderer.name}}
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ org_name }}
   loop: "{{ services.orderers }}"
   loop_control:
     loop_var: orderer
@@ -99,20 +99,20 @@
 # This task deletes crypto materials from vault
 - name: Delete Crypto for peers
   shell: |
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/tls
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ambassador
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/tls
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ambassador
     {% for peer in peers %}
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/tls
-    vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/msp
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/tls
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/msp
     {% endfor %}
-    vault delete {{ item.vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ org_name }}
-    vault delete {{ item.vault.secret_path | default('secret') }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
-    vault delete {{ item.vault.secret_path | default('secret') }}/credentials/{{ component_name }}/git
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/credentials/{{ component_name }}/ca/{{ org_name }}
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
+    vault kv delete {{ item.vault.secret_path | default('secret') }}/credentials/{{ component_name }}/git
   vars:
     peers: "{{ services.peers }}"
   environment:
@@ -126,7 +126,7 @@
   shell: |    
     for path in $(vault list {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/endorsers);
     do
-      vault delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/endorsers/${path}/users/admin/msp;
+      vault kv delete {{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/endorsers/${path}/users/admin/msp;
     done
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"

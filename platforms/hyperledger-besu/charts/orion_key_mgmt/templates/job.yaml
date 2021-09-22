@@ -79,7 +79,7 @@ spec:
 
               validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-              GETH_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]')
+              GETH_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]')
               echo ${GETH_PASSWORD} > password_file
               orion -g nodeKey < password_file
 
@@ -90,7 +90,7 @@ spec:
               LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
                 -H "Content-Type: application/json" \
                 -X POST \
-                -d '{"key":"'"$nodekey_base64"'","key_pub":"'"$(cat nodeKey.pub)"'","password":"'"$(cat password_file)"'"}' \
+                -d '{"data": {"key":"'"$nodekey_base64"'","key_pub":"'"$(cat nodeKey.pub)"'","password":"'"$(cat password_file)"'"}}' \
                 ${VAULT_ADDR}/v1/${vault_secret_key} | \
                 jq -r 'if .errors then . else .auth.client_token end')
               

@@ -49,7 +49,7 @@ spec:
       attachmentCacheBound: 1024
       {% if chart == 'notary' %}      
       notary:
-        validating: false
+        validating: {{ node.validating }}
         serviceLegalName: {{ node.serviceName | default() }}
       {% endif %} 
       detectPublicIp: false
@@ -105,11 +105,11 @@ spec:
       role: vault-role
       authpath: corda{{ component_name }}
       serviceaccountname: vault-auth
-      dbsecretprefix: {{ component_name }}/credentials/database
-      rpcusersecretprefix: {{ component_name }}/credentials/rpcusers
-      tokensecretprefix: {{ component_name }}/credentials/vaultroottoken
-      keystoresecretprefix: {{ component_name }}/credentials/keystore
-      certsecretprefix: {{ component_name }}/certs
+      dbsecretprefix: {{ component_name }}/data/credentials/database
+      rpcusersecretprefix: {{ component_name }}/data/credentials/rpcusers
+      tokensecretprefix: {{ component_name }}/data/credentials/vaultroottoken
+      keystoresecretprefix: {{ component_name }}/data/credentials/keystore
+      certsecretprefix: {{ component_name }}/data/certs
         
     healthcheck:
       readinesscheckinterval: 10

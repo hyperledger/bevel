@@ -46,7 +46,7 @@
   
   - name: Delete any existing vault secret path
     shell: |
-      vault secrets disable secret/
+      vault secrets disable secretsv2/
     environment:
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
@@ -65,7 +65,7 @@
   #This task Write crypto material to Vault for orderer
   - name: Write crypto material to Vault for orderer
     shell: |
-      vault write secret/crypto/ordererOrganizations/testorderer/ca ca.testorderer-cert.pem="TEST CA_TESTORDERER_CERTIFICATE_PEM" testorderer-CA.key="12345"
+      vault kv put secretsv2/crypto/ordererOrganizations/testorderer/ca ca.testorderer-cert.pem="TEST CA_TESTORDERER_CERTIFICATE_PEM" testorderer-CA.key="12345"
     environment:
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
@@ -73,21 +73,18 @@
 
   - name: Check if ca certs already created
     shell: |
-      vault kv get -field=ca.testorderer-cert.pem secret/crypto/ordererOrganizations/testorderer/ca
+      vault kv get -field=ca.testorderer-cert.pem secretsv2/crypto/ordererOrganizations/testorderer/ca
     environment:
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
     register: vault_ca_result
     delegate_to: localhost
 
-  - debug:
-      var: vault_ca_result
-
 ############################################################################################
   # This task write the CA server admin credentials to Vault
   - name: Write the ca server admin credentials to Vault
     shell: |
-      vault write secret/credentials/testorderer/ca/testorderer user="testorderer-adminpw"
+      vault kv put secretsv2/credentials/testorderer/ca/testorderer user="testorderer-adminpw"
     environment:
         VAULT_ADDR: "http://localhost:9090"
         VAULT_TOKEN: "root"
@@ -97,7 +94,7 @@
   #This task Write crypto material to Vault for peers
   - name: Write crypto material to Vault for peers
     shell: |
-      vault write secret/crypto/peerOrganizations/testpeer/ca ca.testpeer-cert.pem="TEST CA_TESTPEER_CERTIFICATE_PEM" testpeer-CA.key="12345"
+      vault kv put secretsv2/crypto/peerOrganizations/testpeer/ca ca.testpeer-cert.pem="TEST CA_TESTPEER_CERTIFICATE_PEM" testpeer-CA.key="12345"
     environment:
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
@@ -117,8 +114,8 @@
   #This task checks if the orderer ambassador cert is created or not
   - name: Write crypto material for orderer ambassador to Vault
     shell: |
-      vault write secret/crypto/ordererOrganizations/testorderer/ambassador/testorderer1 certificate="TEST CERTIFICATE"
-      vault write secret/crypto/ordererOrganizations/testorderer/ambassador/testorderer1 key="12345"
+      vault kv put secretsv2/crypto/ordererOrganizations/testorderer/ambassador/testorderer1 certificate="TEST CERTIFICATE"
+      vault kv put secretsv2/crypto/ordererOrganizations/testorderer/ambassador/testorderer1 key="12345"
     environment:
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
@@ -128,11 +125,11 @@
   #This task checks if the orderer tls cert is created or not
   - name: Write orderer certs to Vault
     shell: |
-      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls ca.crt="TEST CA CERT"
-      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls server.crt="TEST SERVER CERT"
-      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp  admincerts="TEST ADMIN CERT"
-      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp cacert="TEST CA CERT"
-      vault write secret/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp keystore="TEST KEYSTORE"
+      vault kv put secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls ca.crt="TEST CA CERT"
+      vault kv put secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls server.crt="TEST SERVER CERT"
+      vault kv put secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp  admincerts="TEST ADMIN CERT"
+      vault kv put secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp cacert="TEST CA CERT"
+      vault kv put secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp keystore="TEST KEYSTORE"
     environment:
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
