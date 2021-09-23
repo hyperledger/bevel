@@ -27,7 +27,7 @@ spec:
       initContainers:
       - name: crypto-init
         image: {{ $.Values.image.initContainerName }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
@@ -167,7 +167,11 @@ spec:
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
           VAULT_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum | jq -r 'if .errors then . else . end')
-          nodekey=$(echo ${VAULT_RESPONSE} | jq -r '.data["nodekey"]')
+          if echo ${VAULT_RESPONSE} | grep "errors"; then
+                echo "Error accessing vault: ${s.5BiRNZaQRjcWyocunQWXOhBa}"
+                exit 1
+          fi
+          nodekey=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["nodekey"]')
           echo "Creating files and certs"
           echo $nodekey >> nodekey
           echo $GETH_PASSPHRASE >> password
@@ -177,13 +181,13 @@ spec:
           tr -d "\n\r" < keystorefile > newchange
           openssl base64 -in newchange -out base64_keystore
           echo "
-            {
+           {\"data\":{
               \"nodekey\": \"$nodekey\",
               \"keystore\": \"$(cat base64_keystore)\",
               \"db_password\": \"${DB_PASSWORD}\",
-              \"geth_password\": \"${GETH_PASSPHRASE}\",
+              \"gethpassword\": \"${GETH_PASSPHRASE}\",
               \"db_user\": \"${DB_USER}\"
-            }" > finalJSON.json
+            }}" > finalJSON.json
           vault_secret_key="${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum"
           # Save the generated keys to VAULT
           LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \

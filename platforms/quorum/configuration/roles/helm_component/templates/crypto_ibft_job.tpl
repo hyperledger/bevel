@@ -27,4 +27,4 @@ spec:
       role: vault-role
       authpath: quorum{{ peer.name }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}-quo
+      certsecretprefix: {{ vault.secret_path | default('secret') }}/data/{{ org.name | lower }}-quo

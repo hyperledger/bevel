@@ -55,7 +55,7 @@ spec:
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
@@ -71,7 +71,7 @@ spec:
         args:
         - |-
           #!/bin/bash
-          
+
           validateVaultResponse () {
             if echo ${2} | grep "errors"; then
               echo "ERROR: unable to retrieve ${1}: ${2}"
@@ -119,7 +119,7 @@ spec:
           
           echo -n "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt
           echo -n "${nodekey}" > ${OUTPUT_PATH}/nodekey
-          echo -n "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
+          echo -n "${keystore}" | base64 -d > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
           echo "${username}" > ${OUTPUT_PATH}/username
           echo "${password}" > ${OUTPUT_PATH}/password
 
@@ -175,13 +175,13 @@ spec:
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
-          cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
-          cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
-          cp $QUORUM_HOME/crypto/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
+          cp /secret/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
+          cp /secret/keys/nodekey $QUORUM_DATA_DIR/geth/
+          cp /secret/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
 
-          rm -f $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
-          rm -f $QUORUM_HOME/crypto/keys/nodekey
-          rm -f $QUORUM_HOME/crypto/keys/passwords.txt
+          rm -f /secret/keys/{{ .Values.node.keystore }}
+          rm -f /secret/keys/nodekey
+          rm -f /secret/keys/passwords.txt
 
           until $(curl -k --output /dev/null --silent --head --fail {{ .Values.tessera.url }}/upcheck); do echo 'waiting for transaction manager to start...'; sleep 5; done;
           echo transaction manager is up;
@@ -246,10 +246,10 @@ spec:
             value: {{ .Values.node.consensus }}
         volumeMounts:
         - name: certificates
-          mountPath: {{ .Values.node.mountPath }}/crypto/
+          mountPath: /secret
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
-      restartPolicy: Always
+      restartPolicy: Always    
   volumeClaimTemplates:
     - metadata:
         name: {{ .Values.node.name }}-pv
