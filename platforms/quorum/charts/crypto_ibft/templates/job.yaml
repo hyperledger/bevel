@@ -1,11 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ $.Values.peer.name }}-ibft-job
-  namespace: {{ $.Values.metadata.namespace }}
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
   labels:
-    app: {{ $.Values.peer.name }}-ibft-job
-    app.kubernetes.io/name: {{ $.Values.peer.name }}-ibft-job
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -14,8 +13,8 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ $.Values.peer.name }}-ibft-job
-        app.kubernetes.io/name: {{ $.Values.peer.name }}-ibft-job
+        app: "{{ $.Values.metadata.name }}"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       restartPolicy: OnFailure
@@ -83,7 +82,7 @@ spec:
             echo "Certificates absent in vault. Ignore error warning"
             touch ${MOUNT_PATH}/absent.txt
           else 
-            checknodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+            checknodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
             if [ -z "$checknodekey" ] || [ "$checknodekey" == "null" ]
             then
               echo "Certificates absent in vault. Ignore error warning"
@@ -157,6 +156,7 @@ spec:
                 echo "Certificates already present in the vault. Skipping.."
                 exit 0
           fi
+          
           echo "Fetching nodekey from vault"
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
@@ -167,7 +167,17 @@ spec:
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
           VAULT_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum | jq -r 'if .errors then . else . end')
-          nodekey=$(echo ${VAULT_RESPONSE} | jq -r '.data["nodekey"]')
+          nodekey=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["nodekey"]')
+          
+                    
+          echo "If nodekey does not exist, we generate one and will be saved in vault"
+          if [ -z "$nodekey" ] || [ "$nodekey" == "null" ]
+            then
+              bootnode -genkey nodevalue
+              nodekey=$(cat nodevalue)
+            else
+              echo "Nodekey already exists"
+          fi
           echo "Creating files and certs"
           echo $nodekey >> nodekey
           echo $GETH_PASSPHRASE >> password
@@ -178,12 +188,13 @@ spec:
           openssl base64 -in newchange -out base64_keystore
           echo "
             {
+              \"data\": {
               \"nodekey\": \"$nodekey\",
               \"keystore\": \"$(cat base64_keystore)\",
               \"db_password\": \"${DB_PASSWORD}\",
               \"geth_password\": \"${GETH_PASSPHRASE}\",
               \"db_user\": \"${DB_USER}\"
-            }" > finalJSON.json
+           }}" > finalJSON.json
           vault_secret_key="${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum"
           # Save the generated keys to VAULT
           LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
