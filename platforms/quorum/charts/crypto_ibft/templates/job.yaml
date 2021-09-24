@@ -19,8 +19,6 @@ spec:
     spec:
       restartPolicy: OnFailure
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
-      imagePullSecrets:
-        - name: {{ $.Values.vault.imagesecretname }}
       securityContext:
         fsGroup: 1000      
       initContainers:
@@ -31,7 +29,7 @@ spec:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.vault.authpath }}
+          value: {{ $.Values.vault.authPath }}
         - name: VAULT_APP_ROLE
           value: {{ $.Values.vault.role }}
         - name: CERTS_SECRET_PREFIX
@@ -105,21 +103,15 @@ spec:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.vault.authpath }}
+          value: {{ $.Values.vault.authPath }}
         - name: VAULT_APP_ROLE
           value: {{ $.Values.vault.role }}
-        - name: VAULT_PEER_SECRET_PREFIX
-          value: "{{ $.Values.vault.adminsecretprefix }}"
-        - name: VAULT_ORDERER_SECRET_PREFIX
-          value: "{{ $.Values.vault.orderersecretprefix }}"
         - name: MOUNT_PATH
           value: "/certcheck"
         - name: CERTS_SECRET_PREFIX
           value: {{ .Values.vault.certsecretprefix }}                         
         - name: GETH_PASSPHRASE
           value: "{{ $.Values.peer.gethPassphrase }}"
-        - name: BIN_FOLDER
-          value: "{{ $.Values.bin_install_dir }}"
         - name: PEER_NAME
           value: "{{ $.Values.peer.name }}"
         - name: DB_USER
@@ -169,7 +161,6 @@ spec:
           VAULT_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum | jq -r 'if .errors then . else . end')
           nodekey=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["nodekey"]')
           
-                    
           echo "If nodekey does not exist, we generate one and will be saved in vault"
           if [ -z "$nodekey" ] || [ "$nodekey" == "null" ]
             then
