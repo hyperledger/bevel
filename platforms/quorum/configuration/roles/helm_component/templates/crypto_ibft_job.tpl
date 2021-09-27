@@ -16,6 +16,7 @@ spec:
       name: {{ peer.name }}
       gethPassphrase: {{ peer.geth_passphrase }}
     metadata:
+      name: {{ component_name }}
       namespace: {{ component_ns }}
     image:
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0

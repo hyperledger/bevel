@@ -55,7 +55,7 @@ spec:
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
@@ -71,7 +71,7 @@ spec:
         args:
         - |-
           #!/bin/bash
-
+          
           validateVaultResponse () {
             if echo ${2} | grep "errors"; then
               echo "ERROR: unable to retrieve ${1}: ${2}"
@@ -109,17 +109,17 @@ spec:
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
           nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekey"]')
-          keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
-          geth_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["geth_password"]')
+          keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' | base64 -d)
+          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["gethpassword"]')
           username=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["db_user"]')
           password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["db_password"]')
-          
+
           OUTPUT_PATH="${MOUNT_PATH}/keys"
           mkdir -p ${OUTPUT_PATH}
           
-          echo -n "${geth_password}" > ${OUTPUT_PATH}/passwords.txt
+          echo -n "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt
           echo -n "${nodekey}" > ${OUTPUT_PATH}/nodekey
-          echo -n "${keystore}" | base64 -d > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
+          echo -n "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
           echo "${username}" > ${OUTPUT_PATH}/username
           echo "${password}" > ${OUTPUT_PATH}/password
 
@@ -175,13 +175,13 @@ spec:
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
-          cp /secret/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
-          cp /secret/keys/nodekey $QUORUM_DATA_DIR/geth/
-          cp /secret/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
+          cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
+          cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
+          cp $QUORUM_HOME/crypto/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
 
-          rm -f /secret/keys/{{ .Values.node.keystore }}
-          rm -f /secret/keys/nodekey
-          rm -f /secret/keys/passwords.txt
+          rm -f $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
+          rm -f $QUORUM_HOME/crypto/keys/nodekey
+          rm -f $QUORUM_HOME/crypto/keys/passwords.txt
 
           until $(curl -k --output /dev/null --silent --head --fail {{ .Values.tessera.url }}/upcheck); do echo 'waiting for transaction manager to start...'; sleep 5; done;
           echo transaction manager is up;
@@ -246,10 +246,10 @@ spec:
             value: {{ .Values.node.consensus }}
         volumeMounts:
         - name: certificates
-          mountPath: /secret
+          mountPath: {{ .Values.node.mountPath }}/crypto/
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
-      restartPolicy: Always    
+      restartPolicy: Always
   volumeClaimTemplates:
     - metadata:
         name: {{ .Values.node.name }}-pv
@@ -259,4 +259,3 @@ spec:
         resources:
           requests:
             storage: {{ .Values.storage.storagesize }}
-
