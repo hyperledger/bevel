@@ -29,7 +29,7 @@ spec:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.vault.authPath }}
+          value: {{ $.Values.vault.authpath }}
         - name: VAULT_APP_ROLE
           value: {{ $.Values.vault.role }}
         - name: CERTS_SECRET_PREFIX
@@ -103,7 +103,7 @@ spec:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.vault.authPath }}
+          value: {{ $.Values.vault.authpath }}
         - name: VAULT_APP_ROLE
           value: {{ $.Values.vault.role }}
         - name: MOUNT_PATH
@@ -159,6 +159,7 @@ spec:
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
           VAULT_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum | jq -r 'if .errors then . else . end')
+          validateVaultResponse " secret (${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum)" "${VAULT_RESPONSE}" "LOOKUPSECRETRESPONSE"
           nodekey=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["nodekey"]')
           
           echo "If nodekey does not exist, we generate one and will be saved in vault"
@@ -195,6 +196,7 @@ spec:
             -d @finalJSON.json \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else .auth.client_token end')
+          validateVaultResponse " secret $vault_secret_key" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
       volumes:
         - name: certcheck
           emptyDir:
