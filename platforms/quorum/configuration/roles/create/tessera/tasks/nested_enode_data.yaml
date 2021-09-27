@@ -17,7 +17,7 @@
 # Fetch nodekey from vault
 - name: Get the nodekey from vault and generate the enode
   shell: |
-    vault read -field=nodekey {{ vault.secret_path | default('secret') }}/{{ org.name }}-quo/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey
+    vault kv get -field=nodekey {{ vault.secret_path | default('secret') }}/{{ org.name }}-quo/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey
     {{ bin_install_dir }}/bootnode --nodekey={{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey --writeaddress > {{ build_path }}/{{ org.name }}/{{ peer.name }}/enode
   environment:
     VAULT_ADDR: "{{ vault.url }}"
@@ -31,6 +31,6 @@
     enode_data: "{{ lookup('file', '{{ build_path }}/{{ org.name }}/{{ peer.name }}/enode') }}"
 
 # Get information about each validator node present in network.yaml and store it as a list of org,node
-- name: Get validator node data
+- name: Get validator and transaction node data
   set_fact:
     enode_data_list={{ enode_data_list|default([]) + [ {'peer_name':peer.name, 'enodeval':enode_data, 'external_url':org.external_url_suffix, 'p2p_ambassador':peer.p2p.ambassador, 'raft_ambassador':peer.raft.ambassador } ] }}
