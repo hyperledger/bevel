@@ -1,0 +1,26 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: warehouse-tessera-job
+  namespace: warehouse-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: warehouse-tessera-job
+  chart:
+    path: platforms/hyperledger-besu/charts/tessera_key_mgmt
+    git: https://github.com/Roshan13046/blockchain-automation-framework.git
+    ref: feature/510
+  values:
+    metadata:
+      name: warehouse-tessera-job
+      namespace: warehouse-bes    
+    image:      
+      repository: quorumengineering/tessera:21.1.1
+      pullSecret: regcred
+    vault:
+      address: http://10.128.0.26:8200
+      authpath: besuwarehouse
+      role: vault-role
+      serviceaccountname: vault-auth
+      tmprefix: secret/warehouse-bes/crypto/warehouse/tm
