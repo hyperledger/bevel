@@ -1,0 +1,65 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: carriertessera
+  namespace: carrier-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: carriertessera
+  helmVersion: v3
+  chart:
+    git: https://github.com/Roshan13046/blockchain-automation-framework.git
+    ref: feature/510
+    path: platforms/hyperledger-besu/charts/node_tessera  
+  values:
+    replicaCount: 1
+    metadata:
+      namespace: carrier-bes
+      labels:
+    images:      
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      tessera: quorumengineering/tessera:21.1.1
+      busybox: busybox
+      mysql: mysql/mysql-server:5.7
+      imagePullSecret: regcred
+    tessera:
+      name: carrier-tessera
+      dbname: demodb      
+      dburl: "jdbc:mysql://carrier-tessera:3306/demodb"
+      dbusername: demouser
+      tls: "STRICT"
+      
+      url: "https://carrier-tessera.carrier-bes:443"
+      
+      clienturl: "https://carrier-tessera:8888"
+      othernodes:
+        - url: https://carrier-tessera.carrier-bes
+      trust: "TOFU"
+      
+      
+      servicetype: ClusterIP
+      ports:
+        tm: 443        
+        db: 3306
+        client: 8888
+      mountPath: /etc/tessera/data
+      ambassadorSecret: carrier-ambassador-certs
+    vault:
+      address: http://10.128.0.26:8200
+      secretprefix: secret/carrier-bes/crypto/carrier
+      serviceaccountname: vault-auth
+      keyname: credentials
+      tm_keyname: tm
+      tlsdir: tls
+      role: vault-role
+      authpath: besucarrier
+      
+    proxy:
+      provider: "none"
+      external_url: carrier.carrier-bes
+      portTM: 443      
+    storage:
+      storageclassname: gcpstorageclass
+      storagesize: 1Gi
+      dbstorage: 1Gi
