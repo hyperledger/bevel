@@ -1,0 +1,84 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: supplychainvalidator2ibft
+  namespace: supplychain-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: supplychainvalidator2ibft
+  chart:
+    git: https://github.com/Roshan13046/blockchain-automation-framework.git
+    ref: feature/510
+    path: platforms/hyperledger-besu/charts/node_validator 
+  values:
+    replicaCount: 1
+
+    healthcheck:
+      readinessthreshold: 100
+      readinesscheckinterval: 5
+
+    staticnodes:
+      - "enode://97876fa6259395d60bf22cb6b5e7c75473d31588006a235839b507781c09af90482b471bf6db4daa1882f717f5a82146478ad47e407eec191932c69b58262727@validator1.supplychain-bes.svc.cluster.local:30303"
+      
+      - "enode://cedf889923b17b2924b493e51226edd703c71b9d42ad610ecf4d34a6d74cc5a4170a55044c3e9c7a99a1e4692e9bb6b2842d6c84a807b41f51234c13288091db@validator2.supplychain-bes.svc.cluster.local:30303"
+      
+      - "enode://32fba87beff798668e59f2ebc7cdfd3c5df758ef35ca397f1eb458d24135ab7129a925e002365a5f88fa104280b5d9dba0799138acf9d6adf871f1e7d9b2929e@validator3.supplychain-bes.svc.cluster.local:30303"
+      
+      - "enode://77a06472d8244c9dbce4950a58ad1c36c5e264097d2e6bdbf651cd1f8d3e8dc600f905d9edcb2614aa373add447ea3393440d5f1ec54f6fcdee40adabfc8bd66@validator4.supplychain-bes.svc.cluster.local:30303"
+      
+      - "enode://bcea53a278159f8ff1329765ca069f6ff2a0c862a5d935e79f41b4f8fece0aa5f1a5e1a335bec1207b873623220c13c95fdbe986be55786e88fc9b0f964c2871@carrier.carrier-bes.svc.cluster.local:30303"
+      
+      - "enode://7773c428787e17b4ac70b93cafdbbd73ea1d2968db2159ea183324e57a10fbdbdbfa10db9a12a0903cabf0bb981eb7921573aaebbacafa8649716d2ecc89e223@manufacturer.manufacturer-bes.svc.cluster.local:30303"
+      
+      - "enode://58cac9fc9c88e161f0fa31c2112ed59d67adf44c99d7199123fb8e37d6cda936faea3e78c7e2f4f22a181d4cfe1751019fc5ddfca14676246d9188c0569f8f2f@store.store-bes.svc.cluster.local:30303"
+      
+      - "enode://da536b3a9339dcce4144f47ab4f327e6410677e2d5317f695b1ba37dc2abdbb95b85420515628b0d8f2bca05a103b563a5cb25e2f571207d05de4d7c191b473f@warehouse.warehouse-bes.svc.cluster.local:30303"
+      
+
+    metadata:
+      namespace: supplychain-bes
+      labels:
+
+    ambassador:
+      external_url_suffix: supplychain-bes.svc.cluster.local
+
+    liveliness_check:
+      enabled: false
+      
+    proxy:
+      provider: none
+      external_url: supplychain.supplychain-bes
+      p2p: 30303
+      rpc: 8545
+
+    images:
+      node: hyperledger/besu:21.1.1
+      alpineutils: hyperledgerlabs/alpine-utils:1.0
+
+    node:
+      name: validator2
+      tls: True
+      consensus: clique
+      mountPath: /opt/besu/data
+      servicetype: ClusterIP
+      imagePullSecret: regcred
+      ports:
+        p2p: 30303
+        rpc: 8545
+        ws: 8546
+
+    storage:
+      storageclassname: gcpstorageclass
+      storagesize: 1Gi
+
+    vault:
+      address: http://10.128.0.26:8200
+      secretprefix: secret/supplychain-bes/crypto/validator2
+      serviceaccountname: vault-auth
+      keyname: data
+      tlsdir: tls
+      role: vault-role
+      authpath: besusupplychain
+
+    genesis: ewogICJjb25maWciOiB7CiAgICAiY2hhaW5JZCI6IDIwMTgsCiAgICAiY29uc3RhbnRpbm9wbGVmaXhibG9jayI6IDAsCiAgICAiY29udHJhY3RTaXplTGltaXQiOiAyMTQ3NDgzNjQ3LAogICAgImNsaXF1ZSI6IHsKICAgICAgImJsb2NrcGVyaW9kc2Vjb25kcyI6IDE1LAogICAgICAiZXBvY2hsZW5ndGgiOiAzMDAwMAogICAgfQogIH0sCiAgIm5vbmNlIjogIjB4MCIsCiAgInRpbWVzdGFtcCI6ICIweDU4ZWU0MGJhIiwKICAiZ2FzTGltaXQiOiAiMHgxZmZmZmZmZmZmZmZmZiIsCiAgImRpZmZpY3VsdHkiOiAiMHgxIiwKICAiZXh0cmFEYXRhIjogIjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGVhNWI4MjcyNjk5ZTdkZmYyYmNhZTg5ZTE4ZTExN2EyNmYyOGZmYjhmMzc1OGJmN2Q2MjA4N2UyOWVlYWJjYmY0ZWUzZWU1ZGMxOGVjYTE5MDljYjU3ODJlYmEyZDczNDI4MjZmMjQ4YzFhN2ZhY2U2OTRlYmMwODMxZTA3NDcwYTRkODI3YzA3MDdkMWY3NTMzM2YwMzgzMmU3YjBiODgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIgp9
