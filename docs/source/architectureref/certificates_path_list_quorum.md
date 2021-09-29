@@ -1,17 +1,17 @@
 Certificate Paths on Vault for Quorum Network
 ---------------------------------------------
 
-* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
 
 ### For IBFT/ RAFT
 
 | Path                                                                              | Key Name               | Description         |
 |-----------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | nodekey                       | Public Key (Identity for a node)   |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | keystore                      | Private Key Data for a node |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_user                       | Username for Quorum keystore     |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | dn_password                   | Password for Quorum keystore     |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | gethpassword                   | Password for geth    |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | nodekey                       | Public Key (Identity for a node)   |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | keystore                      | Private Key Data for a node |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_user                       | Username for Quorum keystore     |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | dn_password                   | Password for Quorum keystore     |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | gethpassword                   | Password for geth    |
 
 
 
@@ -19,17 +19,17 @@ Certificate Paths on Vault for Quorum Network
 
 | Path                                                                           | Key Name               | Description         |
 |--------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{ `component_ns` }}/crypto/{{ `peer_name` }}/transaction               | tm.pub                        | Public key of Transaction manager |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/transaction                 | tm.key                        | Private key of Transaction manager |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `peer_name` }}/transaction               | tm.pub                        | Public key of Transaction manager |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/transaction                 | tm.key                        | Private key of Transaction manager |
 
 
 ### For Root Certificates
 
 | Path                                                                         | Key Name               | Description         |
 |------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootCA                        | JKS(Java KeyStore) Initail Root CA Certificates  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorcrt                 | Certificate chain for Ambassador proxy  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorkey                 | Ambassador key  |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootCA                        | JKS(Java KeyStore) Initail Root CA Certificates  |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorcrt                 | Certificate chain for Ambassador proxy  |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorkey                 | Ambassador key  |
 
 ------------------------------------------------------------------------------------------------
 

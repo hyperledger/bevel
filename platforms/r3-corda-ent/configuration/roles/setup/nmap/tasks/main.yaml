@@ -5,7 +5,7 @@
 # Check if the networkmap certs are already created
 - name: Check if the networkmap certs are already created
   shell: |
-    vault kv get -field=networkmap {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.networkmap.name }}/certs
+    vault kv get -field=networkmap {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/{{ org.services.networkmap.name }}/certs
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -36,7 +36,7 @@
 # Get the network-root-truststore and save locally
 - name: Get the network-root-truststore
   shell: |
-    vault kv get -field=network-root-truststore.jks {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/root/certs > "{{ cert_path }}"
+    vault kv get -field=network-root-truststore.jks {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/root/certs > "{{ cert_path }}"
   vars:
     cert_path: "{{ network | json_query('network_services[?type==`networkmap`].truststore') | first }}"
   environment:
