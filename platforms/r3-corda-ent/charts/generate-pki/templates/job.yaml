@@ -63,18 +63,17 @@ spec:
                   fi
                 fi
               }
-
               # Setting up the environment to get secrets/certificates from Vault
               echo "Getting secrets/certificates from Vault server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "Logged into Vault"
-
               mkdir -p ${MOUNT_PATH}
-
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
-              if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+              data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+              if [ "$data_info" == "null" ]           
               then
                 echo "Certficates absent in vault. Ignore error warning"
                 touch ${MOUNT_PATH}/absent.txt
@@ -83,7 +82,6 @@ spec:
                 echo "Certificates present in vault"
                 touch ${MOUNT_PATH}/present.txt
               fi 
-
               echo "Done checking for certificates in vault"
           volumeMounts:
           - name: certcheck
@@ -130,68 +128,55 @@ spec:
                   fi
                 fi
               }
-
               if [ -e /certcheck/present.txt ]
               then
                 echo "Certificates already present in the vault. Skipping.."
                 exit 0
               fi
-
               # Setting up the environment to get secrets from Vault
               echo "Getting secrets from Vault Server"
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
               echo "logged into vault"
-
               # Creating dirs for storing certificates
               mkdir -p ${MOUNT_PATH}/truststore;
               mkdir -p ${MOUNT_PATH}/keystore;
               mkdir -p ${MOUNT_PATH}/ssl;
-
               OUTPUT_PATH=${MOUNT_PATH}/truststore;
-
               # Fetching credentials for truststores
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
-              ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
+              ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca"]')
               echo "${ROOTCA_TRUSTSTORE}"> ${OUTPUT_PATH}/rootcats
-              SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+              SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ssl"]')
               echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
-
               OUTPUT_PATH=${MOUNT_PATH}/keystore;
-
               # Fetching credentials for keystores
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/keystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
-              IDMAN_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
+              IDMAN_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["idman"]')
               echo "${IDMAN_KEYSTORE}"> ${OUTPUT_PATH}/idmanks
-              NETWORKMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+              NETWORKMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["networkmap"]')
               echo "${NETWORKMAP_KEYSTORE}"> ${OUTPUT_PATH}/networkmapks
-              SUBORDINATECA_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["subordinateca"]')
+              SUBORDINATECA_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["subordinateca"]')
               echo "${SUBORDINATECA_KEYSTORE}"> ${OUTPUT_PATH}/subordinatecaks
-              ROOTCA_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
+              ROOTCA_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca"]')
               echo "${ROOTCA_KEYSTORE}"> ${OUTPUT_PATH}/rootcaks
-              TLSCRLSIGNER_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscrlsigner"]')
+              TLSCRLSIGNER_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscrlsigner"]')
               echo "${TLSCRLSIGNER_KEYSTORE}"> ${OUTPUT_PATH}/tlscrlsignerks
-
               OUTPUT_PATH=${MOUNT_PATH}/ssl;
-
               # Fetching credentials for ssl certificates
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/ssl" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
-              IDMAN_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
+              IDMAN_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["idman"]')
               echo "${IDMAN_SSL}"> ${OUTPUT_PATH}/idmanssl
-              NETWORKMAP_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+              NETWORKMAP_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["networkmap"]')
               echo "${NETWORKMAP_SSL}"> ${OUTPUT_PATH}/networkmapssl
-              SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signer"]')
+              SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signer"]')
               echo "${SIGNER_SSL}"> ${OUTPUT_PATH}/signerssl
-              ROOT_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root"]')
+              ROOT_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["root"]')
               echo "${ROOT_SSL}"> ${OUTPUT_PATH}/rootssl
-
               touch /DATA/done.txt
               echo "Done"
           volumeMounts:
@@ -217,7 +202,6 @@ spec:
               exit 0
             fi
             rm -r ${BASE_DIR}/DATA/done.txt
-
             echo 'keyStores = {
                 "identity-manager-key-store" = {
                     type = LOCAL
@@ -416,7 +400,6 @@ spec:
                     }
                 }    
             }' >> {{ .Values.configPath }}/pki.conf
-
             #replacement of the variables in the pki conf file
             export ROOTCA_TRUSTSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/truststore/rootcats)
             sed -i -e "s*ROOTCA_TRUSTSTORE*${ROOTCA_TRUSTSTORE}*g" {{ .Values.configPath }}/pki.conf
@@ -440,11 +423,8 @@ spec:
             sed -i -e "s*SIGNER_SSL*${SIGNER_SSL}*g" {{ .Values.configPath }}/pki.conf
             export ROOT_SSL=$(cat {{ .Values.volume.baseDir }}/credentials/ssl/rootssl)
             sed -i -e "s*ROOT_SSL*${ROOT_SSL}*g" {{ .Values.configPath }}/pki.conf
-
-
             mkdir DATA/signer DATA/root DATA/networkmap DATA/idman DATA/idman/crls DATA/idman/certs
             time java -Xmx{{ .Values.cordaJarMx }}M -jar bin/pkitool.jar --config-file {{ .Values.configPath }}/pki.conf
-
             #creating a dummy file to perform check if last line is executed or not.
             touch ${BASE_DIR}/DATA/done.txt
           volumeMounts:
@@ -491,7 +471,6 @@ spec:
               echo "Certificates already present in the vault. Skipping.."
               exit 0
             fi
-
             # setting up env to get secrets from vault
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
@@ -505,14 +484,14 @@ spec:
                 then
                   cd ${BASE_DIR}/DATA/root
                   echo "found root certificates, performing vault put for root path"
-                  (echo '{'
+                  (echo '{"data": {'
                   for FILE in *;
                   do
                   echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
                   done;
                   ) >> ../temp_root.json
                   sed -i '$ s/.$//' ../temp_root.json
-                  echo '}' >> ../temp_root.json
+                  echo '}}' >> ../temp_root.json
                   cat ../temp_root.json | tr -d '\n' >> ../root.json
                   echo "before curl"
                   curl \
@@ -537,14 +516,14 @@ spec:
                 then
                   cd ${BASE_DIR}/DATA/signer
                   echo "found signer certificates, performing vault put for signer path"
-                  (echo '{'
+                  (echo '{"data": {'
                   for FILE in *;
                   do
                   echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
                   done;
                   ) >> ../temp_signer.json
                   sed -i '$ s/.$//' ../temp_signer.json
-                  echo '}' >> ../temp_signer.json
+                  echo '}}' >> ../temp_signer.json
                   cat ../temp_signer.json | tr -d '\n' >> ../signer.json
                   echo "before curl"
                   curl \
@@ -560,7 +539,6 @@ spec:
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
-
             # putting idman certificate for cenm idman
             cd ${BASE_DIR}/DATA
             COUNTER=1
@@ -570,14 +548,14 @@ spec:
                 then
                   cd ${BASE_DIR}/DATA/idman/crls
                   echo "found idman certificates, performing vault put for idman path"
-                  (echo '{'
+                  (echo '{"data": {'
                   for FILE in *;
                   do
                   echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
                   done;
                   ) >> ../temp_crl.json
                   sed -i '$ s/.$//' ../temp_crl.json
-                  echo '}' >> ../temp_crl.json
+                  echo '}}' >> ../temp_crl.json
                   cat ../temp_crl.json | tr -d '\n' >> ../crl.json
                   echo "before curl"
                   curl \
@@ -586,17 +564,17 @@ spec:
                    --data @../crl.json \
                   ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/crls
                   echo "After curl"
-
                   # putting certs for idman at certs path
-                  (echo '{"corda-ssl-identity-manager-keys.jks": "'; base64 ${BASE_DIR}/DATA/idman/certs/corda-ssl-identity-manager-keys.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/certs
+                  (echo '{"data": {"corda-ssl-identity-manager-keys.jks": "'; base64 ${BASE_DIR}/DATA/idman/certs/corda-ssl-identity-manager-keys.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/certs
                   # putting certs for networkmap at certs path
-                  (echo '{"corda-ssl-network-map-keys.jks": "'; base64 ${BASE_DIR}/DATA/networkmap/corda-ssl-network-map-keys.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.networkmapName }}/certs
+                  (echo '{"data": {"corda-ssl-network-map-keys.jks": "'; base64 ${BASE_DIR}/DATA/networkmap/corda-ssl-network-map-keys.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.networkmapName }}/certs
                   break;
                 else
                   echo "certificates are not ready, sleeping ..."
                   sleep {{ $.Values.vault.sleepTimeAfterError }}
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
+                tail -f /dev/null
             done
             if [ "$COUNTER" -gt {{ $.Values.vault.retries }} ]
             then
