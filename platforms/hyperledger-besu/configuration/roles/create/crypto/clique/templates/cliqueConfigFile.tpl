@@ -11,7 +11,6 @@
    },
    "nonce": "0x0",
    "timestamp": "0x58ee40ba",
-   "extraData":"0x0",
    "gasLimit": "0x1fffffffffffff",
    "difficulty": "0x1"
  },
