@@ -197,12 +197,13 @@
     - add_new_org is not defined or add_new_org|bool == False
 
 # This task creates the rlp encoded string and adds it to extraData field in newGenesis.json
-- name: Create the new genesis file with information for validator nodes  
+- name: Create the new genesis file with information for validator nodes    
   vars:
     - PREFIX: '0x0000000000000000000000000000000000000000000000000000000000000000'
     - SUFFIX: '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' 
   shell: |    
-    cat {{ build_path }}/validatorinfo | awk -v prefix={{ PREFIX }} -v suffix={{ SUFFIX }} 'BEGIN {printf prefix}; {gsub(/"/,"",$1); gsub(/^0x/,"",$1); printf "%s",$1}; END {printf suffix}' > {{ build_path }}/extraData
+      cat {{ build_path }}/validatorinfo | awk -v prefix={{ PREFIX }} -v suffix={{ SUFFIX }} 'BEGIN {printf prefix}; {gsub(/"/,"",$1); gsub(/^0x/,"",$1); printf "%s",$1}; END {printf suffix}' > {{ build_path }}/extraData
+      jq '.extraData = $newVal' --arg newVal $(cat {{ build_path }}/extraData) << cat {{ build_path }}/crypto/genesis.json > {{ build_path }}/crypto/newGenesis.json
   when:
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
