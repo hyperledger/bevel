@@ -2,7 +2,7 @@
 # This task checks if the crypto material is already stored in the vault or not
 - name: Check the crypto material in Vault
   shell: |
-    vault kv get -field=db_user {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ item.name }}/credentials
+    vault kv get -field=db_user {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/credentials
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -14,7 +14,7 @@
 # This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault kv put {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ item.name }}/credentials db_user="demouser" db_password="password" gethpassword="{{ item.geth_passphrase }}"
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/credentials db_user="demouser" db_password="password" gethpassword="{{ item.geth_passphrase }}"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
