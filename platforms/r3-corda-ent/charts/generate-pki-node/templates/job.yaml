@@ -74,7 +74,9 @@ spec:
               mkdir -p ${MOUNT_PATH}
 
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/firewall | jq -r 'if .errors then . else . end')
-              if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+              data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+              if [ "$data_info" == "null" ]
               then
                 echo "Certficates absent in vault. Ignore error warning"
                 touch ${MOUNT_PATH}/absent.txt
@@ -151,11 +153,11 @@ spec:
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-              FIREWALL_CA=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["firewallca"]')
+              FIREWALL_CA=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["firewallca"]')
               echo "${FIREWALL_CA}"> ${MOUNT_PATH}/firewallca
-              BRIDGE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["bridge"]')
+              BRIDGE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["bridge"]')
               echo "${BRIDGE}"> ${MOUNT_PATH}/bridge
-              FLOAT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["float"]')
+              FLOAT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["float"]')
               echo "${FLOAT}"> ${MOUNT_PATH}/float
 
               touch /DATA/done.txt
@@ -331,14 +333,14 @@ spec:
                 then
                   cd ${BASE_DIR}/DATA/node
                   echo "found firewall certificates, performing vault put for root path"
-                  (echo '{'
+                  (echo '{"data": {'
                   for FILE in *;
                   do
                   echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
                   done;
                   ) >> ../temp_root.json
                   sed -i '$ s/.$//' ../temp_root.json
-                  echo '}' >> ../temp_root.json
+                  echo '}}' >> ../temp_root.json
                   cat ../temp_root.json | tr -d '\n' >> ../root.json
                   echo "before curl"
                   curl \

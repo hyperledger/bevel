@@ -42,7 +42,7 @@ spec:
             - name: VAULT_APP_ROLE
               value: {{.Values.vault.role}}
             - name: KUBERNETES_AUTH_PATH
-              value: {{ $.Values.vault.authpath }}
+              value: {{ $.Values.vault.authPath }}
             - name: CERTS_SECRET_PREFIX
               value: {{ .Values.vault.certsecretprefix }}
           command: ["sh", "-c"]
@@ -82,7 +82,10 @@ spec:
               do
                   # Get keystores from Vault, to see if the certificates are created and have been put in Vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  echo ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs
+                  data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                  if [ "$data_info" == "null" ]
                   then
                     sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
@@ -111,7 +114,7 @@ spec:
            - name: BASE_DIR
              value: {{ $.Values.config.volume.baseDir }}
            - name: CERTS_SECRET_PREFIX
-             value: {{ .Values.vault.certSecretPrefix }}
+             value: {{ .Values.vault.certsecretprefix }}
            - name: MOUNT_PATH
              value: "/DATA"       
           command: ["sh", "-c"]
@@ -152,20 +155,20 @@ spec:
                # signer-files from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
                validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-               idm_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["identity-manager-key-store.jks"]')
+               idm_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["identity-manager-key-store.jks"]')
                echo "${idm_jks}" | base64 -d > ${MOUNT_PATH}/signer/identity-manager-key-store.jks
 
-               nms_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-map-key-store.jks"]')
+               nms_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-map-key-store.jks"]')
                echo "${nms_jks}" | base64 -d > ${MOUNT_PATH}/signer/network-map-key-store.jks
 
-               corda_ssl_signer=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-signer-keys.jks"]')
+               corda_ssl_signer=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-signer-keys.jks"]')
                echo "${corda_ssl_signer}" | base64 -d > ${MOUNT_PATH}/signer/corda-ssl-signer-keys.jks
                
                # ssl trust-stores from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
                validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-               corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+               corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-trust-store.jks"]')
                echo "${corda_ssl_trust_store}" | base64 -d > ${MOUNT_PATH}/root/corda-ssl-trust-store.jks
 
                # Fetching credentials from vault
@@ -176,7 +179,7 @@ spec:
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
                validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-               SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+               SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ssl"]')
                echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
 
                mkdir -p ${MOUNT_PATH}/credentials/keystore
@@ -186,9 +189,9 @@ spec:
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
                validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/keystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-               IDMAN_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
+               IDMAN_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["idman"]')
                echo "${IDMAN_KEYSTORE}"> ${OUTPUT_PATH}/idmanks
-               NETWORKMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+               NETWORKMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["networkmap"]')
                echo "${NETWORKMAP_KEYSTORE}"> ${OUTPUT_PATH}/networkmapks
 
                mkdir -p ${MOUNT_PATH}/credentials/ssl
@@ -198,7 +201,7 @@ spec:
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
                validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/ssl" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-               SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signer"]')
+               SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signer"]')
                echo "${SIGNER_SSL}"> ${OUTPUT_PATH}/signerssl
 
                echo "Done"
