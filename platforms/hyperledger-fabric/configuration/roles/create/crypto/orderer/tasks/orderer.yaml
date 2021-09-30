@@ -18,7 +18,9 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: msp_certs
-  when: not vault_msp_result.failed  
+  when: not vault_msp_result.failed
+  tags:
+    molecule-idempotence-notest  
 
 - name: Get MSP info
   include_role: 
@@ -201,6 +203,8 @@
   when:   
     - network.env.proxy == 'ambassador'
     - not vault_orderer_ambassador.failed 
+  tags:
+    molecule-idempotence-notest 
 
 - name: Get Orderer ambassador info
   include_role: 
