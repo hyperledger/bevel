@@ -52,10 +52,10 @@
           aws:
             access_key: "aws_access_key"
             secret_key: "aws_secret_key"
-          k8s:
-            region: "cluster_region"
-            context: "cluster_context"
-            config_file: "cluster_config"
+          k8s:         
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+            region: "cluster_region"            
           vault:
             url: http://localhost:9090
             root_token: root
@@ -150,7 +150,6 @@
       include_role:
         name: "configuration/roles/create/tessera"
       vars:
-        name: "{{ item.name | lower }}-t1"
         add_new_org: False
         root_certs:
           failed: True
@@ -160,30 +159,22 @@
           failed: True
         vault_nodekey_result:
           failed: True
-        peers: "{{ item.services.peers }}"
-        organisation: "{{ item.name | lower }}"
-        org: "{{ item }}"
+        build_path: "./build"
+        kubernetes: "{{ item.k8s }}"
+        consensus: "{{ network.config.consensus }}"
         component_ns: "{{ item.name | lower }}-quo"
-        component_name: "{{ item.name | lower }}"
+        name: "{{ item.name | lower }}-t1"
+        peers: "{{ item.services.peers }}"
+        storageclass_name: awsstorageclass
+        external_url: "{{ item.external_url_suffix }}"
+        vault: "{{ item.vault }}"
         git_url: "{{ item.gitops.git_url }}"
         git_branch: "{{ item.gitops.branch }}"
+        org: "{{ item }}"
         docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "./build/{{item.gitops.release_dir}}"
-        consensus: "{{ network.config.consensus }}"
-        external_url: "{{ item.external_url_suffix }}"
-        storageclass_name: awsstorageclass
-        node_name: "{{ node.name | lower }}"
-        kubernetes:
-          config_file: "/tmp/molecule/kind-default/kubeconfig"
-          context: "kind"
-        vault:
-          vault: "{{ item.vault }}"
-          url: http://localhost:9090/
-          root_token: root
-          secret_path: "secretsv2"
-        root_subject: "{{ network.config.subject }}"
-        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
+        geth_data: "{{ network.config.bootnode }}"
       loop: "{{ network['organizations'] }}"
 
     ####################################################################################
@@ -192,7 +183,6 @@
       include_role:
         name: "configuration/roles/create/tessera"
       vars:
-        name: "{{ item.name | lower }}-t2"
         add_new_org: True
         root_certs:
           failed: True
@@ -201,31 +191,22 @@
         certs_result:
           failed: True
         vault_nodekey_result:
-          failed: True
-        peers: "{{ item.services.peers }}"
-        org: "{{ item }}"
-        organisation: "{{ item.name | lower }}"
+          failed: True        
+        peer_id: 0
+        build_path: "./build"
+        kubernetes: "{{ item.k8s }}"
+        consensus: "{{ network.config.consensus }}"
         component_ns: "{{ item.name | lower }}-quo"
-        component_name: "{{ item.name | lower }}"
+        name: "{{ item.name | lower }}-t2"
+        peers: "{{ item.services.peers }}"
+        storageclass_name: awsstorageclass
+        external_url: "{{ item.external_url_suffix }}"
+        vault: "{{ item.vault }}"
         git_url: "{{ item.gitops.git_url }}"
         git_branch: "{{ item.gitops.branch }}"
+        org: "{{ item }}"
         docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "./build/{{item.gitops.release_dir}}"
-        consensus: "{{ network.config.consensus }}"
-        external_url: "{{ item.external_url_suffix }}"
-        storageclass_name: awsstorageclass
-        node_name: "{{ node.name | lower }}"
         geth_data: "{{ network.config.bootnode }}"
-        peer_id: 0
-        kubernetes:
-          config_file: "/tmp/molecule/kind-default/kubeconfig"
-          context: "kind"
-        vault:
-          vault: "{{ item.vault }}"
-          url: http://localhost:9090/
-          root_token: root
-          secret_path: "secretsv2"
-        root_subject: "{{ network.config.subject }}"
-        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
       loop: "{{ network['organizations'] }}"
