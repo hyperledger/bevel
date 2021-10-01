@@ -43,8 +43,10 @@ Besu operations
     :maxdepth: 1
 
     operations/besu_networkyaml
-    operations/adding_new_org_besu
-
+    operations/adding_new_member_org_besu
+    operations/adding_new_validator_node_besu
+    operations/adding_new_validator_org_besu
+    
 Indy operations
 ------------------------
 .. toctree::

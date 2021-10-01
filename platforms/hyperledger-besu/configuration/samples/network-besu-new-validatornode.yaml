@@ -70,7 +70,7 @@ network:
       name: supplychain
       type: validator
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
-      external_url_suffix: test.besu.blockchaincloudpoc.com
+      external_url_suffix: test.besu.blockchaincloudpoc-develop.com
       
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -87,7 +87,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
@@ -165,59 +165,3 @@ network:
           ws:
             port: 8546
             
-    - organization:
-      name: carrier
-      type: member
-      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
-      external_url_suffix: test.besu.blockchaincloudpoc.com
-      
-      cloud_provider: aws   # Options: aws, azure, gcp
-      aws:
-        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
-        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-        region: "aws_region"                # AWS Region where cluster and EIPs are created
-      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
-      # the cluster has already been created.
-      k8s:
-        context: "cluster_context"
-        config_file: "cluster_config"
-      # Hashicorp Vault server address and root-token. Vault should be unsealed.
-      # Do not check-in root_token
-      vault:
-        url: "vault_addr"
-        root_token: "vault_root_token"
-        secret_path: "secret"
-      # Git Repo details which will be used by GitOps/Flux.
-      # Do not check-in git_access_token
-      gitops:
-        git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
-        branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
-        username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "git@email.com"                # Email to use in git config
-        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
-      # The participating nodes are named as peers
-      services:
-        peers:
-        - peer:
-          name: carrier
-          subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
-          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
-          p2p:
-            port: 30303
-            ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 8545
-            ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
-          ws:
-            port: 8546
-          tm_nodeport:
-            port: 15022             # Port exposed on ambassador service must be same
-            ambassador: 15022    
-          tm_clientport:
-            port: 8888        

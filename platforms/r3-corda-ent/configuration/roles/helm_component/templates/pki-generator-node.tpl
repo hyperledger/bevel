@@ -30,7 +30,7 @@ spec:
       authpath: cordaent{{ org.name | lower }}
       authpathFloat: cordaent{{ org.name | lower }}float
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/{{ org.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     subjects:

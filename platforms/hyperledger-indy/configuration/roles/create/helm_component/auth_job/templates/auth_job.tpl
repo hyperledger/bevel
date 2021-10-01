@@ -23,7 +23,6 @@ spec:
       repository: alpine:3.9.4
     vault:
       address: {{ vault.url }}
-      keyPath: {{ vault_path }}
       identity: {{ identity_name }}
       admin_auth_path: kubernetes-{{ organization }}-admin-auth
       policy: {{ organization }}-{{ identity_name }}-ro

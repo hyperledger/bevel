@@ -30,9 +30,9 @@ spec:
       address: {{ vault.url }}
       role: vault-role
       authpath: {{ component_auth }}
-      secretprefix: {{ nodename }}/credentials/mongodb
+      secretprefix: {{ nodename }}/data/credentials/mongodb
       serviceaccountname: vault-auth
-      certsecretprefix: {{nodename}}/certs
+      certsecretprefix: {{nodename}}/data/certs
     service:
       tcp:
           port: 27017

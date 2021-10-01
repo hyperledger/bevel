@@ -61,9 +61,27 @@
         src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
         dest: "{{ playbook_dir }}/../../shared/configuration"
 
+    - name: Create a k8s namespace for docker creds test
+      k8s:
+        name: notaryname
+        kind: Namespace
+        state: present
+        kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+        context: "kind"
+      changed_when: false
+
+    - name: Disable secret vault path
+      shell: |
+       vault secrets disable secretsv2/
+      environment:
+        VAULT_ADDR: "http://localhost:9090"
+        VAULT_TOKEN: "root"
+      delegate_to: localhost
+      changed_when: false
+
     - name: Enable secret vault path
       shell: |
-       vault secrets enable -version=1 -path=secret kv
+       vault secrets enable -version=2 -path=secretsv2 kv
       environment:
         VAULT_ADDR: "http://localhost:9090"
         VAULT_TOKEN: "root"
@@ -72,7 +90,7 @@
      
     - name: Write crypto material to Vault
       shell: |
-        vault write secret/crypto/testcorda ca.testorderer-cert.pem="TEST CA_TESTORDERER_CERTIFICATE_PEM" testorderer-CA.key="12345"
+        vault kv put secretsv2/crypto/testcorda ca.testorderer-cert.pem="TEST CA_TESTORDERER_CERTIFICATE_PEM" testorderer-CA.key="12345"
       environment:
         VAULT_ADDR: "http://localhost:9090"
         VAULT_TOKEN: "root"
@@ -83,7 +101,7 @@
     - name: Create Ambassador creds for secret
       k8s:
         kind: Secret
-        namespace: default
+        namespace: notaryname
         name: "secret-ambassador-certs"
         kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
         context: "kind"
@@ -93,7 +111,7 @@
     - name: Create Ambassador creds for test1
       k8s:
         kind: Secret
-        namespace: default
+        namespace: notaryname
         name: "test1-ambassador-certs"
         kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
         context: "kind"
@@ -121,7 +139,7 @@
     - name: Create policy for Access Control for secret
       shell: |
         cd ./build    
-        echo "path \"secret/*\" {
+        echo "path \"secretsv2/*\" {
             capabilities = [\"read\", \"list\"]
         }"  >>  vault-crypto-secret-ro.hcl
       environment:

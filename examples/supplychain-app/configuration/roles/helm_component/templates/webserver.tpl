@@ -69,9 +69,9 @@ spec:
       role: vault-role
       authpath: corda{{ node.name|e }}
       serviceaccountname: vault-auth
-      rpcusersecretprefix: {{ node.name|e }}/credentials/rpcusers
-      keystoresecretprefix: {{ node.name|e }}/credentials/keystore
-      certsecretprefix: {{ node.name|e }}/certs
+      rpcusersecretprefix: {{ node.name|e }}/data/credentials/rpcusers
+      keystoresecretprefix: {{ node.name|e }}/data/credentials/keystore
+      certsecretprefix: {{ node.name|e }}/data/certs
     node:
       readinesscheckinterval: 10
       readinessthreshold: 15

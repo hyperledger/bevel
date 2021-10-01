@@ -10,7 +10,7 @@
 # This task checks if the genesis file is already stored in the vault or not
 - name: Check if genesis already present in the vault
   shell: |
-    vault kv get -field=genesisfile {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/genesis
+    vault kv get -field=genesisfile {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -57,7 +57,7 @@
 # This tasks copy the genesis to the vault
 - name: Copy genesis to Vault
   shell: |
-    vault kv put {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/genesis genesisfile="{{ genesis_yaml | to_nice_json | b64encode }}" 
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis genesisfile="{{ genesis_yaml | to_nice_json | b64encode }}" 
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

@@ -35,4 +35,8 @@ spec:
               response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/auth/token/lookup-self)
               validateVaultResponse ${response_status};
 
+            {{- if eq $.Values.vault.version "2" }}
+              generate_identityv2 {{ $.Values.vault.identity }} {{ $.Values.vault.keyPath }} vault {{ $.Values.vault.address }} 2
+            {{- else }}
               generate_identity {{ $.Values.vault.identity }} {{ $.Values.vault.keyPath }} vault {{ $.Values.vault.address }}
+            {{- end }}

@@ -99,7 +99,7 @@
 # This task creates the secret-path
 - name: Create Vault secrets path
   shell: |
-    vault secrets enable -path={{ component_name }} kv
+    vault secrets enable -version=2 -path={{ component_name }} kv
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -108,7 +108,7 @@
     - notest  
   changed_when: false
 
-# This task checks if the vault-ro polict already exists
+# This task checks if the vault-ro policy already exists
 - name: Check if policy exists
   shell: |
     vault policy read vault-crypto-{{ component_name }}-ro
@@ -131,7 +131,7 @@
 - name: Create policy for Access Control
   shell: |
     cd ./build    
-    echo "path \"{{ component_name }}/*\" {
+    echo "path \"{{ component_name }}/data/*\" {
         capabilities = [\"read\", \"list\"]
     }"  >>  vault-crypto-{{ component_name }}-ro.hcl
   environment:

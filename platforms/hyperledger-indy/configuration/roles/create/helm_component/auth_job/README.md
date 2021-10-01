@@ -30,7 +30,6 @@ This task uses template for generating Job.
 
 #### Input Variables:
  - identity_name: Identity name of trustee. It uses a variable *{{ trusteeItem.name }}*
- - vault_path: Path in Vault of this identity. It uses *{{ organization }}.trustees* 
  - values_file: Path for output value file. It uses *{{ release_dir }}/{{ component_type }}/{{ component_name }}/{{ identity_name }}.yaml*
  - chart: A chart name. It uses a variable *{{ chartName }}*
  - policy_path: A path of policy in Vault.
@@ -46,7 +45,6 @@ This task uses template for generating Job.
 
 #### Input Variables:
  - identity_name: Identity name of stewards. It uses a variable *{{ stewardItem.name }}*
- - vault_path: Path in Vault of this identity. It uses *{{ organization }}.stewards* 
  - values_file: Path for output value file. It uses *{{ release_dir }}/{{ component_type }}/{{ component_name }}/{{ identity_name }}.yaml*
  - chart: A chart name. It uses a variable *{{ chartName }}*
  - policy_path: A path of policy in Vault.
@@ -63,7 +61,6 @@ This task usesß template for generating Job.
 
 #### Input Variables:
  - identity_name: Identity name of endorsers. It uses a variable *{{ endorserItem.name }}*
- - vault_path: Path in Vault of this identity. It uses *{{ organization }}.endorsers* 
  - values_file: Path for output value file. It uses *{{ release_dir }}/{{ component_type }}/{{ component_name }}/{{ identity_name }}.yaml*
  - chart: A chart name. It uses a variable *{{ chartName }}*
  - policy_path: A path of policy in Vault.
@@ -79,7 +76,6 @@ The baf-ac vault policy is for read-only data from Vault.
 
 #### Input Variables:
  - identity_name: Identity name of policy. It uses *baf-ac*
- - vault_path: Path in Vault of this identity. It uses *{{ organization }}.baf-ac* 
  - values_file: Path for output value file. It uses *{{ release_dir }}/{{ component_type }}/{{ component_name }}/{{ identity_name }}.yaml*
  - chart: A chart name. It uses a variable *{{ chartName }}*
  - policy_path: A path of policy in Vault.

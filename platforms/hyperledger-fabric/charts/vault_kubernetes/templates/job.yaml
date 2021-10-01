@@ -23,6 +23,22 @@ spec:
       imagePullSecrets:
         - name: {{ $.Values.vault.imagesecretname }}
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      volumes:
+      - name: policies
+        emptyDir:
+          medium: Memory
+      - name: policies-config-orderer
+        configMap:
+          name: policies-config-{{ .Values.metadata.component_type }}
+          items:
+            - key: policies-config-orderer.json.tmpl
+              path: policies-config-orderer.json.tmpl
+      - name: policies-config-peer
+        configMap:
+          name: policies-config-{{ .Values.metadata.component_type }}
+          items:
+            - key: policies-config-peer.json.tmpl
+              path: policies-config-peer.json.tmpl
       containers:
         - name:  "vault-kubernetes"
           image: {{ $.Values.metadata.images.alpineutils }}
@@ -52,6 +68,8 @@ spec:
             value: "{{ $.Values.checks.vault_auth_status_exits }}"
           - name: VAULT_POLICY
             value: "{{ $.Values.checks.vault_policy_not_exits }}"
+          - name: POLICIES_PATH
+            value: "/policies"
           - name: ROOT_TOKEN
             valueFrom:
               secretKeyRef:
@@ -115,37 +133,35 @@ spec:
               fi;
 
               if [ $VAULT_POLICY == 'true' ]; then
+              
+                mkdir -p ${POLICIES_PATH}
+
                 if [ $COMPONENT_TYPE == 'orderer' ]; then
-                  # This echo creates the access policy for orderers
-                  echo "{\"policy\":\"path \\\"${VAULT_SECRET_PATH}/crypto/ordererOrganizations/${COMPONENT_NAME}/*\\\" {\n capabilities = [\\\"list\\\", \\\"read\\\"]\n} \
-                  \npath \\\"${VAULT_SECRET_PATH}/*\\\" {\n capabilities = [\\\"list\\\"]\n} \
-                  \npath \\\"${VAULT_SECRET_PATH}/crypto/peerOrganizations/*\\\" {\n capabilities = [\\\"deny\\\"]\n} \
-                  \npath \\\"${VAULT_SECRET_PATH}/credentials/${COMPONENT_NAME}/*\\\" {\n capabilities = [\\\"list\\\", \\\"read\\\"]\n}\"}" > payload.json  
+                  
+                  # This command writes the policies to the vault
+                  curl \
+                  --header "X-Vault-Token: $ROOT_TOKEN" \
+                  --request POST \
+                  --data @${POLICIES_PATH}/policies-config-orderer.json.tmpl \
+                  ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+
                 fi;
 
                 if [ $COMPONENT_TYPE == 'peer' ]; then
-                  # This echo creates the access policy for peers
-                  echo "{\"policy\":\"path \\\"${VAULT_SECRET_PATH}/*\\\" {\n capabilities = [\\\"list\\\"]\n} \
-                  \npath \\\"${VAULT_SECRET_PATH}/crypto/ordererOrganizations/*\\\" {\n capabilities = [\\\"deny\\\"]\n} \
-                  \npath \\\"${VAULT_SECRET_PATH}/credentials/${COMPONENT_NAME}/*\\\" {\n capabilities = [\\\"list\\\", \\\"read\\\"]\n} \
-                  \npath \\\"${VAULT_SECRET_PATH}/crypto/peerOrganizations\\\" {\n capabilities = [\\\"deny\\\"]\n} \
-                  \npath \\\"${VAULT_SECRET_PATH}/crypto/peerOrganizations/*\\\" {\n capabilities = [\\\"deny\\\"]\n} \
-                  \npath \\\"${VAULT_SECRET_PATH}/crypto/peerOrganizations/${COMPONENT_NAME}/*\\\" {\n capabilities = [\\\"list\\\", \\\"read\\\"]\n}\"}" > payload.json
-                fi;
 
-                # This command writes the policies to the vault
-                curl \
-                --header "X-Vault-Token: $ROOT_TOKEN" \
-                --request POST \
-                --data @payload.json \
-                ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+                  # This command writes the policies to the vault
+                  curl \
+                  --header "X-Vault-Token: $ROOT_TOKEN" \
+                  --request POST \
+                  --data @${POLICIES_PATH}/policies-config-peer.json.tmpl \
+                  ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+
+                fi;
 
                 # Check policy
                 response_status=$(curl -s -o /dev/null -w "%{http_code}" \
                 --header "X-Vault-Token: $ROOT_TOKEN" \
                 ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME});
-
-                rm payload.json
 
                 validateVaultResponse ${response_status};
               fi;
@@ -173,3 +189,10 @@ spec:
             
                 validateVaultResponse ${response_status};
               fi;
+          volumeMounts:
+            - name: policies-config-orderer
+              mountPath: /policies/policies-config-orderer.json.tmpl
+              subPath: policies-config-orderer.json.tmpl
+            - name: policies-config-peer
+              mountPath: /policies/policies-config-peer.json.tmpl
+              subPath: policies-config-peer.json.tmpl
