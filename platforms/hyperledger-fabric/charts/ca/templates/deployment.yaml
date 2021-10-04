@@ -45,6 +45,14 @@ spec:
       - name: certificates
         emptyDir:
           medium: Memory
+      {{- if (not (empty .Values.server.configpath)) }}
+      - name: {{ $.Values.server.name }}-config-volume
+        configMap:
+          name: {{ $.Values.server.name }}-config
+          items:
+            - key: fabric-ca-server-config.yaml
+              path: fabric-ca-server-config.yaml
+      {{- end }}        
       {{ if .Values.vault.tls  }}
       - name: vaultca
         secret:
@@ -144,7 +152,16 @@ spec:
       containers:
       - name: ca
         image: {{ $.Values.metadata.images.ca }}
-        command: ["sh", "-c", "sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d"]
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          if [[ -d /custom-config/ ]] && [[ -f /custom-config/fabric-ca-server-config.yaml ]]; then
+            cp /custom-config/fabric-ca-server-config.yaml $FABRIC_CA_HOME/fabric-ca-server-config.yaml;
+            fabric-ca-server start --config $FABRIC_CA_HOME/fabric-ca-server-config.yaml -d;
+          else;
+            sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d;
+          endif;
         ports:
         - containerPort: 7054
         env:
@@ -172,3 +189,7 @@ spec:
           readOnly: true
         - name: ca-server-db
           mountPath: /var/hyperledger/fabric-ca-server/db/
+        {{- if (not (empty .Values.server.configpath)) }}
+        - name: {{ $.Values.server.name }}-config-volume
+          mountPath: /custom-config/
+        {{- end }}
