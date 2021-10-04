@@ -84,6 +84,14 @@
     when: network.config.consensus == 'ibft'
 
   # This role generates the genesis.json and nodekey/enode for all orgs of the network
+  - name: "Generate crypto for the CLIQUE network"
+    include_role:
+      name: create/crypto/clique  
+    vars:
+      build_path: "{{ playbook_dir }}/build"    
+    when: network.config.consensus == 'clique'
+
+  # This role generates the genesis.json and nodekey/enode for all orgs of the network
   - name: "Generate crypto for the ETHASH network"
     include_role:
       name: create/crypto/ethash
@@ -111,7 +119,9 @@
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: network.config.consensus == 'ibft' and item.type == 'validator'
+    when:
+    - network.config.consensus == 'ibft' or network.config.consensus == 'clique' 
+    - item.type == 'validator'
 
   # This role generates the crypto materials for orion tm
   - name: "Generate crypto for the Orion transaction manager"
@@ -195,6 +205,30 @@
     when: 
       - network.config.consensus == 'ibft' 
       - item.type == 'member'
+
+  # This role deploy nodes for Clique consensus
+  - name: "Deploy Besu nodes for  CLIQUE consensus"
+    include_role:
+      name: create/clique
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-bes"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_url }}"
+      git_branch: "{{ item.gitops.branch }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
+    loop: "{{ network['organizations'] }}"
+    when: 
+      - network.config.consensus == 'clique' 
+      - item.type == 'member'  
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS
