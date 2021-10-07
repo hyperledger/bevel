@@ -18,7 +18,7 @@ jobs:
         regex: '\[.*\].*' # Regex the title should match.
         allowed_prefixes: '[shared],[docs],[indy],[fabric],[corda],[besu],[quorum],[corda-ent]' # title should start with the given prefix.
         disallowed_prefixes: 'feat/,hotfix' # title should not start with the given prefix.
-        prefix_case_sensitive: true # title prefix are case insensitive.
+        prefix_case_sensitive: true # title prefix are case sensitive.
         min_length: 6 # Min length of the title.
         max_length: 100 # Max length of the title.
         github_token: ${{ github.token }} # Default: ${{ github.token }}
@@ -134,6 +134,16 @@ jobs:
         cd ./platforms/r3-corda/configuration
         molecule test -s node
       if: contains(github.event.pull_request.title, 'corda')
+    - name: Test Stage Corda delete node
+      run: |
+        cd ./platforms/r3-corda/configuration
+        molecule test -s delete_node_flux_gitops
+      if: contains(github.event.pull_request.title, 'corda')
+    - name: Test Stage Corda delete notary
+      run: |
+        cd ./platforms/r3-corda/configuration
+        molecule test -s delete_notary
+      if: contains(github.event.pull_request.title, 'corda')
 #######################################################################################
   #the below test within the /quorum folder
     - name: Test Stage Quorum default
@@ -142,12 +152,6 @@ jobs:
         molecule test -s default
       if: contains(github.event.pull_request.title, 'quorum')
    
-    - name: Test Stage Quorum crypto-constellation
-      run: | 
-        cd ./platforms/quorum/configuration
-        molecule test -s crypto-constellation
-      if: contains(github.event.pull_request.title, 'quorum')
-
     - name: Test Stage Quorum ambassador-certs
       run: |
         cd ./platforms/quorum/configuration
@@ -163,4 +167,17 @@ jobs:
     - name: Test Stage Quorum crypto-tessera
       run: |
         cd ./platforms/quorum/configuration
+        molecule test -s crypto-tessera
+      if: contains(github.event.pull_request.title, 'quorum')
+      
+    - name: Test Stage Quorum crypto-raft
+      run: |
+        cd ./platforms/quorum/configuration
+        molecule test -s crypto-raft
+      if: contains(github.event.pull_request.title, 'quorum')
+
+    - name: Test Stage Quorum tessera
+      run: |
+        cd ./platforms/quorum/configuration
+        molecule test -s tessera
       if: contains(github.event.pull_request.title, 'quorum')

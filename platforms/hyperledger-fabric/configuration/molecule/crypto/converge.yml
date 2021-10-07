@@ -20,7 +20,7 @@
     vault:
       url: http://localhost:9090/
       root_token: root
-
+      
   pre_tasks:
     - name: Create temp roles dir folder
       file:
@@ -60,6 +60,12 @@
           external_url_suffix: test_url
           ca_data:
             url: test_ca_data_url
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+          vault:
+            url: http://localhost:9090/
+            root_token: root
         component_type: orderer
         values_dir: test
         component_name: testorderer
@@ -71,6 +77,7 @@
         gitops:
           git_url: test_git_ssh
           branch: test_branch
+          release_dir: "./configuration/molecule/crypto/build"
           chart_source: test_chart_source
         vault_ca_result:
           failed: True
@@ -79,7 +86,7 @@
             name: ca
             grpc:
               port: 7054
-
+      
 ####################################################################################
     # Testing CA server role for peer
     - name: "Include create/ca-server"
@@ -100,6 +107,12 @@
           external_url_suffix: test_url
           ca_data:
             url: test_ca_data_url
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+          vault:
+            url: http://localhost:9090/
+            root_token: root
         component_type: peer
         values_dir: test
         component_name: testpeer
@@ -112,6 +125,7 @@
           git_url: test_git_ssh
           branch: test_branch
           chart_source: test_chart_source
+          release_dir: "./configuration/molecule/crypto/build"
         vault_ca_result:
           failed: True
         component_services:

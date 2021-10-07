@@ -84,24 +84,24 @@ spec:
               # get sslkeystore.jks from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/sslkeystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["sslkeystore.jks"]')
+              TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["sslkeystore.jks"]')
               echo "${TLS_SSLKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/sslkeystore.jks
 
               # get truststore.jks from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
+              TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["truststore.jks"]')
               echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks              
               echo "Done"
 
               # Fetching Bridge Certificate from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/firewall | jq -r 'if .errors then . else . end')
               validateVaultResponse "{CERTS_SECRET_PREFIX}/certs/firewall" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              bridge=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["bridge.jks"]')
+              bridge=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["bridge.jks"]')
               echo "${bridge}" | base64 -d > ${OUTPUT_PATH}/bridge.jks
               echo "Successfully got Bridge Certifcate"
 
-              trust=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["trust.jks"]')
+              trust=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["trust.jks"]')
               echo "${trust}" | base64 -d > ${OUTPUT_PATH}/trust.jks
               echo "Successfully got trust Certifcate"
 
@@ -109,13 +109,13 @@ spec:
               mkdir -p ${OUTPUT_PATH}/credentials
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore"]')
+              TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["truststore"]')
               echo "${TRUSTSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/truststorepass
-              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
               echo "${KEYSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/keystorepass  
-              FIREWALL_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["firewallca"]')
+              FIREWALL_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["firewallca"]')
               echo "${FIREWALL_PASSWORD}" > ${OUTPUT_PATH}/credentials/firewallpass
-              BRIDGE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["bridge"]')
+              BRIDGE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["bridge"]')
               echo "${BRIDGE_PASSWORD}" > ${OUTPUT_PATH}/credentials/bridgepass
               echo "Done"
               # TODO: Get network-parameters from corresponding Node

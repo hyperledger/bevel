@@ -26,12 +26,19 @@ spec:
     healthcheck:
       readinessthreshold: 100
       readinesscheckinterval: 5
-
+{% if network.env.proxy == 'ambassador' %} 
     proxy:
       provider: ambassador
       external_url: {{ name }}.{{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
-      rpc: {{ peer.rpc.ambassador }}      
+      rpc: {{ peer.rpc.ambassador }}
+{% else %}      
+    proxy:
+      provider: none
+      external_url: {{ name }}.{{ component_ns }}
+      p2p: {{ peer.p2p.port }}
+      rpc: {{ peer.rpc.port }}
+{% endif %}
 
     images:
       node: hyperledger/besu:{{ network.version }}
@@ -64,7 +71,7 @@ spec:
 
     vault:
       address: {{ vault.url }}
-      secretprefix: {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: data
       tmdir: tm
