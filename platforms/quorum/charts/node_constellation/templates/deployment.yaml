@@ -52,7 +52,7 @@ spec:
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
@@ -110,9 +110,9 @@ spec:
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
           nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekey"]')
           keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
-          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["gethpassword"]')                    
+          geth_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["geth_password"]')                    
           
-          echo "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt          
+          echo "${geth_password}" > ${OUTPUT_PATH}/passwords.txt          
           echo "${nodekey}" > ${OUTPUT_PATH}/nodekey
           echo "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
 

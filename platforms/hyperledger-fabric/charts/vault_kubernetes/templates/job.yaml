@@ -1,0 +1,198 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}-vaultkubenertes-job"
+  namespace: "{{ $.Values.metadata.namespace }}"
+  labels:
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}-vaultkubenertes-job"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}-vaultkubenertes-job"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}-vaultkubenertes-job"
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      volumes:
+      - name: policies
+        emptyDir:
+          medium: Memory
+      - name: policies-config-orderer
+        configMap:
+          name: policies-config-{{ .Values.metadata.component_type }}
+          items:
+            - key: policies-config-orderer.json.tmpl
+              path: policies-config-orderer.json.tmpl
+      - name: policies-config-peer
+        configMap:
+          name: policies-config-{{ .Values.metadata.component_type }}
+          items:
+            - key: policies-config-peer.json.tmpl
+              path: policies-config-peer.json.tmpl
+      containers:
+        - name:  "vault-kubernetes"
+          image: {{ $.Values.metadata.images.alpineutils }}
+          imagePullPolicy: Always
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_SECRET_PATH
+            value: {{ $.Values.vault.secret_path }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: VAULT_SA
+            value: {{ $.Values.vault.serviceaccountname }}
+          - name: KUBERNETES_URL
+            value: {{ $.Values.k8s.kubernetes_url }}
+          - name: POLICY_NAME
+            value: {{ $.Values.vault.policy }}
+          - name: COMPONENT_TYPE
+            value: {{ $.Values.metadata.component_type }}
+          - name: COMPONENT_NAME
+            value: {{ $.Values.metadata.component_name }}
+          - name: NAMESPACE
+            value: {{ $.Values.metadata.namespace }}
+          - name: VAULT_AUTH_STATUS
+            value: "{{ $.Values.checks.vault_auth_status_exits }}"
+          - name: VAULT_POLICY
+            value: "{{ $.Values.checks.vault_policy_not_exits }}"
+          - name: POLICIES_PATH
+            value: "/policies"
+          - name: ROOT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: roottoken
+                key: token
+          - name: REVIEWER_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: reviewertoken
+                key: reviewer
+          command: ["sh", "-c"]
+          args:
+            - |-
+              apk update && apk add jq curl;
+
+               validateVaultResponse () {
+               if [ ${1} != 200 -a ${1} != 204 ]; then
+                echo "ERROR: Unable to retrieve. Http status: ${1}"
+                exit 1
+                fi
+               };
+                 
+              if [ $VAULT_AUTH_STATUS == 'false' ]; then
+                # This command enables the path for the organizations and orderers on vault
+                curl \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data '{"type": "kubernetes"}' \
+                ${VAULT_ADDR}/v1/sys/auth/${KUBERNETES_AUTH_PATH}
+
+                while IFS= read -r line
+                do
+                  echo "$line\n"
+                done < /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > ca_formatted.txt
+
+                KUBE_SA_CERTIFICATE=$(cat ca_formatted.txt)
+
+                # This echo get the certificate for the cluster
+                echo "
+                  {
+                    \"token_reviewer_jwt\": \"${REVIEWER_TOKEN}\",
+                    \"kubernetes_host\": \"${KUBERNETES_URL}\",
+                    \"kubernetes_ca_cert\": \"${KUBE_SA_CERTIFICATE}\"
+                  }" > payload.json
+
+                # This command writtes the Service Account token to the vault for Organisations
+                curl \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data @payload.json \
+                ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/config
+
+                # Check auth
+                response_status=$(curl -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/config);
+
+                rm payload.json
+
+                validateVaultResponse ${response_status};
+              fi;
+
+              if [ $VAULT_POLICY == 'true' ]; then
+              
+                mkdir -p ${POLICIES_PATH}
+
+                if [ $COMPONENT_TYPE == 'orderer' ]; then
+                  
+                  # This command writes the policies to the vault
+                  curl \
+                  --header "X-Vault-Token: $ROOT_TOKEN" \
+                  --request POST \
+                  --data @${POLICIES_PATH}/policies-config-orderer.json.tmpl \
+                  ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+
+                fi;
+
+                if [ $COMPONENT_TYPE == 'peer' ]; then
+
+                  # This command writes the policies to the vault
+                  curl \
+                  --header "X-Vault-Token: $ROOT_TOKEN" \
+                  --request POST \
+                  --data @${POLICIES_PATH}/policies-config-peer.json.tmpl \
+                  ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+
+                fi;
+
+                # Check policy
+                response_status=$(curl -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME});
+
+                validateVaultResponse ${response_status};
+              fi;
+
+              if [ $VAULT_AUTH_STATUS == 'false' ]; then
+                echo "Need vault auth role"
+
+                echo " {\"bound_service_account_names\": \"${VAULT_SA}\", \
+                \"bound_service_account_namespaces\": \"${NAMESPACE}\", \
+                \"policies\": [\"${POLICY_NAME}\"], \"ttl\": \"1200s\"}" > payload.json
+
+                curl \
+                -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data @payload.json \
+                ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/role/${VAULT_ROLE}
+
+                # Check role
+                response_status=$(curl -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/role/${VAULT_ROLE});
+
+                rm payload.json
+            
+                validateVaultResponse ${response_status};
+              fi;
+          volumeMounts:
+            - name: policies-config-orderer
+              mountPath: /policies/policies-config-orderer.json.tmpl
+              subPath: policies-config-orderer.json.tmpl
+            - name: policies-config-peer
+              mountPath: /policies/policies-config-peer.json.tmpl
+              subPath: policies-config-peer.json.tmpl

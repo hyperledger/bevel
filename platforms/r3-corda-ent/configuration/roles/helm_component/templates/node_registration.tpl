@@ -43,7 +43,7 @@ spec:
       role: vault-role
       authpath: cordaent{{ org.name | lower }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ peer.name }}
+      certsecretprefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/{{ peer.name }}
       nodePath: {{ peer.name | lower }}
       retries: 30
       retryInterval: 30

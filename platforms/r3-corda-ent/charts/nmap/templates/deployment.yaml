@@ -97,14 +97,16 @@ spec:
               for notary in $notaries
               do
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${notary}/nodeInfo | jq -r 'if .errors then . else . end')
-              if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+              data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+              if [ "$data_info" == "null" ]
               then
                 sleep {{ $.Values.vault.sleepTimeAfterError }}
               else
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/${notary}/nodeInfo" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoFile"]')
-                notary_nodeinfo_name=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodeInfoName"]')
-                validating=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["validating"]')
+                notary_nodeinfo=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodeInfoFile"]')
+                notary_nodeinfo_name=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodeInfoName"]')
+                validating=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["validating"]')
                 echo "${notary_nodeinfo}" | base64 -d > ${NODEINFO_MOUNT_PATH}/${notary_nodeinfo_name}
                 echo "Successfully got node info file"
                 echo "  {" >> $file
@@ -125,12 +127,14 @@ spec:
               do
                   # get keystores from vault to see if certificates are created and put in vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                  if [ "$data_info" == "null" ]
                   then
                     sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
                     validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                    idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-network-map-keys.jks"]')
+                    idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-network-map-keys.jks"]')
                     echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/key-stores/corda-ssl-network-map-keys.jks
                     echo "Successfully got ssl idman certifcates"
                     break
@@ -153,15 +157,17 @@ spec:
               do
                   # get keystores from vault to see if certificates are created and put in vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                  if [ "$data_info" == "null" ]
                   then
                     sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
                     validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                    root_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+                    root_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-trust-store.jks"]')
                     echo "${root_ssl}" | base64 -d > ${MOUNT_PATH}/trust-stores/corda-ssl-trust-store.jks
 
-                    root_trust=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
+                    root_trust=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-root-truststore.jks"]')
                     echo "${root_trust}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
 
                     echo "Successfully got root ssl and trust_store certifcates"
@@ -186,18 +192,20 @@ spec:
               do
                   # get crls from vault to see if certificates are created and put in vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.serviceLocations.identityManager.name }}/crls | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                  if [ "$data_info" == "null" ]
                   then
                     sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
                     validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.serviceLocations.identityManager.name }}/crls" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                    tls_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tls.crl"]')
+                    tls_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tls.crl"]')
                     echo "${tls_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/tls.crl
 
-                    root_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root.crl"]')
+                    root_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["root.crl"]')
                     echo "${root_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/root.crl
 
-                    subordinate_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["subordinate.crl"]')
+                    subordinate_crl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["subordinate.crl"]')
                     echo "${subordinate_crl}" | base64 -d > ${MOUNT_PATH}/crl-files/subordinate.crl
 
                     echo "Successfully got crl certifcates"
@@ -207,7 +215,7 @@ spec:
               done
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.serviceLocations.identityManager.name }}/tlscerts | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.serviceLocations.identityManager.name }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
               echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/idman.crt
 
               #fetching networkmap ssl credentials from vault
@@ -215,7 +223,7 @@ spec:
               OUTPUT_PATH=${MOUNT_PATH}/ssl;
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/ssl" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              NETWORKMAP_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+              NETWORKMAP_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["networkmap"]')
               echo "${NETWORKMAP_SSL}"> ${OUTPUT_PATH}/networkmapssl
 
               #fetching truststore ssl credentials from vault
@@ -223,9 +231,9 @@ spec:
               OUTPUT_PATH=${MOUNT_PATH}/truststore;
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
+              ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca"]')
               echo "${ROOTCA_TRUSTSTORE}"> ${OUTPUT_PATH}/rootcats
-              SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+              SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ssl"]')
               echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
 
               if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]

@@ -52,14 +52,14 @@
           aws:
             access_key: "aws_access_key"
             secret_key: "aws_secret_key"
-          k8s:
-            region: "cluster_region"
-            context: "cluster_context"
-            config_file: "cluster_config"
+          k8s:         
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+            region: "cluster_region"            
           vault:
             url: http://localhost:9090
             root_token: root
-            secret_path: secret
+            secret_path: secretsv2
           gitops:
             git_protocol: "https"
             git_url: "https://github.com/<username>/blockchain-automation-framework.git"
@@ -77,7 +77,7 @@
             - peer:
               name: store
               subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
-              type: validator
+              type: member
               geth_passphrase: 12345
               lock: false
               p2p:
@@ -89,6 +89,7 @@
               transaction_manager:
                 port: 8443
                 ambassador: 8443
+                clientport: 8888
               raft:                     # Only used if consensus = 'raft'
                 port: 50401
                 ambassador: 15033
@@ -114,17 +115,17 @@
 
     - name: Generate crypto for raft consensus
       shell: |
-        bootnode -genkey ./build/store/store/nodekey
-        bootnode --nodekey=build/store/store/nodekey --writeaddress > build/store/store/enode
+        {{ bin_install_dir }}/bootnode -genkey ./build/store/store/nodekey
+        {{ bin_install_dir }}/bootnode --nodekey=build/store/store/nodekey --writeaddress > build/store/store/enode
         echo 12345 >> build/store/store/password
-        geth account new --datadir build/store/store --password build/store/store/password
+        {{ bin_install_dir }}/geth account new --datadir build/store/store --password build/store/store/password
         cp build/store/store/keystore/* build/store/store/keystore.json
       tags:
         molecule-idempotence-notest
 
     - name: Copy the crypto material to Vault
       shell: |
-        vault kv put secret/store-quo/crypto/store/quorum nodekey="$(cat build/store/store/nodekey)" keystore="$(cat build/store/store/keystore.json)" db_user="demouser" db_password="password" gethpassword="$(cat build/store/store/password)"
+        vault kv put secretsv2/store-quo/crypto/store/quorum nodekey="$(cat build/store/store/nodekey)" keystore="$(cat build/store/store/keystore.json)" db_user="demouser" db_password="password" geth_password="$(cat build/store/store/password)"
       environment:
         VAULT_ADDR: "http://localhost:9090/"
         VAULT_TOKEN: "root"
@@ -145,11 +146,10 @@
 
     ####################################################################################
     # Testing create/tessera role when add_new_org: False
-    - name: "Test create/tessera role when add_new_org: Fsalse"
+    - name: "Test create/tessera role when add_new_org: False"
       include_role:
         name: "configuration/roles/create/tessera"
       vars:
-        name: "{{ item.name | lower }}-t1"
         add_new_org: False
         root_certs:
           failed: True
@@ -159,29 +159,22 @@
           failed: True
         vault_nodekey_result:
           failed: True
-        peers: "{{ item.services.peers }}"
-        organisation: "{{ item.name | lower }}"
+        build_path: "./build"
+        kubernetes: "{{ item.k8s }}"
+        consensus: "{{ network.config.consensus }}"
         component_ns: "{{ item.name | lower }}-quo"
-        component_name: "{{ item.name | lower }}"
+        name: "{{ item.name | lower }}-t1"
+        peers: "{{ item.services.peers }}"
+        storageclass_name: awsstorageclass
+        external_url: "{{ item.external_url_suffix }}"
+        vault: "{{ item.vault }}"
         git_url: "{{ item.gitops.git_url }}"
         git_branch: "{{ item.gitops.branch }}"
+        org: "{{ item }}"
         docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "./build/{{item.gitops.release_dir}}"
-        consensus: "{{ network.config.consensus }}"
-        external_url: "{{ item.external_url_suffix }}"
-        storageclass_name: awsstorageclass
-        node_name: "{{ node.name | lower }}"
-        kubernetes:
-          config_file: "/tmp/molecule/kind-default/kubeconfig"
-          context: "kind"
-        vault:
-          vault: "{{ item.vault }}"
-          url: http://localhost:9090/
-          root_token: root
-          secret_path: "secret"
-        root_subject: "{{ network.config.subject }}"
-        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
+        geth_data: "{{ network.config.bootnode }}"
       loop: "{{ network['organizations'] }}"
 
     ####################################################################################
@@ -190,7 +183,6 @@
       include_role:
         name: "configuration/roles/create/tessera"
       vars:
-        name: "{{ item.name | lower }}-t2"
         add_new_org: True
         root_certs:
           failed: True
@@ -199,30 +191,22 @@
         certs_result:
           failed: True
         vault_nodekey_result:
-          failed: True
-        peers: "{{ item.services.peers }}"
-        organisation: "{{ item.name | lower }}"
+          failed: True        
+        peer_id: 0
+        build_path: "./build"
+        kubernetes: "{{ item.k8s }}"
+        consensus: "{{ network.config.consensus }}"
         component_ns: "{{ item.name | lower }}-quo"
-        component_name: "{{ item.name | lower }}"
+        name: "{{ item.name | lower }}-t2"
+        peers: "{{ item.services.peers }}"
+        storageclass_name: awsstorageclass
+        external_url: "{{ item.external_url_suffix }}"
+        vault: "{{ item.vault }}"
         git_url: "{{ item.gitops.git_url }}"
         git_branch: "{{ item.gitops.branch }}"
+        org: "{{ item }}"
         docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "./build/{{item.gitops.release_dir}}"
-        consensus: "{{ network.config.consensus }}"
-        external_url: "{{ item.external_url_suffix }}"
-        storageclass_name: awsstorageclass
-        node_name: "{{ node.name | lower }}"
         geth_data: "{{ network.config.bootnode }}"
-        peer_id: 0
-        kubernetes:
-          config_file: "/tmp/molecule/kind-default/kubeconfig"
-          context: "kind"
-        vault:
-          vault: "{{ item.vault }}"
-          url: http://localhost:9090/
-          root_token: root
-          secret_path: "secret"
-        root_subject: "{{ network.config.subject }}"
-        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
       loop: "{{ network['organizations'] }}"

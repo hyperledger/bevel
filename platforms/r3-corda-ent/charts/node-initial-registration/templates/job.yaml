@@ -84,12 +84,14 @@ spec:
                 do
                     # get keystores from vault to see if certificates are created and put in vault
                     LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
-                    if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                    data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                    if [ "$data_info" == "null" ]
                     then
                       sleep {{ $.Values.vault.retryInterval }}
                     else
                       validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                      network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
+                      network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-root-truststore.jks"]')
                       echo "${network_root_truststore}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
                       echo "Successfully got network truststore certifcates"
                       break
@@ -107,23 +109,23 @@ spec:
                 mkdir -p ${MOUNT_PATH}/tlscerts
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }} | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.idmanName }}.crt"]')
+                IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ .Values.networkServices.idmanName }}.crt"]')
                 echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/idman.crt
 
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }} | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.networkmapName }}.crt"]')
+                NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ .Values.networkServices.networkmapName }}.crt"]')
                 echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
 
                 # Fetching node keystore, node truststore and network-root-truststore credentials from the vault
                 mkdir -p ${MOUNT_PATH}/credentials
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore"]')
+                TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["truststore"]')
                 echo "${TRUSTSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/truststorepass
-                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
                 echo "${KEYSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/keystorepass  
-                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root"]')
+                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["root"]')
                 echo "${KEYSTORE_PASSWORD}" > ${MOUNT_PATH}/credentials/rootpass             
                 
                 echo "Done"
@@ -390,17 +392,17 @@ spec:
                   KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
                   VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                   validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-                  (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/nodekeystore
-                  (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore
-                  (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore
+                  (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/nodekeystore
+                  (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore
+                  (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore
                   if [ "$FLOAT_VAULT_ADDR" != "" ]
                   then
                     echo "Getting vault token for float vault and putting certificates in it.."
                     VAULT_TOKEN_FLOAT=$(curl -sS --request POST ${FLOAT_VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH_FLOATVAULT}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                     validateVaultResponse 'vault login token' "${VAULT_TOKEN_FLOAT}"
                     # Put in the certs in float vault is firewall is enabled
-                    (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN_FLOAT}" -d @- ${FLOAT_VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore
-                    (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN_FLOAT}" -d @- ${FLOAT_VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore
+                    (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN_FLOAT}" -d @- ${FLOAT_VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore
+                    (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN_FLOAT}" -d @- ${FLOAT_VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore
                   fi
                   break
                 else

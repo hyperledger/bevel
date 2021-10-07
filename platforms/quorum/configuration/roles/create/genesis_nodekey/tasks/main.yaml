@@ -66,6 +66,7 @@
     vault: "{{ org.vault }}"
     peers: "{{ org.services.peers }}"
     genesis: "{{ lookup('file', './build/genesis.json') | b64encode }}"
+    copyNodekey: false
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org
@@ -88,3 +89,18 @@
   when: vault_check|default(0)|int != 0
   tags:
     molecule-idempotence-notest
+    
+# This tasks copy the crypto material to the vault
+- name: Copy the nodekey to Vault
+  include_tasks: add_to_vault.yaml
+  vars:
+    component_ns: "{{ org.name }}-quo"
+    component_name: "{{ org.name }}"
+    vault: "{{ org.vault }}"
+    peers: "{{ org.services.peers }}"
+    genesis: "{{ lookup('file', './build/genesis.json') | b64encode }}"
+    copyNodekey: true
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: vault_check|default(0)|int != 0 and ( not add_new_org )

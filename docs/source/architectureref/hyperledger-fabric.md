@@ -78,26 +78,26 @@ Detailed information on helm charts can be referred [here](../developer/fabric-h
 ## Vault Configuration
 
 The Blockchain Automation Framework stores their `crypto` and `credentials` immediately within the secret secrets engine.
-Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
 | Crypto Material Path | Credentials Path |
 |----------------------|----------------------|
-| `secret/crypto` | `secret/credentials` |
+| `secretsv2/crypto` | `secretsv2/credentials` |
 
   
 
-*  `secret/credentials/ordererOrganizations/<orderer-org>/ca` - Contains password for the Orderer CA Bootstrap user in the format:
+*  `secretsv2/credentials/ordererOrganizations/<orderer-org>/ca` - Contains password for the Orderer CA Bootstrap user in the format:
 
 ```
 user="${ORDERER_NAMESPACE}-adminpw
 ```
 
-*  `secret/credentials/peerOrganizations/<org1>/ca` - Contains password for the Org Peers CA Bootstrap user in the format:
+*  `secretsv2/credentials/peerOrganizations/<org1>/ca` - Contains password for the Org Peers CA Bootstrap user in the format:
 
 ```
 user="${NAMESPACE}-adminpw
 ```
 
-*  `secret/credentials/peerOrganizations/<org1>/<peern>couchdb` - Contains the password for the Peer's CouchDB user in the format:
+*  `secretsv2/credentials/peerOrganizations/<org1>/<peern>couchdb` - Contains the password for the Peer's CouchDB user in the format:
 
 ```
 pass="${NAMESPACE}-peer-${n}-adminpw

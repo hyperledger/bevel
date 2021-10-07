@@ -80,15 +80,17 @@ spec:
                 do
                     # get keystores from vault to see if certificates are created and put in vault
                     LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
-                    if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                    data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                    if [ "$data_info" == "null" ]
                     then
                       sleep {{ $.Values.vault.retryInterval }}
                     else
                       validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                      network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
+                      network_root_truststore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-root-truststore.jks"]')
                       echo "${network_root_truststore}" | base64 -d > ${MOUNT_PATH}/trust-stores/network-root-truststore.jks
                       # ssl trust store
-                      corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+                      corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-trust-store.jks"]')
                       echo "${corda_ssl_trust_store}" | base64 -d > ${MOUNT_PATH}/trust-stores/corda-ssl-trust-store.jks
                       echo "Successfully got network truststore certifcates"
                       break
@@ -106,27 +108,27 @@ spec:
                 mkdir -p ${MOUNT_PATH}/tlscerts
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+                IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
                 echo "${IDMAN_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/idman.crt
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+                NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
                 echo "${NETWORKMAP_CERT}" | base64 -d > ${MOUNT_PATH}/tlscerts/networkmap.crt
                 #Fetching truststore credentials from vault
                 mkdir -p ${MOUNT_PATH}/truststore
                 OUTPUT_PATH=${MOUNT_PATH}/truststore;
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca"]')
+                ROOTCA_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca"]')
                 echo "${ROOTCA_TRUSTSTORE}"> ${OUTPUT_PATH}/rootcats
-                TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["trustStorePassword"]')
+                TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["trustStorePassword"]')
                 echo "${TRUSTSTORE_PASSWORD}"> ${OUTPUT_PATH}/ts
                 #Fetching keystore credentials from vault
                 mkdir -p ${MOUNT_PATH}/keystore
                 OUTPUT_PATH=${MOUNT_PATH}/keystore;
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
                 validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/keystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keyStorePassword"]')
+                KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keyStorePassword"]')
                 echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/ks
                 
                 echo "Done with getting certifcates and credentials from vault"
@@ -341,9 +343,9 @@ spec:
                   KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
                   VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                   validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-                  (echo '{"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore
-                  (echo '{"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore
-                  (echo '{"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
+                  (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore
+                  (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore
+                  (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
                   break
                 else
                   echo "certificates are not ready, sleeping for {{ $.Values.vault.retryInterval }} seconds"
@@ -360,7 +362,7 @@ spec:
             nodeInfoName=$(basename $(ls nodeInfo*))
             # Encoding binary file and putting it in file, to make sure binary gets correctly put in Vault
             base64 ${BASE_DIR}/additional-node-infos/nodeInfo* > ${BASE_DIR}/file
-            (echo '{"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '","nodeInfoName": "'; echo $nodeInfoName; echo '","validating": "'; echo {{ .Values.nodeConf.notary.validating }}; echo '"}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nodeInfo
+            (echo '{"data": {"nodeInfoFile": "'; cat ${BASE_DIR}/file; echo '","nodeInfoName": "'; echo $nodeInfoName; echo '","validating": "'; echo {{ .Values.nodeConf.notary.validating }}; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/nodeInfo
           volumeMounts:
           - name: notary-nodeinfo
             mountPath: {{ $.Values.nodeConf.volume.baseDir }}/additional-node-infos

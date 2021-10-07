@@ -20,12 +20,12 @@
     assert:
       that: network_map_truststore.stat.exists
 
-  - name: check if /test.yml not exists
+  - name: check if test.yml not exists
     stat:
       path: "{{ playbook_dir }}/../../../releases/dev/Doorman/test.yml"
     register: test
 
-  - name: Assert that /test.yml not exists
+  - name: Assert that test.yml not exists
     assert:
       that: not test.stat.exists
 
@@ -40,7 +40,7 @@
 
   - name: Check if the crypto material are deleted to Vault
     shell: |
-      vault kv get -field=ca.testorderer-cert.pem secret/crypto/testcorda
+      vault kv get -field=ca.testorderer-cert.pem secretsv2/crypto/testcorda
     environment:
       VAULT_ADDR: "http://localhost:9090"
       VAULT_TOKEN: "root"
@@ -68,7 +68,7 @@
   - name: Check if Ambassador creds are deleted for secret
     k8s_info:
       kind: Secret
-      namespace: default
+      namespace: "nodename"
       name: "secret-ambassador-certs"
       kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
@@ -81,7 +81,7 @@
   - name: Check if Ambassador creds are deleted for test1
     k8s_info:
       kind: Secret
-      namespace: default
+      namespace: "nodename"
       name: "test1-ambassador-certs"
       kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"
@@ -143,7 +143,7 @@
 
   - name: Check if the namespace is deleted
     k8s_info:
-      name: cordatestmolecule
+      name: "nodename"
       kind: Namespace
       kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
       context: "kind"

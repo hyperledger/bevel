@@ -10,8 +10,8 @@ vault:
   role: vault-role
   address: {{ vault.url }}
   authpath: {{ network.env.type }}{{ component_ns }}-auth
-  adminsecretprefix: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_ns }}/users/admin
-  orderersecretprefix: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer_component }}
+  adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_ns }}/users/admin
+  orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer_component }}
   serviceaccountname: vault-auth
   imagesecretname: regcred
   tls: false
