@@ -25,7 +25,7 @@ Certificate Paths on Vault for Quorum Network
 
 ### For Root Certificates
 
-| Path                                                                         | Key Name               | Description         |
+| Path                                                                         | Key Name                 | Description         |
 |------------------------------------------------------------------------------|-------------------------------|--------------|
 | secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | rootCA                        | JKS(Java KeyStore) Initail Root CA Certificates  |
 | secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/certs                       | ambassadorcrt                 | Certificate chain for Ambassador proxy  |
@@ -40,6 +40,4 @@ Details of Variables
 |-------------------------------|--------------|
 |`component_ns` | Name of Component's Namespace |
 |`peer_name` | Name of Peer  | 
-|`component_name` | Name of Component  | 
-|`node_name` | Name of Node   |
-|`component_auth` | Auth Name |
+|`node_name` | Name of Node  |
