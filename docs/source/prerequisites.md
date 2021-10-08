@@ -65,6 +65,14 @@ Add the contents of this file in your Ansible host configuration file (typically
 
 Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html).
 
+---
+### NPM
+
+Blockchain Automation Framework provides the feature of automated validation of the configuration file (network.yaml), this is done using ajv (JSON schema validator) cli. The deployment scripts install ajv using npm module which requires npm as prerequisite.
+
+You can install the latest NPM version from offical [site](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).
+
+---
 ## Docker
 
 The Blockchain Automation Framework provides pre-built docker images which are available on [Docker Hub](https://hub.docker.com/u/hyperledgerlabs). If specific changes are needed in the Docker images, then you can build them locally using the Dockerfiles provided. A user needs to install [Docker CLI](https://docs.docker.com/install/) to make sure the environment has the capability of building these Dockerfiles to generate various docker images. Platform specific docker image details are mentioned [here](./operations/configure_prerequisites.md).
