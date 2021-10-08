@@ -58,6 +58,17 @@ This role creates crypto for ibft.
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/crypto/ibft) for detailed information.
 
+## **create/crypto/clique**
+
+This role creates crypto for clique.
+* Create crypto material for each peer with CLIQUE consensus
+* Check if nodekey already present in the vault
+* Create build directory if it does not exist
+* Generate enode url for each node and create a geth account and keystore
+* Copy the crypto material to Vault
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-besu/configuration/roles/create/crypto/clique) for detailed information.
+
 ## **create/k8_component**
 
 This role creates deployment files for nodes, namespace storageclass, service accounts and clusterrolebinding. Deployment file for a node is created in a directory with name=nodeName, nodeName is stored in component_name
