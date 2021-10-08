@@ -66,7 +66,7 @@ network:
   
   # Following are the configurations for the common Besu network
   config:    
-    consensus: "ibft"                 # Options are "ibft". "ethash" and "clique" will be implemented in future release
+    consensus: "ibft"                 # Options are "ibft", "ethash" and "clique".
     ## Certificate subject for the root CA of the network. 
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
