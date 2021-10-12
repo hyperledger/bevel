@@ -26,6 +26,7 @@ Fabric operations
     operations/adding_new_ordererpeer_fabric
     operations/install_instantiate_chaincode.md
     operations/upgrading_chaincode.md
+    operations/deploy_fabric_operations_console.md
     
 Corda operations
 -----------------------
