@@ -94,8 +94,14 @@
         component_type: "{{ item.type | lower}}"
         orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'  
-      
+      when: item.org_status == 'new'
+
+    #Creating a pause so that the client certificates are valid
+    # You can continue if the CA-server pods are running for more than 5 minutes
+    - pause:
+        prompt: "Sleeping... so that the client certificates are valid"
+        minutes: 6
+    
     # Generate script to modify the fetched configuration block
     - include_role:
         name: "create/new_organization/create_block"
@@ -106,12 +112,6 @@
       loop: "{{ network['channels'] }}"
       loop_control:
         loop_var: channel
-      
-    #Creating a pause so that the client certificates are valid
-    # You can continue if the CA-server pods are running for more than 5 minutes
-    - pause:
-        prompt: "Sleeping... so that the client certificates are valid"
-        minutes: 6
 
     # Create Organization crypto materials for new organization
     - name: "Crypto"

@@ -102,8 +102,6 @@
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/ca
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/ambassador
     {% for peer in peers %}
@@ -113,6 +111,10 @@
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/credentials/{{ component_name }}/ca/{{ org_name }}
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/credentials/{{ component_name }}/git
+    target_path={{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/endorsers/{{ org_name }}/users;
+    for key in $(vault kv list -format=json "$target_path" | jq -r '.[]'); do
+      vault kv delete "$target_path/$key/msp"; 
+    done
   vars:
     peers: "{{ services.peers }}"
   environment:
@@ -132,6 +134,26 @@
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   ignore_errors: yes
+
+############################################################################################
+# This task deletes crypto materials from vault
+- name: Delete Crypto for users
+  shell: |
+    {% for user in users %}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/msp
+    {% endfor %}
+    target_path={{ item.vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/users;
+    for key in $(vault kv list -format=json "$target_path" | jq -r '.[]'); do
+      vault kv delete "$target_path/$key/msp"; 
+      vault kv delete "$target_path/$key/tls"; 
+    done
+  vars:
+    users: "{{ item.users }}"
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  when: component_type == 'peer' and item.users is defined
 
 - name: Delete policy
   shell: |

@@ -1,0 +1,73 @@
+#############################################################################################
+# This role generates crypto material for users.
+#############################################################################################
+
+############################################################################################
+# Copy generate-user-crypto script from scrips directory
+- name: Copy generate-user-crypto.sh to destination directory
+  copy:
+    src: "{{ playbook_dir }}/../scripts/{{ files }}"
+    dest: "./build/{{ files }}"
+    mode: 0755
+    remote_src: yes
+  with_items:
+    - generate-user-crypto.sh
+  loop_control:
+    loop_var: files
+
+############################################################################################
+# This task changes the permission for msp
+- name: Changing the permission of msp files
+  file:  
+    path: ./build/{{ files }} 
+    mode: '0775'
+  with_items:
+    - generate-user-crypto.sh
+  loop_control:
+    loop_var: files
+
+############################################################################################
+# This task copies generate-user-crypto.sh file using the CA Tools Pod 
+- name: Copy generate_crypto.sh file using the CA Tools 
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-user-crypto.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-user-crypto.sh  
+############################################################################################
+# This task executes generate-user-crypto.sh file using the CA Tools to generate user certificate 
+- name: Execute generate-user-crypto.sh file using the CA Tools 
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-user-crypto.sh peer {{component_name}} {{org_name|lower}} {{users|b64encode}} {{org_name}} "{{subject}}" "{{ca_url}}"
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
+# Copy user certificates to vault
+- name: Copy user certificates for orgs
+  shell: |
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/client.key)"
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/admincerts/{{ user.identity }}@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/cacerts/*.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/ca.crt)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: user
+  when: 
+    - vault_user_result.failed == True or vault_user_result.stdout == '' 
+    - network.env.proxy != 'none'
+  tags:
+    - molecule-idempotence-notest
+
+- name: Copy user certificates for orgs
+  shell: |
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/client.key)"
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/admincerts/{{ user.identity }}@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/ca.crt)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: user
+  when: 
+    - vault_user_result.failed == True or vault_user_result.stdout == '' 
+    - network.env.proxy == 'none'
+  tags:
+    - molecule-idempotence-notest
