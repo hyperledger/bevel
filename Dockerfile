@@ -15,13 +15,17 @@ RUN apt-get update -y && \
         curl \
         unzip \
         build-essential \
-        openjdk-14-jdk \
 	    openssh-client \
         gcc \
         git \
         libdb-dev libleveldb-dev libsodium-dev zlib1g-dev libtinfo-dev \
         jq \
         npm
+
+# Install OpenJDK-14
+RUN wget https://download.java.net/java/GA/jdk14/076bab302c7b4508975440c56f6cc26a/36/GPL/openjdk-14_linux-x64_bin.tar.gz \
+    && tar xvf openjdk-14_linux-x64_bin.tar.gz \
+    && rm openjdk-14_linux-x64_bin.tar.gz
 
 # Install Python 3.6.5
 RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz \
@@ -55,6 +59,8 @@ COPY ./reset.sh /home
 RUN chmod 755 /home/run.sh
 RUN chmod 755 /home/reset.sh
 ENV PATH=/root/bin:/root/.local/bin/:$PATH
+ENV JAVA_HOME=/home/jdk-14
+ENV PATH=/home/jdk-14/bin:$PATH
 
 # The mounted repo should contain a build folder with the following files
 # 1) K8s config file as config
