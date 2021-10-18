@@ -58,7 +58,7 @@ Below are various debugging commands that can be used
     export VAULT_ADDR=
     export VAULT_TOKEN=
     vault read PATH_IN_VAULT
-    Ex. vault read /secret/crypto/ordererOrganizations/carrier-net/ca/carrier-net-CA.key
+    Ex. vault read secretsv2/crypto/ordererOrganizations/carrier-net/ca/carrier-net-CA.key
     ```
 * To list all enabled secrets engines with detailed output
     ```
@@ -72,7 +72,7 @@ Below are various debugging commands that can be used
 * To delete data on a given path in the key/value secrets engine
     ```
     vault kv delete PATH
-    Ex. vault kv delete secret/creds
+    Ex. vault kv delete secretsv2/creds
     ```
 ## Helm related debugging
 * To list down all helm releases

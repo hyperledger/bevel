@@ -69,9 +69,9 @@ spec:
       role: vault-role
       authpath: cordaent{{ node.name|e }}
       serviceaccountname: vault-auth
-      rpcusersecretprefix: {{ component_vault.secret_path | default('secret') }}/{{ organization_data.name}}/{{ node.name }}/credentials
-      keystoresecretprefix: {{ component_vault.secret_path | default('secret') }}/{{ organization_data.name}}/{{ node.name }}/credentials
-      certsecretprefix: {{ component_vault.secret_path | default('secret') }}/{{ organization_data.name}}/{{ node.name }}/certs
+      rpcusersecretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/{{ organization_data.name}}/{{ node.name }}/credentials
+      keystoresecretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/{{ organization_data.name}}/{{ node.name }}/credentials
+      certsecretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/{{ organization_data.name}}/{{ node.name }}/certs
     node:
       readinesscheckinterval: 10
       readinessthreshold: 15

@@ -96,7 +96,7 @@
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
-    path: "{{ playbook_dir }}/{{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data"
+    path: "{{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data"
     check: "ensure_dir"
   with_indexed_items: "{{ enode_validator_list }}"
   when:  
@@ -131,22 +131,14 @@
   when:  
     - item[1].type == "validator"
     - generate_crypto is defined and generate_crypto == True
-
-# This file used by besu binary to generate the extra data information
-- name: Touch toEncode.json file
-  file:
-    path: "{{ build_path }}/toEncode.json"
-    state: touch
-  when:  
-    - generate_crypto is defined and generate_crypto == True
     
-# This task displays the JSON file content
+# This task converts the validator info to json format
 - name: Convert validatorInfo to json format
   shell: |
     cat {{ build_path }}/validatorinfo | paste -sd "," -| awk '{print "["$0"]"}'> {{ build_path }}/toEncode.json
 
 # This task displays the JSON file content
-- name: Convert validatorInfo to json format
+- name: Display the JSON file content
   shell: |
     cat {{ build_path }}/toEncode.json
   register: result

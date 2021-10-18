@@ -29,7 +29,7 @@ spec:
       address: {{ component_vault.url }}
       role: vault-role
       authpath: {{ network.env.type }}{{ component_ns }}-auth
-      secretprefix: {{ component_vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_ns }}
+      secretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}
       serviceaccountname: vault-auth
       imagesecretname: regcred
       image: hyperledgerlabs/alpine-utils:1.0

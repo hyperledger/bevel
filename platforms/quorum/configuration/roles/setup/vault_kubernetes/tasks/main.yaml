@@ -41,7 +41,9 @@
 - set_fact:
     vault_auth_status: true
   loop: "{{ auth_lists.stdout_lines }}"
-  when: item == component_auth_temp
+  loop_control:
+    loop_var: itemx
+  when: itemx == component_auth_temp
 
 ###############################################################################################
 # This task enables the path for the nodes on vault
@@ -67,7 +69,7 @@
 - name: Write reviewer token
   shell: |
     export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_ns }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 -d)
-    vault write auth/{{ component_auth }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_ns }}.ca.cert"
+    vault write auth/{{ component_auth }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host="$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " ")" kubernetes_ca_cert=@"./build/{{ component_ns }}.ca.cert"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -87,10 +89,10 @@
 - name: Create policy for Access Control
   shell: |
     cd ./build    
-    echo "path \"{{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/*\" {
+    echo "path \"{{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/*\" {
         capabilities = [\"read\", \"list\", \"create\", \"update\"]
     }
-    path \"{{ vault.secret_path | default('secret') }}/{{ component_ns }}/smartContracts/*\" {
+    path \"{{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/smartContracts/*\" {
         capabilities = [\"read\", \"list\"]
     }"  >>  vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl
     vault write sys/policy/vault-crypto-{{ component_type }}-{{ component_name }}-ro policy="@vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"

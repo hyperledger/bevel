@@ -9,60 +9,37 @@
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get pods -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }}  ${CA_TOOL_CLI} -- mkdir -p /root/ca-tools/{{org_name|lower}}
-  when: vault_msp_result.failed or vault_admin_result.failed or vault_user_result.failed
-
-############################################################################################
-# Copy generate-crypto script from scrips directory
-- name: Copy generate-usercrypto.sh to destination directory
-  copy:
-    src: "{{ playbook_dir }}/../scripts/{{ files }}"
-    dest: "./build/{{ files }}"
-    mode: 0755
-    remote_src: yes
-  with_items:
-    - generate-user-crypto.sh
-  loop_control:
-    loop_var: files
-  when: vault_msp_result.failed or vault_admin_result.failed or vault_user_result.failed
+  when: vault_msp_result.failed or vault_admin_result.failed or (refresh_cert is defined and refresh_cert == true)
 
 ############################################################################################
 # This task changes the permission for msp
 - name: Changing the permission of msp files
-  file:  
-    path: ./build/{{ files }} 
+  file:
+    path: ./build/{{ files }}
     mode: '0775'
   with_items:
     - "generate-crypto-{{ org_name|lower }}.sh"
-    - generate-user-crypto.sh
   loop_control:
     loop_var: files
-  when: vault_msp_result.failed or vault_admin_result.failed or vault_user_result.failed
+  when: vault_msp_result.failed or vault_admin_result.failed or (refresh_cert is defined and refresh_cert == true)
 
 ############################################################################################
 # This task copy the generate_crypto.sh and cert files in the respective CA Tools CLI
-- name: Copy the generate_crypto.sh file into the CA Tools 
+- name: Copy the generate_crypto.sh file into the CA Tools
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-crypto-{{ org_name|lower }}.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-crypto.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-user-crypto.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-user-crypto.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/crypto-config/{{component_type}}Organizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem {{ component_name }}/${CA_TOOL_CLI}:crypto-config/{{component_type}}Organizations/{{ component_name }}/ca/
-  when: vault_msp_result.failed or ( add_peer is defined and add_peer | bool == True ) or vault_admin_result.failed or vault_user_result.failed
-
+  when: vault_msp_result.failed or ( add_peer is defined and add_peer | bool == True ) or vault_admin_result.failed or (refresh_cert is defined and refresh_cert == true)
 
 ############################################################################################
-# This task generates the crypto material by executing the generate_crypto.sh script file
+# This task generates the crypto material by executing the generate-crypto.sh script file
 # present in the Organizations CA Tools CLI
 - name: Generate crypto material for organization peers
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-crypto.sh    
-  when: vault_msp_result.failed or vault_admin_result.failed
-
-- name: Generate crypto material for organization users
-  shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')    
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-user-crypto.sh peer {{component_name}} {{org_name|lower}} 1 {{org_name}} "{{subject}}" "{{ca_url}}"
-  when: vault_user_result.failed
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-crypto.sh
+  when: vault_msp_result.failed or vault_admin_result.failed or (refresh_cert is defined and refresh_cert == true)
 
 ############################################################################################
 # This task copies the generated crypto material from the respective CA Tools CLI
@@ -71,4 +48,4 @@
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
-  when: vault_msp_result.failed or vault_admin_result.failed or vault_user_result.failed
+  when: vault_msp_result.failed or vault_admin_result.failed or (refresh_cert is defined and refresh_cert == true)

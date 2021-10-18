@@ -34,18 +34,6 @@
     web_port: "{{ notary.dbweb.port }}"
     web_targetport: "{{ notary.dbweb.targetPort }}"
 
-# ----------------------------------------------------------------------  
-# Check if notary already registered or not
-- name: Check if nodekeystore is already created
-  shell: |
-    vault kv get -field=nodekeystore.jks {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ notary.name }}/certs/nodekeystore
-  environment:
-    VAULT_ADDR: "{{ org.vault.url }}"
-    VAULT_TOKEN: "{{ org.vault.root_token }}"
-  register: nodekeystore_result
-  ignore_errors: yes
-
-# ----------------------------------------------------------------------
 # create deployment files for job for notaries
 - name: 'Create notary initial-registration job file'
   include_role:
@@ -53,7 +41,7 @@
   vars:    
     type: "notary-initial-registration"
     notary_service: "{{ notary }}"
-    component_name: "{{ notary_service.name }}-registration"
+    component_name: "{{ notary_service.name }}-initial-registration"
     name: "{{ org.name | lower }}"
     notary_name: "{{ notary_service.name }}"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
@@ -65,7 +53,6 @@
     networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
     networkmap_domain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
     corda_service_version: notary-{{ network.version }}
-  when: nodekeystore_result.failed == True
 
 - name: "Push the created deployment files to repository"
   include_role: 

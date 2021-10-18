@@ -54,7 +54,7 @@
           vault:
             url: http://localhost:9090
             root_token: root
-            secret_path: secret
+            secret_path: secretsv2
           gitops:
             git_protocol: "https" 
             git_url: "https://github.com/<username>/blockchain-automation-framework.git"     
@@ -116,7 +116,7 @@
 
     - name: Copy the crypto material to Vault
       shell: |
-        vault kv put secret/store-quo/crypto/store/quorum nodekey="$(cat build/store/store/nodekey)" keystore="$(cat build/store/store/keystore.json)" db_user="demouser" db_password="password" gethpassword="$(cat build/store/store/password)"
+        vault kv put secretsv2/store-quo/crypto/store/quorum nodekey="$(cat build/store/store/nodekey)" keystore="$(cat build/store/store/keystore.json)" db_user="demouser" db_password="password" geth_password="$(cat build/store/store/password)"
       environment:
         VAULT_ADDR: "http://localhost:9090/"
         VAULT_TOKEN: "root"
@@ -171,7 +171,7 @@
           vault: "{{ item.vault }}"
           url: http://localhost:9090/
           root_token: root
-          secret_path: "secret"
+          secret_path: "secretsv2"
         root_subject: "{{ network.config.subject }}"
         cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
       loop: "{{ network['organizations'] }}"
@@ -214,7 +214,7 @@
           vault: "{{ item.vault }}"
           url: http://localhost:9090/
           root_token: root
-          secret_path: "secret"
+          secret_path: "secretsv2"
         root_subject: "{{ network.config.subject }}"
         cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
       loop: "{{ network['organizations'] }}"

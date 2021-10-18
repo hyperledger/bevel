@@ -94,8 +94,8 @@ For final checking of the validity of the fabric network.
       role: ault-role
       address: VAULT_ADDR
       authpath: ORG_NAME-net-auth
-      adminsecretprefix: secret/crypto/peerOrganizations/ORG_NAME-net/users/admin
-      orderersecretprefix: secret/crypto/peerOrganizations/ORG_NAME-net/orderer
+      adminsecretprefix: secretsv2/crypto/peerOrganizations/ORG_NAME-net/users/admin
+      orderersecretprefix: secretsv2/crypto/peerOrganizations/ORG_NAME-net/orderer
       serviceaccountname: vault-auth
       imagesecretname: regcred
       tls: false

@@ -3,6 +3,7 @@
   include_tasks: add_to_vault.yaml
   vars:
     component_ns: "{{ org.name }}-bes"
+    component_name: "{{ org.name }}"
     vault: "{{ org.vault }}"
     peers: "{{ org.services.validators }}"
     new_org_query: "validators[?name=='{{ validator_name.node }}']"
@@ -54,7 +55,7 @@
 # This task gets the genesis file when there is no local genesis
 - name: get genesis from vault
   shell: |
-    vault kv get -field=genesis {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/genesis
+    vault kv get -field=genesis {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

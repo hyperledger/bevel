@@ -1,5 +1,5 @@
-<a name = "adding-new-org-to-existing-network-in-besu"></a>
-# Adding a new node in Besu
+<a name = "adding-new-member-org-to-existing-network-in-besu"></a>
+# Adding a new member organization in Besu
 
   - [Prerequisites](#prerequisites)
   - [Create Configuration File](#create-configuration-file)
@@ -7,7 +7,7 @@
 
 <a name = "prerequisites"></a>
 ## Prerequisites
-To add a new organization in Besu, an existing besu network should be running, enode information of all existing nodes present in the network should be available, genesis file should be available in base64 encoding and the information of orion nodes should be available and new node account should be unlocked prior adding the new node to the existing besu network. 
+To add a new organization in Besu, an existing besu network should be running, enode information of all existing nodes present in the network should be available, genesis file should be available in base64 encoding and the information of orion nodes should be available. The new node account should be unlocked prior adding the new node to the existing besu network. 
 
 ---
 **NOTE**: Addition of a new organization has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
@@ -29,7 +29,7 @@ The `network.yaml` file should contain the specific `network.organization` detai
 **NOTE**: Make sure that the genesis flie is provided in base64 encoding. Also, if you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
 
 ---
-For reference, sample `network.yaml` file looks like below for IBFT consensus (but always check the latest network-besu-newnode.yaml at `platforms/hyperledger-besu/configuration/samples`):
+For reference, sample `network.yaml` file looks like below for IBFT consensus (but always check the latest network-besu-new-memberorg.yaml at `platforms/hyperledger-besu/configuration/samples`):
 
 ```
 ---
@@ -66,7 +66,7 @@ network:
   
   # Following are the configurations for the common Besu network
   config:    
-    consensus: "ibft"                 # Options are "ibft". "ethash" and "clique" will be implemented in future release
+    consensus: "ibft"                 # Options are "ibft", "ethash" and "clique".
     ## Certificate subject for the root CA of the network. 
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
@@ -78,7 +78,7 @@ network:
     tm_tls: True
     # Tls trust value
     tm_trust: "ca-or-tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
-    ## File location for saving the genesis file should be provided.
+    ## File location where the base64 encoded genesis file is located.
     genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be fetched
     ## Transaction Manager nodes public addresses should be provided.
     #  - "https://node.test.besu.blockchain-develop.com:15013"
@@ -105,7 +105,7 @@ network:
       type: member
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
       # This is not used for Besu as Besu does not support DNS hostnames currently. Here for future use
-      external_url_suffix: test.besu.blockchaincloudpoc.com
+      external_url_suffix: test.besu.blockchaincloudpoc-develop.com
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -121,6 +121,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
@@ -162,8 +163,8 @@ Three new sections are added to the network.yaml
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| tm_nodes | Existing network's transaction manager nodes public addresses with nodeport provided as an array.|
-| besu_nodes | Existing network's besu nodes public addresses with rpc port provided as an array.|
+| tm_nodes | Existing network's transaction manager nodes' public addresses with nodeport.|
+| besu_nodes | Existing network's besu nodes' public addresses with rpc port.|
 | genesis | Path to existing network's genesis.json in base64.|
 
 

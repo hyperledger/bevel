@@ -43,6 +43,9 @@ spec:
       name: {{ component_services.ca.name }}
       tlsstatus: true
       admin: {{ component }}-admin
+{% if component_services.ca.configpath is defined %}
+      configpath: conf/fabric-ca-server-config-{{ component }}.yaml
+{% endif %}        
     storage:
       storageclassname: {{ component | lower }}sc
       storagesize: 512Mi 
@@ -50,9 +53,9 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_name }}-auth
-      secretcert: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretadminpass: {{ vault.secret_path | default('secret') }}/credentials/{{ component_name | e }}/ca/{{ component }}?user
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
+      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name | e }}/ca/{{ component }}?user
       serviceaccountname: vault-auth
       imagesecretname: regcred
     service:

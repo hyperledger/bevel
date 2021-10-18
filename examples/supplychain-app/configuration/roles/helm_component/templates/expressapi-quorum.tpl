@@ -18,7 +18,7 @@ spec:
     replicaCount: 1
     vault:
       address: {{ organization_data.vault.url }}
-      secretprefix: {{ organization_data.vault.secret_path | default('secret') }}/{{ component_ns }}/smartContracts
+      secretprefix: {{ organization_data.vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/smartContracts
       serviceaccountname: vault-auth
       keyname: General
       role: vault-role

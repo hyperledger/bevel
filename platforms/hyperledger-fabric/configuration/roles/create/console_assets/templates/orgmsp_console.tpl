@@ -28,6 +28,6 @@
             "organizational_unit_identifier": "peer"
         }
     },
-    "host_url": "https://supplychainconsole.supplychain-net.hf.demo.aws.blockchaincloudpoc.com",
+    "host_url": "https://{{ item.name }}console.{{ component_ns }}.{{ item.external_url_suffix }}",
     "name": "{{ item.name | lower }} MSP"
 }

@@ -45,6 +45,14 @@ spec:
       - name: certificates
         emptyDir:
           medium: Memory
+      {{- if (not (empty .Values.server.configpath)) }}
+      - name: {{ $.Values.server.name }}-config-volume
+        configMap:
+          name: {{ $.Values.server.name }}-config
+          items:
+            - key: fabric-ca-server-config.yaml
+              path: fabric-ca-server-config.yaml
+      {{- end }}        
       {{ if .Values.vault.tls  }}
       - name: vaultca
         secret:
@@ -56,7 +64,7 @@ spec:
       initContainers:
       - name: ca-certs-init
         image: {{ $.Values.metadata.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
@@ -108,7 +116,7 @@ spec:
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
               jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
+          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.crt
 
           SECRET_KEY={{ $.Values.vault.secretkey }}
@@ -119,7 +127,7 @@ spec:
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
               jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
+          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.key
 
 
@@ -130,7 +138,7 @@ spec:
               --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
           ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
+          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/user_cred
           
         volumeMounts:
@@ -144,7 +152,16 @@ spec:
       containers:
       - name: ca
         image: {{ $.Values.metadata.images.ca }}
-        command: ["sh", "-c", "sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d"]
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          if [[ -d /custom-config/ ]] && [[ -f /custom-config/fabric-ca-server-config.yaml ]]; then
+            cp /custom-config/fabric-ca-server-config.yaml $FABRIC_CA_HOME/fabric-ca-server-config.yaml
+            fabric-ca-server start --config $FABRIC_CA_HOME/fabric-ca-server-config.yaml -d
+          else
+            sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d
+          fi
         ports:
         - containerPort: 7054
         - containerPort: 9443
@@ -175,3 +192,7 @@ spec:
           readOnly: true
         - name: ca-server-db
           mountPath: /var/hyperledger/fabric-ca-server/db/
+        {{- if (not (empty .Values.server.configpath)) }}
+        - name: {{ $.Values.server.name }}-config-volume
+          mountPath: /custom-config/
+        {{- end }}

@@ -90,7 +90,7 @@ The fields under `docker` section are
 The snapshot of the `config` section with example values is below
 ```yaml
   config:    
-    consensus: "ibft"                 # Options is "ibft" only
+    consensus: "ibft"                 # Options are "ibft", "ethash", "clique"
     ## Certificate subject for the root CA of the network. 
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
@@ -119,7 +119,7 @@ The fields under `config` are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| consensus   | Currently supports `ibft`.                                 |
+| consensus   | Currently supports `ibft`, `ethash` and `clique`. Please update the remaining items according to the consensus chosen as not all values are valid for all the consensus.                                 |
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
 | transaction_manager    | Supports `orion` or `tessera`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera.  |
 | tm_version         | This is the version of transaction manager docker image that will be deployed. Supported versions: `1.6.0` for `orion` and `21.1.1` for `tessera` and `orion`. |
