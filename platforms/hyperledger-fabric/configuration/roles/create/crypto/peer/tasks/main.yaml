@@ -107,17 +107,6 @@
   when: not vault_admin_result.failed
   changed_when: false
 
-# Check user msp already created
-- name: Check if user msp already created
-  shell: |
-    vault kv get -field=admincerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/user1/msp
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_user_result
-  ignore_errors: yes
-  changed_when: False
-
 # common.yaml should be called only once, do not add a loop on peers
 - name: Call common.yaml for each peer
   include_tasks: common.yaml

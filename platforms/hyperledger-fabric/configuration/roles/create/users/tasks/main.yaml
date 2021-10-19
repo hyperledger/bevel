@@ -39,35 +39,10 @@
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-user-crypto.sh peer {{component_name}} {{org_name|lower}} {{users|b64encode}} {{org_name}} "{{subject}}" "{{ca_url}}"
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
+
 # Copy user certificates to vault
 - name: Copy user certificates for orgs
-  shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/client.key)"
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/admincerts/{{ user.identity }}@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/cacerts/*.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/ca.crt)"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
+  include_tasks: save_to_vault.yaml
   loop: "{{ users }}"
   loop_control:
     loop_var: user
-  when: 
-    - vault_user_result.failed == True or vault_user_result.stdout == '' 
-    - network.env.proxy != 'none'
-  tags:
-    - molecule-idempotence-notest
-
-- name: Copy user certificates for orgs
-  shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/client.key)"
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/msp admincerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/admincerts/{{ user.identity }}@{{ component_name }}-cert.pem)" cacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem)" keystore="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/keystore/*_sk)" signcerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/msp/signcerts/cert.pem)" tlscacerts="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{ user.identity }}@{{ component_name }}/tls/ca.crt)"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  loop: "{{ users }}"
-  loop_control:
-    loop_var: user
-  when: 
-    - vault_user_result.failed == True or vault_user_result.stdout == '' 
-    - network.env.proxy == 'none'
-  tags:
-    - molecule-idempotence-notest

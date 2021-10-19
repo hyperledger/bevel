@@ -1,10 +1,11 @@
 # This playbook manages user certificates for peers using existing Fabric-CA deployment on k8s
+# It creates new user identities or updates them
 # The Kubernetes clusters should already be created and the infomation to connect to the
 # clusters be updated in the network-user-certificate.yaml file that is used as an input to this playbook
 ###########################################################################################
 # To Run this playbook from this directory, use the following command 
 # (network-user-certificate.yaml also in this directory)
-# ansible-playbook user-certifiate.yaml -e "@./network-user-certificate.yaml"
+# ansible-playbook manage-user-certificate.yaml -e "@./network-user-certificate.yaml"
 ############################################################################################
 
 ---
@@ -17,7 +18,7 @@
       include_role:
         name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
       vars:
-        component_name: "{{ component_services.ca.name }}-tools"
+        component_name: "{{ component_services.ca.name }}"
         component: "{{ item.name | lower}}"
         component_type: "Pod"
         component_services: "{{ item.services }}"

@@ -16,7 +16,7 @@ spec:
       namespace: {{ component_ns }}
       images:
         couchdb: couchdb:3.1.1
-        console: ghcr.io/hyperledger-labs/fabric-console:latest
+        console: "{{ network.docker.url }}/fabric-console:latest"
         configtxlator: hyperledger/fabric-tools:{{ network.version }}
     storage:
       couchdb:
@@ -24,6 +24,7 @@ spec:
         storagesize: 512Mi
     service:
       name: {{ name }}console
+      default_consortium: {{ default_consortium }}
       serviceaccountname: default
       imagesecretname: regcred
       servicetype: ClusterIP
