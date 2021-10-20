@@ -57,9 +57,9 @@ General
     - |tick| Helm3 upgrade
     - |tick| Ambassador upgrade to 1.9.1
     - |tick| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric
-    - |tick| EKS upgrade to 1.19
     - |tick| Support for HashiCorp vault kv version 2
     - |run| Flux version 2 upgrade
+    - |pin| Test and update platforms code to run on EKS v1.21 
     - |pin| Setup AWS cloudwatch exporter
     - |pin| Grafana and Promethus integration 
     - |pin| Improve logging/error messaging in playbooks
