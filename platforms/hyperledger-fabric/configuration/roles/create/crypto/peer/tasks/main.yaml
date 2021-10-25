@@ -224,18 +224,32 @@
   when: add_new_org == 'false' and add_peer is not defined
   tags:
     - molecule-idempotence-notest
-
-# Copy the ca.crt when add_new_org is false 
-- name: Copy tls ca.crt from auto-generated path to given path
-  copy:
-    src: "./build/crypto-config/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls/ca.crt"
-    dest: "{{ orderer.certificate }}"
-    follow: no
-    force: yes
+ 
+# Check if Orderer certs exists in vault. If yes, get the certificate
+- name: Check if Orderer certs exist in Vault for orderers
+  shell: |
+    vault kv get -field=ca.crt {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ orderer.org_name|lower }}-net/orderers/{{orderer.name}}.{{ orderer.org_name|lower }}-net/tls
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
   loop: "{{ network.orderers }}"
   loop_control:
     loop_var: orderer
-  when: add_new_org == 'false' and add_peer is not defined
+  register: orderers_certs_result
+  ignore_errors: yes
+  changed_when: false
+  tags:
+    - notest
+
+- name: Save Orderers
+  local_action: copy content="{{ orderers_certs_result.results[0].stdout }}" dest="{{ orderer.certificate }}"
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: 
+    - orderers_certs_result.results[0].failed == False
+    - add_new_org == 'false'
+    - add_peer is not defined
   tags:
     - notest
 
