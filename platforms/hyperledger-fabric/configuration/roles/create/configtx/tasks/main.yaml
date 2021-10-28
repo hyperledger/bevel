@@ -29,56 +29,86 @@
   tags:
     - molecule-idempotence-notest
 
+- name: "Copy custom files if present"
+  copy:
+    src: "{{ network.configtx.folder_path }}"
+    dest: ./roles/create/configtx/templates
+  when: network.configtx is defined and network.configtx.custom == true
+
+- name: "Checking if custom init patch to configtx.yaml exists"
+  stat:
+    path: "{{ network.configtx.folder_path }}configtxinit_custom.tpl"
+  register: cfinit
+
 - name: "Adding init patch to configtx.yaml"
   blockinfile:
     dest: "{{ config_file }}"
-    block: "{{ lookup('template', 'configtxinit.tpl') }}"
+    block: "{{ lookup('template', filename) }}"
     marker: "#"
   vars:
     consensus: "{{ org.services.consensus }}"
     org_query: "organizations[?type=='orderer']"
     org: "{{ network | json_query(org_query) | first }}"
+    filename: configtxinit_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfinit.stat.exists else 'default' }}.tpl
   tags:
     - molecule-idempotence-notest
+
+- name: "Checking if custom init patch to configtx.yaml exists"
+  stat:
+    path: "{{ network.configtx.folder_path }}configtxOrg_custom.tpl"
+  register: cforg
 
 - name: "Adding organization patch to configtx.yaml"
   blockinfile:
     dest: "{{ config_file }}"
-    block: "{{ lookup('template', 'configtxOrg.tpl') }}"
+    block: "{{ lookup('template', filename) }}"
     marker: "#"
   vars:    
     component_name: "{{ item.name }}"
     component_ns: "{{ item.name | lower }}-net"
     component_type: "{{ item.type | lower }}"
     provider: "{{ network.env.proxy }}"
+    filename: configtxOrg_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cforg.stat.exists else 'default' }}.tpl
   loop: "{{ network['organizations'] }}"
   tags:
     - molecule-idempotence-notest
 
+- name: "Checking if custom init patch to configtx.yaml exists"
+  stat:
+    path: "{{ network.configtx.folder_path }}configtxOrderer_custom.tpl"
+  register: cford
+
 - name: "Adding orderer patch to configtx.yaml"
   blockinfile:
     dest: "{{ config_file }}"
-    block: "{{ lookup('template', 'configtxOrderer.tpl') }}"
+    block: "{{ lookup('template', filename) }}"
     marker: "#"
   vars:
     orderers: "{{ item.services.orderers }}"
     consensus: "{{ item.services.consensus }}"
     component_ns: "{{ item.name | lower }}-net"
     provider: "{{ network.env.proxy }}"
+    filename: configtxOrderer_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cford.stat.exists else 'default' }}.tpl
   loop: "{{ network['organizations'] }}"
   when: item.type == 'orderer'
   tags:
     - molecule-idempotence-notest
 
+- name: "Checking if custom init patch to configtx.yaml exists"
+  stat:
+    path: "{{ network.configtx.folder_path }}configtxProfile_custom.tpl"
+  register: cfprofile
+
 - name: "Adding profile patch to configtx.yaml"
   blockinfile:
     dest: "{{ config_file }}"
-    block: "{{ lookup('template', 'configtxProfile.tpl') }}"
+    block: "{{ lookup('template', filename) }}"
     marker: "#"
   vars:
     orderers: "{{ item.services.orderers }}"
     consensus: "{{ item.services.consensus }}"
     component_ns: "{{ item.name | lower }}-net"
+    filename: configtxProfile_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfprofile.stat.exists else 'default' }}.tpl
   loop: "{{ network['organizations'] }}"
   when: network.channels is defined and item.type == 'orderer'
   tags:
