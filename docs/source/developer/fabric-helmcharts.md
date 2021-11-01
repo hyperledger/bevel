@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Hyperledger Fabric Charts
 
 The structure below represents the Chart structure for Hyperledger fabric components in the Blockchain Automation Framework implementation.

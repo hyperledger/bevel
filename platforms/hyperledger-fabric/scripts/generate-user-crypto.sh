@@ -56,9 +56,9 @@ while [ ${CUR_USER} -lt ${TOTAL_USERS} ]; do
 
 		## Register and enroll User for Org
 		if [ "$1" = "peer" ]; then
-			fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type user --csr.names "${SUBJECT}" --id.affiliation ${AFFILIATION} --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+			fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.affiliation ${AFFILIATION} --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
 		else
-			fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type user --csr.names "${SUBJECT}" --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+			fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
 		fi
 
 		# Enroll the registered user to generate enrollment certificate

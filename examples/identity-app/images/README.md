@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Docker images for Identity Application demo
 
 Contains Dockerfile and other source files to create various Docker images needed for Identity Application demo of Blockchain Automation Framework Indy.

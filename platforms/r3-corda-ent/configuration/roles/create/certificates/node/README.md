@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## Role: `create/certificates/node`
 This role generates the Ambassador proxy certificates, and the Kubernetes secret required for inter-cluster communication, specific to the nodes of Corda-Enterprise.
 

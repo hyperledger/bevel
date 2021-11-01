@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: ca-server
 This role generate initial CA certs and push them to vault. Also, it creates the helm release value file for Certificate Authority (CA)
 

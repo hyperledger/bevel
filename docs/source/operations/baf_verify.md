@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # How to debug a BAF deployment
 While deploying a DLT/Blockchain network using BAF, the pods and other components take some time to start. The BAF automation (Ansible component) waits for the components to be at a "Running" or "Completed" state before proceeding with further steps. This is where you can see the message "FAILED - RETRYING: ... "
 

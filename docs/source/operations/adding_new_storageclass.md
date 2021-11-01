@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-new-storageclass"></a>
 # Adding a new storageclass
 As storageclass templates vary as per requirements and cloud provider specifications, this guide will help in using a new storageclass which is not supported by Blockchain Automation Framework (BAF)

@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/certificates/ambassador
 This role generates certificates for ambassador and places them in vault. Certificates are created using openssl.This also creates the Kubernetes secrets
 

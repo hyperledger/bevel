@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/new_orderer/create_appchannel_block
 This role creates the update_channel_script.sh script for modifying the latest configuration block and updating the application channel with modified config block.
 

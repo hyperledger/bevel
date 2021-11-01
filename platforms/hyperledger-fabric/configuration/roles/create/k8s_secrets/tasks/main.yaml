@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role creates the secrets and docker credentials 
 #############################################################################################
@@ -49,7 +55,7 @@
 - name: Put reviewer token of every organization
   shell: |
     export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ namespace }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ namespace }} -o  jsonpath={.data.token} | base64 -d)
-    kubectl create secret generic reviewertoken --from-literal=reviewer="$REVIEWER_TOKEN" --namespace {{ namespace }}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret generic reviewertoken --from-literal=reviewer="$REVIEWER_TOKEN" --namespace {{ namespace }}
   when: check == "token_secret" and reviewer_token_secret.resources|length == 0 
 
 #####################################################################################################################

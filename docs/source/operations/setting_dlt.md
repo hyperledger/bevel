@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Setting up a DLT/Blockchain network
 ## Pre-requisites
 To create a Production DLT/Blockchain network, ensure you have the following:

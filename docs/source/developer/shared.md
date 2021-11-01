@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Common Configurations
 The Blockchain Automation Framework installs the common pre-requisites when the `site.yaml` playbook is run. To read more about setting up
 DLT/Blockchain networks, refer [Setting up a Blockchain/DLT network](../operations/setting_dlt).

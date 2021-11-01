@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: `setup/credentials`
 This role writes passwords for keystores, truststores and ssl from network.yaml into the vault. There are some different tasks that are called for the type of organisation.
 - `main.yaml` as first task, which will call `cenm_tasks.yaml`

@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## namespace_vaultauth
 This role creates value files for namespaces, vault reviewer service accounts, vault auth service accounts and cluster role binding of organizations and ordererers.
 

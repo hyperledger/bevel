@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/crypto/clique
 This role generates cliqueConfigFile.json, key, key.pub, genesis.json and nodeAddress for each organization.
 ### main.yaml

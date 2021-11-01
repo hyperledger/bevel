@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: `helm_component`
 The `helm_component` role helps in generating value files for various Helm releases. `helm_component` uses the `templates` folder to generate Helm value files.  new helm file, it uses template files stored in template folder. The task uses a variable `type` which is used to filter through the templates in template folder.
 The mapping for *type* variable and its corresponding value file is provided in `vars/main.yaml`.

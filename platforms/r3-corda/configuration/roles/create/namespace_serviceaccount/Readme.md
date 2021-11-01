@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/namespace_serviceaccount
 This role creates the value files for namespaces, vault-auth, vault-reviewer and clusterrolebinding for each node.
 

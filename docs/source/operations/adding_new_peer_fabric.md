@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-new-peer-to-existing-organization-in-a-running-fabric-network"></a>
 # Adding a new peer to existing organization in Hyperledger Fabric
 

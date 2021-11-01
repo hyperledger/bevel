@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supply Chain Fabric
 
 This project contains the hyperledger fabric-network files and smart contracts (chaincodes) for the Supply Chain application. This also includes the Kubernetes and Jenkins details/files which are use for the deployment of the fabric. 
