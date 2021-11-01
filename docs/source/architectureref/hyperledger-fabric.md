@@ -84,10 +84,10 @@ Detailed information on helm charts can be referred [here](../developer/fabric-h
 
 The Blockchain Automation Framework stores their `crypto` and `credentials` immediately within the secret secrets engine.
 Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
+
 | Crypto Material Path | Credentials Path |
 |----------------------|----------------------|
 | `secretsv2/crypto` | `secretsv2/credentials` |
-
   
 
 *  `secretsv2/credentials/ordererOrganizations/<orderer-org>/ca` - Contains password for the Orderer CA Bootstrap user in the format:
