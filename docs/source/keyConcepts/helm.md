@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # **Helm**
 
 Essentially, [Helm](https://helm.sh/) is a package manager for K8s. Helm Charts are configuration files designed for K8s to help define, install and upgrade complex K8s applications.

@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: k8-component
 This roles check if Namespace, Clusterrolebinding or StorageClass is created or not.
 

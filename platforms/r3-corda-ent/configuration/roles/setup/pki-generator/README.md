@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: `setup/pki-generator`
 This role creates deployments file for the pki-generator and also pushes the generated value file into repository.
 

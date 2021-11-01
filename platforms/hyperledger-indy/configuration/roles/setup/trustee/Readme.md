@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## setup/trustees
 This role creates the deployment files for trustees and pushes them to repository.
 

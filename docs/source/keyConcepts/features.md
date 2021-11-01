@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # **The Blockchain Automation Framework's Features**
 
 ## **Multi-Cloud service providers support**

@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/certificates/node
 This role downloads certificates from nms and loads into vault. Certificates are created using openssl.
 

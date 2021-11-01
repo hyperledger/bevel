@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-new-orderer-to-existing-network-in-fabric"></a>
 # Adding a new Orderer organization in Hyperledger Fabric
 

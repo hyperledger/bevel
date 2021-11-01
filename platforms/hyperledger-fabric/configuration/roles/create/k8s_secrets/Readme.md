@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: k8s_secrets
 This role creates secrets to store the following resources: root token, reviewer token, and docker credentials
 #### 1. Check if root token exists in the namespace

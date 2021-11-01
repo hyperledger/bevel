@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "upgrading-2to3"></a>
 # Upgrading a running helm2 BAF deployment to helm3
 This guide enables an operator to upgrade an existing BAF helm2 deployment to helm3

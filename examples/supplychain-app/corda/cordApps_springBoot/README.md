@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supply Chain Corda
 
  This project consists of the cordapp, cordapp-supply-chain and cordapp-contract-states . Nodes with the cordapp-supply-chain may interact with the two TrackableStates; ProductState and a ContainerState as defined in cordapp-contract-states.

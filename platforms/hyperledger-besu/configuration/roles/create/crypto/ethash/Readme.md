@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/crypto/ethash
 This role generates ethashConfigFile.json, key, key.pub, genesis.json and nodeAddress for each organization.
 ### main.yaml

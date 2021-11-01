@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supplychain
 
 One of the two reference applications for BAF, is the Supplychain usecase. On this page, we will describe the usecase and its models, as well as pre-requisites to set it up yourself.

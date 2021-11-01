@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-new-notary-to-existing-network-in-corda"></a>
 # Adding a new Notary organization in R3 Corda Enterprise
 Corda Enterprise Network Map (CENM) 1.2 does not allow dynamic addition of new Notaries to an existing network via API Call. This process is manual and involves few steps as described in the Corda Official Documentation [here](https://docs.corda.net/docs/cenm/1.2/updating-network-parameters.html#updating-the-network-parameters).

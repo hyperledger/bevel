@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: setup/nms
 This role creates namespace, vault-auth, vault-reviewer, ClusterRoleBinding, certificates, deployments file for networkmap service and also pushes the generated value file into repository.
 

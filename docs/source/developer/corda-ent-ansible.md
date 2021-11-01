@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Corda Enterprise Configurations
 
 In the Blockchain Automation Framework project, Ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the git repository for deployment, using GitOps. This is achieved using Ansible playbooks. 

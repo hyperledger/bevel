@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # **Ansible**
 
 [Ansible](https://docs.ansible.com/ansible/latest/index.html) is an automation command line tool that helps IT technicians easily achieve system configuration, software deployment and other complex tasks in orchestration.

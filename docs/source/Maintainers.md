@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Maintainers for the Blockchain Automation Framework
 
 This file is the official list of maintainers for the Blockchain Automation Framework project.

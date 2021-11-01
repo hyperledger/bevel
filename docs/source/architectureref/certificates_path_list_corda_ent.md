@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 Certificate Paths on Vault for Corda Enterprise
 -----------------------------------------------
 * All values must be Base64 encoded files as BAF decodes them.

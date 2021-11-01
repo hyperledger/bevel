@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## setup/crypto
 This role generates Helm release of crypto generator, push it into git and check if crypto is inserted into HashiCorp Vault
 

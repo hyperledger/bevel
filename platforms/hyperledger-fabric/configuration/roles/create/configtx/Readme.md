@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: configtx
 These tasks create the configtx.yaml file as the requirements mentioned in network.yaml 
 file. The configtx.yaml file is consumed by the configtxgen binary to generate the 
