@@ -107,7 +107,6 @@ spec:
       serviceaccountname: vault-auth
       dbsecretprefix: {{ component_name }}/data/credentials/database
       rpcusersecretprefix: {{ component_name }}/data/credentials/rpcusers
-      tokensecretprefix: {{ component_name }}/data/credentials/vaultroottoken
       keystoresecretprefix: {{ component_name }}/data/credentials/keystore
       certsecretprefix: {{ component_name }}/data/certs
         
