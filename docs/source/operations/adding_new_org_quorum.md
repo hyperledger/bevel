@@ -144,7 +144,7 @@ network:
         - peer:
           name: neworg
           subject: "O=Neworg,OU=Neworg,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
+          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
             port: 21000
