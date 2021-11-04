@@ -149,8 +149,8 @@
     loop: "{{ network['organizations'] }}"
     when: network.config.transaction_manager == 'constellation'
 
-  # This role deploy nodes with Tessera transaction manager and RAFT consensus
-  - name: "Deploy nodes with Tessera Transaction Manager and RAFT consensus"
+  # This role deploy nodes with Tessera transaction manager
+  - name: "Deploy nodes with Tessera Transaction Manager"
     include_role:
       name: create/tessera
     vars:
@@ -169,12 +169,12 @@
       docker_url: "{{ network.docker.url }}"
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      geth_data: "{{ network.config.bootnode }}"
+      geth_data: "{{ network.config.bootnode | default('null') }}"
     loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'tessera' and network.config.consensus == 'raft'
+    when: network.config.transaction_manager == 'tessera'
     
-  # This role deployes nodes with constellation transaction mananger and RAFT consensus
-  - name: "Deploy nodes with Constellation Transaction Manager and RAFT consensus"
+  # This role deployes nodes with constellation transaction mananger
+  - name: "Deploy nodes with Constellation Transaction Manager"
     include_role:
       name: create/constellation
     vars:
@@ -191,53 +191,9 @@
       docker_url: "{{ network.docker.url }}"
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      geth_data: "{{ network.config.bootnode }}"
+      geth_data: "{{ network.config.bootnode | default('null') }}"
     loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'constellation' and network.config.consensus == 'raft'
-
-  # This role deploy nodes with Tessera transaction manager and IBFT consensus
-  - name: "Deploy nodes with Tessera Transaction Manager and IBFT consensus"
-    include_role:
-      name: create/tessera
-    vars:
-      build_path: "./build"
-      kubernetes: "{{ item.k8s }}"
-      consensus: "{{ network.config.consensus }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      name: "{{ item.name | lower }}"
-      peers: "{{ item.services.peers }}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
-      external_url: "{{ item.external_url_suffix }}"
-      vault: "{{ item.vault }}"
-      git_url: "{{ item.gitops.git_url }}"
-      org: "{{ item }}"
-      git_branch: "{{ item.gitops.branch }}"
-      docker_url: "{{ network.docker.url }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-    loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'tessera' and network.config.consensus == 'ibft'
-    
-  # This role deployes nodes with constellation transaction mananger and IBFT consensus
-  - name: "Deploy nodes with Constellation Transaction Manager and IBFT consensus"
-    include_role:
-      name: create/constellation
-    vars:
-      build_path: "./build"
-      consensus: "{{ network.config.consensus }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      name: "{{ item.name | lower }}"
-      peers: "{{ item.services.peers }}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
-      external_url: "{{ item.external_url_suffix }}"
-      vault: "{{ item.vault }}"
-      git_url: "{{ item.gitops.git_url }}"
-      git_branch: "{{ item.gitops.branch }}"
-      docker_url: "{{ network.docker.url }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-    loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'constellation' and network.config.consensus == 'ibft'
+    when: network.config.transaction_manager == 'constellation'
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS

@@ -19,7 +19,7 @@ To add a new organization in Besu, an existing besu network should be running, e
 
 ---
 
-**NOTE**: The guide is only for the addition of non-validator organization in existing besu network.
+**NOTE**: The guide is only for the addition of member organization in existing besu network.
 
 ---
 
