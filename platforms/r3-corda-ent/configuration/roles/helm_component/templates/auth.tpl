@@ -1,8 +1,8 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-	name: {{ component_name }}
-	namespace: cenm-ent
+	name: {{ org.services.auth.name }}
+	namespace: {{ component_ns }}
 	annotations:
 		fluxcd.io/automated: "false"
 spec:
@@ -27,6 +27,8 @@ spec:
       volume:
         baseDir: /opt/cenm
         replicas: 1
+		subjects:
+			auth: "{{ services.auth.subject }}"
       
 		vault:
       address: {{ vault.url }}
