@@ -14,18 +14,13 @@ spec:
   values:
     metadata:
       name: {{ name }}
-      component_name: {{ name }}-net
       component_type: {{ component_type }}
       namespace: {{ component_ns }}    
       images:
-        fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
 
-    checks:
-      vault_auth_status_exits: {{ vault_auth }}
-      vault_policy_not_exits: {{ vault_policy }}
-
     vault:
+      reviewer_service: vault-reviewer
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_ns }}-auth

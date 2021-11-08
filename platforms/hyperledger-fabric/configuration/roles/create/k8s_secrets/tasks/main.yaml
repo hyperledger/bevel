@@ -38,26 +38,6 @@
     context: "{{ kubernetes.context }}"
   when: check == "token_secret" and root_token_secret.resources|length == 0 
 
-############################################################################################
-# Check if reviewer token secret exist of every organization in their namespace
-- name: Check if reviewer token exists in the namespace
-  k8s_info:
-    kind: Secret
-    namespace: "{{ namespace }}"
-    name: "reviewertoken"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: reviewer_token_secret
-  when: check == "token_secret"
-
-############################################################################################
-# This task put reviewer token of every organization in their namespace
-- name: Put reviewer token of every organization
-  shell: |
-    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ namespace }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ namespace }} -o  jsonpath={.data.token} | base64 -d)
-    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret generic reviewertoken --from-literal=reviewer="$REVIEWER_TOKEN" --namespace {{ namespace }}
-  when: check == "token_secret" and reviewer_token_secret.resources|length == 0 
-
 #####################################################################################################################
 # Check if Docker credentials exist already
 - name: "Checking if the docker credentials already exists"
