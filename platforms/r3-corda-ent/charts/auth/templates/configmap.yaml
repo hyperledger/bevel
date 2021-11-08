@@ -1,0 +1,20 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.prefix }}-auth-conf
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  authservice.conf: |+
+{{ tpl (.Files.Get "files/authservice.conf") . | indent 4 }}
