@@ -46,7 +46,7 @@
 
 #####################################################################################
   # Check if root token secret exist of every organization in their namespace
-  - name: Check if root token exists in the namespace
+  - name: Check if root token does not exist in the namespace
     k8s_info:
       kind: Secret
       namespace: "testorderer-net"
@@ -57,9 +57,9 @@
   
 #####################################################################################
   #This task assert if the root token secret is created
-  - name: Assert if the root token secret is created for orderer
+  - name: Assert if the root token secret is deleted for orderer
     assert:
-      that: root_token_secret_orderer.resources|length > 0 
+      that: root_token_secret_orderer.resources|length == 0 
 
 #####################################################################################
   #This task checks if the value file is created for cacerts-job of the orderers
@@ -138,7 +138,7 @@
 
 #####################################################################################
   # Check if root token secret exist in the namespace testpeer-net
-  - name: Check if root token exists in the namespace testpeer-net
+  - name: Check if root token does not exist in the namespace testpeer-net
     k8s_info:
       kind: Secret
       namespace: "testpeer-net"
@@ -148,10 +148,10 @@
     register: root_token_secret_peer
   
 #####################################################################################
-  #This task assert if the root token secret is created for peers
-  - name: Assert if the root token secret is created for peers
+  #This task assert if the root token secret is deleted for peers
+  - name: Assert if the root token secret is deleted for peers
     assert:
-      that: root_token_secret_peer.resources|length > 0 
+      that: root_token_secret_peer.resources|length == 0 
   
 #####################################################################################
   #This task checks if the value file is created for cacerts-job of the peers

@@ -142,22 +142,31 @@ spec:
             value: {{ $.Values.metadata.name }}
           - name: CA_SUBJECT
             value: "{{ $.Values.ca.subject }}"
-          - name: ROOT_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: roottoken
-                key: token
           command: ["sh", "-c"]
           args:
             - |-
               apk update && apk add jq curl openssl;
 
               validateVaultResponse () {
-                if [ ${1} != 200 -a ${1} != 204 ]; then
-                  echo "ERROR: Unable to retrieve. Http status: ${1}"
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
                   exit 1
                 fi
-              };
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
 
               if [ -e /certcheck/absent_cacert.txt ]
               then
@@ -202,9 +211,14 @@ spec:
                       }  
                   }" > payload.json
 
+                echo "Putting secrets/certificates to Vault server"
+                KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
                 # This command copy the CA certificates to the Vault
                 curl \
-                  -H "X-Vault-Token: $ROOT_TOKEN" \
+                  -H "X-Vault-Token: ${VAULT_TOKEN}" \
                   -H "Content-Type: application/json" \
                   -X POST \
                   -d @payload.json \
@@ -212,10 +226,10 @@ spec:
 
                 # Check CA certificates
                 response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --header "X-Vault-Token: ${VAULT_TOKEN}" \
                 ${VAULT_ADDR}/v1/${VAULT_SECRET_CRYPTO_PATH});
 
-                validateVaultResponse ${response_status};
+                validateVaultResponse 'certs creation' ${response_status};
 
                 rm payload.json
               
@@ -226,7 +240,7 @@ spec:
 
                 # This task write the CA server admin credentials to Vault
                   curl \
-                    -H "X-Vault-Token:  $ROOT_TOKEN" \
+                    -H "X-Vault-Token: ${VAULT_TOKEN}" \
                     -H "Content-Type: application/json" \
                     -X POST \
                     -d '{ "data": {"user":"'"$NAME-adminpw"'"}}' \
@@ -234,10 +248,10 @@ spec:
 
                   # Check CA server admin credentials
                   response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: $ROOT_TOKEN" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
                   ${VAULT_ADDR}/v1/${VAULT_SECRET_CREDENTIALS_PATH});
 
-                  validateVaultResponse ${response_status};
+                  validateVaultResponse 'creds creation' ${response_status};
               fi
 
           volumeMounts:

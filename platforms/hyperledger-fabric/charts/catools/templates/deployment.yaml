@@ -260,12 +260,7 @@ spec:
           - name: PROXY
             value: {{ .Values.metadata.proxy }}
           - name: MOUNT_PATH
-            value: "/certcheck"
-          - name: ROOT_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: roottoken
-                key: token
+            value: "/certcheck"          
           command: ["sh", "-c"]
           args:
             - |-
@@ -386,12 +381,7 @@ spec:
           - name: ORDERERS_NAMES
             value: "{{ $.Values.orderers.name }}"
           - name: MOUNT_PATH
-            value: "/certcheck"
-          - name: ROOT_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: roottoken
-                key: token
+            value: "/certcheck"          
           command: ["sh", "-c"]
           args:
             - |-
@@ -405,12 +395,26 @@ spec:
                 done < ${1} > ${2}/${NOMBRE}.txt
               }
 
-               validateVaultResponse () {
-                if [ ${1} != 200 -a ${1} != 204 ]; then
-                  echo "ERROR: Unable to retrieve. Http status: ${1}"
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
                   exit 1
                 fi
-              };
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
               
               if [ "$COMPONENT_TYPE" = "orderer" ]; then
                 while ! [ -f ${MOUNT_PATH}/flag_finish.txt ]
@@ -447,9 +451,14 @@ spec:
                         }  
                     }" > payload.json
                   
+                  echo "Puting secrets/certificates from Vault server"
+                  KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                  VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                  validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
                   # This command copy organization level tls certificates for orgs
                   curl \
-                    -H "X-Vault-Token: $ROOT_TOKEN" \
+                    -H "X-Vault-Token: ${VAULT_TOKEN}" \
                     -H "Content-Type: application/json" \
                     -X POST \
                     -d @payload.json \
@@ -457,10 +466,10 @@ spec:
                   
                   # Check tls certificates
                   response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: $ROOT_TOKEN" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
                   ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS});
 
-                  validateVaultResponse ${response_status};
+                  validateVaultResponse 'tls cert check' ${response_status};
                   
                   rm payload.json
 
@@ -514,7 +523,7 @@ spec:
 
                   # This command copy organization level msp certificates for orgs
                   curl \
-                    -H "X-Vault-Token: $ROOT_TOKEN" \
+                    -H "X-Vault-Token: ${VAULT_TOKEN}" \
                     -H "Content-Type: application/json" \
                     -X POST \
                     -d @payload.json \
@@ -522,10 +531,10 @@ spec:
                   
                   # Check msp certificates
                   response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: $ROOT_TOKEN" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
                   ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP});
 
-                  validateVaultResponse ${response_status};
+                  validateVaultResponse 'msp cert check' ${response_status};
 
                   rm payload.json
 
@@ -566,7 +575,7 @@ spec:
 
                       # This command copy the crypto material for orderer (tls)
                       curl \
-                        -H "X-Vault-Token: $ROOT_TOKEN" \
+                        -H "X-Vault-Token: ${VAULT_TOKEN}" \
                         -H "Content-Type: application/json" \
                         -X POST \
                         -d @payload.json \
@@ -574,10 +583,10 @@ spec:
                       
                       # Check tls certificates
                       response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                      --header "X-Vault-Token: $ROOT_TOKEN" \
+                      --header "X-Vault-Token: ${VAULT_TOKEN}" \
                       ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls);
 
-                      validateVaultResponse ${response_status};
+                      validateVaultResponse 'tls cert check' ${response_status};
       
                       rm payload.json
                       
@@ -635,7 +644,7 @@ spec:
 
                       # This command copy the msp certificates to the Vault
                       curl \
-                        -H "X-Vault-Token: $ROOT_TOKEN" \
+                        -H "X-Vault-Token: ${VAULT_TOKEN}" \
                         -H "Content-Type: application/json" \
                         -X POST \
                         -d @payload.json \
@@ -643,10 +652,10 @@ spec:
 
                       # Check msp certificates
                       response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                      --header "X-Vault-Token: $ROOT_TOKEN" \
+                      --header "X-Vault-Token: ${VAULT_TOKEN}" \
                       ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp);
 
-                      validateVaultResponse ${response_status};
+                      validateVaultResponse 'msp cert check' ${response_status};
 
                       rm payload.json
                     fi;
@@ -680,7 +689,7 @@ spec:
                       
                         # This command copy the ambassador certificates generated above, to the Vault
                           curl \
-                            -H "X-Vault-Token: $ROOT_TOKEN" \
+                            -H "X-Vault-Token: ${VAULT_TOKEN}" \
                             -H "Content-Type: application/json" \
                             -X POST \
                             -d @payload.json \
@@ -688,10 +697,10 @@ spec:
 
                         # Check ambassador certificates
                         response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                        --header "X-Vault-Token: $ROOT_TOKEN" \
+                        --header "X-Vault-Token: ${VAULT_TOKEN}" \
                         ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${ORDERER_NAME});
 
-                        validateVaultResponse ${response_status};
+                        validateVaultResponse 'orderer cert check' ${response_status};
 
                         rm payload.json
                       fi;
