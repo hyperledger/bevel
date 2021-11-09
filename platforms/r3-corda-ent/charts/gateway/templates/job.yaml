@@ -1,0 +1,124 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.nodeName }}-job
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}-job
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+  annotations:
+    helm.sh/hook-weight: "5"
+spec:
+  backoffLimit: {{ .Values.backoffLimit }}
+  template:
+    spec:
+    {{- with .Values.image.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      initContainers:
+        - name: {{ .Chart.Name }}-check-gateway
+          securityContext:
+            {{- toYaml .Values.config.securityContext | nindent 12 }}
+          image: "{{ .Values.image.gatewayContainerName }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            echo Probing gateway port {{ .Values.gatewayPort }}
+            until nc -w 5 -vz {{ .Values.nodeName }}.{{ .Values.metadata.namespace }} {{ .Values.gatewayPort }} > /dev/null 2>&1
+            do
+              echo "Connect to {{ .Values.nodeName }}.{{ .Values.metadata.namespace }} port {{ .Values.gatewayPort }} (tcp) failed: Connection refused"
+            done
+            echo "Connection {{ .Values.nodeName }}.{{ .Values.metadata.namespace }} port {{ .Values.gatewayPort }} successful"
+          resources:
+            {{- toYaml .Values.config.pod.resources | nindent 12 }}
+        - name: {{ .Chart.Name }}-check-auth
+          securityContext:
+            {{- toYaml .Values.config.securityContext | nindent 12 }}
+          image: "{{ .Values.image.gatewayContainerName }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            echo Probing {{ .Values.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.authPort }}
+            until nc -w 5 -vz {{ .Values.authName }}.{{ .Values.metadata.namespace }} {{ .Values.authPort }} > /dev/null 2>&1
+            do
+              echo "Connect to {{ .Values.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.authPort }} (tcp) failed: Connection refused"
+            done
+            echo "Connection {{ .Values.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.authPort }} successful"
+          resources:
+            {{- toYaml .Values.config.pod.resources | nindent 12 }}
+      containers:
+        - name: main
+          securityContext:
+            {{- toYaml .Values.config.securityContext | nindent 12 }}
+          image: "{{ .Values.image.gatewayContainerName }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            pwd
+            cd {{ .Values.config.volume.baseDir }}/CM-FILES/
+            ls -alR
+            ./setupAuth.sh {{ .Values.nodeName }}.{{ .Values.metadata.namespace }} {{ .Values.gatewayPort }}
+          resources:
+            {{- toYaml .Values.config.pod.resources | nindent 12 }}
+          volumeMounts:
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/setupAuth.sh
+            subPath: setupAuth.sh
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/g/network-maintainers.json
+            subPath: network-maintainers.json
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/g/network-operation-readers.json
+            subPath: network-operation-readers.json
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/g/network-operators.json
+            subPath: network-operators.json
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/r/NetworkMaintainer.json
+            subPath: NetworkMaintainer.json
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/r/NetworkOperationsReader.json
+            subPath: NetworkOperationsReader.json
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/r/NetworkOperator.json
+            subPath: NetworkOperator.json
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/u/business-reader.json
+            subPath: business-reader.json
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/u/network-maintainer.json
+            subPath: network-maintainer.json
+          - name: gateway-conf
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/u/network-operator.json
+            subPath: network-operator.json
+      restartPolicy: OnFailure
+      volumes:
+        - name: gateway-conf
+          configMap:
+            name: {{ .Values.prefix }}-gateway-conf
+            defaultMode: 0777
+      {{- with .Values.config.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.config.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.config.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
