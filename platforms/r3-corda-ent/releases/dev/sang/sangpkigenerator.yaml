@@ -1,0 +1,50 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: sangpkigenerator
+  namespace: sang-ent
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: sangpkigenerator
+  chart:
+    git: https://github.com/angelaalagbe/blockchain-automation-framework.git
+    ref: feature/1726
+    path: platforms/r3-corda-ent/charts/generate-pki
+  values:
+    nodeName: sang
+    metadata:
+      namespace: sang-ent
+    image:
+      initContainerName: adopblockchaincloud0502.azurecr.io/alpine-utils:1.0
+      pkiContainerName: adopblockchaincloud0502.azurecr.io/corda/enterprise-pki:1.5.1-zulu-openjdk8u242
+      imagePullSecret: regcred
+      pullPolicy: Always
+    acceptLicense: YES
+    volume:
+      baseDir: /opt/cenm
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      role: vault-role
+      authpath: cordaentsang
+      serviceaccountname: vault-auth
+      certsecretprefix: secretsv2/data/sang
+      retries: 20
+      sleepTimeAfterError: 20
+    cenmServices:
+      signerName: signer
+      idmanName: idmanang
+      networkmapName: networkmapang
+    identityManager:
+      publicIp: idmanang.rc.dev2.aws.blockchaincloudpoc-develop.com
+      publicPort: 443
+    subjects:
+      tlscrlsigner: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      tlscrlissuer: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
+      rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+      subordinateca: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      idmanca: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+      networkmap: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+    replicas: 1
+    cordaJarMx: 256
+    configPath: etc
