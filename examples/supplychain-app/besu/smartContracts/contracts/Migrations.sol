@@ -1,4 +1,6 @@
-pragma solidity >=0.4.21 <0.7.0;
+// Copyright Accenture. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >0.6.0;
 
 contract Migrations {
   address public owner;

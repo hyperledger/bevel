@@ -1,6 +1,11 @@
-const path = require("path");
+/////////////////////////////////////////////////////////////////////////////////////////////////
+//  Copyright Accenture. All Rights Reserved.                                                  //
+//                                                                                             //
+//  SPDX-License-Identifier: Apache-2.0                                                        //
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 const Web3 = require('web3'); // Importing web3.js library
-const EEAClient = require("web3-eea"); // Web3.js wrapper
+const Web3Quorum = require('web3js-quorum');
 const fs = require('fs-extra'); // Importing for writing a file
 const contract = require('./compile'); //Importing the function to compile smart contract
 const minimist = require('minimist'); // Import the library for the arguments
@@ -10,8 +15,7 @@ const url = args['url'];  // url of RPC port of besu node
 const contractPath = args['path']; // path to the contract directory
 const contractEntryPoint = args['entryPoint']; // Smart contract entrypoint eg Main.sol
 const contractName = args['contractName']; // Smart Contract Class Nameconst initArguments = process.env.INITARGUMENTS | " ";
-const chainId = args['chainId'];
-const orionPublicKey = args['orionKey'];
+const tmPublicKey = args['tmKey'];
 const privateKey = args['privateKey'];
 const privateFor = [];
 const outputFolder = args['output'] == true ? args['output'] : './build';
@@ -19,26 +23,30 @@ args['privateFor'].split(',').forEach(item => privateFor.push(item));
 const numberOfIterations = args['numberOfIteration'] | 100;
 
 args['v'] && console.log(`Creating a web3 provider.......`);
-const web3 = new EEAClient(new Web3(`${url}`), `${chainId}`);// Creating a provider
-var transactionHash = "";  // to store transaction hash to get the transaction receipt 
+const web3quorum = new Web3Quorum(new Web3(`${url}`)); 
+
+var transactionHash = ""; // to store transaction hash to get the transaction receipt 
 var contractAddress = "";
 
 const deploy = async () => {
   args['v'] && console.log(`Compiling the smartcontract.......`);
-  const smartContract = await contract.GetByteCode(numberOfIterations, contractPath, contractEntryPoint, contractName); // Converting smart contract to byte code, optimizing the bytecode conversion for numer of Iterations
+  const smartContract = await contract.GetByteCode(numberOfIterations, contractPath, contractEntryPoint, contractName); // Converting smart contract to byte code, optimizing the bytecode conversion for numberOfIterations iterations
   args['v'] && console.log(`Smartcontract converted into bytecode and abi`);
   const contractOptions = {
     data: `0x${smartContract.bytecode}`, // contract binary
-    privateFrom: `${orionPublicKey}`,
-    privateFor: privateFor,
-    privateKey: `${privateKey}`
+    privateFrom: `${tmPublicKey}`,    // transaction manager public key of sender
+    privateFor: privateFor,              // transaction manager public key(s) of receiver(s)
+    privateKey: `${privateKey}`,          // private key of sender
+    gas: 427372
   };
   args['v'] && console.log(`Created the contract options`);
-  await deploySmartContract(contractOptions)
+
+  await deploySmartContract(contractOptions, smartContract.abi, smartContract.bytecode)
     .then(hash => {
       transactionHash = hash;
       args['v'] && console.log(`Transaction hash for the deployment is ${hash}`);
-      web3.priv.getTransactionReceipt(transactionHash, `${orionPublicKey}`)
+      web3quorum.eth.transactionPollingTimeout = "1200";    // defines the number of seconds Web3 will wait for a receipt which confirms that a transaction was mined by the network.
+      web3quorum.priv.waitForTransactionReceipt(transactionHash)
         .then(data => {
           contractAddress = data.contractAddress
           console.log(contractAddress);
@@ -53,16 +61,13 @@ const deploy = async () => {
 
   args['v'] && console.log(`writing the smartcontract binary and abi to build folder......`);
   PostDeployKeeping(smartContract.abi, smartContract.bytecode) // For writing the ABI and the smartContract bytecode in build 
-
-}
+};
 
 const deploySmartContract = async (contractOptions) => {
-  args['v'] && console.log(`trying to create a new account from private key`);
-  const newAccount = await web3.eth.accounts.privateKeyToAccount(`0x${privateKey}`) // Creating new ethereum account from the private key
   args['v'] && console.log(`Deploying the smartcontract......`);
-  return web3.eea.sendRawTransaction(contractOptions); // deploy smartcontract with contractoptions
+  web3quorum.eth.isMining().then(console.log);      // Checks whether the node is mining or not. returns boolean:true if the node is mining, otherwise false.
+  return web3quorum.priv.generateAndSendRawTransaction(contractOptions); 
 }
-
 
 const PostDeployKeeping = (abi, bytecode) => {
   try {
