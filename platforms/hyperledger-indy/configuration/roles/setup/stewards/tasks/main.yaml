@@ -5,7 +5,7 @@
 ##############################################################################################
 
 ###################################################################################################
-# This role creates the deployment files for endorsers and pushes them to repository
+# This role creates the deployment files for stewards and pushes them to repository
 ###################################################################################################
 
   - name: "Wait for namespace creation for identities"
@@ -31,10 +31,9 @@
       component_name: "{{ organizationItem.name }}"
       indy_version: "indy-{{ network.version }}"
       release_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
-      newIdentity: "{{ organizationItem.services.endorsers }}"
-      component_ns: "{{ organizationItem.name | lower }}-ns"
-      org_vault_url: "{{ organizationItem.vault.url}}"
-    when: organizationItem is defined and organizationItem.services.endorsers is defined
+      newIdentity: "{{ neworg.services.stewards }}"
+      org_vault_url: "{{ organizationItem.vault.url }}"
+    when: organizationItem is defined and organizationItem.services.stewards is defined
 
 # ---------------------------------------------------------------------
 # Wait until identities are creating
@@ -44,8 +43,8 @@
     vars:
       component_type: "Job"
       namespace: "{{ component_ns }}"
-      component_name: "{{ organizationItem.name }}-{{ endorserItem.name }}-transaction"
-    loop: "{{ organizationItem.services.endorsers }}"
-    when: organizationItem is defined and organizationItem.services.endorsers is defined
+      component_name: "{{ organizationItem.name }}-{{ stewardItem.name }}-transaction"
+    loop: "{{ neworg.services.stewards }}"
+    when: neworg is defined and neworg.services.stewards is defined
     loop_control:
-      loop_var: endorserItem
+      loop_var: stewardItem

@@ -17,7 +17,7 @@ This task calls role from *check/k8_component*
 This task create pull secret of each identity of organization.
 This task calls role from *create/imagepullsecret*
 ### 3. Create Deployment files for Identities
-This task creates Helm releases Indy Ledger Transaction Job for trustees Identities.
+This task creates Helm releases Indy Ledger Transaction Job for trustee Identities.
 It calls a nested_main.yaml task.
 #### Input Variables:
  - component_type: Set, which type of k8s component may be created. Default value *node*.

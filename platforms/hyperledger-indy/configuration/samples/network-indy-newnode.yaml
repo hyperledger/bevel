@@ -24,7 +24,7 @@ network:
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
     # Must be different from all other ports specified in the rest of this network yaml
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      ports: 15010,15023,15024,15025,15033,15034,15035,15043,15044,15045 # Each Client Agent uses 3 ports  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened 
+      ports: 15010,15023,15024,15025,15033,15034,15035,15043,15044,15045 # Each Client Agent uses 3 ports  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 40                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -38,13 +38,12 @@ network:
     password: "docker_password"
 
   # It's used as the Indy network name (has impact e.g. on paths where the Indy nodes look for crypto files on their local filesystem)
-  name: baf 
+  name: baf
 
   # Information about pool transaction genesis and domain transactions genesis
   # All the fields below in the genesis section are MANDATORY
   genesis:
-    add_org: true               # Flag to denote that this will add new orgs to existing Indy network
-    state: present              # must be present when add_org is true
+    state: present              # must be present when add_new_org is true
     pool: /path/to/pool_transactions_genesis         # path where pool_transactions_genesis from existing network has been stored locally
     domain: /path/to/domain_transactions_genesis     # path where domain_transactions_genesis from existing has been stored locally
 
@@ -56,14 +55,14 @@ network:
     org_status: existing # Status of the organization for the existing network, can be new / existing
     cloud_provider: aws
     external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
-    
+
     aws:
       access_key: "aws_access_key"            # AWS Access key
       secret_key: "aws_secret_key"            # AWS Secret key
       encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
       zone: "availability_zone"               # AWS availability zone
       region: "region"                        # AWS region
-    
+
     publicIps: ["3.221.78.194"]             # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
 
     # Kubernetes cluster deployment variables. The config file path has to be provided in case
@@ -77,16 +76,16 @@ network:
     vault:
       url: "vault_addr"
       root_token: "vault_root_token"
-      
+
     # Git Repo details which will be used by GitOps/Flux.
     # Do not check-in git_access_token
     gitops:
       git_protocol: "https" # Option for git over https or ssh
-      git_url: "https://github.com/<username>/blockchain-automation-framework.git"                 # Gitops https or ssh url for flux value files 
+      git_url: "https://github.com/<username>/blockchain-automation-framework.git"                 # Gitops https or ssh url for flux value files
       branch: "develop"                   # Git branch where release is being made
-      release_dir: "platforms/hyperledger-indy/releases/dev"         # Relative Path in the Git repo for flux sync per environment. 
+      release_dir: "platforms/hyperledger-indy/releases/dev"         # Relative Path in the Git repo for flux sync per environment.
       chart_source: "platforms/hyperledger-indy/charts"             # Relative Path where the Helm charts are stored in Git repo
-      git_repo: "github.com/<username>/blockchain-automation-framework.git"           # Gitops git repository URL for git push 
+      git_repo: "github.com/<username>/blockchain-automation-framework.git"           # Gitops git repository URL for git push
       username: "git_username"                  # Git Service user who has rights to check-in in all branches
       password: "git_access_token"                  # Git Server user password
       email: "git@email.com"                        # Email to use in git config
@@ -170,11 +169,11 @@ network:
     # Do not check-in git_access_token
     gitops:
       git_protocol: "https" # Option for git over https or ssh
-      git_url: "https://github.com/<username>/blockchain-automation-framework.git"                   # Gitops https or ssh url for flux value files 
+      git_url: "https://github.com/<username>/blockchain-automation-framework.git"                   # Gitops https or ssh url for flux value files
       branch: "develop"                     # Git branch where release is being made
-      release_dir: "platforms/hyperledger-indy/releases/dev"           # Relative Path in the Git repo for flux sync per environment. 
+      release_dir: "platforms/hyperledger-indy/releases/dev"           # Relative Path in the Git repo for flux sync per environment.
       chart_source: "platforms/hyperledger-indy/charts"               # Relative Path where the Helm charts are stored in Git repo
-      git_repo: "github.com/<username>/blockchain-automation-framework.git"             # Gitops git repository URL for git push 
+      git_repo: "github.com/<username>/blockchain-automation-framework.git"             # Gitops git repository URL for git push
       username: "git_username"                    # Git Service user who has rights to check-in in all branches
       password: "git_access_token"                    # Git Server user password
       email: "git@email.com"                          # Email to use in git config

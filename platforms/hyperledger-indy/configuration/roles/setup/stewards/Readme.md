@@ -3,8 +3,8 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-## setup/endorsers
-This role creates the deployment files for endorsers and pushes them to repository.
+## setup/stewards
+This role creates the deployment files for stewards and pushes them to repository.
 
 ## Tasks:
 ### 1. Wait for namespace creation
@@ -17,21 +17,21 @@ This task calls role from *check/k8_component*
 This task create pull secret of each identity of organization.
 This task calls role from *create/imagepullsecret*
 ### 3. Create Deployment files for Identities
-This task creates Helm releases Indy Ledger Transaction Job for Endorser Identities.
+This task creates Helm releases Indy Ledger Transaction Job for steward Identities.
 It calls a nested_main.yaml task.
 #### Input Variables:
  - component_type: Set, which type of k8s component may be created. Default value *node*.
- - component_name: Name of Helm release. Default value is {{ organization }}-{{ endorserItem.name }}-node
+ - component_name: Name of Helm release. Default value is {{ organization }}-{{ stewardItem.name }}-node
  - indy_version: Version of Hyperledger Indy Node. Default value is indy-{{ network.version }}
  - release_dir: Release directory, where are stored generated files for gitops. Default value: {{ playbook_dir }}/../../../{{ gitops.release_dir }}
- - newIdentity: A list of endorsers in current organization.
+ - newIdentity: A list of stewards in current organization.
  - component_ns: A name of organizatio's namespace.
  - org_vault_url: Vault URL of organization
 ### 4. Wait until identities are creating
 This task is waiting until identity transaction is done.
 #### Input Variables:
  - component_name: A name of current organization.
- - endorsers: A list of endorsers of current organization.
+ - stewards: A list of stewards of current organization.
 
 ---------------------------------------------------------------------------------------
 nested_main.yaml
@@ -54,8 +54,8 @@ It calls the helm release development role for for creation of deployment file.
 -  indy_version: "Network version of indy"
 -  release_dir: "Release directory in which the deployment file is saved"
 - component_ns: "Namespace of the component"
--  newIdentityName: "Name of identity endorser to be added"
--  newIdentityRole: "Role of the endorser"
+-  newIdentityName: "Name of identity steward to be added"
+-  newIdentityRole: "Role of the steward"
 -  adminIdentityName: "Name of admin identity"
 -  admin_component_name: "Name of admin Identity's Organization"
 -  admin_org_vault_url: "Admin Org's Vault URL"
