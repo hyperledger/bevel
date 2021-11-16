@@ -6,11 +6,13 @@
 
 ---
 # yaml-language-server: $schema=../../../../platforms/network-schema.json
-# This is a sample configuration file for hyperledger indy which can be reused for adding of new org with 2 validator nodes.
-# It has 2 organizations:
-# 1. organization "university" with 1 trustee, 2 stewards and 1 endorser
-# 2. organization "bank" with 1 trustee, 2 stewards and 1 endorser
-# It is MANDATORY to have once existing orgnization and once new organization as a Steward can add one and only one Validator Node
+# This is a sample configuration file for hyperledger indy which can be reused for adding of new org with 1 validator node to an existing non-BAF managed network.
+# It has 1 organization:
+# - new organization "bank" with 1 trustee, 1 steward and 1 endorser
+# Usage:
+# - run with -e "add_new_org=true" -e "add_new_org_network_trustee_present=false" -e "add_new_org_new_nyms_on_ledger_present=false"
+# - ask the existing network trustee(s) to add your new node identity to the domain ledger with a STEWARD role (using a NYM transaction, your DID and verkey has to be specified)
+# - once the new steward identity is present on the ledger, run again with -e "add_new_org=true" -e "add_new_org_network_trustee_present=false" -e "add_new_org_new_nyms_on_ledger_present=true"
 
 network:
   # Network level configuration specifies the attributes required for each organization
@@ -22,9 +24,9 @@ network:
   env:
     type: indy             # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
-    # Must be different from all other ports specified in the rest of this network yaml
-    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      ports: 15010,15023,15024,15025,15033,15034,15035,15043,15044,15045 # Each Client Agent uses 3 ports  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened
+      portRange:              # For a range of ports
+        from: 9711
+        to: 9720
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 40                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -105,26 +107,52 @@ network:
         genesis: true
         publicIp: 3.221.78.194        # IP address of current organization in current availability zone
         node:
-          port: 9731
-          targetPort: 9731
-          ambassador: 9731            # Port for ambassador service
+          port: 9713
+          targetPort: 9713
+          ambassador: 9713            # Port for ambassador service
         client:
-          port: 9732
-          targetPort: 9732
-          ambassador: 9732            # Port for ambassador service
+          port: 9714
+          targetPort: 9714
+          ambassador: 9714            # Port for ambassador service
       - steward:
         name: university-steward-2
         type: VALIDATOR
         genesis: true
         publicIp: 3.221.78.194        # IP address of current organization in current availability zone
         node:
-          port: 9741
-          targetPort: 9741
-          ambassador: 9741            # Port for ambassador service
+          port: 9715
+          targetPort: 9715
+          ambassador: 9715            # Port for ambassador service
         client:
-          port: 9742
-          targetPort: 9742
-          ambassador: 9742            # Port for ambassador service
+          port: 9716
+          targetPort: 9716
+          ambassador: 9716            # Port for ambassador service
+      - steward:
+        name: university-steward-3
+        type: VALIDATOR
+        genesis: true
+        publicIp: 3.221.78.194        # IP address of current organization in current availability zone
+        node:
+          port: 9717
+          targetPort: 9717
+          ambassador: 9717            # Port for ambassador service
+        client:
+          port: 9718
+          targetPort: 9718
+          ambassador: 9718            # Port for ambassador service
+      - steward:
+        name: university-steward-4
+        type: VALIDATOR
+        genesis: true
+        publicIp: 3.221.78.194        # IP address of current organization in current availability zone
+        node:
+          port: 9719
+          targetPort: 9719
+          ambassador: 9719            # Port for ambassador service
+        client:
+          port: 9720
+          targetPort: 9720
+          ambassador: 9720            # Port for ambassador service
       endorsers:
       - endorser:
         name: university-endorser
@@ -200,19 +228,6 @@ network:
           port: 9712
           targetPort: 9712
           ambassador: 9712        # Port for ambassador service
-      - steward:
-        name: bank-steward-2
-        type: VALIDATOR
-        genesis: true
-        publicIp: 3.221.78.194    # IP address of current organization in current availability zone
-        node:
-          port: 9721
-          targetPort: 9721
-          ambassador: 9721        # Port for ambassador service
-        client:
-          port: 9722
-          targetPort: 9722
-          ambassador: 9722        # Port for ambassador service
       endorsers:
       - endorser:
         name: bank-endorser
