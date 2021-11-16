@@ -15,8 +15,8 @@ spec:
     metadata: 
       namespace: {{ component_ns }}
       labels: {}
-    prefix: cenm
-    nodeName: auth
+    prefix: {{ org.name }}
+    nodeName: {{ component_name }}
     image:
       initContainerName: {{ network.docker.url }}/{{ init_image }}
       authContainerName: {{ network.docker.url }}/{{ docker_image }}
