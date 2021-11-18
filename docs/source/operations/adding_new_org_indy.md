@@ -59,6 +59,7 @@ network:
   env:
     type: indy             # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
+    ambassadorPorts:
       portRange:              # For a range of ports
         from: 9711
         to: 9720
@@ -319,6 +320,7 @@ network:
   env:
     type: indy             # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
+    ambassadorPorts:
       portRange:              # For a range of ports
         from: 9711
         to: 9712
