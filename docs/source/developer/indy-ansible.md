@@ -5,7 +5,7 @@
 
 # Indy Configurations
 
-In the Blockchain Automation Framework project, ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks. 
+In the Blockchain Automation Framework project, ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks.
 Ansible playbooks contains a series of roles and tasks which run in sequential order to achieve the automation.
 
 ```
@@ -124,11 +124,6 @@ This role get vault root token for organization and remove Indy crypto from vaul
 * Remove Kubernetes Authentication Methods of {{ organization }} of endorsers
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-indy/configuration/roles/clean/vault) for detailed information.
-
-## **copy/vault_crypto_values**
-This role copies the crypto from trustee to stewards for the same organization
-
-* Transfer DID and Seed Values between Vaults
 
 ## **create/helm_component/auth_job**
 #### This role create the job value file for creating Vault auth methods
@@ -339,8 +334,8 @@ This role creates the values files for organizations domain genesis and pushes t
 
 Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis) for detailed information.
 
-## **setup/trustee**
-This role creates the deployment files for adding new trustee to existing network
+## **setup/trustees**
+This role creates the deployment files for adding new trustees to existing network
 
 * Wait for namespace creation
 * Create image pull secret for identities
@@ -352,7 +347,22 @@ This role creates the deployment files for adding new trustee to existing networ
   * Push the created deployment files to repository
 * Wait until identities are creating
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-indy/configuration/roles/setup/trustee) for detailed information.
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-indy/configuration/roles/setup/trustees) for detailed information.
+
+## **setup/stewards**
+This role creates the deployment files for adding new stewards to existing network
+
+* Wait for namespace creation
+* Create image pull secret for identities
+* Create Deployment files for Identities
+  * Select Admin Identity for Organisation {{ component_name }}
+  * Inserting file into Variable
+  * Calling Helm Release Development Role...
+  * Delete file
+  * Push the created deployment files to repository
+* Wait until identities are creating
+
+Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-indy/configuration/roles/setup/stewards) for detailed information.
 
 ## **setup/vault_kubernetes**
 This role setups communication between the vault and kubernetes cluster and install neccessary configurations.

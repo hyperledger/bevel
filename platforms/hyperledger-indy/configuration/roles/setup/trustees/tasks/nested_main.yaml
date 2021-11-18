@@ -6,8 +6,7 @@
 
 # This Selects the Admin Identity for an organization from Network yaml.
 # If trustee is present the first trustee will be the admin
-# If Steward is present the first steward will be the admin
-# If both trustee and steward are not present in a particular organization, 
+# If trustee not present in a particular organization,
 # the first global admin will be the trustee for this organization.
 ---
 - name: Select Admin Identity for Organisation {{ component_name }}
@@ -41,27 +40,6 @@
               global_Org="{{ organization.name }}"
               global_url="{{ organization.vault.url }}"
               global_type="trustees"
-            fi
-          {% endfor %}
-        {% endif %}
-        {% if organization.services.stewards is defined %}
-          {% for steward in organization.services.stewards %}
-            if [ -z "$first_admin_in_org" ]
-            then
-              if [ {{ organization.name }} == "{{ component_name }}" ]
-              then
-                first_admin_in_org="{{ steward.name }}"
-                admin_Org="{{ organization.name }}"
-                admin_url="{{ organization.vault.url }}"
-                admin_type="stewards"
-              fi
-            fi
-            if [ -z "$first_global_admin" ]
-            then
-              first_global_admin="{{ steward.name }}"
-              global_Org="{{ organization.name }}"
-              global_url="{{ organization.vault.url }}"
-              global_type="stewards"
             fi
           {% endfor %}
         {% endif %}
@@ -127,6 +105,6 @@
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
-    GIT_DIR: "{{ playbook_dir }}/../../../"    
+    GIT_DIR: "{{ playbook_dir }}/../../../"
     GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
     msg: "[ci skip] Pushing deployment files"

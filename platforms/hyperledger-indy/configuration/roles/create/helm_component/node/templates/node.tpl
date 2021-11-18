@@ -19,8 +19,7 @@ spec:
       name: {{ network.name }}
     organization:
       name: {{ organizationItem.name }}
-    genesis:
-      add_org: {{ genesis.add_org | default(false) }}
+    add_new_org: {{ add_new_org | default(false) }}
     image:
       pullSecret: regcred
       initContainer:
@@ -29,7 +28,7 @@ spec:
       cli:
         name: {{ component_name }}-ledger-txn
         repository: {{ network.docker.url }}/indy-ledger-txn:latest
-        pullSecret: regcred  
+        pullSecret: regcred
       indyNode:
         name: {{ component_name }}
         repository: {{ network.docker.url }}/indy-node:{{ network.version }}
