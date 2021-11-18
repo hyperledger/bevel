@@ -54,6 +54,8 @@ spec:
              value: {{ $.Values.config.volume.baseDir }}
            - name: CERTS_SECRET_PREFIX
              value: {{ .Values.vault.certSecretPrefix }}
+           - name: IDMAN_NODENAME
+             value: {{ $.Values.cenmServices.idmanName }}
            - name: MOUNT_PATH
              value: "/DATA"       
           command: ["sh", "-c"]
@@ -97,8 +99,8 @@ spec:
                echo "${corda_ssl_trust_store}" | base64 -d > ${MOUNT_PATH}/root/corda-ssl-trust-store.jks
 
                 # ssl identity manager keys from vault
-               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/idman/certs | jq -r 'if .errors then . else . end')
-               validateVaultResponse "${CERTS_SECRET_PREFIX}/idman/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${IDMAN_NODENAME}/certs | jq -r 'if .errors then . else . end')
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/${IDMAN_NODENAME}/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
                corda_ssl_identity_manager_keys=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-identity-manager-keys.jks"]')
                echo "${corda_ssl_identity_manager_keys}" | base64 -d > ${MOUNT_PATH}/root/corda-ssl-identity-manager-keys.jks
