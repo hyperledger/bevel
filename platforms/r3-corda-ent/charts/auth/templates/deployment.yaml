@@ -112,7 +112,10 @@ spec:
             #[TODO] : The JWT creation can be moved to PKI Job
             keytool -genkeypair -alias oauth-test-jwt -keyalg RSA -keypass password -keystore etc/jwt-store.jks -storepass password -dname "{{ .Values.authSubject }}"
           resources:
-            {{- toYaml .Values.config.pod.resources | nindent 12 }}
+            requests:
+              memory: {{ .Values.config.pod.resources.requests }}
+            limits:
+              memory: {{ .Values.config.pod.resources.limits }}
           volumeMounts:
           - name: auth-etc
             mountPath: {{ .Values.config.volume.baseDir }}/etc
@@ -161,7 +164,10 @@ spec:
             failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
           {{- end  }}
           resources:
-            {{- toYaml .Values.config.pod.resources | nindent 12 }}
+            requests:
+              memory: {{ .Values.config.pod.resources.requests }}
+            limits:
+              memory: {{ .Values.config.pod.resources.limits }}
         {{- if .Values.config.logsContainersEnabled }}
         - name: logs-auth
           securityContext:
@@ -179,7 +185,10 @@ spec:
           - name: auth-logs
             mountPath: {{ .Values.config.volume.baseDir }}/logs
           resources:
-            {{- toYaml .Values.config.pod.resources | nindent 12 }}
+            requests:
+              memory: {{ .Values.config.pod.resources.requests }}
+            limits:
+              memory: {{ .Values.config.pod.resources.limits }}
         {{- end  }}
       volumes:
         - name: auth-conf
