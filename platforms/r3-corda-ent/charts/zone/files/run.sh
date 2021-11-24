@@ -20,15 +20,15 @@ then
     --auth-host "{{ .Values.metadata.prefix }}-{{ .Values.authService.host }}" \
     --auth-port "{{ .Values.authService.port }}" \
     --auth-trust-store-location ./DATA/trust-stores/corda-ssl-trust-store.jks \
-    --auth-trust-store-password "{{ .Values.cenmServices.sslTruststore }}" \
+    --auth-trust-store-password "SSL_TRUSTSTORE" \
     --auth-issuer "http://test" \
     --auth-leeway 5 \
     --run-migration="{{ .Values.database.runMigration }}" \
     --tls=true \
     --tls-keystore=./DATA/key-stores/corda-ssl-identity-manager-keys.jks \
-    --tls-keystore-password="{{ .Values.cenmServices.sslIdmanKeystore }}" \
+    --tls-keystore-password="IDMAN_SSL" \
     --tls-truststore=./DATA/trust-stores/corda-ssl-trust-store.jks \
-    --tls-truststore-password="{{ .Values.cenmServices.sslTruststore }}" \
+    --tls-truststore-password="SSL_TRUSTSTORE" \
     --verbose
     EXIT_CODE=${?}
 else

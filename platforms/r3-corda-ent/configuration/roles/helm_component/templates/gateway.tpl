@@ -12,7 +12,7 @@ spec:
     ref: {{ org.gitops.branch }}
     path: {{ charts_dir }}/gateway
   values:
-    nodeName: {{ component_name }}}
+    nodeName: {{ component_name }}
     metadata:
       namespace: {{ component_ns }}
       labels:
@@ -55,7 +55,7 @@ spec:
       type: ClusterIP
       port: 8080
     zoneName: {{ org.services.zone.name }}
-    zonePort: 12345
+    zonePort: {{ org.services.zone.ports.admin }}
     gatewayPort: {{ org.services.gateway.port }}
     authName: {{ org.services.auth.name }}
     authPort: {{ org.services.auth.port }}
