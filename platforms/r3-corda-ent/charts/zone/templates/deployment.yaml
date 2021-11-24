@@ -86,8 +86,10 @@ spec:
                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
 
+               # Creating dirs for storing certificates and credentials
                mkdir -p ${MOUNT_PATH}/trust-stores;
                mkdir -p ${MOUNT_PATH}/key-stores;
+               mkdir -p ${MOUNT_PATH}/ssl;
 
                # ssl trust-stores from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
@@ -97,11 +99,26 @@ spec:
                echo "Successfully got SSL trust store certifcates"
 
                # idman ssl key-stores from vault
+               OUTPUT_PATH=${MOUNT_PATH}/truststore;
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${IDMAN_NODENAME}/certs | jq -r 'if .errors then . else . end')
                validateVaultResponse "${CERTS_SECRET_PREFIX}/${IDMAN_NODENAME}/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-identity-manager-keys.jks"]')
                echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/key-stores/corda-ssl-identity-manager-keys.jks
                echo "Successfully got SSL Idman certifcates"
+
+               OUTPUT_PATH=${MOUNT_PATH}/ssl;
+               # Fetching the idman ssl credentials from vault
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/ssl" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+               IDMAN_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["idman"]')
+               echo "${IDMAN_SSL}"> ${OUTPUT_PATH}/idmanssl
+
+               #Fetching ssl truststore from vault
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+               SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ssl"]')
+               echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
+
                echo "Done"
           volumeMounts:
           - name: pki-certs-keys
@@ -115,18 +132,26 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            cp CM-FILES/run.sh bin/run.sh
-            bash bin/run.sh
+            mkdir -p  {{ .Values.config.volume.baseDir }}/config;
+            install {{ .Values.config.volume.baseDir }}/CM-FILES/run.sh  {{ .Values.config.volume.baseDir }}/config/;
+                                                                                                                               
+            #replacing the variables in idman.conf with actual values
+            export IDMAN_SSL=$(cat  {{ .Values.config.volume.baseDir }}/DATA/ssl/idmanssl)
+            sed -i -e "s*IDMAN_SSL*${IDMAN_SSL}*g"  {{ .Values.config.volume.baseDir }}/config/run.sh
+            export SSL_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/ssl/sslts
+            sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g"  {{ .Values.config.volume.baseDir }}/config/run.sh
+
+            bash {{ .Values.config.volume.baseDir }}/config/run.sh
           volumeMounts:
           - name: pki-certs-keys
-            mountPath: /opt/cenm/DATA
+            mountPath: {{ .Values.config.volume.baseDir }}/DATA
           - name: zone-conf
-            mountPath: /opt/cenm/CM-FILES/run.sh
+            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/run.sh
             subPath: run.sh
           - name: zone-logs
-            mountPath: /opt/cenm/logs
+            mountPath: {{ .Values.config.volume.baseDir }}/logs
           - name: zone-h2
-            mountPath: /opt/cenm/h2
+            mountPath: {{ .Values.config.volume.baseDir }}/h2
           resources:
             {{- toYaml .Values.config.pod.resources | nindent 12 }}
         {{- if .Values.config.logsContainersEnabled }}
@@ -138,13 +163,13 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            cd /opt/cenm/
+            cd {{ .Values.config.volume.baseDir }}/
             while true; do tail -f logs/zone-service/*.log 2>/dev/null ; sleep 5; done
             # in case sth went wrong just wait indefinitely ...
             tail -f /dev/null
           volumeMounts:
           - name: zone-logs
-            mountPath: /opt/cenm/logs
+            mountPath: {{ .Values.config.volume.baseDir }}/logs
           resources:
             {{- toYaml .Values.config.pod.resources | nindent 12 }}
         {{- end  }}

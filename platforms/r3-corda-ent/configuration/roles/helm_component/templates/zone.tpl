@@ -38,8 +38,6 @@ spec:
         path: bin
     cenmServices:
       idmanName: {{ org.services.idman.name }}
-      sslTruststore: {{ org.credentials.truststore.ssl }}
-      sslIdmanKeystore: {{ org.credentials.ssl.idman }}
     database:
       driverClassName: "org.h2.Driver"
       jdbcDriver: ""
@@ -54,8 +52,8 @@ spec:
       type: ClusterIP
       port: 80
     listenerPort:
-      enm: 25000
-      admin: 12345
+      enm: {{ org.services.zone.ports.enm }}
+      admin: {{ org.services.zone.ports.admin }}
     storageClass: cordaentsc
     vault:
       address: {{ vault.url }}
