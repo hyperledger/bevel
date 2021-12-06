@@ -19,7 +19,7 @@ The following diagram shows how Hyperledger Indy peer nodes will be deployed on 
 
 ## Components
 
-![Figure: Hyperledger Indy Components](../../images/blockchain-automation-framework-indy.png)
+![Figure: Hyperledger Indy Components](../../images/hyperledger-bevel-indy.png)
 
 ### Docker Images
 The Blockchain Automation Framework creates/provides own Docker images, which are based on Ubuntu and consist with official Hyperledger Indy libraries (indy-plenum and indy-node).

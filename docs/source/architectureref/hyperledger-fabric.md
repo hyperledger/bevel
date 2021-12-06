@@ -44,7 +44,7 @@ The following diagram shows how Hyperledger Fabric orderer will be deployed on y
 
 ## Components
 
-![Figure: Hyperledger Fabric Components](../../images/blockchain-automation-framework-fabric.png)
+![Figure: Hyperledger Fabric Components](../../images/hyperledger-bevel-fabric.png)
 
   
 

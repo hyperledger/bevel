@@ -39,7 +39,7 @@ The following diagram shows how Besu Validator nodes will be deployed on your Ku
 
 ## Components
 
-![Figure: Hyperledger Besu Components](../../images/blockchain-automation-framework-besu.png)
+![Figure: Hyperledger Besu Components](../../images/hyperledger-bevel-besu.png)
 
 ### Docker Images
 The Blockchain Automation Framework uses the officially published Besu Docker images from [hub.docker.com](https://hub.docker.com/u/hyperledger). The following Besu Images are used by the Blockchain Automation Framework.

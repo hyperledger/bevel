@@ -1,4 +1,4 @@
-# Blockchain Automation Framework [![join the chat][rocketchat-image]][rocketchat-url]
+# Hyperledger Bevel [![join the chat][rocketchat-image]][rocketchat-url]
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-6-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
@@ -10,7 +10,7 @@
 [![Build Status](https://circleci.com/gh/hyperledger-labs/blockchain-automation-framework.svg?style=shield)](https://circleci.com/gh/hyperledger-labs/blockchain-automation-framework)
 
 - [Short Description](#short-description)
-- [Scope of Lab](#scope-of-lab)
+- [Scope of Project](#scope-of-project)
   - [Getting Started](#getting-started)
   - [Hyperledger Fabric](#hyperledger-fabric)
   - [Corda Enterprise](#corda-enterprise)
@@ -26,14 +26,14 @@
 ## Short Description
 An automation framework for rapidly and consistently deploying production-ready DLT platforms.
 
-## Scope of Lab
-Blockchain Automation Framework delivers an automation framework for rapidly and consistently deploying production-ready DLT platforms to cloud infrastructure.
+## Scope of Project
+Hyperledger Bevel delivers an automation framework for rapidly and consistently deploying production-ready DLT platforms to cloud infrastructure.
 
-![What is Blockchain Automation Framework?](./docs/images/blockchain-automation-framework-overview.png "What is Blockchain Automation Framework?")
+![What is Hyperledger Bevel?](./docs/images/hyperledger-bevel-overview.png "What is Hyperledger Bevel?")
 
-Blockchain Automation Framework makes use of Ansible, Helm, and Kubernetes to deploy production DLT networks. Specifically, it makes use of Ansible for configuration of the network by DevOps Engineers. It then uses Helm charts as instructions for deploying the necessary components to Kubernetes. Kubernetes was chosen to allow for Blockchain Automation Framework to deploy the DLT networks to any cloud that supports Kubernetes.
+Hyperledger Bevel makes use of Ansible, Helm, and Kubernetes to deploy production DLT networks. Specifically, it makes use of Ansible for configuration of the network by DevOps Engineers. It then uses Helm charts as instructions for deploying the necessary components to Kubernetes. Kubernetes was chosen to allow for Hyperledger Bevel to deploy the DLT networks to any cloud that supports Kubernetes.
 
-Blockchain Automation Framework currently supports Corda, Hyperledger Fabric, Hyperledger Indy and Quorum. It is the intention to add support for Hyperledger Besu and Corda Enterprise in the near future. Other DLT platforms can easily be added.
+Hyperledger Bevel currently supports Corda, Hyperledger Fabric, Hyperledger Indy and Quorum. It is the intention to add support for Hyperledger Besu and Corda Enterprise in the near future. Other DLT platforms can easily be added.
 
 ### Getting Started
 
@@ -46,38 +46,38 @@ The documentation can also be built locally be following instructions in the `do
 ### Hyperledger Fabric
 For Hyperledger Fabric, we use the official Docker containers provided by that project. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
 
-![Blockchain Automation Framework - Fabric](./docs/images/blockchain-automation-framework-fabric.png "Blockchain Automation Framework for Hyperledger Fabric")
+![Hyperledger Bevel - Fabric](./docs/images/hyperledger-bevel-fabric.png "Hyperledger Bevel for Hyperledger Fabric")
 
 ### Corda Enterprise
 For Corda Enterprise, we build Docker containers from the Corda source with licensed jars. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
 
-![Blockchain Automation Framework - Corda Enterprise](./docs/images/blockchain-automation-framework-corda-ent.png "Blockchain Automation Framework for Corda Enterprise")
+![Hyperledger Bevel - Corda Enterprise](./docs/images/hyperledger-bevel-corda-ent.png "Hyperledger Bevel for Corda Enterprise")
 
 ### Corda Opensource
 For Corda Opensource, we build Docker containers from the Corda source. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
 
-![Blockchain Automation Framework - Corda](./docs/images/blockchain-automation-framework-corda.png "Blockchain Automation Framework for Corda")
+![Hyperledger Bevel - Corda](./docs/images/hyperledger-bevel-corda.png "Hyperledger Bevel for Corda")
 
 ### Hyperledger Indy
 For Hyperledger Indy, we build Docker containers from our source code. A number of different Ansible scripts will allow you to create a new network (across clouds).
 
-![Blockchain Automation Framework - Indy](./docs/images/blockchain-automation-framework-indy.png "Blockchain Automation Framework for Hyperledger Indy")
+![Hyperledger Bevel - Indy](./docs/images/hyperledger-bevel-indy.png "Hyperledger Bevel for Hyperledger Indy")
 
 ### Quorum
 For Quorum, we use the official Docker containers provided by Quorum. A number of different Ansible scripts will allow you to either create a new network (across clouds) with choice of Consensus (between IBFT and RAFT) and a choice of Transaction Manager (between Tessera and Constellation).
 
-![Blockchain Automation Framework - Quorum](./docs/images/blockchain-automation-framework-quorum.png "Blockchain Automation Framework for Quorum")
+![Hyperledger Bevel - Quorum](./docs/images/hyperledger-bevel-quorum.png "Hyperledger Bevel for Quorum")
 
 ### Hyperledger Besu
 For Hyperledger Besu, we use the official Docker containers provided by that project. A number of different Ansible scripts will allow you to create a new network (across clouds).
 
-![Blockchain Automation Framework - Besu](./docs/images/blockchain-automation-framework-besu.png "Blockchain Automation Framework for Hyperledger Besu")
+![Hyperledger Bevel - Besu](./docs/images/hyperledger-bevel-besu.png "Hyperledger Bevel for Hyperledger Besu")
 
 ## Contact
 We welcome your questions & feedback on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework).
 
 ## Contributing
-We welcome contributions to BAF in many forms, and there’s always plenty to do!
+We welcome contributions to Hyperledger Bevel in many forms, and there’s always plenty to do!
 
 Please review [contributing](./CONTRIBUTING.md) guidelines to get started.
 
