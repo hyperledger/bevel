@@ -37,7 +37,7 @@ The following diagram shows how Quorum peer nodes with Constellation TM will be 
 
 ## Components
 
-![Figure: Quorum Components](../../images/blockchain-automation-framework-quorum.png)
+![Figure: Quorum Components](../../images/hyperledger-bevel-quorum.png)
 
 ### Docker Images
 The Blockchain Automation Framework uses the officially published Quorum Docker images from [hub.docker.com](https://hub.docker.com/u/quorumengineering). The following Quorum Images are used by the Blockchain Automation Framework.

@@ -26,7 +26,7 @@ The following diagram shows how the Corda Support Services (**Doorman**, **Netwo
 1. All storage uses a Kubernetes Persistent Volume.
 
 ## Components
-![Figure: Corda Components](../../images/blockchain-automation-framework-corda.png)
+![Figure: Corda Components](../../images/hyperledger-bevel-corda.png)
 
 ### Docker Images
 

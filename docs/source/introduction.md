@@ -21,7 +21,7 @@ Being aware of the potential difficulty and complexity of getting a production-s
 ## **The Blockchain Automation Framework (BAF) Platform**
 The objective of BAF is to provide a consistent means by which developers can deploy production-ready distributed networks across public and private cloud providers. This enables developers to focus on building business applications quickly, knowing that the framework upon which they are building can be adopted by an enterprise IT production operations organization. BAF is not intended solely to quickly provision development environments which can be done more efficiently with other projects/scripts. Likewise, Blockchain Automation Framework is not intended to replace BaaS offerings in the market, but instead, BAF is an alternative when existing BaaS offerings do not support a consortium's current set of requirements. 
 
-![](../images/blockchain-automation-framework-overview.png)
+![](../images/hyperledger-bevel-overview.png)
 
 ## **How is it different from other BaaS?**
 - The Blockchain Automation Framework deployment scripts can be reused across cloud providers like AWS, Azure, GCP, DigitalOcean and OpenShift
