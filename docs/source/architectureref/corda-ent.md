@@ -32,7 +32,7 @@ The following diagram shows how the Corda Enterprise Network Map Services (**Ide
 1. Release 0.6.0.0 implements Notary in the same namespace as other CENM services. They will be separated when HA Notary is implemented in later releases.
 
 ## Components
-![Figure: Corda Enterprise Components](../../images/blockchain-automation-framework-corda-ent.png)
+![Figure: Corda Enterprise Components](../../images/hyperledger-bevel-corda-ent.png)
 
 ### Docker Images
 
