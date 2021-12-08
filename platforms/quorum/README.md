@@ -4,7 +4,7 @@
 [//]: # (##############################################################################################)
 
 ## About
-This folder contains the files that are needed for the deployment of a Quorum network in BAF. 
+This folder contains the files that are needed for the deployment of a Quorum network in Hyperledger Bevel. 
 
 ## Folder structure
 ```

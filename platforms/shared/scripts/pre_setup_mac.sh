@@ -52,7 +52,7 @@ if [[ -z ${useremail} || ${useremail} != ${GIT_EMAIL} ]]; then
     echo "Git user email successfully updated [$(git config --global user.email)]"
 fi
 
-read -p "Please fork the blockchain-automation-framework repository from browser and press any key to continue..."
+read -p "Please fork the bevel repository from browser and press any key to continue..."
 read -p "Repository URL (https url): " REPO_URL
 read -p "Branch (default is local): " REPO_BRANCH
 
@@ -66,7 +66,7 @@ cd project
 git clone ${REPO_URL}
 check "Cloning repository"
 
-cd blockchain-automation-framework
+cd bevel
 if [[ -z ${REPO_BRANCH} ]]; then
     REPO_BRANCH="local"
 fi

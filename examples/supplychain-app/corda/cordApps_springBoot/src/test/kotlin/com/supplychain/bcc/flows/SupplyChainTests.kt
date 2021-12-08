@@ -1,6 +1,6 @@
 package com.supplychain.bcc
 
-import com.supplychain.baf.*
+import com.supplychain.bevel.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.testing.node.MockNetwork
@@ -17,7 +17,7 @@ abstract class SupplyChainTests {
 
     @Before
     fun setup() {
-        mockNetwork = MockNetwork(listOf("com.supplychain.baf"), threadPerNode = true, networkSendManuallyPumped = false)
+        mockNetwork = MockNetwork(listOf("com.supplychain.bevel"), threadPerNode = true, networkSendManuallyPumped = false)
 
         a = mockNetwork.createPartyNode(CordaX500Name("AA", "Manufacturer", "AA",  "Locality",null,"US"))
         b = mockNetwork.createPartyNode(CordaX500Name("BB", "Warehouse", "AA",  "Locality",null,"US"))

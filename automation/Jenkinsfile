@@ -4,7 +4,7 @@
 //  SPDX-License-Identifier: Apache-2.0
 //#############################################################################################
 
-/* Pipeline to deploy DLT Platforms supported by BAF on a demo environment
+/* Pipeline to deploy DLT Platforms supported by Hyperledger Bevel on a demo environment
 // In summary, this pipeline does the following
 //  1. Depending on the branch, merges the latest code from develop to the specific branches
 //  2. Prepare deployment environment files
@@ -228,8 +228,8 @@ pipeline {
         }
       }
       steps {   
-        dir('build/baf-configuration') {
-          git credentialsId: "${GITOPS_CREDS}", url: 'ssh://git@innersource.accenture.com/blockofz/baf-configuration.git'
+        dir('build/bevel-configuration') {
+          git credentialsId: "${GITOPS_CREDS}", url: 'ssh://git@innersource.accenture.com/blockofz/bevel-configuration.git'
           sh """#!/bin/bash
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.DLT_VERSION}.yaml ../network.yaml
             cp demo/${env.BRANCH_NAME}/${env.CONSENSUS}*${env.TM}*${env.DLT_VERSION}addorg.yaml ../addorg.yaml
@@ -256,7 +256,7 @@ pipeline {
             }            
             // Replace the sample network.yaml and fill in required parameters
             sh """
-              git config --global user.email "baf@accenture.com"
+              git config --global user.email "bevel@accenture.com"
               git config --global user.name ${USERNAME}
               git config --global user.password ${PASSWORD}
               git config --global push.default matching
@@ -484,7 +484,7 @@ pipeline {
       steps {        
         sh """
           ansible-playbook examples/identity-app/configuration/deploy-identity-app.yaml -e "@./build/application.yaml" -e "no_ansible_log=true" -e "ansible_python_interpreter=/usr/bin/python3"
-          helm upgrade --install alice -f ./build/baf-configuration/demo/indy/alice.yaml examples/identity-app/charts/alice
+          helm upgrade --install alice -f ./build/bevel-configuration/demo/indy/alice.yaml examples/identity-app/charts/alice
         """        
       }
     }

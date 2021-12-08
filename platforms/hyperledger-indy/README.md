@@ -4,7 +4,7 @@
 [//]: # (##############################################################################################)
 
 ## About
-This folder contains the files that are needed for the deployment of a Hyperledger Indy network in BAF. 
+This folder contains the files that are needed for the deployment of a Hyperledger Indy network in Hyperledger Bevel. 
 
 ## Folder structure
 ```

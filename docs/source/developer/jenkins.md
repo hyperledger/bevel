@@ -15,7 +15,7 @@ In Hyperledger Bevel, although Jenkins is not mandatory, we have [a single Jenki
 1. AWS user `jenkins` with CLI credentials with access to above EKS Cluster.
 1. A Hashicorp Vault installation which is accessible from the Jenkins server.
 1. A Git repo which will be added as multi-branch pipeline on Jenkins (this is a fork of this repo).
-1. A separate `baf-configuration` git repo where the templated network.yaml for different platforms are stored. Details of this repo needs to be updated in pipeline Stage `Create Configuration File`.
+1. A separate `bevel-configuration` git repo where the templated network.yaml for different platforms are stored. Details of this repo needs to be updated in pipeline Stage `Create Configuration File`.
 
 ## Branch Configuration
 The Jenkinsfile is designed to ignore `develop` and `main` branches by default. So, create platform specific branches in your forked repo.
@@ -26,7 +26,7 @@ The Jenkinsfile is designed to ignore `develop` and `main` branches by default. 
 - `indy` for Hyperledger Indy
 - `quorum` for Quorum
 
-Your `baf-configuration` repo should have the corresponding folders and files as demanded/configured in Stage `Create Configuration File`.
+Your `bevel-configuration` repo should have the corresponding folders and files as demanded/configured in Stage `Create Configuration File`.
 
 ## Jenkins Secrets
 Following secrets must be stored in Jenkins which is configured in the environment section. This can be renamed/updated in the Jenkinsfile according to your needs.
@@ -71,7 +71,7 @@ Configure Multi-branch pipeline with the forked repo as the source. In case you 
 1. `Prepare build environment`: Creates the build directory and sets up the necessary files for build like gitops.pem, vault.pem, kubeconfig, test jsons. Also creates the ssh-tunnel connection to Hashicorp Vault server.
 
 1. `<branch>-settings`: Set env variables CONSENSUS, VERSION and TM based on the branch i.e. based on the DLT platform.
-1. `Create Configuration File`: Downloads the config file (main network.yaml, addorg.yaml and application.yaml) depending on the BRANCH_NAME, CONSENSUS, VERSION and TM from baf-configuration and adds the secret parameters.
+1. `Create Configuration File`: Downloads the config file (main network.yaml, addorg.yaml and application.yaml) depending on the BRANCH_NAME, CONSENSUS, VERSION and TM from bevel-configuration and adds the secret parameters.
 1. `Reset existing network`: Resets the network based on application.yaml as that should contain all the orgs.
 1. `Deploy network`: Deploys the network based on main network.yaml.
 1. `Add a new node`: Adds a new organization to the above network. This is not enabled for Indy currently.

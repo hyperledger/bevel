@@ -6,7 +6,7 @@
 # Supplychain-App
 
 ## About
-This folder contains the files that are needed for the deployment of a Supplychain Application on a Corda, Fabric, Quorum or Besu network that has been created using the Blockchain Automation Framework. 
+This folder contains the files that are needed for the deployment of a Supplychain Application on a Corda, Fabric, Quorum or Besu network that has been created using Hyperledger Bevel. 
 
 ## Folder structure
 ```
@@ -23,7 +23,7 @@ supplychain-app
 
 ## Pre-requisites
 
-* A DLT network with 4 participants: Manufacturer, Carrier, Warehouse and Store. Built using BAF by following [these instructions](../../docs/source/operations/setting_dlt.md).
+* A DLT network with 4 participants: Manufacturer, Carrier, Warehouse and Store. Built using Hyperledger Bevel by following [these instructions](../../docs/source/operations/setting_dlt.md).
 * A Docker repository
 * A Google Maps API key
 
@@ -38,7 +38,7 @@ Build the following docker images from the respective folders and store in the d
 * supplychain_quorum:express_app_latest (from `examples/supplychain-app/quorum/express_nodeJs/` folder) for Quorum and Besu
 
 ### Step 2
-Edit the Supplychain application configuration file (from `examples\supplychain-app\configuration\samples` depnding on your choice of DLT Platform). This file will be similar to the BAF Configuration File which few additional changes like the `frontend: enabled` and `google_maps_api: XYZ123`, also the chart location must be `chart_source: "examples\supplychain-app\charts"`
+Edit the Supplychain application configuration file (from `examples\supplychain-app\configuration\samples` depnding on your choice of DLT Platform). This file will be similar to the Hyperledger Bevel Configuration File which few additional changes like the `frontend: enabled` and `google_maps_api: XYZ123`, also the chart location must be `chart_source: "examples\supplychain-app\charts"`
 
 ### Step 3
 Ensure that following are completed already:

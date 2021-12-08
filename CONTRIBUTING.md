@@ -1,33 +1,33 @@
 # Contributing
 
-Thank you for your interest to contribute to BAF!
+Thank you for your interest to contribute to Hyperledger Bevel!
 
-We welcome contributions to the Blockchain Automation Framework Project in many forms, and
+We welcome contributions to Hyperledger Bevel in many forms, and
 there's always plenty to do!
 
 First things first, please review the [Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct) before participating and please follow it in all your interactions with the project.
 
-You can contibute to BAF, as a user or/and as a developer.
+You can contibute to Hyperledger Bevel, as a user or/and as a developer.
 
 ##### As a user:
 
-[Making Feature/Enhancement Proposals](https://github.com/hyperledger-labs/blockchain-automation-framework/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=)   
-[Reporting bugs](https://github.com/hyperledger-labs/blockchain-automation-framework/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+[Making Feature/Enhancement Proposals](https://github.com/hyperledger/bevel/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=)   
+[Reporting bugs](https://github.com/hyperledger/bevel/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
 
 ##### As a developer:
 
-Consider picking up a [“help-wanted”](https://github.com/hyperledger-labs/blockchain-automation-framework/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) or ["good-first-issue"](https://github.com/hyperledger-labs/blockchain-automation-framework/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) task  
+Consider picking up a [“help-wanted”](https://github.com/hyperledger/bevel/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) or ["good-first-issue"](https://github.com/hyperledger/bevel/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) task  
 
-If you can commit to full-time/part-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework ) to work through logistics!
+If you can commit to full-time/part-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/bevel ) to work through logistics!
 
 Please visit the
-[Developer Guide](https://blockchain-automation-framework.readthedocs.io/en/latest/developerguide.html) in the docs to learn how to make contributions to this exciting project.
+[Developer Guide](https://hyperledger-bevel.readthedocs.io/en/latest/developerguide.html) in the docs to learn how to make contributions to this exciting project.
 
  #### Pull Request Process :
 
-For source code integrity , Blockchain Automation Framework GitHub pull requests are accepted from forked repositories only. There are also quality standards identified and documented here that will be enhanced over time.
+For source code integrity , Hyperledger Bevel GitHub pull requests are accepted from forked repositories only. There are also quality standards identified and documented here that will be enhanced over time.
 
-1. Fork BAF via Github UI.
+1. Fork Hyperledger Bevel via Github UI.
 2. Clone the fork to your local machine.
 3. Complete the desired changes and where possible test locally:
      - Go to `platforms/shared/configuration` directory

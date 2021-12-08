@@ -1,4 +1,4 @@
-package com.supplychain.baf
+package com.supplychain.bevel
 
 import net.corda.core.serialization.CordaSerializable
 import java.util.*

@@ -179,7 +179,7 @@ REM ############################################################################
 :GIT_BRANCH_CHECKPOINT
 REM Setting up of forked repo on local machine and checkout to a given branch ( defaulted to local)
 echo.
-echo Please fork the blockchain-automation-framework repository from browser and then continue ...
+echo Please fork the bevel repository from browser and then continue ...
 PAUSE
 echo.
 echo Generating key file for Git
@@ -199,12 +199,12 @@ if not defined REPO_URL goto REPO_URL_AGAIN
 git clone %REPO_URL%
 echo.
 set /p REPO_BRANCH=Enter branch(default is local): 
-chdir blockchain-automation-framework
+chdir bevel
 if NOT DEFINED REPO_BRANCH set "REPO_BRANCH=local"
 echo Ignore errors here, if any.
 echo.
-echo Syncing the develop branch with BAF develop branch.
-"C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout develop && git remote add upstream https://github.com/hyperledger-labs/blockchain-automation-framework.git && git fetch upstream develop"
+echo Syncing the develop branch with Hyperledger Bevel develop branch.
+"C:\Program Files\Git\bin\sh.exe" --login -i -c "git checkout develop && git remote add upstream https://github.com/hyperledger/bevel.git && git fetch upstream develop"
 "C:\Program Files\Git\bin\sh.exe" --login -i -c "git merge upstream/develop"
 if %ERRORLEVEL% == 1 (
   echo Errors while merging. Please fix them then do a git push and re-run the script

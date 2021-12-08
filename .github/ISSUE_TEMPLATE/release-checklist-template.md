@@ -1,6 +1,6 @@
 ---
 name: Release checklist template
-about: Create a Release checklist issue item for BAF releases
+about: Create a Release checklist issue item for Hyperledger Bevel releases
 title: ''
 ---
 # Relase Checklist

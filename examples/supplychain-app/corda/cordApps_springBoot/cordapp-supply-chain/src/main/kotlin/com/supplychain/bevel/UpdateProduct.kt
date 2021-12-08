@@ -1,10 +1,9 @@
-package com.supplychain.baf
+package com.supplychain.bevel
 
 import co.paralleluniverse.fibers.Suspendable
+import com.supplychain.bcc.contractstates.ProductState
 import com.supplychain.bcc.contractstates.SupplyChainContract
-import com.supplychain.bcc.contractstates.TrackableState
 import net.corda.core.flows.*
-import net.corda.core.identity.Party
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
@@ -20,7 +19,7 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC
-class ClaimTrackable(val trackingID: UUID) : FlowLogic<UUID>() {
+class UpdateProduct(val trackingID: UUID, val request: CreateProductRequest) : FlowLogic<UUID>() {
 
     companion object {
         object GETTING_COUNTERPARTIES: ProgressTracker.Step("Gathering the counterparties.")
@@ -51,19 +50,30 @@ class ClaimTrackable(val trackingID: UUID) : FlowLogic<UUID>() {
     override fun call() : UUID {
         progressTracker.currentStep = BUILD_TRANSACTION
 
-        val input = serviceHub.vaultService.queryBy<TrackableState>().states.find {
+        val input = serviceHub.vaultService.queryBy<ProductState>().states.find {
             it.state.data.trackingID == trackingID
-        } ?: throw IllegalArgumentException("No Trackable with ID $trackingID found.")
+        } ?: throw IllegalArgumentException("No Product with ID $request.trackingID found.")
 
         val timestamp = Timestamp(System.currentTimeMillis()).time
 
-        val output = input.state.data.withNewTracking(custodian = ourIdentity, timestamp = timestamp)
+        val output = ProductState(
+                input.state.data.productName,
+                request.health,
+                input.state.data.sold,
+                input.state.data.recalled,
+                request.misc,
+                ourIdentity,
+                trackingID,
+                timestamp,
+                participants = input.state.data.participants
+        )
+
         val notary = serviceHub.networkMapCache.getNotary(CordaX500Name.parse("O=Notary Service,OU=Notary,L=London,C=GB"))
                     ?: throw IllegalStateException("Notary not found on network")    
-        val txBuilder = TransactionBuilder(notary)        
+        val txBuilder = TransactionBuilder(notary)
                 .addInputState(input)
                 .addOutputState(output, SupplyChainContract.ID)
-                .addCommand(SupplyChainContract.Commands.ClaimTrackable(), output.participants.map { it.owningKey })
+                .addCommand(SupplyChainContract.Commands.UpdateProduct(), output.participants.map { it.owningKey })
 
         progressTracker.currentStep = VERIFY_TRANSACTION
         txBuilder.verify(serviceHub)
@@ -73,7 +83,7 @@ class ClaimTrackable(val trackingID: UUID) : FlowLogic<UUID>() {
 
         progressTracker.currentStep = COLLECT_COUNTERPARTY_SIG
         val participants = output.participants - ourIdentity
-        val flowSessions = participants.map { initiateFlow(it as Party) }
+        val flowSessions = participants.map { initiateFlow(it) }
         val stx = subFlow(CollectSignaturesFlow(tx, flowSessions))
 
         progressTracker.currentStep = FINALISE_TRANSACTION
@@ -83,8 +93,8 @@ class ClaimTrackable(val trackingID: UUID) : FlowLogic<UUID>() {
     }
 }
 
-@InitiatedBy(ClaimTrackable::class)
-open class ClaimTrackableResponder(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
+@InitiatedBy(UpdateProduct::class)
+open class UpdateProductResponder(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
 
     @Suspendable
     override fun call() : SignedTransaction {
