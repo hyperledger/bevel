@@ -45,7 +45,7 @@ The following diagram shows how Quorum peer nodes with Constellation TM will be 
 ![Figure: Quorum Components](../../images/hyperledger-bevel-quorum.png)
 
 ### Docker Images
-The Blockchain Automation Framework uses the officially published Quorum Docker images from [hub.docker.com](https://hub.docker.com/u/quorumengineering). The following Quorum Images are used by the Blockchain Automation Framework.
+Hyperledger Bevel uses the officially published Quorum Docker images from [hub.docker.com](https://hub.docker.com/u/quorumengineering). The following Quorum Images are used by Hyperledger Bevel.
 
 *  [quorum](https://hub.docker.com/r/quorumengineering/quorum) - Quorum Peer Node
 
@@ -71,7 +71,7 @@ Detailed information on helm charts can be referred [here](../developer/quorum-h
 
 ## Vault Configuration
 
-The Blockchain Automation Framework stores their `crypto` immediately in the Hashicorp Vault secrets engine.
+Hyperledger Bevel stores their `crypto` immediately in the Hashicorp Vault secrets engine.
 The crypto is stored by each organization under path `secretsv2/org_namespace` - it contains node keys, keystore, passwords, TM keys, and CA certificates for proxy connections.
 Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
 

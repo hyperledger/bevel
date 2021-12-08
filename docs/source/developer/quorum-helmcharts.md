@@ -5,7 +5,7 @@
 
 # Quorum Charts
 
-The structure below represents the Chart structure for Quorum components in the Blockchain Automation Framework implementation.
+The structure below represents the Chart structure for Quorum components in Hyperledger Bevel implementation.
 
 ```
 /quorum

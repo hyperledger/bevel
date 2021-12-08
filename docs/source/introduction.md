@@ -23,19 +23,19 @@ Therefore, when blockchain developers are asked to use an unfamiliar DLT/Blockch
 
 Being aware of the potential difficulty and complexity of getting a production-scale DLT/Blockchain network ready, cloud vendors such as AWS and Azure have provisioned their own managed Blockchain services (aka Blockchain as a Service or BaaS) to help alleviate various pain-points during the process. However, limitations can still be identified in their BaaS solutions, e.g. limited network size, locked to all nodes on a single cloud provider, or limited choice of DLT/Blockchain platform, etc.
 
-## **The Blockchain Automation Framework (BAF) Platform**
-The objective of BAF is to provide a consistent means by which developers can deploy production-ready distributed networks across public and private cloud providers. This enables developers to focus on building business applications quickly, knowing that the framework upon which they are building can be adopted by an enterprise IT production operations organization. BAF is not intended solely to quickly provision development environments which can be done more efficiently with other projects/scripts. Likewise, Blockchain Automation Framework is not intended to replace BaaS offerings in the market, but instead, BAF is an alternative when existing BaaS offerings do not support a consortium's current set of requirements. 
+## **Hyperledger Bevel  Platform**
+The objective of Bevel is to provide a consistent means by which developers can deploy production-ready distributed networks across public and private cloud providers. This enables developers to focus on building business applications quickly, knowing that the framework upon which they are building can be adopted by an enterprise IT production operations organization. Bevel is not intended solely to quickly provision development environments which can be done more efficiently with other projects/scripts. Likewise, Hyperledger Bevel is not intended to replace BaaS offerings in the market, but instead, Bevel is an alternative when existing BaaS offerings do not support a consortium's current set of requirements. 
 
 ![](../images/hyperledger-bevel-overview.png)
 
 ## **How is it different from other BaaS?**
-- The Blockchain Automation Framework deployment scripts can be reused across cloud providers like AWS, Azure, GCP, DigitalOcean and OpenShift
+- Hyperledger Bevel deployment scripts can be reused across cloud providers like AWS, Azure, GCP, DigitalOcean and OpenShift
 - Can deploy networks and smart contracts across different DLT/Blockchain platforms
 - Supports heterogeneous deployments in a multi-cloud, multi-owner model where each node is completely owned and managed by separate organizations
 - Bring Your Own Infrastructure (BYOI) - You provide GIT, Kubernetes cluster(s), and Hashicorp Vault services provisioned to meet your specific requirements and enterprise standards
 - No network size limit
-- Specifies only the number of organizations and the number of nodes per organization in a [network.yaml file](./operations/fabric_networkyaml.md) uniquely designed in the Blockchain Automation Framework for a new DLT/Blockchain network set-up and its future maintenance
+- Specifies only the number of organizations and the number of nodes per organization in a [network.yaml file](./operations/fabric_networkyaml.md) uniquely designed in Hyperledger Bevel for a new DLT/Blockchain network set-up and its future maintenance
 - Provides a sample supply chain application which runs on multiple DLT/Blockchain platforms that can be used as a reference pattern for how to safely abstract application logic from the underlying DLT/Blockchain platform
 
 ### What next?
- We have been actively searching for partners who need  and understand the value of Blockchain Automation Framework, who share the vision of building and owning well architected solutions. We wish to work together so as to identify the market needs for those partners, to further reduce the barriers in adoption.
+ We have been actively searching for partners who need  and understand the value of Hyperledger Bevel, who share the vision of building and owning well architected solutions. We wish to work together so as to identify the market needs for those partners, to further reduce the barriers in adoption.

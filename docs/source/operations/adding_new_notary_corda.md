@@ -21,14 +21,14 @@ To overcome this, we have created an Ansible playbook. The playbook will update 
 To add a new Notary organization, Corda Idman and Networkmap services should already be running. The public certificates and NetworkTrustStore from Idman and Networkmap should be available and specified in the configuration file. 
 
 ---
-**NOTE**: Addition of a new Notary organization has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
+**NOTE**: Addition of a new Notary organization has been tested on an existing network which is created by Bevel. Networks created using other methods may be suitable but this has not been tested by Bevel team.
 
 ---
 
 <a name = "deploy-new-notary-service"></a>
 ## Deploy new Notary Service
 
-Deploy the additional notary/notaries as separate organizations by following the guidance on [how to add new organizations here](./adding_new_org_corda.md). A sample network.yaml for adding new notary orgs can be found [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/develop/platforms/r3-corda-ent/configuration/samples).
+Deploy the additional notary/notaries as separate organizations by following the guidance on [how to add new organizations here](./adding_new_org_corda.md). A sample network.yaml for adding new notary orgs can be found [here](https://github.com/hyperledger/bevel/tree/develop/platforms/r3-corda-ent/configuration/samples).
 
 <a name = "run-playbook"></a>
 ## Run Playbook

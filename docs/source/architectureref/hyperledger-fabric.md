@@ -55,7 +55,7 @@ The following diagram shows how Hyperledger Fabric orderer will be deployed on y
 
 ### Docker Images
 
-The Blockchain Automation Framework uses the officially published Hyperledger Fabric Docker images from [hub.docker.com](https://hub.docker.com/search?q=hyperledger%2Ffabric&type=image). The following Hyperledger Fabric Docker Images are used by the Blockchain Automation Framework.
+Hyperledger Bevel uses the officially published Hyperledger Fabric Docker images from [hub.docker.com](https://hub.docker.com/search?q=hyperledger%2Ffabric&type=image). The following Hyperledger Fabric Docker Images are used by Hyperledger Bevel.
 
 *  [fabric-ca](https://hub.docker.com/r/hyperledger/fabric-ca) - Hyperledger Fabric Certificate Authority
 
@@ -82,7 +82,7 @@ Detailed information on helm charts can be referred [here](../developer/fabric-h
 
 ## Vault Configuration
 
-The Blockchain Automation Framework stores their `crypto` and `credentials` immediately within the secret secrets engine.
+Hyperledger Bevel stores their `crypto` and `credentials` immediately within the secret secrets engine.
 Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
 
 | Crypto Material Path | Credentials Path |

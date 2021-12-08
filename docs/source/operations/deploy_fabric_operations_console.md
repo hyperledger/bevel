@@ -15,7 +15,7 @@
 The [Fabric Operations Console](https://github.com/hyperledger-labs/fabric-operations-console) can be deployed along with the Fabric Network. 
 You can then manually add peers, orderers, CA to the console by importing appropriate JSON files.
 
-The Helm Chart for Fabric Operations Console is available [here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-fabric/charts/operations_console).
+The Helm Chart for Fabric Operations Console is available [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/operations_console).
 
 If you want to create the JSON files automatically by using our ansible playbook, the CA server endpoint should be accessible publicly and that endpoint details added in `organization.ca_data.url`.
 
@@ -27,14 +27,14 @@ If you want to create the JSON files automatically by using our ansible playbook
 <a name = "modifying-configuration-file"></a>
 ## Modifying Configuration File
 
-A Sample configuration file for deploying Operations Console is available [here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft.yaml). Main change being addition of a new key `organization.fabric_console` which when `enabled` will deploy the operations console for the organization.
+A Sample configuration file for deploying Operations Console is available [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft.yaml). Main change being addition of a new key `organization.fabric_console` which when `enabled` will deploy the operations console for the organization.
 
 For generic instructions on the Fabric configuration file, refer [this guide](./fabric_networkyaml.md).
 
 <a name = "run-playbook"></a>
 ## Run playbook
 
-The [deploy-fabric-console.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/deploy-fabric-console.yaml) playbook should be used to automatically generate the JSON files and deploy the console. This can be done using the following command
+The [deploy-fabric-console.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/deploy-fabric-console.yaml) playbook should be used to automatically generate the JSON files and deploy the console. This can be done using the following command
 
 ```
 ansible-playbook platforms/hyperledger-fabric/configuration/deploy-fabric-console.yaml --extra-vars "@/path/to/network.yaml"

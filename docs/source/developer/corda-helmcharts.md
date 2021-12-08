@@ -5,7 +5,7 @@
 
 # Corda Charts
 
-The structure below represents the Chart structure for R3 Corda components in the Blockchain Automation Framework 
+The structure below represents the Chart structure for R3 Corda components in Hyperledger Bevel 
 implementation.
 
 ```
