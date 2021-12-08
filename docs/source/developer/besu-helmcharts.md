@@ -5,7 +5,7 @@
 
 # Hyperledger Besu Charts
 
-The structure below represents the Chart structure for Hyperledger Besu components in the Blockchain Automation Framework implementation.
+The structure below represents the Chart structure for Hyperledger Besu components in Hyperledger Bevel implementation.
 
 ```
 |hyperledger-besu

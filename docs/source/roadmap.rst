@@ -1,10 +1,10 @@
-BAF current roadmap
-===================
+Bevel current roadmap
+=====================
 
 .. mermaid::
 
    gantt
-    title BAF current roadmap
+    title Bevel current roadmap
     dateFormat  YY-MM-DD
     section Platform
     Platforms and components upgrade : active, 21-09-01, 180d
@@ -56,7 +56,7 @@ General
 -  |run| Platforms and components upgrade:
     - |tick| Helm3 upgrade
     - |tick| Ambassador upgrade to 1.9.1
-    - |tick| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric
+    - |tick| Complete molecule test scenarios for Bevel R3 Corda OS and HL Fabric
     - |tick| Support for HashiCorp vault kv version 2
     - |run| Flux version 2 upgrade
     - |pin| Test and update platforms code to run on EKS v1.21 

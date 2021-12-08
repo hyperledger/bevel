@@ -7,14 +7,14 @@
 # Adding a new validator organization in Indy
 
   - [Prerequisites](#prerequisites)
-  - [Add a new validator organization to a BAF managed network](#add-new-org-baf)
-    - [Create Configuration File](#create-configuration-file-baf)
-    - [Run playbook](#run-playbook-baf)
-  - [Add a new validator organization to network managed outside of BAF](#add-new-org-non-baf)
-    - [Create Configuration File](#create-configuration-file-non-baf)
-    - [Run playbook up-to genesis config map creation](#run-playbook-up-to-config-map-non-baf)
-    - [Provide public STEWARD identity crypto to network manager](#provide-public-crypto-non-baf)
-    - [Run rest of playbook](#run-rest-playbook-non-baf)
+  - [Add a new validator organization to a Bevel managed network](#add-new-org-bevel)
+    - [Create Configuration File](#create-configuration-file-bevel)
+    - [Run playbook](#run-playbook-bevel)
+  - [Add a new validator organization to network managed outside of Bevel](#add-new-org-non-bevel)
+    - [Create Configuration File](#create-configuration-file-non-bevel)
+    - [Run playbook up-to genesis config map creation](#run-playbook-up-to-config-map-non-bevel)
+    - [Provide public STEWARD identity crypto to network manager](#provide-public-crypto-non-bevel)
+    - [Run rest of playbook](#run-rest-playbook-non-bevel)
 
 <a name = "prerequisites"></a>
 ## Prerequisites
@@ -26,10 +26,10 @@ To add a new organization in Indy, an existing Indy network should be running, p
 
 ---
 
-<a name = "add-new-org-baf"></a>
-## Add a new validator organization to a BAF managed network
+<a name = "add-new-org-bevel"></a>
+## Add a new validator organization to a Bevel managed network
 
-<a name = "create-configuration-file-baf"></a>
+<a name = "create-configuration-file-bevel"></a>
 ### Create Configuration File
 
 Refer [this guide](./indy_networkyaml.md) for details on editing the configuration file.
@@ -40,11 +40,11 @@ The `network.yaml` file should contain the specific `network.organization` detai
 **NOTE**: If you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
 
 ---
-For reference, sample `network.yaml` file looks like below (but always check the latest network-indy-newnode-to-baf-network.yaml at `platforms/hyperledger-indy/configuration/samples`):
+For reference, sample `network.yaml` file looks like below (but always check the latest network-indy-newnode-to-bevel-network.yaml at `platforms/hyperledger-indy/configuration/samples`):
 
 ```
 ---
-# This is a sample configuration file for hyperledger indy which can be reused for adding of new org with 1 validator node to a fully BAF managed network.
+# This is a sample configuration file for hyperledger indy which can be reused for adding of new org with 1 validator node to a fully Bevel managed network.
 # It has 2 organizations:
 # 1. existing organization "university" with 1 trustee, 4 stewards and 1 endorser
 # 2. new organization "bank" with 1 trustee, 1 steward and 1 endorser
@@ -76,7 +76,7 @@ network:
     password: "docker_password"
 
   # It's used as the Indy network name (has impact e.g. on paths where the Indy nodes look for crypto files on their local filesystem)
-  name: baf
+  name: bevel
 
   # Information about pool transaction genesis and domain transactions genesis
   # All the fields below in the genesis section are MANDATORY
@@ -119,11 +119,11 @@ network:
     # Do not check-in git_access_token
     gitops:
       git_protocol: "https" # Option for git over https or ssh
-      git_url: "https://github.com/<username>/blockchain-automation-framework.git"                 # Gitops https or ssh url for flux value files
+      git_url: "https://github.com/<username>/bevel.git"                 # Gitops https or ssh url for flux value files
       branch: "develop"                   # Git branch where release is being made
       release_dir: "platforms/hyperledger-indy/releases/dev"         # Relative Path in the Git repo for flux sync per environment.
       chart_source: "platforms/hyperledger-indy/charts"             # Relative Path where the Helm charts are stored in Git repo
-      git_repo: "github.com/<username>/blockchain-automation-framework.git"           # Gitops git repository URL for git push
+      git_repo: "github.com/<username>/bevel.git"           # Gitops git repository URL for git push
       username: "git_username"                  # Git Service user who has rights to check-in in all branches
       password: "git_access_token"                  # Git Server user password
       email: "git@email.com"                        # Email to use in git config
@@ -233,11 +233,11 @@ network:
     # Do not check-in git_access_token
     gitops:
       git_protocol: "https" # Option for git over https or ssh
-      git_url: "https://github.com/<username>/blockchain-automation-framework.git"                   # Gitops https or ssh url for flux value files
+      git_url: "https://github.com/<username>/bevel.git"                   # Gitops https or ssh url for flux value files
       branch: "develop"                     # Git branch where release is being made
       release_dir: "platforms/hyperledger-indy/releases/dev"           # Relative Path in the Git repo for flux sync per environment.
       chart_source: "platforms/hyperledger-indy/charts"               # Relative Path where the Helm charts are stored in Git repo
-      git_repo: "github.com/<username>/blockchain-automation-framework.git"             # Gitops git repository URL for git push
+      git_repo: "github.com/<username>/bevel.git"             # Gitops git repository URL for git push
       username: "git_username"                    # Git Service user who has rights to check-in in all branches
       password: "git_access_token"                    # Git Server user password
       email: "git@email.com"                          # Email to use in git config
@@ -283,30 +283,30 @@ Following items must be added/updated to the network.yaml used to add new organi
 
 Also, ensure that `organization.org_status` is set to `existing` for existing orgs and `new` for the new org.
 
-<a name = "run-playbook-baf"></a>
+<a name = "run-playbook-bevel"></a>
 ### Run playbook
 
-The [add-new-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used to add a new organization to the existing BAF managed network by running the following command
+The [add-new-organization.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used to add a new organization to the existing Bevel managed network by running the following command
 
 ```
 ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@path-to-network.yaml"
 ```
 
-<a name = "add-new-org-non-baf"></a>
-## Add a new validator organization to network managed outside of BAF
+<a name = "add-new-org-non-bevel"></a>
+## Add a new validator organization to network managed outside of Bevel
 
-<a name = "create-configuration-file-non-baf"></a>
+<a name = "create-configuration-file-non-bevel"></a>
 ### Create Configuration File
 
 Refer [this guide](./indy_networkyaml.md) for details on editing the configuration file.
 
 The `network.yaml` file should contain the specific `network.organization` details.
 
-For reference, sample `network.yaml` file looks like below (but always check the latest network-indy-newnode-to-non-baf-network.yaml at `platforms/hyperledger-indy/configuration/samples`):
+For reference, sample `network.yaml` file looks like below (but always check the latest network-indy-newnode-to-non-bevel-network.yaml at `platforms/hyperledger-indy/configuration/samples`):
 
 ```
 ---
-# This is a sample configuration file for hyperledger indy which can be reused for adding of new org with 1 validator node to an existing non-BAF managed network.
+# This is a sample configuration file for hyperledger indy which can be reused for adding of new org with 1 validator node to an existing non-Bevel managed network.
 # It has 1 organization:
 # - new organization "bank" with 1 steward and 1 endorser
 
@@ -337,7 +337,7 @@ network:
     password: "docker_password"
 
   # It's used as the Indy network name (has impact e.g. on paths where the Indy nodes look for crypto files on their local filesystem)
-  name: baf
+  name: bevel
 
   # Information about pool transaction genesis and domain transactions genesis
   # All the fields below in the genesis section are MANDATORY
@@ -380,11 +380,11 @@ network:
     # Do not check-in git_access_token
     gitops:
       git_protocol: "https" # Option for git over https or ssh
-      git_url: "https://github.com/<username>/blockchain-automation-framework.git"                   # Gitops https or ssh url for flux value files
+      git_url: "https://github.com/<username>/bevel.git"                   # Gitops https or ssh url for flux value files
       branch: "develop"                     # Git branch where release is being made
       release_dir: "platforms/hyperledger-indy/releases/dev"           # Relative Path in the Git repo for flux sync per environment.
       chart_source: "platforms/hyperledger-indy/charts"               # Relative Path where the Helm charts are stored in Git repo
-      git_repo: "github.com/<username>/blockchain-automation-framework.git"             # Gitops git repository URL for git push
+      git_repo: "github.com/<username>/bevel.git"             # Gitops git repository URL for git push
       username: "git_username"                    # Git Service user who has rights to check-in in all branches
       password: "git_access_token"                    # Git Server user password
       email: "git@email.com"                          # Email to use in git config
@@ -426,10 +426,10 @@ Following items must be added/updated to the network.yaml used to add new organi
 
 Also, ensure that `organization.org_status` is set to `new` for the new org.
 
-<a name = "run-playbook-up-to-config-map-non-baf"></a>
+<a name = "run-playbook-up-to-config-map-non-bevel"></a>
 ### Run playbook up-to genesis config map creation
 
-The [add-new-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used with additional parameters specifying that a TRUSTEE identity is not present in the network configuration file and also NYMs (identities) of the new organization are not yet present on the domain ledger. This is achieved by running the following command
+The [add-new-organization.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used with additional parameters specifying that a TRUSTEE identity is not present in the network configuration file and also NYMs (identities) of the new organization are not yet present on the domain ledger. This is achieved by running the following command
 
 ```
 ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@path-to-network.yaml" \
@@ -437,7 +437,7 @@ ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@p
                                                                           -e "add_new_org_new_nyms_on_ledger_present=false"
 ```
 
-<a name = "provide-public-crypto-non-baf"></a>
+<a name = "provide-public-crypto-non-bevel"></a>
 ### Provide public STEWARD identity crypto to network manager
 
 Share the following public crypto with an organization admin (TRUSTEE identity owner), check full Vault structure [here](../architectureref/certificates_path_list_indy.md).
@@ -449,10 +449,10 @@ Share the following public crypto with an organization admin (TRUSTEE identity o
 
 Please wait for the organization admin to confirm that the identity has been added to the domain ledger with a STEWARD role until you proceed with the final step.
 
-<a name = "run-rest-playbook-non-baf"></a>
+<a name = "run-rest-playbook-non-bevel"></a>
 ### Run rest of playbook
 
-The [add-new-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used with additional parameters specifying that a TRUSTEE identity is not present in the network configuration file and also NYMs (identities) of the new organization are already present on the domain ledger. This is achieved by running the following command
+The [add-new-organization.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used with additional parameters specifying that a TRUSTEE identity is not present in the network configuration file and also NYMs (identities) of the new organization are already present on the domain ledger. This is achieved by running the following command
 
 ```
 ansible-playbook platforms/shared/configuration/add-new-organization.yaml -e "@path-to-network.yaml" \

@@ -5,7 +5,7 @@
 
 # Hyperledger Fabric Charts
 
-The structure below represents the Chart structure for Hyperledger fabric components in the Blockchain Automation Framework implementation.
+The structure below represents the Chart structure for Hyperledger fabric components in Hyperledger Bevel implementation.
 
 ```
 /hyperledger-fabric

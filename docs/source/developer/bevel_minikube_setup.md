@@ -3,33 +3,33 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# Running BAF DLT network on Minikube
+# Running Bevel DLT network on Minikube
 
 ## Pre-requisites
 
-Before proceeding, first make sure that you've completed [Developer Pre-requisites](https://blockchain-automation-framework.readthedocs.io/en/develop/developer/dev_prereq.html).
+Before proceeding, first make sure that you've completed [Developer Pre-requisites](https://hyperledger-bevel.readthedocs.io/en/develop/developer/dev_prereq.html).
 
 ## Clone forked repo
 
-1. If you have not already done so, fork [blockchain-automation-framework](https://github.com/hyperledger-labs/blockchain-automation-framework) and clone the forked repo to your machine.
+1. If you have not already done so, fork [bevel](https://github.com/hyperledger/bevel) and clone the forked repo to your machine.
 
    ```bash
    cd ~/project
-   git clone git@github.com:<githubuser>/blockchain-automation-framework.git
+   git clone git@github.com:<githubuser>/bevel.git
    ```
 
 1. Add a “local” branch to your machine
    ```bash
-   cd ~/project/blockchain-automation-framework
+   cd ~/project/bevel
    git checkout -b local
    git push --set-upstream origin local
    ```
 
 ## Update kubeconfig file
 
-1. Create a `build` folder inside your BAF repository:
+1. Create a `build` folder inside your Bevel repository:
    ```bash
-   cd ~/project/blockchain-automation-framework
+   cd ~/project/bevel
    mkdir build
    ```
 1. Copy ca.crt, client.key, client.crt from `~/.minikube` to build:
@@ -76,7 +76,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
    eval $('docker-machine.exe' env)
    ```
    <a name = "windows_mount"></a>
-1. Mount windows local folder (blockchain-automation-framework folder) to VirtualBox docker VM ( the machine named “default” by default) from right-click menu, Settings -> Shared Folders. All paths in network.yaml should be the mounted path. Shut down and restart the "default" machine after this.
+1. Mount windows local folder (bevel folder) to VirtualBox docker VM ( the machine named “default” by default) from right-click menu, Settings -> Shared Folders. All paths in network.yaml should be the mounted path. Shut down and restart the "default" machine after this.
 
    ![](./../_static/virtualbox-mountfolder.png)
 
@@ -85,7 +85,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 1. Choose the DLT/Blockchain platform you want to run and copy the relevant sample network.yaml to build folder; rename it to network.yaml.
 
    ```bash
-   cd ~/project/blockchain-automation-framework
+   cd ~/project/bevel
    cp platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml build/network.yaml
    ```
 
@@ -103,8 +103,8 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
      url: "http://<Your Vault local IP address>:8200" # Use the local IP address rather than localhost e.g. http://192.168.0.1:8200
      root_token: "<your vault_root_token>"
    gitops:
-     git_url: "<https/ssh url of your forked repo>" #e.g. "https://github.com/hyperledger-labs/blockchain-automation-framework.git"
-     git_repo: "<https url of your forked repo without the https://>" #e.g. "github.com/hyperledger-labs/blockchain-automation-framework.git"
+     git_url: "<https/ssh url of your forked repo>" #e.g. "https://github.com/hyperledger/bevel.git"
+     git_repo: "<https url of your forked repo without the https://>" #e.g. "github.com/hyperledger/bevel.git"
      username: "<github_username>"
      password: "<github token/password>"
      email: "<github_email>"
@@ -155,16 +155,16 @@ minikube status
 vault status
 ```
 
-Now run the following to deploy BAF Fabric on minikube:
+Now run the following to deploy Bevel Fabric on minikube:
 
 ```bash
-docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/bevel/ hyperledgerlabs/baf-build
 ```
 
 Windows users should use following (make sure that the local volume was mounted as per [this step](#windows_mount)):
 
 ```bash
-docker run -it -v /blockchain-automation-framework:/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+docker run -it -v /bevel:/home/bevel/ hyperledgerlabs/baf-build
 ```
 
 Meanwhile you can also check if pods are being deployed:
@@ -193,6 +193,6 @@ This is because you have not removed the absolute paths to the certificates in `
 
 This is because docker isn't running. To start it, just close all the instances of  Docker Quickstart Terminal and open again.
 
-**`ERROR! the playbook: /home/blockchain-automation-framework/platforms/shared/configuration/site.yaml could not be found`**
+**`ERROR! the playbook: /home/bevel/platforms/shared/configuration/site.yaml could not be found`**
 
-This is because the blockchain-automation-framework repository isn't mounted to the default VM. Check [this step](#windows_mount).
+This is because the bevel repository isn't mounted to the default VM. Check [this step](#windows_mount).
