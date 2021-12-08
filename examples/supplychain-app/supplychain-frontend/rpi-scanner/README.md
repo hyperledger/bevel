@@ -6,7 +6,7 @@
 # Using Raspberry Pi device to interface with AWS Deployment
 
 ## Introduction
-The Blockchain Automation Framework has a sample supplychain application deployed via express-NodeJS and is exposed on a few endpoints. The available endpoints are as follows:
+Hyperledger Bevel has a sample supplychain application deployed via express-NodeJS and is exposed on a few endpoints. The available endpoints are as follows:
 
 ### User application
 Manufacturer: https://partya.blockchaincloudpoc.com

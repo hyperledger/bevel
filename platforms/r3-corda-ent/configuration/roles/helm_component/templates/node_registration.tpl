@@ -59,7 +59,7 @@ spec:
         p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
 {% endif %}
       legalName: "{{ peer.subject }}"
-      emailAddress: dev-node@baf.com
+      emailAddress: dev-node@bevel.com
       crlCheckSoftFail: true
       tlsCertCrlDistPoint: ""
       tlsCertCrlIssuer: "{{ network | json_query('network_services[?type==`idman`].crlissuer_subject') | first }}"

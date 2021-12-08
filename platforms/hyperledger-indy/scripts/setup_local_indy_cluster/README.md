@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-## Blockchain Automation Framework Indy
+## Hyperledger Bevel Indy
 ### Setup Hyperledger Indy Cluster on Local
 
 Follow the steps to setup a Hyperledger Indy cluster( with 4 nodes) on your local machine.

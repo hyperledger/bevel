@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-## Blockchain Automation Framework Indy scripts
+## Hyperledger Bevel Indy scripts
 
 The following scripts does the following:
 - Setup a Hyperledger Indy cluster( with 4 nodes) on your machine.

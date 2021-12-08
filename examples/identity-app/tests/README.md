@@ -6,11 +6,11 @@
 # Tests
 
 ## About
-This folder contains the files that are needed for the integration test of a Identity Application on an Indy network that has been created using the Blockchain Automation Framework. 
+This folder contains the files that are needed for the integration test of a Identity Application on an Indy network that has been created using Hyperledger Bevel. 
 
 ## Pre-requisites
 
-* A Indy network and Faber and Alice Agents built using BAF by following [these instructions](../README.md).
+* A Indy network and Faber and Alice Agents built using Hyperledger Bevel by following [these instructions](../README.md).
 * The Faber and Alice Agents' API endpoints are accessible.
 
 ## Test Identity Application
