@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # **Kubernetes Services** 
 
 ## **Container**
@@ -16,15 +21,15 @@ A cluster of containers is grouped by one or more running containers serving dif
 ## **Managed Kubernetes Services**
 The open-source K8s services requires technicians to set up an underlying infrastructure and all initial K8s clusters, but the setting-up process is normally time-consuming and error-prone. This is why K8s is well known for its deep learning curves. To alleviate this complex process for users, many Cloud service providers such as [AWS](https://aws.amazon.com/eks/), [Azure](https://azure.microsoft.com/en-gb/services/kubernetes-service/), [GCP](https://cloud.google.com/kubernetes-engine/) and [DO](https://cloud.digitalocean.com/kubernetes/), have provisioned their own Managed K8s Services.
 
-The Blockchain Automation Framework leverages Kubernetes' various features for deploying a DLT/Blockchain network along with other required services in one or more K8s clusters. All the current functions have been tested on Amazon K8s Services (AKS) as a managed K8s service, but in theory they should work on a non-managed K8s service as well.
+Hyperledger Bevel leverages Kubernetes' various features for deploying a DLT/Blockchain network along with other required services in one or more K8s clusters. All the current functions have been tested on Amazon K8s Services (AKS) as a managed K8s service, but in theory they should work on a non-managed K8s service as well.
 
 <br>
 
 ## **Ambassador**
 [Ambassador](https://www.getambassador.io/about/why-ambassador/) is an open-source microservices API gateway designed for K8s.
 
-The Blockchain Automation Framework uses Ambassador to route traffic amongst multiple K8s clusters. For each K8s cluster, an Ambassador Loadbalancer Service will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map the public IP of the Ambassador Service to a DNS name for each cluster. 
-Optionally, you can configure [External-DNS](https://github.com/kubernetes-sigs/external-dns) on the cluster and map the routes automatically. Automatic updation of routes via External DNS is supported from BAF 0.3.0.0 onwards. 
+Hyperledger Bevel uses Ambassador to route traffic amongst multiple K8s clusters. For each K8s cluster, an Ambassador Loadbalancer Service will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map the public IP of the Ambassador Service to a DNS name for each cluster. 
+Optionally, you can configure [External-DNS](https://github.com/kubernetes-sigs/external-dns) on the cluster and map the routes automatically. Automatic updation of routes via External DNS is supported from Bevel 0.3.0.0 onwards. 
 
 A simplistic view of how Ambassador works is as follows:
 
@@ -38,10 +43,10 @@ If a pod in Cluster1 wants to reach a target pod in Cluster2, it will just use t
 <br>
 
 ## **HAProxy Ingress**
-[HAProxy Ingress](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) is another way of routing traffic from outside your cluster to services within the cluster. This is implemented in BAF Fabric from Release 0.3.0.0 onwards as we were unable to configure Ambassador to do ssl-passthrough for GRPC.
+[HAProxy Ingress](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) is another way of routing traffic from outside your cluster to services within the cluster. This is implemented in Bevel Fabric from Release 0.3.0.0 onwards as we were unable to configure Ambassador to do ssl-passthrough for GRPC.
 
-In BAF, HAProxy Ingress does the same thing as Ambassador does i.e. it routes traffic amongst multiple K8s clusters. For each K8s cluster, an HAProxy Ingress Loadbalancer Service will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map the public IP of the HAProxy Service to a DNS name for each cluster. 
-Optionally, you can configure [External-DNS](https://github.com/kubernetes-sigs/external-dns) on the cluster and map the routes automatically. Automatic updation of routes via External DNS is supported from BAF 0.3.0.0 onwards. 
+In Bevel, HAProxy Ingress does the same thing as Ambassador does i.e. it routes traffic amongst multiple K8s clusters. For each K8s cluster, an HAProxy Ingress Loadbalancer Service will be created to sit inside it. A user has to manually use a DNS server (e.g. AWS Route53) to map the public IP of the HAProxy Service to a DNS name for each cluster. 
+Optionally, you can configure [External-DNS](https://github.com/kubernetes-sigs/external-dns) on the cluster and map the routes automatically. Automatic updation of routes via External DNS is supported from Bevel 0.3.0.0 onwards. 
 
 ---
 **NOTE:** If only one cluster is used in a DLT/Blockchain network, HAProxy may not be needed, but it will still be installed (if chosen).

@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Corda Configurations
 
-In the Blockchain Automation Framework project, ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks. 
+In Hyperledger Bevel project, ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks. 
 Ansible playbooks contains a series of roles and tasks which run in sequential order to achieve the automation.
 ```
 /r3-corda
@@ -52,7 +57,7 @@ This is the main ansible playbook which call all the roles in below sequence to 
 * Remove build directory
 
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration) for detailed information.
 
 Below are the roles that deploy_network playbook calls to complete the setup process.
 ## **setup/nms**
@@ -61,18 +66,18 @@ Below are the roles that deploy_network playbook calls to complete the setup pro
 * Create nms helm value files
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/roles/setup/nms) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/roles/setup/nms) for detailed information.
 ## **setup/doorman**
 
 * Perform all the prerequisites (namespace, Vault auth, rbac, imagepullsecret)
 * Create doorman and mongodb helm value files
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/roles/setup/doorman) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/roles/setup/doorman) for detailed information.
 ## **create/certificates**
 * Generate root certificates for doorman and nms
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/roles/create/certificates) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/roles/create/certificates) for detailed information.
 ## **setup/notary**
 * Perform all the prerequisites (namespace, Vault auth, rbac, imagepullsecret)
 * Get crypto from doorman/nms, store in Vault
@@ -81,7 +86,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create notary value files
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/roles/setup/notary) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/roles/setup/notary) for detailed information.
 ## **setup/node**
 * Perform all the prerequisites (namespace, Vault auth, rbac, imagepullsecret)
 * Get crypto from doorman/nms, store in Vault
@@ -90,19 +95,19 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create node value files
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/roles/setup/node) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/roles/setup/node) for detailed information.
 
 ## **deploy/cordapps**
 
 * Deploy cordapps into each node and notary
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/roles/deploy/cordapps) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/roles/deploy/cordapps) for detailed information.
 
 ## **setup/springboot_services**
 * Create springboot webserver helm value files for each node
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/roles/setup/springboot_services) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/roles/setup/springboot_services) for detailed information.
 
 ## **setup/get_crypto**
 * Ensure admincerts directory exists
@@ -112,4 +117,4 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Save root cert
 * Save root key
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/roles/setup/get_crypto) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/roles/setup/get_crypto) for detailed information.

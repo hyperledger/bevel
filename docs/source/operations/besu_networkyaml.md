@@ -1,5 +1,10 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Configuration file specification: Hyperledger Besu
-A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Hyperledger Besu DLT/Blockchain network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
+A network.yaml file is the base configuration file designed in Hyperledger Bevel for setting up a Hyperledger Besu DLT/Blockchain network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
 ![](./../_static/TopLevelClass-Besu.png)
 
 Before setting up a Hyperledger Besu DLT/Blockchain network, this file needs to be updated with the required specifications.  
@@ -60,7 +65,7 @@ The fields under `env` section are
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Hyperledger Besu |
 | ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
-| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
+| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -106,7 +111,7 @@ The snapshot of the `config` section with example values is below
     # Tls trust value
     tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## File location for saving the genesis file should be provided.
-    genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
+    genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be saved
     ## At least one Transaction Manager nodes public addresses should be provided.
     #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15022" for orion
     #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
@@ -190,11 +195,11 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops htpps or ssh url for flux value files
+        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-besu/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # without https://
+        git_repo: "github.com/<username>/bevel.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
         password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
         email: "<git_email>"              # Email to use in git config
@@ -210,7 +215,7 @@ The gitops field under each organization contains
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
 | password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)  |
 | email                                | Email of the user to be used in git config                                                                       |
@@ -284,7 +289,7 @@ The peer in an organization with type as `member` can be used to deploy the smar
           # smartcontract to be deployed only from one node (should not be repeated in other nodes)
           smart_contract:
             name: "General"           # Name of the smart contract or Name of the main Smart contract Class
-            deployjs_path: "examples/supplychain-app/besu/smartContracts" # location of folder containing deployment script from BAF directory
+            deployjs_path: "examples/supplychain-app/besu/smartContracts" # location of folder containing deployment script from Bevel directory
             contract_path: "../../besu/smartContracts/contracts"       # Path of the smart contract folder relative to deployjs_path
             iterations: 200           # Number of Iteration of execution to which the gas and the code is optimised
             entrypoint: "General.sol" # Main entrypoint solidity file of the contract 
@@ -296,7 +301,7 @@ The additional fields under `peer` service are
 |-------------|----------------------------------------------------------|
 | geth_url  | RPC url for the `besu` node  |
 | smart_contract.name | Name of the main smartcontract class  |
-| smart_contract.deployjs_path | location of folder containing deployment script relative to BAF directory  |
+| smart_contract.deployjs_path | location of folder containing deployment script relative to Bevel directory  |
 | smart_contract.contract_path | Path of the smart contract folder relative to deployjs_path  |
 | smart_contract.iterations | Number of Iteration of executions for which the gas and the code is optimised  |
 | smart_contract.entrypoint | Main entrypoint solidity file of the smart contract   |

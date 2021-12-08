@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -30,6 +36,10 @@ spec:
           env:
           - name: VAULT_ADDR
             value: {{ $.Values.vault.address }}
+          - name: VAULT_KEY_PREFIX
+            value: "{{ $.Values.vault.keyprefix }}" 
+          - name: PEER_NAME
+            value: {{ $.Values.peer.name }}            
           - name: KUBERNETES_AUTH_PATH
             value: {{ $.Values.vault.authpath }}
           - name: VAULT_APP_ROLE
@@ -65,28 +75,13 @@ spec:
 
               KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-
               # Login to Vault and so I can get an approle token
               VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
                 -H "Content-Type: application/json" \
                 -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
                 jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-
               vault_secret_key="${VAULT_SECRET_PREFIX}"
-
               # Generate tessera keys
-              tessera -keygen -filename nodeKey < /dev/null
-
-              #encode to base64 to update to vault otherwise json format is creating problems with vault api
-              nodekey_base64=$(base64 nodeKey.key | tr -d \\n)
-              
-              # Save the generated keys to VAULT
-              LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                -H "Content-Type: application/json" \
-                -X POST \
-                -d '{"data": {"key":"'"$nodekey_base64"'","key_pub":"'"$(cat nodeKey.pub)"'"}}' \
-                ${VAULT_ADDR}/v1/${vault_secret_key} | \
-                jq -r 'if .errors then . else .auth.client_token end')
-              
-              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              export HASHICORP_TOKEN=${VAULT_CLIENT_TOKEN}
+              tessera -keygen -keygenvaulttype HASHICORP -keygenvaulturl ${VAULT_ADDR} -keygenvaultsecretengine secretsv2 -filename ${VAULT_KEY_PREFIX}/${PEER_NAME}/tm

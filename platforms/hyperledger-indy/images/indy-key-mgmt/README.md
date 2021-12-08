@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Blockchain Automation Framework Indy indy-key-mgmt Docker image
 
 Docker image for indy key management, which generates identity crypto and stores it into Vault or displays it onto the terminal in json format.

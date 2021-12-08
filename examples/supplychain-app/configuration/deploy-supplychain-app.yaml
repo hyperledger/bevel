@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This playbook deploys the supplychain apis and frontend to an existing DLT network
 # The DLT network should already be created using the same configuration file as that
 #   used for running this playbook.
@@ -225,3 +231,19 @@
     loop_control:
       loop_var: organization_data
     when: network['type'] == 'besu' and check != "Error"
+
+# Create expressapi value file for the besu nodes
+  - name: "Creating express app values files for Besu nodes"
+    include_role:
+      name: "create/besu/express_api"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-bes"
+      component_type: "{{ organization_data.type | lower }}"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: network['type'] == 'besu' and component_type != "validator"
+

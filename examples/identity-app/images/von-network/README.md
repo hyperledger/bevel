@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Docker image for Indy Web Server
 Docker image contains prerequisites for Indy and also scripts for running Indy Web Server. The Web Server is needed to run Identity demo. For more information check [GitHub](https://github.com/bcgov/von-network).
 

@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This task checks if the crypto material is already stored in the vault or not
 - name: Check if nodekey already present in the vault
   shell: |
@@ -27,6 +33,8 @@
     echo {{ peer.geth_passphrase }} >> build/{{ component_name }}/{{ peer.name }}/password
     {{ bin_install_dir }}/geth account new --datadir build/{{ component_name }}/{{ peer.name }} --password build/{{ component_name }}/{{ peer.name }}/password
     cp build/{{ component_name }}/{{ peer.name }}/keystore/* build/{{ component_name }}/{{ peer.name }}/keystore.json
+    tr -d "\n\r" < build/{{ component_name }}/{{ peer.name }}/keystore.json > build/{{ component_name }}/{{ peer.name }}/newchange
+    openssl base64 -in build/{{ component_name }}/{{ peer.name }}/newchange -out build/{{ component_name }}/{{ peer.name }}/base64_keystore
   when: vault_nodekey_result.failed == True
   tags:
     molecule-idempotence-notest
@@ -34,7 +42,7 @@
 # This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ peer.name }}/quorum nodekey="$(cat build/{{ component_name }}/{{ peer.name }}/nodekey)" keystore="$(cat build/{{ component_name }}/{{ peer.name }}/keystore.json)" db_user="demouser" db_password="password" geth_password="$(cat build/{{ component_name }}/{{ peer.name }}/password)"
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ peer.name }}/quorum nodekey="$(cat build/{{ component_name }}/{{ peer.name }}/nodekey)" keystore="$(cat build/{{ component_name }}/{{ peer.name }}/base64_keystore)" db_user="demouser" db_password="password" geth_password="$(cat build/{{ component_name }}/{{ peer.name }}/password)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

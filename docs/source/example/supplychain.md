@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supplychain
 
-One of the two reference applications for BAF, is the Supplychain usecase. On this page, we will describe the usecase and its models, as well as pre-requisites to set it up yourself.
+One of the two reference applications for Bevel, is the Supplychain usecase. On this page, we will describe the usecase and its models, as well as pre-requisites to set it up yourself.
 
 ## Use case description
 The Supplychain reference application is an example of a common usecase for a blockchain; the supplychain. The application defines a consortium of multiple organizations. The application allows nodes to track products or goods along their chain of custody. It provides the members of the consortium all the relevant data to their product. 
@@ -88,4 +93,4 @@ When having completed the Prerequisites and setup guide, deploy the supplychain 
 `ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@/path/to/application/network.yaml"`
 
 ## Testing/validating the supplychain-app
-For testing the application, there are API tests included. For instructions on how to set this up, follow the `README.md` [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/examples/supplychain-app/tests).
+For testing the application, there are API tests included. For instructions on how to set this up, follow the `README.md` [here](https://github.com/hyperledger/bevel/tree/main/examples/supplychain-app/tests).

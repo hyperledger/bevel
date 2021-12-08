@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -96,8 +102,6 @@ spec:
                value: {{ $.Values.vault.role }}
              - name: BASE_DIR
                value: {{ $.Values.volume.baseDir }}
-             - name: RT_SECRET_PREFIX
-               value: {{ .Values.vault.tokensecretprefix }}
              - name: CERTS_SECRET_PREFIX
                value: {{ .Values.vault.certsecretprefix }}
              - name: JAVA_OPTIONS
@@ -113,10 +117,6 @@ spec:
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
 
-            # get the root token from the vault, to upload secrets on vault
-            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${RT_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
-            ROOT_TOKEN=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["rootToken"]')
-
             # perform check if certificates are ready or not, and upload certificate into vault when ready
             COUNTER=1
             cd ${BASE_DIR}/certificates
@@ -125,9 +125,9 @@ spec:
                 if [ -e nodekeystore.jks ] && [ -e sslkeystore.jks ] && [ -e truststore.jks ] && [ -e done.txt ]
                 then
                   echo "found certificates, performing vault put"
-                  (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore
-                  (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore
-                  (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${ROOT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore
+                  (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore
+                  (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore
+                  (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore
                   break
                 else
                   echo "certificates are not ready, sleeping for 10s"

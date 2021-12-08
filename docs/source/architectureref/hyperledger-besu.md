@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Hyperledger Besu Architecture Reference
 
 ## Kubernetes
@@ -42,7 +47,7 @@ The following diagram shows how Besu Validator nodes will be deployed on your Ku
 ![Figure: Hyperledger Besu Components](../../images/hyperledger-bevel-besu.png)
 
 ### Docker Images
-The Blockchain Automation Framework uses the officially published Besu Docker images from [hub.docker.com](https://hub.docker.com/u/hyperledger). The following Besu Images are used by the Blockchain Automation Framework.
+Hyperledger Bevel uses the officially published Besu Docker images from [hub.docker.com](https://hub.docker.com/u/hyperledger). The following Besu Images are used by Hyperledger Bevel.
 
 *  [besu](https://hub.docker.com/r/hyperledger/besu) - Besu Peer and Validator Node
 
@@ -62,7 +67,7 @@ Detailed information on helm charts can be referred [here](../developer/besu-hel
 
 ## Vault Configuration
 
-The Blockchain Automation Framework stores their `crypto` immediately in the Hashicorp Vault secrets engine.
+Hyperledger Bevel stores their `crypto` immediately in the Hashicorp Vault secrets engine.
 The crypto is stored by each organization under path `secretsv2/org_namespace` - it contains node keys, keystore, passwords, TM keys, and CA certificates for proxy connections.
 Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
 

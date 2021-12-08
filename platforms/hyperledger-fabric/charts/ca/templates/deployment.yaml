@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -45,6 +51,14 @@ spec:
       - name: certificates
         emptyDir:
           medium: Memory
+      {{- if (not (empty .Values.server.configpath)) }}
+      - name: {{ $.Values.server.name }}-config-volume
+        configMap:
+          name: {{ $.Values.server.name }}-config
+          items:
+            - key: fabric-ca-server-config.yaml
+              path: fabric-ca-server-config.yaml
+      {{- end }}        
       {{ if .Values.vault.tls  }}
       - name: vaultca
         secret:
@@ -56,7 +70,7 @@ spec:
       initContainers:
       - name: ca-certs-init
         image: {{ $.Values.metadata.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
@@ -144,9 +158,19 @@ spec:
       containers:
       - name: ca
         image: {{ $.Values.metadata.images.ca }}
-        command: ["sh", "-c", "sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d"]
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          if [[ -d /custom-config/ ]] && [[ -f /custom-config/fabric-ca-server-config.yaml ]]; then
+            cp /custom-config/fabric-ca-server-config.yaml $FABRIC_CA_HOME/fabric-ca-server-config.yaml
+            fabric-ca-server start --config $FABRIC_CA_HOME/fabric-ca-server-config.yaml -d
+          else
+            sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d
+          fi
         ports:
         - containerPort: 7054
+        - containerPort: 9443
         env:
         - name: FABRIC_CA_HOME
           value: /etc/hyperledger/fabric-ca-server
@@ -166,9 +190,15 @@ spec:
           value: /etc/hyperledger/fabric-ca-server-config/server.key
         - name: FABRIC_CA_SERVER_DB_DATASOURCE
           value: /var/hyperledger/fabric-ca-server/db/fabric-ca-server.db
+        - name: FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS
+          value: 0.0.0.0:9443
         volumeMounts:
         - name: certificates
           mountPath: /etc/hyperledger/fabric-ca-server-config
           readOnly: true
         - name: ca-server-db
           mountPath: /var/hyperledger/fabric-ca-server/db/
+        {{- if (not (empty .Values.server.configpath)) }}
+        - name: {{ $.Values.server.name }}-config-volume
+          mountPath: /custom-config/
+        {{- end }}

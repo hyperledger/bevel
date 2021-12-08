@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # NODE INITIAL REGISTRATION
 
 Following chart contains Kubernetes job which is used for performing initial-registration for the node from doorman.

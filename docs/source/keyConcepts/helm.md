@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # **Helm**
 
 Essentially, [Helm](https://helm.sh/) is a package manager for K8s. Helm Charts are configuration files designed for K8s to help define, install and upgrade complex K8s applications.
@@ -10,4 +15,4 @@ Helm brings below features:
 5. Easier testing and QA.
 6. Rollbacks on an application level, not just a one-off pod level.
 
-The Blockchain Automation Framework uses Helm Charts for designing and configuring the architecture of each DLT/Blockchain platform for its own network set-up.
+Hyperledger Bevel uses Helm Charts for designing and configuring the architecture of each DLT/Blockchain platform for its own network set-up.

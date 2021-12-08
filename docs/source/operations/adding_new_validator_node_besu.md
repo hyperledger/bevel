@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-new-validator-node-to-existing-org-in-besu"></a>
 # Adding a new validator node in Besu
 
@@ -10,7 +15,7 @@
 To add a new node in Besu, an existing besu network should be running, enode information of all existing nodes present in the network should be available, genesis file should be available in base64 encoding and the information of orion nodes and existing validator nodes should be available. The new node account should be unlocked prior adding the new node to the existing besu network. 
 
 ---
-**NOTE**: Addition of a new validator node has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
+**NOTE**: Addition of a new validator node has been tested on an existing network which is created by Bevel. Networks created using other methods may be suitable but this has not been tested by Bevel team.
 
 ---
 
@@ -77,7 +82,7 @@ network:
     # Tls trust value
     tm_trust: "ca-or-tofu"                # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## File location where the base64 encoded genesis file is located.
-    genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   
+    genesis: "/home/user/bevel/build/besu_genesis"   
     ## Transaction Manager nodes public addresses should be provided.
     #  - "https://node.test.besu.blockchain-develop.com:15013"
     # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador orion node port)
@@ -128,11 +133,11 @@ network:
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"  # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"  # Gitops https or ssh url for flux value files 
         branch: "develop"                                                             # Git branch where release is being made
         release_dir: "platforms/hyperledger-besu/releases/dev"                        # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-besu/charts"                             # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"         # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"         # Gitops git repository URL for git push 
         username: "git_username"                              # Git Service user who has rights to check-in in all branches
         password: "git_access_token"                          # Git Server user access token (Optional for ssh; Required for https)
         email: "git_email"                                    # Email to use in git config
@@ -214,7 +219,7 @@ Three new sections are added to the network.yaml
 <a name = "run_network"></a>
 ## Run playbook
 
-The [add-validator.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/add-validator.yaml) playbook is used to add a new validator node to an existing organization in a running network. This can be done using the following command
+The [add-validator.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/configuration/add-validator.yaml) playbook is used to add a new validator node to an existing organization in a running network. This can be done using the following command
 
 ```
 ansible-playbook platforms/hyperledger-besu/configuration/add-validator.yaml --extra-vars "@path-to-network.yaml"

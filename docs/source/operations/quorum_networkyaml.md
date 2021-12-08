@@ -1,5 +1,10 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Configuration file specification: Quorum
-A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Quorum DLT network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
+A network.yaml file is the base configuration file designed in Hyperledger Bevel for setting up a Quorum DLT network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
 ![](./../_static/TopLevelClass-Quorum.png)
 
 Before setting up a Quorum DLT/Blockchain network, this file needs to be updated with the required specifications.  
@@ -65,7 +70,7 @@ The fields under `env` section are
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Quorum |
 | ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
-| loadBalancerSourceRanges | Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
+| loadBalancerSourceRanges | Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -120,8 +125,8 @@ The snapshot of the `config` section with example values is below
       - "https://manufacturer.test.quorum.blockchaincloudpoc.com:8443"
       - "https://store.test.quorum.blockchaincloudpoc.com:8443"
       - "https://warehouse.test.quorum.blockchaincloudpoc.com:8443"
-    staticnodes: "/home/user/blockchain-automation-framework/build/quorum_staticnodes" # Location where staticnodes will be saved
-    genesis: "/home/user/blockchain-automation-framework/build/quorum_genesis"   # Location where genesis file will be saved
+    staticnodes: "/home/user/bevel/build/quorum_staticnodes" # Location where staticnodes will be saved
+    genesis: "/home/user/bevel/build/quorum_genesis"   # Location where genesis file will be saved
     # NOTE for the above paths, the directories should exist
     ##### Following keys are only used when adding new Node(s) to existing network and should NOT be used to create new network.
     bootnode:
@@ -207,11 +212,11 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops htpps or ssh url for flux value files
+        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/Quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/Quorum/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # without https://
+        git_repo: "github.com/<username>/bevel.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
         password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
         email: "<git_email>"              # Email to use in git config
@@ -227,7 +232,7 @@ The gitops field under each organization contains
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
 | password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https) |
 | email                                | Email of the user to be used in git config                                                                       |
@@ -241,7 +246,7 @@ Each organization with type as peer will have a peers service. The snapshot of p
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
+          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
             port: 21000

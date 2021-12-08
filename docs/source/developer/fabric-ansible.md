@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Fabric Configurations
 
-In the Blockchain Automation Framework project, ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks. 
+In Hyperledger Bevel project, ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks. 
 Ansible playbooks contains a series of roles and tasks which run in sequential order to achieve the automation.
 
 ```
@@ -44,7 +49,7 @@ Below is the single playbook that you need to execute to setup complete fabric n
 * Creating value file of anchor peer for {{ channel_name }}
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-fabric/configuration/roles/create/anchorpeer/) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/roles/create/anchorpeer/) for detailed information.
 
 ## **create/ca_server**
 
@@ -61,7 +66,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create CA server values for Organisations
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-fabric/configuration/roles/create/ca-server/) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/roles/create/ca-server/) for detailed information.
 
 ## **create/ca_tools**
 
@@ -69,7 +74,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create CA-tools Values file
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/ca-tools) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/ca-tools) for detailed information.
 
 ## **create/chaincode/install**
 
@@ -80,7 +85,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create value file for chaincode installation ( nested )
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/chaincode/install) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/chaincode/install) for detailed information.
 
 ## **create/chaincode/instantiate**
 
@@ -90,7 +95,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create value file for chaincode instantiaiton (nested)
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/chaincode/instantiate) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/chaincode/instantiate) for detailed information.
 
 ## **create/chaincode/invoke**
 
@@ -99,7 +104,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create value file for chaincode invocation (nested)
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/chaincode/invoke) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/chaincode/invoke) for detailed information.
 
 ## **create/chaincode/upgrade**
 
@@ -107,7 +112,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create value file for chaincode upgrade
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/chaincode/upgrade/tasks) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/chaincode/upgrade/tasks) for detailed information.
 
 ## **create/channel_artifacts**
 
@@ -122,14 +127,14 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Creating Anchor artifacts
 * Creating JSON configration for new organization
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/channel_artifacts) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/channel_artifacts) for detailed information.
 
 ## **create/genesis** 
 * Remove old genesis block
 * Creating genesis block
 * Write genesis block to Vault
 
-Follow [README](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/develop/platforms/hyperledger-fabric/configuration/roles/create/genesis) for more information.
+Follow [README](https://github.com/hyperledger/bevel/tree/develop/platforms/hyperledger-fabric/configuration/roles/create/genesis) for more information.
 
 ## **create/channels**
 
@@ -139,7 +144,7 @@ Follow [README](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create Create_Channel value file
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/channels) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/channels) for detailed information.
 
 ## **create/channels_join**
 
@@ -150,7 +155,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Call check for each peer
 * Check join channel job is done
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/channels_join) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/channels_join) for detailed information.
 
 ## **create/configtx**
 
@@ -161,7 +166,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Adding orderer patch to configtx.yaml
 * Adding profile patch to configtx.yaml
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/configtx) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/configtx) for detailed information.
 
 ## **create/crypto/orderer**
 * Call orderercheck.yaml for orderer
@@ -189,7 +194,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create the Ambassador credentials
 * Copy the crypto material to Vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/crypto/orderer) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/crypto/orderer) for detailed information.
 
 ## **create/crypto/peer**
 
@@ -218,14 +223,14 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Check if user msp already created
 * Copy user certificates for orgs
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/crypto/peer) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/crypto/peer) for detailed information.
 
 ## **create/crypto_script**
 
 * Create generate_crypto script file for orderers
 * Create generate_crypto script file for organizations
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/crypto_script) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/crypto_script) for detailed information.
 
 ## **create/namespace_vaultauth**
 
@@ -236,7 +241,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create clusterrolebinding for Orderers
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/namespace_vaultauth) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/namespace_vaultauth) for detailed information.
 
 ## **create/new_organisation/create_block**
 
@@ -247,7 +252,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * adding new org peers anchor peer information
 * Create create-block-{{ channel_name }}.sh script file for new organisations
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/new_organization/create_block) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/new_organization/create_block) for detailed information.
 
 ## **create/orderers**
 
@@ -255,7 +260,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * create orderers
 * Git push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/orderers) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/orderers) for detailed information.
 
 ## **create/peers**
 
@@ -263,7 +268,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create Value files for Organization Peers
 * Git Push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/peers) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/peers) for detailed information.
 
 ## **create/storageclass**
 
@@ -273,7 +278,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create Storage class for Organizations
 * Git push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/create/storageclass) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/storageclass) for detailed information.
 
 ## **delete/flux_releases**
 
@@ -281,14 +286,14 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Remove all Helm releases
 * Deletes namespaces
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/delete/flux_releases) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/delete/flux_releases) for detailed information.
 
 ## **delete/gitops_files**
 
 * Delete release files
 * Git push
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/delete/gitops_files) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/delete/gitops_files) for detailed information.
 
 ## **delete/vault_secrets**
 
@@ -299,7 +304,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Delete Crypto for peers
 * Delete policy
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/delete/vault_secrets) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/delete/vault_secrets) for detailed information.
 
 ## **helm_component**
 
@@ -307,14 +312,14 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create value file
 * Helm lint
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/helm_component) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/helm_component) for detailed information.
 
 ## **k8_component**
 
 * Ensures value directory exist
 * Create value file
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/k8_component) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/k8_component) for detailed information.
 
 
 ## **setup/config_block/fetch**
@@ -326,7 +331,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * fetch and copy the configuration block from the blockchain
 * delete cli
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/setup/config_block/fetch) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/setup/config_block/fetch) for detailed information.
 
 ## **setup/config_block/sign_and_update**
 
@@ -344,7 +349,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * updating the channel with the new configuration block
 * delete cli {{ peer.name }}-{{ participant.name }}-cli
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/setup/config_block/sign_and_update) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/setup/config_block/sign_and_update) for detailed information.
 
 ## **setup/get_ambassador_crypto**
 
@@ -372,7 +377,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Ensure tlscacerts directory exists
 * Save tlscacerts
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/setup/get_crypto) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/setup/get_crypto) for detailed information.
 
 ## **setup/vault_kubernetes**
 
@@ -390,4 +395,4 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Check docker cred exists
 * Create the docker pull credentials
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/roles/setup/vault_kubernetes) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/setup/vault_kubernetes) for detailed information.

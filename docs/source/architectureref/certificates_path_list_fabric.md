@@ -1,9 +1,15 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 Certificate Paths on Vault for Fabric Network
 ---------------------------------------------
 
 * Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
 
-## For each channel
+### For each channel
+
 | Path                                                                       | Key (for Vault)                  | Type        |
 |-----------------------------------------------------------------------------------------------------------|-------------------------------------|-------------|
 | /secretsv2/crypto/ordererOrganizations/                                                                      | genesisBlock         | Genesis     |
@@ -30,7 +36,7 @@ Certificate Paths on Vault for Fabric Network
 | /secretsv2/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | client.crt                          | Certificate |
 | /secretsv2/crypto/peerOrganizations/`orgname_lowercase`-net/users/admin/tls/                                 | client.key                          | Private Key |
 
--------------------------------
+
 ### For each peer organization
 
 | Path                                                                           | Key (for Vault)                    | Type        |

@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -131,8 +137,8 @@ spec:
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
 
-          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key_pub"]')
-          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' | base64 -d )
+          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')
+          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]')
           echo -n "${tmpub}" > ${OUTPUT_PATH}/tm.pub
           echo -n "${tmkey}" > ${OUTPUT_PATH}/tm.key
          
@@ -171,7 +177,7 @@ spec:
         - |-
           #!/usr/bin/env sh
           apk add curl;
-          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
+          echo -n {{ .Values.staticnodes | toRawJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt

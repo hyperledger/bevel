@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-cordapps"></a>
 # Adding cordapps to R3 Corda network
 
@@ -11,7 +16,7 @@ Build the CorDapp jars. If you have multiple jars, place them in a single locati
 
 ### Run playbook
 
-The playbook [deploy-cordapps.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/r3-corda/configuration/deploy-cordapps.yaml) is used to deploy cordapps over the existing R3 Corda network.
+The playbook [deploy-cordapps.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/configuration/deploy-cordapps.yaml) is used to deploy cordapps over the existing R3 Corda network.
 This can be done manually using the following command
 
 ```
@@ -83,7 +88,7 @@ The snapshot from the sample configuration file with the example values is below
 ```
 ### Adding the jars by deploying the network
 
-After the configuration file is updated and saved, run the following command from the **blockchain-automation-framework** folder to deploy your network.
+After the configuration file is updated and saved, run the following command from the **bevel** folder to deploy your network.
 
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"

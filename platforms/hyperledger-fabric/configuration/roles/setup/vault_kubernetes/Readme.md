@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: vault_kubernetes
 This role setups communication between the vault and kubernetes cluster and install neccessary configurations.
 
@@ -30,7 +35,7 @@ This task checks if the vault path already exists.
     auth_list: Stores the list of enables auth methods
 
 #### 3. Check if policy exists
-This task checks if the vault-ro polict already exists
+This task checks if the vault-ro policy already exists
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml

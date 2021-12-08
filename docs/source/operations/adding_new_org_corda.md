@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-new-org-to-existing-network-in-corda"></a>
 # Adding a new organization in R3 Corda
 
@@ -10,7 +15,7 @@
 To add a new organization, Corda Doorman/Idman and Networkmap services should already be running. The public certificates from Doorman/Idman and Networkmap should be available and specified in the configuration file. 
 
 ---
-**NOTE**: Addition of a new organization has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
+**NOTE**: Addition of a new organization has been tested on an existing network which is created by Bevel. Networks created using other methods may be suitable but this has not been tested by Bevel team.
 
 ---
 
@@ -103,11 +108,11 @@ network:
       # Do not check-in git_password
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "gitops_ssh_url"         # Gitops https or ssh url for flux value files like "https://github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_url: "gitops_ssh_url"         # Gitops https or ssh url for flux value files like "https://github.com/hyperledger/bevel.git"
         branch: "gitops_branch"           # Git branch where release is being made
         release_dir: "gitops_release_dir" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "gitops_repo_url"   # Gitops git repository URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_repo: "gitops_repo_url"   # Gitops git repository URL for git push like "github.com/hyperledger/bevel.git"
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_password"          # Git Server user access token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
@@ -147,7 +152,7 @@ network:
 <a name = "run_network"></a>
 ## Run playbook
 
-The [add-new-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
+The [add-new-organization.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/add-new-organization.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/shared/configuration/add-new-organization.yaml --extra-vars "@path-to-network.yaml"

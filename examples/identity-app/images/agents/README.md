@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Docker image for Aries Agents
 Docker image contains prerequisites for Indy and also scripts for running Agents like "Faber" or "Alice" of demo. For more information follow [GitHub](https://github.com/hyperledger/aries-cloudagent-python).
 

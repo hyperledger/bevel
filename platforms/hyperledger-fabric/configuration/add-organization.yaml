@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This playbook adds an organization to a DLT with Fabric network on existing Kubernetes clusters
 # The Kubernetes clusters should already be created and the infomation to connect to the
 #  clusters be updated in the network.yaml file that is used as an input to this playbook
@@ -94,8 +100,14 @@
         component_type: "{{ item.type | lower}}"
         orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'  
-      
+      when: item.org_status == 'new'
+
+    #Creating a pause so that the client certificates are valid
+    # You can continue if the CA-server pods are running for more than 5 minutes
+    - pause:
+        prompt: "Sleeping... so that the client certificates are valid"
+        minutes: 6
+    
     # Generate script to modify the fetched configuration block
     - include_role:
         name: "create/new_organization/create_block"
@@ -106,12 +118,6 @@
       loop: "{{ network['channels'] }}"
       loop_control:
         loop_var: channel
-      
-    #Creating a pause so that the client certificates are valid
-    # You can continue if the CA-server pods are running for more than 5 minutes
-    - pause:
-        prompt: "Sleeping... so that the client certificates are valid"
-        minutes: 6
 
     # Create Organization crypto materials for new organization
     - name: "Crypto"

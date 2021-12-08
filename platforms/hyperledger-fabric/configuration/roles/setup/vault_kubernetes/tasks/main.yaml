@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role setups communication between the vault and kubernetes cluster and install 
 # neccessary configurations.
@@ -12,56 +18,9 @@
     component_name: "{{ item.name | lower }}-net"
     type: "retry"
 
-# This task checks if the vault path already exists
-- name: "Checking if the vault path already exists"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
-  vars:
-    check: "vault_auth"
-
-- name: "Set Variable"
-  set_fact:
-    auth_list: "{{ auth_lists }}"
-
-# Set vault_auth_status variable to false initially
-- set_fact:
-    vault_auth_status: false
-    component_auth_temp: "\"{{ auth_path }}/\""
-
-# Set vault_auth_status variable to true if found
-- set_fact:
-    vault_auth_status: true
-  loop: "{{ auth_lists.stdout_lines }}"
-  loop_control:
-    loop_var: itemx
-  when: itemx == component_auth_temp
-
-# This task checks if the vault-ro polict already exists
-- name: "Checking if the vault policies already exists"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
-  vars:
-    check: "vault_policies"
-  register: vault_policy_result
-  ignore_errors: yes
-
-# Set vault_policy_temp to vault_policy_result.failed (True or False)
-- set_fact:
-    vault_policy_temp: "{{ vault_policy_result.failed }}"
-
-############################################################################################
-# This task creates the build temp direcotry
-# Ensures the build directory
-- name: "Creating the build directory"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
-  vars:
-    path: "./build"
-    check: "ensure_dir"
-
-#####################################################################################################################
+###############################################################################################
 # This task creates the docker pull credentials for image registry
-- name: "Create vault_kubernetes secret"
+- name: "Create docker credentials secret"
   include_role:
     name: create/k8s_secrets
   vars: 
@@ -70,8 +29,8 @@
     check: "docker_credentials"
 
 #############################################################################################
-# This task creates secrets for the root token and the reviewer token
-- name: "Create vault_kubernetes secrets tokens"
+# This task creates secrets for the root token
+- name: "Create vault token secret"
   include_role:
     name: create/k8s_secrets
   vars: 
@@ -106,7 +65,6 @@
     vault: "{{ item.vault }}"
     k8s: "{{ item.k8s }}"
     kubernetes_url: "{{ kubernetes_server_url.stdout }}"
-    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
     alpine_image: "{{ network.docker.url }}/alpine-utils:1.0"
     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
   
@@ -129,3 +87,14 @@
     namespace: "{{ item.name | lower}}-net"
     component_name: "{{ item.name | lower}}-vaultkubenertes-job"
     kubernetes: "{{ item.k8s }}"
+
+#############################################################################################
+# This task deletes the root token
+- name: "Delete vault token secret"
+  include_role:
+    name: delete/k8s_secrets
+  vars: 
+    namespace: "{{ item.name | lower}}-net"
+    vault: "{{ item.vault }}"
+    kubernetes: "{{ item.k8s }}"
+    check: "token_secret"

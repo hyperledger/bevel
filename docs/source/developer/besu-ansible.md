@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Hyperledger Besu Configurations
 
-In the Blockchain Automation Framework project, ansible is used to automate the certificate generation, put them in the vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks.
+In Hyperledger Bevel project, ansible is used to automate the certificate generation, put them in the vault and generate value files, which are then pushed to the repository for deployment, using GitOps. This is achieved using Ansible playbooks.
 Ansible playbooks contains a series of roles and tasks which run in sequential order to achieve the automation.
 
 ```
@@ -25,7 +30,7 @@ For Hyperledger Besu, the ansible roles and playbooks are located at `/platforms
 
 Roles in ansible are a combination of logically inter-related tasks.
 
-To deploy the Hyperledger-Besu network, run the deploy-network.yaml in `blockchain-automation-framework\platforms\hyperledger-besu\configuration\`
+To deploy the Hyperledger-Besu network, run the deploy-network.yaml in `bevel\platforms\hyperledger-besu\configuration\`
 The roles included in the files are as follows:
 
 ## **create/certificates/ambassador**
@@ -45,7 +50,7 @@ This role calls for ambassador certificate creation for each node.
 * Putting certs to vault
 * Check Ambassador cred exists
 * Create the Ambassador credentials
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/certificates/ambassador) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/configuration/roles/create/certificates/ambassador) for detailed information.
 
 ## **create/crypto/ibft**
 
@@ -56,7 +61,7 @@ This role creates crypto for ibft.
 * Generate enode url for each node and create a geth account and keystore
 * Copy the crypto material to Vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/crypto/ibft) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/configuration/roles/create/crypto/ibft) for detailed information.
 
 ## **create/crypto/clique**
 
@@ -67,7 +72,7 @@ This role creates crypto for clique.
 * Generate enode url for each node and create a geth account and keystore
 * Copy the crypto material to Vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/main/platforms/hyperledger-besu/configuration/roles/create/crypto/clique) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-besu/configuration/roles/create/crypto/clique) for detailed information.
 
 ## **create/k8_component**
 
@@ -76,7 +81,7 @@ This role creates deployment files for nodes, namespace storageclass, service ac
 * create {{ component_type }} file for {{ component_name }}
 * Helm lint
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/k8_component) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/configuration/roles/create/k8_component) for detailed information.
 
 ## **create/namespace_serviceaccount**
 
@@ -88,7 +93,7 @@ This role creates the deployment files for namespaces, vault-auth, vault-reviewe
 * Create clusterrolebinding for {{ organisation }}
 * Push the created deployment files to repository
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/namespace_serviceaccount) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/configuration/roles/create/namespace_serviceaccount) for detailed information.
 
 ## **create/storageclass**
 
@@ -98,7 +103,7 @@ This role creates value files for storage class
 * Push the created deployment files to repository
 * Wait for Storageclass creation for {{ component_name }}
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/create/storageclass) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/configuration/roles/create/storageclass) for detailed information.
 
 ## **setup/get_crypto**
 
@@ -109,7 +114,7 @@ This role saves the crypto from Vault into ansible_provisioner.
 * Save root keychain
 * Extracting root certificate from .jks
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/setup/get_crypto) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/configuration/roles/setup/get_crypto) for detailed information.
 
 
 ## **setup/vault_kubernetes**
@@ -129,4 +134,4 @@ This role setups communication between the vault and kubernetes cluster and inst
 * Create Vault auth role
 * Create the docker pull credentials
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-besu/configuration/roles/setup/vault_kubernetes) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/configuration/roles/setup/vault_kubernetes) for detailed information.

@@ -8,7 +8,7 @@ Quickstart Guides
    :maxdepth: 1
    
    developer/dev_prereq
-   developer/baf_minikube_setup
+   developer/bevel_minikube_setup
    developer/docker-build
 
 Additional Developer prerequisites
@@ -22,14 +22,14 @@ Sphinx tool
 ~~~~~~~~~~~
 
 Sphinx is a tool that makes it easy to create intelligent and beautiful documentation. 
-This tool is needed to build the Blockchain Automation Framework documentation from ``docs`` folder.
+This tool is needed to build Hyperledger Bevel documentation from ``docs`` folder.
 
 * Sphinx version used 2.1.1
 
 **Sphinx installation:**
 Follow the `link <http://www.sphinx-doc.org/en/master/usage/installation.html>`_ to install sphinx documentation tool.
 
-All the Blockchain Automation Framework documentation and Sphinx Configuration files (``conf.py``) are located in `docs/source <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/docs/source>`_ folder.
+All Hyperledger Bevel documentation and Sphinx Configuration files (``conf.py``) are located in `docs/source <https://github.com/hyperledger/bevel/tree/main/docs/source>`_ folder.
 To build the documentation, execute the following command from `docs` directory:
 
 .. code:: bash
@@ -44,7 +44,7 @@ Molecule
 ~~~~~~~~
 
 `Molecule <https://molecule.readthedocs.io/en/latest/>`__ is designed to aid in the development and testing of `Ansible <https://ansible.com/>`_ roles.
-In BAF, Molecule is used to check for common coding standards, yaml errors and unit testing Ansible code/roles.
+In Bevel, Molecule is used to check for common coding standards, yaml errors and unit testing Ansible code/roles.
 
 
 * Molecule version used 2.22
@@ -66,7 +66,7 @@ widely recommended `'\-\-user' flag`_ when invoking ``pip``.
 
     $ pip install --user 'molecule[docker]'
 
-The existing test scenarios are found in the `molecule` folder under configuration of each platform e.g. `platforms/shared/configuration/molecule <https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/configuration/molecule>`__ folder.
+The existing test scenarios are found in the `molecule` folder under configuration of each platform e.g. `platforms/shared/configuration/molecule <https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/molecule>`__ folder.
 
 Ansible Roles and Playbooks 
 ---------------------------

@@ -1,3 +1,9 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////
+//  Copyright Accenture. All Rights Reserved.                                                  //
+//                                                                                             //
+//  SPDX-License-Identifier: Apache-2.0                                                        //
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 const path = require('path'); // For resolving paths
 const fs = require('fs-extra'); // For reading files
 const solc = require('solc'); // solidity compiler

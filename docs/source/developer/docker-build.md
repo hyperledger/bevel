@@ -1,10 +1,15 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # DLT Blockchain Network deployment using docker build
 
 ## Building the docker image
 
-Build the docker image using the docker file  `Dockerfile` provided in the blockchain-automation-framework repository.
+Build the docker image using the docker file  `Dockerfile` provided in the bevel repository.
 
-The docker image should be built from the root directory of the repository, the image builds the required base enviorment for BAF deployment and copies the a provisional script `run.sh` in the `WORKDIR`, it also sets a path for mounting volume
+The docker image should be built from the root directory of the repository, the image builds the required base enviorment for Bevel deployment and copies the a provisional script `run.sh` in the `WORKDIR`, it also sets a path for mounting volume
 
 Following is a code snippet of the docker image showing `WORKDIR` and `VOLUME`
 
@@ -14,7 +19,7 @@ WORKDIR /home/
 The VOLUME instruction creates a mount point with the specified name and marks it as holding externally mounted volumes from native host
 
 ``` shell
-VOLUME /home/blockchain-automation-framework/
+VOLUME /home/bevel/
 ```
 
 Use the below command to build the image
@@ -30,7 +35,7 @@ This would create an image named hyperledgerlabs/baf-build
 
 A shell script `run.sh` is provided in repository to set the environment variables and run the network deployment playbook.  
 
-The BAF `Dockerfile` provides defaults for the executing container using the `CMD` variable
+The Bevel `Dockerfile` provides defaults for the executing container using the `CMD` variable
 
 ``` shell
 CMD ["/home/run.sh"]
@@ -38,7 +43,7 @@ CMD ["/home/run.sh"]
 Use the below command to run the container and the provisioning scripts, the command needs to be run from the root directory of the repository. The command also binds and mounts a volume, in this case it binds the repository 
 
 ```shell
-docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/bevel/ hyperledgerlabs/baf-build
 ```
 **NOTE**. baf-build image is using jdk14 but Corda and Corda Enterprise requires jdk8. In this case, you can build the baf-build image using Dockerfile.jdk8 or use the prebuild image tag *jdk8*  hyperledgerlabs/baf-build:jdk8
 

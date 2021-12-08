@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -34,8 +40,8 @@ spec:
            value: {{ $.Values.vault.nodeId }}
          - name: ORGANIZATION_NAME
            value: "{{ $.Values.organization.name }}"
-         - name: ADD_ORG
-           value: "{{ $.Values.genesis.add_org }}"
+         - name: ADD_NEW_ORG
+           value: "{{ $.Values.add_new_org }}"
         command:
         - "sh"
         - "-c"
@@ -60,11 +66,11 @@ spec:
           curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "'"$VAULT_ROLE"'"}' $VAULT_ADDR/v1/auth/$VAULT_AUTH_PATH/login | jq -j '.auth.client_token' > token;
           X_VAULT_TOKEN=$(cat token);
 
-          if $ADD_ORG ; 
+          if $ADD_NEW_ORG ;
           then
-            mkdir -p ${KEY_PATH}/bls_keys ${KEY_PATH}/private_keys ${KEY_PATH}/public_keys ${KEY_PATH}/sig_keys ${KEY_PATH}/verif_keys ${KEY_PATH}C/private_keys ${KEY_PATH}C/public_keys ${KEY_PATH}C/sig_keys ${KEY_PATH}C/verif_keys ${KEY_PATH}/identity ${KEY_PATH}/identity/private ${KEY_PATH}/identity/public ${KEY_PATH}/trustee ${KEY_PATH}/trustee/private ${KEY_PATH}/trustee/public ${KEY_PATH}/genesis;
+            mkdir -p ${KEY_PATH}/bls_keys ${KEY_PATH}/private_keys ${KEY_PATH}/public_keys ${KEY_PATH}/sig_keys ${KEY_PATH}/verif_keys ${KEY_PATH}C/private_keys ${KEY_PATH}C/public_keys ${KEY_PATH}C/sig_keys ${KEY_PATH}C/verif_keys ${KEY_PATH}/identity ${KEY_PATH}/identity/private ${KEY_PATH}/identity/public ${KEY_PATH}/genesis;
           else
-            mkdir -p ${KEY_PATH}/bls_keys ${KEY_PATH}/private_keys ${KEY_PATH}/public_keys ${KEY_PATH}/sig_keys ${KEY_PATH}/verif_keys ${KEY_PATH}C/private_keys ${KEY_PATH}C/public_keys ${KEY_PATH}C/sig_keys ${KEY_PATH}C/verif_keys; 
+            mkdir -p ${KEY_PATH}/bls_keys ${KEY_PATH}/private_keys ${KEY_PATH}/public_keys ${KEY_PATH}/sig_keys ${KEY_PATH}/verif_keys ${KEY_PATH}C/private_keys ${KEY_PATH}C/public_keys ${KEY_PATH}C/sig_keys ${KEY_PATH}C/verif_keys;
           fi;
 
           LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"${ORGANIZATION_NAME}"/data/stewards/${NODE_ID}/node/public/bls_keys | jq -r 'if .errors then . else . end');
@@ -117,7 +123,7 @@ spec:
           echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.data.\"${NODE_ID}C.key\"" > ${KEY_PATH}C/verif_keys/${NODE_ID}C.key;
           chmod 644 ${KEY_PATH}C/verif_keys/${NODE_ID}C.key;
 
-          if $ADD_ORG ; then
+          if $ADD_NEW_ORG ; then
             LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"${ORGANIZATION_NAME}"/data/stewards/${NODE_ID}/node/public/bls_keys | jq -r 'if .errors then . else . end');
             validateVaultResponse "secret (${NODE_ID}/node/public/bls_keys)" "${LOOKUP_SECRET_RESPONSE}";
             echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.data.\"bls-key-pop\"" > ${KEY_PATH}/bls_keys/bls-key-pop;
@@ -127,11 +133,6 @@ spec:
             validateVaultResponse "secret (${NODE_ID}/node/public/verif_keys)" "${LOOKUP_SECRET_RESPONSE}";
             echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.data.\"verification-key\"" > ${KEY_PATH}/verif_keys/verification-key;
             chmod 644 ${KEY_PATH}/verif_keys/verification-key;
-
-            LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"${ORGANIZATION_NAME}"/data/stewards/${NODE_ID}/trustee/node | jq -r 'if .errors then . else . end');
-            validateVaultResponse "secret (${NODE_ID}/trustee/node)" "${LOOKUP_SECRET_RESPONSE}";
-            echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.data.verkey" > ${KEY_PATH}/verif_keys/trustee-verification-key;
-            chmod 644 ${KEY_PATH}/verif_keys/trustee-verification-key;
 
             LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"${ORGANIZATION_NAME}"/data/stewards/${NODE_ID}/identity/private | jq -r 'if .errors then . else . end');
             validateVaultResponse "secret (${NODE_ID}/identity/private)" "${LOOKUP_SECRET_RESPONSE}";
@@ -143,21 +144,11 @@ spec:
             echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.data.did" > ${KEY_PATH}/identity/public/did;
             chmod 644 ${KEY_PATH}/identity/public/did;
 
-            LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"${ORGANIZATION_NAME}"/data/stewards/${NODE_ID}/trustee/private | jq -r 'if .errors then . else . end');
-            validateVaultResponse "secret (${NODE_ID}/trustee/private)" "${LOOKUP_SECRET_RESPONSE}";
-            echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.data.seed" > ${KEY_PATH}/trustee/private/seed;
-            chmod 644 ${KEY_PATH}/trustee/private/seed;
-
-            LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"${ORGANIZATION_NAME}"/data/stewards/${NODE_ID}/trustee/public | jq -r 'if .errors then . else . end');
-            validateVaultResponse "secret (${NODE_ID}/trustee/public)" "${LOOKUP_SECRET_RESPONSE}";
-            echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".data.data.did" > ${KEY_PATH}/trustee/public/did;
-            chmod 644 ${KEY_PATH}/trustee/public/did;
-
           fi;
         volumeMounts:
         - name: ebs-indy-node-keys
           mountPath: /keys
-{{- if eq $.Values.genesis.add_org true }}          
+{{- if eq $.Values.add_new_org true }}
       - name: "{{ $.Values.image.cli.name }}"
         image: "{{ $.Values.image.cli.repository }}"
         stdin: true
@@ -168,11 +159,7 @@ spec:
           apt-get install curl -y
 
           KEY_PATH=/var/lib/indy/keys/${INDY_NETWORK_NAME}/keys/${INDY_NODE_NAME};
-                    
-          TRUSTEE_DID=$(cat ${KEY_PATH}/trustee/public/did);
-          TRUSTEE_SEED=$(cat ${KEY_PATH}/trustee/private/seed);
-          TRUSTEE_VERKEY=$(cat ${KEY_PATH}/verif_keys/trustee-verification-key)
-          
+
           STEWARD_DID=$(cat ${KEY_PATH}/identity/public/did);
           STEWARD_SEED=$(cat ${KEY_PATH}/identity/private/seed);
           STEWARD_VERKEY=$(cat ${KEY_PATH}/verif_keys/verification-key)
@@ -180,27 +167,16 @@ spec:
           echo "{
           \"version\": 1,
           \"dids\": [{
-          \"did\": \"$TRUSTEE_DID\", 
-          \"seed\": \"$TRUSTEE_SEED\"
-          }]
-          }" > admindid.txt;
-
-          echo "{
-          \"version\": 1,
-          \"dids\": [{
-          \"did\": \"$STEWARD_DID\", 
+          \"did\": \"$STEWARD_DID\",
           \"seed\": \"$STEWARD_SEED\"
           }]
           }" > did.txt;
 
           echo "wallet create IndyWallet key=12345
           wallet open IndyWallet key=12345
-          did import admindid.txt
           did import did.txt
-          did use $TRUSTEE_DID
           pool create mysandboxpool gen_txn_file=/var/lib/indy/genesis/${INDY_NETWORK_NAME}/pool_transactions_genesis
           pool connect mysandboxpool
-          ledger nym did=$STEWARD_DID verkey=$STEWARD_VERKEY role=STEWARD
           did use $STEWARD_DID
           ledger node target=${STEWARD_VERKEY} client_port=${INDY_CLIENT_PORT} client_ip=${INDY_CLIENT_IP} alias=${INDY_NODE_NAME} node_ip=${INDY_NODE_IP} node_port=${INDY_NODE_PORT} services=VALIDATOR blskey=$(cat ${KEY_PATH}/bls_keys/bls_pk) blskey_pop=$(cat ${KEY_PATH}/bls_keys/bls-key-pop)
           exit" > init_node_txn;
@@ -221,7 +197,7 @@ spec:
           - name: INDY_CLIENT_IP
             value: "{{ $.Values.client.publicIp }}"
           - name: INDY_CLIENT_PORT
-            value: "{{ $.Values.client.ambassadorPort }}"         
+            value: "{{ $.Values.client.ambassadorPort }}"
         volumeMounts:
           - name: ebs-indy-node-keys
             mountPath: /var/lib/indy/keys
@@ -231,7 +207,7 @@ spec:
           - name: {{ $.Values.organization.name }}-pool-transactions-genesis
             mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
             subPath: pool_transactions_genesis
-{{- end }}            
+{{- end }}
       containers:
         - name: "{{ $.Values.image.indyNode.name }}"
           image: "{{ $.Values.image.indyNode.repository }}"

@@ -1,11 +1,17 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This task fetch node address of each node of all organizations
 - name: Fetch the node address
   include_tasks: validator_node_data.yaml
   vars:
-    vault: "{{ org.vault }}"
+    vault: "{{ org2.vault }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
-    loop_var: org
+    loop_var: org2
 
 # This task checks if the genesis file is already stored in the vault or not
 - name: Check if genesis already present in the vault
@@ -64,3 +70,16 @@
   when: 
   - vault_genesis_result.failed
   - not add_new_org
+
+# This tasks copy the genesis to the vault
+- name: Copy existing genesis to Vault
+  shell: |
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis genesisfile="{{ genesis }}" 
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  vars:
+    genesis: "{{ lookup('file', '{{ network.config.genesis }}') | b64encode }}"
+  when: 
+  - vault_genesis_result.failed
+  - add_new_org

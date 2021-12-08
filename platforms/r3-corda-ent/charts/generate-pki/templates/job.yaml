@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -175,6 +181,8 @@ spec:
               echo "${NETWORKMAP_SSL}"> ${OUTPUT_PATH}/networkmapssl
               SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signer"]')
               echo "${SIGNER_SSL}"> ${OUTPUT_PATH}/signerssl
+              AUTH_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["auth"]')
+              echo "${AUTH_SSL}"> ${OUTPUT_PATH}/authssl
               ROOT_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["root"]')
               echo "${ROOT_SSL}"> ${OUTPUT_PATH}/rootssl
               touch /DATA/done.txt
@@ -242,6 +250,11 @@ spec:
                     type = LOCAL
                     file = "./DATA/signer/corda-ssl-signer-keys.jks"
                     password = "SIGNER_SSL"
+                },
+                "corda-ssl-auth-keys" = {
+                    type = LOCAL
+                    file = "./DATA/root/corda-ssl-auth-keys.jks"
+                    password = "AUTH_SSL"
                 },
                 "corda-ssl-root-keys" = {
                     type = LOCAL
@@ -398,7 +411,19 @@ spec:
                         crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/ssl"
                         file = "./DATA/signer/crls/ssl.crl"
                     }
-                }    
+                },
+                "::CORDA_SSL_AUTH_SERVICE" {
+                    key = {
+                        type = LOCAL
+                        includeIn = ["corda-ssl-auth-keys"]
+                        algorithm = "ECDSA_SECP256R1_SHA256"
+                        password = "AUTH_SSL"
+                    }
+                    crl = {
+                        crlDistributionUrl = "https://{{ .Values.identityManager.publicIp }}:{{ .Values.identityManager.publicPort }}/certificate-revocation-list/ssl"
+                        file = "./DATA/root/crls/ssl.crl"
+                    }
+                }   
             }' >> {{ .Values.configPath }}/pki.conf
             #replacement of the variables in the pki conf file
             export ROOTCA_TRUSTSTORE=$(cat {{ .Values.volume.baseDir }}/credentials/truststore/rootcats)
@@ -421,6 +446,8 @@ spec:
             sed -i -e "s*NETWORKMAP_SSL*${NETWORKMAP_SSL}*g" {{ .Values.configPath }}/pki.conf
             export SIGNER_SSL=$(cat {{ .Values.volume.baseDir }}/credentials/ssl/signerssl)
             sed -i -e "s*SIGNER_SSL*${SIGNER_SSL}*g" {{ .Values.configPath }}/pki.conf
+            export AUTH_SSL=$(cat {{ .Values.volume.baseDir }}/credentials/ssl/authssl)
+            sed -i -e "s*AUTH_SSL*${AUTH_SSL}*g" {{ .Values.configPath }}/pki.conf
             export ROOT_SSL=$(cat {{ .Values.volume.baseDir }}/credentials/ssl/rootssl)
             sed -i -e "s*ROOT_SSL*${ROOT_SSL}*g" {{ .Values.configPath }}/pki.conf
             mkdir DATA/signer DATA/root DATA/networkmap DATA/idman DATA/idman/crls DATA/idman/certs

@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This playbook deploys a DLT network on existing Kubernetes clusters
 # The Kubernetes clusters should already be created and the infomation to connect to the
 #  clusters be updated in the network.yaml file that is used as an input to this playbook
@@ -71,22 +77,6 @@
       loop: "{{ network['organizations'] }}"
       when: item.services.ca is defined
         
-    # Create CA Tools helm-value files and check-in
-    - name: Create CA tools for each organization
-      include_role:
-        name: "create/ca-tools"
-      vars:
-        component_name: "{{ item.name | lower}}-net"
-        component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        ca: "{{ item.services.ca }}"
-        gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-
     # Create generate_crypto script for each organization
     - name: Create generate_crypto.sh for each organization
       include_role:
@@ -101,38 +91,38 @@
     - pause:
         prompt: "Sleeping... so that the client certificates are valid"
         minutes: 6
-
-    # Create Orderer crypto materials
-    - name: Create crypto materials for each orderer
+    
+     # Create CA Tools helm-value files and check-in
+    - name: Create CA tools for each organization
       include_role:
-        name: "create/crypto/orderer"
+        name: "create/ca-tools/orderer"
       vars:
         component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
-        org_name: "{{ item.name }}"
-        services: "{{ item.services }}"
-        subject: "{{ item.subject }}"
-        ca_url: "{{ item.ca_data.url }}"
-        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        component_services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'orderer'
     
-    # Create Organization crypto materials
-    - name: Create crypto materials for each peer
+    # Create CA Tools helm-value files and check-in
+    - name: Create CA tools for each organization
       include_role:
-        name: "create/crypto/peer"
+        name: "create/ca-tools/peer"
       vars:
         component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
-        org_name: "{{ item.name }}"
-        services: "{{ item.services }}"
-        subject: "{{ item.subject }}"
-        ca_url: "{{ item.ca_data.url }}"
-        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        component_services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer'
 

@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Hyperledger Besu Configuration
 This configuration folder contains Ansible playbooks and their corresponding roles, which are used to deploy Hyperledger Besu on Managed Kubernetes Cluster(s).
 

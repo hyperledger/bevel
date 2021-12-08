@@ -1,12 +1,21 @@
-- name: "Counting Genesis Steward"
-  set_fact:
-    steward_count={{ steward_count|default(0)|int + 1 }}
-  loop: "{{ stewards }}"
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
 
-- name: Set trustee count to zero
+- name: Reset counters
   set_fact:
     trustee_count=0
-  
+    steward_count=0
+    endorser_count=0
+
+- name: "Counting Genesis Stewards"
+  set_fact:
+    steward_count={{ steward_count|default(0)|int + 1 }}
+    total_stewards={{ total_stewards|default(0)|int + 1 }}
+  loop: "{{ stewards }}"
+
 - name: "Counting trustees per Org"
   set_fact:
     trustee_count={{ trustee_count|default(0)|int + 1 }}
@@ -17,7 +26,7 @@
   debug: msg="The trustee count is {{ trustee_count }}. There should be max 1 trustee per organization."
   failed_when: trustee_count|int > 1
 
-- name: "Counting  Endorsers"
+- name: "Counting Endorsers"
   set_fact:
     endorser_count={{ endorser_count|default(0)|int + 1 }}
   loop: "{{ endorsers }}"
@@ -25,9 +34,4 @@
 - name: Print error abd end playbook  if endorser count limit fails
   debug: msg="The endorser count is {{ endorser_count }}. There should be max 1 endorser per organization."
   failed_when: endorser_count|int > 1
-  when: endorser_count is defined
-
-- name: Reset Endorser count
-  set_fact:
-    endorser_count=0
   when: endorser_count is defined

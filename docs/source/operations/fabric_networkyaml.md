@@ -1,5 +1,10 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Configuration file specification: Hyperledger-Fabric
-A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
+A network.yaml file is the base configuration file designed in Hyperledger Bevel for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
 ![](./../_static/TopLevelClass-Fabric.png)
 
 Before setting up a Fabric DLT/Blockchain network, this file needs to be updated with the required specifications.
@@ -64,7 +69,7 @@ The fields under `env` section are
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'haproxy' only as 'ambassador' has not been implemented for Fabric |
 | ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`     |
-| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
+| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -104,13 +109,13 @@ The snapshot of the `orderers` section with example values is below
       name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/blockchain-automation-framework/build/orderer1.crt           # Ensure that the directory exists
+      certificate: /home/bevel/build/orderer1.crt           # Ensure that the directory exists
     - orderer:
       type: orderer
       name: orderer2
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/blockchain-automation-framework/build/orderer2.crt           # Ensure that the directory exists
+      certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
 ```
 The fields under the each `orderer` are
 
@@ -290,11 +295,11 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops htpps or ssh url for flux value files
+        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # without https://
+        git_repo: "github.com/<username>/bevel.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
         password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
         email: "<git_email>"              # Email to use in git config
@@ -310,7 +315,7 @@ The gitops field under each organization contains
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
 | password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)        |
 | email                                | Email of the user to be used in git config                                                                       |
@@ -369,7 +374,7 @@ Each organization with type as peer will have a peers service. The snapshot of p
             repository:
               username: "git_username"          # Git Service user who has rights to check-in in all branches
               password: "git_password"
-              url: "github.com/hyperledger-labs/blockchain-automation-framework.git"
+              url: "github.com/hyperledger/bevel.git"
               branch: develop
               path: "chaincode_src"   #The path to the chaincode 
             arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters

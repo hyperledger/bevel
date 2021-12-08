@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/validator_node
 This role creates the new enode data for the new validator nodes for an existing validator organization and the voting for its acceptance.
 ### main.yaml

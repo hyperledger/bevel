@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -66,7 +72,7 @@ spec:
         - name: VAULT_APP_ROLE
           value: {{ .Values.vault.role }}
         - name: MOUNT_PATH
-          value: "/secret"
+          value: "/secrets"
         command: ["sh", "-c"]
         args:
         - |-
@@ -104,29 +110,29 @@ spec:
           mkdir -p ${MOUNT_PATH}
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
-          echo "Getting keys from $vault_secret_key" 
+          echo "Getting node private key from $vault_secret_key" 
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]') 
-          echo "${nodekey}" > ${MOUNT_PATH}/nodekey
+          node_private_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]') 
+          echo "${node_private_key}" > ${MOUNT_PATH}/node_private_key
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
-          echo "Getting 2 keys from $vault_secret_key" 
+          echo "Getting transaction manager public key from $vault_secret_key" 
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          tm_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key_pub"]')    
-          echo "${tm_key_pub}" > ${MOUNT_PATH}/tm_key.pub
+          tm_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')    
+          echo "${tm_key_pub}" > ${MOUNT_PATH}/tm_key_pub
         
           if [ {{ $.Values.tm.tls }} == "true" ]
           then
             vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
-            echo "Getting 2 keys from $vault_secret_key"
+            echo "Getting tls knownServer, keystore and keystore password from $vault_secret_key"
             LOOKUP_SECRET_RESPONSE=$(curl -sS \
               --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
@@ -134,7 +140,9 @@ spec:
             validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
             
             tm_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["knownServer"]'| base64 -d) 
-            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
+            keystore_b64=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
+            keystore=$(echo ${keystore_b64} | sed 's/ //g' )       # removing white spaces from keystore because sometimes while fetching b64 string, '+' is replaced with white spaces.
+
             keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' | base64 -d)
 
             echo "${tm_known_server}" > ${MOUNT_PATH}/known_server
@@ -144,7 +152,7 @@ spec:
           fi 
         volumeMounts:
         - name: certificates
-          mountPath: /secret
+          mountPath: /secrets
       - name: liveliness-check
         image: "{{ .Values.images.alpineutils }}"
         command: ["sh", "-c"]
@@ -180,7 +188,8 @@ spec:
             echo -n {{ .Values.staticnodes | toJson | quote }} > {{ .Values.node.mountPath }}/static-nodes.json
             mkdir -p /tmp/genesis;
             cat /etc/genesis/genesis.json.base64 | base64 -d > /tmp/genesis/genesis.json
-            tr -d "\n\r" < /secrets/tm_key.pub > /secrets/nodekey.pub
+            tr -d "\n\r" < /secrets/tm_key_pub > /secrets/tm_key.pub
+
             args="--rpc-http-enabled --rpc-http-api=ETH,NET,IBFT,DEBUG,ADMIN,WEB3,EEA,PRIV --rpc-ws-enabled --rpc-ws-api=ETH,NET,WEB3 --p2p-port {{ .Values.node.ports.p2p }} --rpc-http-port {{ .Values.node.ports.rpc }} --rpc-ws-port={{ .Values.node.ports.ws }}"
             if  {{ $.Values.tm.tls }} == "true" 
             then
@@ -192,7 +201,7 @@ spec:
             exec /opt/besu/bin/besu \
             --identity={{ .Values.node.name }} \
             --discovery-enabled=false \
-            --node-private-key-file=/secrets/nodekey \
+            --node-private-key-file=/secrets/node_private_key \
             --data-path={{ .Values.node.mountPath }} \
             --genesis-file=/tmp/genesis/genesis.json \
             --logging=DEBUG \
@@ -208,7 +217,7 @@ spec:
             --rpc-ws-host=0.0.0.0 \
             --min-gas-price=0 \
             --privacy-enabled=true \
-            --privacy-public-key-file=/secrets/nodekey.pub \
+            --privacy-public-key-file=/secrets/tm_key.pub \
             --Xdns-enabled=true \
             --Xdns-update-enabled=true \
             $args \

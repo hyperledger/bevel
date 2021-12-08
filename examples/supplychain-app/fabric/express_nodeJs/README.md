@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supplychain Fabric Api microservice
 
 This project contains an Express Node.js application which does request transformation for API requests from the front end react application for supplychain to the appropriate format for the Rest servers for Fabric.

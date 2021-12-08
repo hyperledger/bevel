@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -62,7 +68,7 @@ spec:
       initContainers:
       - name: kafka-healthcheck
         image: {{ $.Values.metadata.images.healthcheck }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
         - |-
@@ -114,7 +120,7 @@ spec:
           fi
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
@@ -217,6 +223,8 @@ spec:
         command: ["sh", "-c", "cat /var/hyperledger/orderer/genesis/genesis.block.base64 | base64 -d > /var/hyperledger/orderer/orderer.genesis.block && orderer"]
         ports:
         - containerPort: 7050
+        - name: operations
+          containerPort: 9443
         envFrom:
         - configMapRef:
             name: {{ $.Values.orderer.name }}-config
@@ -229,6 +237,37 @@ spec:
         - name: certificates
           mountPath: /var/hyperledger/orderer/crypto
           readOnly: true
+      - name: grpc-web
+        image: "ghcr.io/hyperledger-labs/grpc-web:latest"        
+        ports:
+        - name: grpc-web
+          containerPort: 7443        
+        env:
+        - name: BACKEND_ADDRESS
+          value: "{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}"
+        - name: SERVER_TLS_CERT_FILE
+          value: "/certs/tls/server.crt"
+        - name: SERVER_TLS_KEY_FILE
+          value: "/certs/tls/server.key"
+        - name: BACKEND_TLS_CA_FILES
+          value: "/certs/tls/ca.crt"
+        - name: SERVER_BIND_ADDRESS
+          value: "0.0.0.0"
+        - name: SERVER_HTTP_DEBUG_PORT
+          value: "8080"
+        - name: SERVER_HTTP_TLS_PORT
+          value: "7443"
+        - name: BACKEND_TLS
+          value: "true"
+        - name: SERVER_HTTP_MAX_WRITE_TIMEOUT
+          value: 5m
+        - name: SERVER_HTTP_MAX_READ_TIMEOUT
+          value: 5m
+        - name: USE_WEBSOCKETS
+          value: "true"
+        volumeMounts:        
+        - name: certificates
+          mountPath: /certs
   volumeClaimTemplates:
   #Lables are not being taken by Kubernetes as it dynamically creates PVC
   - metadata:

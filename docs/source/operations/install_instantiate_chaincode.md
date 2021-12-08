@@ -1,9 +1,14 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "install-instantiate-chaincode-fabric"></a>
-# Installing and instantiating chaincode in BAF deployed Hyperledger Fabric Network
+# Installing and instantiating chaincode in Bevel deployed Hyperledger Fabric Network
 
 - [Pre-requisites](#pre_req)
 - [Modifying configuration file](#create_config_file)
-- [Chaincode Operations in BAF for the deployed Hyperledger Fabric network](#run_network)
+- [Chaincode Operations in Bevel for the deployed Hyperledger Fabric network](#run_network)
 
 <a name = "pre_req"></a>
 ## Pre-requisites
@@ -40,7 +45,7 @@ network:
             repository:
               username: "git_username"          # Git Service user who has rights to check-in in all branches
               password: "git_password"
-              url: "github.com/hyperledger-labs/blockchain-automation-framework.git"
+              url: "github.com/hyperledger/bevel.git"
               branch: develop
               path: "chaincode_src"   #The path to the chaincode 
             arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
@@ -48,9 +53,9 @@ network:
 ```
 
 <a name = "run_network"></a>
-## Chaincode Operations in BAF for the deployed Hyperledger Fabric network
+## Chaincode Operations in Bevel for the deployed Hyperledger Fabric network
 
-The playbook [chaincode-ops.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to install and instantiate chaincode for the existing fabric network.
+The playbook [chaincode-ops.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to install and instantiate chaincode for the existing fabric network.
 For Fabric v2.2 multiple operations such as approve, commit and invoke the chaincode are available in the same playbook. 
 This can be done by using the following command
 

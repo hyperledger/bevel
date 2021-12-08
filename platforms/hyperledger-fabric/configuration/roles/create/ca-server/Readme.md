@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: ca-server
 This role generate initial CA certs and push them to vault. Also, it creates the helm release value file for Certificate Authority (CA)
 
@@ -18,12 +23,12 @@ This task creates secrets for the root token and the reviewer token
     *kubernetes: "{{ item.k8s }}"
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secret`.
 
-#### 3. Create value file for ca-server
-This tasks generate ca-server helmrelease file.
+#### 3. Create value file for generate-cacerts
+This tasks generates cacerts helmrelease file.
 ##### Input Variables
     *name: "Name of the organisation"
-    *type: "vault_kubernetes_job"
-    *component_name: Name of the component, "{{ item.name | lower}}}}-vaultkubernetes-job"
+    *type: "cacerts_job"
+    *component_name: Name of the component, "{{ item.name | lower }}--cacerts-job"
     *component_ns: "Namespace of organisation , Format: {{ item.name | lower}}-net"
     *subject: "Subject of the services ca organization's, {{ ca.subject }}"
     *git_url: "Git SSH url"

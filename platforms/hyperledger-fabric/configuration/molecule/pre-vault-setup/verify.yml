@@ -1,33 +1,13 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 - name: Verify
   hosts: localhost
   tasks:
-
-#####################################################################################
-  #This task checks if the ca.key is created for orderers or not
-  - name: Check if the ca.key is created for orderers or not
-    stat:
-      path: "./build/crypto-config/ordererOrganizations/testorderer/ca/testorderer-CA.key"
-    register: ca_key_orderer_check
-  
-#####################################################################################
-  #This task assert if the ca.key exists for orderers
-  - name: Assert if the ca.key exists for orderers
-    assert:
-      that: ca_key_orderer_check.stat.exists
-
-#####################################################################################
-  #This task checks if the ca.pem is created for orderers or not
-  - name: Check if the ca.pem is created for orderers or not
-    stat:
-      path: "./build/crypto-config/ordererOrganizations/testorderer/ca/ca.testorderer-cert.pem"
-    register: ca_pem_orderer_check
-  
-#####################################################################################
-  #This task assert if the ca.pem exists for orderers
-  - name: Assert if the ca.pem exists for orderers
-    assert:
-      that: ca_pem_orderer_check.stat.exists
 
 #####################################################################################
   #This task checks if the crypto material are written to Vault for orderer
@@ -66,7 +46,7 @@
 
 #####################################################################################
   # Check if root token secret exist of every organization in their namespace
-  - name: Check if root token exists in the namespace
+  - name: Check if root token does not exist in the namespace
     k8s_info:
       kind: Secret
       namespace: "testorderer-net"
@@ -77,50 +57,24 @@
   
 #####################################################################################
   #This task assert if the root token secret is created
-  - name: Assert if the root token secret is created for orderer
+  - name: Assert if the root token secret is deleted for orderer
     assert:
-      that: root_token_secret_orderer.resources|length > 0 
+      that: root_token_secret_orderer.resources|length == 0 
 
 #####################################################################################
-  #This task checks if the value file is created for ca-server-job of the orderers
-  - name: Check if the value file is created for ca-server-job of the orderers
+  #This task checks if the value file is created for cacerts-job of the orderers
+  - name: Check if the value file is created for cacerts-job of the orderers
     stat:
-      path: "./build/testorderer/testorderer/testorderer-ca-server-job.yaml"
+      path: "./build/testorderer/testorderer/testorderer-cacerts-job.yaml"
     register: orderer_ca_job_check
   
 #####################################################################################
-  #This task assert if the value file is created for ca-server-job of the orderers
-  - name: Assert if the value file is created for ca-server-job of the orderers
+  #This task assert if the value file is created for cacerts-job of the orderers
+  - name: Assert if the value file is created for cacerts-job of the orderers
     assert:
       that: orderer_ca_job_check.stat.exists
  
 # ################# peers ##########################################
-#####################################################################################
-  #This task checks if the ca.key is created for peers or not
-  - name: Check if the ca.key is created for peers or not
-    stat:
-      path: "./build/crypto-config/peerOrganizations/testpeer/ca/testpeer-CA.key"
-    register: ca_key_peer_check
-  
-#####################################################################################
-  #This task assert if the ca.key exists for peers
-  - name: Assert if the ca.key exists for peers
-    assert:
-      that: ca_key_peer_check.stat.exists
-
-#####################################################################################
-  #This task checks if the ca.pem is created for peers or not
-  - name: Check if the ca.pem is created for peers or not
-    stat:
-      path: "./build/crypto-config/peerOrganizations/testpeer/ca/ca.testpeer-cert.pem"
-    register: ca_pem_peer_check
-  
-#####################################################################################
-  #This task assert if the ca.pem exists for peers
-  - name: Assert if the ca.pem exists for peers
-    assert:
-      that: ca_pem_peer_check.stat.exists
-
 #####################################################################################
   #This task checks if the crypto material are written to Vault for peers
   - name: Check if the crypto material are written to Vault for peers
@@ -158,7 +112,7 @@
 
 #####################################################################################
   # Check if root token secret exist in the namespace testpeer-net
-  - name: Check if root token exists in the namespace testpeer-net
+  - name: Check if root token does not exist in the namespace testpeer-net
     k8s_info:
       kind: Secret
       namespace: "testpeer-net"
@@ -168,21 +122,21 @@
     register: root_token_secret_peer
   
 #####################################################################################
-  #This task assert if the root token secret is created for peers
-  - name: Assert if the root token secret is created for peers
+  #This task assert if the root token secret is deleted for peers
+  - name: Assert if the root token secret is deleted for peers
     assert:
-      that: root_token_secret_peer.resources|length > 0 
+      that: root_token_secret_peer.resources|length == 0 
   
 #####################################################################################
-  #This task checks if the value file is created for ca-server-job of the peers
-  - name: Check if the value file is created for ca-server-job of the peers
+  #This task checks if the value file is created for cacerts-job of the peers
+  - name: Check if the value file is created for cacerts-job of the peers
     stat:
-      path: "./build/testpeer/testpeer/testpeer-ca-server-job.yaml"
+      path: "./build/testpeer/testpeer/testpeer-cacerts-job.yaml"
     register: peer_ca_job_check
   
 #####################################################################################
-  #This task assert if the value file is created for ca-server-job of the peers
-  - name: Assert if the value file is created for ca-server-job of the peers
+  #This task assert if the value file is created for cacerts-job of the peers
+  - name: Assert if the value file is created for cacerts-job of the peers
     assert:
       that: peer_ca_job_check.stat.exists
 

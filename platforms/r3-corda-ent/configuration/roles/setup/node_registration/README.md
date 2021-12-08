@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: `setup/node_registration`
 This role creates deployment file for node registration and also pushes the generated value file into repository. There is a `nested_main.yaml` which contains some tasks that are created per peer in the organisation.
 

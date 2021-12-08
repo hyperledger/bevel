@@ -1,0 +1,259 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}-cacerts-job"
+  namespace: "{{ $.Values.metadata.namespace }}"
+  labels:
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}-cacerts-job"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}-cacerts-job"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}-cacerts-job"
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:
+      restartPolicy: "OnFailure"
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      volumes:
+      - name: certcheck
+        emptyDir:
+          medium: Memory
+      initContainers:
+        - name: init-check-certificates
+          image: {{ $.Values.metadata.images.alpineutils }}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_SECRET_CRYPTO_PATH
+            value: {{ $.Values.vault.secretcryptoprefix }}
+          - name: VAULT_SECRET_CREDENTIALS_PATH
+            value: {{ $.Values.vault.secretcredentialsprefix }}
+          - name: MOUNT_PATH
+            value: "/certcheck"
+          command: ["sh", "-c"]
+          args:
+            - |-
+              #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+
+              # Setting up the environment to get secrets/certificates from Vault
+              echo "Getting secrets/certificates from Vault server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "Logged into Vault"
+
+              mkdir -p ${MOUNT_PATH}
+
+              # Check if certificates already present in the vault
+              LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_CRYPTO_PATH} | jq -r 'if .errors then . else . end')
+              if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+              then
+                echo "Certficates absent in vault. Ignore error warning"
+                touch ${MOUNT_PATH}/absent_cacert.txt
+              elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
+              then
+                echo "Certficates absent in vault2. Ignore error warning"
+                touch ${MOUNT_PATH}/absent_cacert.txt
+              else
+                validateVaultResponse "${VAULT_SECRET_CRYPTO_PATH}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present_cacert.txt
+              fi
+
+              # Check if CA server admin credentials already present in the vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_CREDENTIALS_PATH} | jq -r 'if .errors then . else . end')
+              if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+              then
+                echo "Certficates absent in vault. Ignore error warning"
+                touch ${MOUNT_PATH}/absent_creds.txt
+              elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
+              then
+                echo "Certficates absent in vault2. Ignore error warning"
+                touch ${MOUNT_PATH}/absent_creds.txt
+              else
+                validateVaultResponse "${VAULT_SECRET_CREDENTIALS_PATH}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present_creds.txt
+              fi 
+
+              echo "Done checking for certificates in vault"
+           
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+      containers:
+        - name:  "cacerts"
+          image: {{ $.Values.metadata.images.alpineutils }}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_SECRET_CRYPTO_PATH
+            value: {{ $.Values.vault.secretcryptoprefix }}
+          - name: VAULT_SECRET_CREDENTIALS_PATH
+            value: {{ $.Values.vault.secretcredentialsprefix }}
+          - name: COMPONENT_NAME
+            value: {{ $.Values.metadata.component_name }}
+          - name: NAME
+            value: {{ $.Values.metadata.name }}
+          - name: CA_SUBJECT
+            value: "{{ $.Values.ca.subject }}"
+          command: ["sh", "-c"]
+          args:
+            - |-
+              apk update && apk add jq curl openssl;
+
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+
+              if [ -e /certcheck/absent_cacert.txt ]
+              then
+       
+                # Create openssl.conf file
+                echo "[req]
+              req_extensions = v3_req
+              distinguished_name = dn
+
+              [dn]
+
+              [v3_req]
+              basicConstraints = critical, CA:TRUE
+              keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
+              subjectKeyIdentifier = hash
+              " > openssl.conf
+
+                # this commands generate the CA certificate
+                openssl ecparam -name prime256v1 -genkey -noout -out  ${COMPONENT_NAME}-CA.key
+                openssl req -x509 -config "openssl.conf" -new -nodes -key ${COMPONENT_NAME}-CA.key -days 1024 -out ca.${COMPONENT_NAME}-cert.pem -extensions v3_req -subj "${CA_SUBJECT}"
+
+                # This commands put the certificates with correct format for the curl command
+                while IFS= read -r line
+                do
+                  echo "$line\n"
+                done < ${COMPONENT_NAME}-CA.key > ./cakey_formatted.txt
+        
+                while IFS= read -r line
+                do
+                  echo "$line\n"
+                done < ca.${COMPONENT_NAME}-cert.pem > ./capem_formatted.txt
+
+                PEM_CERTIFICATE=$(cat capem_formatted.txt)
+                KEY_CERTIFICATE=$(cat cakey_formatted.txt)
+                
+                echo "
+                  {
+                    \"data\": 
+                      {
+                        \"ca.${COMPONENT_NAME}-cert.pem\": \"${PEM_CERTIFICATE}\",
+                        \"${COMPONENT_NAME}-CA.key\": \"${KEY_CERTIFICATE}\"
+                      }  
+                  }" > payload.json
+
+                echo "Putting secrets/certificates to Vault server"
+                KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+                # This command copy the CA certificates to the Vault
+                curl \
+                  -H "X-Vault-Token: ${VAULT_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -X POST \
+                  -d @payload.json \
+                  ${VAULT_ADDR}/v1/${VAULT_SECRET_CRYPTO_PATH}
+
+                # Check CA certificates
+                response_status=$(curl -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${VAULT_SECRET_CRYPTO_PATH});
+
+                validateVaultResponse 'certs creation' ${response_status};
+
+                rm payload.json
+              
+              fi
+
+              if [ -e /certcheck/absent_creds.txt ]
+              then
+
+                # This task write the CA server admin credentials to Vault
+                  curl \
+                    -H "X-Vault-Token: ${VAULT_TOKEN}" \
+                    -H "Content-Type: application/json" \
+                    -X POST \
+                    -d '{ "data": {"user":"'"$NAME-adminpw"'"}}' \
+                    ${VAULT_ADDR}/v1/${VAULT_SECRET_CREDENTIALS_PATH}
+
+                  # Check CA server admin credentials
+                  response_status=$(curl -s -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${VAULT_SECRET_CREDENTIALS_PATH});
+
+                  validateVaultResponse 'creds creation' ${response_status};
+              fi
+
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck

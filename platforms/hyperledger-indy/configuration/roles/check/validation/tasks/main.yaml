@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This role checks for validation of network.yaml
 # Conditions to be checked
 # At least 4 genesis stewards
@@ -6,6 +12,11 @@
 # At least one trustee per network.yaml
 
 #----------------------------------------------------------------------
+
+- name: Set counters
+  set_fact:
+    total_stewards=0
+    total_trustees=0
 
 - name: "Check Validation"
   include_tasks: check_count.yaml
@@ -17,11 +28,10 @@
   loop_control:
     loop_var: organizationItem
 
-
 - name: Print error and end playbook if genesis steward count limit fails
-  debug: msg="The genesis count is {{ steward_count }}. There should be atleast 2 genesis steward in total."
-  failed_when: steward_count|int < 2
+  debug: msg="The total genesis steward count is {{ total_stewards }}. There should be at least 4 genesis stewards (in case of a fully BAF-managed cluster)."
+  failed_when: not add_new_org and total_stewards|int < 4
 
 - name: Print error and end playbook if total trustee count limit fails
-  debug: msg="The total trustee count is {{ total_trustees }}. There should be atleast 1 trustees per network yaml."
-  when: total_trustees|int < 1
+  debug: msg="The total trustee count is {{ total_trustees }}. There should be at least 1 trustee per network (in case of a fully BAF-managed cluster)."
+  failed_when: not add_new_org and total_trustees|int < 1

@@ -26,6 +26,6 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: quorum{{ peer.name }}
+      authpath: quorum{{ org_name }}
       serviceaccountname: vault-auth
       certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}-quo

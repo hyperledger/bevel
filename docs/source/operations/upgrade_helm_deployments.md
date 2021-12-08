@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "upgrading-2to3"></a>
-# Upgrading a running helm2 BAF deployment to helm3
-This guide enables an operator to upgrade an existing BAF helm2 deployment to helm3
+# Upgrading a running helm2 Bevel deployment to helm3
+This guide enables an operator to upgrade an existing Bevel helm2 deployment to helm3
 
 - [Prerequisites](#prerequisites)
 - [Deleting the existing flux deployment](#delete_flux)
@@ -9,9 +14,9 @@ This guide enables an operator to upgrade an existing BAF helm2 deployment to he
 
 <a name = "prerequisites"></a>
 ## Prerequisites  
-    a. A running BAF deployment based on helm v2
+    a. A running Bevel deployment based on helm v2
     b. Helm v2 binary in place and added to the path (accessible by the name `helm`)
-    c. BAF repository with the latest code
+    c. Bevel repository with the latest code
 
 <a name = "delete_flux"></a>
 ## Deleting the existing flux deployment
@@ -52,6 +57,6 @@ Perform the following steps to upgrade the deployments
 
 <a name = "redeploy"></a>
 ## Re-deployment of flux
-With the lastest BAF repo clone and the network.yaml, you can redeploy flux using
+With the lastest Bevel repo clone and the network.yaml, you can redeploy flux using
 
     ansible-playbook platforms/shared/configuration/kubernetes-env-setup.yaml -e @<PATH_TO_NETWORK_YAML>

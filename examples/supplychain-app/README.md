@@ -1,15 +1,22 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supplychain-App
 
 ## About
-This folder contains the files that are needed for the deployment of a Supplychain Application on a Corda or Fabric network that has been created using the Blockchain Automation Framework. 
+This folder contains the files that are needed for the deployment of a Supplychain Application on a Corda, Fabric, Quorum or Besu network that has been created using the Blockchain Automation Framework. 
 
 ## Folder structure
 ```
 supplychain-app
+|-- besu: this folder contains the code for Besu smart contract and Express-API for the Supplychain Application.
 |-- charts: this folder contains the Helm charts that are needed for the deployment of the Supplychain Application.
 |-- configuration: this folder contains all the Ansible playbooks and roles needed for the deployment of the Supplychain Application.
 |-- corda: this folder contains the code for Corda CorDapps, Springboot and Express-API for the Supplychain Application.
 |-- fabric: this folder contains the code for Fabric chaincode, Restserver and Express-API for the Supplychain Application.
+|-- quorum: this folder contains the code for Quorum smart contract and Express-API for the Supplychain Application.
 |-- supplychain-frontend: this folder contains the code for the Supplychain Application GUI.
 |-- tests: this folder contains various Postman collections to test the Supplychain Application end-to-end.
 ```
@@ -28,6 +35,7 @@ Build the following docker images from the respective folders and store in the d
 * supplychain_corda:express_app_latest (from `examples/supplychain-app/corda/express_nodeJS/` folder) for Corda
 * supplychain_fabric:rest_server_latest (from `examples/supplychain-app/fabric/chaincode_rest_server/rest-server/` folder) for Fabric
 * supplychain_fabric:express_app_latest (from `examples/supplychain-app/fabric/express_nodeJs/` folder) for Fabric
+* supplychain_quorum:express_app_latest (from `examples/supplychain-app/quorum/express_nodeJs/` folder) for Quorum and Besu
 
 ### Step 2
 Edit the Supplychain application configuration file (from `examples\supplychain-app\configuration\samples` depnding on your choice of DLT Platform). This file will be similar to the BAF Configuration File which few additional changes like the `frontend: enabled` and `google_maps_api: XYZ123`, also the chart location must be `chart_source: "examples\supplychain-app\charts"`
@@ -48,6 +56,7 @@ Wait for the pods to come up. Then access the frontend and API endpoints at:
 * For Corda Manufacturer API (using Ambassador): https://manufacturerapi.rc.demo.aws.blockchaincloudpoc.com/
 * For Fabric Manufacturer Frontend (using HAProxy): https://manufacturerweb.hf.demo.aws.blockchaincloudpoc.com/
 * For Fabric Manufacturer API (using HAProxy): https://manufacturerapi.hf.demo.aws.blockchaincloudpoc.com/
+* For Besu Manufacturer API (using Ambassador): https://manufacturerapi.bes.demo.aws.blockchaincloudpoc.com/
 
 ---
 

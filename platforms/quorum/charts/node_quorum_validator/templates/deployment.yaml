@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -157,7 +163,7 @@ spec:
         - |-
           #!/usr/bin/env sh
           apk add curl;
-          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
+          echo -n {{ .Values.staticnodes | toRawJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt
@@ -179,7 +185,7 @@ spec:
             args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,debug,web3,eth,txpool,personal,raft,miner,net,quorumExtension";
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --rpcapi admin,debug,web3,eth,txpool,personal,istanbul,miner,net,quorumExtension"
+            args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,debug,web3,eth,txpool,personal,istanbul,miner,net,quorumExtension"
                                                                                               
             
           fi;

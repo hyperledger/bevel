@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -115,7 +121,7 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]') 
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
@@ -124,8 +130,8 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' | base64 -d)  
-          orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key_pub"]')    
+          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]' | base64 -d)  
+          orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')    
           orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]') 
           echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key
           echo "${orion_key_pub}" > ${MOUNT_PATH}/orion_key.pub

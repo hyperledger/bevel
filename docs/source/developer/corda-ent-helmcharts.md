@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Corda Enterprise Helm Charts
 
-Following are the helm charts used for R3 Corda Enterprise in Blockchain Automation Framework.
+Following are the helm charts used for R3 Corda Enterprise in Hyperledger Bevel.
 
 ```
 platforms/r3-corda-ent/charts

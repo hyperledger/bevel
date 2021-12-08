@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "removing-org-from-existing-network-in-fabric"></a>
 # Removing an organization in Hyperledger Fabric
 
@@ -11,7 +16,7 @@
 To remove an organization a fully configured Fabric network must be present already, i.e. a Fabric network which has Orderers, Peers, Channels (with all Peers already in the channels). The corresponding crypto materials should also be present in their respective Hashicorp Vault. 
 
 ---
-**NOTE**: Removing an organization has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
+**NOTE**: Removing an organization has been tested on an existing network which is created by Bevel. Networks created using other methods may be suitable but this has not been tested by Bevel team.
 
 ---
 
@@ -53,12 +58,12 @@ and under `network.organizations` as
 The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
-For reference, see `network-fabric-remove-organization.yaml` file [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/hyperledger-fabric/configuration/samples).
+For reference, see `network-fabric-remove-organization.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples).
 
 <a name = "run_network"></a>
 ## Run playbook
 
-The [remove-organization.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/platforms/hyperledger-fabric/configuration/remove-organization.yaml) playbook is used to remove organization(s) from the existing network. This can be done using the following command
+The [remove-organization.yaml](https://github.com/hyperledger/bevel/platforms/hyperledger-fabric/configuration/remove-organization.yaml) playbook is used to remove organization(s) from the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/shared/configuration/remove-organization.yaml --extra-vars "@path-to-network.yaml"

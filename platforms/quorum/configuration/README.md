@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Quorum Configuration
 This configuration folder contains Ansible playbooks and their corresponding roles, which are used to deploy Quorum on Managed Kubernetes Cluster(s).
 

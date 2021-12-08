@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-new-storageclass"></a>
 # Adding a new storageclass
-As storageclass templates vary as per requirements and cloud provider specifications, this guide will help in using a new storageclass which is not supported by Blockchain Automation Framework (BAF)
+As storageclass templates vary as per requirements and cloud provider specifications, this guide will help in using a new storageclass which is not supported by Hyperledger Bevel 
 
   - [Adding a new storage class for Hyperledger Fabric](#fabric)
   - [Adding a new storage class for R3-Corda](#corda)

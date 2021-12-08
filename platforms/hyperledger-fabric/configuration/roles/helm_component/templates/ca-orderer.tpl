@@ -43,6 +43,9 @@ spec:
       name: {{ component_services.ca.name }}
       tlsstatus: true
       admin: {{ component }}-admin
+{% if component_services.ca.configpath is defined %}
+      configpath: conf/fabric-ca-server-config-{{ component }}.yaml
+{% endif %}        
     storage:
       storageclassname: {{ component | lower }}sc
       storagesize: 512Mi 

@@ -20,20 +20,20 @@
                 "frontend": { "type": "string", "enum": ["enabled","disabled"]},
                 "orderers": { "type":"array","items":{ "$ref":"#/definitions/fabric_orderer"}},
                 "channels": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel"}},
-                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/fabric_organization"}}      
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/fabric_organization"}}
                }
              }
-            }, 
+            },
             {"if": {"properties": { "type": { "const": "besu" } } },
              "then": {
               "properties":{
                 "version":{ "type": "string","enum":["1.5.5","21.1.0","21.1.1"]},
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "config": {"$ref":"#/definitions/besu_config"},
-                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/besu_organization"}}      
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/besu_organization"}}
                }
              }
-            },                         
+            },
             {"if": {"properties": { "type": { "const": "corda" } } },
              "then": {
               "properties":{
@@ -41,7 +41,7 @@
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "frontend": { "type": "string", "enum": ["enabled","disabled"]},
                 "network_services": { "type":"array","items":{ "$ref":"#/definitions/corda_network_service"}},
-                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/corda_organization"}}      
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/corda_organization"}}
                }
              }
             }  ,
@@ -52,7 +52,7 @@
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "frontend": { "type": "string", "enum": ["enabled","disabled"]},
                 "network_services": { "type":"array","items":{ "$ref":"#/definitions/corda_enterprise_network_service"}},
-                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/corda_enterprise_organization"}}      
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/corda_enterprise_organization"}}
                }
              }
             },
@@ -62,7 +62,7 @@
                 "version":{ "type": "string","enum":["1.11.0","1.12.1"]},
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "genesis": {"$ref":"#/definitions/indy_genesis"},
-                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/indy_organization"}}      
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/indy_organization"}}
                }
              }
             },
@@ -71,54 +71,54 @@
               "properties":{
                 "version":{ "type": "string","enum":["21.4.2","2.5.0"]},
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
-                "config": {"$ref":"#/definitions/quorum_config"},                
-                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/quorum_organization"}}      
+                "config": {"$ref":"#/definitions/quorum_config"},
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/quorum_organization"}}
                }
              }
-            }                                                  
+            }
           ],
           "required": [ "type","version","env","docker","organizations" ]
         }
     },
     "required": [ "network" ] ,
 
-    "definitions": { 
+    "definitions": {
         "shared_environment":{
             "type": "object",
             "properties": {
               "type": { "type": "string","pattern": "^[a-z0-9-]{1,15}$", "description": "Environment type. Can be like dev/test/prod."},
-              "proxy": { "type": "string", "enum": ["haproxy", "ambassador","none"], "description": "Choice of the Cluster Ingress controller. 'none' only minikube does not use a proxy"},           
-              "retry_count": {"type": "integer", "minimum":5,"maximum":100,"description": "Retry count for the checks. Use a large number if your kubernetes cluster is slow."}, 
+              "proxy": { "type": "string", "enum": ["haproxy", "ambassador","none"], "description": "Choice of the Cluster Ingress controller. 'none' only minikube does not use a proxy"},
+              "retry_count": {"type": "integer", "minimum":5,"maximum":100,"description": "Retry count for the checks. Use a large number if your kubernetes cluster is slow."},
               "external_dns": { "type": "string", "enum": ["enabled", "disabled"], "description": "If the cluster has the external DNS service, this has to be set enabled so that the hosted zone is automatically updated."}
               },
             "required": [ "type","proxy","external_dns","retry_count" ]
-        },    
+        },
         "shared_env_ambassador":{
           "type": "object",
           "properties": {
             "type": { "type": "string","pattern": "^[a-z0-9-]{1,15}$","description": "Environment type. Can be like dev/test/prod."},
-            "proxy": { "type": "string", "enum": ["ambassador","none"],"description": "Choice of the Cluster Ingress controller"},    
-            "ambassadorPorts":{"$ref":"#/definitions/shared_env_ambassadorPorts", "description": "Any additional Ambassador ports can be given here."},  
-            "loadBalancerSourceRanges":{"type": ["string", "null"],"nullable": true,"pattern":"^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/(0|8|16|24)$","description": "restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security"},     
-            "retry_count": {"type": "integer", "minimum":5,"maximum":100,"description": "Retry count for the checks. Use a large number if your kubernetes cluster is slow."}, 
+            "proxy": { "type": "string", "enum": ["ambassador","none"],"description": "Choice of the Cluster Ingress controller"},
+            "ambassadorPorts":{"$ref":"#/definitions/shared_env_ambassadorPorts", "description": "Any additional Ambassador ports can be given here."},
+            "loadBalancerSourceRanges":{"type": ["string", "null"],"nullable": true,"pattern":"^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/(0|8|16|24)$","description": "restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security"},
+            "retry_count": {"type": "integer", "minimum":5,"maximum":100,"description": "Retry count for the checks. Use a large number if your kubernetes cluster is slow."},
             "external_dns": { "type": "string", "enum": ["enabled", "disabled"], "description": "If the cluster has the external DNS service, this has to be set enabled so that the hosted zone is automatically updated."}
             },
           "required": [ "type","proxy","external_dns","retry_count" ],
           "additionalProperties": false
-        },   
+        },
         "shared_env_ambassadorPorts":{
           "type": "object",
           "properties": {
             "ports": { "type":"string","pattern":"^\\d{1,5}(?:,\\d{1,5})*$"},
-            "portRange": { "type": "object", 
+            "portRange": { "type": "object",
               "properties":{
                 "from":{ "type": "integer"},
                 "to":{ "type": "integer"}},
               "additionalProperties": false
               }
-          }, 
+          },
           "additionalProperties": false
-        },                         
+        },
         "shared_docker":{
             "type": "object",
             "properties": {
@@ -127,7 +127,7 @@
               "password": {"type": "string","description": "Password credential required for login."}
              },
             "required": [ "url","username","password"]
-        },                                 
+        },
         "shared_k8s":{
           "type": "object",
           "properties": {
@@ -150,7 +150,7 @@
            },
           "required": [ "access_key","secret_key"],
           "additionalProperties": false
-        },        
+        },
         "shared_vault":{
           "type": "object",
           "properties": {
@@ -160,24 +160,24 @@
            },
           "required": [ "url","root_token"],
           "additionalProperties": false
-        },  
+        },
         "shared_gitops":{
           "type": "object",
           "properties": {
             "git_protocol": { "type": "string","enum": ["https", "ssh"], "description": "Option for git over https or ssh."},
-            "git_url": { "type": "string","description": "SSH or HTTPs url of the repository where flux should be synced."}, 
-            "branch": { "type": "string","description": "Branch of the repository where the Helm Charts and value files are stored"}, 
-            "release_dir": { "type": "string","pattern":"(^[A-Za-z0-9]+)(/[A-Za-z0-9-]+)*([A-Za-z0-9])$","description": "Relative path where flux should sync files."}, 
-            "chart_source":{ "type": "string","pattern":"(^[A-Za-z0-9]+)(/[A-Za-z0-9-]+)*([A-Za-z0-9])$","description": "Relative path where the helm charts are stored"}, 
-            "git_repo": { "type": "string"}, 
-            "username": { "type": "string","description": "Username which has access rights to read/write on repository"}, 
-            "password": { "type": "string", "description": "Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)"}, 
-            "private_key": { "type": "string","description": "Path to the private key file which has write-access to the git repo (Optional for https; Required for ssh)"},  
-            "email": { "type": "string","pattern":"^\\S+@\\S+\\.\\S+$","description": "Email of the user to be used in git config"}                
+            "git_url": { "type": "string","description": "SSH or HTTPs url of the repository where flux should be synced."},
+            "branch": { "type": "string","description": "Branch of the repository where the Helm Charts and value files are stored"},
+            "release_dir": { "type": "string","pattern":"(^[A-Za-z0-9]+)(/[A-Za-z0-9-]+)*([A-Za-z0-9])$","description": "Relative path where flux should sync files."},
+            "chart_source":{ "type": "string","pattern":"(^[A-Za-z0-9]+)(/[A-Za-z0-9-]+)*([A-Za-z0-9])$","description": "Relative path where the helm charts are stored"},
+            "git_repo": { "type": "string"},
+            "username": { "type": "string","description": "Username which has access rights to read/write on repository"},
+            "password": { "type": "string", "description": "Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)"},
+            "private_key": { "type": "string","description": "Path to the private key file which has write-access to the git repo (Optional for https; Required for ssh)"},
+            "email": { "type": "string","pattern":"^\\S+@\\S+\\.\\S+$","description": "Email of the user to be used in git config"}
            },
           "required": [ "git_protocol","git_url","branch","release_dir","chart_source","git_repo","username","password","private_key","email"],
           "additionalProperties": false
-        }, 
+        },
         "shared_organization":{
           "type": "object",
           "properties": {
@@ -190,7 +190,7 @@
             "azure":{},
             "minikube":{},
             "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$"}
-            },  
+            },
           "allOf":[{
             "if": {"properties": { "cloud_provider": { "enum": ["aws","aws-baremetal"] } } },"then":{
               "properties": {
@@ -198,25 +198,25 @@
               },
               "required": [ "aws"]
             }}
-          ],     
+          ],
           "required": [ "name","cloud_provider","k8s","vault","gitops"]
-        },         
+        },
         "corda_network_service":{
           "type": "object",
           "properties": {
             "service":{  "description": "deprecated."},
-            "type": { "type": "string", "enum": ["doorman", "networkmap"]},   
+            "type": { "type": "string", "enum": ["doorman", "networkmap"]},
             "uri": { "type": "string","pattern": "^(http|https):\/\/(((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9])|((?:[0-9]{1,3}\\.){3}[0-9]{1,3}))(?::[0-9]{2,5})?$"},
             "certificate": { "type": "string", "pattern":"^\/?([^\/ ]*\/)+[^\/ ]+\\.(crt|pem)$", "description": "Absolute path to the public certificates"}
            },
           "required": [ "type","uri","certificate"],
           "additionalProperties": false
-        },    
+        },
         "corda_enterprise_network_service":{
           "type": "object",
           "properties": {
             "service":{  "description": "deprecated"},
-            "type": { "type": "string", "enum": ["idman", "networkmap"]},  
+            "type": { "type": "string", "enum": ["idman", "networkmap"]},
             "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the service"},
             "uri": { "type": "string","pattern": "^(http|https):\/\/(((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9])|((?:[0-9]{1,3}\\.){3}[0-9]{1,3}))(?::[0-9]{2,5})?$"},
             "certificate": { "type": "string","pattern":"^\/?([^\/ ]*\/)+[^\/ ]+\\.(crt|pem)$","description": "Absolute path to the public certificates"},
@@ -226,7 +226,7 @@
            },
           "required": [ "type","uri","certificate","name"],
           "additionalProperties": false
-        },  
+        },
         "corda_organization":{
           "type": "object",
           "allOf":[{ "$ref":"#/definitions/shared_organization"}],
@@ -234,14 +234,14 @@
             "type": { "type": "string","enum": ["doorman-nms-notary","notary","node","cenm"]},
             "country": { "type": "string"},
             "state": { "type": "string"},
-            "location": { "type": "string"}, 
-            "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"},    
+            "location": { "type": "string"},
+            "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"},
             "external_url_suffix":  { "type": "string","description":"Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider."},
             "services":{ "$ref":"#/definitions/corda_node_service"},
             "cordapps":{ "$ref":"#/definitions/corda_cordapp"}
-            },         
+            },
           "required": [ "type","country","state","location","subject","external_url_suffix","services"]
-        },  
+        },
         "corda_enterprise_organization":{
           "type": "object",
           "allOf":[{ "$ref":"#/definitions/shared_organization"},
@@ -249,7 +249,7 @@
           "properties": {
             "subordinate_ca_subject": { "type": "string","description":"Subordinate CA Subject for the CENM."},
             "firewall": { }
-            },    
+            },
           "if": {"properties": { "type": { "const": "cenm" } } },"then":{
             "properties": {
               "version": { "type": "number","enum": [1.5]},
@@ -258,9 +258,9 @@
             "properties": {
               "version": { "type": "number","enum": [4.7]},
               "credentials":  { "$ref":"#/definitions/corda_credentials_node"}}
-          },     
+          },
           "required": [ "version"]
-        },  
+        },
         "corda_cordapp":{
           "type": "object",
           "properties": {
@@ -273,7 +273,7 @@
             }},
            "required": [ "username","password","jars"],
            "additionalProperties": false
-        },          
+        },
         "corda_credentials_cenm":{
           "type": "object",
           "properties": {
@@ -296,22 +296,23 @@
                 "networkmap": { "type": "string"},
                 "idman": { "type": "string"},
                 "signer": { "type": "string"},
-                "root": { "type": "string"}
-             },"required": [ "networkmap","idman","signer","root"], "additionalProperties": false
-            }          
+                "root": { "type": "string"},
+                "auth": { "type": "string"}
+             },"required": [ "networkmap","idman","signer","root","auth"], "additionalProperties": false
+            }
             },
-          "required": [ "keystore","truststore","ssl"], 
-          "additionalProperties": false  
-        },  
+          "required": [ "keystore","truststore","ssl"],
+          "additionalProperties": false
+        },
         "corda_credentials_node":{
           "type": "object",
           "properties": {
               "truststore": { "type": "string"},
               "keystore": { "type": "string"}
           },
-          "required": [ "truststore","keystore"], 
+          "required": [ "truststore","keystore"],
           "additionalProperties": false
-        },                     
+        },
         "corda_node_service":{
           "type": "object",
           "properties": {
@@ -320,7 +321,7 @@
             "notary": { "$ref":"#/definitions/corda_service_notary"},
             "peers": {  "type":"array","items":{ "$ref":"#/definitions/corda_service_peer"}}
             }
-        },  
+        },
         "corda_service_doorman_nms":{
           "type": "object",
           "properties": {
@@ -328,7 +329,7 @@
             "subject": { "type": "string"},
             "db_subject": { "type": "string"},
             "type":{ "type": "string","enum": ["doorman","networkmap"]},
-            "tls": { "type": "string","enum": ["on","off"]},       
+            "tls": { "type": "string","enum": ["on","off"]},
             "ports":{ "$ref":"#/definitions/corda_service_port_doorman"}
             }
         },
@@ -339,14 +340,14 @@
             "subject": { "type": "string"},
             "db_subject": { "type": "string"},
             "type":{ "type": "string","enum": ["notary"]},
-            "tls": { "type": "string","enum": ["on","off"]},       
+            "tls": { "type": "string","enum": ["on","off"]},
             "p2p":{ "$ref":"#/definitions/shared_service_port_ambassador"},
             "rpc":{ "$ref":"#/definitions/corda_service_port"},
             "p2padmin":{ "$ref":"#/definitions/corda_service_port"},
             "dbtcp":{ "$ref":"#/definitions/corda_service_port"},
-            "dbweb":{ "$ref":"#/definitions/corda_service_port"}                                          
+            "dbweb":{ "$ref":"#/definitions/corda_service_port"}
             }
-        },  
+        },
         "corda_service_peer":{
           "type": "object",
           "properties": {
@@ -354,16 +355,16 @@
             "subject": { "type": "string"},
             "db_subject": { "type": "string"},
             "type":{ "type": "string","enum": ["node"]},
-            "tls": { "type": "string","enum": ["on","off"]},       
+            "tls": { "type": "string","enum": ["on","off"]},
             "p2p":{ "$ref":"#/definitions/shared_service_port_ambassador"},
             "rpc":{ "$ref":"#/definitions/corda_service_port"},
             "p2padmin":{ "$ref":"#/definitions/corda_service_port"},
             "dbtcp":{ "$ref":"#/definitions/corda_service_port"},
             "dbweb":{ "$ref":"#/definitions/corda_service_port"},
             "springboot":{ "$ref":"#/definitions/corda_service_port"},
-            "expressapi":{ "$ref":"#/definitions/corda_service_port"}                                                                    
+            "expressapi":{ "$ref":"#/definitions/corda_service_port"}
             }
-        },  
+        },
         "corda_service_port_doorman":{
           "type": "object",
           "properties": {
@@ -373,7 +374,7 @@
             },
           "required": [ "servicePort","targetPort"],
           "additionalProperties": false
-        },               
+        },
         "corda_service_port":{
           "type": "object",
           "properties": {
@@ -382,7 +383,7 @@
             },
           "required": [ "port","targetPort"],
           "additionalProperties": false
-        }, 
+        },
         "shared_service_port_ambassador":{
           "type": "object",
           "properties": {
@@ -401,7 +402,7 @@
             },
           "required": [ "port","ambassador"],
           "additionalProperties": false
-        },    
+        },
         "shared_port":{
           "type": "object",
           "properties": {
@@ -409,7 +410,7 @@
             },
           "required": [ "port"],
           "additionalProperties": false
-        },              
+        },
         "fabric_orderer":{
           "type": "object",
           "properties": {
@@ -419,10 +420,10 @@
             "org_name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Name of the organization to which this orderer belongs to"},
             "uri": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$"},
             "certificate": { "type": "string", "pattern":"^(\/[^\/ ]*)+[^\/ ]+\\.crt$","description": "Absolute path to the public certificates"}
-            },         
+            },
           "required": [ "name","type","org_name","uri","certificate"],
           "additionalProperties": false
-        },    
+        },
         "fabric_channel":{
           "type": "object",
           "properties": {
@@ -437,17 +438,17 @@
             "orderer": { "type": "object", "properties": {
                 "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Organization name to which the orderer belongs"}},
               "required": [ "name"], "additionalProperties": false
-           }, 
+           },
            "endorsers": { "type": "object", "properties": {
                "name": { "type":"array", "items":{ "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the endorsers"}},
                "corepeerAddress": { "type":"array", "items":{ "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description": "Address of the endorsers"}}},
             "required": [ "name","corepeerAddress"], "additionalProperties": false
-          },            
-           "participants": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel_participant"}}        
-          },         
+          },
+           "participants": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel_participant"}}
+          },
           "required": [ "channel","consortium","channel_name","genesis","orderer","participants"],
           "additionalProperties": false
-        },      
+        },
         "fabric_channel_participant":{
           "type": "object",
           "properties": {
@@ -458,16 +459,16 @@
             "ordererAddress": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"URL of the orderer this peer connects to"},
             "peers": {  "type":"array","items":{"type": "object", "properties": {
               "peer": { },
-              "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the peer"},              
+              "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the peer"},
               "peerstatus": { "type": "string","enum": ["new","existing"],"description":"Used for add new peer orgs. should be new/existing"},
               "gossipAddress": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"Gossip address of the peer"},
               "peerAddress": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"External address of the peer"}},
             "required": [ "peer","name","gossipAddress","peerAddress"], "additionalProperties": false
             }}
-          },             
+          },
           "required": [ "organization","name","type","org_status","ordererAddress","peers"],
           "additionalProperties": false
-        },                   
+        },
         "fabric_organization":{
           "type": "object",
           "allOf":[{ "$ref":"#/definitions/shared_organization"}],
@@ -475,8 +476,8 @@
             "type": { "type": "string","enum": ["orderer","peer"]},
             "country": { "type": "string","description":"Country of the organization"},
             "state": { "type": "string","description":"State of the organization"},
-            "location": { "type": "string","description":"Location of the organization"}, 
-            "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"},    
+            "location": { "type": "string","description":"Location of the organization"},
+            "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"},
             "external_url_suffix":  { "type": "string","description":"Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider."},
             "org_status": { "type": "string","enum": ["new","existing","delete"]},
             "ca_data": {  "type":"object", "description":"Contains the certificate authority url and certificate path; this has not been implemented yet","properties": {
@@ -484,14 +485,14 @@
                "certificate": { "type": "string","pattern":"^\/?([^\/ ]*\/)+[^\/ ]+\\.crt$","description":"Path to certificate"}},
               "required": [ "url","certificate"], "additionalProperties": false
               }
-            },   
+            },
             "if": {"properties": { "type": { "const": "orderer" } } },"then":{
               "properties": {
                 "services":  { "$ref":"#/definitions/fabric_orderer_services"}}
             },"else":{
               "properties": {
                 "services":  { "$ref":"#/definitions/fabric_peer_services"}}
-            },                   
+            },
           "required": [ "type","country","state","location","subject","external_url_suffix","services"]
         },
         "fabric_orderer_services":{
@@ -500,46 +501,46 @@
             "ca":{ "$ref":"#/definitions/fabric_service_ca"},
             "consensus":{ "$ref":"#/definitions/fabric_service_consensus"},
             "orderers": { "type":"array","items":{ "$ref":"#/definitions/fabric_service_orderer"}}
-            },         
+            },
           "required": [ "ca","consensus","orderers"],
           "additionalProperties": false
-        },    
+        },
         "fabric_peer_services":{
           "type": "object",
           "properties": {
             "ca":{ "$ref":"#/definitions/fabric_service_ca"},
             "peers": { "type":"array","items":{ "$ref":"#/definitions/fabric_service_peer"}}
-            },         
+            },
           "required": [ "ca","peers"],
           "additionalProperties": false
-        }, 
+        },
         "fabric_service_ca":{
           "type": "object",
           "properties": {
             "type": {"type":"string","const": "ca"},
             "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Certificate Authority service name"},
-            "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"}, 
-            "grpc":{ "$ref":"#/definitions/shared_port"}   
-            },         
+            "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"},
+            "grpc":{ "$ref":"#/definitions/shared_port"}
+            },
           "required": [ "type","name","subject","grpc"],
           "additionalProperties": false
-        },   
+        },
         "fabric_service_consensus":{
           "type": "object",
           "properties": {
             "name": {"type":"string","enum": ["kafka","raft"],"description":"Name of the Consensus service. Can be raft or kafka."}
             },
-          "required":["name"],             
+          "required":["name"],
           "if": {"properties": { "name": { "const": "kafka" } } },
             "then": {
              "properties":{
                "type":{ "type": "string","enum":["broker"],"description":"Only for kafka. Consensus service type, only value supported is broker currently"},
                "replicas": {"type": "integer", "minimum":1,"maximum":10,"description":"Only for kafka. Replica count of the brokers"},
-               "grpc":{ "$ref":"#/definitions/shared_port"}     
+               "grpc":{ "$ref":"#/definitions/shared_port"}
               },
               "required":["name","type","replicas","grpc"]
            }
-        },          
+        },
         "fabric_service_orderer":{
           "type": "object",
           "properties": {
@@ -548,33 +549,33 @@
             "status": {"type":"string","enum": ["new","existing"],"description":"(Only needed to add new orderer). Possible values are 'new' or 'existing'"},
             "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Name of the Orderer service"},
             "consensus": {"type":"string","enum": ["kafka","raft"]},
-            "grpc":{ "$ref":"#/definitions/shared_port"}   
-            },         
+            "grpc":{ "$ref":"#/definitions/shared_port"}
+            },
           "required": [ "type","name","consensus","grpc"],
           "additionalProperties": false
-        },         
+        },
         "fabric_service_peer":{
           "type": "object",
           "properties": {
             "peer":{},
             "type": {"type":"string","enum": ["anchor","nonanchor"],"description":"At least one peer should be anchor peer"},
             "name": { "type": "string","pattern": "^peer[0-9]{1,2}$","description":"Name of the peer. Must be of the format peer0 for the first peer, peer1 for the second peer and so on."},
-            "gossippeeraddress":  { "type": "string","description":"Gossip address of another peer in the same Organization. If there is only one peer, then use that peer address. Must be internal as the peer is hosted in the same Kubernetes cluster."}, 
-            "peerAddress":  { "type": "string","description":"External address of this peer. Must be the HAProxy qualified address. If using minikube, this can be internal address."}, 
+            "gossippeeraddress":  { "type": "string","description":"Gossip address of another peer in the same Organization. If there is only one peer, then use that peer address. Must be internal as the peer is hosted in the same Kubernetes cluster."},
+            "peerAddress":  { "type": "string","description":"External address of this peer. Must be the HAProxy qualified address. If using minikube, this can be internal address."},
             "peerstatus":{"type":"string","enum": ["new","existing"],"description":"Needed to add new peer organization to existing network."},
-            "certificate": { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+\\.crt$","description":"Certificate path for peer."}, 
-            "cli":  { "type": "string","enum": ["enabled","disabled"],"description":"Optional field. If enabled will deploy the CLI pod for this Peer. Default is disabled."}, 
+            "certificate": { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+\\.crt$","description":"Certificate path for peer."},
+            "cli":  { "type": "string","enum": ["enabled","disabled"],"description":"Optional field. If enabled will deploy the CLI pod for this Peer. Default is disabled."},
             "grpc":{ "$ref":"#/definitions/shared_port","description":"Grpc port"},
             "events":{ "$ref":"#/definitions/shared_port","description":"Events port"},
             "couchdb":{ "$ref":"#/definitions/shared_port","description":"Couchdb port"},
             "restserver":{ "$ref":"#/definitions/corda_service_port","description":"Restserver target port"},
             "expressapi":{ "$ref":"#/definitions/corda_service_port","description":"Express server port"},
-            "frontend":{ "$ref":"#/definitions/corda_service_port","description":"Frontend port"},            
+            "frontend":{ "$ref":"#/definitions/corda_service_port","description":"Frontend port"},
             "chaincode":{ "$ref":"#/definitions/fabric_chaincode","description":"chaincode data"}
-            },         
+            },
           "required": [ "type","name","gossippeeraddress","grpc","events"],
           "additionalProperties": false
-        }, 
+        },
         "fabric_chaincode":{
           "type": "object",
           "properties": {
@@ -585,17 +586,17 @@
             "arguments": { "type": "string","description":"Arguments to the chaincode"},
             "endorsements": { "type": "string","description":"Endorsements (if any) provided along with the chaincode"},
             "repository": { "$ref":"#/definitions/fabric_chaincode_repository"}
-            },         
+            },
           "required": [ "name","version","maindirectory","arguments","endorsements","repository"],
           "additionalProperties": false
-        },   
+        },
         "fabric_chaincode_repository":{
           "type": "object",
           "properties": {
-            "username": { "type": "string","description": "Username which has access to the git repo containing chaincode"}, 
-            "password": { "type": "string", "description": "Password of the user which has access to the git repo containing chaincode"}, 
-            "url": { "type": "string","description": "URL of the git repository containing the chaincode"}, 
-            "branch": { "type": "string","description": "Branch in the repository where the chaincode resides"}, 
+            "username": { "type": "string","description": "Username which has access to the git repo containing chaincode"},
+            "password": { "type": "string", "description": "Password of the user which has access to the git repo containing chaincode"},
+            "url": { "type": "string","description": "URL of the git repository containing the chaincode"},
+            "branch": { "type": "string","description": "Branch in the repository where the chaincode resides"},
             "path": { "type": "string","description": "Path of the chaincode in the repository branch"}
            },
           "required": [ "username","password","branch","url","path"],
@@ -615,23 +616,23 @@
                 "items":{"type":"string","pattern":"^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" },"minItems": 1},
             "besu_nodes": { "type":"array",
                 "items":{"type":"string","pattern":"^(http|https):\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" },"minItems": 1}
-            },               
+            },
           "required": [ "consensus","subject","transaction_manager","tm_version","tm_tls","tm_trust","genesis","tm_nodes"],
           "additionalProperties": false
-        },        
+        },
         "besu_organization":{
           "type": "object",
           "allOf":[{ "$ref":"#/definitions/shared_organization"}],
           "properties": {
             "type": { "type": "string","enum": ["member","validator"],"description":"Can be member for peer/member organization and validator for Validator organization."},
             "external_url_suffix":  { "type": "string","description":"Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider."}
-          },               
+          },
           "if": {"properties": { "type": { "const": "member" } } },"then":{
             "properties": {
               "services":  { "$ref":"#/definitions/besu_member_services"}}
           },"else":{
             "properties": {
-              "services":  { "$ref":"#/definitions/besu_validator_services"}},               
+              "services":  { "$ref":"#/definitions/besu_validator_services"}},
           "required": [ "type","external_url_suffix","services"]
           }
         },
@@ -639,18 +640,18 @@
           "type": "object",
           "properties": {
             "validators": { "type":"array","items":{ "$ref":"#/definitions/besu_service_validator"},"minItems": 1}
-            },         
+            },
           "required": [ "validators"],
           "additionalProperties": false
-        },    
+        },
         "besu_member_services":{
           "type": "object",
           "properties": {
             "peers": { "type":"array","items":{ "$ref":"#/definitions/besu_service_peer"},"minItems": 1}
-            },         
+            },
           "required": [ "peers"],
           "additionalProperties": false
-        }, 
+        },
         "besu_service_validator":{
           "type": "object",
           "properties": {
@@ -658,13 +659,13 @@
             "name": { "type": "string","pattern": "^[a-z0-9-_]{1,30}$","description":"Name of the validator"},
             "bootnode": { "type": "boolean","description":"if the validator node is used also as bootnode for the network"},
             "status":{"type":"string","enum":["existing","new"],"description":"Used to add validator. needed to know which  validator node exists"},
-            "p2p":  { "$ref":"#/definitions/shared_port_ambassador"}, 
-            "rpc":  { "$ref":"#/definitions/shared_port_ambassador"}, 
-            "ws": { "$ref":"#/definitions/shared_port"} 
-            },         
+            "p2p":  { "$ref":"#/definitions/shared_port_ambassador"},
+            "rpc":  { "$ref":"#/definitions/shared_port_ambassador"},
+            "ws": { "$ref":"#/definitions/shared_port"}
+            },
           "required": [ "name","bootnode","p2p","rpc","ws"],
           "additionalProperties": false
-        },     
+        },
         "besu_service_peer":{
           "type": "object",
           "properties": {
@@ -673,24 +674,23 @@
             "subject": { "type": "string", "description": "This is the alternative identity of the peer node"},
             "geth_passphrase": { "type": "string", "description": "This is the passphrase used to generate the geth account."},
             "lock":{"type":"boolean","description":"Sets Besu node to lock or unlock mode. Can be true or false"},
-            "p2p":  { "$ref":"#/definitions/shared_port_ambassador"}, 
-            "rpc":  { "$ref":"#/definitions/shared_port_ambassador"}, 
+            "p2p":  { "$ref":"#/definitions/shared_port_ambassador"},
+            "rpc":  { "$ref":"#/definitions/shared_port_ambassador"},
             "ws": { "$ref":"#/definitions/shared_port"},
             "db": { "$ref":"#/definitions/shared_port","description":"Port for MySQL database which is only applicable for tessera"},
-            "tm_nodeport":  { "$ref":"#/definitions/shared_port_ambassador","description":"Port used by Transaction manager orion or tessera."}, 
+            "tm_nodeport":  { "$ref":"#/definitions/shared_port_ambassador","description":"Port used by Transaction manager orion or tessera."},
             "tm_clientport":  { "$ref":"#/definitions/shared_port"}
-            },         
+            },
           "required": [ "name","subject","geth_passphrase","p2p","rpc","ws"],
           "additionalProperties": false
         },
         "indy_genesis":{
           "type": "object",
           "properties": {
-            "add_org": {"type":"boolean","description":"Flag to denote that this will add new orgs to existing Indy network"},
             "state": { "type": "string","enum":["absent","present"],"description":"State is placeholder for future, when there will be option to join to existing cluter. Currently only 'absent' is supported. That means, that genesis will be always generated"},
             "pool": { "type": "string", "pattern":"^([^\/ ]*\/)+[^\/ ]+$","description": "Path to pool transaction genesis"},
             "domain": { "type": "string","pattern":"^([^\/ ]*\/)+[^\/ ]+$", "description": "Path to domain transaction genesis."}
-            },         
+            },
           "required": [ "state","pool","domain"],
           "additionalProperties": false
         },
@@ -703,7 +703,7 @@
             "services":  { "$ref":"#/definitions/indy_services"},
             "publicIps":{ "type":"array","items":{"type":"string","pattern":"^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"},"description":"List of all public IP addresses of each availability zone from all organizations in the same k8s cluster"}
 
-            },                  
+            },
           "required": [ "type","services","publicIps"]
         },
         "indy_services":{
@@ -712,9 +712,9 @@
             "trustees":{ "type":"array","items":{ "$ref":"#/definitions/indy_service_trustee"}},
             "stewards": { "type":"array","items":{ "$ref":"#/definitions/indy_service_steward"}},
             "endorsers": { "type":"array","items":{ "$ref":"#/definitions/indy_service_endorser"}}
-            },         
+            },
           "additionalProperties": false
-        },  
+        },
         "indy_service_trustee":{
           "type": "object",
           "properties": {
@@ -722,9 +722,9 @@
             "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the service"},
             "genesis": { "type":"boolean","description": "If using domain and pool transaction genesis. true for current implementation"},
             "server": { "$ref":"#/definitions/shared_port_ambassador","description":"Applicable for Identity Sample App"}
-           
-          },  
-          "required": [ "name","genesis"],       
+
+          },
+          "required": [ "name","genesis"],
           "additionalProperties": false
         },
         "indy_service_steward":{
@@ -737,8 +737,8 @@
             "publicIp":{"description":"Public Ip of service"},
             "node": { "$ref":"#/definitions/shared_service_port_ambassador"},
             "client": { "$ref":"#/definitions/shared_service_port_ambassador"}
-          },         
-          "required": [ "name","type","genesis","publicIp","node","client"],       
+          },
+          "required": [ "name","type","genesis","publicIp","node","client"],
           "additionalProperties": false
         },
         "indy_service_endorser":{
@@ -749,7 +749,7 @@
             "full_name": { "type": "string","description":"Full name of endorser service"},
             "avatar": { "type": "string","description":"Link to avatar. Not used now."},
             "server": { "$ref":"#/definitions/indy_httpapiport"}
-          },         
+          },
           "required": [ "name","full_name"],
           "additionalProperties": false
         },
@@ -786,7 +786,7 @@
               "properties": {
                 "tm_version": { "type": "string","enum": ["0.3.2"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
                 "tm_nodes": { "type":"string","pattern":"^http:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?\/$" }
-    
+
             }},
           "required": [ "consensus","subject","transaction_manager","tm_version","tm_tls","tm_trust","tm_nodes","genesis"],
           "additionalProperties": false
@@ -819,9 +819,9 @@
             "subject": { "type": "string", "description": "This is the alternative identity of the peer node"},
             "type":{"type":"string","enum":["validator","member","non-validator"],"description":"value can be validator or non-validator, only applicable if consensus = 'ibft'"},
             "geth_passphrase": { "type": "string", "description": "This is the passphrase used to generate the geth account."},
-            "p2p":  { "$ref":"#/definitions/shared_port_ambassador"}, 
-            "rpc":  { "$ref":"#/definitions/shared_port_ambassador"}, 
-            "transaction_manager":  { "$ref":"#/definitions/quorum_tm_port_ambassador"}, 
+            "p2p":  { "$ref":"#/definitions/shared_port_ambassador"},
+            "rpc":  { "$ref":"#/definitions/shared_port_ambassador"},
+            "transaction_manager":  { "$ref":"#/definitions/quorum_tm_port_ambassador"},
             "raft": { "$ref":"#/definitions/shared_port_ambassador","description":"Only used if consensus = 'raft'"},
             "db": { "$ref":"#/definitions/shared_port","description":" Only used if transaction_manager = tessera"}
             }
@@ -830,11 +830,11 @@
           "type": "object",
           "properties": {
             "port": { "type": "number"},
-            "ambassador": { "type": "number"},          
+            "ambassador": { "type": "number"},
             "clientport":  { "type": "number"}
           },
           "required": [ "port","ambassador"],
-          "additionalProperties": false          
-        }                                                                                                                          
-      }                          
+          "additionalProperties": false
+        }
+      }
   }

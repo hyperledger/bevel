@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role generate initial CA certs and push them to vault
 # Also, creates the value file for Certificate Authority (CA)
@@ -12,26 +18,15 @@
     path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
     check: "ensure_dir"
 
-#############################################################################################
-# This task creates secrets for the root token and the reviewer token
-- name: "Create ca-server secrets tokens"
-  include_role:
-    name: create/k8s_secrets
-  vars: 
-    namespace: "{{ component }}-net"
-    vault: "{{ item.vault }}"
-    kubernetes: "{{ item.k8s }}"
-    check: "token_secret"
-
 #####################################################################################################################
-# This tasks generate ca-server helmrelease file
-- name: "Create value file for ca-server"
+# This tasks generates cacerts helmrelease file.
+- name: "Create value file for cacerts job"
   include_role:
     name: helm_component
   vars: 
     name: "{{ component }}"   
-    type: "ca_server_job"    
-    component_name: "{{ component }}-ca-server-job"
+    type: "cacerts_job"    
+    component_name: "{{ component }}-cacerts-job"
     component_ns: "{{ component }}-net"
     subject: "{{ ca.subject }}"
     git_url: "{{ gitops.git_url }}"
@@ -54,17 +49,23 @@
   tags:
     - notest
 
-# Check if ca-server is completed
-- name: Check if ca-server job is completed
+# Check if cacerts-job is completed
+- name: Check if cacerts-job job is completed
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: Job
     namespace: "{{ component }}-net"
-    component_name: "{{ component }}-ca-server-job"
+    component_name: "{{ component }}-cacerts-job"
     kubernetes: "{{ item.k8s }}"
   tags:
     - notest
+
+# Copy custom config for fabric-ca server
+- name: Copy custom config for fabric-ca server
+  shell: |
+    cp {{ ca.configpath }} ../../../{{ gitops.chart_source }}/ca/conf/fabric-ca-server-config-{{ component }}.yaml
+  when: ca.configpath is defined
 
 #####################################################################################################################
 # This task creates the Ambassador TLS credentials

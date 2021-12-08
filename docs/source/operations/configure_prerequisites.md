@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "configuring-prerequisites"></a>
 # Configure Pre-requisites
 
@@ -12,7 +17,7 @@
 <a name = "Ansible_Inventory"></a>
 ## Ansible Inventory file
 
-If not done already, configure the Ansible controller with this sample inventory file is located [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/main/platforms/shared/inventory/ansible_provisioners). 
+If not done already, configure the Ansible controller with this sample inventory file is located [here](https://github.com/hyperledger/bevel/tree/main/platforms/shared/inventory/ansible_provisioners). 
 
 Add the contents of this file in your Ansible host configuration file (typically in file /etc/ansible/hosts).
 
@@ -20,7 +25,7 @@ Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest
 
 <a name = "privatekey"></a>
 ## Private Key for GitOps
-For synchronizing the Git repo with the cluster, the Blockchain Automation Framework configures Flux for each cluster. The authentication is via SSH key, so this key should be generated before you run the playbooks. 
+For synchronizing the Git repo with the cluster, Hyperledger Bevel configures Flux for each cluster. The authentication is via SSH key, so this key should be generated before you run the playbooks. 
 Run the following command to generate a private-public key pair named **gitops**.
 
 ```
@@ -41,19 +46,19 @@ And add the public key contents (starts with **ssh-rsa**) as an Access Key (with
 <a name = "docker"></a>
 ## Docker Images
 
-The Blockchain Automation Framework provides pre-built docker images which are available on [Docker Hub](https://hub.docker.com/u/hyperledgerlabs). Ensure that the versions/tags you need are available. If not, raise it on our [RocketChat Channel](https://chat.hyperledger.org/channel/blockchain-automation-framework).
+Hyperledger Bevel provides pre-built docker images which are available on [Docker Hub](https://hub.docker.com/u/hyperledgerlabs). Ensure that the versions/tags you need are available. If not, raise it on our [RocketChat Channel](https://chat.hyperledger.org/channel/bevel).
 
 For Corda Enterprise, the docker images should be built and put in a private docker registry. Please follow [these instructions](../architectureref/corda-ent.html#docker-images) to build docker images for Corda Enterprise.
 
 ---
-**NOTE:** The Blockchain Automation Framework recommends use of private docker registry for production use. The username/password for the docker registry can be provided in a **network.yaml** file so that the Kubernetes cluster can access the registry.
+**NOTE:** Hyperledger Bevel recommends use of private docker registry for production use. The username/password for the docker registry can be provided in a **network.yaml** file so that the Kubernetes cluster can access the registry.
 
 ---
 
 <a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 
 
-[Hashicorp Vault](https://www.vaultproject.io/) is one of the pre-requisites for the Blockchain Automation Framework. The Vault service should be accessible by the ansible host as well as the kubernetes cluster (proper inbound/outbound rules should be configured). If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
+[Hashicorp Vault](https://www.vaultproject.io/) is one of the pre-requisites for Hyperledger Bevel. The Vault service should be accessible by the ansible host as well as the kubernetes cluster (proper inbound/outbound rules should be configured). If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
 
 * Install Vault client. Follow the instructions on [Install Vault](https://www.vaultproject.io/docs/install/).
 
@@ -71,7 +76,7 @@ Unseal Key 1: << unseal key>>
 
 Initial Root Token: << root token>>
 ```
-Save the root token  and unseal key in a secure location. This root token is to be updated in the Blockchain Automation Framework's network.yaml file before running the Ansible playbook(s) to deploy the DLT/Blockchain network.
+Save the root token  and unseal key in a secure location. This root token is to be updated in Hyperledger Bevel's network.yaml file before running the Ansible playbook(s) to deploy the DLT/Blockchain network.
 
 * Unseal with the following command:
 ```
@@ -81,7 +86,7 @@ vault operator unseal << unseal-key-from-above >>
 ```
 vault login << give the root token >>
 ```
-* Enable v1 secrets engine. Blockchain Automation Framework uses the secret path `secret` by default. This can be changed in the network.yaml, in which case it will need to be enabled with the selected path.
+* Enable v1 secrets engine. Hyperledger Bevel uses the secret path `secret` by default. This can be changed in the network.yaml, in which case it will need to be enabled with the selected path.
 ```
 vault secrets enable -version=1 -path=secret kv
 ```
@@ -96,7 +101,7 @@ You may generate multiple root tokens at the time of initialising the Vault, and
 <a name = "ambassador"></a>
 ## Ambassador
 
-The Blockchain Automation Framework (BAF) uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) for inter-cluster communication. To enable BAF Kubernetes services from one Kubernetes cluster to talk to services in another cluster, Ambassador needs to be configured as per the following steps:
+Hyperledger Bevel  uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) for inter-cluster communication. To enable Bevel Kubernetes services from one Kubernetes cluster to talk to services in another cluster, Ambassador needs to be configured as per the following steps:
 
 * After Ambassador is deployed on the cluster (manually or using `platforms/shared/configuration/kubernetes-env-setup.yaml` playbook), get the external IP address of the Ambassador service.
 ```
@@ -124,7 +129,7 @@ In AWS Route53, the settings look like below (in Hosted Zones).
 ## External DNS
 
 In case you do not want to manually update the route configurations every time you change DNS name, you can use [External DNS](https://github.com/kubernetes-sigs/external-dns) for automatic updation of DNS routes. 
-Follow the steps as per your cloud provider, and then use `external_dns: enabled` in the `env` section of the BAF configuration file (network.yaml).
+Follow the steps as per your cloud provider, and then use `external_dns: enabled` in the `env` section of the Bevel configuration file (network.yaml).
 
 ---
 **NOTE:** Detailed configuration for External DNS setup is not provided here, please refer the link above.
@@ -134,11 +139,11 @@ Follow the steps as per your cloud provider, and then use `external_dns: enabled
 <a name = "haproxy"></a>
 ## HAProxy Ingress
 
-From Release 0.3.0.0 onwards, Blockchain Automation Framework (BAF) uses [HAProxy Ingress Controller](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) for inter-cluster communication for Fabric network. To enable Fabric GRPC services from one Kubernetes cluster to talk to GRPC services in another cluster, HAProxy needs to be configured as per the following steps:
+From Release 0.3.0.0 onwards, Hyperledger Bevel  uses [HAProxy Ingress Controller](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) for inter-cluster communication for Fabric network. To enable Fabric GRPC services from one Kubernetes cluster to talk to GRPC services in another cluster, HAProxy needs to be configured as per the following steps:
 
-* Use `proxy: haproxy` in the `env` section of the BAF configuration file (network.yaml).
+* Use `proxy: haproxy` in the `env` section of the Bevel configuration file (network.yaml).
 
-* Execute `platforms/shared/configuration/kubernetes-env-setup.yaml` playbook using the BAF configuration file, and then get the external IP address of the HAProxy controller service.
+* Execute `platforms/shared/configuration/kubernetes-env-setup.yaml` playbook using the Bevel configuration file, and then get the external IP address of the HAProxy controller service.
 ```
 kubectl get services --all-namespaces -o wide
 ```

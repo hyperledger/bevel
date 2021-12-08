@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 - name: Converge
   hosts: localhost
@@ -181,50 +187,6 @@
             - peer:
               name: testpeer1
 
-# # CREATE CRYPTO/ORDERER
-# #####################################################################################
-    # Testing create/crypto/orderer
-    - name: "Include create/crypto/orderer"
-      include_role:
-        name: "configuration/roles/create/crypto/orderer"
-      vars:
-        org_name: testorg
-        component_type: orderer
-        component_name: testorderer
-        ca_url: "ca_data_url"
-        cert_subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
-        item:
-          external_url_suffix: test_url
-        services:
-          orderers:
-          - orderer:
-            name: testorderer1
-
-#####################################################################################
-    # Testing create/crypto/peer
-    - name: "Include create/crypto/peer"
-      include_role:
-        name: "configuration/roles/create/crypto/peer"
-      vars:
-        add_new_org: "false"
-        org_name: testorg
-        ca_url: "ca_data_url"
-        component_type: peer
-        component_name: testpeer
-        orderers:
-          - orderer:
-            name: testorderer1
-            component_name: testorderer
-        item:
-          external_url_suffix: test_url
-        cert_subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
-        services:
-          peers:
-          - peer:
-            name: testpeer0
-          - peer:
-            name: testpeer1
-
 #####################################################################################
     # Testing create/configtx
 
@@ -241,6 +203,9 @@
           env:
             proxy: haproxy
             type: test
+          configtx:
+            custom: false
+            folder_path: "/build/configtx_tpl/"
           organizations:
             - organization:
               name: testorderer

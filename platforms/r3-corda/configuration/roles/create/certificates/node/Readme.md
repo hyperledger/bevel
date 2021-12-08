@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/certificates/node
 This role downloads certificates from nms and loads into vault. Certificates are created using openssl.
 
@@ -134,14 +139,14 @@ This task generates the networkmap certificates.
 **when**:  It runs when *networkmap_result.failed* == True, i.e. nms certs are not present . 
 
 #### 13. Write credentials to vault
-This task writes the database, rpcusers, vaultroottoken, keystore and networkmappassword credentials in Vault.
+This task writes the database, rpcusers, keystore and networkmappassword credentials in Vault.
 
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
     component_name: The name of node resource
 
-**shell**:  It writes the database, rpcusers, vaultroottoken, keystore and networkmappassword credentials in Vault .
+**shell**:  It writes the database, rpcusers, keystore and networkmappassword credentials in Vault .
 
 #### 13. Write cordapps credentials to vault
 This task writes the corapps repository userpass credentials in Vault.
