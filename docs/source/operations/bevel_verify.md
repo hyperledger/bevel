@@ -91,7 +91,7 @@ For final checking of the validity of the fabric network.
       namespace: ORG_NAME-net
     images:
       fabrictools: hyperledger/fabric-tools:2.0
-      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      alpineutils: docker.io/hyperledgerlabs/alpine-utils:1.0
     storage:
       class: ORG_NAMEsc
       size: 256Mi

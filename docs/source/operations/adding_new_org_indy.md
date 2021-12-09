@@ -71,7 +71,7 @@ network:
   # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "docker.io/hyperledgerlabs"
     username: "docker_username"
     password: "docker_password"
 
@@ -332,7 +332,7 @@ network:
   # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "docker.io/hyperledgerlabs"
     username: "docker_username"
     password: "docker_password"
 

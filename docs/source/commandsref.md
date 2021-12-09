@@ -94,7 +94,7 @@ Below are various debugging commands that can be used
 * To login to docker registry
     ```
     docker login --username USERNAME --password PASSWORD URL
-    Ex. docker login --username abcd --password abcd index.docker.io/hyperledgerlabs
+    Ex. docker login --username abcd --password abcd docker.io/hyperledgerlabs
     ```
 * To pull images from docker registry
     ```

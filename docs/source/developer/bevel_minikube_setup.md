@@ -92,7 +92,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 1. Update Docker configurations:
    ```yaml
    docker:
-     url: "index.docker.io/hyperledgerlabs"
+     url: "docker.io/hyperledgerlabs"
      username: "<your docker username>"
      password: "<your docker password/token>"
    ```
