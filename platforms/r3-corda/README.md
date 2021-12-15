@@ -4,7 +4,7 @@
 [//]: # (##############################################################################################)
 
 ## About
-This folder contains the files that are needed for the deployment of a R3 Corda network using BAF. 
+This folder contains the files that are needed for the deployment of a R3 Corda network using Hyperledger Bevel. 
 
 ## Folder structure
 ```

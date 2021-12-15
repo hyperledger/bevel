@@ -146,7 +146,7 @@ This task creates a registory temporary directory. Stores the result in *tmp_dir
 This task checks if vault is present or not. Stores the result in *vault_stat_result*.
 
 #### 3. Install vault client
-If kubectl is not present i.e. *vault_stat_result* is false, it downloads the vault from specified url.
+If vault is not present i.e. *vault_stat_result* is false, it downloads the vault from specified url.
 
 #### 4. Unzip vault archive
 This tasks unzips vault archive to specified destination, runs only when vault is not found.

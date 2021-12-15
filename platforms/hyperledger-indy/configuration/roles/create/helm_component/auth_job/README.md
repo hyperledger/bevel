@@ -75,12 +75,12 @@ This task usesß template for generating Job.
 #### Template:
  - auth_job.tpl
  
-### 6. baf-ac vault policy and role generating
-This task generates baf-ac vault policy value file.
-The baf-ac vault policy is for read-only data from Vault.
+### 6. bevel-ac vault policy and role generating
+This task generates bevel-ac vault policy value file.
+The bevel-ac vault policy is for read-only data from Vault.
 
 #### Input Variables:
- - identity_name: Identity name of policy. It uses *baf-ac*
+ - identity_name: Identity name of policy. It uses *bevel-ac*
  - values_file: Path for output value file. It uses *{{ release_dir }}/{{ component_type }}/{{ component_name }}/{{ identity_name }}.yaml*
  - chart: A chart name. It uses a variable *{{ chartName }}*
  - policy_path: A path of policy in Vault.

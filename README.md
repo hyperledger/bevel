@@ -3,10 +3,10 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-6-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-[rocketchat-url]: https://chat.hyperledger.org/channel/blockchain-automation-framework
+[rocketchat-url]: https://chat.hyperledger.org/channel/bevel
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/blockchain-automation-framework/badge/?version=latest)](https://blockchain-automation-framework.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/hyperledger-bevel/badge/?version=latest)](https://hyperledger-bevel.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
 [![Build Status](https://circleci.com/gh/hyperledger/bevel.svg?style=shield)](https://circleci.com/gh/hyperledger/bevel)
 
 - [Short Description](#short-description)
@@ -37,9 +37,9 @@ Hyperledger Bevel currently supports Corda, Hyperledger Fabric, Hyperledger Indy
 
 ### Getting Started
 
-To get started with the framework quickly, follow our [Getting Started guidelines](https://blockchain-automation-framework.readthedocs.io/en/latest/gettingstarted.html).
+To get started with the framework quickly, follow our [Getting Started guidelines](https://hyperledger-bevel.readthedocs.io/en/latest/gettingstarted.html).
 
-Detailed operator and developer documentation is available on [our ReadTheDocs site](https://blockchain-automation-framework.readthedocs.io/en/latest/index.html).
+Detailed operator and developer documentation is available on [our ReadTheDocs site](https://hyperledger-bevel.readthedocs.io/en/latest/index.html).
 
 The documentation can also be built locally be following instructions in the `docs` folder.
 
@@ -74,7 +74,7 @@ For Hyperledger Besu, we use the official Docker containers provided by that pro
 ![Hyperledger Bevel - Besu](./docs/images/hyperledger-bevel-besu.png "Hyperledger Bevel for Hyperledger Besu")
 
 ## Contact
-We welcome your questions & feedback on our [Rocketchat channel](https://chat.hyperledger.org/channel/blockchain-automation-framework).
+We welcome your questions & feedback on our [Rocketchat channel](https://chat.hyperledger.org/channel/bevel).
 
 ## Contributing
 We welcome contributions to Hyperledger Bevel in many forms, and there’s always plenty to do!
@@ -88,7 +88,7 @@ If you are not using the provided Jenkins automation scripts, you can run the pr
 docker build . -t hyperledgerlabs/baf-build
 
 # Run the provisioning scripts
-docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/bevel/ hyperledgerlabs/baf-build
 ```
 
 ## Initial Committers
@@ -110,11 +110,11 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <table>
   <tr>
     <td align="center"><a href="https://github.com/alvaropicazo"><img src="https://avatars.githubusercontent.com/u/76157062?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Alvaro Picazo</b></sub></a><br /><a href="#maintenance-alvaropicazo" title="Maintenance">🚧</a></td>
-    <td align="center"><a href="https://github.com/suvajit-sarkar"><img src="https://avatars.githubusercontent.com/u/55580532?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Suvajit Sarkar</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=suvajit-sarkar" title="Code">💻</a> <a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=suvajit-sarkar" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/deepakkumardbd"><img src="https://avatars.githubusercontent.com/u/57094817?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Deepak Kumar</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=deepakkumardbd" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/jagpreetsinghsasan"><img src="https://avatars.githubusercontent.com/u/56861721?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jagpreet Singh Sasan</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=jagpreetsinghsasan" title="Code">💻</a> <a href="#maintenance-jagpreetsinghsasan" title="Maintenance">🚧</a></td>
-    <td align="center"><a href="https://github.com/angelaalagbe"><img src="https://avatars.githubusercontent.com/u/54588164?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Angela.Alagbe</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=angelaalagbe" title="Documentation">📖</a> <a href="#content-angelaalagbe" title="Content">🖋</a></td>
-    <td align="center"><a href="https://github.com/mgCepeda"><img src="https://avatars.githubusercontent.com/u/83813093?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marina Gómez Cepeda</b></sub></a><br /><a href="https://github.com/hyperledger-labs/blockchain-automation-framework/commits?author=mgCepeda" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/suvajit-sarkar"><img src="https://avatars.githubusercontent.com/u/55580532?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Suvajit Sarkar</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=suvajit-sarkar" title="Code">💻</a> <a href="https://github.com/hyperledger/bevel/commits?author=suvajit-sarkar" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/deepakkumardbd"><img src="https://avatars.githubusercontent.com/u/57094817?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Deepak Kumar</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=deepakkumardbd" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/jagpreetsinghsasan"><img src="https://avatars.githubusercontent.com/u/56861721?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jagpreet Singh Sasan</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=jagpreetsinghsasan" title="Code">💻</a> <a href="#maintenance-jagpreetsinghsasan" title="Maintenance">🚧</a></td>
+    <td align="center"><a href="https://github.com/angelaalagbe"><img src="https://avatars.githubusercontent.com/u/54588164?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Angela.Alagbe</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=angelaalagbe" title="Documentation">📖</a> <a href="#content-angelaalagbe" title="Content">🖋</a></td>
+    <td align="center"><a href="https://github.com/mgCepeda"><img src="https://avatars.githubusercontent.com/u/83813093?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marina Gómez Cepeda</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=mgCepeda" title="Code">💻</a></td>
   </tr>
 </table>
 

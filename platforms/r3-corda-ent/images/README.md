@@ -6,7 +6,7 @@
 # Images
 
 ## About
-Contains Dockerfile and other source files to create various docker images needed for Blockchain Automation Framework Corda Enterprise setup.
+Contains Dockerfile and other source files to create various docker images needed for Hyperledger Bevel Corda Enterprise setup.
 
 ### Usage  
 These dockerfiles are a wrapper on Official Corda Enterprise images. These changes are needed as we update the java keystore for Ambassador proxy certificates 

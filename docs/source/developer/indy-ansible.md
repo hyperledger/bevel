@@ -134,7 +134,7 @@ This role creates the job value file for stewards
 * Trustee vault policy and role generating
 * Stewards vault policy and role generating
 * Endorser vault policy and role generating
-* baf-ac vault policy and role generating
+* bevel-ac vault policy and role generating
 
 Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-indy/configuration/roles/create/helm_component/auth_job) for detailed information.
 

@@ -3,4 +3,4 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# Blockchain Automation Framework Indy indy-cli Helm chart
+# Hyperledger Bevel Indy indy-cli Helm chart

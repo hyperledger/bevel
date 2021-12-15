@@ -18,7 +18,7 @@ It the folder doesn't exist, then creates them.
 
 ### 2. Generate pool genesis for organization
 This task generate pool genesis with data from crypto, which is in Vault.
-This task need baf-ac token for getting public data from Vault.
+This task need bevel-ac token for getting public data from Vault.
 The result is pool genesis transactions, which define initial trusted nodes in the pool.
 (Each ledger may have pre-defined transactions defining the initial pool and network.)
 
@@ -71,7 +71,7 @@ The result is pool genesis transactions, which define initial trusted nodes in t
 - ver (string): Transaction version to be able to evolve content. The content of all sub-fields may depend on this version.
 
 #### Variables:
- - ac_vault_tokens - A map of baf-ac tokens, which are stored by organization's name.
+ - ac_vault_tokens - A map of bevel-ac tokens, which are stored by organization's name.
  - organization.vault.url - A url address of Vault for a organization.
  - organization.name - An organization name.
 

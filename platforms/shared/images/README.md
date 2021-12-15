@@ -1,13 +1,13 @@
 # Images
 
 ## About
-Contains Dockerfiles create various docker images needed for the Blockchain Automation Framework (BAF) setup.
+Contains Dockerfiles create various docker images needed for Hyperledger Bevel (Hyperledger Bevel) setup.
 
 ## Manually creating images ##
 
 ### Alpine Utils ###
 
-Alpine-utils docker image is a light-weight utility image used in BAF. It is mainly used as init-containers in BAF Kubernetes deployments to connect to Hashicorp Vault to download certificates.
+Alpine-utils docker image is a light-weight utility image used in Hyperledger Bevel. It is mainly used as init-containers in Hyperledger Bevel Kubernetes deployments to connect to Hashicorp Vault to download certificates.
 
 1. To build the image, execute the following command from this folder. 
 ```
@@ -22,7 +22,7 @@ Alpine-utils docker image is a light-weight utility image used in BAF. It is mai
 
 ### Ansible Slave ###
 
-Ansible-slave docker image is used for Jenkins Slave configuration. This image can be used to run BAF Ansible commands on Jenkins without the need to install Ansible on the Jenkins master.
+Ansible-slave docker image is used for Jenkins Slave configuration. This image can be used to run Hyperledger Bevel Ansible commands on Jenkins without the need to install Ansible on the Jenkins master.
 
 1. To build the image, execute the following command from this folder. 
 ```

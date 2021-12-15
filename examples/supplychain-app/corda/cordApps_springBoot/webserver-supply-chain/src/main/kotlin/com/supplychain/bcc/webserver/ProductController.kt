@@ -1,10 +1,10 @@
 package com.supplychain.bcc.webserver
 
 import com.supplychain.bcc.contractstates.ProductState
-import com.supplychain.baf.ClaimTrackable
-import com.supplychain.baf.CreateProduct
-import com.supplychain.baf.CreateProductRequest
-import com.supplychain.baf.UpdateProduct
+import com.supplychain.bevel.ClaimTrackable
+import com.supplychain.bevel.CreateProduct
+import com.supplychain.bevel.CreateProductRequest
+import com.supplychain.bevel.UpdateProduct
 import net.corda.client.jackson.JacksonSupport
 import net.corda.core.messaging.vaultQueryBy
 import net.corda.core.utilities.getOrThrow
