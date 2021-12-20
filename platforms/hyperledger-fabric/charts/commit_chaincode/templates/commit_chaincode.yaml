@@ -187,10 +187,21 @@ spec:
         args:
         - |-
           #!/bin/bash sh
+
+          ## Checking committed chaincode
+          COMMITTED=$(peer lifecycle chaincode querycommitted --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} -O json | \
+            jq --arg SEQUENCE "$CHAINCODE_SEQUENCE" --arg VERSION "$CHAINCODE_VERSION" \
+            'select((.sequence|tostring)==$SEQUENCE and (.version|tostring)==$VERSION)')
+          if [ -n "${COMMITTED}" ]
+          then
+            echo "chaincode ${CHAINCODE_NAME} with version ${CHAINCODE_VERSION} and sequence ${CHAINCODE_SEQUENCE} is committed in channel ${CHANNEL_NAME}, skipping... "
+            exit 0
+          fi
+
           echo $COMMIT_ARGUMENTS>COMMIT_ARGUMENTS.txt
           COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
           
-          COMMIT_CMD="peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence {{ $.Values.chaincode.sequence }} --init-required"
+          COMMIT_CMD="peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_SEQUENCE} --init-required"
           
           for item in $ENDORSERS_CORE_PEER_ADDR
           do
@@ -212,7 +223,7 @@ spec:
             ## check commit readiness
             echo "peer query commitreadiness"
             peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} \
-              --sequence {{ $.Values.chaincode.sequence }} --init-required --output json
+              --sequence ${CHAINCODE_SEQUENCE} --init-required --output json
             ## commit chaincode
             echo "peer query commit : Endorsement Policy null "
             eval ${COMMIT_CMD}
@@ -220,7 +231,7 @@ spec:
             ## check commit readiness
             echo "peer query commit readiness"
             peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} \
-              --sequence {{ $.Values.chaincode.sequence }} --init-required --output json --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt
+              --sequence ${CHAINCODE_SEQUENCE} --init-required --output json --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt
             cat log.txt
             ## commit chaincode
             echo "peer query commit"
@@ -253,6 +264,8 @@ spec:
           value: "{{ $.Values.chaincode.name }}"
         - name: CHAINCODE_VERSION
           value: "{{ $.Values.chaincode.version }}"
+        - name: CHAINCODE_SEQUENCE
+          value: "{{ $.Values.chaincode.sequence }}"
         - name: CORE_CHAINCODE_BUILDER
           value: "{{ $.Values.chaincode.builder }}"
         - name: CHANNEL_NAME
