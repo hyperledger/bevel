@@ -8,11 +8,11 @@
 To create a Production DLT/Blockchain network, ensure you have the following:
 
 1. One running Kubernetes Cluster and the Config file (kubeconfig.yaml) per Organization.
-1. One running Hashicorp Vault server per Organization. Unsealed and configured as per [guidance here](./configure_prerequisites.md#vaultunseal).
-1. Domain Name(s) configured as per [guidance here](./configure_prerequisites.md#ambassador).
-1. Private key file per Organization for GitOps with write-access to the Git repo as per [guidance here](./configure_prerequisites.md#privatekey).
-1. Git user details per Organization as per [pre-requisites](../prerequisites.md).
-1. Ansible controller configured as per [guidance here](./configure_prerequisites.md#Ansible_Inventory).
+1. One running Hashicorp Vault server per Organization. Unsealed and configured as per [guidance here](./configure_prerequisites.html#vaultunseal).
+1. Domain Name(s) configured as per [guidance here](./configure_prerequisites.html#ambassador).
+1. Private key file per Organization for GitOps with write-access to the Git repo as per [guidance here](./configure_prerequisites.html#privatekey).
+1. Git user details per Organization as per [pre-requisites](../prerequisites).
+1. Ansible controller configured as per [guidance here](./configure_prerequisites.html#Ansible_Inventory).
 
 ---
 **NOTE**: All commands are executed from the `bevel` directory which is the default directory created when you clone our Git repo.
