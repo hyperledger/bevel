@@ -27,6 +27,7 @@ spec:
       keyPath: {{ vault_path }}
       identity: {{ identity_name }}
       auth_path: kubernetes-{{ organization }}-admin-auth
+      certsecretprefix: {{ certsecretprefix }}
     account:
       service: {{ organization }}-admin-vault-auth
       role: rw
