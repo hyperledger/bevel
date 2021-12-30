@@ -128,10 +128,25 @@ spec:
                   (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore
                   (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore
                   (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore
-                  break
-                else
-                  echo "certificates are not ready, sleeping for 10s"
-                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  # get nodekeystore.jks from vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore | jq -r 'if .errors then . else . end')
+                  TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "nodekeystore.jks" ]' 2>&1)
+                  # get sslkeystore.jks from vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore | jq -r 'if .errors then . else . end')
+                  TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "sslkeystore.jks" ]' 2>&1)
+                  # get truststore.jks from vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore | jq -r 'if .errors then . else . end')
+                  TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "truststore.jks" ]' 2>&1) 
+                  if [ "$TLS_NODEKEYSTORE" == "null" ] || [ "$TLS_SSLKEYSTORE" == "null" ] || [ "$TLS_TRUSTSTORE" == "null" ] || [[ "$TLS_NODEKEYSTORE" == "parse error"* ]] || [[ "$TLS_SSLKEYSTORE" == "parse error"* ]] || [[ "$TLS_TRUSTSTORE" == "parse error"* ]]
+                  then
+                    echo "certificates write or read fail"
+                    sleep {{ $.Values.healthcheck.readinessthreshold  }}
+                    if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+                    then
+                      echo "Retry attempted $COUNTER times, certificates have not been saved"
+                      exit 1
+                    fi
+                  fi
                   COUNTER=`expr "$COUNTER" + 1`
                 fi
             done
@@ -533,3 +548,4 @@ spec:
           - name: creds
             emptyDir:
               medium: Memory
+
