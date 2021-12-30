@@ -94,3 +94,13 @@ spec:
     proxy:
       provider: "{{ network.env.proxy }}"
       external_url_suffix: {{ item.external_url_suffix }}
+
+    config:
+      pod:
+        resources:
+          limits:
+            memory: 512M
+            cpu: 1
+          requests:
+            memory: 512M
+            cpu: 0.5
