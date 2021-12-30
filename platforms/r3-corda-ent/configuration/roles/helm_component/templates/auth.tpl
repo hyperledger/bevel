@@ -18,8 +18,8 @@ spec:
     prefix: {{ org.name }}
     nodeName: {{ component_name }}
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      authContainerName: {{ network.docker.url }}/{{ docker_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_container_image }}
+      authContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagePullSecrets: 
         - name: regcred
       pullPolicy: IfNotPresent

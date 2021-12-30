@@ -20,8 +20,8 @@ spec:
       labels: {}
     replicas: 1
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      mainContainerName: {{ network.docker.url }}/{{ docker_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_container_image }}
+      mainContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagePullSecret: regcred
       pullPolicy: Always
     vault:

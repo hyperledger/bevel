@@ -18,13 +18,18 @@ spec:
       labels:
     prefix: {{ org.name }}
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      gatewayContainerName: {{ network.docker.url }}/{{ docker_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_container_image }}
+      gatewayContainerName: {{ main_container_image }}
       imagePullSecrets: 
         - name: "regcred"
       pullPolicy: IfNotPresent
     cenmServices:
       idmanName: {{ org.services.idman.name }}
+      zoneName: {{ org.services.zone.name }}
+      zonePort: {{ org.services.zone.ports.admin }}
+      gatewayPort: {{ org.services.gateway.ports.servicePort }}
+      authName: {{ org.services.auth.name }}
+      authPort: {{ org.services.auth.port }}
     storage:
       name: cordaentsc
     acceptLicense: YES
@@ -54,8 +59,6 @@ spec:
     service:
       type: ClusterIP
       port: 8080
-    zoneName: {{ org.services.zone.name }}
-    zonePort: {{ org.services.zone.ports.admin }}
-    gatewayPort: {{ org.services.gateway.port }}
-    authName: {{ org.services.auth.name }}
-    authPort: {{ org.services.auth.port }}
+    ambassador:
+      external_url_suffix: "{{ org.external_url_suffix }}"
+      port: {{ org.services.gateway.ports.ambassadorPort }}

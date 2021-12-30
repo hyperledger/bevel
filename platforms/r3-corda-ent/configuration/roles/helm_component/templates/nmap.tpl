@@ -13,16 +13,20 @@ spec:
     path: {{ charts_dir }}/nmap
   values:
     nodeName: {{ org.services.networkmap.name | lower }}
+    bashDebug: false
+    prefix: {{ org.name }}
     metadata:
       namespace: {{ component_ns }}
     storage:
       name: "cordaentsc"
       memory: 512Mi
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      nmapContainerName: {{ network.docker.url }}/{{ docker_image }}
-      imagePullSecret: "regcred"
-      pullPolicy: Always
+      initContainer: {{ network.docker.url }}/{{ init_container_image }}
+      nmapContainer: {{ network.docker.url }}/{{ main_container_image }}
+      enterpriseCliContainer: {{ docker_images.cenm["enterpriseCli-1.5"] }}
+      pullPolicy: IfNotPresent
+      imagePullSecrets: 
+        - name: "regcred"
     acceptLicense: YES
     vault:
       address: {{ org.vault.url }}
@@ -39,10 +43,8 @@ spec:
         port: 5050
       revocation:
         port: 5053
-      shell:
-        sshdPort: 2222
-        user: "nmap"
-        password: "nmapP"
+      adminListener:
+        port: 6000
     serviceLocations:
       identityManager:
         name: {{ org.services.idman.name }}
@@ -74,6 +76,14 @@ spec:
       replicas: 1
     ambassador:
       external_url_suffix: "{{ org.external_url_suffix }}"
+    cenmServices:
+      gatewayName: {{ org.services.gateway.name }}
+      gatewayPort: {{ org.services.gateway.ports.servicePort }}
+      zoneName: {{ org.services.zone.name }}
+      zonePort: {{ org.services.zone.ports.admin }}
+      zoneEnmPort: {{ org.services.zone.ports.enm }}
+      authName: {{ org.services.auth.name }}
+      authPort: {{ org.services.auth.port }}
 {% if nmap_update is defined and nmap_update %}
     nmapUpdate: true
     addNotaries:

@@ -29,8 +29,10 @@ spec:
         app.kubernetes.io/name: {{ .Values.metadata.nodeName }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+    {{- with .Values.image.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ .Values.image.imagePullSecret }}
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       serviceAccountName: {{ .Values.vault.serviceAccountName }}
       securityContext:
         runAsUser: 1000
@@ -38,7 +40,7 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: init-certificates
-          image: {{ .Values.image.initContainerName }}
+          image: {{ .Values.image.initContainer }}
           imagePullPolicy: IfNotPresent
           env:
            - name: VAULT_ADDR
@@ -127,7 +129,7 @@ spec:
         - name: main
           securityContext:
             {{- toYaml .Values.config.securityContext | nindent 12 }}
-          image: {{ .Values.image.zoneContainerName }}
+          image: {{ .Values.image.zoneContainer }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/bash", "-c"]
           args:
@@ -138,7 +140,7 @@ spec:
             #replacing the variables in idman.conf with actual values
             export IDMAN_SSL=$(cat  {{ .Values.config.volume.baseDir }}/DATA/ssl/idmanssl)
             sed -i -e "s*IDMAN_SSL*${IDMAN_SSL}*g"  {{ .Values.config.volume.baseDir }}/config/run.sh
-            export SSL_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/ssl/sslts
+            export SSL_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/ssl/sslts)
             sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g"  {{ .Values.config.volume.baseDir }}/config/run.sh
 
             bash {{ .Values.config.volume.baseDir }}/config/run.sh
@@ -158,7 +160,7 @@ spec:
         - name: logs-zone
           securityContext:
             {{- toYaml .Values.config.securityContext | nindent 12 }}
-          image: {{ .Values.image.zoneContainerName }}
+          image: {{ .Values.image.zoneContainer }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/bash", "-c"]
           args:

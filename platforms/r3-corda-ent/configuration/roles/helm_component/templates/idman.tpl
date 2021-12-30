@@ -13,13 +13,17 @@ spec:
     path: {{ charts_dir }}/idman
   values:
     nodeName: {{ org.services.idman.name | lower }}
+    bashDebug: false
+    prefix: {{ org.name }}
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      idmanContainerName: {{ network.docker.url }}/{{ docker_image }}
-      pullPolicy: Always
-      imagePullSecret: "regcred"
+      initContainer: {{ network.docker.url }}/{{ init_container_image }}
+      idmanContainer: {{ network.docker.url }}/{{ main_container_image }}
+      enterpriseCliContainer: {{ docker_images.cenm["enterpriseCli-1.5"] }}
+      pullPolicy: IfNotPresent
+      imagePullSecrets: 
+        - name: "regcred"
     storage:
       name: "cordaentsc"
       memory: 700Mi
@@ -39,10 +43,8 @@ spec:
         port: 5052
       revocation:
         port: 5053
-      shell:
-        sshdPort: 2222
-        user: "{{ org.services.idman.name }}"
-        password: "{{ org.services.idman.name }}P"
+      adminListener:
+        port: 6000
     database:
       driverClassName: "org.h2.Driver"
       url: "jdbc:h2:file:./h2/identity-manager-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
@@ -65,3 +67,11 @@ spec:
       sleepTimeAfterError: 120
     ambassador:
       external_url_suffix: "{{ org.external_url_suffix }}"
+    cenmServices:
+      gatewayName: {{ org.services.gateway.name }}
+      gatewayPort: {{ org.services.gateway.ports.servicePort }}
+      zoneName: {{ org.services.zone.name }}
+      zonePort: {{ org.services.zone.ports.admin }}
+      zoneEnmPort: {{ org.services.zone.ports.enm }}
+      authName: {{ org.services.auth.name }}
+      authPort: {{ org.services.auth.port }}
