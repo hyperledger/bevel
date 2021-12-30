@@ -84,3 +84,13 @@ spec:
 
     genesis: |-
 {{ genesis | indent(width=6, first=True) }}
+
+    config:
+      pod:
+        resources:
+          limits:
+            memory: 512M
+            cpu: 1
+          requests:
+            memory: 512M
+            cpu: 0.5
