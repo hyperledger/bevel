@@ -41,7 +41,7 @@ spec:
         fsGroup: 1000
       initContainers:
       - name: init-certificates
-        image: {{ .Values.image.initContainerName }}
+        image: {{ .Values.image.initContainer }}
         imagePullPolicy: Always
         env:
           - name: VAULT_ADDR
@@ -256,7 +256,7 @@ spec:
         - name: notary-nodeinfo
           mountPath: /notary-nodeinfo
       - name: setnparam
-        image: "{{ required "nmap[setnparam]: missing value for .Values.image.nmapContainerName" .Values.image.nmapContainerName }}"
+        image: "{{ .Values.image.nmapContainer }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: ACCEPT_LICENSE
@@ -279,12 +279,12 @@ spec:
               port = {{ .Values.service.internal.port }}
               ssl = {
                   keyStore = {
-                      location = "./DATA/key-stores/corda-ssl-network-map-keys.jks"
+                      location = "{{ .Values.config.volume.baseDir }}/DATA/key-stores/corda-ssl-network-map-keys.jks"
                       password = NETWORKMAP_SSL
                       keyPassword = NETWORKMAP_SSL
                   }
                   trustStore = {
-                      location = "./DATA/trust-stores/corda-ssl-trust-store.jks"
+                      location = "{{ .Values.config.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks"
                       password = SSL_TRUSTSTORE
                   }
               }
@@ -295,12 +295,12 @@ spec:
               port = {{ .Values.serviceLocations.identityManager.port }}
               ssl = {
                   keyStore = {
-                      location = "./DATA/key-stores/corda-ssl-network-map-keys.jks"
+                      location = "{{ .Values.config.volume.baseDir }}/DATA/key-stores/corda-ssl-network-map-keys.jks"
                       password = NETWORKMAP_SSL
                       keyPassword = NETWORKMAP_SSL
                   }
                   trustStore = {
-                      location = "./DATA/trust-stores/corda-ssl-trust-store.jks"
+                      location = "{{ .Values.config.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks"
                       password = SSL_TRUSTSTORE
                   }
               }
@@ -311,21 +311,42 @@ spec:
               port = {{ .Values.service.revocation.port }}
               ssl = {
                   keyStore = {
-                      location = "./DATA/key-stores/corda-ssl-network-map-keys.jks"
+                      location = "{{ .Values.config.volume.baseDir }}/DATA/key-stores/corda-ssl-network-map-keys.jks"
                       password = NETWORKMAP_SSL
                       keyPassword = NETWORKMAP_SSL
                   }
                   trustStore = {
-                      location = "./DATA/trust-stores/corda-ssl-trust-store.jks"
+                      location = "{{ .Values.config.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks"
                       password = SSL_TRUSTSTORE
                   }
               }
           }
 
-          shell {
-            sshdPort = {{ .Values.service.shell.sshdPort }}
-            user = "{{ .Values.service.shell.user }}"
-            password = "{{ .Values.service.shell.password }}"
+          authObjectId=1
+          authServiceConfig = {
+              disableAuthentication=false
+              host="{{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }}"
+              port={{ .Values.cenmServices.authPort }}
+              trustStore = {
+                  location = "{{ .Values.config.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks"
+                  password = SSL_TRUSTSTORE
+              }
+              issuer="http://test"
+              leeway=5s
+          }
+
+          adminListener = {
+              port = {{ .Values.service.adminListener.port }}
+              ssl = {
+                  keyStore = {
+                      location = {{ .Values.config.volume.baseDir }}/DATA/key-stores/corda-ssl-network-map-keys.jks
+                      password = NETWORKMAP_SSL
+                  }
+                  trustStore = {
+                      location = {{ .Values.config.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks
+                      password = SSL_TRUSTSTORE
+                  }
+              }
           }' > etc/nmap.conf
 
           export NETWORKMAP_SSL=$(cat {{ .Values.config.volume.baseDir }}/DATA/ssl/networkmapssl)
@@ -430,9 +451,35 @@ spec:
             memory: {{ .Values.config.pod.resources.requests }}
           limits:
             memory: {{ .Values.config.pod.resources.limits }}
+      - name: init-token
+        env:
+          - name: ACCEPT_LICENSE
+            value: "{{ .Values.acceptLicense }}"
+        image: "{{ .Values.image.enterpriseCliContainer }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          pwd
+          cp CM/*.sh bin/
+          chmod +x bin/*
+          ls -alR
+          bin/getZoneToken.sh
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        - name: nmap-etc
+          mountPath: {{ .Values.config.volume.baseDir }}/etc
+        - name: nmap-conf
+          mountPath: {{ .Values.config.volume.baseDir }}/CM/getZoneToken.sh
+          subPath: getZoneToken.sh
+        - name: certificates
+          mountPath: {{ .Values.config.volume.baseDir }}/DATA
+        - name: notary-nodeinfo
+          mountPath: {{ .Values.config.volume.baseDir }}/notary-nodeinfo
       containers:
       - name: main
-        image: "{{ required "nmap[main]: missing value for .Values.image.nmapContainerName" .Values.image.nmapContainerName }}"
+        image: "{{ .Values.image.nmapContainer }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: ACCEPT_LICENSE
@@ -446,14 +493,39 @@ spec:
             echo "Waiting for network parameters to be set..."
           done
           echo "Network parameters have been set!"
-          yes | keytool -importcert -file ./DATA/idman.crt -storepass changeit -alias {{ .Values.serviceLocations.identityManager.domain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
+          yes | keytool -importcert -file {{ .Values.config.volume.baseDir }}/DATA/idman.crt -storepass changeit -alias {{ .Values.serviceLocations.identityManager.domain }} -keystore /usr/lib/jvm/zulu-8-amd64/jre/lib/security/cacerts
           
+          # Variable for keys/trust store passwords
+          ROOTCA_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/truststore/rootcats)
+          NETWORKMAP_SSL=$(cat {{ .Values.config.volume.baseDir }}/DATA/ssl/networkmapssl)
+          SSL_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/truststore/sslts)
+         
           if [ -f {{ .Values.config.jarPath }}/networkmap.jar ]
           then
               echo
               echo "CENM: starting Networkmap service ..."
               echo
-              java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar {{ .Values.config.jarPath }}/networkmap.jar -f {{ .Values.config.configPath }}/nmap.conf
+              TOKEN=$(cat {{ .Values.config.configPath }}/token)
+              ls -alR
+              set -x
+              java -jar {{ .Values.config.jarPath }}/angel.jar \
+              --jar-name={{ .Values.config.jarPath }}/networkmap.jar \
+              --zone-host={{ .Values.cenmServices.zoneName }}.{{ .Values.metadata.namespace }} \
+              --zone-port={{ .Values.cenmServices.zoneEnmPort }} \
+              --token=${TOKEN} \
+              --service=NETWORK_MAP \
+              --polling-interval=10 \
+              --working-dir=etc/ \
+              --network-truststore={{ .Values.config.volume.baseDir }}/DATA/trust-stores/network-root-truststore.jks \
+              --truststore-password=${ROOTCA_TRUSTSTORE} \
+              --root-alias=cordarootca \
+              --network-parameters-file={{ .Values.config.configPath }}/nmap.conf \
+              --tls=true \
+              --tls-keystore={{ .Values.config.volume.baseDir }}/DATA/key-stores/corda-ssl-network-map-keys.jks \
+              --tls-keystore-password=${NETWORKMAP_SSL} \
+              --tls-truststore={{ .Values.config.volume.baseDir }}/DATA/trust-stores/corda-ssl-trust-store.jks \
+              --tls-truststore-password=${SSL_TRUSTSTORE} \
+              --verbose
               EXIT_CODE=${?}
           else
               echo "Missing networkmap jar file in {{ .Values.config.jarPath }} folder:"
@@ -477,7 +549,7 @@ spec:
           limits:
             memory: {{ .Values.config.pod.resources.limits }}
       - name: logs
-        image: "{{ required "nmap[logs]: missing value for .Values.image.nmapContainerName" .Values.image.nmapContainerName }}"
+        image: "{{ .Values.image.nmapContainer }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: ACCEPT_LICENSE
@@ -492,9 +564,14 @@ spec:
         volumeMounts:
         - name: nmap-logs
           mountPath: {{ .Values.config.volume.baseDir }}/logs
+    {{- with .Values.image.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ .Values.image.imagePullSecret }}
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       volumes:
+        - name: nmap-conf
+          configMap:
+            name: {{ .Values.prefix }}-nmap-conf
         - name: certificates
           emptyDir:
             medium: Memory

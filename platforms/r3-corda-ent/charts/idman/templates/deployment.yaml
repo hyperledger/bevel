@@ -40,7 +40,7 @@ spec:
         fsGroup: 1000
       initContainers:      
       - name: init-certificates
-        image: "{{ required "idman[config]: missing value for .Values.image.initContainerName" .Values.image.initContainerName }}"
+        image: "{{ .Values.image.initContainer }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: VAULT_ADDR
@@ -200,17 +200,20 @@ spec:
               echo "Done"
         volumeMounts:
         - name: certificates
-          mountPath: /DATA            
-      containers:
-      - name: idman
-        image: "{{ required "idman[idman]: missing value for .Values.image.idmanContainerName" .Values.image.idmanContainerName }}"
+          mountPath: /DATA    
+      - name: init-token
+        image: "{{ .Values.image.enterpriseCliContainer }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: ACCEPT_LICENSE
-            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+            value: "{{ .Values.acceptLicense }}"
         command: ["/bin/bash", "-c"]
         args:
         - |-
+          pwd
+          cp CM/*.sh bin/
+          chmod +x bin/*
+          ls -alR
           echo 'address = "0.0.0.0:{{ .Values.service.external.port }}"
           database {
               driverClassName = "{{ .Values.database.driverClassName }}"
@@ -264,10 +267,29 @@ spec:
                   }
               }
           }
-          shell = {
-              sshdPort = "{{ .Values.service.shell.sshdPort }}"
-              user = "{{ .Values.service.shell.user }}"
-              password = "{{ .Values.service.shell.password }}"
+          authServiceConfig = {
+              disableAuthentication=false
+              host="{{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }}"
+              port={{ .Values.cenmServices.authPort }}
+              trustStore = {
+                  location = "./DATA/root/corda-ssl-trust-store.jks"
+                  password = SSL_TRUSTSTORE
+              }
+              issuer="http://test"
+              leeway=5s
+          }
+          adminListener = {
+              port = {{ .Values.service.adminListener.port }}
+              ssl = {
+                  keyStore = {
+                      location = ./DATA/idman/corda-ssl-identity-manager-keys.jks
+                      password = IDMAN_SSL
+                  }
+                  trustStore = {
+                      location = ./DATA/root/corda-ssl-trust-store.jks
+                      password = SSL_TRUSTSTORE
+                  }
+              }
           }' >> etc/idman.conf
 
           #replacing the variables in idman.conf with actual values
@@ -275,17 +297,55 @@ spec:
           sed -i -e "s*IDMAN_SSL*${IDMAN_SSL}*g" etc/idman.conf
           export SSL_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/truststore/sslts)
           sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g" etc/idman.conf
-
+          bin/getZoneToken.sh
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        - name: idman-etc
+          mountPath: {{ .Values.config.volume.baseDir }}/etc
+        - name: idman-conf
+          mountPath: {{ .Values.config.volume.baseDir }}/CM/getZoneToken.sh
+          subPath: getZoneToken.sh
+        - name: certificates
+          mountPath: {{ .Values.config.volume.baseDir }}/DATA 
+      containers:
+      - name: idman
+        image: "{{ .Values.image.idmanContainer }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: ACCEPT_LICENSE
+            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
           #running the idman service
           /bin/sh
-          # main run
+          #main run
+          export IDMAN_SSL=$(cat {{ .Values.config.volume.baseDir }}/DATA/ssl/idmanssl)
+          export SSL_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/truststore/sslts)
           if [ -f {{ .Values.config.jarPath }}/identitymanager.jar ]
           then
-              sha256sum {{ .Values.config.jarPath }}/identitymanager.jar 
+              sha256sum {{ .Values.config.jarPath }}/identitymanager.jar
+              sha256sum {{ .Values.config.jarPath }}/angel.jar
+              cp {{ .Values.config.configPath }}/idman.conf {{ .Values.config.configPath }}/identitymanager.conf
+              cat {{ .Values.config.configPath }}/identitymanager.conf
               echo
               echo "CENM: starting Identity Manager process ..."
               echo
-              java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar {{ .Values.config.jarPath }}/identitymanager.jar -f {{ .Values.config.configPath }}/idman.conf
+              java -jar {{ .Values.config.jarPath }}/angel.jar \
+              --jar-name={{ .Values.config.jarPath }}/identitymanager.jar \
+              --zone-host={{ .Values.cenmServices.zoneName }}.{{ .Values.metadata.namespace }} \
+              --zone-port={{ .Values.cenmServices.zoneEnmPort }} \
+              --token=${TOKEN} \
+              --service=IDENTITY_MANAGER \
+              --working-dir=etc/ \
+              --polling-interval=10 \
+              --tls=true \
+              --tls-keystore={{ .Values.config.volume.baseDir }}/DATA/idman/corda-ssl-identity-manager-keys.jks \
+              --tls-keystore-password=${IDMAN_SSL} \
+              --tls-truststore={{ .Values.config.volume.baseDir }}/DATA/root/corda-ssl-trust-store.jks \
+              --tls-truststore-password=${SSL_TRUSTSTORE} \
+              --verbose
               EXIT_CODE=${?}
           else
               echo "Missing Identity Manager jar file in {{ .Values.config.jarPath }} folder:"
@@ -317,7 +377,7 @@ spec:
           limits:
             memory: {{ .Values.config.pod.resources.limits}}
       - name: logs
-        image: "{{ required "idman[logs]: missing value for .Values.image.idmanContainerName" .Values.image.idmanContainerName }}"
+        image: "{{ .Values.image.idmanContainer }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
         - name: ACCEPT_LICENSE
@@ -326,15 +386,20 @@ spec:
         args:
         - |-
           cd {{ .Values.config.volume.baseDir }}
-          while true; do tail -f logs/identity-manager/*.log 2>/dev/null; sleep 5; done
+          while true; do tail -f logs/angel-service/*.log 2>/dev/null; sleep 5; done
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
         - name: idman-logs
           mountPath: {{ .Values.config.volume.baseDir }}/logs
+    {{- with .Values.image.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ .Values.image.imagePullSecret }}
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       volumes:
+        - name: idman-conf
+          configMap:
+            name: {{ .Values.prefix }}-idman-conf
         - name: idman-etc
           emptyDir:
             medium: Memory

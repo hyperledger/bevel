@@ -28,13 +28,14 @@ image:
   # Provide the alpine utils image, which is used for all init-containers of deployments/jobs.
   # NOTE: The alpine image used is the base alpine image with CURL installed.
   # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
-  initContainerName:
+  initContainer:
   # Provide the image for the main Signer container.
   # Eg. idmanContainerName: corda/enterprise-signer:1.2-zulu-openjdk8u242
-  signerContainerName:
+  signerContainer:
   # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
-  # Eg. imagePullSecret: regcred
-  imagePullSecret:
+  # Eg. imagePullSecrets: regcred, can add multiple creds
+  imagePullSecrets: 
+    - name:  
   # Pull policy to be used for the Docker image
   # Eg. pullPolicy: Always
   pullPolicy:
@@ -81,28 +82,18 @@ vault:
 
 # Provide the service details for setting up ssh
 service:
-  ssh:
-    # The type of the SSH service (among such ClusterIP, NodePort)
-    # Eg. type: ClusterIP
-    type:
-    # The port where the SSH service is running inside the cluster
-    # Eg. port: 2222
-    port:
-    # The port where the SSH service will be mapped to, to be accessed outside of the cluster.
-    # Eg. targetPort: 2222
-    targetPort:
-    # If filled, will set the SSH service to type NodePort.
-    # Eg. nodePort: 2223
-    nodePort:
-  # Provide the service details for setting up Shell access to the service.
-  shell:
-    # SSH username
-    # Eg. user: signer
-    user:
-    # SSH password
-    # Eg. password: signerP
-    password:
-
+  # Eg. type: ClusterIP
+  type:
+  adminListener:
+    port: 6000
+#############################################################
+#                       CENM SERVICES DETAILS               #
+#############################################################
+cenmServices:
+  # Auth service name
+  authName: 
+  # Auth service port
+  authPort: 
 # provide the other cenm services details
 serviceLocations:
  # Provide the idman service address
@@ -129,6 +120,7 @@ serviceLocations:
   revocation:
     # port: 5053
     port:
+  
 
 # Provide signers variables that will go to the template file
 # Like the time interval for checking different tasks

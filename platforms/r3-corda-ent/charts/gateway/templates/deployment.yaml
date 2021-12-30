@@ -138,19 +138,19 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            echo Probing {{ .Values.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.authPort }}
-            until nc -w 5 -vz {{ .Values.authName }}.{{ .Values.metadata.namespace }} {{ .Values.authPort }} > /dev/null 2>&1
+            echo Probing {{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.cenmServices.authPort }}
+            until nc -w 5 -vz {{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }} {{ .Values.cenmServices.authPort }} > /dev/null 2>&1
             do
-              echo "Connect to {{ .Values.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.authPort }} (tcp) failed: Connection refused"
+              echo "Connect to {{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.cenmServices.authPort }} (tcp) failed: Connection refused"
             done
-            echo "Connection {{ .Values.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.authPort }} successful"
+            echo "Connection {{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.cenmServices.authPort }} successful"
           resources:
             {{- toYaml .Values.config.pod.resources | nindent 12 }}
       containers:
         - name: main
           env:
             - name: "CENM_ZONE_PORT"
-              value: "{{ .Values.zonePort }}"
+              value: "{{ .Values.cenmServices.zonePort }}"
           securityContext:
             {{- toYaml .Values.config.securityContext | nindent 12 }}
           image: "{{ .Values.image.gatewayContainerName }}"
@@ -176,7 +176,7 @@ spec:
                 echo
                 echo "CENM: starting CENM gateway service ..."
                 echo
-                java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar bin/gateway.jar --config-file {{ .Values.config.volume.baseDir }}/config/gateway.conf
+                java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar bin/gateway.jar --config-file {{ .Values.config.volume.baseDir }}/config/gateway.conf -v --logging-level=ALL
                 EXIT_CODE=${?}
             else
                 echo "Missing Gateway Service jar file in {{ .Values.config.jarPath }} folder:"

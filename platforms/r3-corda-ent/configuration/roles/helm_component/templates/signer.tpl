@@ -16,10 +16,11 @@ spec:
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      signerContainerName: {{ network.docker.url }}/{{ docker_image }}
-      imagePullSecret: regcred
-      pullPolicy: Always
+      initContainer: {{ network.docker.url }}/{{ init_container_image }}
+      signerContainer: {{ network.docker.url }}/{{ main_container_image }}
+      pullPolicy: IfNotPresent
+      imagePullSecrets: 
+        - name: "regcred"
     acceptLicense: YES
     vault:
       address: {{ vault.url }}
@@ -30,13 +31,9 @@ spec:
       retries: 10
       sleepTimeAfterError: 15
     service:
-      ssh:
-        port: 2222
-        targetPort: 2222
-        type: ClusterIP
-      shell:
-        user: signer
-        password: signerP
+      type: ClusterIP
+      adminListener:
+          port: 6000
     serviceLocations:
       identityManager:
         host: {{ org.services.idman.name }}.{{ org.name | lower }}-ent
@@ -48,6 +45,9 @@ spec:
         port: 5050
       revocation:
         port: 5053
+    cenmServices:
+      authName: {{ org.services.auth.name }}
+      authPort: {{ org.services.auth.port }}
     signers:
       CSR:
         schedule:

@@ -17,8 +17,8 @@ spec:
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url}}/{{ init_image }}
-      nodeContainerName: {{ network.docker.url}}/{{ docker_image }}
+      initContainerName: {{ network.docker.url}}/{{ init_container_image }}
+      nodeContainerName: {{ network.docker.url}}/{{ main_container_image }}
       imagePullSecret: regcred
       pullPolicy: Always
       privateCertificate: true
