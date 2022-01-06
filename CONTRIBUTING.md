@@ -21,7 +21,7 @@ Consider picking up a [“help-wanted”](https://github.com/hyperledger/bevel/i
 If you can commit to full-time/part-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/bevel ) to work through logistics!
 
 Please visit the
-[Developer Guide](https://hyperledger-bevel.readthedocs.io/en/latest/developerguide.html) in the docs to learn how to make contributions to this exciting project.
+[Developer Guide](https://hyperledger-bevel.readthedocs.io/en/latest/developerguide/) in the docs to learn how to make contributions to this exciting project.
 
  #### Pull Request Process :
 
