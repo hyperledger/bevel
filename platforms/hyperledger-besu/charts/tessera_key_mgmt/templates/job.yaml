@@ -36,6 +36,8 @@ spec:
           env:
           - name: VAULT_ADDR
             value: {{ $.Values.vault.address }}
+          - name: VAULT_SECRET_ENGINE
+            value: {{ $.Values.vault.secretengine }}
           - name: VAULT_KEY_PREFIX
             value: "{{ $.Values.vault.keyprefix }}" 
           - name: PEER_NAME
@@ -50,7 +52,6 @@ spec:
           args:
             - |-
               apk update && apk add jq curl
-              alias tessera="java -jar /tessera/tessera-app.jar"
               
               validateVaultResponse () {
                 if echo ${2} | grep "errors"; then
@@ -81,7 +82,7 @@ spec:
                 -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
                 jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-              vault_secret_key="${VAULT_SECRET_PREFIX}"
+              
               # Generate tessera keys
               export HASHICORP_TOKEN=${VAULT_CLIENT_TOKEN}
-              tessera -keygen -keygenvaulttype HASHICORP -keygenvaulturl ${VAULT_ADDR} -keygenvaultsecretengine secretsv2 -filename ${VAULT_KEY_PREFIX}/${PEER_NAME}/tm
+              /tessera/bin/tessera -keygen -keygenvaulttype HASHICORP -keygenvaulturl ${VAULT_ADDR} -keygenvaultsecretengine ${VAULT_SECRET_ENGINE} -filename ${VAULT_KEY_PREFIX}/${PEER_NAME}/tm

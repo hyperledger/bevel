@@ -19,7 +19,7 @@ spec:
       labels:
     images:      
       alpineutils: {{ network.docker.url }}/alpine-utils:1.0
-      tessera: quorumengineering/tessera:{{ network.config.tm_version }}
+      tessera: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       busybox: busybox
       mysql: mysql/mysql-server:5.7
       imagePullSecret: regcred
@@ -68,6 +68,8 @@ spec:
       ambassadorSecret: {{ peer.name }}-ambassador-certs
     vault:
       address: {{ vault.url }}
+      secretengine: {{ vault.secret_path | default('secretsv2') }}
+      tmsecretpath: {{ component_ns }}/crypto/{{ peer.name }}/tm
       secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: credentials

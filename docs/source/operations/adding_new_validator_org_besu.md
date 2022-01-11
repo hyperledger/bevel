@@ -40,7 +40,7 @@ For reference, sample `network.yaml` file looks like below for IBFT consensus (b
 network:
 # Network level configuration specifies the attributes required for each organization to join an existing network.
   type: besu
-  version: 21.1.1  #this is the version of Besu docker image that will be deployed.
+  version: 21.10.6  #this is the version of Besu docker image that will be deployed.
 
 #Environment section for Kubernetes setup
   env:
@@ -75,7 +75,7 @@ network:
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
     transaction_manager: "orion"    # Transaction manager is "orion"
     # This is the version of "orion" docker image that will be deployed
-    tm_version: "21.1.1"               
+    tm_version: "21.7.3"               
     # TLS can be True or False for the orion tm
     tm_tls: True
     # Tls trust value
