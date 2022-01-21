@@ -15,6 +15,8 @@
 # Provide the name of the node
 # e.g. `networkmap`
 nodeName:
+bashDebug: true
+prefix: cenm
 
 # This section contains the Corda Enterprise nmap metadata.
 metadata:
@@ -37,14 +39,19 @@ storage:
 # Image for the init-containers
 image:
   # Name of the Docker image to use for init-containers, e.g. `index.docker.io/hyperledgerlabs/alpine-utils:1.0`
-  initContainerName:
+  initContainer:
   # Name of the Docker image to use for the main Networkmap Service, e.g. corda/enterprise-networkmap:1.2-zulu-openjdk8u24
-  nmapContainerName:
-  # Pull secret to use for the Docker image, e.g. `regcred`
-  imagePullSecret:
-  # When to pull the image, e.g. `Always`
-  pullPolicy:
-
+  nmapContainer:
+  # Provide the image for the main Idman container.
+  # Eg. enterpriseCli: corda/enterprise-cli:1.5.1-zulu-openjdk8u242
+  enterpriseCliContainer:
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecrets: regcred, can add multiple creds
+  imagePullSecrets: 
+    - name:  
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: Always
+  pullPolicy: 
 # required parameter
 acceptLicense: YES
 
@@ -92,14 +99,9 @@ service:
   revocation:
     # On which port to check for Revocation, e.g. `5053`
     port:
-  # Values for the ssh session into the Networkmap Service
-  shell:
-    # Port to use in sshd service, e.g. `2222`
-    sshdPort:
-    # User for ssh session, e.g. `nmap`
-    user:
-    # Password for ssh session, e.g. `password`
-    password:
+  # Provide the admin listener port
+  adminListener:
+    port:
 
 serviceLocations:
   # Values for the Identity Manager (idman)
@@ -204,7 +206,22 @@ config:
 # URL Suffix for the ambassador load balancer
 ambassador:
   external_url_suffix: 
-  
+#############################################################
+#                       CENM SERVICES DETAILS               #
+#############################################################
+cenmServices:
+  # Gateway service name
+  gatewayName: 
+  # Gateway service api endpoint port 
+  gatewayPort: 
+  # Zone service name
+  zoneName: 
+  # Zone service enm port
+  zoneEnmPort: 
+  # Auth service name
+  authName: 
+  # Auth service port
+  authPort: 
 healthCheck:
   # Health Check node port set to get rid of logs pollution
   # Eg. nodePort: 0

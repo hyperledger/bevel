@@ -17,8 +17,8 @@ spec:
       namespace: {{ component_ns }}
       labels: {}
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      nodeContainerName: {{ network.docker.url }}/{{ docker_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_container_image }}
+      nodeContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagepullsecret: regcred
       pullPolicy: Always
     truststorePassword: password

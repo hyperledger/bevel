@@ -15,12 +15,13 @@ spec:
     metadata:
       namespace: {{ component_ns }}
       nodeName: {{ org.services.zone.name }}
-      prefix: cenm
+      prefix: {{ org.name }}
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      zoneContainerName: {{ network.docker.url }}/{{ docker_image }}
-      imagePullSecret: regcred
+      initContainer: {{ network.docker.url }}/{{ init_container_image }}
+      zoneContainer: {{ network.docker.url }}/{{ main_container_image }}
       pullPolicy: IfNotPresent
+      imagePullSecrets: 
+        - name: "regcred"
     config:
       volume:
         baseDir: /opt/cenm
@@ -38,6 +39,8 @@ spec:
         path: bin
     cenmServices:
       idmanName: {{ org.services.idman.name }}
+      authName: {{ org.services.auth.name }}
+      authPort: {{ org.services.auth.port }}
     database:
       driverClassName: "org.h2.Driver"
       jdbcDriver: ""
@@ -45,9 +48,6 @@ spec:
       user: "example-db-user"
       password: "example-db-password"
       runMigration: true
-    authService:
-      host: {{ org.services.auth.name }}
-      port: {{ org.services.auth.port }}
     service:
       type: ClusterIP
       port: 80

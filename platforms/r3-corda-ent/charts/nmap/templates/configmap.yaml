@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.prefix }}-nmap-conf
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  getZoneToken.sh: |+
+    {{ tpl (.Files.Get "files/getZoneToken.sh") . | nindent 4 }}

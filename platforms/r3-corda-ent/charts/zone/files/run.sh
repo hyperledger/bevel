@@ -17,8 +17,8 @@ then
     --jdbc-driver "{{ .Values.database.jdbcDriver }}" \
     --enm-listener-port "{{ .Values.listenerPort.enm }}" \
     --admin-listener-port "{{ .Values.listenerPort.admin }}" \
-    --auth-host "{{ .Values.metadata.prefix }}-{{ .Values.authService.host }}" \
-    --auth-port "{{ .Values.authService.port }}" \
+    --auth-host "{{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }}" \
+    --auth-port "{{ .Values.cenmServices.authPort }}" \
     --auth-trust-store-location ./DATA/trust-stores/corda-ssl-trust-store.jks \
     --auth-trust-store-password "SSL_TRUSTSTORE" \
     --auth-issuer "http://test" \

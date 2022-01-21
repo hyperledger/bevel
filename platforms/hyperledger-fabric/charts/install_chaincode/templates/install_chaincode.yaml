@@ -226,11 +226,30 @@ spec:
           fi
           version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
           if [ $version1_4 = 1 ];then
+
+            ## Checking installed chaincode
+            INSTALLED=$(peer chaincode list --installed | grep "Name: ${CHAINCODE_NAME}, Version: ${CHAINCODE_VERSION},")
+            if [ -n "${INSTALLED}" ]
+            then
+              echo "chaincode ${CHAINCODE_NAME} version ${CHAINCODE_VERSION} is installed, skipping... "
+              exit 0
+            fi
+
             echo "Installing Chaincode for ${NETWORK_VERSION}"
             ## Installing chaincode on a peer
             peer chaincode install -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -p ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANGUAGE}
             echo "Chaincode installed for Fabric v.1.4.X"         
           else
+
+            ## Checking installed chaincode
+            INSTALLED=$(peer lifecycle chaincode queryinstalled -O json | jq '.installed_chaincodes?' | \
+              jq --arg CCLABEL "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" '.[]? | select(.label==$CCLABEL)')
+            if [ -n "${INSTALLED}" ]
+            then
+              echo "chaincode ${CHAINCODE_NAME}_${CHAINCODE_VERSION} is installed, skipping... "
+              exit 0
+            fi
+
             echo "Installing Chaincode for ${NETWORK_VERSION}"
             if [ $PEER_NAME = "peer0" ];then
               ## packaging chaincode

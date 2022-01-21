@@ -18,10 +18,11 @@ spec:
     peer:
       name: {{ peer.name }}        
     image:      
-      repository: quorumengineering/tessera:{{ network.config.tm_version }}
+      repository: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       pullSecret: regcred
     vault:
       address: {{ vault.url }}
+      secretengine: {{ vault.secret_path | default('secretsv2') }}
       authpath: besu{{ org.name | lower }}
       role: vault-role
       keyprefix: {{ component_ns }}/crypto

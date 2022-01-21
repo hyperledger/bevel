@@ -135,19 +135,6 @@ spec:
           echo "${username}" > ${OUTPUT_PATH}/username
           echo "${password}" > ${OUTPUT_PATH}/password
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tm_keyname }}"
-          echo "Getting 2 keys from $vault_secret_key"          
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"  
-
-          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')
-          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]')
-          echo -n "${tmpub}" > ${OUTPUT_PATH}/tm.pub
-          echo '{"data":{"bytes":"'"$tmkey"'"},"type":"unlocked"}' > ${OUTPUT_PATH}/tm.key 
-          
           if [ {{ $.Values.tessera.tls }} == "STRICT" ]
           then
             vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
@@ -225,30 +212,57 @@ spec:
           subPath: mysql
       - name: tessera
         image: {{ .Values.images.tessera }}
-        command: ["sh"]
+        command: ["sh", "-c"]
         args:
-        - "-cx"
-        - "chmod 600 $TESSERA_HOME/crypto/keys/tm.key;
-          mkdir -p $TESSERA_HOME/logs;
-          mkdir -p $TESSERA_HOME/tm;
-          DDIR=$TESSERA_HOME/tm;
-          PASSWORD=$(cat $TESSERA_HOME/crypto/keys/password);
+          - |-
+            apk update && apk add jq curl
+            mkdir -p $TESSERA_HOME/logs;
+            mkdir -p $TESSERA_HOME/tm;
+            DDIR=$TESSERA_HOME/tm;
+            PASSWORD=$(cat $TESSERA_HOME/crypto/keys/password);
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                echo "ERROR: unable to retrieve ${1}: ${2}"
+                exit 1
+              fi
+              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+              then
+                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${vault_secret_key})
+                curl_response=$?
+                if test "$http_code" != "200" ; then
+                    echo "Http response code from Vault - $http_code"
+                    if test "$curl_response" != "0"; then
+                      echo "Error: curl command failed with error code - $curl_response"
+                      exit 1
+                    fi
+                fi
+              fi
+            }
 
-          printenv;
-          wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.15.tar.gz;
-          tar -xf mysql-connector-java-8.0.15.tar.gz;
-          cp /mysql-connector-java-8.0.15/mysql-connector-java-8.0.15.jar $TESSERA_HOME;
-          SQL_JAR=$TESSERA_HOME/mysql-connector-java-8.0.15.jar;
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+            # Login to Vault and so I can get an approle token
+            VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+              -H "Content-Type: application/json" \
+              -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+              jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+            
+            # required for tessera vault integration
+            export HASHICORP_TOKEN=${VAULT_CLIENT_TOKEN};
 
-          TESSERA_JAR=/tessera/tessera-app.jar;
-          CONFIG_TMPL=$(cat ${TESSERA_HOME}/tessera-config.json.tmpl);
-
-          echo $CONFIG_TMPL >  ${DDIR}/tessera-config-with-hosts.json;
-          cat  ${DDIR}/tessera-config-with-hosts.json;
-
-          TESSERA_MAIN=com.quorum.tessera.launcher.Main;
-          java -Xms128M -Xmx128M -cp $SQL_JAR:$TESSERA_JAR:. $TESSERA_MAIN --configfile ${DDIR}/tessera-config-with-hosts.json -o jdbc.password=$PASSWORD;
-        "
+            printenv;
+            # mysql connector required for mysql tessera DB 
+            wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.25.tar.gz;
+            tar -xf mysql-connector-java-8.0.25.tar.gz;
+            cp /mysql-connector-java-8.0.25/mysql-connector-java-8.0.25.jar /tessera/lib/;
+            CONFIG_TMPL=$(cat ${TESSERA_HOME}/tessera-config.json.tmpl);
+            echo $CONFIG_TMPL >  ${DDIR}/tessera-config-with-hosts.json;
+            cat ${DDIR}/tessera-config-with-hosts.json;
+            
+            /tessera/bin/tessera --configfile ${DDIR}/tessera-config-with-hosts.json -o jdbc.password=$PASSWORD;
         ports:
           - containerPort: {{ .Values.tessera.ports.tm }}
         env:
@@ -256,6 +270,12 @@ spec:
             value: {{ .Values.tessera.mountPath }}
           - name: QHOME
             value: {{ .Values.tessera.mountPath }}
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}          
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
         volumeMounts:
           - name: certificates
             mountPath: {{ .Values.tessera.mountPath }}/crypto/
