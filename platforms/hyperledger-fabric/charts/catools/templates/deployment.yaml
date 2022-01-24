@@ -120,6 +120,8 @@ spec:
             value: {{ $.Values.vault.authpath }}
           - name: VAULT_SECRET_MSP
             value: {{ $.Values.vault.secretmsp }}
+          - name: VAULT_SECRET_TLS
+            value: {{ $.Values.vault.secrettls }}
           - name: VAULT_SECRET_ORDERER
             value: {{ $.Values.vault.secretorderer }}
           - name: VAULT_SECRET_PEER
@@ -224,6 +226,22 @@ spec:
                   touch ${MOUNT_PATH}/present_msp.txt
                 fi
 
+                # Check if admin tls already created
+                LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS} | jq -r 'if .errors then . else . end')
+                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                then
+                  echo "Certficates absent in vault. Ignore error warning"
+                  touch ${MOUNT_PATH}/absent_tls.txt
+                elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
+                then
+                  echo "Certficates absent in vault2. Ignore error warning"
+                  touch ${MOUNT_PATH}/absent_tls.txt
+                else
+                  validateVaultResponse "${VAULT_SECRET_MSP}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                  echo "Certificates present in vault"
+                  touch ${MOUNT_PATH}/present_tls.txt
+                fi
+
               if [ "$COMPONENT_TYPE" = "orderer" ]; then
                 SERVICES_NAMES=$ORDERERS_NAMES;
               fi;
@@ -262,10 +280,54 @@ spec:
                   touch ${MOUNT_PATH}/present_msp_${SERVICE_NAME}.txt
                 fi
 
-                if [ "$PROXY" = "ambassador" ] ; then
+                # Check if orderer/peer msp already created
+                if [ "$COMPONENT_TYPE" = "peer" ]; then
+                  SERVICE_NAME="${SERVICE%%,*}"
+                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+                fi;
 
+                if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                  SERVICE_NAME="${SERVICE}"
+                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+                fi;
+    
+                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                then
+                  echo "Certficates absent in vault. Ignore error warning"
+                  touch ${MOUNT_PATH}/absent_tls_${SERVICE_NAME}.txt
+                elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
+                then
+                  echo "Certficates absent in vault2. Ignore error warning"
+                  touch ${MOUNT_PATH}/absent_tls_${SERVICE_NAME}.txt
+                else
+                  validateVaultResponse "${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                  echo "Certificates present in vault"
+                  touch ${MOUNT_PATH}/present_tls_${SERVICE_NAME}.txt
+                fi
+
+                # Check if orderer/peer msp already created
+                if [ "$COMPONENT_TYPE" = "peer" ]; then
+                  SERVICE_NAME="${SERVICE%%,*}"
+                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+                fi;
+
+                if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                  SERVICE_NAME="${SERVICE}"
+                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+                fi;
+
+                if [ "$PROXY" = "ambassador" ] ; then
+                  
                   #Check if orderer/peer ambassador secrets already created
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${SERVICE_NAME} | jq -r 'if .errors then . else . end')
+                  if [ "$COMPONENT_TYPE" = "peer" ]; then
+                    SERVICE_NAME="${SERVICE%%,*}"
+                    LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR} | jq -r 'if .errors then . else . end')
+                  fi;
+
+                  if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                    SERVICE_NAME="${SERVICE}"
+                    LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${SERVICE_NAME} | jq -r 'if .errors then . else . end')
+                  fi;
 
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                   then
@@ -570,7 +632,7 @@ spec:
           - name: PEERS_NAMES
             value: "{{ $.Values.peers.name }}"
           - name: MOUNT_PATH
-            value: "/certcheck"          
+            value: "/certcheck" 
           command: ["sh", "-c"]
           args:
             - |-
@@ -585,6 +647,7 @@ spec:
               if [ -e /${MOUNT_PATH}/flag_finish.txt ]; then
     
                 if [ "$COMPONENT_TYPE" = "orderer" ]; then
+
                   # Generate crypto material for organization orderers
                   cd /scripts/orderer
                   ./store-vault-orderer.sh
@@ -593,9 +656,14 @@ spec:
                  if [ "$COMPONENT_TYPE" = "peer" ]; then
                   # Generate crypto material for organization peers
                   cd /scripts/peer
-                  ./store-vault-peer.sh 
+                  ./store-vault-peer.sh
                 fi;
               fi;
+
+              # Raises an error if any certificate has not been stored correctly
+              if [ -e /certcheck/certs_not_found.txt ]; then
+                exit 1
+              fi
 
               tail -f /dev/null
           volumeMounts:

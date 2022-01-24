@@ -68,6 +68,11 @@ spec:
       serviceaccountname: vault-auth
       imagesecretname: regcred
     
+    healthcheck: 
+      retries: 10
+      sleepTimeAfterError: 2
+
+    
     org_data:
       external_url_suffix: {{ external_url_suffix }}
       component_subject: {{ component_subject }}
