@@ -109,7 +109,15 @@ This task pushes the above generated value files to git repo.
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 
-#### 9. Create the Ambassador credentials
+#### 9. Check if crypto materials exists in vault.
+This task Check if crypto materials exists in vault.
+##### Input Variables
+    *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
+    *vault: "Vault Details"
+    *component_type: "Type of org"
+**include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `crypto_materials`.
+
+#### 10. Create the Ambassador credentials
 This task creates the Ambassador TLS credentials
 ##### Input Variables
     *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
@@ -118,7 +126,7 @@ This task creates the Ambassador TLS credentials
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador and *peer.peerstatus* is not defined or *peer.peerstatus* is new
 
-#### 10. Copy msp cacerts from auto-generated path to given path
+#### 11. Copy msp cacerts from auto-generated path to given path
 This task copy the peer certificate to the path provided in network.yaml
 ##### Input Variables
     *component_name: The name of the resource
@@ -128,7 +136,7 @@ This task copy the peer certificate to the path provided in network.yaml
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: Condition is specified here, runs only when *item.org_status* is new, *peer.certificate* is defined,*peer.peerstatus* is not defined or *peer.peerstatus* is new and *network.env.proxy* is not none
 
-#### 11. Copy msp cacerts from auto-generated path to given path
+#### 12. Copy msp cacerts from auto-generated path to given path
 This task copy the peer certificate to the path provided in network.yaml (when proxy is none)
 ##### Input Variables
     *component_name: The name of the resource
@@ -137,7 +145,7 @@ This task copy the peer certificate to the path provided in network.yaml (when p
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: Condition is specified here, runs only when *item.org_status* is new, *peer.certificate* is defined,*peer.peerstatus* is not defined or *peer.peerstatus* is new and *network.env.proxy* is none
 
-#### 12. Copy the the msp folder from the ca tools
+#### 13. Copy the the msp folder from the ca tools
 This task copies the msp folder from the respective CA Tools CLI to the Ansible container
 ##### Input Variables
     *component_name: The name of the resource
@@ -145,7 +153,7 @@ This task copies the msp folder from the respective CA Tools CLI to the Ansible 
     *KUBECONFIG: The config file of kubernetes cluster.
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 
-#### 13. Get msp config.yaml file
+#### 14. Get msp config.yaml file
 This task gets msp config.yaml file from vault
 ##### Input Variables
     *component_name: The name of the resource
@@ -154,7 +162,7 @@ This task gets msp config.yaml file from vault
     *KUBECONFIG: The config file of kubernetes cluster.
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 
-#### 14. Create user crypto
+#### 15. Create user crypto
 This task create user crypto 
 ##### Input Variables
     *org_name: "Name of the organization"
