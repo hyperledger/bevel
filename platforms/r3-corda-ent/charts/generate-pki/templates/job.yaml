@@ -507,100 +507,152 @@ spec:
             COUNTER=1
             while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
-                if [ -e done.txt ]
+              if [ -e done.txt ]
+              then
+                cd ${BASE_DIR}/DATA/root
+                echo "found root certificates, performing vault put for root path"
+                (echo '{"data": {'
+                for FILE in *;
+                do
+                echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
+                done;
+                ) >> ../temp_root.json
+                sed -i '$ s/.$//' ../temp_root.json
+                echo '}}' >> ../temp_root.json
+                cat ../temp_root.json | tr -d '\n' >> ../root.json
+                echo "before curl"
+                curl \
+                 --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                 --request POST \
+                 --data @../root.json \
+                ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs
+                echo "after curl"
+
+                # get root certs from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+                CORDA_SSL_AUTH_KEYS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "corda-ssl-auth-keys.jks" ]' 2>&1)
+                CORDA_SSL_ROOT_KEYS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "corda-ssl-root-keys.jks" ]' 2>&1)
+                CORDA_SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "corda-ssl-trust-store.jks" ]' 2>&1)
+                NETWORK_ROOT_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "network-root-truststore.jks" ]' 2>&1)
+                ROOT_KEY_STORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "root-key-store.jks" ]' 2>&1)
+                SUBORDINATE_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "subordinate-key-store.jks" ]' 2>&1)
+                TLSCRL_SIGNER_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "tls-crl-signer-key-store.jks" ]' 2>&1)
+
+                if [ "$CORDA_SSL_AUTH_KEYS" == "null" ] || [ "$CORDA_SSL_ROOT_KEYS" == "null" ] || [ "$CORDA_SSL_TRUSTSTORE" == "null" ] || [ "$NETWORK_ROOT_TRUSTSTORE" == "null" ] || [ "$ROOT_KEY_STORE" == "null" ] || [ "$SUBORDINATE_KEYSTORE" == "null" ] || [ "$TLSCRL_SIGNER_KEYSTORE" == "null" ] || [[ "$CORDA_SSL_AUTH_KEYS" == "parse error"* ]] || [[ "$CORDA_SSL_ROOT_KEYS" == "parse error"* ]] || [[ "$CORDA_SSL_TRUSTSTORE" == "parse error"* ]] || [[ "$NETWORK_ROOT_TRUSTSTORE" == "parse error"* ]] || [[ "$ROOT_KEY_STORE" == "parse error"* ]] || [[ "$SUBORDINATE_KEYSTORE" == "parse error"* ]] || [[ "$TLSCRL_SIGNER_KEYSTORE" == "parse error"* ]]
                 then
-                  cd ${BASE_DIR}/DATA/root
-                  echo "found root certificates, performing vault put for root path"
-                  (echo '{"data": {'
-                  for FILE in *;
-                  do
-                  echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
-                  done;
-                  ) >> ../temp_root.json
-                  sed -i '$ s/.$//' ../temp_root.json
-                  echo '}}' >> ../temp_root.json
-                  cat ../temp_root.json | tr -d '\n' >> ../root.json
-                  echo "before curl"
-                  curl \
-                   --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                   --request POST \
-                   --data @../root.json \
-                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs
-                   echo "after curl"
-                  break;
-                else
-                  echo "certificates are not ready, sleeping ..."
-                  sleep {{ $.Values.vault.sleepTimeAfterError }}
-                  COUNTER=`expr "$COUNTER" + 1`
+                  echo "certificates write or read fail"
+                  sleep {{ $.Values.vault.sleepTimeAfterError  }}
+                  if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+                  then
+                    echo "Retry attempted $COUNTER times, certificates have not been saved"
+                    exit 1
+                  fi
                 fi
+                break
+                COUNTER=`expr "$COUNTER" + 1`
+              fi
             done
             cd ${BASE_DIR}/DATA
             # putting certificate for cenm signer
             COUNTER=1
             while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
-                if [ -e done.txt ]
+              if [ -e done.txt ]
+              then
+                cd ${BASE_DIR}/DATA/signer
+                echo "found signer certificates, performing vault put for signer path"
+                (echo '{"data": {'
+                for FILE in *;
+                do
+                echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
+                done;
+                ) >> ../temp_signer.json
+                sed -i '$ s/.$//' ../temp_signer.json
+                echo '}}' >> ../temp_signer.json
+                cat ../temp_signer.json | tr -d '\n' >> ../signer.json
+                echo "before curl"
+                curl \
+                 --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                 --request POST \
+                 --data @../signer.json \
+                ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.signerName }}/certs
+                echo "after curl"
+                # get signer certs from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.signerName }}/certs | jq -r 'if .errors then . else . end')
+                CORDA_SSL_SIGNER_KEYS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "corda-ssl-signer-keys.jks" ]' 2>&1)
+                IDM_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "identity-manager-key-store.jks" ]' 2>&1)
+                NMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "network-map-key-store.jks" ]' 2>&1)
+               
+                if [ "$CORDA_SSL_SIGNER_KEYS" == "null" ] || [ "$IDM_KEYSTORE" == "null" ] || [ "$NMAP_KEYSTORE" == "null" ] || [[ "$CORDA_SSL_SIGNER_KEYS" == "parse error"* ]] || [[ "$IDM_KEYSTORE" == "parse error"* ]] || [[ "$NMAP_KEYSTORE" == "parse error"* ]]
                 then
-                  cd ${BASE_DIR}/DATA/signer
-                  echo "found signer certificates, performing vault put for signer path"
-                  (echo '{"data": {'
-                  for FILE in *;
-                  do
-                  echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
-                  done;
-                  ) >> ../temp_signer.json
-                  sed -i '$ s/.$//' ../temp_signer.json
-                  echo '}}' >> ../temp_signer.json
-                  cat ../temp_signer.json | tr -d '\n' >> ../signer.json
-                  echo "before curl"
-                  curl \
-                   --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                   --request POST \
-                   --data @../signer.json \
-                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.signerName }}/certs
-                   echo "after curl"
-                  break;
-                else
-                  echo "certificates are not ready, sleeping ..."
-                  sleep {{ $.Values.vault.sleepTimeAfterError }}
-                  COUNTER=`expr "$COUNTER" + 1`
+                  echo "certificates write or read fail"
+                  sleep {{ $.Values.vault.sleepTimeAfterError  }}
+                  if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+                  then
+                    echo "Retry attempted $COUNTER times, certificates have not been saved"
+                    exit 1
+                  fi
                 fi
+                break
+                COUNTER=`expr "$COUNTER" + 1`
+              fi
             done
             # putting idman certificate for cenm idman
             cd ${BASE_DIR}/DATA
             COUNTER=1
             while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
-                if [ -e done.txt ]
+              if [ -e done.txt ]
+              then
+                cd ${BASE_DIR}/DATA/idman/crls
+                echo "found idman certificates, performing vault put for idman path"
+                (echo '{"data": {'
+                for FILE in *;
+                do
+                echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
+                done;
+                ) >> ../temp_crl.json
+                sed -i '$ s/.$//' ../temp_crl.json
+                echo '}}' >> ../temp_crl.json
+                cat ../temp_crl.json | tr -d '\n' >> ../crl.json
+                echo "before curl"
+                curl \
+                 --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                 --request POST \
+                 --data @../crl.json \
+                ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/crls
+                echo "After curl"
+                # putting certs for idman at certs path
+                (echo '{"data": {"corda-ssl-identity-manager-keys.jks": "'; base64 ${BASE_DIR}/DATA/idman/certs/corda-ssl-identity-manager-keys.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/certs
+                # putting certs for networkmap at certs path
+                (echo '{"data": {"corda-ssl-network-map-keys.jks": "'; base64 ${BASE_DIR}/DATA/networkmap/corda-ssl-network-map-keys.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.networkmapName }}/certs
+                 # get idman crls from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/crls | jq -r 'if .errors then . else . end')
+                ROOT_CRL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "root.crl" ]' 2>&1)
+                SSL_CRL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "ssl.crl" ]' 2>&1)
+                SUBORDINATE_CRL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "subordinate.crl" ]' 2>&1)
+                TLS_CRL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "tls.crl" ]' 2>&1)
+                  
+                # get idman certs from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/certs | jq -r 'if .errors then . else . end')
+                CORDA_SSL_IDM_KEYS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "corda-ssl-identity-manager-keys.jks" ]' 2>&1)
+                # get nmap certs from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.networkmapName }}/certs | jq -r 'if .errors then . else . end')
+                CORDA_SSL_NMAP_KEYS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "corda-ssl-network-map-keys.jks" ]' 2>&1)
+                
+                if [ "$ROOT_CRL" == "null" ] || [ "$SSL_CRL" == "null" ] || [ "$SUBORDINATE_CRL" == "null" ] || [ "$TLS_CRL" == "null" ] || [ "$CORDA_SSL_IDM_KEYS" == "null" ] || [ "$CORDA_SSL_NMAP_KEYS" == "null" ] || [[ "$ROOT_CRL" == "parse error"* ]] || [[ "$SSL_CRL" == "parse error"* ]] || [[ "$SUBORDINATE_CRL" == "parse error"* ]] || [[ "$TLS_CRL" == "parse error"* ]] || [[ "$CORDA_SSL_IDM_KEYS" == "parse error"* ]] || [[ "$CORDA_SSL_NMAP_KEYS" == "parse error"* ]]
                 then
-                  cd ${BASE_DIR}/DATA/idman/crls
-                  echo "found idman certificates, performing vault put for idman path"
-                  (echo '{"data": {'
-                  for FILE in *;
-                  do
-                  echo '"'$FILE'": "'; base64 ${FILE}; echo '",'
-                  done;
-                  ) >> ../temp_crl.json
-                  sed -i '$ s/.$//' ../temp_crl.json
-                  echo '}}' >> ../temp_crl.json
-                  cat ../temp_crl.json | tr -d '\n' >> ../crl.json
-                  echo "before curl"
-                  curl \
-                   --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                   --request POST \
-                   --data @../crl.json \
-                  ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/crls
-                  echo "After curl"
-                  # putting certs for idman at certs path
-                  (echo '{"data": {"corda-ssl-identity-manager-keys.jks": "'; base64 ${BASE_DIR}/DATA/idman/certs/corda-ssl-identity-manager-keys.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.idmanName }}/certs
-                  # putting certs for networkmap at certs path
-                  (echo '{"data": {"corda-ssl-network-map-keys.jks": "'; base64 ${BASE_DIR}/DATA/networkmap/corda-ssl-network-map-keys.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.cenmServices.networkmapName }}/certs
-                  break;
-                else
-                  echo "certificates are not ready, sleeping ..."
-                  sleep {{ $.Values.vault.sleepTimeAfterError }}
-                  COUNTER=`expr "$COUNTER" + 1`
+                  echo "certificates write or read fail"
+                  sleep {{ $.Values.vault.sleepTimeAfterError  }}
+                  if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+                  then
+                    echo "Retry attempted $COUNTER times, certificates have not been saved"
+                    exit 1
+                  fi
                 fi
+                break
+                COUNTER=`expr "$COUNTER" + 1`
+              fi
             done
             if [ "$COUNTER" -gt {{ $.Values.vault.retries }} ]
             then
