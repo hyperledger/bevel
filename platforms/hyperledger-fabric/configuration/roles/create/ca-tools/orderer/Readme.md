@@ -56,7 +56,15 @@ This task pushes the above generated value files to git repo.
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 
-#### 4. Create the Ambassador credentials
+#### 4. Check if crypto materials exists in vault.
+This task Check if crypto materials exists in vault.
+##### Input Variables
+    *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
+    *vault: "Vault Details"
+    *component_type: "Type of org"
+**include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `crypto_materials`.
+
+#### 5. Create the Ambassador credentials
 This task creates the Ambassador TLS credentials
 ##### Input Variables
     *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
@@ -65,7 +73,7 @@ This task creates the Ambassador TLS credentials
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador
 
-#### 5. Copy the the msp folder from the ca tools
+#### 6. Copy the the msp folder from the ca tools
 This task copies the msp folder from the respective CA Tools CLI to the Ansible container
 ##### Input Variables
     *component_name: The name of the resource
@@ -73,7 +81,7 @@ This task copies the msp folder from the respective CA Tools CLI to the Ansible 
     *KUBECONFIG: The config file of kubernetes cluster.
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 
-#### 6. Copy tls server.crt file from the ca tools
+#### 7. Copy tls server.crt file from the ca tools
 This task copies tls server.crt file from the respective CA Tools CLI to the Ansible container
 ##### Input Variables
     *component_name: The name of the resource
@@ -81,7 +89,7 @@ This task copies tls server.crt file from the respective CA Tools CLI to the Ans
     *KUBECONFIG: The config file of kubernetes cluster.
 **shell** : The specified commands copies the generated crypto material from the respective CA Tools CLI.
 
-#### 7. Copy tls ca.crt file from the ca tools
+#### 8. Copy tls ca.crt file from the ca tools
 This task copies tls server.crt file from the respective CA Tools CLI to the Ansible container
 ##### Input Variables
     *component_name: The name of the resource

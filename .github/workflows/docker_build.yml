@@ -319,6 +319,9 @@ jobs:
   quorum-latest: 
     if: ${{ startsWith(github.ref, 'refs/heads/develop') }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
     - 
       name: Checkout
@@ -330,23 +333,33 @@ jobs:
       name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
     -
-      name: Login to DockerHub
-      uses: docker/login-action@v1 
+      name: Login to the container registry
+      uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+    - 
+      name: Extract Docker metadata
+      id: meta
+      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
     -
       name: Build and push supplychain app latest
       id: quorum_supplychain_latest
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
       with:
         context: examples/supplychain-app/quorum/express_nodeJS
         push: true
-        tags: hyperledgerlabs/supplychain_quorum:express_app_latest            
+        tags: ${{ steps.meta.outputs.tags }}-supplychain-quorum-express-app-latest            
 
   quorum-release: 
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
     - 
       name: Checkout
@@ -362,24 +375,31 @@ jobs:
       id: vars
       run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/v}      
     -
-      name: Login to DockerHub
-      uses: docker/login-action@v1 
+      name: Login to the container registry
+      uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+    - 
+      name: Extract Docker metadata
+      id: meta
+      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
     -
       name: Build and push supplychain app release
       id: quorum_supplychain_release
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
       with:
         context: examples/supplychain-app/quorum/express_nodeJS
         push: true
-        tags: hyperledgerlabs/supplychain_quorum:express_app_${{ steps.vars.outputs.tag }}     
+        tags: ${{ steps.meta.outputs.tags }}-supplychain-quorum-express-app-${{ steps.vars.outputs.tag }}     
     -
       name: Build and push supplychain app stable
       id: quorum_supplychain_stable
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
       with:
         context: examples/supplychain-app/quorum/express_nodeJS
         push: true
-        tags: hyperledgerlabs/supplychain_quorum:express_app_stable   
+        tags: ${{ steps.meta.outputs.tags }}-supplychain-quorum-express-app-stable   

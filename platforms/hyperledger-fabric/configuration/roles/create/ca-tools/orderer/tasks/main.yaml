@@ -8,7 +8,7 @@
 # This role creates value file for the deployment of CA Tools CLI
 #############################################################################################
 
-# Check if CA server is available
+# # Check if CA server is available
 - name: "waiting for the CA server to be created in {{ item.name | lower }}-net"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -55,18 +55,49 @@
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing CA-tools files"
 
-# Check if CA-tools pod is running
-- name: "Waiting for CA-tool in {{ item.name | lower }}-net"
+#####################################################################################################################
+# This task wait for key certs exists in vault.
+- name: Wait for CA key exists in vault.
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
-    component_type: "Pod"
-    namespace: "{{ item.name | lower }}-net"
-    component_name: "ca-tools"
-    label_selectors:
-      - name = {{ component_name }}
-  tags:
-    - notest
+    vault_field: "{{ component_name }}-CA.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca"
+    check: "crypto_materials"
+
+# This task wait for admin tls exists in vault.
+- name: Wait for admin tls exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "client.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/tls"
+    check: "crypto_materials"
+
+# This task wait for orderers tls exists in vault.
+- name: Wait for orderers tls exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "server.key"
+    vault_path: "{{ vault.secret_path | default('secretv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name}}/tls"
+    check: "crypto_materials"
+  loop: "{{ item.services.orderers }}"
+  loop_control:
+    loop_var: orderer
+
+# This task wait for ambassador key exists in vault.
+- name: Wait for ambassador key exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "key"
+    vault_path: "{{ vault.secret_path | default('secretv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador/{{ orderer.name }}"
+    check: "crypto_materials"
+  loop: "{{ item.services.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: network.env.proxy == 'ambassador'
 
 #####################################################################################################################
 # This task creates the Ambassador TLS credentials for orderers
@@ -81,8 +112,7 @@
   loop: "{{ item.services.orderers }}"
   loop_control:
     loop_var: orderer
-  when: 
-    - network.env.proxy == 'ambassador'
+  when: network.env.proxy == 'ambassador'
 
 ############################################################################################
 # This task copies the msp folder from the respective CA Tools CLI

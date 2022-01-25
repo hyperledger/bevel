@@ -53,3 +53,16 @@
     context: "{{ kubernetes.context }}"
   register: get_regcred
   when: check == "docker_credentials"
+
+# This task check if certs exists in vault.
+- name: check if certs exists in vault.
+  shell: |
+    vault kv get -field={{ vault_field }} {{ vault_path }}
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_result
+  retries: "{{ network.env.retry_count}}"
+  delay: 30
+  until: vault_result.failed == False
+  when: check == "crypto_materials"

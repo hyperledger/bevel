@@ -3,13 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Hyperledger Bevel
-================================
-Hyperledger Bevel is an accelerator for delivering production-ready blockchain solutions, enabling teams to deliver without the need to architect the solution from scratch.
+An accelerator for delivering production-ready blockchain solutions
+===================================================================
+
+.. image:: ../images/hlf-bevel-color-small.png
 
 **What is Hyperledger Bevel?**
 
-  Hyperledger Bevel is an automation framework for delivering consistent production ready DLT networks on cloud based infrastructures.
+  Hyperledger Bevel is an automation framework for delivering consistent production ready DLT networks on cloud based infrastructures, enabling teams to deliver without the need to architect the solution from scratch.
   
   Hyperledger Bevel  provides 3 key features:
 
