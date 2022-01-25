@@ -5,8 +5,8 @@
 ##############################################################################################
 
 # USAGE: 
-# docker build . -t baf-build
-# docker run -v $(pwd):/home/bevel/ baf-build
+# docker build . -t bevel-build
+# docker run -v $(pwd):/home/bevel/ bevel-build
 
 FROM ubuntu:20.04
 

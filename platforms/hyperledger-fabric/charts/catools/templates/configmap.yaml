@@ -314,256 +314,339 @@ data:
     VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
     validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
 
-    if [ -e /certcheck/absent_msp.txt ]; then
+    FORMAT_CERTIFICATE_PATH="/formatcertificate"
+    mkdir -p ${FORMAT_CERTIFICATE_PATH}/tls
+    mkdir -p ${FORMAT_CERTIFICATE_PATH}/msp
 
-      FORMAT_CERTIFICATE_PATH="/formatcertificate"
-      mkdir -p ${FORMAT_CERTIFICATE_PATH}/tls
-      mkdir -p ${FORMAT_CERTIFICATE_PATH}/msp
+    ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
 
-      ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
+    if [ -e /certcheck/present_tls.txt ]; then ADMIN_TLS_CERT_WRITTEN=true; else ADMIN_TLS_CERT_WRITTEN=false; fi
+    if [ -e /certcheck/present_msp.txt ]; then ADMIN_MSP_CERT_WRITTEN=true; else ADMIN_MSP_CERT_WRITTEN=false; fi
+    COUNTER=1
+    while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+    do
 
-      # This commands put the certificates with correct format for the curl command
-      formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
-      formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
-      formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.key" "${FORMAT_CERTIFICATE_PATH}/tls"
+      if [ -e /certcheck/absent_tls.txt ] && [ "$ADMIN_TLS_CERT_WRITTEN" =  "false" ]
+        then
+          
+          # This commands put the certificates with correct format for the curl command
+          formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+          formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+          formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.key" "${FORMAT_CERTIFICATE_PATH}/tls"
 
-      CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
-      CLIENT_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.crt.txt)
-      CLIENT_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.key.txt)
-      
-      echo "
-        {
-          \"data\": 
-            {
-              \"ca.crt\": \"${CA_CRT}\",
-              \"client.crt\": \"${CLIENT_CRT}\",
-              \"client.key\": \"${CLIENT_KEY}\"
-            }  
-        }" > payload.json
-      
-      # This command copy organization level tls certificates for orgs
-      curl \
-        -H "X-Vault-Token: ${VAULT_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d @payload.json \
-        ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS}
-      
-      # Check tls certificates
-      response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-      --header "X-Vault-Token: ${VAULT_TOKEN}" \
-      ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS});
-
-      validateVaultResponse 'tls cert check' ${response_status};
-      
-      rm payload.json
-
-      # This commands put the certificates with correct format for the curl command
-      SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
-
-      formatCertificate "${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-      formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/msp"
-      formatCertificate "${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-
-      ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
-      KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/*_sk.txt)
-      SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/cert.pem.txt)
-
-      if [ "$PROXY" != "none" ] ; then
-
-        formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-        CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
-        
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
+          CLIENT_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.crt.txt)
+          CLIENT_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.key.txt)
+          
           echo "
             {
               \"data\": 
                 {
-                  \"admincerts\": \"${ADMINCERTS}\",
-                  \"cacerts\": \"${CACERTS}\",
-                  \"keystore\": \"${KEYSTORE}\",
-                  \"signcerts\": \"${SIGNCERTS}\",
-                  \"tlscacerts\": \"${CA_CRT}\"
+                  \"ca.crt\": \"${CA_CRT}\",
+                  \"client.crt\": \"${CLIENT_CRT}\",
+                  \"client.key\": \"${CLIENT_KEY}\"
                 }  
             }" > payload.json
-      fi;
+          
+          # This command copy organization level tls certificates for orgs
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS}
 
-      if [ "$PROXY" = "none" ] ; then
+          # Check tls certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS} | jq -r 'if .errors then . else . end')
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+          TLS_CLIENT_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]' 2>&1)
+          TLS_CLIENT_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]' 2>&1)
 
-          formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-          CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-7054.pem.txt)
+          tls_certificate_fields=("$TLS_CA_CERT" "$TLS_CLIENT_CERT" "$TLS_CLIENT_KEY")
 
-          echo "
-            {
-              \"data\": 
+          for field in "${tls_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ] 
+            then
+              ADMIN_TLS_CERT_WRITTEN=false
+              break
+            else
+              ADMIN_TLS_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+      fi
+
+      if [ -e /certcheck/absent_msp.txt ] && [ "$ADMIN_MSP_CERT_WRITTEN" =  "false" ]
+        then  
+          # This commands put the certificates with correct format for the curl command
+          SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
+
+          formatCertificate "${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+          formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/msp"
+          formatCertificate "${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+          formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+
+          ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
+          KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/*_sk.txt)
+          SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/cert.pem.txt)
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
+
+          if [ "$PROXY" != "none" ] ; then
+
+            formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+            
+              echo "
                 {
-                  \"admincerts\": \"${ADMINCERTS}\",
-                  \"cacerts\": \"${CACERTS}\",
-                  \"keystore\": \"${KEYSTORE}\",
-                  \"signcerts\": \"${SIGNCERTS}\",
-                  \"tlscacerts\": \"${CA_CRT}\"
-                }  
-            }" > payload.json
-      fi;
+                  \"data\": 
+                    {
+                      \"admincerts\": \"${ADMINCERTS}\",
+                      \"cacerts\": \"${CACERTS}\",
+                      \"keystore\": \"${KEYSTORE}\",
+                      \"signcerts\": \"${SIGNCERTS}\",
+                      \"tlscacerts\": \"${CA_CRT}\"
+                    }  
+                }" > payload.json
+          fi;
 
-      # This command copy organization level msp certificates for orgs
-      curl \
-        -H "X-Vault-Token: ${VAULT_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d @payload.json \
-        ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP}
+          if [ "$PROXY" = "none" ] ; then
+
+              formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-7054.pem.txt)
+
+              echo "
+                {
+                  \"data\": 
+                    {
+                      \"admincerts\": \"${ADMINCERTS}\",
+                      \"cacerts\": \"${CACERTS}\",
+                      \"keystore\": \"${KEYSTORE}\",
+                      \"signcerts\": \"${SIGNCERTS}\",
+                      \"tlscacerts\": \"${CA_CRT}\"
+                    }  
+                }" > payload.json
+          fi;
+
+          # This command copy organization level msp certificates for orgs
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP}
+
+          # Check msp certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP} | jq -r 'if .errors then . else . end')
+          MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+          MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+          MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+          MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+          MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
       
-      # Check msp certificates
-      response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-      --header "X-Vault-Token: ${VAULT_TOKEN}" \
-      ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP});
+          msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
 
-      validateVaultResponse 'msp cert check' ${response_status};
+          for field in "${msp_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              ADMIN_MSP_CERT_WRITTEN=false
+              break
+            else
+              ADMIN_MSP_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+      fi
 
-      rm payload.json
+      if [ "$ADMIN_TLS_CERT_WRITTEN" = "true" ] && [ "$ADMIN_MSP_CERT_WRITTEN" = "true" ]
+      then
+        echo "Admin certificates are successfully stored in vault"
+        break
+      else
+        echo "Admin certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+        sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+        COUNTER=`expr "$COUNTER" + 1`
+      fi
+    done
 
+    if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+    then
+      echo "Retry attempted `expr $COUNTER - 1` times, Admin certificates have not been saved."
+      touch ${MOUNT_PATH}/certs_not_found.txt
+      exit 1
     fi;
 
     ORG_CYPTO_ORDERER_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/orderers"
-    
     list=$(echo "$ORDERERS_NAMES" | tr "-" "\n")         
     for ORDERER_NAME in $list
     do
-      if [ -e /certcheck/absent_msp_${ORDERER_NAME}.txt ]; then
+      COUNTER=1
+      if [ -e /certcheck/present_tls_${ORDERER_NAME}.txt ]; then ORDERER_TLS_CERT_WRITTEN=true; else ORDERER_TLS_CERT_WRITTEN=false; fi
+      if [ -e /certcheck/present_msp_${ORDERER_NAME}.txt ]; then ORDERER_MSP_CERT_WRITTEN=true; else ORDERER_MSP_CERT_WRITTEN=false; fi
+      if [ -e /certcheck/present_ambassador_${ORDERER_NAME}.txt ]; then ORDERER_AMBASSADOR_WRITTEN=true; else ORDERER_AMBASSADOR_WRITTEN=false; fi
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts
+      while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+      do
+        if [ -e /certcheck/absent_tls_${ORDERER_NAME}.txt ] && [ "$ORDERER_TLS_CERT_WRITTEN" =  "false" ]; then
 
-        # This commands put the certificates with correct format for the curl command
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts
+          # This commands put the certificates with correct format for the curl command
+          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
+          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/server.crt" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
+          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/server.key" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
 
-        formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
-        formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/server.crt" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
-        formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/server.key" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
-
-        CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/ca.crt.txt)
-        SERVER_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/server.crt.txt)
-        SERVER_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/server.key.txt)
-
-        echo "
-        {
-          \"data\": 
-            {
-              \"ca.crt\": \"${CA_CRT}\",
-              \"server.crt\": \"${SERVER_CRT}\",
-              \"server.key\": \"${SERVER_KEY}\"
-            }  
-        }" > payload.json
-
-        # This command copy the crypto material for orderer (tls)
-        curl \
-          -H "X-Vault-Token: ${VAULT_TOKEN}" \
-          -H "Content-Type: application/json" \
-          -X POST \
-          -d @payload.json \
-          ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls
-        
-        # Check tls certificates
-        response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-        --header "X-Vault-Token: ${VAULT_TOKEN}" \
-        ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls);
-
-        validateVaultResponse 'tls cert check' ${response_status};
-
-        rm payload.json
-        
-        # This commands put the certificates with correct format for the curl command
-        SK_NAME=$(find ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
-
-        formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
-        formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
-        formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
-
-        ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
-        KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/*_sk.txt)
-        SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cert.pem.txt)
-
-        if [ "$PROXY" != "none" ] ; then
-
-          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
-          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
-          CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
-          TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/ca.crt.txt)
+          SERVER_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/server.crt.txt)
+          SERVER_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/server.key.txt)
 
           echo "
-            {
-              \"data\": 
-                {
-                  \"admincerts\": \"${ADMINCERTS}\",
-                  \"cacerts\": \"${CACERTS}\",
-                  \"keystore\": \"${KEYSTORE}\",
-                  \"signcerts\": \"${SIGNCERTS}\",
-                  \"tlscacerts\": \"${TLSCERTS}\"
-                }  
-            }" > payload.json
-
-        fi;
-
-        if [ "$PROXY" = "none" ] ; then
-          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
-          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
-          CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
-          TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
-
-          echo "
-            {
-              \"data\": 
-                {
-                  \"admincerts\": \"${ADMINCERTS}\",
-                  \"cacerts\": \"${CACERTS}\",
-                  \"keystore\": \"${KEYSTORE}\",
-                  \"signcerts\": \"${SIGNCERTS}\",
-                  \"tlscacerts\": \"${TLSCERTS}\"
-                }  
-            }" > payload.json
-
-        fi;
-
-        # This command copy the msp certificates to the Vault
-        curl \
-          -H "X-Vault-Token: ${VAULT_TOKEN}" \
-          -H "Content-Type: application/json" \
-          -X POST \
-          -d @payload.json \
-          ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp
-
-        # Check msp certificates
-        response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-        --header "X-Vault-Token: ${VAULT_TOKEN}" \
-          ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp);
-
-        validateVaultResponse 'msp cert check' ${response_status};
-
-        rm payload.json
-      fi;
-
-      if [ "$PROXY" = "ambassador" ]; then
-
-        AMBASSADOR_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/ambassador
-
-        if [ -e  ${MOUNT_PATH}/absent_ambassador_${ORDERER_NAME}.txt ]; then
-
-          formatCertificate "${AMBASSADOR_PATH}/${ORDERER_NAME}-${COMPONENT_NAME}-certchain.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-          formatCertificate "${AMBASSADOR_PATH}/${ORDERER_NAME}-${COMPONENT_NAME}.key" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-          CERTIFICATE=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${ORDERER_NAME}-${COMPONENT_NAME}-certchain.pem.txt)
-          KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${ORDERER_NAME}-${COMPONENT_NAME}.key.txt)
-
-          echo "
+          {
+            \"data\": 
               {
-                \"data\": 
-                  {
-                    \"certificate\": \"${CERTIFICATE}\",
-                    \"key\": \"${KEY}\"
-                  }  
-              }" > payload.json
+                \"ca.crt\": \"${CA_CRT}\",
+                \"server.crt\": \"${SERVER_CRT}\",
+                \"server.key\": \"${SERVER_KEY}\"
+              }  
+          }" > payload.json
 
-          # This command copy the ambassador certificates to the Vault
+          # This command copy the crypto material for orderer (tls)
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls
+ 
+          # Check tls certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+          TLS_SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.crt"]' 2>&1)
+          TLS_SERVER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.key"]' 2>&1)
+
+          tls_certificate_fields=("$TLS_CA_CERT" "$TLS_SERVER_CERT" "$TLS_SERVER_KEY")
+
+          for field in "${tls_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              ORDERER_TLS_CERT_WRITTEN=false
+              break
+            else
+              ORDERER_TLS_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+        fi;
+
+        if [ -e /certcheck/absent_msp_${ORDERER_NAME}.txt ] && [ "$ORDERER_MSP_CERT_WRITTEN" =  "false" ]; then    
+            # This commands put the certificates with correct format for the curl command
+            SK_NAME=$(find ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
+
+            formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
+            formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
+            formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
+
+            ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
+            KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/*_sk.txt)
+            SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cert.pem.txt)
+
+            if [ "$PROXY" != "none" ] ; then
+
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+              TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+
+              echo "
+                {
+                  \"data\": 
+                    {
+                      \"admincerts\": \"${ADMINCERTS}\",
+                      \"cacerts\": \"${CACERTS}\",
+                      \"keystore\": \"${KEYSTORE}\",
+                      \"signcerts\": \"${SIGNCERTS}\",
+                      \"tlscacerts\": \"${TLSCERTS}\"
+                    }  
+                }" > payload.json
+
+            fi;
+
+            if [ "$PROXY" = "none" ] ; then
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+              TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+
+              echo "
+                {
+                  \"data\": 
+                    {
+                      \"admincerts\": \"${ADMINCERTS}\",
+                      \"cacerts\": \"${CACERTS}\",
+                      \"keystore\": \"${KEYSTORE}\",
+                      \"signcerts\": \"${SIGNCERTS}\",
+                      \"tlscacerts\": \"${TLSCERTS}\"
+                    }  
+                }" > payload.json
+
+            fi;
+
+            # This command copy the msp certificates to the Vault
+            curl \
+              -H "X-Vault-Token: ${VAULT_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d @payload.json \
+              ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp
+
+            # Check msp certificates
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp | jq -r 'if .errors then . else . end')
+            MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+            MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+            MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+            MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+            MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
+        
+            msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
+
+            for field in "${msp_certificate_fields[@]}"
+            do
+              if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+              then
+                ORDERER_MSP_CERT_WRITTEN=false
+                break
+              else
+                ORDERER_MSP_CERT_WRITTEN=true
+              fi
+            done
+            rm payload.json
+        fi;
+
+        if [ "$PROXY" = "ambassador" ]; then
+
+          AMBASSADOR_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
+          mkdir -p ${FORMAT_CERTIFICATE_PATH}/ambassador
+
+          if [ -e  ${MOUNT_PATH}/absent_ambassador_${ORDERER_NAME}.txt ] && [ "$ORDERER_AMBASSADOR_WRITTEN" = "false" ]; then
+
+            formatCertificate "${AMBASSADOR_PATH}/${ORDERER_NAME}-${COMPONENT_NAME}-certchain.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
+            formatCertificate "${AMBASSADOR_PATH}/${ORDERER_NAME}-${COMPONENT_NAME}.key" "${FORMAT_CERTIFICATE_PATH}/ambassador"
+            CERTIFICATE=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${ORDERER_NAME}-${COMPONENT_NAME}-certchain.pem.txt)
+            KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${ORDERER_NAME}-${COMPONENT_NAME}.key.txt)
+
+            echo "
+                {
+                  \"data\": 
+                    {
+                      \"certificate\": \"${CERTIFICATE}\",
+                      \"key\": \"${KEY}\"
+                    }  
+                }" > payload.json
+
+            # This command copy the ambassador certificates to the Vault
             curl \
               -H "X-Vault-Token: ${VAULT_TOKEN}" \
               -H "Content-Type: application/json" \
@@ -571,15 +654,53 @@ data:
               -d @payload.json \
               ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${ORDERER_NAME}
 
-          # Check ambassador certificates
-          response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-          --header "X-Vault-Token: ${VAULT_TOKEN}" \
-          ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${ORDERER_NAME});
+            # Check ambassador certificates
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}"  ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${ORDERER_NAME} | jq -r 'if .errors then . else . end')
+            AMBASSADOR_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["certificate"]' 2>&1)
+            AMBASSADOR_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' 2>&1)
 
-          validateVaultResponse 'orderer cert check' ${response_status};
+            ambassador_certificate_fields=("$AMBASSADOR_CERT" "$AMBASSADOR_KEY")
 
-          rm payload.json
+            for field in "${ambassador_certificate_fields[@]}"
+            do
+              if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+              then
+                ORDERER_AMBASSADOR_WRITTEN=false
+                break
+              else
+                ORDERER_AMBASSADOR_WRITTEN=true
+              fi
+            done
+            rm payload.json
+          fi;
         fi;
+
+        if [ "$ORDERER_TLS_CERT_WRITTEN" = "true" ] && [ "$ORDERER_MSP_CERT_WRITTEN" = "true" ]
+        then
+          if [ "$PROXY" = "ambassador" ] && [ "$ORDERER_AMBASSADOR_WRITTEN" = "true" ]
+          then
+              echo "${ORDERER_NAME} certificates are successfully stored in vault"
+              break
+          elif [ "$PROXY" = "ambassador" ] && [ "$ORDERER_AMBASSADOR_WRITTEN" = "false" ]
+          then
+              echo "Ambassador certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+              COUNTER=`expr "$COUNTER" + 1`
+          else
+              echo "${ORDERER_NAME} certificates are successfully stored in vault"
+              break
+          fi
+        else
+          echo "${ORDERER_NAME} certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+          sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+          COUNTER=`expr "$COUNTER" + 1`
+        fi
+      done
+      
+      if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+      then
+        echo "Retry attempted `expr $COUNTER - 1` times, Orderers certificates have not been saved."
+        touch ${MOUNT_PATH}/certs_not_found.txt
+        exit 1
       fi;
     done
 ---
@@ -635,110 +756,164 @@ data:
     mkdir -p ${FORMAT_CERTIFICATE_PATH}/tls
     mkdir -p ${FORMAT_CERTIFICATE_PATH}/msp
 
-    if [ -e /certcheck/absent_msp.txt ] || [ "$REFRESH_CERTS" == 'true' ]; then
+    ORG_CYPTO_FOLDER="/crypto-config/peerOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
 
-      ORG_CYPTO_FOLDER="/crypto-config/peerOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
+    if [ -e /certcheck/present_tls.txt ]; then ADMIN_TLS_CERT_WRITTEN=true; else ADMIN_TLS_CERT_WRITTEN=false; fi
+    if [ -e /certcheck/present_msp.txt ]; then ADMIN_MSP_CERT_WRITTEN=true; else ADMIN_MSP_CERT_WRITTEN=false; fi
+    COUNTER=1
+    while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+    do
 
-      # This commands put the certificates with correct format for the curl command
-      formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
-      formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
-      formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.key" "${FORMAT_CERTIFICATE_PATH}/tls"
+      if ([ -e /certcheck/absent_tls.txt ] && [ "$ADMIN_TLS_CERT_WRITTEN" =  "false" ]) || [ "$REFRESH_CERTS" == 'true' ]; then
 
-      CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
-      CLIENT_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.crt.txt)
-      CLIENT_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.key.txt)
-      
-      echo "
-        {
-          \"data\": 
-            {
-              \"ca.crt\": \"${CA_CRT}\",
-              \"client.crt\": \"${CLIENT_CRT}\",
-              \"client.key\": \"${CLIENT_KEY}\"
-            }  
-        }" > payload.json
-      
-      # This command copy organization level tls certificates for orgs
-      curl \
-        -H "X-Vault-Token: ${VAULT_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d @payload.json \
-        ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS}
-      
-      # Check tls certificates
-      response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-      --header "X-Vault-Token: ${VAULT_TOKEN}" \
-      ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS});
+        # This commands put the certificates with correct format for the curl command
+        formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+        formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+        formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.key" "${FORMAT_CERTIFICATE_PATH}/tls"
 
-      validateVaultResponse 'tls cert check' ${response_status};
-      
-      rm payload.json
-
-      # This commands put the certificates with correct format for the curl command
-      SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
-
-      formatCertificate "${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-      formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/msp"
-      formatCertificate "${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-
-      ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
-      KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/*_sk.txt)
-      SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/cert.pem.txt)
-
-      if [ "$PROXY" != "none" ] ; then
-
-        formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-        CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+        CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
+        CLIENT_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.crt.txt)
+        CLIENT_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.key.txt)
         
-          echo "
-            {
-              \"data\": 
-                {
-                  \"admincerts\": \"${ADMINCERTS}\",
-                  \"cacerts\": \"${CACERTS}\",
-                  \"keystore\": \"${KEYSTORE}\",
-                  \"signcerts\": \"${SIGNCERTS}\",
-                  \"tlscacerts\": \"${CA_CRT}\"
-                }  
-            }" > payload.json
+        echo "
+          {
+            \"data\": 
+              {
+                \"ca.crt\": \"${CA_CRT}\",
+                \"client.crt\": \"${CLIENT_CRT}\",
+                \"client.key\": \"${CLIENT_KEY}\"
+              }  
+          }" > payload.json
+        
+        # This command copy organization level tls certificates for orgs
+        curl \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -X POST \
+          -d @payload.json \
+          ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS}
+        
+        # Check tls certificates
+        LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS} | jq -r 'if .errors then . else . end')
+        TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+        TLS_CLIENT_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]' 2>&1)
+        TLS_CLIENT_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]' 2>&1)
 
+        tls_certificate_fields=("$TLS_CA_CERT" "$TLS_CLIENT_CERT" "$TLS_CLIENT_KEY")
+
+        for field in "${tls_certificate_fields[@]}"
+        do
+          if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+          then
+            ADMIN_TLS_CERT_WRITTEN=false
+            break
+          else
+            ADMIN_TLS_CERT_WRITTEN=true
+          fi
+        done
+        rm payload.json
+      fi;
+    
+      if ([ -e /certcheck/absent_msp.txt ] && [ "$ADMIN_MSP_CERT_WRITTEN" =  "false" ]) || [ "$REFRESH_CERTS" == 'true' ]; then
+
+        # This commands put the certificates with correct format for the curl command
+        SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
+
+        formatCertificate "${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+        formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/msp"
+        formatCertificate "${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+        formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+
+        ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
+        KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/*_sk.txt)
+        SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/cert.pem.txt)
+        CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
+
+        if [ "$PROXY" != "none" ] ; then
+
+          formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+          CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+          
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${CA_CRT}\"
+                  }  
+              }" > payload.json
+
+        fi;
+
+        if [ "$PROXY" = "none" ] ; then
+
+            formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-7054.pem.txt)
+
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${CA_CRT}\"
+                  }  
+              }" > payload.json
+        fi;
+
+        # This command copy organization level msp certificates for orgs
+        curl \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -X POST \
+          -d @payload.json \
+          ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP}
+        
+        # Check msp certificates
+        LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP} | jq -r 'if .errors then . else . end')
+        MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+        MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+        MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+        MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+        MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
+    
+        msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
+
+        for field in "${msp_certificate_fields[@]}"
+        do
+          if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+          then
+            ADMIN_MSP_CERT_WRITTEN=false
+            break
+          else
+            ADMIN_MSP_CERT_WRITTEN=true
+          fi
+        done
+
+        rm payload.json
       fi;
 
-      if [ "$PROXY" = "none" ] ; then
+      if [ "$ADMIN_TLS_CERT_WRITTEN" = "true" ] && [ "$ADMIN_MSP_CERT_WRITTEN" = "true" ]
+      then
+        echo "Admin certificates are successfully stored in vault"
+        break
+      else
+        echo "Admin certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+        sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+        COUNTER=`expr "$COUNTER" + 1`
+      fi
+    done
 
-          formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-          CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-7054.pem.txt)
-
-          echo "
-            {
-              \"data\": 
-                {
-                  \"admincerts\": \"${ADMINCERTS}\",
-                  \"cacerts\": \"${CACERTS}\",
-                  \"keystore\": \"${KEYSTORE}\",
-                  \"signcerts\": \"${SIGNCERTS}\",
-                  \"tlscacerts\": \"${CA_CRT}\"
-                }  
-            }" > payload.json
-      fi;
-
-      # This command copy organization level msp certificates for orgs
-      curl \
-        -H "X-Vault-Token: ${VAULT_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d @payload.json \
-        ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP}
-      
-      # Check msp certificates
-      response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-      --header "X-Vault-Token: ${VAULT_TOKEN}" \
-      ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP});
-
-      validateVaultResponse 'msp cert check' ${response_status};
-
-      rm payload.json
+    if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+    then
+      echo "Retry attempted `expr $COUNTER - 1` times, Admin certificates have not been saved."
+      touch ${MOUNT_PATH}/certs_not_found.txt
+      exit 1
     fi;
 
     ORG_CYPTO_PEER_FOLDER="/crypto-config/peerOrganizations/${COMPONENT_NAME}/peers"
@@ -752,210 +927,334 @@ data:
         PEER_NAME="${PEER%%,*}"
         SAVE=true
       fi;
-      
-      if [ -e /certcheck/absent_msp_${PEER_NAME}.txt ] && [ "$SAVE" == 'true' ]; then
 
-        # This commands put the certificates with correct format for the curl command
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts
+      if [ -e /certcheck/present_tls_${PEER_NAME}.txt ]; then PEER_TLS_CERT_WRITTEN=true; else PEER_TLS_CERT_WRITTEN=false; fi
+      if [ -e /certcheck/present_msp_${PEER_NAME}.txt ]; then PEER_MSP_CERT_WRITTEN=true; else PEER_MSP_CERT_WRITTEN=false; fi
+      if [ -e /certcheck/present_ambassador_${PEER_NAME}.txt ]; then PEER_AMBASSADOR_WRITTEN=true; else PEER_AMBASSADOR_WRITTEN=false; fi
 
-        formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
-        formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/server.crt" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
-        formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/server.key" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts
+      while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+      do
+        if [ -e /certcheck/absent_tls_${PEER_NAME}.txt ] && [ "$PEER_TLS_CERT_WRITTEN" =  "false" ] && [ "$SAVE" == 'true' ]; then
 
-        CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/ca.crt.txt)
-        SERVER_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/server.crt.txt)
-        SERVER_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/server.key.txt)
+          # This commands put the certificates with correct format for the curl command
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/server.crt" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/server.key" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
 
-        echo "
-        {
-          \"data\": 
-            {
-              \"ca.crt\": \"${CA_CRT}\",
-              \"server.crt\": \"${SERVER_CRT}\",
-              \"server.key\": \"${SERVER_KEY}\"
-            }  
-        }" > payload.json
-
-        # This command copy the crypto material for peers (tls)
-        curl \
-          -H "X-Vault-Token: ${VAULT_TOKEN}" \
-          -H "Content-Type: application/json" \
-          -X POST \
-          -d @payload.json \
-          ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/tls
-        
-        # Check tls certificates
-        response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-        --header "X-Vault-Token: ${VAULT_TOKEN}" \
-        ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/tls);
-
-        validateVaultResponse 'tls cert check' ${response_status};
-
-        rm payload.json
-        
-        # This commands put the certificates with correct format for the curl command
-        SK_NAME=$(find ${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
-
-        formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
-        formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
-        formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
-
-        ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
-        KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/*_sk.txt)
-        SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cert.pem.txt)
-
-        if [ "$PROXY" != "none" ] ; then
-
-          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
-          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
-          CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
-          TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/ca.crt.txt)
+          SERVER_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/server.crt.txt)
+          SERVER_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/server.key.txt)
 
           echo "
-            {
-              \"data\": 
-                {
-                  \"admincerts\": \"${ADMINCERTS}\",
-                  \"cacerts\": \"${CACERTS}\",
-                  \"keystore\": \"${KEYSTORE}\",
-                  \"signcerts\": \"${SIGNCERTS}\",
-                  \"tlscacerts\": \"${TLSCERTS}\"
-                }  
-            }" > payload.json
+          {
+            \"data\": 
+              {
+                \"ca.crt\": \"${CA_CRT}\",
+                \"server.crt\": \"${SERVER_CRT}\",
+                \"server.key\": \"${SERVER_KEY}\"
+              }  
+          }" > payload.json
 
-        fi;
-
-        if [ "$PROXY" = "none" ] ; then
-          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
-          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
-          CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
-          TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
-
-          echo "
-            {
-              \"data\": 
-                {
-                  \"admincerts\": \"${ADMINCERTS}\",
-                  \"cacerts\": \"${CACERTS}\",
-                  \"keystore\": \"${KEYSTORE}\",
-                  \"signcerts\": \"${SIGNCERTS}\",
-                  \"tlscacerts\": \"${TLSCERTS}\"
-                }  
-            }" > payload.json
-
-        fi;
-
-        # This command copy the msp certificates to the Vault
-        curl \
-          -H "X-Vault-Token: ${VAULT_TOKEN}" \
-          -H "Content-Type: application/json" \
-          -X POST \
-          -d @payload.json \
-          ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/msp
-
-        # Check msp certificates
-        response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-        --header "X-Vault-Token: ${VAULT_TOKEN}" \
-        ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/msp);
-
-        validateVaultResponse 'msp cert check' ${response_status};
-
-        rm payload.json
-      fi;
-
-      if [ "$PROXY" = "ambassador" ]; then
-
-        AMBASSADOR_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
-        mkdir -p ${FORMAT_CERTIFICATE_PATH}/ambassador
+          # This command copy the crypto material for peers (tls)
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/tls
           
-        if [ -e  ${MOUNT_PATH}/absent_ambassador_${PEER_NAME}.txt ] && [ "$SAVE" == 'true' ]; then
+          # Check tls certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+          TLS_SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.crt"]' 2>&1)
+          TLS_SERVER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.key"]' 2>&1)
 
-          formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}-certchain.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-          formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}.key" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-          formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
+          tls_certificate_fields=("$TLS_CA_CERT" "$TLS_SERVER_CERT" "$TLS_SERVER_KEY")
 
-          CERTIFICATE=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}-certchain.pem.txt)
-          KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}.key.txt)
-          CLIENTCERT=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}.pem.txt)
-      
-          echo "
+          for field in "${tls_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              PEER_TLS_CERT_WRITTEN=false
+              break
+            else
+              PEER_TLS_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+        fi;
+
+        if [ -e /certcheck/absent_msp_${PEER_NAME}.txt ] && [ "$PEER_MSP_CERT_WRITTEN" =  "false" ] && [ "$SAVE" == 'true' ]; then
+
+          # This commands put the certificates with correct format for the curl command
+          SK_NAME=$(find ${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
+
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
+          formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
+
+          ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
+          KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/*_sk.txt)
+          SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cert.pem.txt)
+
+          if [ "$PROXY" != "none" ] ; then
+
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem.txt)
+
+            echo "
               {
                 \"data\": 
                   {
-                    \"clientcert\": \"${CLIENTCERT}\",
-                    \"certificate\": \"${CERTIFICATE}\",
-                    \"key\": \"${KEY}\"
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${TLSCERTS}\"
                   }  
               }" > payload.json
 
-          # This command copy the ambassador certificates generated above, to the Vault
-            curl \
-              -H "X-Vault-Token: ${VAULT_TOKEN}" \
-              -H "Content-Type: application/json" \
-              -X POST \
-              -d @payload.json \
-              ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}
+          fi;
 
-          # Check ambassador certificates
-          response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-          --header "X-Vault-Token: ${VAULT_TOKEN}" \
-          ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR});
+          if [ "$PROXY" = "none" ] ; then
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
 
-          validateVaultResponse 'peer cert check' ${response_status};
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${TLSCERTS}\"
+                  }  
+              }" > payload.json
 
+          fi;
+
+          # This command copy the msp certificates to the Vault
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/msp
+
+          # Check msp certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/msp | jq -r 'if .errors then . else . end')
+          MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+          MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+          MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+          MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+          MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
+      
+          msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
+
+          for field in "${msp_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              PEER_MSP_CERT_WRITTEN=false
+              break
+            else
+              PEER_MSP_CERT_WRITTEN=true
+            fi
+          done
           rm payload.json
         fi;
+
+        if [ "$PROXY" = "ambassador" ]; then
+
+          AMBASSADOR_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
+          mkdir -p ${FORMAT_CERTIFICATE_PATH}/ambassador
+          
+          if [ -e  ${MOUNT_PATH}/absent_ambassador_${PEER_NAME}.txt ] && [ "$PEER_AMBASSADOR_WRITTEN" = "false" ] &&  [ "$SAVE" == 'true' ]; then
+
+            formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}-certchain.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
+            formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}.key" "${FORMAT_CERTIFICATE_PATH}/ambassador"
+            formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
+
+            CERTIFICATE=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}-certchain.pem.txt)
+            KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}.key.txt)
+            CLIENTCERT=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}.pem.txt)
+        
+            echo "
+                {
+                  \"data\": 
+                    {
+                      \"clientcert\": \"${CLIENTCERT}\",
+                      \"certificate\": \"${CERTIFICATE}\",
+                      \"key\": \"${KEY}\"
+                    }  
+                }" > payload.json
+
+            # This command copy the ambassador certificates generated above, to the Vault
+              curl \
+                -H "X-Vault-Token: ${VAULT_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -X POST \
+                -d @payload.json \
+                ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}
+
+            # Check ambassador certificates
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}"  ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR} | jq -r 'if .errors then . else . end')
+            AMBASSADOR_CLIENTCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["clientcert"]' 2>&1)
+            AMBASSADOR_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["certificate"]' 2>&1)
+            AMBASSADOR_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' 2>&1)
+
+            ambassador_certificate_fields=("$AMBASSADOR_CLIENTCERT" "$AMBASSADOR_CERT" "$AMBASSADOR_KEY")
+
+            for field in "${ambassador_certificate_fields[@]}"
+            do
+              if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+              then
+                PEER_AMBASSADOR_WRITTEN=false
+                break
+              else
+                PEER_AMBASSADOR_WRITTEN=true
+              fi
+            done
+            rm payload.json
+          fi;
+        fi;
+
+        if [ "$PEER_TLS_CERT_WRITTEN" = "true" ] && [ "$PEER_MSP_CERT_WRITTEN" = "true" ]
+        then
+          if [ "$PROXY" = "ambassador" ] && [ "$PEER_AMBASSADOR_WRITTEN" = "true" ]
+          then
+              echo "${PEER_NAME} certificates are successfully stored in vault"
+              break
+          elif [ "$PROXY" = "ambassador" ] && [ "$PEER_AMBASSADOR_WRITTEN" = "false" ]
+          then
+              echo "Ambassador certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+              COUNTER=`expr "$COUNTER" + 1`
+          else
+              echo "${PEER_NAME} certificates are successfully stored in vault"
+              break
+          fi
+        else
+          echo "${PEER_NAME} certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+          sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+          COUNTER=`expr "$COUNTER" + 1`
+        fi
+      done
+
+      if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+      then
+        echo "Retry attempted `expr $COUNTER - 1` times, peers certificates have not been saved."
+        touch ${MOUNT_PATH}/certs_not_found.txt
+        exit 1
       fi;
+
     done
 
-    if [ -e /certcheck/absent_config_file.txt ]; then
+    COUNTER=1
+    if [ -e /certcheck/present_config_file.txt ]; then CONFIG_FILE_WRITTEN=true; else CONFIG_FILE_WRITTEN=false; fi
+    COUCHDB_WRITTEN=false
+    while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+    do
+      if [ -e /certcheck/absent_config_file.txt ] && [ "$CONFIG_FILE_WRITTEN" =  "false" ]; then
 
-      # This commands put the config file with correct format for the curl command
-      mkdir -p ${FORMAT_CERTIFICATE_PATH}/msp_config_file
-      formatCertificate "/crypto-config/peerOrganizations/${COMPONENT_NAME}/msp/config.yaml" "${FORMAT_CERTIFICATE_PATH}/msp_config_file"
-      MSP_CONFIG_FILE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp_config_file/config.yaml.txt)
-
-      echo "
-          {
-            \"data\": 
-              {
-                \"configfile\": \"${MSP_CONFIG_FILE}\"
-              }  
-          }" > payload.json
-      
-      # This command write the msp config file to Vault
-      curl \
-        -H "X-Vault-Token: ${VAULT_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d @payload.json \
-        ${VAULT_ADDR}/v1/${VAULT_SECRET_CONFIG_FILE}
-
-      # Check msp config file 
-      response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-      --header "X-Vault-Token: ${VAULT_TOKEN}" \
-      ${VAULT_ADDR}/v1/${VAULT_SECRET_CONFIG_FILE});
-
-      validateVaultResponse 'config file check' ${response_status};
-
-    fi;
- 
-    if [ -e /certcheck/absent_orderer_tls_cert.txt ]; then
-      list=$(echo "$ORDERERS_NAMES" | tr "-" "\n")         
-      for ORDERER in $list
-      do
-        ORDERER_TLS=$(cat /tlscerts/${ORDERER}.crt)
+        # This commands put the config file with correct format for the curl command
+        mkdir -p ${FORMAT_CERTIFICATE_PATH}/msp_config_file
+        formatCertificate "/crypto-config/peerOrganizations/${COMPONENT_NAME}/msp/config.yaml" "${FORMAT_CERTIFICATE_PATH}/msp_config_file"
+        MSP_CONFIG_FILE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp_config_file/config.yaml.txt)
 
         echo "
-          {
-            \"data\": 
-              {
-                \"ca.crt\": ${ORDERER_TLS}
-              }  
-          }" > payload.json
+            {
+              \"data\": 
+                {
+                  \"configfile\": \"${MSP_CONFIG_FILE}\"
+                }  
+            }" > payload.json
+        
+        # This command write the msp config file to Vault
+        curl \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -X POST \
+          -d @payload.json \
+          ${VAULT_ADDR}/v1/${VAULT_SECRET_CONFIG_FILE}
+
+        # Check msp config file
+        LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_CONFIG_FILE} | jq -r 'if .errors then . else . end')
+        CONFIG_FILE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["configfile"]' 2>&1)
+    
+        if [ "$CONFIG_FILE" = "null"  ] || [[ "$CONFIG_FILE" = "parse error"* ]] || [ "$CONFIG_FILE" = "" ]
+        then
+          CONFIG_FILE_WRITTEN=false
+        else
+          CONFIG_FILE_WRITTEN=true
+        fi
+        rm payload.json
+      fi;
+  
+      if [ "$COUCHDB_WRITTEN" =  "false" ]; then
+
+        # This command writes the couchdb credentials for each organization to the vault
+        curl \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -X POST \
+          -d '{ "data": {"user":"admin123"}}' \
+          ${VAULT_ADDR}/v1/${VAULT_SECRET_COUCHDB}
+
+        # Check couchdb credentials
+        LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_COUCHDB} | jq -r 'if .errors then . else . end')
+        USER=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["user"]' 2>&1)
+            
+        if [ "$USER" = "null"  ] || [[ "$USER" = "parse error"* ]] || [ "$USER" = "" ]
+        then
+          COUCHDB_WRITTEN=false
+        else
+          COUCHDB_WRITTEN=true
+        fi
+      fi;
+
+      if [ "$CONFIG_FILE_WRITTEN" = "true" ] && [ "$COUCHDB_WRITTEN" = "true" ]
+      then
+        echo "MSP config file and couchdb credentials are successfully stored in vault"
+        break
+      else
+        echo "MSP config file or couchdb credentials are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+        sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+        COUNTER=`expr "$COUNTER" + 1`
+      fi
+    done
+
+    if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+    then
+      echo "Retry attempted `expr $COUNTER - 1` times, cryto materials have not been saved."
+      touch ${MOUNT_PATH}/certs_not_found.txt
+      exit 1
+    fi;
+
+    list=$(echo "$ORDERERS_NAMES" | tr "-" "\n")         
+    for ORDERER in $list
+    do
+      COUNTER=1
+      if [ -e /certcheck/present_orderer_tls_cert.txt ]; then ORDERER_TLS_WRITTEN=true; else ORDERER_TLS_WRITTEN=false; fi
+      while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+      do
+        if [ -e /certcheck/absent_orderer_tls_cert.txt ] && [ "$ORDERER_TLS_WRITTEN" =  "false" ]; then
+          ORDERER_TLS=$(cat /tlscerts/${ORDERER}.crt)
+          echo "
+            {
+              \"data\": 
+                {
+                  \"ca.crt\": ${ORDERER_TLS}
+                }  
+            }" > payload.json
 
           # This command writes organization level certificates for orderers to vault
           curl \
@@ -966,28 +1265,37 @@ data:
             ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER_ORDERER_TLS}
           
           # Check orderer certs
-          response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-          --header "X-Vault-Token: ${VAULT_TOKEN}" \
-          ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER_ORDERER_TLS});
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER_ORDERER_TLS} | jq -r 'if .errors then . else . end')
+          CA_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+              
+          if [ "$CA_CRT" = "null"  ] || [[ "$CA_CRT" = "parse error"* ]] || [ "$CA_CRT" = "" ]
+          then
+            ORDERER_TLS_WRITTEN=false
+          else
+            ORDERER_TLS_WRITTEN=true
+          fi
+          rm payload.json
+        fi
 
-          validateVaultResponse 'organization level certificates check' ${response_status};
+        if [ "$ORDERER_TLS_WRITTEN" = "true" ]
+        then
+          echo "${ORDERER} tls certificate are successfully stored in vault"
+          break
+        else
+          echo "${ORDERER} tls certificate are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+          sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+          COUNTER=`expr "$COUNTER" + 1`
+        fi
       done
-    fi;
 
-    # This command writes the couchdb credentials for each organization to the vault
-    curl \
-      -H "X-Vault-Token: ${VAULT_TOKEN}" \
-      -H "Content-Type: application/json" \
-      -X POST \
-      -d '{ "data": {"user":"admin123"}}' \
-      ${VAULT_ADDR}/v1/${VAULT_SECRET_COUCHDB}
-
-      # Check couchdb credentials
-      response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-      --header "X-Vault-Token: ${VAULT_TOKEN}" \
-      ${VAULT_ADDR}/v1/${VAULT_SECRET_COUCHDB});
-
-      validateVaultResponse 'couchdb credentials check' ${response_status};
+      if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ] 
+      then
+        echo "Retry attempted `expr $COUNTER - 1` times, orderer tls have not been saved."
+        touch ${MOUNT_PATH}/certs_not_found.txt
+        exit 1
+      fi;
+    done
+   
 ---
 apiVersion: v1
 kind: ConfigMap
