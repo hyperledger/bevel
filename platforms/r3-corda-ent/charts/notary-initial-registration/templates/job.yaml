@@ -342,22 +342,39 @@ spec:
             cd ${BASE_DIR}/certificates
             while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
             do
-                if [ -e done.txt ]
+              if [ -e done.txt ]
+              then
+                echo "certificates found, saving to vault"
+                # setting up env to get secrets from vault
+                KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+                validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+                (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore
+                (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore
+                (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
+
+                # get nodekeystore.jks from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore | jq -r 'if .errors then . else . end')
+                TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "nodekeystore.jks" ]' 2>&1)
+                # get sslkeystore.jks from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore | jq -r 'if .errors then . else . end')
+                TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "sslkeystore.jks" ]' 2>&1)
+                # get truststore.jks from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore | jq -r 'if .errors then . else . end')
+                TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "truststore.jks" ]' 2>&1) 
+
+                if [ "$TLS_NODEKEYSTORE" == "null" ] || [ "$TLS_SSLKEYSTORE" == "null" ] || [ "$TLS_TRUSTSTORE" == "null" ] || [[ "$TLS_NODEKEYSTORE" == "parse error"* ]] || [[ "$TLS_SSLKEYSTORE" == "parse error"* ]] || [[ "$TLS_TRUSTSTORE" == "parse error"* ]]
                 then
-                  echo "certificates found, saving to vault"
-                  # setting up env to get secrets from vault
-                  KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-                  VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-                  validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-                  (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/nodekeystore
-                  (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/sslkeystore
-                  (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodePath }}/certs/truststore
-                  break
-                else
-                  echo "certificates are not ready, sleeping for {{ $.Values.vault.retryInterval }} seconds"
-                  sleep {{ $.Values.vault.retryInterval }}
-                  COUNTER=`expr "$COUNTER" + 1`
+                  echo "certificates write or read fail"
+                  sleep {{ $.Values.healthcheck.readinessthreshold  }}
+                  if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+                  then
+                    echo "Retry attempted $COUNTER times, certificates have not been saved"
+                    exit 1
+                  fi
                 fi
+                COUNTER=`expr "$COUNTER" + 1`
+              fi
             done
             # setting up env to get secrets from vault
             cd ${BASE_DIR}/additional-node-infos
