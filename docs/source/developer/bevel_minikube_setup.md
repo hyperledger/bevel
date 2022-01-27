@@ -7,7 +7,7 @@
 
 ## Pre-requisites
 
-Before proceeding, first make sure that you've completed [Developer Pre-requisites](https://hyperledger-bevel.readthedocs.io/en/develop/developer/dev_prereq.html).
+Before proceeding, first make sure that you've completed [Developer Pre-requisites](./dev_prereq.md).
 
 ## Clone forked repo
 
