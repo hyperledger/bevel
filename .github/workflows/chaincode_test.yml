@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-name: Chaincode tests
+name: Test Smartcontracts
 on: 
   pull_request:
 
@@ -26,8 +26,8 @@ jobs:
         mkdir -p $GOPATH/bin
         export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-    - 
-      name: Test Stage all chaincodes.
+     
+    - name: Test Stage all chaincodes.
       run: |
         # export the bin path
         export PATH=~/bin:$PATH
@@ -45,10 +45,8 @@ jobs:
     if: contains(github.event.pull_request.title, 'Quorum') || contains(github.event.pull_request.title, 'quorum')
     runs-on: ubuntu-latest
     steps:
-    - 
-      uses: actions/checkout@v2
-    - 
-      name: Install dependencies
+    - uses: actions/checkout@v2
+    - name: Install dependencies
       run: |
         sudo apt-get update && sudo apt-get install npm
 
@@ -57,13 +55,11 @@ jobs:
         npm install -g ganache-cli
         npm install -g truffle
         npm install -g truffle-export-abi
-    - 
-      name: Start local node
+    - name: Start local node
       run: |
         nohup ganache-cli --allowUnlimitedContractSize --gasLimit=68219752232 &
         sleep 10
-    -  
-      name: Test quorum smartcontracts
+    - name: Test quorum smartcontracts
       run: |
         pwd
         cd examples/supplychain-app/quorum/smartContracts
