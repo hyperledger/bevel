@@ -37,6 +37,11 @@
     enode_data: "{{ lookup('file', '{{ build_path }}/{{ org.name }}/{{ peer.name }}/enode') }}"
 
 # Get information about each validator node present in network.yaml and store it as a list of org,node
-- name: Get validator node data
+- name: Get validator node data for raft
   set_fact:
     enode_data_list={{ enode_data_list|default([]) + [ {'peer_name':peer.name, 'enodeval':enode_data, 'external_url':org.external_url_suffix, 'p2p_ambassador':peer.p2p.ambassador, 'raft_ambassador':peer.raft.ambassador } ] }}
+  when: network.config.consensus == 'raft'
+- name: Get validator node data
+  set_fact:
+    enode_data_list={{ enode_data_list|default([]) + [ {'peer_name':peer.name, 'enodeval':enode_data, 'external_url':org.external_url_suffix, 'p2p_ambassador':peer.p2p.ambassador } ] }}
+  when: network.config.consensus != 'raft'

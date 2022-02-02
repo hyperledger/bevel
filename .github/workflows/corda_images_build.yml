@@ -22,6 +22,10 @@ on:
         options:
         - '4.4'
         - '4.7'
+      gmaps_key:
+        description: 'Enter Google Maps API key'
+        required: false
+        default: 'Google API key for Network Map'
   create:
     tags:
       - v*
@@ -75,6 +79,11 @@ jobs:
 
         echo "---- building networkmap ----"
         cd ${WDIR}/platforms/r3-corda/images/networkmap
+
+        # Replace the Google Maps API key in two files
+        sed -i -e 's*REPLACE_ME_GMAPS_KEY*${{ github.event.inputs.gmaps_key }}*g' website/app/scripts/geoCode.js
+        sed -i -e 's*REPLACE_ME_GMAPS_KEY*${{ github.event.inputs.gmaps_key }}*g' website/app/components/Map/MyMap.js
+        
         mvn clean install -DskipTests   
 
         echo "---- building doorman ----"

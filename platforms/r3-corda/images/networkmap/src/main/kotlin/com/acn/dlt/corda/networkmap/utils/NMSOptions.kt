@@ -96,7 +96,7 @@ class NMSOptionsParser : Options() {
   val keyPathOpt = addOption("tls-key-path", "", "path to key if TLS turned on")
   val hostNameOpt = addOption("hostname", "0.0.0.0", "interface to bind the service to")
   val doormanOpt = addOption("doorman", "true", "enable Corda doorman protocol")
-  val certmanOpt = addOption("certman", "true", "enable Cordite certman protocol so that nodes can authenticate using a signed TLS cert")
+  val certmanOpt = addOption("certman", "true", "enable Corda certman protocol so that nodes can authenticate using a signed TLS cert")
   val certManpkixOpt = addOption("certman-pkix", "false", "enables certman's pkix validation against JDK default truststore")
   val certmanTruststoreOpt = addOption("certman-truststore", "", "specified a custom truststore instead of the default JRE cacerts")
   val certmanTruststorePasswordOpt = addOption("certman-truststore-password", "", "truststore password")
