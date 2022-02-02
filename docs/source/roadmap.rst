@@ -7,14 +7,13 @@ Bevel current roadmap
     title Bevel current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    Platforms and components upgrade : active, 21-09-01, 180d
-    CENM v1.5 services : active, 21-09-27, 90d
-    Fabric OFE*: active, 21-10-04, 120d
-    Besu OFE*: active, 21-09-27, 60d
-    Quorum OFE*: active,crit, 21-09-27, 90d
-    Ansible Decoupling: active, 21-09-01, 150d
+    Platforms and components upgrade : active, 22-01-03, 180d
+    Fabric OFE*: active, 22-01-03, 90d
+    Ansible Decoupling: active, 22-01-03, 60d 
     section Application
-    Besu Ref App: active, 21-09-15, 120d
+    Besu Ref App: active, 22-02-14, 120d
+    section CI/CD
+    Moving to ghcr.io: active, 22-01-03, 60d
 
 .. |pin| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4cc.png?v8
     :width: 15pt
@@ -72,7 +71,7 @@ Platforms
     - |tick| R3 Corda version 4.7 upgrade
     - |tick| CENM version 1.5 upgrade
     - |tick| Addition of notary node organisation to an existing network
-    - |run| CENM 1.5 services (Auth, Gateway and Zone) support
+    - |tick| CENM 1.5 services (Auth, Gateway and Zone) support
     - |pin| HA Notary options
     - |pin| Enable PostGreSQL support for Corda Enterprise
     - |hand| Removal of node
@@ -90,10 +89,10 @@ Platforms
     - |tick| Enable deployment without proxy (proxy as none option)
     - |tick| Add clique consensus mechanism support 
     - |tick| Add ethash consensus mechanism support
-    - |run| Vault secret engine integration with tessera
+    - |tick| Vault secret engine integration with tessera
     - |hand| Enable bootnodes
 - |run| Quorum operational feature enhancements
-    - |tick| Version upgrade (Tessera and Quorum node) - v21.4.x
+    - |tick| Version upgrade (Tessera and Quorum node) - v21.10.6 and v21.7.3
     - |run| Vault secret engine integration with tessera
     - |run| Implement private transactions
 

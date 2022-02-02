@@ -1,4 +1,4 @@
-const API_KEY = 'AIzaSyC4QrPK-xamnJwHo-CFW0XzeDj4INbsQYU';
+const API_KEY = 'REPLACE_ME_GMAPS_KEY';
 const url = new URL('https://maps.googleapis.com/maps/api/geocode/json')
 
 export async function lookupLatLong(location){

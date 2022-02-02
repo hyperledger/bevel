@@ -4,7 +4,7 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.accenture.services</groupId>
+  <groupId>com.acn.dlt.services</groupId>
   <artifactId>doorman</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
@@ -53,7 +53,11 @@
       <url>https://ci-artifactory.corda.r3cev.com/artifactory/corda-dependencies</url>
     </repository>
     <repository>
-      <id>3_jitpack</id>
+      <id>3_r3</id>
+      <url>https://ci-artifactory.corda.r3cev.com/artifactory/corda-releases</url>
+    </repository>
+    <repository>
+      <id>4_jitpack</id>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -61,6 +65,18 @@
         <enabled>true</enabled>
       </snapshots>
       <url>https://jitpack.io</url>
+    </repository>
+    <repository>
+      <id>5_jcenter</id>
+      <url>https://jcenter.bintray.com</url>
+    </repository>
+    <repository>
+      <id>6_exposed</id>
+      <name>bintray</name>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <url>https://dl.bintray.com/kotlin/exposed</url>
     </repository>
   </repositories>
 
@@ -216,7 +232,7 @@
     <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongodb-driver-reactivestreams</artifactId>
-      <version>1.10.0</version>
+      <version>1.11.0</version>
     </dependency>
     <dependency>
       <groupId>io.reactivex</groupId>
@@ -238,6 +254,11 @@
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.exposed</groupId>
+      <artifactId>exposed</artifactId>
+      <version>0.13.7</version>
     </dependency>
   </dependencies>
 
@@ -318,13 +339,8 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.0</version>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
+        <version>3.2.2</version>
         <configuration>
           <archive>
             <manifest>
@@ -332,6 +348,18 @@
               <mainClass>com.acn.dlt.corda.doorman.NetworkMapApp</mainClass>
             </manifest>
           </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+        <configuration>
+          <systemPropertyVariables>
+            <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory
+            </vertx.logger-delegate-factory-class-name>
+            <buildDirectory>${project.build.directory}</buildDirectory>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
       <plugin>
@@ -381,7 +409,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.6</version>
+        <version>3.3.0</version>
         <executions>
           <execution>
             <id>make-assembly</id>
@@ -400,6 +428,7 @@
               </descriptorRefs>
               <appendAssemblyId>false</appendAssemblyId>
               <finalName>${jar.name}</finalName>
+              <archiveBaseDirectory>${project.basedir}</archiveBaseDirectory>
             </configuration>
           </execution>
         </executions>
