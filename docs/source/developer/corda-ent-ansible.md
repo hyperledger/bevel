@@ -33,10 +33,13 @@ platforms/r3-corda-ent/configuration
 │   │   ├── templates
 │   │   └── vars
 │   └── setup
+│       ├── auth
 │       ├── bridge
 │       ├── cenm
 │       ├── credentials
 │       ├── float
+│       ├── float-environment
+│       ├── gateway
 │       ├── get_crypto
 │       ├── idman
 │       ├── nmap
@@ -45,11 +48,14 @@ platforms/r3-corda-ent/configuration
 │       ├── notary
 │       ├── notary-initial-registration
 │       ├── pki-generator
+│       ├── pki-generator-node
 │       ├── signer
 │       ├── tlscerts
-│       └── vault_kubernetes
+│       ├── vault_kubernetes
+│       └── zone
 └── samples
     ├── network-cordaent.yaml
+│   ├── network-addNotary.yaml
     └── README.md
 ```
 
@@ -160,6 +166,13 @@ Most default values are in the tpl files in `templates` folder. If any need to b
 
 Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/helm_component) for detailed information.
 
+## **setup/auth**
+* Wait for pki-generator job to "Complete"
+* Create helmrelease files for Auth component
+* Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/auth) for detailed information.
+
 ## **setup/bridge**
 * Create helmrelease files for Bridge component
 * Check-in to git repo
@@ -171,6 +184,9 @@ Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-cord
 * Checks all the prerequisite namespaces and serviceaccounts are created
 * Creates vault access for cenm organization
 * Calls setup/pki-generator role to generate network crypto.
+* Calls setup/auth role to generate network crypto.
+* Calls setup/gateway role to generate network crypto.
+* Calls setup/zone role to generate network crypto.
 * Calls setup/signer role to deploy signer service.
 * Calls setup/idman role to deploy idman service.
 * Calls setup/nmap role to deploy nmap service.
@@ -190,6 +206,14 @@ Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-cord
 * Check-in to git repo
 
 Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/float) for detailed information.
+
+## **setup/gateway**
+* Wait for pki-generator job to "Complete"
+* Create gateway ambassador certificates
+* Create helmrelease files for Gateway component
+* Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/gateway) for detailed information.
 
 ## **setup/get_crypto**
 
@@ -254,6 +278,14 @@ Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-cord
 * Create pki-generator value files, if values are not in Vault
 * Check-in to git repo
 
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/pki-generator) for detailed information.
+
+## **setup/pki-generator-node**
+* Create pki-generator value files, if values are not in Vault
+* Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/pki-generator-node) for detailed information.
+
 ## **setup/signer**
 * Wait for pki-generator Job to be "Completed"
 * Create signer value files
@@ -276,3 +308,10 @@ Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-cord
 If the Vault policies need to be changed, then this role will need to be edited.
 
 Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/vault_kubernetes) for detailed information.
+
+## **setup/zone**
+* Wait for pki-generator job to "Complete"
+* Create zone helmrelease files
+* Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/zone) for detailed information.
