@@ -9,9 +9,12 @@ Following are the helm charts used for R3 Corda Enterprise in Hyperledger Bevel.
 
 ```
 platforms/r3-corda-ent/charts
+├── auth
 ├── bridge
 ├── float
+├── gateway
 ├── generate-pki
+├── generate-pki-node
 ├── h2
 ├── idman
 ├── nmap
@@ -19,12 +22,57 @@ platforms/r3-corda-ent/charts
 ├── node-initial-registration
 ├── notary
 ├── notary-initial-registration
-└── signer
+├── signer
+└── zone
 ```
 ---------
 ## Pre-requisites
 
 ``helm`` version 2.x.x to be installed and configured on the cluster.
+
+## Auth
+### About
+This chart deploys the Auth component of Corda Enterprise Network Manager. The folder contents are below: 
+
+### Folder Structure
+```
+├── auth
+│   ├── Chart.yaml
+│   ├── files
+│   │   └── authservice.conf
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   └── values.yaml
+```
+
+### Charts description
+
+#### Chart.yaml 
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
+
+#### files
+- This folder contains the configuration files needed for auth.
+  - authservice.conf: The main configuration file for auth service.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Auth Service implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains one init-container `init-certificates` to download the keys/certs from Vault, `init-jwt` container which generates the JWT signing key and one `main` containers which executes the auth service.
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - pvc.yaml: This creates the PVC used by auth service
+      
+  - service.yaml: This creates the auth service endpoint.
+
+#### values.yaml 
+- This file contains the default values for the chart.
+
+-----
 
 ## Bridge
 ### About
@@ -107,6 +155,55 @@ This chart deploys the Float component of Corda Enterprise filewall. The folder 
   - pvc.yaml: This creates the PVC used by firwall
       
   - service.yaml: This creates the firewall service endpoint.
+
+#### values.yaml 
+- This file contains the default values for the chart.
+
+-----
+## Gateway
+### About
+This chart deploys the Gateway service of Corda Enterprise Network Manager. The folder contents are below: 
+
+### Folder Structure
+```
+├── gateway
+│   ├── Chart.yaml
+│   ├── files
+│   │   ├── setupAuth.sh
+│   │   └── gateway.conf
+│   ├── templates
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── job.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── pvc.yaml
+│   │   └── service.yaml
+│   └── values.yaml
+```
+
+### Charts description
+
+#### Chart.yaml 
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
+
+#### files
+- This folder contains the configuration files needed for gateway service.
+  - gateway.conf: The main configuration file for gateway.
+  - setupAuth.sh: The script to create users, groups and assign roles to groups for authentication.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Corda Gateway service implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains one init-container `init-certificates` to download the keys/certs from Vault, and one `main` containers which executes the gateway service.
+
+  - job.yaml: This creates the main Kubernetes job. It contains one `check-auth` container which establishes connection with auth service, and one `main` container which executes the setupAuth script to create users, groups and assign roles to groups.
+
+  - _helpers.tpl: This is a helper file to add any custom labels.
+          
+  - pvc.yaml: This creates the PVC used by gateway service
+      
+  - service.yaml: This creates the gateway service endpoint.
 
 #### values.yaml 
 - This file contains the default values for the chart.
@@ -444,7 +541,6 @@ This chart deploys the Notary-Registration job for Corda Enterprise. The folder 
 - This file contains the default values for the chart.
 
 ----
-
 ## signer 
 
 ### About
@@ -482,6 +578,52 @@ This chart deploys the Signer component of Corda CENM. The folder contents are b
   - _helpers.tpl: This is a helper file to add any custom labels.
           
   - service.yaml: This creates the signer service endpoint.       
+
+#### values.yaml 
+- This file contains the default values for the chart.
+
+----
+## zone
+
+### About
+This chart deploys the Zone service of Corda CENM. The folder contents are below: 
+
+### Folder Structure ###
+```
+└── zone
+    ├── Chart.yaml
+    ├── files
+    │   └── run.sh
+    ├── README.md
+    ├── templates
+    │   ├── configmap.yaml
+    │   ├── deployment.yaml
+    │   ├── _helpers.tpl
+    │   ├── pvc.yaml
+    │   └── service.yaml
+    └── values.yaml
+```
+
+### Charts description 
+
+#### Chart.yaml 
+- This file contains the information about the chart such as apiversion, appversion, name, etc.
+
+#### files
+- This folder contains the configuration files needed for zone service.
+  - run.sh: The main configuration file for zone service.
+  
+#### templates
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for Zone implementation. This folder contains following template files:
+  - configmap.yaml: This creates a configmap of all the files from the `files` folder above.
+  
+  - deployment.yaml: This creates the main Kubernetes deployment. It contains `init-certificates` to download the keys/certs from Vault, and one main containers: `main` to start the zone service.
+
+  - _helpers.tpl: This is a helper file to add any custom labels.
+
+  - pvc.yaml: This creates the PVC used by the zone.
+          
+  - service.yaml: This creates the zone service endpoint.       
 
 #### values.yaml 
 - This file contains the default values for the chart.

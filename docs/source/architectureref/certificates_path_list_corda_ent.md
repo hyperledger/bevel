@@ -52,6 +52,7 @@ Certificate Paths on Vault for Corda Enterprise
 | /secretsv2/`cenm_orgname_lowercase`/credentials/ssl                          | networkmap                     | Networkmap sslkeystore password |
 | /secretsv2/`cenm_orgname_lowercase`/credentials/ssl                          | signer                     | Signer sslkeystore password |
 | /secretsv2/`cenm_orgname_lowercase`/credentials/ssl                          | root                     | Corda root sslkeystore password |
+| /secretsv2/`cenm_orgname_lowercase`/credentials/ssl                          | auth                     | Auth sslkeystore password |
 | /secretsv2/`cenm_orgname_lowercase`/credentials/cordapps                     | repo_username                     | Cordapps repository username |
 | /secretsv2/`cenm_orgname_lowercase`/credentials/cordapps                     | repo_password                     | Cordapps repository password |
 
