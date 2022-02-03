@@ -4,7 +4,7 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.accenture.services</groupId>
+  <groupId>com.acn.dlt.services</groupId>
   <artifactId>network-map-service</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
@@ -27,6 +27,7 @@
     <env.CI_PIPELINE_ID>local</env.CI_PIPELINE_ID>
     <braid.version>4.1.0</braid.version>
     <argLine>-javaagent:lib/quasar.jar</argLine>
+    <npm.skip>false</npm.skip>
     <logback.version>1.2.3</logback.version>
     <flapdoodle.version>2.1.1</flapdoodle.version>
     <node.version>v8.6.0</node.version>
@@ -286,6 +287,47 @@
     </resources>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <id>clean-website</id>
+            <phase>clean</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <delete dir="website/public"/>
+                <delete dir="website/node_modules"/>
+              </target>
+            </configuration>
+          </execution>
+          <execution>
+            <id>build-website</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <exec executable="${npm.exe}" failonerror="true" dir="website">
+                  <arg value="install"/>
+                </exec>
+                <exec executable="${npm.exe}" failonerror="true" dir="website">
+                  <arg value="run"/>
+                  <arg value="build"/>
+                </exec>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <skip>${npm.skip}</skip>
+        </configuration>
+      </plugin>
+      <plugin>
         <!-- Create the property $buildNumber holding the current Git revision -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
@@ -328,11 +370,11 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.1.1</version>
+        <version>3.2.2</version>
         <configuration>
           <archive>
             <manifest>
-              <mainClass>io.cordite.networkmap.NetworkMapApp</mainClass>
+              <mainClass>com.acn.dlt.corda.networkmap.NetworkMapApp</mainClass>
             </manifest>
           </archive>
         </configuration>
@@ -477,6 +519,39 @@
     </plugins>
   </build>
   <profiles>
+    <profile>
+      <id>windows</id>
+      <activation>
+        <os>
+          <family>window</family>
+        </os>
+      </activation>
+      <properties>
+        <npm.exe>npm.cmd</npm.exe>
+      </properties>
+    </profile>
+    <profile>
+      <id>linux</id>
+      <activation>
+        <os>
+          <family>linux</family>
+        </os>
+      </activation>
+      <properties>
+        <npm.exe>npm</npm.exe>
+      </properties>
+    </profile>
+    <profile>
+      <id>mac</id>
+      <activation>
+        <os>
+          <family>mac</family>
+        </os>
+      </activation>
+      <properties>
+        <npm.exe>npm</npm.exe>
+      </properties>
+    </profile>
     <profile>
       <id>release</id>
       <properties>

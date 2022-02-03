@@ -121,6 +121,8 @@ spec:
              value: {{ $.Values.config.volume.baseDir }}
            - name: CERTS_SECRET_PREFIX
              value: {{ .Values.vault.certsecretprefix }}
+           - name: IDMAN_NODENAME
+             value: {{ $.Values.cenmServices.idmanName }}
            - name: MOUNT_PATH
              value: "/DATA"       
           command: ["sh", "-c"]
@@ -172,7 +174,7 @@ spec:
                echo "${corda_ssl_signer}" | base64 -d > ${MOUNT_PATH}/signer/corda-ssl-signer-keys.jks
 
                # idman ssl key-stores from vault
-               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/idman/certs | jq -r 'if .errors then . else . end')
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${IDMAN_NODENAME}/certs | jq -r 'if .errors then . else . end')
                idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-identity-manager-keys.jks"]')
                echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/idman/corda-ssl-identity-manager-keys.jks
                echo "Successfully got SSL Idman certifcates"

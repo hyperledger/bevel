@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# Cordite Stats Site
+# Networkmap Stats Site
 
 This is a rough and ready example of the network map
 
@@ -16,9 +16,15 @@ This is a rough and ready example of the network map
 
 ## Building
 
-This sub project must be rebuilt and `./public` must be checked-in.
+Please replace *REPLACE_ME_GMAPS_KEY* with appropriate google maps API key in the following files before building
+    
+    - ./app/scripts/geoCode.js
+    - ./app/components/Map/MyMap.js
+
+This sub project gets built when running `mvn install` in the `networkmap` folder.
+Alternatively, you can build this using following commands: 
 
 ```bash
-npm i
+npm install
 npm run build
 ```

@@ -48,6 +48,7 @@ spec:
     cenmServices:
       authName: {{ org.services.auth.name }}
       authPort: {{ org.services.auth.port }}
+      idmanName: {{ org.services.idman.name }}
     signers:
       CSR:
         schedule:

@@ -44,7 +44,9 @@ spec:
       lock: {{ peer.lock | lower }}
       ports:
         rpc: {{ peer.rpc.port }}
+{% if network.config.consensus == 'raft' %}
         raft: {{ peer.raft.port }}
+{% endif %}
         tm: {{ peer.transaction_manager.port }}
         quorum: {{ peer.p2p.port }}
         db: {{ peer.db.port }}
