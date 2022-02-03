@@ -256,6 +256,7 @@ For organization as type `cenm` the credential block looks like
           idman: password #ssl idman keystore password
           signer: password #ssl signer keystore password
           root: password #ssl root keystore password
+          auth: password #ssl auth keystore password
 ```
 For organization as type `node` the credential section is under peers section and looks like
 ```yaml
@@ -359,6 +360,66 @@ The fields under `nms` service are
 | tls                     | On/off based on whether we want TLS on/off for nms
 
 For **Corda Enterprise**, following services must be added to CENM Support.
+
+The snapshot of zone service with example values is below
+```yaml
+      services:
+        zone:
+          name: zone
+          type: cenm-zone
+          ports:
+            enm: 25000
+            admin: 12345
+```
+The fields under `zone` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the Zone service                                                                                 |
+| type                       | Service type must be `cenm-zone`                                                                             |
+| ports.enm          | HTTP enm port number where zone service is accessible internally                                     |
+| ports.admin          | HTTP admin port number of zone service                                     |
+
+The snapshot of auth service with example values is below
+```yaml
+        auth:
+          name: auth
+          subject: "CN=Test TLS Auth Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          type: cenm-auth
+          port: 8081
+          username: admin
+          userpwd: p4ssWord
+```
+The fields under `auth` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the Auth service                                                                                 |
+| subject                    | Certificate Subject for Auth service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| type                       | Service type must be `cenm-auth`                                                                             |
+| ports          | HTTP port number where auth service is accessible internally                                     |
+| username          | Admin user name for auth service                                     |
+| userpwd          | Admin password for auth service                                     |
+
+The snapshot of gateway service with example values is below
+```yaml
+        gateway:
+          name: gateway
+          subject: "CN=Test TLS Gateway Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          type: cenm-gateway
+          ports: 
+            servicePort: 8080
+            ambassadorPort: 15008
+```
+The fields under `gateway` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the Gateway service                                                                                 |
+| subject                    | Certificate Subject for Gateway service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| type                       | Service type must be `cenm-gateway`                                                                             |
+| ports.servicePort          | HTTP port number where gateway service is accessible internally                                     |
+| ports.ambassadorPort          | Port where gateway service is exposed via Ambassador                                     |
 
 The snapshot of idman service with example values is below
 ```yaml
