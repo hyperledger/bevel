@@ -9,12 +9,12 @@ This configuration folder contains Ansible playbooks and their corresponding rol
 
 ## Approaches
 There are two approaches to deploy a DLT network using Hyperledger Bevel: 
-- Use a machine to deploy and manage the DLT network. This is recommended for production environments, and requires manual setup of Ansible, and other required libraries/tools for setting up the controller machine. More info on setting up this machine is found [here](https://bevel.readthedocs.io/en/latest/operations/configure_prerequisites.html#ansible-inventory-file).
-- Use the 'Hyperledger Bevel Build container' to create a containerized Ansible controller from which to deploy/manage your networks. This is recommended for development instances, as it is an easy way to build the required base environment for Hyperledger Bevel deployment. More info can be found [here](https://bevel.readthedocs.io/en/latest/developer/docker-build.html).
+- Use a machine to deploy and manage the DLT network. This is recommended for production environments, and requires manual setup of Ansible, and other required libraries/tools for setting up the controller machine. More info on setting up this machine is found [here](https://hyperledger-bevel.readthedocs.io/en/latest/operations/configure_prerequisites.html#ansible-inventory-file).
+- Use the 'Hyperledger Bevel Build container' to create a containerized Ansible controller from which to deploy/manage your networks. This is recommended for development instances, as it is an easy way to build the required base environment for Hyperledger Bevel deployment. More info can be found [here](https://hyperledger-bevel.readthedocs.io/en/latest/developer/docker-build.html).
 
 ## Installation pre-requisites
 Hyperledger Bevel requires tools such as Kubernetes, Git (repository), Vault and more to be installed.
-For more information on the installation pre-requisites, please refer to [this guide](https://bevel.readthedocs.io/en/latest/prerequisites.html).
+For more information on the installation pre-requisites, please refer to [this guide](https://hyperledger-bevel.readthedocs.io/en/latest/prerequisites.html).
 
 ## Configuration pre-requisites
 For each organization in the DLT network you need to set up the following:
@@ -23,11 +23,11 @@ For each organization in the DLT network you need to set up the following:
 3. A Git User with write access to all the branches in the chosen Git repository; as well as an access token.
 4. The network configuration file (`network.yaml`) which has been filled in according to your requirements. A sample `network.yaml` for Hyperledger Indy can be found in [this folder](./samples/).
 
-For other general pre-quisites, such as Docker images, Ambassador and DNS setup, please refer to the ['Configure Pre-requisites' guide](https://bevel.readthedocs.io/en/latest/operations/configure_prerequisites.html).
+For other general pre-quisites, such as Docker images, Ambassador and DNS setup, please refer to the ['Configure Pre-requisites' guide](https://hyperledger-bevel.readthedocs.io/en/latest/operations/configure_prerequisites.html).
 
 ## Execution 
 ### Step 1
-Ensure that the `network.yaml` is edited properly and saved. Follow the guidance on our [docs for Hyperledger Indy `network.yaml`](https://bevel.readthedocs.io/en/latest/operations/indy_networkyaml.html).
+Ensure that the `network.yaml` is edited properly and saved. Follow the guidance on our [docs for Hyperledger Indy `network.yaml`](https://hyperledger-bevel.readthedocs.io/en/latest/operations/indy_networkyaml.html).
 
 ### Step 2
 Execute the playbook by running the command below - executed from the root of the project:
