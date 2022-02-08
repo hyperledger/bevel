@@ -28,9 +28,11 @@ Bevel recommends one Kubernetes cluster per organization for production-ready pr
 Also, a user needs to make sure that the Kubernetes clusters can support the number of pods and persistent volumes that will be created by Bevel.
 
 ---
-**NOTE:** For the current release Bevel has been tested on Amazon EKS with Kubernetes version **1.16**.
+**NOTE:** For the current release Bevel has been tested on Amazon EKS with Kubernetes version **1.19**.
 
-Also, install kubectl Client version **v1.16.13**
+Bevel has been tested on Kubernetes >= 1.14 and <= 1.19
+
+Also, install kubectl Client version **v1.19.8**
 
 ---
 
@@ -57,7 +59,12 @@ Please note that this machine (also called **Ansible Controller**) should have c
 ---
 **NOTE:** Minimum **Ansible** version should be **2.10.5** with **Python3** 
 
-Also, Ansible's k8s module requires the **openshift python package (>= 0.6)**.
+Also, Ansible's k8s module requires the **openshift python package (>= 0.12.0)** and collection **kubernetes.core**.
+
+```
+pip3 install openshift==0.12.0
+ansible-galaxy collection install kubernetes.core
+```
 
 **NOTE (MacOS):** Ansible requires GNU tar. Install it on MacOS through Homebrew `brew install gnu-tar`
 

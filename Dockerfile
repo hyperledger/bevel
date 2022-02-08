@@ -13,7 +13,7 @@ FROM ubuntu:20.04
 # Create working directory
 WORKDIR /home/
 ENV PYTHON_VERSION='3.6.13'
-ENV OPENSHIFT_VERSION='0.11.0'
+ENV OPENSHIFT_VERSION='0.12.0'
 
 RUN apt-get update -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
