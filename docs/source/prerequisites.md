@@ -59,10 +59,10 @@ Please note that this machine (also called **Ansible Controller**) should have c
 ---
 **NOTE:** Minimum **Ansible** version should be **2.10.5** with **Python3** 
 
-Also, Ansible's k8s module requires the **openshift python package (>= 0.11.0)** and collection **kubernetes.core**.
+Also, Ansible's k8s module requires the **openshift python package (>= 0.12.0)** and collection **kubernetes.core**.
 
 ```
-pip3 install openshift==0.11.0
+pip3 install openshift==0.12.0
 ansible-galaxy collection install kubernetes.core
 ```
 
