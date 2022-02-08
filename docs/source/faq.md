@@ -93,9 +93,9 @@ Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-aut
 
 ### How would system react if we plan to update tools versions (e.g. kubectl, helm)?
 Honestly speaking, we don't know. The latest version Hyperledger Bevel has been tested on specific client versions of these tools, see below:
-(1) Kubectl: v1.14.2 for Kubernetes 1.14, v1.16.13 for Kubernetes 1.16
-(2) Helm: v2.14.1 for Kubernetes 1.14, v2.16.10 for Kubernetes 1.16
-(3) HashiCorp Vault: v1.7.0
+(1) Kubectl: v1.14.2 for Kubernetes 1.14, v1.16.13 for Kubernetes 1.16, v1.19.8 for Kubernetes 1.19
+(2) Helm: v3.6.2
+(3) HashiCorp Vault: v1.7.1
 (4) AWS-Authenticator: v1.10.3
 
 It is assumed that newer versions of these tools would be backward compatible, which is beyond our control. One can raise a new ticket to Hyperledger Bevel GitHub repository, if any major updates would break the system down.
