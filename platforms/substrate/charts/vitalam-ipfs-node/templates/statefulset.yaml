@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "vitalam-ipfs.fullname" . }}
+  labels:
+    {{- include "vitalam-ipfs.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "vitalam-ipfs.fullname" . }}
+  selector:
+    matchLabels:
+      name: {{ include "vitalam-ipfs.fullname" . }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        name: {{ include "vitalam-ipfs.fullname" . }}
+    spec:
+      {{- include "vitalam-ipfs.imagePullSecrets" . | indent 6 }}
+      initContainers:
+        - name: {{ include "vitalam-ipfs.initIpfsConfig.name" . }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          env:
+            - name: IPFS_PATH
+              value: {{ .Values.config.ipfsDataPath }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "vitalam-ipfs.fullname" . }}-config
+          command: ['/bin/sh', '-c', '-e', '-x']
+          args:
+            - |
+              [ ! -f "$IPFS_PATH/config" ] && $ipfsCommand init --profile server;
+              $ipfsCommand config Addresses.API /ip4/0.0.0.0/tcp/$ipfsApiPort;
+              $ipfsCommand config --json Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/$ipfsSwarmPort\"]";
+              $ipfsCommand config Datastore.StorageMax $(echo "$dataVolumeSize""Gb");
+              $ipfsCommand config --json API.HTTPHeaders.Access-Control-Allow-Origin "[\"http://0.0.0.0:$ipfsApiPort\", \"http://127.0.0.1:$ipfsApiPort\"]";
+              $ipfsCommand bootstrap rm --all;
+              if [ ! -z "$ipfsBootNodeAddress" ]; then $ipfsCommand bootstrap add $ipfsBootNodeAddress; fi;
+          volumeMounts:
+            - mountPath: {{ .Values.config.ipfsDataPath }}
+              name: ipfs-data
+      containers:
+        - name: {{ include "vitalam-ipfs.fullname" . }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          command: [ './app/index.js' ]
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-ipfs.fullname" . }}-config
+                  key: healthCheckPort
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-ipfs.fullname" . }}-config
+                  key: logLevel
+            - name: NODE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-ipfs.fullname" . }}-config
+                  key: nodeHost
+            - name: NODE_PORT
+              value: "9944"
+            {{- if .Values.config.ipfsCommand }}
+            - name: IPFS_EXECUTABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-ipfs.fullname" . }}-config
+                  key: ipfsCommand
+            {{- end }}
+            - name: IPFS_ARGS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-ipfs.fullname" . }}-config
+                  key: ipfsArgs
+            - name: IPFS_PATH
+              value: {{ .Values.config.ipfsDataPath }}
+          volumeMounts:
+            - mountPath: {{ .Values.config.ipfsDataPath }}
+              name: ipfs-data
+          ports:
+            - containerPort: {{ .Values.config.healthCheckPort }}
+              name: http-health
+              protocol: TCP
+            - containerPort: {{ .Values.config.ipfsSwarmPort }}
+              name: ipfs-swarm
+              protocol: TCP
+            - containerPort: {{ .Values.config.ipfsApiPort }}
+              name: ipfs-http-api
+              protocol: TCP
+          {{- if .Values.config.enableLivenessProbe }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http-health
+            initialDelaySeconds: 60
+            failureThreshold: 5
+            timeoutSeconds: 3
+            periodSeconds: 10
+          {{- end }}
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: ipfs-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        {{- if .Values.storage.storageClass }}
+        storageClassName: {{ .Values.storage.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ printf "%vGi" .Values.storage.dataVolumeSize | quote }}
