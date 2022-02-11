@@ -73,15 +73,21 @@
       vault: "{{ item.vault }}"
     loop: "{{ network['organizations']}}"
 
-  # TODO This role generates the crypto material and store it in vault
-  - name: "Generate crypto material for Nodes"
+  # This role generates the key materials and stores them in vault
+  - name: "Generate key materials for Nodes"
     include_role:
-      name: create/crypto
+      name: create/keys
     vars:
+      name: "{{ item.name | lower }}"        
       component_name: "{{ item.name | lower }}"
       component_ns: "{{ item.name | lower }}-subs"
       vault: "{{ item.vault }}"
       peers: "{{ item.services.peers }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      org: "{{ item }}"
+      gitops: "{{ item.gitops }}"
+      kubernetes: "{{ item.k8s }}"
     loop: "{{ network['organizations'] }}"
 
   # TODO This role generates the genesis.json for all orgs of the network
