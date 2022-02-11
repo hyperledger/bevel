@@ -1,0 +1,39 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# ---------------------------------------------------------------------
+# generate substrate keys helmrelease file
+- name: "Create substrate key management file"
+  include_role:
+    name: create/helm_component
+  vars:    
+    component_type: "key_mgmt"    
+    type: "substrate_keys_job"
+    name: "{{ org.name | lower }}"
+    component_name: "{{ peer.name }}-keys-job"
+  tags: 
+    - molecule-idempotence-notest
+
+# ---------------------------------------------------------------------
+# push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/substrate/configuration"
+    msg: "[ci skip] Pushing key management job files for {{ component_ns }}"
+  tags: notest
+
+# Check if key job is completed
+- name: Check if key generation job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ peer.name }}-keys-job"
+    component_type: Job
+    namespace: "{{ component_ns }}"
+  tags: notest

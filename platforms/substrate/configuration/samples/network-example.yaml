@@ -16,7 +16,7 @@ network:
 
   #Environment section for Kubernetes setup
   env:
-    type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "CHANGE_ME"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Substrate
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
@@ -24,8 +24,7 @@ network:
       portRange:              # For a range of ports 
         from: 15010 
         to: 15043
-    # ports: 15020,15021      # For specific ports
-    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
+    # ports: 15020,15021      # For specific ports    
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
@@ -33,7 +32,7 @@ network:
   # Please ensure all required images are built and stored in this registry. 
   # Do not check-in docker_password.
   docker:
-    url: "ghcr.io"
+    url: "docker.io"
     username: "docker_username"
     password: "docker_password"
   
@@ -46,10 +45,10 @@ network:
     # Provide the docker image which will be used for the Substrate Nodes in this network. (will be downloaded from docker.url)
     node_image: "parity/substrate"
     # Provide the command which is used to start the node
-    command: "substrate"     # Please ensure the command corresponds to the node_image above
+    command: "substrate"     # Please ensure the command corresponds to the node_image above    
     # NOTE for the below paths, the directories should exist
-    bootnodes: "/home/user/bevel/build/substrate_bootnodes" # Location where bootnodes information is read or saved if empty
-    genesis: "/home/user/bevel/build/substrate_genesis"   # Location where information is read or saved if empty
+    bootnodes: "/home/CHANGE_ME/bevel/build/substrate_bootnodes" # Location where bootnodes information is read or saved if empty
+    genesis: "/home/CHANGE_ME/bevel/build/substrate_genesis"   # Location where information is read or saved if empty
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -57,34 +56,34 @@ network:
     - organization:
       name: carrier
       unit: Carrier
-      external_url_suffix: test.substrate.blockchaincloudpoc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
-      cloud_provider: aws   # Options: aws, azure, gcp
+      external_url_suffix: subs.inteli-poc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
+      cloud_provider: gcp   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        context: "cluster_context"
-        config_file: "cluster_config"
+        context: "gke_acn-inteli-poc_europe-west2_gke-dev"
+        config_file: "~/.kube/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
-        url: "vault_addr"
-        root_token: "vault_root_token"
+        url: "http://vault.internal.dev.gcp.inteli-poc.com:20002"
+        root_token: "CHANGE_ME"
         secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
-        branch: "develop"           # Git branch where release is being made
+        git_url: "https://github.com/inteli-poc/bevel.git"         # Gitops https or ssh url for flux value files 
+        branch: "CHANGE_ME"           # Git branch where release is being made
         release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
-        username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "git@email.com"                # Email to use in git config
+        git_repo: "github.com/inteli-poc/bevel.git"   # Gitops git repository URL for git push 
+        username: "CHANGE_ME"          # Git Service user who has rights to check-in in all branches
+        password: "CHANGE_ME"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "CHANGE_ME"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       # The participating nodes are named as peers
       services:
@@ -125,45 +124,54 @@ network:
         - peer:
           name: carrier-ipfs
           subject: "O=CarrierIPFS,OU=CarrierIPFS,London,C=GB" # This is the node subject.
-          type: ipfs         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          type: ipfs-bootnode         # value can be validator or bootnode ( or ipfs, for vitalAM)
           swarm:
             port: 4001
             ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
           api:
-            port: 5001            
+            port: 5001
+        - peer:
+          name: carrier-ipfs
+          subject: "O=CarrierIPFS,OU=CarrierIPFS,London,C=GB" # This is the node subject.
+          type: ipfs         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          swarm:
+            port: 4001
+            ambassador: 15014       #Port exposed on ambassador service (use one port per org if using single cluster)
+          api:
+            port: 5001
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
       name: manufacturer
       unit: Manufacturer
-      external_url_suffix: test.substrate.blockchaincloudpoc.com      
-      cloud_provider: aws   # Options: aws, azure, gcp
+      external_url_suffix: subs.inteli-poc.com      
+      cloud_provider: gcp   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws  
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        context: "cluster_context"
-        config_file: "cluster_config"
+        context: "gke_acn-inteli-poc_europe-west2_gke-dev"
+        config_file: "~/.kube/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
-        url: "vault_addr"
-        root_token: "vault_root_token"
+        url: "http://vault.internal.dev.gcp.inteli-poc.com:20002"
+        root_token: "CHANGE_ME"
         secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # IMPORTANT: Do not check-in your password, the git_access_token!
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
-        branch: "develop"           # Git branch where release is being made
+        git_url: "https://github.com/inteli-poc/bevel.git"         # Gitops https or ssh url for flux value files 
+        branch: "CHANGE_ME"           # Git branch where release is being made
         release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
-        username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "git@email.com"                # Email to use in git config
+        git_repo: "github.com/inteli-poc/bevel.git"   # Gitops git repository URL for git push 
+        username: "CHANGE_ME"          # Git Service user who has rights to check-in in all branches
+        password: "CHANGE_ME"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "CHANGE_ME"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # The participating nodes are named as peers 
@@ -208,41 +216,41 @@ network:
           type: ipfs         # value can be validator or bootnode ( or ipfs, for vitalAM)
           swarm:
             port: 4001
-            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15023       #Port exposed on ambassador service (use one port per org if using single cluster)
           api:
             port: 5001
 
     - organization:
       name: store
       unit: Store
-      external_url_suffix: test.substrate.blockchaincloudpoc.com      
-      cloud_provider: aws   # Options: aws, azure, gcp
+      external_url_suffix: subs.inteli-poc.com      
+      cloud_provider: gcp   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws  
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        context: "cluster_context"
-        config_file: "cluster_config"
+        context: "gke_acn-inteli-poc_europe-west2_gke-dev"
+        config_file: "~/.kube/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
-        url: "vault_addr"
-        root_token: "vault_root_token"
+        url: "http://vault.internal.dev.gcp.inteli-poc.com:20002"
+        root_token: "CHANGE_ME"
         secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # IMPORTANT: Do not check-in your password, the git_access_token!
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
-        branch: "develop"           # Git branch where release is being made
+        git_url: "https://github.com/inteli-poc/bevel.git"         # Gitops https or ssh url for flux value files 
+        branch: "CHANGE_ME"           # Git branch where release is being made
         release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
-        username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "git@email.com"                # Email to use in git config
+        git_repo: "github.com/inteli-poc/bevel.git"   # Gitops git repository URL for git push 
+        username: "CHANGE_ME"          # Git Service user who has rights to check-in in all branches
+        password: "CHANGE_ME"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "CHANGE_ME"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       services:
@@ -253,7 +261,7 @@ network:
           type: member         # value can be validator or bootnode ( or ipfs, for vitalAM)
           p2p:
             port: 30333
-            ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 9933            
           ws-rpc:
@@ -264,62 +272,6 @@ network:
           type: ipfs         # value can be validator or bootnode ( or ipfs, for vitalAM)
           swarm:
             port: 4001
-            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
-          api:
-            port: 5001
-
-    - organization:
-      name: warehouse
-      unit: Warehouse
-      external_url_suffix: test.substrate.blockchaincloudpoc.com      
-      cloud_provider: aws   # Options: aws, azure, gcp
-      aws:
-        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
-        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws  
-      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
-      # the cluster has already been created.
-      k8s:
-        context: "cluster_context"
-        config_file: "cluster_config"
-      # Hashicorp Vault server address and root-token. Vault should be unsealed.
-      # Do not check-in root_token
-      vault:
-        url: "vault_addr"
-        root_token: "vault_root_token"
-        secret_path: "secretsv2"
-      # Git Repo details which will be used by GitOps/Flux.
-      # Do not check-in git_access_token
-      gitops:
-        git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
-        branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
-        username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "git@email.com"                # Email to use in git config
-        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
-
-      services:
-        peers:
-        - peer:
-          name: warehouse
-          subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
-          type: member         # value can be validator or bootnode ( or ipfs, for vitalAM)
-          p2p:
-            port: 30333
-            ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 9933            
-          ws-rpc:
-            port: 9944
-        - peer:
-          name: warehouse-ipfs
-          subject: "O=WarehouseIPFS,OU=WarehouseIPFS,L=Boston,C=US"  # This is the node identity.
-          type: ipfs         # value can be validator or bootnode ( or ipfs, for vitalAM)
-          swarm:
-            port: 4001
-            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15033       #Port exposed on ambassador service (use one port per org if using single cluster)
           api:
             port: 5001
