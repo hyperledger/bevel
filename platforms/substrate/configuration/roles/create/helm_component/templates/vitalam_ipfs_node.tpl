@@ -26,7 +26,7 @@ spec:
     image:
       repository: ghcr.io/digicatapult/vitalam-ipfs
       pullPolicy: IfNotPresent
-      tag: 'v1.2.3'
+      tag: 'v1.2.6'
     storage:
       storageClass: ""
       dataVolumeSize: 1  # in Gigabytes
