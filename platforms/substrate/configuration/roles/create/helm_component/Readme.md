@@ -12,7 +12,7 @@ This role consists of the following tasks
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
 #### 1. "Ensures {{ values_dir }}/{{ name }} dir exists"
-This task ensures that the value directory is present on the ansible container which is refered by `values_dir` variable which is defined at `/platforms/quorum/playbooks/roles/helm_component/vars/main.yaml`
+This task ensures that the value directory is present on the ansible container which is refered by `values_dir` variable which is defined at `platforms/substrate/configuration/deploy-network.yaml`
 ##### Input Variables
 
     *name: Type of the Helm Release file 
@@ -39,4 +39,4 @@ This task tests the value file for syntax errors/ missing values.This is done by
     chart_path: The path for the charts directory.
     value_file: The final path of the value file to be created along with name.
     
-**include_role**: It includes the name of intermediatory role ( `{{ playbook_dir }}/../../shared/configuration/roles/helm_lint` which is required for creating the Vault Reviewer value file.
+**include_role**: It includes the name of intermediatory role ( `{{ playbook_dir }}/../../shared/configuration/roles/helm_lint` which is running a test for helm value files.

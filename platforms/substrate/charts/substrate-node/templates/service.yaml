@@ -1,0 +1,44 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: substrate-node
+  labels:
+    {{- include "substrate_node.serviceLabels" . | indent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  - name: ws-rpc
+    protocol: TCP
+    port: {{ .Values.node.ports.ws }}
+  - name: http-rpc
+    protocol: TCP
+    port: {{ .Values.node.ports.rpc }}
+  selector:
+    service.rpc: substrate-node
+---
+{{- if $.Values.node.perNodeServices.createP2pService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: substrate-node-p2p
+spec:
+  type: ClusterIP
+  externalTrafficPolicy: Local
+  selector:
+    {{- include "substrate_node.labels" . | indent 4 }}
+  ports:
+    - name: p2p
+      port: {{ .Values.node.ports.p2p }}
+      targetPort: {{ .Values.node.ports.p2p }}
+  {{- if and $.Values.node.collator.isParachain (or (eq $.Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq $.Values.node.perNodeServices.p2pServiceType "ClusterIP")) }}
+    - name: pc-p2p
+      port: {{ .Values.node.ports.pc-p2p }}
+      targetPort: {{ .Values.node.ports.pc-p2p }}
+  {{- end }}
+{{- end }}

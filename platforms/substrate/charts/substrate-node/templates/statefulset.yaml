@@ -1,0 +1,535 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.                                                
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  {{- include "substrate_node.name" . | nindent 2 }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+  {{- include "substrate_node.selectorLabels" . | nindent 4 }}
+spec:
+  serviceName: {{ .Values.node.name }}
+  replicas: {{ .Values.metadata.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "substrate_node.name" . | nindent 6 }}                   
+      {{- include "substrate_node.selectorLabels" . | nindent 6 }}
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels: 
+        {{- include "substrate_node.name" . | nindent 8 }}               
+        {{- include "substrate_node.selectorLabels" . | nindent 8 }}
+    spec: 
+      serviceAccountName: {{ .Values.vault.serviceaccountname }}
+      initContainers:
+        {{- if .Values.node.chainDataSnapshotUrl }}
+      - name: download-chain-snapshot
+        image: {{ .Values.images.repository }}
+        env:
+        - name: CHAIN_PATH
+          value: {{ default .Values.node.chain .Values.node.chainPath }}
+        - name: SNAPSHOT_FORMAT
+          value: {{ default "tar" .Values.node.chainDataSnapshotFormat }}
+        volumeMounts:
+        - mountPath: {{ .Values.node.chainPath }}
+          name: {{ .Values.node.name }}-pv
+        command: [ "/bin/sh" ]
+        args:
+          - -c
+          - |
+            if [ -d "/data/chains/${CHAIN_PATH}/db" ]; then
+              echo "Database directory already exists, skipping chain snapshot download"
+            else
+              echo "Downloading chain snapshot"
+              SNAPSHOT_URL="{{ .Values.node.chainDataSnapshotUrl }}"
+              wget -O /data/snapshot ${SNAPSHOT_URL}
+              if [ ! -f /data/snapshot ]; then
+                echo "Failed to download chain snapshot"
+                exit 1
+              fi
+              mkdir -p /data/chains/${CHAIN_PATH}/
+              if [ "${SNAPSHOT_FORMAT}" == "7z" ]; then
+                7z x /data/snapshot -o/data/chains/${CHAIN_PATH}/
+              else
+                tar xvf /data/snapshot --directory=/data/chains/${CHAIN_PATH}/db/full/
+              fi
+              rm /data/snapshot
+            fi
+        {{- end }}
+        {{- if .Values.node.collator.relayChainDataSnapshotUrl }}
+      - name: download-relay-chain-snapshot
+        image: {{ .Values.images.repository }}
+        env:
+        - name: RELAY_SNAPSHOT_FORMAT
+          value: {{ default "tar" .Values.node.collator.relayChainDataSnapshotFormat }}
+        - name: RELAY_CHAIN_PATH
+          value: {{ default .Values.node.collator.relayChain .Values.node.collator.relayChainPath }}
+        volumeMounts:
+        - mountPath: {{ .Values.node.chainPath }}
+          name: {{ .Values.node.name }}-pv
+        command: [ "/bin/sh" ]
+        args:
+          - -c
+          - |
+            if [ -d "/data/relay/chains/${RELAY_CHAIN_PATH}/db" ]; then
+              echo "Database directory already exists, skipping relay-chain snapshot download"
+            else
+              echo "Downloading relay-chain snapshot"
+              RELAY_SNAPSHOT_URL="{{ .Values.node.collator.relayChainDataSnapshotUrl }}"
+              wget -O /data/relay-snapshot ${RELAY_SNAPSHOT_URL}
+              if [ ! -f /data/relay-snapshot ]; then
+                echo "Failed to download relay-chain snapshot"
+                exit 1
+              fi
+              mkdir -p /data/relay/chains/${RELAY_CHAIN_PATH}/
+              if [ "${RELAY_SNAPSHOT_FORMAT}" == "7z" ]; then
+                7z x /data/relay-snapshot -o/data/relay/chains/${RELAY_CHAIN_PATH}/
+              else
+                tar xvf /data/relay-snapshot --directory=/data/relay/chains/${RELAY_CHAIN_PATH}/db/full/
+              fi
+              rm /data/relay-snapshot
+            fi
+        {{- end }}
+        {{- if .Values.node.chainDataGcsBucketUrl }}
+      - name: sync-chain-gcs
+        image: {{ .Values.images.googleCloudSdk }}
+        env:
+        - name: CHAIN_PATH
+          value: {{ default .Values.node.chain .Values.node.chainPath }}
+        volumeMounts:
+        - mountPath: {{ .Values.node.chainPath }}
+          name: {{ .Values.node.name }}-pv
+          {{- if .Values.gcloud.serviceAccountKey }}
+        - name: service-account-key
+          mountPath: /tmp
+          readOnly: true
+          {{- end }}
+        command: [ "/bin/sh" ]
+        args:
+          - -c
+          - |
+            {{- if .Values.gcloud.serviceAccountKey }}
+            gcloud auth activate-service-account --key-file /tmp/service-account-key.json
+            {{- end }}
+            if [ -d "/data/chains/${CHAIN_PATH}/db" ]; then
+              echo "Chain database directory already exists, skipping GCS sync"
+            else
+                BUCKET_URL="{{ .Values.node.chainDataGcsBucketUrl }}"
+                LATEST=$(gsutil cat ${BUCKET_URL}/latest_version.meta.txt)
+                if [ -z "$LATEST" ]; then
+                  echo "Failed to retrieve latest_version metadata"
+                  exit 1
+                fi
+                mkdir -p /data/chains/${CHAIN_PATH}/db/full
+                gsutil -m -o "GSUtil:parallel_process_count=3" -o "GSUtil:parallel_thread_count=15" rsync -d -r ${BUCKET_URL}/${LATEST} /data/chains/${CHAIN_PATH}/db/full/
+            fi
+        {{- end }}
+        {{- if .Values.node.collator.relayChainDataGcsBucketUrl }}
+      - name: sync-relay-chain-gcs
+        image: {{ .Values.images.googleCloudSdk }}
+        env:
+        - name: RELAY_CHAIN_PATH
+          value: {{ default .Values.node.collator.relayChain .Values.node.collator.relayChainPath }}
+        volumeMounts:
+        - mountPath: {{ .Values.node.chainPath }}
+          name: {{ .Values.node.name }}-pv
+          {{- if .Values.gcloud.serviceAccountKey }}
+        - name: service-account-key
+          mountPath: /tmp
+          readOnly: true
+          {{- end }}
+        command: [ "/bin/sh" ]
+        args:
+          - -c
+          - |
+            {{- if .Values.gcloud.serviceAccountKey }}
+            gcloud auth activate-service-account --key-file /tmp/service-account-key.json
+            {{- end }}
+            if [ -d "/data/relay/chains/${RELAY_CHAIN_PATH}/db" ]; then
+              echo "Relay-chain database directory already exists, skipping GCS sync"
+            else
+              BUCKET_URL="{{ .Values.node.collator.relayChainDataGcsBucketUrl }}"
+              LATEST=$(gsutil cat ${BUCKET_URL}/latest_version.meta.txt)
+              if [ -z "$LATEST" ]; then
+                echo "Failed to retrieve latest_version metadata"
+                exit 1
+              fi
+              mkdir -p /data/relay/chains/${RELAY_CHAIN_PATH}/db/full
+              gsutil -m -o "GSUtil:parallel_process_count=3" -o "GSUtil:parallel_thread_count=15" rsync -d -r ${BUCKET_URL}/${LATEST} /data/relay/chains/${RELAY_CHAIN_PATH}/db/full/
+            fi
+        {{- end }}
+      - name: node-secrets
+        image: {{ .Values.images.initContainer }}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /secrets
+          name: keystore
+        env:
+        - name: VAULT_ADDR
+          value: {{ .Values.vault.address }}
+        - name: VAULT_SECRET_PREFIX
+          value: {{ .Values.vault.secretPrefix }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ .Values.vault.authPath }}
+        - name: VAULT_APP_ROLE
+          value: {{ .Values.vault.appRole }}
+        - name: PEER_NAME
+          value: {{ .Values.node.name }}
+        command: ["/bin/sh", "-c"]
+        args:
+        - |-
+          #!/bin/sh
+            apk update && apk add jq curl
+            mkdir secrets
+            
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                echo "ERROR: unable to retrieve ${1}: ${2}"
+                exit 1
+              fi
+              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+              then
+                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${vault_secret_key})
+                curl_response=$?
+                if test "$http_code" != "200" ; then
+                  echo "Http response code from Vault - $http_code"
+                  if test "$curl_response" != "0"; then
+                     echo "Error: curl command failed with error code - $curl_response"
+                     exit 1
+                  fi
+                fi
+              fi
+            }
+
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+
+            ## Login to Vault to get an app role token ##
+            VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+              -H "Content-Type: application/json" \
+              -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+              jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+            echo "logged in"
+
+            vault_secret_key="${VAULT_SECRET_PREFIX}/${PEER_NAME}/substrate"
+            
+            echo "Getting node-key, aura and grandpa secret seeds from $vault_secret_key"
+
+            LOOKUP_SECRET_RESPONSE=$(curl -sS \
+              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | \
+              jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
+            
+            auraSecretSeed=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["aura_seed"]')
+            echo "${auraSecretSeed}" > secrets/aura_seed
+            
+            grandpaSecretSeed=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["grandpa_seed"]')
+            echo "${grandpaSecretSeed}" > secrets/grandpa_seed
+            
+            node_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["node_key"]')
+            echo "${node_key}" > secrets/node_key
+      - name: retrieve-chain-spec
+        image: {{ .Values.images.initContainer }}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /secrets
+          name: keystore
+        env:
+        - name: VAULT_ADDR
+          value: {{ .Values.vault.address }}
+        - name: VAULT_SECRET_PREFIX
+          value: {{ .Values.vault.secretPrefix }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ .Values.vault.authPath }}
+        - name: VAULT_APP_ROLE
+          value: {{ .Values.vault.appRole }}
+        command: ["/bin/sh", "-c"]
+        args:
+        - |-
+          #!/bin/sh
+            apk update && apk add jq curl
+            mkdir secrets
+            
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                echo "ERROR: unable to retrieve ${1}: ${2}"
+                exit 1
+              fi
+              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+              then
+                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${vault_secret_key})
+                curl_response=$?
+                if test "$http_code" != "200" ; then
+                  echo "Http response code from Vault - $http_code"
+                  if test "$curl_response" != "0"; then
+                     echo "Error: curl command failed with error code - $curl_response"
+                     exit 1
+                  fi
+                fi
+              fi
+            }
+
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+
+            ## Login to Vault to get an app role token ##
+            VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+              -H "Content-Type: application/json" \
+              -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+              jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+            echo "logged in"
+
+            vault_secret_key="${VAULT_SECRET_PREFIX}/${PEER_NAME}/chainSpec"
+            
+            echo "Getting chain spec from $vault_secret_key"
+
+            LOOKUP_SECRET_RESPONSE=$(curl -sS \
+              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | \
+              jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
+            
+            chain_spec=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["chain_spec"]')
+            echo "${chain_spec}" > secrets/chain_spec.json
+      - name: insert-keys
+        image: {{ .Values.images.initContainer }}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /secrets
+          name: keystore
+        - mountPath: {{ .Values.node.chainPath }}
+          name: {{ .Values.node.name }}-pv
+        env:
+        - name: 
+          value: 
+        - name: 
+          value: 
+        command: ["/bin/sh", "-c"]
+        args:
+        - |-
+          #!/bin/sh
+          ## store aura and grandpa keys in node keystore ##
+
+            exec {{ .Values.node.command }} key insert --base-path {{ .Values.node.chainPath }} \
+            --chain secrets/chain_spec.json \
+            --scheme Sr25519 \
+            --suri secrets/aura_seed \
+            --key-type aura
+
+            exec {{ .Values.node.command }} key insert --base-path {{ .Values.node.chainPath }} \
+            --chain secrets/chain_spec.json \
+            --scheme Ed25519 \
+            --suri secrets/grandpa_seed \
+            --key-type gran
+        {{- if .Values.node.perNodeServices.createP2pService }}
+      - name: query-services
+        image: {{ .Values.kubectl.image.repository }}:{{ .Values.kubectl.image.tag }}
+        volumeMounts:
+        - mountPath: {{ .Values.node.chainPath }}
+          name: {{ .Values.node.name }}-pv
+        command: [ "/bin/sh" ]
+        args:
+          - -c
+          - |
+              POD_INDEX="${HOSTNAME##*-}"
+              {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
+              RELAY_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.spec.ports[*].nodePort}')"
+              echo -n "${RELAY_CHAIN_P2P_PORT}" > /data/relay_chain_p2p_port
+              echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-rc-p2p, saved ${RELAY_CHAIN_P2P_PORT} to /data/relay_chain_p2p_port"
+              {{- else if or (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
+              RELAY_CHAIN_P2P_PORT=30333
+              echo -n "${RELAY_CHAIN_P2P_PORT}" > /data/relay_chain_p2p_port
+              echo "Kubernetes service {{ $fullname }}-${POD_INDEX}-rc-p2p is ${RELAY_CHAIN_P2P_PORT}"
+              {{- end }}
+              {{- if and .Values.node.collator.isParachain (eq .Values.node.perNodeServices.p2pServiceType "Nodeport") }}
+              PARA_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-pc-p2p -o jsonpath='{.spec.ports[*].nodePort}')"
+              echo -n "${PARA_CHAIN_P2P_PORT}" > /data/para_chain_p2p_port
+              echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-pc-p2p, saved ${PARA_CHAIN_P2P_PORT} to /data/para_chain_p2p_port"
+              {{- else if and .Values.node.collator.isParachain (or (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP")) }}
+              PARA_CHAIN_P2P_PORT=30334
+              echo -n "${PARA_CHAIN_P2P_PORT}" > /data/para_chain_p2p_port
+              echo "Kubernetes service {{ $fullname }}-${POD_INDEX}-rc-p2p is ${PARA_CHAIN_P2P_PORT}"
+              {{- end }}
+              {{- if and .Values.node.perNodeServices.setPublicAddressToExternal.enabled (eq .Values.node.perNodeServices.p2pServiceType "NodePort") }}
+              EXTERNAL_ADDRESS=$(curl -sS {{ .Values.node.perNodeServices.setPublicAddressToExternal.ipRetrievalServiceUrl }})
+              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
+              echo "Retrieved external IP from {{ .Values.node.perNodeServices.setPublicAddressToExternal.ipRetrievalServiceUrl }}, saved $(cat /data/node_external_address) to /data/node_external_address"
+              {{- else if and .Values.node.perNodeServices.setPublicAddressToExternal.enabled (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") }}
+              EXTERNAL_ADDRESS=$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
+              echo "External hostname is ${EXTERNAL_ADDRESS}, saved to /data/node_external_address"
+              {{- else if eq .Values.node.perNodeServices.p2pServiceType "ClusterIP" }}
+              EXTERNAL_ADDRESS={{ $fullname }}-${POD_INDEX}-rc-p2p.{{ .Release.Namespace }}.svc.cluster.local
+              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
+              echo "External hostname is ${EXTERNAL_ADDRESS}, saved to /data/node_external_address"
+              {{- end }}
+        {{- end }}
+      containers:
+      - name: node-substrate
+        image: {{ .Values.images.substrate }}
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        volumeMounts:
+        - mountPath: /secrets
+          name: keystore
+        - mountPath: {{ .Values.node.chainPath }}
+          name: {{ .Values.node.name }}-pv
+        - mountPath: /etc/config
+          name: {{ .Values.node.name }}-genesis-volume
+        command: ["/bin/sh", "-c"]
+        args:
+        - |-
+          #!/bin/sh
+             
+            {{- if .Values.node.perNodeServices.createP2pService }}
+            if [ ! -s /data/node_external_address ]; then echo "EXTERNAL_ADDRESS is empty" && exit 1 ; fi
+            EXTERNAL_ADDRESS="$(cat /data/node_external_address)"
+            echo "EXTERNAL_ADDRESS=${EXTERNAL_ADDRESS}"
+            RELAY_CHAIN_P2P_PORT="$(cat /data/relay_chain_p2p_port)"
+            echo "RELAY_CHAIN_P2P_PORT=${RELAY_CHAIN_P2P_PORT}"
+            {{- if .Values.node.collator.isParachain }}
+            PARA_CHAIN_P2P_PORT="$(cat /data/para_chain_p2p_port)"
+            echo "PARA_CHAIN_P2P_PORT=${PARA_CHAIN_P2P_PORT}"
+            {{- end }}
+            {{- end }}
+
+            exec {{ .Values.node.command }} \
+            --chain secrets/chain_spec.json \
+            --name=${POD_NAME} \
+            --base-path={{ .Values.node.chainPath }} \
+            {{- if or (eq .Values.node.role "authority") (eq .Values.node.role "validator") }}
+            --validator \
+            {{- end }}
+            {{- if eq .Values.node.role "collator" }}
+            --collator \
+            {{- end }}
+            {{- if eq .Values.node.role "light" }}
+            --light \
+            {{- end }}
+            {{- if .Values.node.collator.isParachain }}
+            {{- if .Values.node.perNodeServices.createP2pService }}
+            {{- if .Values.node.perNodeServices.setPublicAddressToExternal.enabled }}
+            {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
+            --public-addr=/ip4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
+            {{- else if eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer" }}
+            --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
+            {{- end }}
+            {{- else if and (not .Values.node.perNodeServices.setPublicAddressToExternal.enabled) (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
+            --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
+            {{- end }}
+            --listen-addr=/ip4/0.0.0.0/tcp/${PARA_CHAIN_P2P_PORT} \
+            {{- end }}
+            --listen-addr=/ip4/0.0.0.0/tcp/30334 \
+            {{- end }}
+            {{- if .Values.node.persistGeneratedNodeKey }}
+            --node-key-file /data/node-key \
+            {{- else if .Values.node.customNodeKey }}
+            --node-key $(cat secrets/node_key) \
+            {{- end }}
+            {{- if .Values.node.tracing.enabled }}
+            --jaeger-agent=127.0.0.1:{{ .Values.jaegerAgent.ports.compactPort }} \
+            {{- end }}
+            {{- join " " .Values.node.flags | nindent 12 }}
+            {{- if .Values.node.collator.isParachain }}
+            -- \
+            --base-path=/data/relay/ \
+            {{- end }}
+            {{- if .Values.node.collator.relayChainCustomChainspecUrl }}
+            --chain=/data/relay_chain_chainspec.json \
+            {{- end }}
+            {{- if .Values.node.perNodeServices.createP2pService }}
+            {{- if .Values.node.perNodeServices.setPublicAddressToExternal.enabled }}
+            {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
+            --public-addr=/ip4/${EXTERNAL_ADDRESS}/tcp/${RELAY_CHAIN_P2P_PORT} \
+            {{- else if eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer" }}
+            --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${RELAY_CHAIN_P2P_PORT} \
+            {{- end }}
+            {{- else if and (not .Values.node.perNodeServices.setPublicAddressToExternal.enabled) (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
+            --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${RELAY_CHAIN_P2P_PORT} \
+            {{- end }}
+            --listen-addr=/ip4/0.0.0.0/tcp/${RELAY_CHAIN_P2P_PORT} \
+            {{- end }}
+            --listen-addr=/ip4/0.0.0.0/tcp/30333 \
+            {{- join " " .Values.node.collator.relayChainFlags | nindent 12 }}
+        ports:
+          - name: ws-rpc
+            containerPort: {{ .Values.node.ports.ws }}
+            protocol: TCP
+          - name: p2p
+            containerPort: {{ .Values.node.ports.p2p }}
+            protocol: TCP
+          - name: http-rpc
+            containerPort: {{ .Values.node.ports.rpc }}
+            protocol: TCP
+        {{- if .Values.node.collator.isParachain }}
+          - name: pc-p2p
+            containerPort: 30334
+            protocol: TCP
+        {{- end }}
+        {{- if .Values.node.enableStartupProbe }}
+          # On startup, retry the connection to the /health endpoint every 10s for 5 min before killing the container
+        startupProbe:
+          failureThreshold: 30
+          periodSeconds: 10
+          httpGet:
+            path: /health
+            port: http-rpc
+        {{- end }}
+        {{- if .Values.node.enableReadinessProbe }}
+          # Continuously retry the connection to the WS endpoint every 10s for 24h until success before marking the container as ready
+          # If the WS endpoint is still not reachable (ie. node not fully synced) after 24 hours have passed, the container will be stuck in 'Not Ready' state
+        readinessProbe:
+          failureThreshold: 8640
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+          # Important: the readiness probe will only work properly if the WS endpoint is exposed with --ws-external
+          tcpSocket:
+            port: websocket-rpc
+        {{- end }}
+      volumes:
+      - name: keystore
+        emptyDir:
+          medium: Memory
+      - name: {{ .Values.node.name }}-genesis-volume
+        configMap:
+          name: {{ .Values.node.name }}-genesis
+          items:
+            - key: genesis.json
+              path: genesis.json
+      restartPolicy: OnFailure
+  volumeClaimTemplates: 
+  - apiVersion: v1
+    metadata:
+      name: {{ .Values.node.name }}-pv
+    kind: PersistentVolumeClaim
+    spec:
+      storageClassName: {{ .Values.storage.storageclassname }}
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.node.chainDataKubernetesVolumeSnapshot }}
+      dataSource:
+        name: {{ .Values.node.chainDataKubernetesVolumeSnapshot }}
+        kind: VolumeSnapshot
+        apiGroup: snapshot.storage.k8s.io
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.storagesize }}
