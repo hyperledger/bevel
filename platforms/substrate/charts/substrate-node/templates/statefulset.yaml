@@ -98,7 +98,7 @@ spec:
         {{- end }}
         {{- if .Values.node.chainDataGcsBucketUrl }}
       - name: sync-chain-gcs
-        image: {{ .Values.images.googleCloudSdk }}
+        image: {{ .Values.images.googleCloudSdk }}:{{ .Values.images.googleCloudSdk.tag }}
         env:
         - name: CHAIN_PATH
           value: {{ default .Values.node.chain .Values.node.chainPath }}
@@ -132,7 +132,7 @@ spec:
         {{- end }}
         {{- if .Values.node.collator.relayChainDataGcsBucketUrl }}
       - name: sync-relay-chain-gcs
-        image: {{ .Values.images.googleCloudSdk }}
+        image: {{ .Values.images.googleCloudSdk }}:{{ .Values.images.googleCloudSdk.tag }}
         env:
         - name: RELAY_CHAIN_PATH
           value: {{ default .Values.node.collator.relayChain .Values.node.collator.relayChainPath }}
@@ -391,8 +391,6 @@ spec:
           name: keystore
         - mountPath: {{ .Values.node.chainPath }}
           name: {{ .Values.node.name }}-pv
-        - mountPath: /etc/config
-          name: {{ .Values.node.name }}-genesis-volume
         command: ["/bin/sh", "-c"]
         args:
         - |-
@@ -509,12 +507,6 @@ spec:
       - name: keystore
         emptyDir:
           medium: Memory
-      - name: {{ .Values.node.name }}-genesis-volume
-        configMap:
-          name: {{ .Values.node.name }}-genesis
-          items:
-            - key: genesis.json
-              path: genesis.json
       restartPolicy: OnFailure
   volumeClaimTemplates: 
   - apiVersion: v1

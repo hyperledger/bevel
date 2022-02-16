@@ -4,22 +4,54 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This section contains the Substrate node metadata.
 metadata:
+  # Provide the namespace for the Substrate node.
+  # Eg. namespace: example-sub
   namespace: 
+  # Provide the number of replicas for your pods.
+  # replicaCount: 1
   replicaCount: 
 
+# This section contains the images used in the deployment
 images:
+  # substrate node runtime image
+  # Eg. substrate: parity/substrate
   substrate: 
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainer: hyperledgerlabs/alpine-utils:1.0
   initContainer:
+  # image for downloading chain snapshot - 7-Zip Docker image based on Alpine Linux.
+  # Eg. repository: crazymax/7zip
   repository:
+  # Google Cloud SDK bundle 
   googleCloudSdk:
+    # smaller lightweight image Eg. slim
+    tag: 
+  # Image for Kubernetes command line interface
+  # Eg. bitnami/kubectl
   kubectl:
 
+# This section contains the Substrate node details.
 node:
+  # Specifies the chain specification. It can be one of the predefined ones (dev, local, or staging) 
+  # or it can be a path to a file with the chainspec (such as one exported by the `build-spec` subcommand). 
+  # Eg. chain: local or chain: <path to chain spec file>
   chain:
+  # Substrate CLI executable
+  # Eg. command: node-template
   command:
+  # Provide the name of the node.
+  # Eg. name: example
   name:
+  # Specifies the directory for storing all of the data related to this chain.
+  # Eg. chainPath: /tmp/alice
   chainPath:
+  # role of the node
+  # Eg. role: validator
   role:
   # customChainspecUrl:
   # chainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
@@ -48,10 +80,18 @@ node:
   enableStartupProbe: 
   enableReadinessProbe:
   ports:
+    # Specifies the port to listen on for peer-to-peer (p2p) traffic
+    # Eg. p2p: 30333
     p2p: 
+    # Specifies the port to listen on for incoming WebSocket traffic
+    # Eg. ws: 9944
     ws: 
+    # Specifies the port to listen on for incoming RPC traffic
+    # Eg. 9933
     rpc:
+    # parachain p2p port
     pc-p2p:
+  # substrate command line flags Eg. --rpc-external
   flags:
 
 ingress:
@@ -69,19 +109,39 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+# gcloud service account authentication to sync chain data to gcs
 gcloud:
   # serviceAccountKey: ""
 
+# This section contains the storage information.
 storage:
+  # Provide the name of the storageclass.
+  # NOTE: Make sure that the storageclass exist prior to this deployment as
+  # this chart doesn't create the storageclass.
+  # Eg. storageclassname: gcpstorageclass
   storageclassname:
+  # Provide the size of the volume
+  # Eg. storagesize: 1Gi
   storagesize:
 
+# This section contains the vault related information.
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to
+# use the Kubernetes service account token based authentication.
 vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
   address:
+  # Provide the service account name authenticated to vault.
+  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
   serviceaccountname:
+  # Provide the vault path where the secrets are stored
+  # Eg. secretPrefix: secretsv2/sub-org-name
   secretPrefix:
+  # Provide the filename that contains secrets inside the secretPrefix directory
   filename:
+  # Provide the auth path configured to be used. Default is /kubernetes
   authPath: 
+  # Provide the vault role used.
+  # Eg. appRole: vault-role
   appRole:
-
-genesis:
