@@ -10,13 +10,14 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Example Folder Structure ###
 ```
-/substrate_node
+
+/substrate-node
 |-- templates
 |   |-- _helpers.tpl
 |   |-- configmap.yaml
-|   |-- deployment.yaml
 |   |-- ingress.yaml
 |   |-- service.yaml
+|   |-- statefulset.yaml
 |   |-- volume.yaml
 |-- Chart.yaml
 |-- values.yaml
@@ -28,5 +29,11 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Charts description ##
 
-### 1. substrate_node ###
-- TBD
+### 1. substrate-node ###
+- This chart directory contains templates for deploying a substrate node.
+
+### 2. substrate-key-mgmt ###
+- This chart directory contains templates for generating crypto material for substrate node.
+
+### 3. vitalam-ipfs-node
+- This chart directory contains templates to deploy ipfs node.
