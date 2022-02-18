@@ -34,7 +34,7 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y python3.5 python3-pip python3.5-dev jq
 
-RUN pip3 install --upgrade "pip < 21.0" setuptools
+RUN pip3 install --upgrade "pip < 21.0" setuptools==50.3.2
 
 # Installing virtualenvwrapper
 RUN pip3 install virtualenvwrapper
