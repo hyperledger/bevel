@@ -17,10 +17,10 @@ on:
        indy-node-version:
         description: 'Enter indy-node-Version to build'
         required: true
-        default: '1.11.0'
+        default: '1.12.1'
         type: choice
         options:
-        - '1.11.0'
+        - '1.12.1'
         
   create:
     tags:
@@ -61,21 +61,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
        
-    - name: Build and push bevel-indy-ledger-txn:latest  
+    - name: Build and push bevel-indy-ledger-txn:latest
+      if: github.event.inputs.indy-node-version == ''
       id: indy-cli-latest
       uses: docker/build-push-action@v2
       with:
         context: platforms/hyperledger-indy/images/indy-cli
         push: true
         tags: ${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:latest
+   
+    - name: Build and push bevel-indy-ledger-txn:latest
+      if: github.event.inputs.indy-node-version != ''
+      id: indy-cli-version
+      uses: docker/build-push-action@v2
+      with:
+        context: platforms/hyperledger-indy/images/indy-cli
+        push: true
+        tags: ${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:latest,${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:${{ github.event.inputs.indy-node-version }}
         
     - name: Build and push indyOS indy-key-mgmt latest
+      if: github.event.inputs.indy-node-version == ''
       id: indy-key-mgmt_latest
       uses: docker/build-push-action@v2
       with:
         context: platforms/hyperledger-indy/images/indy-key-mgmt
         push: true
-        tags: ${{ env.IMAGE_PATH }}/indy-key-mgmt:lates                    
+        tags: ${{ env.IMAGE_PATH }}/bevel-indy-key-mgmt:latest                    
     
     - name: Build and push bevel-indy-node:latest
       if: github.event.inputs.indy-node-version == ''
@@ -85,13 +96,17 @@ jobs:
         context: platforms/hyperledger-indy/images/indy-node
         push: true
         tags: ${{ env.IMAGE_PATH }}/bevel-indy-node:latest
-    - name: Build and push indyOS indy-key-mgmt release tag ${{ steps.vars.outputs.tag }}  
-      id: indy-key-mgmt_release
+    
+    - name: Build and push indy-key-mgmt provided version
+      if: github.event.inputs.indy-node-version != ''
+      id: indy-key-mgmt_version
       uses: docker/build-push-action@v2
       with:
         context: platforms/hyperledger-indy/images/indy-key-mgmt
         push: true
-        tags: ${{ env.IMAGE_PATH }}/indy-key-mgmt:latest       
+        build-args: |
+          INDY_NODE_VERSION=${{ github.event.inputs.indy-node-version }}
+        tags: ${{ env.IMAGE_PATH }}/bevel-indy-key-mgmt:latest,${{ env.IMAGE_PATH }}/bevel-indy-key-mgmt:${{ github.event.inputs.indy-node-version }}       
 
     - name: Build and push bevel-indy-node:provided version
       if: github.event.inputs.indy-node-version != ''
@@ -100,12 +115,11 @@ jobs:
       with:
         context: platforms/hyperledger-indy/images/indy-node
         push: true
-        build-args: |
-          BUILDTIME-INDY-NODE-VERSION=${{ github.event.inputs.indy-node-version }}
+        # TODO: Add correct build arguments
+        #build-args: |
+        #  BUILDTIME-INDY-NODE-VERSION=${{ github.event.inputs.indy-node-version }}
         tags: ${{ env.IMAGE_PATH }}/bevel-indy-node:latest,${{ env.IMAGE_PATH }}/bevel-indy-node:${{ github.event.inputs.indy-node-version }}    
-              
-
-        
+                      
   indy-release: 
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
@@ -139,7 +153,7 @@ jobs:
       with:
         context: platforms/hyperledger-indy/images/indy-cli
         push: true
-        tags: ${{ env.IMAGE_PATH }}/indy-ledger-txn:${{ steps.vars.outputs.tag }},${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:stable 
+        tags: ${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:${{ steps.vars.outputs.tag }},${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:stable 
     
     - name: Build and push bevel-indy-key-mgmt release tag ${{ steps.vars.outputs.tag }}  
       id: indy-key-mgmt-release
