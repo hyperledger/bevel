@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-## ROLE: create/ibft
+## ROLE: create/member_node
 This role creates the helm value file of orion transaction manager for each node of all organizations.
 ### main.yaml
 ### Tasks

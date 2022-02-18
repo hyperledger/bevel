@@ -182,7 +182,7 @@ For development environment, minikube can be used as the Kubernetes cluster on w
 1. Configure minikube to use 4GB memory and default kubernetes version
    ```bash
    minikube config set memory 4096
-   minikube config set kubernetes-version v1.16.13
+   minikube config set kubernetes-version v1.19.15
    ```
 1. Then start minikube. This will take longer the first time.
    ```bash
