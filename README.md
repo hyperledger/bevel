@@ -98,7 +98,7 @@ docker run -it -v $(pwd):/home/bevel/ hyperledgerlabs/baf-build
 
 
 ## Sponsor
-Mark Wagner (Github: [n1zyz](https://github.com/n1zyz), email: [mwagner@redhat.com](mailto:mwagner@redhat.com)) - TSC Member
+Mark Wagner (GitHub: [n1zyz](https://github.com/n1zyz), email: [mwagner@redhat.com](mailto:mwagner@redhat.com)) - TSC Member
 
 ## Contributors ✨
 
