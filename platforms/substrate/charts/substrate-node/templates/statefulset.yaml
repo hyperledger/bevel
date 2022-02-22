@@ -1,38 +1,33 @@
+{{ $fullname :=  include "substrate_chart.name" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  {{- include "substrate_node.name" . | nindent 2 }}
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ $fullname }}
+  namespace: {{ .Values.node.namespace }}
   labels:
   {{- include "substrate_node.selectorLabels" . | nindent 4 }}
 spec:
-  serviceName: {{ .Values.node.name }}
-  replicas: {{ .Values.metadata.replicaCount }}
+  serviceName: {{ $fullname }}
+  replicas: {{ .Values.node.replicaCount | int }}
   selector:
-    matchLabels:
-      {{- include "substrate_node.name" . | nindent 6 }}                   
+    matchLabels:                 
       {{- include "substrate_node.selectorLabels" . | nindent 6 }}
   updateStrategy:
     type: RollingUpdate
   template:
     metadata:
-      labels: 
-        {{- include "substrate_node.name" . | nindent 8 }}               
+      {{- with .Values.podAnnotations }}
+      annotations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:               
         {{- include "substrate_node.selectorLabels" . | nindent 8 }}
     spec: 
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
       initContainers:
         {{- if .Values.node.chainDataSnapshotUrl }}
       - name: download-chain-snapshot
-        image: {{ .Values.images.repository }}
-        env:
-        - name: CHAIN_PATH
-          value: {{ default .Values.node.chain .Values.node.chainPath }}
-        - name: SNAPSHOT_FORMAT
-          value: {{ default "tar" .Values.node.chainDataSnapshotFormat }}
-        volumeMounts:
-        - mountPath: {{ .Values.node.chainPath }}
-          name: {{ .Values.node.name }}-pv
+        image: {{ .Values.initContainer.image.repository }}:{{ .Values.initContainer.image.tag }}
         command: [ "/bin/sh" ]
         args:
           - -c
@@ -55,18 +50,18 @@ spec:
               fi
               rm /data/snapshot
             fi
+                    env:
+        - name: CHAIN_PATH
+          value: {{ default .Values.node.chain .Values.node.chainPath }}
+        - name: SNAPSHOT_FORMAT
+          value: {{ default "tar" .Values.node.chainDataSnapshotFormat }}
+        volumeMounts:
+        - mountPath: /data
+          name: chain-data
         {{- end }}
         {{- if .Values.node.collator.relayChainDataSnapshotUrl }}
       - name: download-relay-chain-snapshot
-        image: {{ .Values.images.repository }}
-        env:
-        - name: RELAY_SNAPSHOT_FORMAT
-          value: {{ default "tar" .Values.node.collator.relayChainDataSnapshotFormat }}
-        - name: RELAY_CHAIN_PATH
-          value: {{ default .Values.node.collator.relayChain .Values.node.collator.relayChainPath }}
-        volumeMounts:
-        - mountPath: {{ .Values.node.chainPath }}
-          name: {{ .Values.node.name }}-pv
+        image: {{ .Values.initContainer.image.repository }}:{{ .Values.initContainer.image.tag }}
         command: [ "/bin/sh" ]
         args:
           - -c
@@ -89,26 +84,23 @@ spec:
               fi
               rm /data/relay-snapshot
             fi
+        env:
+        - name: RELAY_SNAPSHOT_FORMAT
+          value: {{ default "tar" .Values.node.collator.relayChainDataSnapshotFormat }}
+        - name: RELAY_CHAIN_PATH
+          value: {{ default .Values.node.collator.relayChain .Values.node.collator.relayChainPath }}
+        volumeMounts:
+        - mountPath: /data
+          name: chain-data
         {{- end }}
         {{- if .Values.node.chainDataGcsBucketUrl }}
       - name: sync-chain-gcs
-        image: {{ .Values.images.googleCloudSdk }}:{{ .Values.images.googleCloudSdk.tag }}
-        env:
-        - name: CHAIN_PATH
-          value: {{ default .Values.node.chain .Values.node.chainPath }}
-        volumeMounts:
-        - mountPath: {{ .Values.node.chainPath }}
-          name: {{ .Values.node.name }}-pv
-          {{- if .Values.gcloud.serviceAccountKey }}
-        - name: service-account-key
-          mountPath: /tmp
-          readOnly: true
-          {{- end }}
+        image: {{ .Values.googleCloudSdk.image.repository }}:{{ .Values.googleCloudSdk.image.tag }}
         command: [ "/bin/sh" ]
         args:
           - -c
           - |
-            {{- if .Values.gcloud.serviceAccountKey }}
+            {{- if .Values.googleCloudSdk.serviceAccountKey }}
             gcloud auth activate-service-account --key-file /tmp/service-account-key.json
             {{- end }}
             if [ -d "/data/chains/${CHAIN_PATH}/db" ]; then
@@ -123,26 +115,26 @@ spec:
                 mkdir -p /data/chains/${CHAIN_PATH}/db/full
                 gsutil -m -o "GSUtil:parallel_process_count=3" -o "GSUtil:parallel_thread_count=15" rsync -d -r ${BUCKET_URL}/${LATEST} /data/chains/${CHAIN_PATH}/db/full/
             fi
-        {{- end }}
-        {{- if .Values.node.collator.relayChainDataGcsBucketUrl }}
-      - name: sync-relay-chain-gcs
-        image: {{ .Values.images.googleCloudSdk }}:{{ .Values.images.googleCloudSdk.tag }}
         env:
-        - name: RELAY_CHAIN_PATH
-          value: {{ default .Values.node.collator.relayChain .Values.node.collator.relayChainPath }}
+        - name: CHAIN_PATH
+          value: {{ default .Values.node.chain .Values.node.chainPath }}
         volumeMounts:
-        - mountPath: {{ .Values.node.chainPath }}
-          name: {{ .Values.node.name }}-pv
-          {{- if .Values.gcloud.serviceAccountKey }}
+        - mountPath: /data
+          name: chain-data
+          {{- if .Values.googleCloudSdk.serviceAccountKey }}
         - name: service-account-key
           mountPath: /tmp
           readOnly: true
           {{- end }}
+        {{- end }}
+        {{- if .Values.node.collator.relayChainDataGcsBucketUrl }}
+      - name: sync-relay-chain-gcs
+        image: {{ .Values.googleCloudSdk.image.repository }}:{{ .Values.googleCloudSdk.image.tag }}
         command: [ "/bin/sh" ]
         args:
           - -c
           - |
-            {{- if .Values.gcloud.serviceAccountKey }}
+            {{- if .Values.googleCloudSdk.serviceAccountKey }}
             gcloud auth activate-service-account --key-file /tmp/service-account-key.json
             {{- end }}
             if [ -d "/data/relay/chains/${RELAY_CHAIN_PATH}/db" ]; then
@@ -157,9 +149,20 @@ spec:
               mkdir -p /data/relay/chains/${RELAY_CHAIN_PATH}/db/full
               gsutil -m -o "GSUtil:parallel_process_count=3" -o "GSUtil:parallel_thread_count=15" rsync -d -r ${BUCKET_URL}/${LATEST} /data/relay/chains/${RELAY_CHAIN_PATH}/db/full/
             fi
+        env:
+        - name: RELAY_CHAIN_PATH
+          value: {{ default .Values.node.collator.relayChain .Values.node.collator.relayChainPath }}
+        volumeMounts:
+        - mountPath: /data
+          name: chain-data
+             {{- if .Values.googleCloudSdk.serviceAccountKey }}
+        - name: service-account-key
+          mountPath: /tmp
+          readOnly: true
+          {{- end }}
         {{- end }}
       - name: node-secrets
-        image: {{ .Values.images.initContainer }}
+        image: {{ .Values.vault.image }}
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - mountPath: /secrets
@@ -174,7 +177,7 @@ spec:
         - name: VAULT_APP_ROLE
           value: {{ .Values.vault.appRole }}
         - name: PEER_NAME
-          value: {{ .Values.node.name }}
+          value: {{ .Values.node.peer_name }}
         command: ["/bin/sh", "-c"]
         args:
         - |-
@@ -233,7 +236,7 @@ spec:
             node_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["node_key"]')
             echo "${node_key}" > secrets/node_key
       - name: retrieve-chain-spec
-        image: {{ .Values.images.initContainer }}
+        image: {{ .Values.vault.image }}
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - mountPath: /secrets
@@ -298,114 +301,80 @@ spec:
             
             chain_spec=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["chain_spec"]')
             echo "${chain_spec}" > secrets/chain_spec.json
-      - name: insert-keys
-        image: {{ .Values.images.initContainer }}
-        imagePullPolicy: IfNotPresent
-        volumeMounts:
-        - mountPath: /secrets
-          name: keystore
-        - mountPath: {{ .Values.node.chainPath }}
-          name: {{ .Values.node.name }}-pv
-        env:
-        - name: 
-          value: 
-        - name: 
-          value: 
+      - name: inject-keys
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/bin/sh", "-c"]
         args:
         - |-
           #!/bin/sh
           ## store aura and grandpa keys in node keystore ##
 
-            exec {{ .Values.node.command }} key insert --base-path {{ .Values.node.chainPath }} \
+            exec {{ .Values.node.command }} key insert --base-path /data \
             --chain secrets/chain_spec.json \
             --scheme Sr25519 \
             --suri secrets/aura_seed \
             --key-type aura
 
-            exec {{ .Values.node.command }} key insert --base-path {{ .Values.node.chainPath }} \
+            exec {{ .Values.node.command }} key insert --base-path /data \
             --chain secrets/chain_spec.json \
             --scheme Ed25519 \
             --suri secrets/grandpa_seed \
             --key-type gran
-        {{- if .Values.node.perNodeServices.createP2pService }}
-      - name: query-services
-        image: {{ .Values.kubectl.image.repository }}:{{ .Values.kubectl.image.tag }}
         volumeMounts:
-        - mountPath: {{ .Values.node.chainPath }}
-          name: {{ .Values.node.name }}-pv
+        - mountPath: /secrets
+          name: keystore
+        - mountPath: /data
+          name: chain-data
+        {{- if .Values.node.perNodeServices.createP2pNodePortService }}
+      - name: retrieve-node-port
+        image: {{ .Values.kubectl.image.repository }}:{{ .Values.kubectl.image.tag }}
         command: [ "/bin/sh" ]
         args:
           - -c
           - |
-              POD_INDEX="${HOSTNAME##*-}"
-              {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
-              RELAY_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.spec.ports[*].nodePort}')"
-              echo -n "${RELAY_CHAIN_P2P_PORT}" > /data/relay_chain_p2p_port
-              echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-rc-p2p, saved ${RELAY_CHAIN_P2P_PORT} to /data/relay_chain_p2p_port"
-              {{- else if or (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
-              RELAY_CHAIN_P2P_PORT=30333
-              echo -n "${RELAY_CHAIN_P2P_PORT}" > /data/relay_chain_p2p_port
-              echo "Kubernetes service {{ $fullname }}-${POD_INDEX}-rc-p2p is ${RELAY_CHAIN_P2P_PORT}"
-              {{- end }}
-              {{- if and .Values.node.collator.isParachain (eq .Values.node.perNodeServices.p2pServiceType "Nodeport") }}
-              PARA_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-pc-p2p -o jsonpath='{.spec.ports[*].nodePort}')"
-              echo -n "${PARA_CHAIN_P2P_PORT}" > /data/para_chain_p2p_port
-              echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-pc-p2p, saved ${PARA_CHAIN_P2P_PORT} to /data/para_chain_p2p_port"
-              {{- else if and .Values.node.collator.isParachain (or (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP")) }}
-              PARA_CHAIN_P2P_PORT=30334
-              echo -n "${PARA_CHAIN_P2P_PORT}" > /data/para_chain_p2p_port
-              echo "Kubernetes service {{ $fullname }}-${POD_INDEX}-rc-p2p is ${PARA_CHAIN_P2P_PORT}"
-              {{- end }}
-              {{- if and .Values.node.perNodeServices.setPublicAddressToExternal.enabled (eq .Values.node.perNodeServices.p2pServiceType "NodePort") }}
-              EXTERNAL_ADDRESS=$(curl -sS {{ .Values.node.perNodeServices.setPublicAddressToExternal.ipRetrievalServiceUrl }})
-              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
-              echo "Retrieved external IP from {{ .Values.node.perNodeServices.setPublicAddressToExternal.ipRetrievalServiceUrl }}, saved $(cat /data/node_external_address) to /data/node_external_address"
-              {{- else if and .Values.node.perNodeServices.setPublicAddressToExternal.enabled (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") }}
-              EXTERNAL_ADDRESS=$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
-              echo "External hostname is ${EXTERNAL_ADDRESS}, saved to /data/node_external_address"
-              {{- else if eq .Values.node.perNodeServices.p2pServiceType "ClusterIP" }}
-              EXTERNAL_ADDRESS={{ $fullname }}-${POD_INDEX}-rc-p2p.{{ .Release.Namespace }}.svc.cluster.local
-              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
-              echo "External hostname is ${EXTERNAL_ADDRESS}, saved to /data/node_external_address"
-              {{- end }}
+            POD_INDEX="${HOSTNAME##*-}"
+            RELAY_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-relay-chain-p2p -o jsonpath='{.spec.ports[*].nodePort}')"
+            echo "${RELAY_CHAIN_P2P_PORT}" > /data/relay_chain_p2p_port
+            echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-relay-chain-p2p, saved ${RELAY_CHAIN_P2P_PORT} to /data/relay_chain_p2p_port"
+            {{- if .Values.node.collator.isParachain }}
+            PARA_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-para-chain-p2p -o jsonpath='{.spec.ports[*].nodePort}')"
+            echo "${PARA_CHAIN_P2P_PORT}" > /data/para_chain_p2p_port
+            echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-para-chain-p2p, saved ${PARA_CHAIN_P2P_PORT} to /data/para_chain_p2p_port"
+            {{- end }}
+            {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
+            EXTERNAL_IP=$(curl {{ .Values.node.perNodeServices.setPublicAddressToExternalIp.ipRetrievalServiceUrl }})
+            echo "${EXTERNAL_IP}" > /data/node_external_ip
+            echo "Retrieved external IP from {{ .Values.node.perNodeServices.setPublicAddressToExternalIp.ipRetrievalServiceUrl }}, saved ${EXTERNAL_IP} to /data/node_external_ip"
+            {{- end }}
+        volumeMounts:
+        - mountPath: /data
+          name: chain-data
         {{- end }}
       containers:
-      - name: node-substrate
-        image: {{ .Values.images.substrate }}
-        env:
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.name
-        volumeMounts:
-        - mountPath: /secrets
-          name: keystore
-        - mountPath: {{ .Values.node.chainPath }}
-          name: {{ .Values.node.name }}-pv
+      - name: {{ .Values.node.chain }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/bin/sh", "-c"]
         args:
         - |-
           #!/bin/sh
-             
-            {{- if .Values.node.perNodeServices.createP2pService }}
-            if [ ! -s /data/node_external_address ]; then echo "EXTERNAL_ADDRESS is empty" && exit 1 ; fi
-            EXTERNAL_ADDRESS="$(cat /data/node_external_address)"
-            echo "EXTERNAL_ADDRESS=${EXTERNAL_ADDRESS}"
-            RELAY_CHAIN_P2P_PORT="$(cat /data/relay_chain_p2p_port)"
-            echo "RELAY_CHAIN_P2P_PORT=${RELAY_CHAIN_P2P_PORT}"
-            {{- if .Values.node.collator.isParachain }}
-            PARA_CHAIN_P2P_PORT="$(cat /data/para_chain_p2p_port)"
-            echo "PARA_CHAIN_P2P_PORT=${PARA_CHAIN_P2P_PORT}"
-            {{- end }}
-            {{- end }}
-
+              {{- if .Values.node.perNodeServices.createP2pNodePortService }}
+              {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
+              EXTERNAL_IP="$(cat /data/node_external_ip)"
+              echo "EXTERNAL_IP=${EXTERNAL_IP}"
+              {{- end }}
+              RELAY_CHAIN_P2P_PORT="$(cat /data/relay_chain_p2p_port)"
+              echo "RELAY_CHAIN_P2P_PORT=${RELAY_CHAIN_P2P_PORT}"
+              {{- if .Values.node.collator.isParachain }}
+              PARA_CHAIN_P2P_PORT="$(cat /data/para_chain_p2p_port)"
+              echo "PARA_CHAIN_P2P_PORT=${PARA_CHAIN_P2P_PORT}"
+              {{- end }}
+              {{- end }}
             exec {{ .Values.node.command }} \
             --chain secrets/chain_spec.json \
             --name=${POD_NAME} \
-            --base-path={{ .Values.node.chainPath }} \
+            --base-path=/data/ \
             {{- if or (eq .Values.node.role "authority") (eq .Values.node.role "validator") }}
             --validator \
             {{- end }}
@@ -416,15 +385,9 @@ spec:
             --light \
             {{- end }}
             {{- if .Values.node.collator.isParachain }}
-            {{- if .Values.node.perNodeServices.createP2pService }}
-            {{- if .Values.node.perNodeServices.setPublicAddressToExternal.enabled }}
-            {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
-            --public-addr=/ip4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
-            {{- else if eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer" }}
-            --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
-            {{- end }}
-            {{- else if and (not .Values.node.perNodeServices.setPublicAddressToExternal.enabled) (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
-            --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
+            {{- if .Values.node.perNodeServices.createP2pNodePortService }}
+            {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
+            --public-addr=/ip4/${EXTERNAL_IP}/tcp/${PARA_CHAIN_P2P_PORT} \
             {{- end }}
             --listen-addr=/ip4/0.0.0.0/tcp/${PARA_CHAIN_P2P_PORT} \
             {{- end }}
@@ -439,27 +402,29 @@ spec:
             --jaeger-agent=127.0.0.1:{{ .Values.jaegerAgent.ports.compactPort }} \
             {{- end }}
             {{- join " " .Values.node.flags | nindent 12 }}
-            {{- if .Values.node.collator.isParachain }}
+            {{- if .Values.node.collator.isParachain }} \
             -- \
             --base-path=/data/relay/ \
             {{- end }}
             {{- if .Values.node.collator.relayChainCustomChainspecUrl }}
             --chain=/data/relay_chain_chainspec.json \
             {{- end }}
-            {{- if .Values.node.perNodeServices.createP2pService }}
-            {{- if .Values.node.perNodeServices.setPublicAddressToExternal.enabled }}
-            {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
-            --public-addr=/ip4/${EXTERNAL_ADDRESS}/tcp/${RELAY_CHAIN_P2P_PORT} \
-            {{- else if eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer" }}
-            --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${RELAY_CHAIN_P2P_PORT} \
-            {{- end }}
-            {{- else if and (not .Values.node.perNodeServices.setPublicAddressToExternal.enabled) (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
-            --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${RELAY_CHAIN_P2P_PORT} \
+            {{- if .Values.node.perNodeServices.createP2pNodePortService }}
+            {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
+            --public-addr=/ip4/${EXTERNAL_IP}/tcp/${RELAY_CHAIN_P2P_PORT} \
             {{- end }}
             --listen-addr=/ip4/0.0.0.0/tcp/${RELAY_CHAIN_P2P_PORT} \
             {{- end }}
             --listen-addr=/ip4/0.0.0.0/tcp/30333 \
             {{- join " " .Values.node.collator.relayChainFlags | nindent 12 }}
+        env:
+        - name: NODE_NAME
+          value: "$(POD_NAME)"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
         ports:
           - name: ws-rpc
             containerPort: {{ .Values.node.ports.ws }}
@@ -470,11 +435,10 @@ spec:
           - name: http-rpc
             containerPort: {{ .Values.node.ports.rpc }}
             protocol: TCP
-        {{- if .Values.node.collator.isParachain }}
-          - name: pc-p2p
-            containerPort: 30334
+          - name: prometheus 
+            containerPort: 9615
             protocol: TCP
-        {{- end }}
+      
         {{- if .Values.node.enableStartupProbe }}
           # On startup, retry the connection to the /health endpoint every 10s for 5 min before killing the container
         startupProbe:
@@ -497,25 +461,102 @@ spec:
           tcpSocket:
             port: websocket-rpc
         {{- end }}
+        resources:
+          {{- toYaml .Values.node.resources | nindent 12 }}
+        volumeMounts:
+        - mountPath: /secrets
+          name: keystore
+        - mountPath: /data
+          name: chain-data
+      {{- if .Values.node.substrateApiSidecar.enabled }}
+      - name: substrate-api-sidecar
+        image: {{ .Values.substrateApiSidecar.image.repository }}:{{ .Values.substrateApiSidecar.image.tag }}
+        env:
+          {{- range $key, $val := .Values.substrateApiSidecar.env }}
+        - name: {{ $key }}
+          value: {{ $val }}
+          {{- end }}
+        resources:
+        {{- toYaml .Values.substrateApiSidecar.resources | nindent 12 }}
+        ports:
+          - containerPort: 8080
+            name: api-sidecar
+            protocol: TCP
+        {{- end}}
+        {{- if .Values.node.tracing.enabled }}
+      - name: jaeger-agent-sidecar
+        image: {{ .Values.jaegerAgent.image.repository }}:{{ .Values.jaegerAgent.image.tag }}
+        args:
+          - --reporter.grpc.host-port={{ .Values.jaegerAgent.collector.url }}:{{ .Values.jaegerAgent.collector.port }}
+        env:
+        {{- range $key, $val := .Values.jaegerAgent.env }}
+        - name: {{ $key }}
+          value: {{ $val }}
+        {{- end }}
+        resources:
+        {{- toYaml .Values.jaegerAgent.resources | nindent 12 }}
+        ports:
+        - name: jaeger-compact
+          containerPort: {{ .Values.jaegerAgent.ports.compactPort }}
+          protocol: UDP
+        - name: jaeger-binary
+          containerPort: {{ .Values.jaegerAgent.ports.binaryPort }}
+          protocol: UDP
+        - name: http
+          containerPort: {{ .Values.jaegerAgent.ports.samplingPort }}
+          protocol: TCP
+        - name: admin
+          containerPort: 14271
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: admin
+        readinessProbe:
+          httpGet:
+            path: /
+            port: admin
+      {{- end}}
+      serviceAccountName: {{ $serviceAccountName }}
+      securityContext:
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 10 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
+      {{- if .Values.googleCloudSdk.serviceAccountKey }}
+      - name: service-account-key
+        secret:
+          secretName: chain-data-gcs-bucket-service-account-key
+      {{- end }}
       - name: keystore
         emptyDir:
           medium: Memory
       restartPolicy: OnFailure
-  volumeClaimTemplates: 
-  - apiVersion: v1
-    metadata:
-      name: {{ .Values.node.name }}-pv
-    kind: PersistentVolumeClaim
-    spec:
-      storageClassName: {{ .Values.storage.storageclassname }}
-      accessModes: [ "ReadWriteOnce" ]
-      {{- if .Values.node.chainDataKubernetesVolumeSnapshot }}
-      dataSource:
-        name: {{ .Values.node.chainDataKubernetesVolumeSnapshot }}
-        kind: VolumeSnapshot
-        apiGroup: snapshot.storage.k8s.io
-      {{- end }}
-      resources:
-        requests:
-          storage: {{ .Values.storage.storagesize }}
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: chain-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        {{- if .Values.node.chainDataKubernetesVolumeSnapshot }}
+        dataSource:
+          name: {{ .Values.node.chainDataKubernetesVolumeSnapshot }}
+          kind: VolumeSnapshot
+          apiGroup: snapshot.storage.k8s.io
+        {{- end }}
+        storageClassName: {{ .Values.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.node.dataVolumeSize }}

@@ -1,95 +1,53 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+  
+# substrate node runtime image
+# Eg. repository: parity/substrate
+image:
+  repository: 
+  tag: 
+  pullPolicy: 
 
-# This section contains the Substrate node metadata.
-metadata:
-  # Provide the namespace for the Substrate node.
-  # Eg. namespace: example-sub
-  namespace: 
-  # Provide the number of replicas for your pods.
-  # replicaCount: 1
-  replicaCount: 
-
-# This section contains the images used in the deployment
-images:
-  # substrate node runtime image
-  # Eg. substrate: parity/substrate
-  substrate: 
-  # NOTE: The alpine image used is the base alpine image with CURL installed.
-  # Eg. initContainer: hyperledgerlabs/alpine-utils:1.0
-  initContainer:
-  # image for downloading chain snapshot - 7-Zip Docker image based on Alpine Linux.
-  # Eg. repository: crazymax/7zip
-  repository:
-  # Google Cloud SDK bundle 
-  googleCloudSdk:
-    # smaller lightweight image Eg. slim
+# image for downloading chain snapshot - 7-Zip Docker image based on Alpine Linux.
+# Eg. repository: crazymax/7zip
+initContainer:
+  image:
+    repository:
     tag: 
-  # Image for Kubernetes command line interface
-  # Eg. bitnami/kubectl
-  kubectl:
 
-# This section contains the Substrate node details.
-node:
-  # Specifies the chain specification. It can be one of the predefined ones (dev, local, or staging) 
-  # or it can be a path to a file with the chainspec (such as one exported by the `build-spec` subcommand). 
-  # Eg. chain: local or chain: <path to chain spec file>
-  chain:
-  # Substrate CLI executable
-  # Eg. command: node-template
-  command:
-  # Provide the name of the node.
-  # Eg. name: example
-  name:
-  # Specifies the directory for storing all of the data related to this chain.
-  # Eg. chainPath: /tmp/alice
-  chainPath:
-  # role of the node
-  # Eg. role: validator
-  role:
-  # customChainspecUrl:
-  # chainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
-  # chainDataSnapshotFormat: 7z
-  # chainPath: ""
-  # chainDataKubernetesVolumeSnapshot: ""
-  # chainDataGcsBucketUrl: ""
-  collator:
-    isParachain:
-     # relayChain: polkadot
-  #  relayChainCustomChainspecUrl: ""
-  #  relayChainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
-  #  relayChainDataSnapshotFormat: 7z
-  #  relayChainPath: ""
-  #  relayChainDataKubernetesVolumeSnapshot: ""
-  #  relayChainDataGcsBucketUrl: ""
-  #  relayChainFlags:
-  perNodeServices:
-    createApiService:
-    createP2pService:
-    p2pServiceType:  # Must be type ClusterIP, NodePort or LoadBalancer, If using type NodePort or LoadBalancer then you must set NodeSelecter accordingly.
-    setPublicAddressToExternal:
-      enabled:
-      ipRetrievalServiceUrl:
-  # podManagementPolicy: Parallel
-  enableStartupProbe: 
-  enableReadinessProbe:
-  ports:
-    # Specifies the port to listen on for peer-to-peer (p2p) traffic
-    # Eg. p2p: 30333
-    p2p: 
-    # Specifies the port to listen on for incoming WebSocket traffic
-    # Eg. ws: 9944
-    ws: 
-    # Specifies the port to listen on for incoming RPC traffic
-    # Eg. 9933
-    rpc:
-    # parachain p2p port
-    pc-p2p:
-  # substrate command line flags Eg. --rpc-external
-  flags:
+# Image for Kubernetes command line interface
+# Eg. bitnami/kubectl
+kubectl:
+  image:
+    repository: 
+    tag: 
+
+googleCloudSdk:
+  image:
+    repository:
+    tag: # more lightweight than the full image and still contains gsutil
+  #serviceAccountKey: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create:
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
 
 ingress:
-  enabled:
+  enabled: false
   annotations: {}
   #  kubernetes.io/ingress.class: nginx
   #  kubernetes.io/tls-acme: "true"
@@ -103,20 +61,142 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-# gcloud service account authentication to sync chain data to gcs
-gcloud:
-  # serviceAccountKey: ""
+#extraLabels:
+#  type: rpc
 
-# This section contains the storage information.
-storage:
-  # Provide the name of the storageclass.
-  # NOTE: Make sure that the storageclass exist prior to this deployment as
-  # this chart doesn't create the storageclass.
-  # Eg. storageclassname: gcpstorageclass
-  storageclassname:
+# This section contains the Substrate node details.
+node:
+  # Provide the namespace for the Substrate node.
+  # Eg. namespace: example-sub
+  namespace:
+  # Provide the number of replicas for your pods.
+  # replicaCount: 1
+  replicaCount:
+  # Specifies the chain specification. It can be one of the predefined ones (dev, local, or staging) 
+  # or it can be a path to a file with the chainspec (such as one exported by the `build-spec` subcommand). 
+  # Eg. chain: local or chain: <path to chain spec file>
+  chain:
+  # Substrate CLI executable
+  # Eg. command: node-template
+  command:
+  # Provide the name of the node.
+  # Eg. peer_name: example
+  peer_name:
+  # Specifies the directory for storing all of the data related to this chain.
+  # Eg. chainPath: /tmp/alice
+  chainPath:
   # Provide the size of the volume
-  # Eg. storagesize: 1Gi
-  storagesize:
+  # Eg. dataVolumeSize: 1Gi
+  dataVolumeSize: 100Gi
+  # role of the node
+  # Eg. role: validator
+  role:
+  #customChainspecUrl:
+  #chainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
+  #chainDataSnapshotFormat: 7z
+  #chainDataKubernetesVolumeSnapshot: ""
+  #chainDataGcsBucketUrl: ""
+  collator:
+    isParachain: false
+    relayChain: polkadot
+  #  relayChainCustomChainspecUrl: ""
+  #  relayChainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
+  #  relayChainDataSnapshotFormat: 7z
+  #  relayChainPath: ""
+  #  relayChainDataKubernetesVolumeSnapshot: ""
+  #  relayChainDataGcsBucketUrl: ""
+  #  relayChainFlags:
+  enableStartupProbe: 
+  enableReadinessProbe: 
+  flags:
+    - "--rpc-external"
+    - "--ws-external"
+    - "--rpc-methods=safe"
+    - "--rpc-cors=all"
+    # - "--prometheus-external"
+  keys: {}
+  #  - type: "gran"
+  #    scheme: "ed25519"
+  #    seed: "//Alice//gran"
+  #  - type: "babe"
+  #    scheme: "sr25519"
+  #    seed: "//Alice//babe"
+  persistGeneratedNodeKey: false
+  #customNodeKey: ""
+  resources: {}
+  serviceMonitor:
+    enabled: false
+    #namespace: monitoring
+    #interval: 10s
+    # scrapeTimeout: 10s
+  perNodeServices:
+    createClusterIPService: true
+    createP2pNodePortService: false
+    setPublicAddressToExternalIp:
+      enabled: false
+      ipRetrievalServiceUrl: https://ifconfig.io
+  #podManagementPolicy: Parallel
+  ports:
+  # Specifies the port to listen on for peer-to-peer (p2p) traffic
+  # Eg. p2p: 30333
+  p2p: 
+  # Specifies the port to listen on for incoming WebSocket traffic
+  # Eg. ws: 9944
+  ws: 
+  # Specifies the port to listen on for incoming RPC traffic
+  # Eg. 9933
+  rpc:
+
+  # Enables Jaeger Agent as a sidecar
+  tracing:
+    enabled: false
+
+  # Enables Sustrate API as a sidecar
+  substrateApiSidecar:
+    enabled: false
+
+# https://github.com/paritytech/substrate-api-sidecar
+substrateApiSidecar:
+  image:
+    repository: parity/substrate-api-sidecar
+    tag: latest
+  env: {}
+  resources: {}
+
+# https://github.com/jaegertracing/jaeger
+jaegerAgent:
+  image:
+    repository: jaegertracing/jaeger-agent
+    tag: latest
+  ports:
+    # accept jaeger.thrift over compact thrift protocol
+    compactPort: 6831
+    # accept jaeger.thrift over binary thrift protocol
+    binaryPort: 6832
+    # (HTTP) serve configs, sampling strategies
+    samplingPort: 5778
+  collector:
+    url: null
+    # Jaeger Default GRPC port is 14250
+    port: 14250
+  env: {}
+  resources: {}
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+terminationGracePeriodSeconds: 60
+
+tolerations: []
+
+affinity: {}
+
+# Provide the name of the storageclass.
+# NOTE: Make sure that the storageclass exist prior to this deployment as
+# this chart doesn't create the storageclass.
+# Eg. storageClass: gcpstorageclass
+storageClass:
 
 # This section contains the vault related information.
 # NOTE: Make sure that the vault is already unsealed, intialized and configured to
@@ -139,3 +219,6 @@ vault:
   # Provide the vault role used.
   # Eg. appRole: vault-role
   appRole:
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. image: hyperledgerlabs/alpine-utils:1.0
+  image:

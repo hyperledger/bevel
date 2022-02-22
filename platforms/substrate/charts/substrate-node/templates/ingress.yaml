@@ -1,4 +1,5 @@
 {{- if .Values.ingress.enabled -}}
+  {{- $fullname :=  include "substrate_chart.name" . -}}
   {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
 apiVersion: networking.k8s.io/v1
   {{- else if semverCompare ">=1.14-0 <1.19.0" .Capabilities.KubeVersion.GitVersion -}}
@@ -8,7 +9,7 @@ apiVersion: extensions/v1beta1
   {{- end }}
 kind: Ingress
 metadata:
-  {{- include "substrate_node.name" . | indent 2 }}
+  name: {{ $fullname }}
   labels:
   {{- include "substrate_node.selectorLabels" . | indent 4 }}
   {{- with .Values.ingress.annotations }}

@@ -1,12 +1,40 @@
----
+{{ $fullname :=  include "substrate_chart.name" . }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: substrate-node
+  name: {{ $fullname }}
   labels:
     {{- include "substrate_node.serviceLabels" . | indent 4 }}
 spec:
   type: ClusterIP
+  clusterIP: None
+  selector:
+  {{- include "substrate_node.selectorLabels" . | nindent 4 }}
+  ports:
+    {{- if $.Values.node.substrateApiSidecar.enabled }}
+    - port: 8080
+      name: api-sidecar
+    {{- end }}
+    - port: 9933
+      name: http-rpc
+    - port: 9944
+      name: websocket-rpc
+---
+{{range $i := until (.Values.node.replicas | int) }}
+{{- if $.Values.node.perNodeServices.createClusterIPService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}
+  labels:
+    {{- include "substrate_node.serviceLabels" . | indent 4 }}
+    instance: {{ $fullname }}-{{ $i }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+  {{- include "substrate_node.selectorLabels" . | nindent 4 }} 
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
   ports:
   - name: ws-rpc
     protocol: TCP
@@ -14,26 +42,42 @@ spec:
   - name: http-rpc
     protocol: TCP
     port: {{ .Values.node.ports.rpc }}
-  selector:
-    service.rpc: substrate-node
+  - name: prometheus
+    port: 9615
+{{- end }}
 ---
-{{- if $.Values.node.perNodeServices.createP2pService }}
+{{- if $.Values.node.perNodeServices.createP2pNodePortService }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: substrate-node-p2p
+  name: {{ $fullname }}-{{ $i }}-relay-chain-p2p
 spec:
-  type: ClusterIP
+  type: NodePort
   externalTrafficPolicy: Local
   selector:
-    {{- include "substrate_node.labels" . | indent 4 }}
+  {{- include "substrate_node.selectorLabels" . | nindent 4 }} 
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
   ports:
     - name: p2p
       port: {{ .Values.node.ports.p2p }}
-      targetPort: {{ .Values.node.ports.p2p }}
-  {{- if and $.Values.node.collator.isParachain (or (eq $.Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq $.Values.node.perNodeServices.p2pServiceType "ClusterIP")) }}
-    - name: pc-p2p
-      port: {{ .Values.node.ports.pc-p2p }}
-      targetPort: {{ .Values.node.ports.pc-p2p }}
-  {{- end }}
+      targetPort: 30333
 {{- end }}
+---
+{{- if and $.Values.node.collator.isParachain $.Values.node.perNodeServices.createP2pNodePortService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}-para-chain-p2p
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local
+  selector:
+  {{- include "substrate_node.selectorLabels" . | nindent 4 }} 
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
+  ports:
+    - name: p2p
+      port: 30334
+      targetPort: 30334
+{{- end }}
+---
+{{ end }}
