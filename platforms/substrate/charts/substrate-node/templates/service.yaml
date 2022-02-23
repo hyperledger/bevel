@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $fullname }}
+  name: {{ $.Values.node.peerName }}
   labels:
     {{- include "substrate_node.serviceLabels" . | indent 4 }}
 spec:
@@ -15,9 +15,9 @@ spec:
     - port: 8080
       name: api-sidecar
     {{- end }}
-    - port: 9933
+    - port: {{ .Values.node.ports.rpc }}
       name: http-rpc
-    - port: 9944
+    - port: {{ .Values.node.ports.ws }}
       name: websocket-rpc
 ---
 {{range $i := until (.Values.node.replicas | int) }}
@@ -25,7 +25,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $fullname }}-{{ $i }}
+  name: {{ $.Values.node.peerName }}
   labels:
     {{- include "substrate_node.serviceLabels" . | indent 4 }}
     instance: {{ $fullname }}-{{ $i }}

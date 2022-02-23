@@ -1,0 +1,49 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This task fetches the bootnode's peer id from vault
+- name: Fetch bootnode peer id from vault
+  shell: |
+    vault kv get -field=node_id {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peers.name }}/substrate
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: bootnode_id
+  ignore_errors: yes
+
+# This task stores the bootnode id fetched in the previous task, in a file
+- name: Copy bootnode id to correct path
+  shell: |
+    echo {{ bootnode_id.stdout }} > {{ network.config.bootnode_id }}
+
+# This task creates the Bootnode value file for node helm chart
+- name: Create value file for bootnode
+  include_role:
+    name: create/helm_component
+  vars:
+    component_name: "{{ name }}{{ peers.name }}bootnode"
+    type: "node_substrate"
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/substrate/configuration"
+    msg: "[ci skip] Pushing Peer files"
+
+# This task creates a file, if it doesn't exist, to store bootnode information
+- name: Create bootnode file
+  template:
+    src: "bootnode.tpl"
+    dest: "{{ bootnode_data }}"
+  vars:
+    service_name: {{ peers.name }}
+    domain_name: {{ network.config.domain_name }}
+    p2p_port: {{ peers.p2p.port }}
+    bootnode_id: {{ network.config.bootnode_id }}
