@@ -1,0 +1,86 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: snikkisnikkimember_node
+  namespace: snikki-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: snikkisnikkimember_node
+  chart:
+    git: https://github.com/nikhilayadav/bevel.git
+    ref: crypto-materials
+    path: platforms/hyperledger-besu/charts/node_orion 
+  values:
+    replicaCount: 1
+
+    healthcheck:
+      readinessthreshold: 100
+      readinesscheckinterval: 5
+
+    staticnodes:
+      - "enode://f850e8618b94fa8961adfe9cfcdc997244ab371bd8380642ea0330ed8b5e1e150bb279258d0b3e7b32de9567d1a3f094ecefb677c869fe29a49f0b27d94a8120@validator1.rc.dev2.aws.blockchaincloudpoc-develop.com:15041"
+      - "enode://48730ff3ac34c7f71e69b4bba34e5fbdaf4a88cfcf67dbd3fa333cd0d2b4cc20f2457885ac705219ff8578dc540cbda82c0912af80ca9ec3c2cbaf16e768e301@validator2.rc.dev2.aws.blockchaincloudpoc-develop.com:15043"
+      - "enode://66ed91973e606fa162893b203f5b7e93aef7809a3dc412fc477c73bb4d0ac4c57dd830d556b3dac3dc75e2dacc7ce6e2d12b076a93685047299bf35a13afaa08@validator3.rc.dev2.aws.blockchaincloudpoc-develop.com:15045"
+      - "enode://235ac5c5baa5fb127dbe9c047ade9b50bc012839a0ef3a340c4ad15f2b2d79cf40fde93d9c36b79d64671842c1f4e763b3f249976015f16fa6e0edfca7286b10@validator4.rc.dev2.aws.blockchaincloudpoc-develop.com:15047"
+      - "enode://75fcae144151d2182a8dfab2b054113ee76d0d5e3956a1fa1698a1b76ddf08a1306e98af988fa4ee73ab7c8180641de50dc7bcabfaf2877e97e44dde08e6bbdd@cnikki.rc.dev2.aws.blockchaincloudpoc-develop.com:15049"
+      - "enode://b496d1c591e54e397612a5f95a97adcc4c223cb7e1bea571bbeb1ebd4aaec48942b7c2af81381b046e4e09981f4d340a4e7cac7fa87ed56050debe66eebae0c1@mnikki.rc.dev2.aws.blockchaincloudpoc-develop.com:15052"
+      - "enode://0e00efc3a2d3f8f23463b7ad4e38bba5aaed8e0e3b4e8673fbe34446d1264f1133d3e8bb0cdb31e53756e75fa1f45793ef1bae8ea7608f40d5dfc839851e0c35@snikki.rc.dev2.aws.blockchaincloudpoc-develop.com:15055"
+
+    metadata:
+      namespace: snikki-bes
+      labels:
+
+    liveliness_check:
+      enabled: false
+ 
+    proxy:
+      provider: ambassador
+      external_url: snikki.rc.dev2.aws.blockchaincloudpoc-develop.com
+      p2p: 15055
+      rpc: 15056
+      tmport: 15057
+
+    images:
+      node: hyperledger/besu:21.10.6
+      alpineutils: hyperledgerlabs/alpine-utils:1.0
+      orion: pegasyseng/orion:1.6.0
+
+    node:
+      name: snikki
+      consensus: ibft
+      subject: O=Store,OU=Store,L=40.73/-74/New York,C=US
+      mountPath: /opt/besu/data
+      servicetype: ClusterIP
+      imagePullSecret: regcred
+      ports:
+        p2p: 30303
+        rpc: 8545
+        ws: 8546
+
+    orion:
+      name: orion
+      tls: True
+      confdir: /etc/config
+      url: "https://snikki.rc.dev2.aws.blockchaincloudpoc-develop.com"
+      nodelist: "\"https://cnikki.rc.dev2.aws.blockchaincloudpoc-develop.com:15051\",\"https://mnikki.rc.dev2.aws.blockchaincloudpoc-develop.com:15054\",\"https://carrier.rc.dev2.aws.blockchaincloudpoc-develop.com:15051\""
+      trust: ca-or-tofu
+      ports:
+        nodeport: 15057
+        clientport: 8888
+
+    storage:
+      storageclassname: awsstorageclass
+      storagesize: 1Gi
+
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      secretprefix: secretsv2/data/snikki-bes/crypto/snikki
+      serviceaccountname: vault-auth
+      keyname: data
+      tmdir: tm
+      tlsdir: tls
+      role: vault-role
+      authpath: besusnikki
+
+    genesis: ewogICJjb25maWciOiB7CiAgICAiY2hhaW5JZCI6IDIwMTgsCiAgICAiY29uc3RhbnRpbm9wbGVmaXhibG9jayI6IDAsCiAgICAiY29udHJhY3RTaXplTGltaXQiOiAyMTQ3NDgzNjQ3LAogICAgImliZnQyIjogewogICAgICAiYmxvY2twZXJpb2RzZWNvbmRzIjogMiwKICAgICAgImVwb2NobGVuZ3RoIjogMzAwMDAsCiAgICAgICJyZXF1ZXN0dGltZW91dHNlY29uZHMiOiAxMAogICAgfQogIH0sCiAgIm5vbmNlIjogIjB4MCIsCiAgInRpbWVzdGFtcCI6ICIweDU4ZWU0MGJhIiwKICAiZ2FzTGltaXQiOiAiMHgxZmZmZmZmZmZmZmZmZiIsCiAgImRpZmZpY3VsdHkiOiAiMHgxIiwKICAiZXh0cmFEYXRhIjogIjB4Zjg3ZWEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGY4NTQ5NDgyYjJhN2ZmODE1MzQ4YWYzNDY1ZGQwYTc0YzU2MzA3NjY2NTMwMjM5NDUwMjA5MzNkNmViYzUxOTJiYzgzZjg4MGYyOTdlYTU3YmQ1ODc4ZTc5NGU3Njg0MTRiN2RjNTdlM2FmYTFjOGZiZDRiYmYwY2VkOGQzYTlkMDc5NDEwZjMxMmM4Y2QyYzU5ZDEwZWQ3ZDA4NGFmNmNkODgyNTYwMTI1YzA4MDg0MDAwMDAwMDBjMCIKfQ==
