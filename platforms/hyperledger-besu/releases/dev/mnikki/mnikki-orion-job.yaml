@@ -1,0 +1,26 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: mnikki-orion-job
+  namespace: mnikki-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: mnikki-orion-job
+  chart:
+    path: platforms/hyperledger-besu/charts/orion_key_mgmt
+    git: https://github.com/nikhilayadav/bevel.git
+    ref: crypto-materials
+  values:
+    metadata:
+      name: mnikki-orion-job
+      namespace: mnikki-bes    
+    image:      
+      repository: pegasyseng/orion:1.6.0
+      pullSecret: regcred
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      authpath: besumnikki
+      role: vault-role
+      serviceaccountname: vault-auth
+      tmprefix: secretsv2/data/mnikki-bes/crypto/mnikki/tm
