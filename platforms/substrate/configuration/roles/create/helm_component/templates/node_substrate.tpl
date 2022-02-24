@@ -107,7 +107,6 @@ spec:
     proxy:
       provider: ambassador
       external_url: {{ name }}.{{ external_url }}
-      rpc: {{ peers.rpc.ambassador }}
       p2p: {{ peers.p2p.ambassador }}
 
     substrateApiSidecar:
