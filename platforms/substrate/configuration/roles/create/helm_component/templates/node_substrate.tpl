@@ -93,14 +93,22 @@ spec:
           enabled: false
           ipRetrievalServiceUrl: https://ifconfig.io
       podManagementPolicy:
+
       ports:
         p2p: {{ peers.p2p.port }}
         ws: {{ peers.ws-rpc.port }}
         rpc: {{ peers.rpc.port }}
+
       tracing:
         enabled: false
       substrateApiSidecar:
         enabled: false
+
+    proxy:
+      provider: ambassador
+      external_url: {{ name }}.{{ external_url }}
+      rpc: {{ peers.rpc.ambassador }}
+      p2p: {{ peers.p2p.ambassador }}
 
     substrateApiSidecar:
       image:
