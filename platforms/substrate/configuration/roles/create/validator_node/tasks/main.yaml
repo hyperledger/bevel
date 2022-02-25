@@ -1,0 +1,26 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+
+#This task creates the value files for each validator node of organization
+- name: Create value file for validator for each node
+  include_role:
+    name: create/helm_component
+  vars:
+    component_name: "{{ name }}{{ peers.name }}validator_node"
+    type: "node_substrate"
+  loop: "{{ peers }}"
+
+  
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/substrate/configuration"
+    msg: "[ci skip] Pushing Peer files"

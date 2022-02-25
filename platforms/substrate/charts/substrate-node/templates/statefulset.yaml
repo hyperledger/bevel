@@ -1,4 +1,5 @@
 {{ $fullname :=  include "substrate_chart.name" . }}
+{{range $i := until (.Values.node.replicas | int) }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -7,7 +8,7 @@ metadata:
   labels:
   {{- include "substrate_node.selectorLabels" . | nindent 4 }}
 spec:
-  serviceName: {{ $fullname }}
+  serviceName: {{ $.Values.node.peerName }}
   replicas: {{ .Values.node.replicaCount | int }}
   selector:
     matchLabels:                 
@@ -177,7 +178,7 @@ spec:
         - name: VAULT_APP_ROLE
           value: {{ .Values.vault.appRole }}
         - name: PEER_NAME
-          value: {{ .Values.node.peer_name }}
+          value: {{ .Values.node.peerName }}
         command: ["/bin/sh", "-c"]
         args:
         - |-
@@ -250,6 +251,8 @@ spec:
           value: {{ .Values.vault.authPath }}
         - name: VAULT_APP_ROLE
           value: {{ .Values.vault.appRole }}
+        - name: PEER_NAME
+          value: {{ .Values.node.peerName }}
         command: ["/bin/sh", "-c"]
         args:
         - |-
@@ -384,6 +387,9 @@ spec:
             {{- if eq .Values.node.role "light" }}
             --light \
             {{- end }}
+            {{- if or (eq .Values.node.role "validator") (eq .Values.node.role "member") }}
+            --bootnodes {{ .Values.bootnode }}\
+            {{- end }}
             {{- if .Values.node.collator.isParachain }}
             {{- if .Values.node.perNodeServices.createP2pNodePortService }}
             {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
@@ -438,7 +444,7 @@ spec:
           - name: prometheus 
             containerPort: 9615
             protocol: TCP
-      
+        
         {{- if .Values.node.enableStartupProbe }}
           # On startup, retry the connection to the /health endpoint every 10s for 5 min before killing the container
         startupProbe:

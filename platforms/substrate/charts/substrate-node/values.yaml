@@ -42,9 +42,9 @@ serviceAccount:
   name: ""
 
 podSecurityContext:
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
+  runAsUser: 
+  runAsGroup: 
+  fsGroup: 
 
 ingress:
   enabled: false
@@ -64,6 +64,9 @@ ingress:
 #extraLabels:
 #  type: rpc
 
+# bootnode contains the bootnode address for organizations to connect to
+bootnode: 
+
 # This section contains the Substrate node details.
 node:
   # Provide the namespace for the Substrate node.
@@ -81,7 +84,7 @@ node:
   command:
   # Provide the name of the node.
   # Eg. peer_name: example
-  peer_name:
+  peerName:
   # Specifies the directory for storing all of the data related to this chain.
   # Eg. chainPath: /tmp/alice
   chainPath:
@@ -131,7 +134,7 @@ node:
     # scrapeTimeout: 10s
   perNodeServices:
     createClusterIPService: true
-    createP2pNodePortService: false
+    createP2pNodePortService: false 
     setPublicAddressToExternalIp:
       enabled: false
       ipRetrievalServiceUrl: https://ifconfig.io
@@ -139,13 +142,13 @@ node:
   ports:
   # Specifies the port to listen on for peer-to-peer (p2p) traffic
   # Eg. p2p: 30333
-  p2p: 
+    p2p: 
   # Specifies the port to listen on for incoming WebSocket traffic
   # Eg. ws: 9944
-  ws: 
+    ws: 
   # Specifies the port to listen on for incoming RPC traffic
   # Eg. 9933
-  rpc:
+    rpc:
 
   # Enables Jaeger Agent as a sidecar
   tracing:
@@ -154,6 +157,19 @@ node:
   # Enables Sustrate API as a sidecar
   substrateApiSidecar:
     enabled: false
+
+# Proxy section contains the proxy provider and ports
+proxy:
+  # Mention the proxy provider. Currently ambassador is supported
+  # eg. provider: ambassador
+  provider:
+  # url that will be added in DNS recordset
+  # eg. external_url: test.substrate.example.com
+  external_url:
+  # Mention the p2p port configured on proxy.
+  # NOTE: Make sure that the port is enabled and not binded on the proxy.
+  # Eg. p2p: 15010
+  p2p:
 
 # https://github.com/paritytech/substrate-api-sidecar
 substrateApiSidecar:
@@ -212,8 +228,6 @@ vault:
   # Provide the vault path where the secrets are stored
   # Eg. secretPrefix: secretsv2/sub-org-name
   secretPrefix:
-  # Provide the filename that contains secrets inside the secretPrefix directory
-  filename:
   # Provide the auth path configured to be used. Default is /kubernetes
   authPath: 
   # Provide the vault role used.
