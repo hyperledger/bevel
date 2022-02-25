@@ -36,7 +36,7 @@
 # This task deletes vault auth
 - name: Delete vault-auth path
   shell: |
-    vault kv delete sys/auth/quorum{{ org_name }}
+    vault kv delete sys/auth/substrate{{ org_name }}
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
@@ -44,10 +44,8 @@
 # This task deletes crypto material
 - name: Delete Crypto material 
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/transaction
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/quorum
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/certs
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/genesis
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/{{ peer.name }}/substrate
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/genesis
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/tlscerts
   loop: "{{ services.peers }}"
   environment:

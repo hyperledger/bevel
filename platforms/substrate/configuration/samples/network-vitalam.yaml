@@ -16,7 +16,7 @@ network:
 
   #Environment section for Kubernetes setup
   env:
-    type: "changeme"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "vitalamdev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Substrate
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
@@ -47,8 +47,8 @@ network:
     # Provide the command which is used to start the node
     command: "./vitalam-node"     # Please ensure the command corresponds to the node_image above
     # NOTE for the below paths, the directories should exist
-    bootnodes: "/home/CHANGE_ME/bevel/build/substrate_bootnodes" # Location where bootnodes information is read or saved if empty
-    genesis: "/home/CHANGE_ME/bevel/build/substrate_genesis"   # Location where information is read or saved if empty
+    bootnodes: "/BUILD_DIR/substrate_bootnodes" # Location where bootnodes information is read or saved if empty
+    genesis: "/BUILD_DIR/substrate_genesis"   # Location where information is read or saved if empty
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -58,33 +58,31 @@ network:
       unit: OEM
       external_url_suffix: vitalam.inteli-poc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
       cloud_provider: gcp   # Options: aws, azure, gcp
-      aws:
-        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
-        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+      
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        context: "gke_acn-inteli-poc_europe-west2_gke-dev"
-        config_file: "~/.kube/config"
+        context: "GKE_CONTEXT"
+        config_file: "/BUILD_DIR/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
-        url: "http://vault.internal.dev.gcp.inteli-poc.com:20002"
-        root_token: "CHANGE_ME"
+        url: "http://VAULT_URL:VAULT_PORT"
+        root_token: "VAULT_TOKEN"
         secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "https://github.com/inteli-poc/bevel.git"         # Gitops https or ssh url for flux value files 
-        branch: "CHANGE_ME"           # Git branch where release is being made
+        branch: "vitalam"           # Git branch where release is being made
         release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/inteli-poc/bevel.git"   # Gitops git repository URL for git push 
-        username: "CHANGE_ME"          # Git Service user who has rights to check-in in all branches
-        password: "CHANGE_ME"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "change@me.com"                # Email to use in git config
-        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+        username: "bevel"          # Git Service user who has rights to check-in in all branches
+        password: "GIT_TOKEN"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "bevel@inteli-poc.com"                # Email to use in git config
+        private_key: "/BUILD_DIR/gitops"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       # The participating nodes are named as peers
       services:
         peers:
@@ -146,33 +144,31 @@ network:
       unit: Tier1
       external_url_suffix: vitalam.inteli-poc.com      
       cloud_provider: gcp   # Options: aws, azure, gcp
-      aws:
-        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
-        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws  
+      
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        context: "gke_acn-inteli-poc_europe-west2_gke-dev"
-        config_file: "~/.kube/config"
+        context: "GKE_CONTEXT"
+        config_file: "/BUILD_DIR/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
-        url: "http://vault.internal.dev.gcp.inteli-poc.com:20002"
-        root_token: "CHANGE_ME"
+        url: "http://VAULT_URL:VAULT_PORT"
+        root_token: "VAULT_TOKEN"
         secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # IMPORTANT: Do not check-in your password, the git_access_token!
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "https://github.com/inteli-poc/bevel.git"         # Gitops https or ssh url for flux value files 
-        branch: "CHANGE_ME"           # Git branch where release is being made
+        branch: "vitalam"           # Git branch where release is being made
         release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/inteli-poc/bevel.git"   # Gitops git repository URL for git push 
-        username: "CHANGE_ME"          # Git Service user who has rights to check-in in all branches
-        password: "CHANGE_ME"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "change@me.com"                # Email to use in git config
-        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+        username: "bevel"          # Git Service user who has rights to check-in in all branches
+        password: "GIT_TOKEN"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "bevel@inteli-poc.com"                # Email to use in git config
+        private_key: "/BUILD_DIR/gitops"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # The participating nodes are named as peers 
       services:
@@ -225,33 +221,31 @@ network:
       unit: Tier2
       external_url_suffix: vitalam.inteli-poc.com      
       cloud_provider: gcp   # Options: aws, azure, gcp
-      aws:
-        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
-        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws  
+      
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
-        context: "gke_acn-inteli-poc_europe-west2_gke-dev"
-        config_file: "~/.kube/config"
+        context: "GKE_CONTEXT"
+        config_file: "/BUILD_DIR/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
-        url: "http://vault.internal.dev.gcp.inteli-poc.com:20002"
-        root_token: "CHANGE_ME"
+        url: "http://VAULT_URL:VAULT_PORT"
+        root_token: "VAULT_TOKEN"
         secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # IMPORTANT: Do not check-in your password, the git_access_token!
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "https://github.com/inteli-poc/bevel.git"         # Gitops https or ssh url for flux value files 
-        branch: "CHANGE_ME"           # Git branch where release is being made
+        branch: "vitalam"           # Git branch where release is being made
         release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
         git_repo: "github.com/inteli-poc/bevel.git"   # Gitops git repository URL for git push 
-        username: "CHANGE_ME"          # Git Service user who has rights to check-in in all branches
-        password: "CHANGE_ME"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "change@me.com"                # Email to use in git config
-        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+        username: "bevel"          # Git Service user who has rights to check-in in all branches
+        password: "GIT_TOKEN"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "bevel@inteli-poc.com"                # Email to use in git config
+        private_key: "/BUILD_DIR/gitops"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       services:
         peers:

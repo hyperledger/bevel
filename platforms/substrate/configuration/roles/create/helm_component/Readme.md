@@ -29,7 +29,7 @@ This task creates the value file for the role which calls it.
     *name: Type of the Helm Release file 
     *values_dir: The path where the generated files are stored
     *type:The corresponding template file is chosen based on this type variable.
-The mapping is stored at `/platforms/quorum/playbooks/roles/helm_component/vars/main.yaml`. If the type is not found in the mapping then it takes in the default `helm_component.tpl` template.
+The mapping is stored at `/platforms/substrate/playbooks/roles/create/helm_component/vars/main.yaml`. If the type is not found in the mapping then it takes in the default `helm_component.tpl` template.
  
 
 #### 3. Helm lint
