@@ -3,105 +3,95 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-## ROLE: setup/vault_kubernetes
+## ROLE: vault_kubernetes
 This role setups communication between the vault and kubernetes cluster and install neccessary configurations.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-
-
-#### 1. Check namespace is created
-This task checks if the namespace is created or not
-**k8s_info**: This module checks for the k8s resources in the cluster
+#### 1. Check if namespace is created
+This tasks check if the namespace is already created or not.
 ##### Input Variables
-    kind: name of the resources
-    *name: namespace name
-    *kubeconfig: kubeconfig file from network.yaml file.
-    *context: cluster context
-    
-##### Output variable
-    *get_namespace: Stores the output of this task.
+    kind: This defines the kind of Kubernetes resource
+    *name: Name of the component 
+    *kubeconfig: The config file of the cluster
+    *context: This refer to the required kubernetes cluster context
+##### Output Variables
 
-#### 2. Ensure build directory exists
-This task checks whether build directory present or not.If not present,creates one.
-##### Input Variables
-  
-    path: The path where to check is specified here
-    recurse: Yes/No to recursively check inside the path specified.
-    state: Type i.e. directory.
+    get_namespace: This variable stores the output of namespace query.
+  **until**: This condition checks until *get_namespace.resources* variable exists
+  **retries**: No of retries
+  **delay**: Specifies the delay between every retry
 
-#### 3. Check if Kubernetes-auth already created for Organization
+#### 2. Check if Kubernetes-auth already created for Organization
 This task checks if the vault path already exists.
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    *component_auth: kubernetes auth path specified here.
+**environment** : It includes the list of environment variables.
+**shell** : This command lists the auth methods enabled. The output lists the enabled auth methods and options for those methods.
+**vault* : This variable contains details of vault from network.yaml. It comes from previous calling playbook(deploy-network,yaml) 
 
 ##### Output Variables
     auth_list: Stores the list of enables auth methods
 
-#### 4. Vault Auth enable for organisation
-This task enables the path for the nodes on vault
-This task runs only when {{component_auth}} is not already created
+#### 3. Check if policy exists
+This task checks if the vault-ro policy already exists
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    *component_auth: Contains the auth path. 
-**when**: It runs Only when component_auth is *NOT* in the output of auth_list
-**ignore_errors**: This flag ignores the any errors and proceeds further.
+    *component_name: The name of resource
+**shell** : This command reads the vault and checks if the policy exists.
+**ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
-#### 5. Get Kubernetes cert files for organizations
-This task get the certificate for the cluster mentioned in k8 secret
-**shell** : This command get the certificates for cluster and stores them in the temporary build directory.
+##### Output Variables
+    vault_policy_result: Stores the result of policy check shell command.
+
+#### 4. Ensures build dir exists
+This task creates the build temp directory.
 ##### Input Variables
-     *config_file: kuberetes configuration path specified here.
-     *component_ns: name of the resource
-**when**: It runs only when the *component_auth* is not created
+    path: The path where to check is specified here.
+    recurse: Yes/No to recursively check inside the path specified. 
 
-#### 6. Write reviewer token
-This task writes the Service Account token to the vault for various Substrate entity
+#### 5. Create vault_kubernetes secrets tokens
+This task creates secrets for the root token and the reviewer token
 ##### Input Variables
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    *config_file: kuberetes configuration path specified here.
-    *component_ns: name of the resource
-**shell** : Export command makes the variables, known to child processes.
-The vault write command writes the Service Account token to the vault for Organisations
-**when**: It runs only when the *auth_path* is not created
+    *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
+    *vault: "Vault Details"
+    *kubernetes: "{{ item.k8s }}"
+**include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secret`.
 
-#### 7. Check if policy exists
-Checks if policy for the node organizations exists
-**shell**: calls vault binary to read the vault policy
- ##### Input Variables
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-#### Output variable
-    *vault_policy_result*: result of the above task.
-**ignore_errors** : ignore errors
-
-
-#### 8. Create policy for Access Control
-This task checks for the vault secret path and creates policy
+### 6. Get the kubernetes server url
+This role get url address of Kubernetes server and store it into variable.
 ##### Input Variables
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-**shell**: creates the policies for the organization
+    *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml
+**shell** : This command get url address of Kubernetes server.
+ 
+#### Output Variables:
+    kubernetes_server_url: Stored url address of Kubernetes server.
 
-
-#### 9. Create Vault auth role
-This task create Vault secrets path.
+#### 7. Create value file for chaincode commit
+This is the nested Task for chaincode commit.
 ##### Input Variables
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    *component_path: path of the resource
-    *component_name: name of the resource
-**shell**: enable the vault secret path
-**when**: It runs only when the *auth_list.stdout.find(component_auth)* does not exists i.e. auth path is not found
+    *name: "Name of the organisation"
+    *type: "vault_k8s_mgmt"
+    *component_name: Name of the component, "{{ item.name | lower}}}}-vaultkubernetes-job"
+    *component_type: Type of the component, "{{ item.type | lower}} }}"
+    *component_ns: "Namespace of organisation , Format: {{ item.name | lower}}-net"
+    *vault_auth: "Value of checking for auth path"
+    *vault_policy: "Value of checking the existence of policies"
+    *git_url: "Git SSH url"
+    *git_branch: "Git Branch Name"
+    *charts_dir: "Path of Charts Directory"
+    *vault: "Vault Details"
+    *k8s: "Kubernetes Details"
+    *kubernetes_url: "url address of Kubernetes server"
+    *values_dir: "Destination directory"
+**include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here `helm_component`.
 
-#### 10.  Create the docker pull credentials
-This task creates the docker pull credentials for image registry
+#### 8. Git Push
+This task pushes the above generated value files to git repo.
 ##### Input Variables
-    *component_ns: name of the namespace
-
-**shell** : This command creates the vault auth.
-**when**: Condition is specified here, runs only when *auth_path* is not found.
+    GGIT_DIR: "The path of directory which needs to be pushed"    
+    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
+    msg: "Message for git commit"
