@@ -18,7 +18,7 @@ spec:
     replicaCount: 1
     expressapp:
       serviceType: ClusterIP
-      image: {{ network.docker.url }}/{{ expressapi_image }}
+      image: {{ expressapi_image }}
       pullPolicy: Always
       pullSecrets: regcred
       nodePorts:
