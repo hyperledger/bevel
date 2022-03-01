@@ -1,0 +1,50 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{- include "substrate_api_chart.name" . | nindent 8 }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    run: {{- include "substrate_api_chart.name" . | nindent 9 }}
+    {{- include "substrate_api.selectorLabels" . | indent 4 }}
+spec:
+  type: {{ .Values.api.serviceType }}
+  selector:
+    app: {{- include "substrate_api_chart.name" . | nindent 9 }}
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+
+{{- if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{- include "substrate_api_chart.name" . | nindent 8 }}
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+spec:
+  tls:
+  - hosts:
+    - {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
+    secretName: {{ .Values.proxy.peer_name }}-{{ .Values.metadata.namespace }}-ambassador-certs
+  rules:
+  - host: {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{- include "substrate_api_chart.name" . | nindent 8 }}
+            port:
+              number: 80
+{{- end }}
