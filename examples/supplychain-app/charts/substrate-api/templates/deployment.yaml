@@ -1,0 +1,138 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{- include "substrate_api_chart.name" . | nindent 8 }}
+  {{- if .Values.deployment.annotations }}
+    annotations:
+{{ toYaml .Values.deployment.annotations | indent 6 }}
+  {{- end }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+  {{- include "substrate_node.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.metadata.replicaCount }}
+  selector:
+    matchLabels:
+    {{- include "substrate_node.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+      {{- include "substrate_node.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.vault.serviceaccountname }}
+      hostname: {{ .Values.node.peerName }}
+      imagePullSecrets:
+        - name: {{ .Values.api.image.pullSecrets }}
+      volumes:
+        - name: config
+          emptyDir:
+            medium: Memory
+      initContainers:
+        - name: config-init
+          image: {{ .Values.images.alpineutils }}
+          imagePullPolicy: Always
+          volumeMounts:
+          - name: config
+            mountPath: /secret
+          env:
+          - name: VAULT_ADDR
+            value: {{ .Values.vault.address }}
+          - name: VAULT_SECRET_PREFIX
+            value: {{ .Values.vault.secretprefix }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ .Values.vault.authpath }}
+          - name: VAULT_APP_ROLE
+            value: {{ .Values.vault.role }}
+          - name: PEER_NAME
+            value: {{ .Values.node.peerName }}
+          - name: MOUNT_PATH
+            value: "/secret"
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${vault_secret_key})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+
+              #Login to Vault and so I can get an approle token
+              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+                -H "Content-Type: application/json" \
+                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+                jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+              echo "Logged into Vault"
+  
+              vault_secret_key="${VAULT_SECRET_PREFIX}/${PEER_NAME}/substrate"
+
+              echo "Getting the node account key from vault: $vault_secret_key"          
+              LOOKUP_SECRET_RESPONSE=$(curl -sS \
+                --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${vault_secret_key} | \
+                jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              node_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["node_key"]')
+              
+              OUTPUT_PATH="${MOUNT_PATH}/keys"
+              mkdir -p ${OUTPUT_PATH}
+
+              echo -n "${node_key}" > ${OUTPUT_PATH}/node_key
+      containers:     
+        - name: substrate-api
+          image: {{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          env:
+          - name: LOG_LEVEL
+            value: {{ .Values.env.logLevel }}
+          - name: API_HOST
+            value: {{ .Values.node.peerName }}
+          - name: API_PORT
+            value: {{ .Values.api.port }}
+          - name: IPFS_HOST
+            value: vitalam-ipfs-api
+          - name: IPFS_PORT
+            value: {{ .Values.ipfs.port }}
+          - name: AUTH_JWKS_URI
+            value: {{ .Values.env.auth.jwksUri }}
+          - name: AUTH_AUDIENCE
+            value: {{ .Values.env.auth.audience }}
+          - name: AUTH_ISSUER
+            value: {{ .Values.env.auth.issuer }}
+          - name: AUTH_TOKEN_URL
+            value: {{ .Values.env.auth.tokenUrl }}
+          - name: USER_URI
+            value: "/secret/keys"
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+          - name: config
+            mountPath: /secret
