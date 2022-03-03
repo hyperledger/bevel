@@ -7,7 +7,7 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   chart:
-    path: {{ component_gitops.chart_source }}/substrate-api
+    path: {{ component_gitops.chart_source }}/vitalam-api
     git: "{{ component_gitops.git_url }}"
     ref: "{{ component_gitops.branch }}"
   releaseName: {{ name }}{{ network.type }}-api

@@ -7,26 +7,26 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: {{- include "substrate_api_chart.name" . | nindent 8 }}
+  name: {{- include "vitalam_api_chart.name" . | nindent 8 }}
   {{- if .Values.deployment.annotations }}
     annotations:
 {{ toYaml .Values.deployment.annotations | indent 6 }}
   {{- end }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
-  {{- include "substrate_node.selectorLabels" . | nindent 4 }}
+  {{- include "vitalam_node.selectorLabels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.metadata.replicaCount }}
   selector:
     matchLabels:
-    {{- include "substrate_node.selectorLabels" . | nindent 6 }}
+    {{- include "vitalam_node.selectorLabels" . | nindent 6 }}
   strategy:
     type: Recreate
     rollingUpdate: null
   template:
     metadata:
       labels:
-      {{- include "substrate_node.selectorLabels" . | nindent 8 }}
+      {{- include "vitalam_node.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
       hostname: {{ .Values.node.peerName }}
@@ -91,7 +91,7 @@ spec:
               validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
               echo "Logged into Vault"
   
-              vault_secret_key="${VAULT_SECRET_PREFIX}/${PEER_NAME}/substrate"
+              vault_secret_key="${VAULT_SECRET_PREFIX}/${PEER_NAME}/vitalam"
 
               echo "Getting the node account key from vault: $vault_secret_key"          
               LOOKUP_SECRET_RESPONSE=$(curl -sS \
@@ -106,7 +106,7 @@ spec:
 
               echo -n "${node_key}" > ${OUTPUT_PATH}/node_key
       containers:     
-        - name: substrate-api
+        - name: vitalam-api
           image: {{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           env:

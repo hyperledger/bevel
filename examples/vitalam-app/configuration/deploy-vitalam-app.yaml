@@ -1,0 +1,40 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook deploys the supplychain apis and frontend to an existing DLT network
+# The DLT network should already be created using the same configuration file as that
+#   used for running this playbook.
+---
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+  - name: Copy test env files to build directory
+    copy:
+      src: "{{ item }}"
+      dest: "{{ playbook_dir }}/../../../build/"
+    with_fileglob:
+      - "{{ playbook_dir }}/../tests/SupplychainDemo_*"
+
+# Create api values file for the vitalam nodes
+  - name: "Creating api values file for vitalam nodes"
+    include_role:
+      name: "create/vitalam/api"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-subs"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      auth_jwksUri: "{{ organization_data.auth.jwksUri }}"
+      auth_audience: "{{ organization_data.auth.audience }}"
+      auth_issuer: "{{ organization_data.auth.issuer }}"
+      auth_tokenUrl: "{{ organization_data.auth.tokenUrl }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: 
+      - network['type'] == 'substrate' 
