@@ -248,3 +248,22 @@
     when: 
       - network['type'] == 'besu' 
       - component_type != "validator"
+
+# Create api values file for the substrate nodes
+  - name: "Creating api values file for Substrate nodes"
+    include_role:
+      name: "create/substrate/api"
+    vars:
+      component_ns: "{{ organization_data.name | lower }}-subs"
+      component_gitops: "{{ organization_data.gitops }}"
+      component_vault: "{{ organization_data.vault }}"
+      auth_jwksUri: "{{ organization_data.auth.jwksUri }}"
+      auth_audience: "{{ organization_data.auth.audience }}"
+      auth_issuer: "{{ organization_data.auth.issuer }}"
+      auth_tokenUrl: "{{ organization_data.auth.tokenUrl }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organization_data
+    when: 
+      - network['type'] == 'substrate' 

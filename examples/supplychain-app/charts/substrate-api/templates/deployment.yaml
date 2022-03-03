@@ -110,16 +110,21 @@ spec:
           image: {{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           env:
+          - name: PORT
+            value: {{ .Values.env.port }}
           - name: LOG_LEVEL
             value: {{ .Values.env.logLevel }}
+          {{- if or (eq .Values.node.type "validator") (eq .Values.node.type "member") (eq .Values.node.type "bootnode")}}
           - name: API_HOST
             value: {{ .Values.node.peerName }}
           - name: API_PORT
             value: {{ .Values.api.port }}
+          {{- else if eq .Values.node.type "ipfs" }}
           - name: IPFS_HOST
-            value: vitalam-ipfs-api
+            value: {{ .Values.node.peerName }}
           - name: IPFS_PORT
-            value: {{ .Values.ipfs.port }}
+            value: {{ .Values.env.ipfsPort }}
+          {{- end }}
           - name: AUTH_JWKS_URI
             value: {{ .Values.env.auth.jwksUri }}
           - name: AUTH_AUDIENCE

@@ -1,0 +1,64 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#Check if the pods for the organizations are up and running
+- name: "Waiting for peer pod {{ peer_data.name }} in {{ component_ns }}"
+  include_role:
+    name: "../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer_data.name }}"
+    kubernetes: "{{ organization_data.k8s }}"
+    label_selectors:
+      - name = {{ component_name }}
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+
+# Create api values file for the peer nodes
+- name: "Create api values file for all peers"
+  include_role:
+    name: helm_component
+  vars:
+    type: "substrate-api"
+    component_name: substrate-api
+    name: "{{ peer_data.name }}"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    api_image: "{{ peer_data.api.image }}"
+    ipfs_api_port: "{{ peer_data.api.port }}"
+    peer_api_port: "{{ peer_data.ws-rpc.port }}"
+    peer_type: "{{ peer_data.type }}"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: peer_data.api is defined
+
+# Push the api deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ component_gitops }}"
+    GIT_RESET_PATH: "platforms/substrate/configuration"
+    msg: "[ci skip] Pushing deployment files for substrate api"
+
+# Wait for api Pod to run
+- name: "Waiting for api pod in {{ component_ns }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer.name }}-api"
+    kubernetes: "{{ organization_data.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.api is defined
