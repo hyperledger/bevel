@@ -55,6 +55,14 @@
     loop_var: peer
   ignore_errors: yes
 
+# This task deletes genesis for each org
+- name: Delete genesis
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/genesis
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+
   # This task deletes application crypto material
 - name: Delete Application Crypto material 
   shell: |
