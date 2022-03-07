@@ -52,11 +52,8 @@ Legend of annotations:
 General
 -------
 -  |run| Improve the existing ``readthedocs`` documentations
+    - |run| Update guide for deployment on Local k8s
 -  |run| Platforms and components upgrade:
-    - |tick| Helm3 upgrade
-    - |tick| Ambassador upgrade to 1.9.1
-    - |tick| Complete molecule test scenarios for Bevel R3 Corda OS and HL Fabric
-    - |tick| Support for HashiCorp vault kv version 2
     - |run| Flux version 2 upgrade
     - |pin| Test and update platforms code to run on EKS v1.21 
     - |pin| Setup AWS cloudwatch exporter
@@ -67,34 +64,21 @@ Platforms
 ---------
 - |run| Reduce/decouple ansible dependecy in DLT platforms automation
 - |run| Corda Enterprise operational feature enhancements
-    - |tick| Enable mutiple notaries
-    - |tick| R3 Corda version 4.7 upgrade
-    - |tick| CENM version 1.5 upgrade
-    - |tick| Addition of notary node organisation to an existing network
-    - |tick| CENM 1.5 services (Auth, Gateway and Zone) support
     - |pin| HA Notary options
     - |pin| Enable PostGreSQL support for Corda Enterprise
-    - |hand| Removal of node
+    - |pin| Removal of node
 - |run| HL Fabric operational feature enhancements
-    - |tick| HL Fabric 2.2 version upgrade
-    - |tick| HL Fabric 1.4.8 upgrade
-    - |tick| Multi Orderer organisation option for RAFT
     - |run| Feature for user identities
     - |run| External chaincode for Fabric 2.2.x
     - |pin| CI/CD piplelines for chaincode deployment
 - |run| HL Besu operational feature enhancements
-    - |tick| Enable DNS support
-    - |tick| Addition of new validator node
-    - |tick| Add tessera transaction manager support
-    - |tick| Enable deployment without proxy (proxy as none option)
-    - |tick| Add clique consensus mechanism support 
-    - |tick| Add ethash consensus mechanism support
-    - |tick| Vault secret engine integration with tessera
+    - |run| Implement private transactions
     - |hand| Enable bootnodes
 - |run| Quorum operational feature enhancements
-    - |tick| Version upgrade (Tessera and Quorum node) - v21.10.6 and v21.7.3
     - |run| Vault secret engine integration with tessera
     - |run| Implement private transactions
+- |run| HL Indy operational feature enhancements
+    - |hand| Removal of organizations from a running Indy Network
 
 Application
 -----------

@@ -284,7 +284,7 @@ spec:
             
             # Downloading official corda provided jars using curl 
             {{- range .Values.cordapps.jars }}
-              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -J {{ .url }}
+              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -L {{ .url }}
             {{- end }}
             cp -ar /tmp/downloaded-jars/* ${BASE_DIR}/cordapps
           {{- end }}
@@ -418,7 +418,7 @@ spec:
         args:
         - |-
           cd {{ $.Values.nodeConf.volume.baseDir }}/
-          while true; do tail -f logs/*.log 2>/dev/null; sleep 5; done
+          tail -f logs/*.log 2>/dev/null
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
