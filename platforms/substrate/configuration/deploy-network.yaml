@@ -135,6 +135,22 @@
     loop: "{{ network['organizations'] }}"
     when: 
     - item.services.peers.type == 'validator'
+
+  # Deploy ipfs nodes
+  - name: "Deploy ipfs nodes"
+    include_role: 
+      name: create/ipfs_node
+    vars:
+      build_path: "./build"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      org: "{{ item }}"
+      peers: "{{ item.services.peers }}"
+      gitops: "{{ item.gitops }}"
+      component_name: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-subs"
+      name: "{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
   
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS
