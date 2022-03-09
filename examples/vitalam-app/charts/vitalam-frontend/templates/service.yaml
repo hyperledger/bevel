@@ -1,17 +1,22 @@
 ##############################################################################################
-#  This Chart is a fork from https://github.com/inteli-poc/inteli-demo
-#  Please update if needed
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: vitalam-fe-service
+  name: "{{ $.Values.metadata.name }}"
+  namespace: {{ .Values.metadata.namespace }}
   labels:
-    vitalam-fe
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   selector:
-    name: frontend-app
+    app: "{{ $.Values.metadata.name }}"
   ports:
     - protocol: 'TCP'
       port: {{ $.Values.config.port }}
