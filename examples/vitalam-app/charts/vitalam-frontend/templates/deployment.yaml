@@ -1,24 +1,34 @@
 apiVersion: app/v1
 kind: Deployment
 metadata: 
-  name: frontEnd
-  namespace: frontend-ns
-    labels: 
-      apps: vitalam-fe
+  name: {{ $.Values.metadata.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
 spec:
   replicas: 1
   selector: 
     matchLabels: 
-      app: vitalam-fe
+      app: "{{ $.Values.metadata.name }}"
+      app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "labels.custom" . | nindent 2 }}
   template:
     metadata:
       annotations:
         checksum/service: {{ include (print $.Template.BasePath "/service.yaml") . | sha256sum }}
       labels:
-        app: vitalam-fe
+        app: "{{ $.Values.metadata.name }}"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "labels.custom" . | nindent 2 }}
     spec:
       imagePullSecrets: 
-        - name: regcred
+        - name: {{ $.Values.image.pullSecret }}
       containers:
       - name: frontend
         env:
