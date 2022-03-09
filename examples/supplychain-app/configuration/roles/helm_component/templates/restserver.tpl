@@ -18,7 +18,7 @@ spec:
       name: {{ name }}-restserver
       port: {{ peer_restserver_port }}
       localmspid: {{ name }}MSP
-      image: {{ network.docker.url }}/supplychain_fabric:rest_server_latest
+      image: {{ network.container_registry.url | lower }}/bevel-supplychain-fabric:rest-server-latest
       username: user1
       cert_path: "/secret/tls/user1.cert"
       key_path: "/secret/tls/user1.pem"
@@ -32,7 +32,7 @@ spec:
       secretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}
       serviceaccountname: vault-auth
       imagesecretname: regcred
-      image: hyperledgerlabs/alpine-utils:1.0
+      image: ghcr.io/hyperledger/alpine-utils:1.0
     service:
       servicetype: ClusterIP
       ports:
