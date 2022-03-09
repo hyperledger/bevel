@@ -4,28 +4,28 @@
 # substrate node runtime image
 # Eg. repository: parity/substrate
 image:
-  repository: 
-  tag: 
-  pullPolicy: 
+  repository: substrate
+  tag: 3.0.0
+  pullPolicy: IfNotPresent
 
 # image for downloading chain snapshot - 7-Zip Docker image based on Alpine Linux.
 # Eg. repository: crazymax/7zip
 initContainer:
   image:
-    repository:
-    tag: 
+    repository: crazymax/7zip
+    tag: latest
 
 # Image for Kubernetes command line interface
 # Eg. bitnami/kubectl
 kubectl:
   image:
-    repository: 
-    tag: 
+    repository: bitnami/kubectl
+    tag: latest
 
 googleCloudSdk:
   image:
-    repository:
-    tag: # more lightweight than the full image and still contains gsutil
+    repository: google/cloud-sdk
+    tag: slim # more lightweight than the full image and still contains gsutil
   #serviceAccountKey: ""
 
 imagePullSecrets: []
@@ -34,17 +34,20 @@ fullnameOverride: ""
 
 serviceAccount:
   # Specifies whether a service account should be created
-  create:
+  create: false
   # Annotations to add to the service account
   annotations: {}
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
+  # Provide the service account name authenticated to vault.
+  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
+  # Eg. name: vault-auth
   name: ""
 
 podSecurityContext:
-  runAsUser: 
-  runAsGroup: 
-  fsGroup: 
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
 
 ingress:
   enabled: false
@@ -69,54 +72,59 @@ bootnode:
 
 # This section contains the Substrate node details.
 node:
+  # Provide the name of the node.
+  # Eg. name: example
+  name:
   # Provide the namespace for the Substrate node.
   # Eg. namespace: example-sub
   namespace:
-  # Provide the number of replicas for your pods.
-  # replicaCount: 1
-  replicaCount:
   # Specifies the chain specification. It can be one of the predefined ones (dev, local, or staging) 
   # or it can be a path to a file with the chainspec (such as one exported by the `build-spec` subcommand). 
   # Eg. chain: local or chain: <path to chain spec file>
-  chain:
+  chain: "polkadot"
   # Substrate CLI executable
-  # Eg. command: node-template
-  command:
-  # Provide the name of the node.
-  # Eg. peer_name: example
-  peerName:
-  # Specifies the directory for storing all of the data related to this chain.
-  # Eg. chainPath: /tmp/alice
-  chainPath:
+  # Eg. command: substrate
+  command: "polkadot"
   # Provide the size of the volume
   # Eg. dataVolumeSize: 1Gi
   dataVolumeSize: 100Gi
+  # Provide the number of replicas for your pods.
+  # replicas: 1
+  replicas: 1
   # role of the node
-  # Eg. role: validator
-  role:
+  # Eg. role: full
+  role: full
   #customChainspecUrl:
+  ## Node may require custom name for chainspec file. Example: moonbeam https://github.com/PureStake/moonbeam/issues/1104#issuecomment-996787548
+  ## Note: path should start with /data/ since this folder mount in init container download-chainspec.
+  #Eg. customChainspecPath: "/data/chainspec.json"
+  customChainspecPath: ""
   #chainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
   #chainDataSnapshotFormat: 7z
+  # Specifies the directory for storing all of the data related to this chain.
+  # Eg. chainPath: /tmp/alice
+  chainPath: ""
   #chainDataKubernetesVolumeSnapshot: ""
   #chainDataGcsBucketUrl: ""
   collator:
     isParachain: false
     relayChain: polkadot
   #  relayChainCustomChainspecUrl: ""
+  #  relayChainCustomChainspecPath: "/data/relay_chain_chainspec.json"
   #  relayChainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
   #  relayChainDataSnapshotFormat: 7z
   #  relayChainPath: ""
   #  relayChainDataKubernetesVolumeSnapshot: ""
   #  relayChainDataGcsBucketUrl: ""
   #  relayChainFlags:
-  enableStartupProbe: 
-  enableReadinessProbe: 
+  enableStartupProbe: true
+  enableReadinessProbe: true
   flags:
     - "--rpc-external"
     - "--ws-external"
     - "--rpc-methods=safe"
     - "--rpc-cors=all"
-    # - "--prometheus-external"
+    - "--prometheus-external"
   keys: {}
   #  - type: "gran"
   #    scheme: "ed25519"
@@ -134,7 +142,9 @@ node:
     # scrapeTimeout: 10s
   perNodeServices:
     createClusterIPService: true
-    createP2pNodePortService: false 
+    createP2pNodePortService: false
+    relayServiceAnnotations: {}
+    paraServiceAnnotations: {}
     setPublicAddressToExternalIp:
       enabled: false
       ipRetrievalServiceUrl: https://ifconfig.io
@@ -142,13 +152,13 @@ node:
   ports:
   # Specifies the port to listen on for peer-to-peer (p2p) traffic
   # Eg. p2p: 30333
-    p2p: 
+    p2p: 30333
   # Specifies the port to listen on for incoming WebSocket traffic
   # Eg. ws: 9944
-    ws: 
+    ws: 9944
   # Specifies the port to listen on for incoming RPC traffic
   # Eg. 9933
-    rpc:
+    rpc: 9933
 
   # Enables Jaeger Agent as a sidecar
   tracing:
@@ -162,7 +172,7 @@ node:
 proxy:
   # Mention the proxy provider. Currently ambassador is supported
   # eg. provider: ambassador
-  provider:
+  provider: ambassador
   # url that will be added in DNS recordset
   # eg. external_url: test.substrate.example.com
   external_url:
@@ -214,17 +224,15 @@ affinity: {}
 # Eg. storageClass: gcpstorageclass
 storageClass:
 
+extraContainers: []
+
 # This section contains the vault related information.
 # NOTE: Make sure that the vault is already unsealed, intialized and configured to
 # use the Kubernetes service account token based authentication.
 vault:
   # Provide the vault address
   # Eg. address: http://vault.example.com:8200
-  address:
-  # Provide the service account name authenticated to vault.
-  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
-  # Eg. serviceaccountname: vault-auth
-  serviceaccountname:
+  address:  
   # Provide the vault path where the secrets are stored
   # Eg. secretPrefix: secretsv2/sub-org-name
   secretPrefix:

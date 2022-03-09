@@ -4,39 +4,22 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task fetches the bootnode's peer id from vault
-- name: Fetch bootnode peer id from vault
-  shell: |
-    BOOTNODE_ID=$(vault kv get -field=node_id {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peers.name }}/substrate)
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  ignore_errors: yes
-
 # This task creates the Bootnode value file for node helm chart
 - name: Create value file for bootnode
-  include_role:
-    name: create/helm_component
-  vars:
-    component_name: "{{ name }}{{ peers.name }}bootnode"
-    type: "node_substrate"
-
-# Git Push : Pushes the above generated files to git directory 
-- name: Git Push
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
-  vars:
-    GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ item.gitops }}"
-    GIT_RESET_PATH: "platforms/substrate/configuration"
-    msg: "[ci skip] Pushing Peer files"
-
-# This task creates a file, if it doesn't exist, to store bootnode information
-- name: Create bootnode file
-  template:
-    src: "bootnode.tpl"
-    dest: "{{ bootnode_data }}"
-  vars:
-    external_url: "{{ name }}.{{ external_url }}"
-    p2p_port: "{{ peers.p2p.ambassador }}"
-    bootnode_id: "{{ BOOTNODE_ID }}"
+  include_tasks: nested_main.yaml
+  vars:    
+    storageclass_name: "{{ item.cloud_provider }}storageclass"
+    external_url: "{{ item.external_url_suffix }}"
+    vault: "{{ item.vault }}"
+    git_url: "{{ item.gitops.git_url }}"
+    git_branch: "{{ item.gitops.branch }}"
+    org: "{{ item }}"
+    docker_url: "{{ network.docker.url }}"
+    charts_dir: "{{ item.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    image: "{{ network.config.node_image }}"
+    command: "{{ network.config.command }}"
+    role: "full"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
