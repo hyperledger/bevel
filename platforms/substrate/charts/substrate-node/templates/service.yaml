@@ -1,36 +1,38 @@
-{{ $fullname :=  include "substrate_chart.name" . }}
+{{ $fullname :=  include "node.fullname" . }}
+{{ $selectorLabels :=  include "node.selectorLabels" .  }}
+{{ $serviceLabels :=  include "node.serviceLabels" .  }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $.Values.node.peerName }}
+  name: {{ $fullname }}
   namespace: {{ $.Values.node.namespace }}
   labels:
-    {{- include "substrate_node.serviceLabels" . | indent 4 }}
-      {{- if eq $.Values.proxy.provider "ambassador" }}
+    {{- include "node.labels" . | nindent 4 }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
       getambassador.io/config: |
         ---
         apiVersion: ambassador/v2
         kind: TCPMapping
-        name: {{ .Values.node.peerName }}-p2p
-        port: {{ .Values.proxy.p2p }}
-        service: {{ .Values.node.peerName }}.{{ .Values.node.namespace }}:{{ .Values.node.ports.p2p }}
+        name: {{ $.Values.node.name }}-p2p
+        port: {{ $.Values.proxy.p2p }}
+        service: {{ $.Values.node.name }}.{{ $.Values.node.namespace }}:{{ $.Values.node.ports.p2p }}
         ---
         apiVersion: ambassador/v2
         kind: TLSContext
-        name: {{ .Values.node.peerName }}_mapping_tlscontext
+        name: {{ $.Values.node.name }}_mapping_tlscontext
         hosts:
-        - {{ .Values.proxy.external_url }}
-        secret: {{ .Values.node.peerName }}-ambassador-certs.{{ .Values.node.namespace }}
+        - {{ $.Values.proxy.external_url }}
+        secret: {{ $.Values.node.name }}-ambassador-certs.{{ $.Values.node.namespace }}
         secret_namespacing: true
         min_tls_version: v1.2
-      {{- end }}
+  {{- end }}
 spec:
   type: ClusterIP
   clusterIP: None
   selector:
-    service: {{ $.Values.node.peerName }}
-  {{- include "substrate_node.selectorLabels" . | nindent 4 }}
+    {{- $selectorLabels | nindent 4 }}
+    service: {{ $fullname }}
   ports:
     {{- if $.Values.node.substrateApiSidecar.enabled }}
     - port: 8080
@@ -38,43 +40,43 @@ spec:
     {{- end }}
     - name: http-rpc
       protocol: TCP
-      port: {{ .Values.node.ports.rpc }}
+      port: {{ $.Values.node.ports.rpc }}
       targetPort: http-rpc
     - name: websocket-rpc 
       protocol: TCP
-      port: {{ .Values.node.ports.ws }}
+      port: {{ $.Values.node.ports.ws }}
       targetPort: websocket-rpc
     - name: p2p
       protocol: TCP
-      port: {{ .Values.node.ports.p2p }}
+      port: {{ $.Values.node.ports.p2p }}
       targetPort: p2p
 ---
-{{range $i := until (.Values.node.replicas | int) }}
+{{range $i := until ($.Values.node.replicas | int) }}
 {{- if $.Values.node.perNodeServices.createClusterIPService }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $.Values.node.peerName }}
+  name: {{ $fullname }}-{{ $i }}
   namespace: {{ $.Values.node.namespace }}
   labels:
-    {{- include "substrate_node.serviceLabels" . | indent 4 }}
+    {{- $serviceLabels | nindent 4 }}
     instance: {{ $fullname }}-{{ $i }}
-      {{- if eq $.Values.proxy.provider "ambassador" }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
       getambassador.io/config: |
         ---
         apiVersion: ambassador/v2
         kind: TCPMapping
-        name: {{ .Values.node.peerName }}-p2p
-        port: {{ .Values.proxy.p2p }}
-        service: {{ .Values.node.peerName }}.{{ .Values.node.namespace }}:{{ .Values.node.ports.p2p }}
+        name: {{ $.Values.node.name }}-p2p
+        port: {{ $.Values.proxy.p2p }}
+        service: {{ $.Values.node.name }}.{{ $.Values.node.namespace }}:{{ $.Values.node.ports.p2p }}
         ---
         apiVersion: ambassador/v2
         kind: TLSContext
-        name: {{ .Values.node.peerName }}_mapping_tlscontext
+        name: {{ $.Values.node.name }}_mapping_tlscontext
         hosts:
-        - {{ .Values.proxy.external_url }}
-        secret: {{ .Values.node.peerName }}-ambassador-certs.{{ .Values.node.namespace }}
+        - {{ $.Values.proxy.external_url }}
+        secret: {{ $.Values.node.name }}-ambassador-certs.{{ $.Values.node.namespace }}
         secret_namespacing: true
         min_tls_version: v1.2
       {{- end }}
@@ -82,24 +84,24 @@ spec:
   type: ClusterIP
   clusterIP: None
   selector:
-    service: {{ $.Values.node.peerName }}
-  {{- include "substrate_node.selectorLabels" . | nindent 4 }} 
+    service: {{ $fullname }}
+    {{- $selectorLabels | nindent 4 }}
     statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
   ports:
-  - name: ws-rpc
-    protocol: TCP
-    port: {{ .Values.node.ports.ws }}
-    targetPort: ws-rpc
-  - name: http-rpc
-    protocol: TCP
-    port: {{ .Values.node.ports.rpc }}
-    targetPort: http-rpc
-  - name: p2p
-    protocol: TCP
-    port: {{ .Values.node.ports.p2p }}
-    targetPort: p2p
-  - name: prometheus
-    port: 9615
+    - name: ws-rpc
+      protocol: TCP
+      port: {{ $.Values.node.ports.ws }}
+      targetPort: ws-rpc
+    - name: http-rpc
+      protocol: TCP
+      port: {{ $.Values.node.ports.rpc }}
+      targetPort: http-rpc
+    - name: p2p
+      protocol: TCP
+      port: {{ $.Values.node.ports.p2p }}
+      targetPort: p2p
+    - name: prometheus
+      port: 9615
 {{- end }}
 ---
 {{- if $.Values.node.perNodeServices.createP2pNodePortService }}
@@ -107,15 +109,19 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ $fullname }}-{{ $i }}-relay-chain-p2p
+{{- with $.Values.node.perNodeServices.relayServiceAnnotations }}
+  annotations:
+{{ toYaml . | indent 4}}
+{{- end }}
 spec:
   type: NodePort
   externalTrafficPolicy: Local
   selector:
-  {{- include "substrate_node.selectorLabels" . | nindent 4 }} 
+    {{- $selectorLabels | nindent 4 }}
     statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
   ports:
     - name: p2p
-      port: {{ .Values.node.ports.p2p }}
+      port: {{ $.Values.node.ports.p2p }}
       targetPort: 30333
 {{- end }}
 ---
@@ -124,11 +130,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ $fullname }}-{{ $i }}-para-chain-p2p
+{{- with $.Values.node.perNodeServices.paraServiceAnnotations }}
+  annotations:
+{{ toYaml . | indent 4}}
+{{- end }}
 spec:
   type: NodePort
   externalTrafficPolicy: Local
   selector:
-  {{- include "substrate_node.selectorLabels" . | nindent 4 }} 
+    {{- $selectorLabels | nindent 4 }}
     statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
   ports:
     - name: p2p

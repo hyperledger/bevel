@@ -28,8 +28,8 @@ helm install kusama-node parity/node --set node.chainDataSnapshotUrl=https://ksm
 
 | Parameter           | Description                                  | Default                        |
 |---------------------|----------------------------------------------|--------------------------------|
-| `nameOverride`      | String to partially override chart.fullname  | `nil`                          |
-| `fullnameOverride`  | String to fully override chart.fullname      | `nil`                          |
+| `nameOverride`      | String to partially override node.fullname   | `nil`                          |
+| `fullnameOverride`  | String to fully override node.fullname       | `nil`                          |
 | `imagePullSecrets`  | Labels to add to all deployed objects        | `[]`                           |
 | `podAnnotations`    | Annotations to add to pods                   | `{}` (evaluated as a template) |
 | `nodeSelector`      | Node labels for pod assignment               | `{}` (evaluated as a template) |
@@ -75,6 +75,12 @@ helm install kusama-node parity/node --set node.chainDataSnapshotUrl=https://ksm
 | `node.serviceMonitor.scrapeTimeout`                    | Prometheus scrape timeout                                                                                                                                                                                                                           | `nil`                          |
 | `node.tracing.enabled`                                 | If true, creates a jaeger agent sidecar                                                                                                                                                                                                             | `false`                        |
 | `node.subtrateApiSiecar.enabled`                       | If true, creates a substrate api sidecar                                                                                                                                                                                                            | `false`                        |
+| `node.perNodeServices.createClusterIPService`          | If true creates a clusterIP API service                                                                              | `true`                         |
+| `node.perNodeServices.createP2pNodePortService`        | If true creates a p2p NodePort service, if `node.collator.isParachain` also true, creates a NodePort p2p service for the parachain             | `false`                         |
+| `node.perNodeServices.relayServiceAnnotations`         | Annotations to be inserted into the relay chain service                                                                              | `{}`                            |
+| `node.perNodeServices.paraServiceAnnotations`          | Annotations to be inserted into the para chain service                                                                              | `{}`                            |
+| `node.perNodeServices.setPublicAddressToExternalIp.enabled` | If true sets the `--public-addr` flag to be the NodePort p2p services external address                                                            | `false`                         |
+| `node.perNodeServices.setPublicAddressToExternalIP.ipRetrievalServiceUrl` | The external service to return the NodePort IP                                                                                   | `https://ifconfig.io`           |
 
 ### Other parameters
 
@@ -100,3 +106,4 @@ helm install kusama-node parity/node --set node.chainDataSnapshotUrl=https://ksm
 | `jaegerAgent.ports.samplingPort`   | Port for HTTP sampling strategies                                                                      | `5778`              |
 | `jaegerAgent.collector.url`        | The URL which jaeger agent sends data                                                                  | `nil`               |
 | `jaegerAgent.collector.port   `    | The port which jaeger agent sends data                                                                 | `14250`             |    
+| `extraContainers   `               | Sidecar containers to add to the node                                                                  | `[]`                |   

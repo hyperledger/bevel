@@ -15,89 +15,63 @@ spec:
   values:
     image:
       repository: {{ image }}
-      tag: latest
+      tag: {{ network.version }}
       pullPolicy: Always
-    initContainer:
-      image: 
-        repository: crazymax/7zip
-        tag: latest
-    kubectl:
-      image: 
-      repository: bitnami/kubectl
-      tag: latest
-    googleCloudSdk:
-      image:
-        repository: google/cloud-sdk
-        tag: slim
     imagePullSecrets: 
-
-    nameOverride: 
-    fullnameOverride:
+      - name: "regcred"
 
     serviceAccount:
       create: false
-      annotations: 
-      name:
+      name: vault-auth
+
     podSecurityContext:
       runAsUser: 1000
       runAsGroup: 1000
       fsGroup: 1000
     ingress:
       enabled: false
-      annotations: 
-      rules:
-      tls:
-
+{% if bootnode_data is defined %}
     bootnode: {{ bootnode_data }}
+{% endif %}
 
     node:
-      namespace: {{ component_ns }}
-      replicaCount: 1
-      chain:
-      command: {{ command }}
-      peerName: {{ peers.name }}
-      chainPath:
-      dataVolumeSize: 100Gi
-      role: {{ role }} 
-      customChainspecUrl:
-      chainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
-      chainDataSnapshotFormat: 7z
-      chainDataKubernetesVolumeSnapshot:
-      chainDataGcsBucketUrl:
+      name: {{ peer.name }}
+      namespace: {{ component_ns }}      
+      chain: "local"
+      command: {{ command }}      
+      dataVolumeSize: 10Gi
+      replicas: 1
+      role: {{ role }}
+      
       collator:
         isParachain: false
-        relayChain: polkadot
-        relayChainCustomChainspecUrl: 
-        relayChainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
-        relayChainDataSnapshotFormat: 7z
-        relayChainPath:
-        relayChainDataKubernetesVolumeSnapshot:
-        relayChainDataGcsBucketUrl: ""
-        relayChainFlags:
+                
       enableStartupProbe: false
       enableReadinessProbe: false
       flags:
-      keys: 
+        - "--rpc-external"
+        - "--ws-external"
+        - "--rpc-methods=safe"
+        - "--rpc-cors=all"
+      keys: {}
       persistGeneratedNodeKey: false
-      customNodeKey:
-      resources:
+      
+      resources: {}
       serviceMonitor:
         enabled: false
-        namespace: 
-        interval: 
-        scrapeTimeout: 
+        
       perNodeServices:
         createClusterIPService: true
         createP2pNodePortService: false
         setPublicAddressToExternalIp:
           enabled: false
           ipRetrievalServiceUrl: https://ifconfig.io
-      podManagementPolicy:
+      podManagementPolicy: Parallel
 
       ports:
-        p2p: {{ peers.p2p.port }}
-        ws: {{ peers.ws-rpc.port }}
-        rpc: {{ peers.rpc.port }}
+        p2p: {{ peer.p2p.port }}
+        ws: {{ peer.ws.port }}
+        rpc: {{ peer.rpc.port }}
 
       tracing:
         enabled: false
@@ -106,41 +80,13 @@ spec:
 
     proxy:
       provider: ambassador
-      external_url: {{ name }}.{{ external_url }}
-      p2p: {{ peers.p2p.ambassador }}
-
-    substrateApiSidecar:
-      image:
-        repository: parity/substrate-api-sidecar
-        tag: latest
-      env: 
-      resources: 
-
-    jaegerAgent:
-      image:
-        repository: jaegertracing/jaeger-agent
-        tag: latest
-      ports:
-        compactPort: 6831
-        binaryPort: 6832
-        samplingPort: 5778
-      collector:
-        url: null
-        port: 14250
-      env:
-      resources:
-
-    podAnnotations:
-    nodeSelector:
-    terminationGracePeriodSeconds:
-    tolerations:
-    affinity:
+      external_url: {{ peer.name }}.{{ external_url }}
+      p2p: {{ peer.p2p.ambassador }}
 
     storageClass: {{ storageclass_name }}
 
     vault:
-      address: {{ vault.url }}
-      serviceaccountname: vault-auth
+      address: {{ vault.url }}      
       secretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}
       authPath: substrate{{ name }}
       appRole: vault-role
