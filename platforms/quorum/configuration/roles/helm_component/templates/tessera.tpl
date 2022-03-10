@@ -20,9 +20,10 @@ spec:
     images:
       node: quorumengineering/quorum:{{ network.version }}
       alpineutils: {{ network.docker.url }}/alpine-utils:1.0
-      tessera: quorumengineering/tessera:{{ network.config.tm_version }}
+      tessera: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       busybox: busybox
       mysql: mysql/mysql-server:5.7
+      pullPolicy: IfNotPresent
     node:
       name: {{ peer.name }}
 {% if add_new_org %}
@@ -44,9 +45,6 @@ spec:
       lock: {{ peer.lock | lower }}
       ports:
         rpc: {{ peer.rpc.port }}
-{% if network.config.consensus == 'raft' %}
-        raft: {{ peer.raft.port }}
-{% endif %}
         tm: {{ peer.transaction_manager.port }}
         quorum: {{ peer.p2p.port }}
         db: {{ peer.db.port }}
@@ -54,6 +52,8 @@ spec:
       mysqluser: demouser
     vault:
       address: {{ vault.url }}
+      secretengine: {{ vault.secret_path | default('secretsv2') }}
+      tmsecretpath: {{ component_ns }}/crypto/{{ peer.name }}/tm      
       secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: quorum
@@ -85,9 +85,6 @@ spec:
       rpcport: {{ peer.rpc.ambassador }}
       quorumport: {{ peer.p2p.ambassador }}
       clientport: {{ peer.transaction_manager.clientport }}
-{% if network.config.consensus == 'raft' %}  
-      portRaft: {{ peer.raft.ambassador }}
-{% endif %}
     storage:
       storageclassname: {{ storageclass_name }}
       storagesize: 1Gi
