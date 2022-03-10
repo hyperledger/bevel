@@ -1,0 +1,23 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app: "{{ $.Values.metadata.name }}"
+  ports:
+    - protocol: 'TCP'
+      port: {{ $.Values.config.port }}
+      targetPort: {{ $.Values.config.port }}
