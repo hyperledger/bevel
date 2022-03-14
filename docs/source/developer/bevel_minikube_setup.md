@@ -92,9 +92,10 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 1. Update Docker configurations:
    ```yaml
    docker:
-     url: "index.docker.io/hyperledgerlabs"
-     username: "<your docker username>"
-     password: "<your docker password/token>"
+     url: "ghcr.io/hyperledger"
+     # Comment username and password as it is public repo
+     #username: "<your docker username>"
+     #password: "<your docker password/token>"
    ```
 1. For each `organization`, update ONLY the following and leave everything else as is:
 
@@ -158,13 +159,13 @@ vault status
 Now run the following to deploy Bevel Fabric on minikube:
 
 ```bash
-docker run -it -v $(pwd):/home/bevel/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
 ```
 
 Windows users should use following (make sure that the local volume was mounted as per [this step](#windows_mount)):
 
 ```bash
-docker run -it -v /bevel:/home/bevel/ hyperledgerlabs/baf-build
+docker run -it -v /bevel:/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
 ```
 
 Meanwhile you can also check if pods are being deployed:
@@ -177,7 +178,7 @@ kubectl get pods --all-namespaces -w
 
 **NOTE:** If you need public address for nodes in your `network.yaml` file, you can use the output of `minikube ip`.
 
-**NOTE**. baf-build image is using jdk14 but Corda and Corda Enterprise requires jdk8. In this case, you can use the prebuild image tag *jdk8*  hyperledgerlabs/baf-build:jdk8
+**NOTE**. baf-build image is using jdk14 but Corda and Corda Enterprise requires jdk8. In this case, you can use the prebuild image tag *jdk8*  ghcr.io/hyperledger/bevel-build:jdk8-latest
 
 ## Troubleshooting
 

@@ -1,0 +1,356 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.nodeName }}-generate-certs
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Values.nodeName }}-generate-certs
+    app.kubernetes.io/name: {{ .Values.nodeName }}-generate-certs
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+    backoffLimit: 6
+    template:
+      metadata:
+        labels:
+          app: {{ .Values.nodeName }}-generate-certs
+          app.kubernetes.io/name: {{ .Values.nodeName }}-generate-certs
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        restartPolicy: "OnFailure"
+        serviceAccountName: {{ $.Values.vault.serviceAccountName }}        
+        securityContext:
+          fsGroup: 1000
+        initContainers:
+        - name: init-check-certificates
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authPath }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certSecretPrefix }}
+            - name: MOUNT_PATH
+              value: "/certcheck"
+          command: ["sh", "-c"]
+          args:
+          - |-
+              #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+              # Setting up the environment to get secrets/certificates from Vault
+              echo "Getting secrets/certificates from Vault server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "Logged into Vault"
+              mkdir -p ${MOUNT_PATH}
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs | jq -r 'if .errors then . else . end')
+              data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+              if [ "$data_info" == "null" ]           
+              then
+                echo "Certficates absent in vault. Ignore error warning"
+                touch ${MOUNT_PATH}/absent.txt
+              else
+                validateVaultResponse "${CERTS_SECRET_PREFIX}/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present.txt
+              fi 
+              echo "Done checking for certificates in vault"
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+        - name: init-credentials
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authPath }}
+            - name: VAULT_APP_ROLE
+              value: {{ $.Values.vault.role }}
+            - name: BASE_DIR
+              value: {{ $.Values.volume.baseDir }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certSecretPrefix }}
+            - name: MOUNT_PATH
+              value: "/DATA"
+            - name: NODEINFO_MOUNT_PATH
+              value: "/notary-nodeinfo"
+          command: ["sh", "-c"]
+          args:
+          - |-
+              #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+              if [ -e /certcheck/present.txt ]
+              then
+                echo "Certificates already present in the vault. Skipping.."
+                exit 0
+              fi
+              # Setting up the environment to get secrets from Vault
+              echo "Getting secrets from Vault Server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              echo "logged into vault"
+              # Creating dirs for storing certificates
+              mkdir -p ${MOUNT_PATH}/keystore;
+
+              OUTPUT_PATH=${MOUNT_PATH}/keystore;
+              # Fetching credentials for keystores
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/keystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              KEYSTORE_PASS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystorepass"]')
+              echo "${KEYSTORE_PASS}"> ${OUTPUT_PATH}/keystorepass
+              
+              touch /DATA/done.txt
+              echo "Done"
+          volumeMounts:
+          - name: credentials
+            mountPath: /DATA
+          - name: certcheck
+            mountPath: /certcheck
+        containers:
+        - name: certs
+          image: "{{ required "certs[main]: missing value for .Values.image.certsContainerName" .Values.image.certsContainerName }}"
+          env:
+            - name: BASE_DIR
+              value: "{{ .Values.volume.baseDir }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            if [ -e /certcheck/present.txt ]
+            then
+              echo "Certificates already present in the vault. Skipping.."
+              exit 0
+            fi
+            rm -r ${BASE_DIR}/DATA/done.txt
+            
+            # create directories
+            mkdir -p ${BASE_DIR}/DATA/rootca
+            mkdir -p ${BASE_DIR}/DATA/mongorootca
+            mkdir -p ${BASE_DIR}/DATA/mongodbca
+            mkdir -p ${BASE_DIR}/DATA/doormanca
+
+            KEYSTORE_PASS=$(cat ${BASE_DIR}/credentials/keystore/keystorepass)
+
+            cd ${BASE_DIR}/DATA/rootca
+            set -x
+            keytool -genkey -keyalg RSA -alias key -dname "{{ .Values.subjects.rootca }}" -keystore keys.jks -storepass $KEYSTORE_PASS -keypass $KEYSTORE_PASS
+            openssl ecparam -name prime256v1 -genkey -noout -out cordarootca.key
+            openssl req -x509 -config ${BASE_DIR}/openssl.conf -new -nodes -key cordarootca.key -days 1024 -out cordarootca.pem -extensions v3_ca -subj '/{{ .Values.subjects.rootca | replace "," "/" }}'
+            openssl pkcs12 -export -name cert -inkey cordarootca.key -in cordarootca.pem -out cordarootcacert.pkcs12 -cacerts -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+            openssl pkcs12 -export -name key -inkey cordarootca.key -in cordarootca.pem -out cordarootcakey.pkcs12 -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+            eval "yes | keytool -importkeystore -srckeystore cordarootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass $KEYSTORE_PASS -destkeystore keys.jks -deststorepass $KEYSTORE_PASS"
+            eval "yes | keytool -importkeystore -srckeystore cordarootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass $KEYSTORE_PASS -destkeystore keys.jks -deststorepass $KEYSTORE_PASS"
+
+            cd ${BASE_DIR}/DATA/doormanca
+            keytool -genkey -keyalg RSA -alias key -dname "{{ .Values.subjects.doormanca }}" -keystore keys.jks -storepass $KEYSTORE_PASS -keypass $KEYSTORE_PASS
+            openssl ecparam -name prime256v1 -genkey -noout -out cordadoormanca.key
+            openssl req -new -nodes -key cordadoormanca.key -days 1000 -out cordadoormanca.csr -subj '/{{ .Values.subjects.doormanca | replace "," "/" }}'
+            openssl x509  -req -days 1000 -in cordadoormanca.csr -CA ../rootca/cordarootca.pem -CAkey ../rootca/cordarootca.key -out cordadoormanca.pem -CAcreateserial \
+              -CAserial serial -extfile ${BASE_DIR}/openssl.conf -extensions doorman
+            openssl pkcs12 -export -name cert -inkey cordadoormanca.key -in cordadoormanca.pem -out cordadoormancacert.pkcs12 -cacerts -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+            openssl pkcs12 -export -name key -inkey cordadoormanca.key -in cordadoormanca.pem -out cordadoormancakey.pkcs12 -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+            eval "yes | keytool -importkeystore -srckeystore cordadoormancacert.pkcs12 -srcstoretype PKCS12 -srcstorepass $KEYSTORE_PASS -destkeystore keys.jks -deststorepass $KEYSTORE_PASS
+            eval "yes | keytool -importkeystore -srckeystore cordadoormancakey.pkcs12 -srcstoretype PKCS12 -srcstorepass $KEYSTORE_PASS -destkeystore keys.jks -deststorepass $KEYSTORE_PASS
+          
+            cd ${BASE_DIR}/DATA/mongorootca
+            openssl genrsa -out mongoCA.key 3072
+            openssl req -x509 -config ${BASE_DIR}/openssl.conf -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '{{ .Values.subjects.mongorootca }}'
+  
+            cd ${BASE_DIR}/DATA/mongodbca
+            openssl req -new -nodes -newkey rsa:4096 -keyout mongodb.key -out mongodb.csr -subj '{{ .Values.subjects.mongorootca }}-{{ .Values.nodeName }}' 
+            openssl x509 -CA ../mongorootca/mongoCA.crt -CAkey ../mongorootca/mongoCA.key -CAcreateserial -CAserial serial -req -days 365 -in mongodb.csr -out mongodb.crt
+            cat mongodb.key mongodb.crt > mongodb.pem          
+
+            #creating a dummy file to perform check if last line is executed or not.
+            touch ${BASE_DIR}/DATA/done.txt
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+          - name: credentials
+            mountPath: {{ .Values.volume.baseDir }}/credentials
+          - name: certs-keys
+            mountPath: {{ .Values.volume.baseDir }}/DATA
+          - name: certs-etc
+            mountPath: {{ .Values.volume.baseDir }}/etc
+          - name: openssl-config
+            mountPath: {{ .Values.volume.baseDir }}/openssl.conf
+            subPath: openssl.conf
+        - name: store-certs
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: IfNotPresent
+          env:
+             - name: VAULT_ADDR
+               value: {{ $.Values.vault.address }}
+             - name: KUBERNETES_AUTH_PATH
+               value: {{ $.Values.vault.authPath }}
+             - name: VAULT_APP_ROLE
+               value: {{ $.Values.vault.role }}
+             - name: BASE_DIR
+               value: {{ $.Values.volume.baseDir }}
+             - name: CERTS_SECRET_PREFIX
+               value: {{ .Values.vault.certSecretPrefix }}
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                 echo "ERROR: unable to retrieve ${1}: ${2}"
+                 exit 1
+              fi
+            }
+            
+            if [ -e /certcheck/present.txt ]
+            then
+              echo "Certificates already present in the vault. Skipping.."
+              exit 0
+            fi
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+            cd ${BASE_DIR}/DATA
+            # putting certificates
+            COUNTER=1
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
+            do
+              if [ -e done.txt ]
+              then
+                cd ${BASE_DIR}/DATA
+                echo "found certificates, performing vault put"
+                # Use -w0 to get single line base64 -w0
+                DOORMAN_CA=$(cat ./doormanca/keys.jks | base64 -w0)
+                ROOT_CA=$(cat ./rootca/keys.jks | base64 -w0)
+                CA_CERTS=$(cat ./rootca/cordarootca.pem | base64 -w0)
+                KEYSTORE=$(cat ./rootca/cordarootca.key | base64 -w0)
+                MONGO_KEY=$(cat ./mongodbca/mongodb.pem | base64 -w0)
+                MONGO_CERT=$(cat ./mongorootca/mongoCA.crt | base64 -w0)
+
+                echo "{\"data\": {
+                    \"{{ .Values.nodeName }}.jks\": \"${DOORMAN_CA}\",
+                    \"rootcakey\": \"${ROOT_CA}\",
+                    \"cacerts\": \"${CA_CERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"mongodb-{{ .Values.nodeName }}.pem\": \"${MONGO_KEY}\",
+                    \"mongoCA.crt\": \"${MONGO_CERT}\"
+                  }}" > payload.json
+                
+                echo "before curl"
+                curl \
+                 --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                 --request POST \
+                 --data @payload.json \
+                ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs
+                
+                echo "after POST"
+
+                # get certs from vault
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs | jq -r 'if .errors then . else . end')
+                NODE_KEYS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "{{ .Values.nodeName }}.jks" ]' 2>&1)
+                CORDA_SSL_ROOT_KEYS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "rootcakey" ]' 2>&1)
+                CORDA_CA_CERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "cacerts" ]' 2>&1)
+                ROOT_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "keystore" ]' 2>&1)
+                MONGODB_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "mongoCA.crt" ]' 2>&1)
+                MONGODB_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "mongodb-{{ .Values.nodeName }}.pem" ]' 2>&1)                
+
+                if [ "$NODE_KEYS" == "null" ] || [ "$CORDA_SSL_ROOT_KEYS" == "null" ] || [ "$CORDA_CA_CERTS" == "null" ] || [ "$ROOT_KEYSTORE" == "null" ] || [ "$MONGODB_CERT" == "null" ] || [ "$MONGODB_KEY" == "null" ] || [[ "$NODE_KEYS" == "parse error"* ]] || [[ "$CORDA_SSL_ROOT_KEYS" == "parse error"* ]] || [[ "$CORDA_CA_CERTS" == "parse error"* ]] || [[ "$ROOT_KEYSTORE" == "parse error"* ]] || [[ "$MONGODB_CERT" == "parse error"* ]] || [[ "$MONGODB_KEY" == "parse error"* ]]
+                then
+                  echo "certificates write or read fail"
+                  sleep {{ $.Values.vault.sleepTimeAfterError  }}
+                  if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+                  then
+                    echo "Retry attempted $COUNTER times, certificates have not been saved"
+                    exit 1
+                  fi
+                fi
+                break
+                COUNTER=`expr "$COUNTER" + 1`
+              fi
+            done
+            
+            if [ "$COUNTER" -gt {{ $.Values.vault.retries }} ]
+            then
+              echo "Retry attempted $COUNTER times, no files found. Giving up!"
+              exit 1
+              break
+            fi
+            echo "completed"
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+          - name: certs-keys
+            mountPath: {{ .Values.volume.baseDir }}/DATA
+            readOnly: false
+        imagePullSecrets:
+          - name: {{ .Values.image.imagePullSecret }}
+        volumes:
+          - name: certcheck
+            emptyDir:
+              medium: Memory
+          - name: credentials
+            emptyDir:
+              medium: Memory
+          - name: certs-keys
+            emptyDir:
+              medium: Memory
+          - name: certs-etc
+            emptyDir:
+              medium: Memory
+          - name: openssl-config
+            configMap:
+              name: {{ .Values.nodeName }}-conf
