@@ -6,15 +6,27 @@
 Getting Started
 ===============
 
-Before we begin, if you haven't already done so, you may wish to check that
-you have all the [prerequisites](prerequisites) installed on the platform(s)
-on which you'll be deploying blockchain networks from and/or operating
-Hyperledger Bevel.
+## Install and Configure Prerequisites
+Follow instructions to [install](./prerequisites.md) and [configure](./operations/configure_prerequisites.md) common prerequisites first. Once you have the prerequisites installed and configured, you are ready to fork the GitHub repository and start using Hyperledger Bevel.
 
-Once you have the prerequisites installed, you are ready to fork this repository and start using Hyperledger Bevel. 
+There are two ways in which you can start using Hyperledger Bevel for your DLT deployment. 
 
-## Configure Prerequisites
-After installation of the [prerequisites](./prerequisites.md), some of them will need to be configured as per Hyperledger Bevel. Follow [these instructions](./operations/configure_prerequisites.md) to configure the pre-requistes and setting up of your environment.
+1. Using the **bevel-build** Docker container as Ansible controller.
+2. Using your own machine as Ansible controller.
+
+## Using Docker container
+
+Follow [these instructions](./developer/docker-build.md) for how to use docker container as Ansible controller.
+
+## Using Own machine
+
+---
+**NOTE** All the instructions are for an **Ubuntu** machine, but configurations can be changed for other machines. Although it is best to use the Docker container if you do not have an Ubuntu machine.
+
+---
+
+### Install additional Prerequisites
+Install [additional prerequisites](./prerequisites_machine.md).
 
 ## Update Configuration File
 Once all the prerequisites have been configured, it is time to update Hyperledger Bevel configuration file. Depending on your platform of choice, there can be some differences in the configuration file. Please follow platform specific links below to learn more on updating the configuration file.
@@ -23,7 +35,6 @@ Once all the prerequisites have been configured, it is time to update Hyperledge
 * [Hyperledger Indy Configuration File](./operations/indy_networkyaml.md)
 * [Quorum Configuration File](./operations/quorum_networkyaml.md)
 * [Hyperledger Besu Configuration File](./operations/besu_networkyaml.md)
-
 
 ## Deploy the Network
 

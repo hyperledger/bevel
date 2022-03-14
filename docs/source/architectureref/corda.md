@@ -35,11 +35,11 @@ The following diagram shows how the Corda Support Services (**Doorman**, **Netwo
 
 ### Docker Images
 
-Hyperledger Bevel creates/provides a set of Corda Docker images that can be found in the [Hyperledger-Labs repository](https://hub.docker.com/u/hyperledgerlabs) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
+Hyperledger Bevel creates/provides a set of Corda Docker images that can be found in the [GitHub Repo](https://github.com/orgs/hyperledger/packages?repo_name=bevel) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
 The following Corda Docker Images are used and needed by Hyperledger Bevel.
-* [Corda Network Map Service](https://hub.docker.com/r/hyperledgerlabs/networkmap-linuxkit) 
-* [Corda Doorman Service](https://hub.docker.com/r/hyperledgerlabs/doorman-linuxkit)
-* [Corda Node](https://hub.docker.com/r/hyperledgerlabs/corda)
+* [Corda Network Map Service](https://github.com/hyperledger/bevel/pkgs/container/bevel-networkmap-linuxkit) 
+* [Corda Doorman Service](https://github.com/hyperledger/bevel/pkgs/container/bevel-doorman-linuxkit)
+* [Corda Node](https://github.com/hyperledger/bevel/pkgs/container/bevel-corda)
 
 ### Ansible Playbooks
 

@@ -78,7 +78,7 @@
 - name: Generate CAroot certificate
   shell: |
     cd {{ rootca }}
-    keytool -genkey -alias key -dname {{ root_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme
+    keytool -genkey -keyalg RSA -alias key -dname {{ root_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme
     openssl ecparam -name prime256v1 -genkey -noout -out cordarootca.key
     openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -nodes -key cordarootca.key -days 1024 -out cordarootca.pem -extensions v3_ca -subj '/{{ cert_subject }}'
     openssl pkcs12 -export -name cert -inkey cordarootca.key -in cordarootca.pem -out cordarootcacert.pkcs12 -cacerts -passin pass:'changeme' -passout pass:'changeme'
@@ -89,7 +89,7 @@
 
 - name: Check if networkmap certs already created
   shell: |
-    vault kv get -field=networkmap.jks  {{ component_name }}/certs > {{ nmsca }}/keys.jks
+    vault kv get -field=networkmap.jks  {{ component_name }}/certs > {{ nmsca }}/tempkeys.jks
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -98,12 +98,19 @@
   tags:
     - molecule-idempotence-notest
 
+- name: Decode base64
+  shell: |    
+    cat {{ nmsca }}/tempkeys.jks | base64 -d > {{ nmsca }}/keys.jks
+  when: not networkmap_certs.failed
+  tags:
+    - molecule-idempotence-notest
+
 # creating nms certificates
 - name: Generate NMS certificate
   shell: |
     cd {{ nmsca }}
     rm keys.jks
-    keytool -genkey -alias key -dname {{ nms_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme
+    keytool -genkey -keyalg RSA -alias key -dname {{ nms_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme
     openssl ecparam -name prime256v1 -genkey -noout -out cordanetworkmap.key
     openssl req -new -nodes -key cordanetworkmap.key -days 1000 -out cordanetworkmap.csr -subj '/{{ nms_cert_subject }}'
     openssl x509  -req -days 1000 -in cordanetworkmap.csr -CA {{ rootca }}/cordarootca.pem -CAkey {{ rootca }}/cordarootca.key -out cordanetworkmap.pem -CAcreateserial -CAserial serial -extfile {{playbook_dir}}/openssl.conf -extensions networkMap
@@ -118,13 +125,20 @@
 # checking root certificates for mongodb
 - name: Check if mongoroot certs already created
   shell: |
-    vault kv get -field=mongoCA.crt  {{ component_name }}/certs
+    vault kv get -field=mongoCA.crt  {{ component_name }}/certs > {{ mongorootca }}/tempmongoCA.crt
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: mongoCA_certs
   ignore_errors: yes
   when: services.nms.tls == 'on'
+  tags:
+    - molecule-idempotence-notest
+
+- name: Decode base64
+  shell: |    
+    cat {{ mongorootca }}/tempmongoCA.crt | base64 -d > {{ mongorootca }}/mongoCA.crt
+  when: not mongoCA_certs.failed
   tags:
     - molecule-idempotence-notest
 
@@ -139,13 +153,13 @@
   shell: |
     cd {{ mongorootca }}
     openssl genrsa -out mongoCA.key 3072
-    openssl req -x509 -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '/{{ mongoroot_cert_subj }}'
+    openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '{{ mongoroot_cert_subj }}'
   when: services.nms.tls == 'on' and mongoCA_stat_result.stat.exists == False and mongoCA_certs.failed == True
 
 # checking if mongodb certificate already created
 - name: Check if mongodb certs already created
   shell: |
-    vault kv get -field=mongodb-{{component_name}}.pem  {{ component_name }}/certs > {{ mongodbca }}/mongodb-{{component_name}}.pem
+    vault kv get -field=mongodb-{{component_name}}.pem  {{ component_name }}/certs > {{ mongodbca }}/tempmongodb-{{component_name}}.pem
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -155,12 +169,19 @@
   tags:
     - molecule-idempotence-notest
 
+- name: Decode base64
+  shell: |    
+    cat {{ mongodbca }}/tempmongodb-{{component_name}}.pem | base64 -d > {{ mongodbca }}/mongodb-{{component_name}}.pem
+  when: not mongodb_certs.failed
+  tags:
+    - molecule-idempotence-notest
+
 # Generating mongodb certificates.
 - name: Generating mongodb certificates
   shell: |
     cd {{ mongodbca }}
-    openssl req -new -nodes -newkey rsa:4096 -keyout mongodb-{{ component_name}}.key -out mongodb-{{ component_name }}.csr -subj '/{{ mongoroot_cert_subj }}-{{component_name}}' 
-    openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
+    openssl req -new -nodes -newkey rsa:4096 -keyout mongodb-{{ component_name}}.key -out mongodb-{{ component_name }}.csr -subj '{{ mongoroot_cert_subj }}-{{component_name}}' 
+    openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -CAserial serial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
   when: services.nms.tls == 'on' and mongodb_certs.failed == True
   tags:
@@ -168,7 +189,7 @@
 
 - name: Putting certs to vault for root
   shell: |
-    vault kv put  {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -178,9 +199,9 @@
 
 - name: Putting certs and credential to vault for networkmap
   shell: |
-    vault kv put  {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
-    vault kv put  {{ component_name }}/credentials/userpassword  sa="{{ userpassword_networkmap }}"
-    vault kv put  {{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)" mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongoCA.crt | base64)"
+    vault kv put {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
+    vault kv put {{ component_name }}/credentials/userpassword  sa="{{ userpassword_networkmap }}"
+    vault kv put {{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)" mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongoCA.crt | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
