@@ -51,15 +51,18 @@
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
   - name: "Setup vault"   
     include_role: 
-      name: "setup/vault_kubernetes"
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
     vars:
+      policy_type: "besu"
+      name: "{{ organizationItem.name | lower }}"
       component_ns: "{{ organizationItem.name | lower }}-bes"
+      component_name: "{{ organizationItem.name | lower }}-vaultk8s-job"      
+      component_auth: "besu{{ organizationItem.name | lower }}"
+      component_type: "organization"
       kubernetes: "{{ organizationItem.k8s }}"
       vault: "{{ organizationItem.vault }}"
-      component_name: "{{ organizationItem.name | lower}}"
-      component_path: "{{ organizationItem.name | lower }}/"
-      component_auth: "besu{{ organizationItem.name | lower }}"
-      component_type: "besu"
+      gitops: "{{ organizationItem.gitops }}"
+      reset_path: "platforms/hyperledger-besu/configuration"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem

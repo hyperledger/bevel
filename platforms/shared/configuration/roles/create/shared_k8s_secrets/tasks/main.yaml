@@ -1,0 +1,79 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates the secrets and docker credentials 
+#############################################################################################
+
+############################################################################################
+# Check if root token secret exist of every organization in their namespace
+- name: Check if root token exists in the namespace
+  k8s_info:
+    kind: Secret
+    namespace: "{{ namespace }}"
+    name: "roottoken"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: root_token_secret
+  when: check == "token_secret"
+
+# ############################################################################################
+# # This task put root token of every organization in their namespace
+- name: Put root token of every organization
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "roottoken"
+        namespace: "{{ namespace }}"
+      stringData:
+        config.yaml: |-
+        token: "{{ vault.root_token }}"
+    state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: check == "token_secret" and root_token_secret.resources|length == 0 
+
+#####################################################################################################################
+# Check if Docker credentials exist already
+- name: "Checking if the docker credentials already exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    check: "docker_credentials"
+  register: get_regcred
+  when: check == "docker_credentials"
+
+- set_fact:
+    auth: "{{network.docker.username}}:{{network.docker.password}}"
+  when: check == "docker_credentials" and  get_regcred.resources|length == 0
+
+- set_fact:
+    auth_64: "{{auth | b64encode}}" 
+  when: check == "docker_credentials" and  get_regcred.resources|length == 0
+
+- set_fact:
+    dockerconfigjson: "{\"auths\":{\"{{network.docker.url}}\":{\"username\":\"{{network.docker.username}}\",\"password\":\"{{network.docker.password}}\",\"email\":\"test@abc.mail\",\"auth\":\"{{auth_64}}\"}}}"
+  when: check == "docker_credentials" and  get_regcred.resources|length == 0
+
+#####################################################################################################################
+# This task creates the docker pull credentials for image registry
+- name: Create the docker pull credentials
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "regcred"
+        namespace: "{{ namespace }}"
+      type: kubernetes.io/dockerconfigjson 
+      data:
+        .dockerconfigjson: "{{ dockerconfigjson | to_json | b64encode }}"
+    state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: check == "docker_credentials" and  get_regcred.resources|length == 0
