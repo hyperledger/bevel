@@ -13,22 +13,23 @@ spec:
     path: {{ charts_dir }}/vitalam-ipfs-node
   values:
     config:
-      healthCheckPort: 80
-      logLevel: trace
-      ipfsApiPort: 5001
-      ipfsSwarmPort: 4001
-      ipfsDataPath: "/ipfs"
-      ipfsCommand: "/usr/local/bin/ipfs"
-      ipfsArgs:
-        - daemon
-      ipfsLogLevel: trace
-      enableLivenessProbe: true
+      fullNameOverride: {{ fullNameOverride }}
+      healthCheckPort: {{ healthCheckPort }}
+      logLevel: {{ logLevel }}
+      ipfsApiPort: {{ ipfsApiPort }}
+      nodeHost: {{ nodeHost }}
+      ipfsSwarmPort: {{ ipfsSwarmPort }}
+      ipfsDataPath: {{ ipfsDataPath }}
+      ipfsCommand: {{ ipfsCommand }}
+      ipfsArgs: {{ ipfsArgs }}
+      ipfsLogLevel: {{ ipfsLogLevel }}
+      enableLivenessProbe: {{ enableLivenessProbe }}
     image:
-      repository: ghcr.io/digicatapult/vitalam-ipfs
+      repository: {{ imageRepo }}
       pullPolicy: IfNotPresent
-      tag: 'v1.2.6'
+      tag: {{ imageVersion }}
     storage:
       storageClass: ""
       dataVolumeSize: 1  # in Gigabytes
     vitalamNode:
-      enabled: true
+      enabled: {{ vitalamNode }}
