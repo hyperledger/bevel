@@ -1,10 +1,10 @@
-# Hyperledger Bevel [![join the chat][rocketchat-image]][rocketchat-url]
+# Hyperledger Bevel [![join the chat][chat-image]][chat-url]
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-6-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-[rocketchat-url]: https://chat.hyperledger.org/channel/bevel
-[rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
+[chat-url]: https://discord.gg/hyperledger
+[chat-image]: https://img.shields.io/discord/905194001349627914?logo=Hyperledger&style=plastic.svg
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/hyperledger-bevel/badge/?version=latest)](https://hyperledger-bevel.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
 [![Build Status](https://circleci.com/gh/hyperledger/bevel.svg?style=shield)](https://circleci.com/gh/hyperledger/bevel)
@@ -74,7 +74,7 @@ For Hyperledger Besu, we use the official Docker containers provided by that pro
 ![Hyperledger Bevel - Besu](./docs/images/hyperledger-bevel-besu.png "Hyperledger Bevel for Hyperledger Besu")
 
 ## Contact
-We welcome your questions & feedback on our [Rocketchat channel](https://chat.hyperledger.org/channel/bevel).
+We welcome your questions & feedback on our [Discord channel](https://discord.com/channels/905194001349627914/941739691336679454). [Please join our Discord first](https://discord.gg/hyperledger).
 
 ## Contributing
 We welcome contributions to Hyperledger Bevel in many forms, and there’s always plenty to do!
