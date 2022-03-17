@@ -14,12 +14,11 @@ spec:
 
   values:
     image:
-      repository: {{ image }}
+      repository: {{ network.docker.url }}/{{ network.config.node_image }}
       tag: {{ network.version }}
-      pullPolicy: Always
+      pullPolicy: IfNotPresent
     imagePullSecrets: 
       - name: "regcred"
-
     serviceAccount:
       create: false
       name: vault-auth
@@ -49,10 +48,6 @@ spec:
       enableStartupProbe: false
       enableReadinessProbe: false
       flags:
-        - "--rpc-external"
-        - "--ws-external"
-        - "--rpc-methods=safe"
-        - "--rpc-cors=all"
       keys: {}
       persistGeneratedNodeKey: false
       
