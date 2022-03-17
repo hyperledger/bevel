@@ -59,7 +59,7 @@ Additionnally, following common images are also used:
 
 *  [mysql-server](https://hub.docker.com/r/mysql/mysql-server) - Used as the DB for Tessera Transaction Manager
 
-*  [alpine-utils](https://hub.docker.com/r/hyperledgerlabs/alpine-utils) - Used as a utility to get crypto from Hashicorp Vault server
+*  [alpine-utils](https://github.com/hyperledger/bevel/pkgs/container/bevel-alpine-utils) - Used as a utility to get crypto from Hashicorp Vault server
 
 ### Ansible Playbooks
 Detailed information on ansible playbooks can be referred [here](../developer/quorum-ansible.md) and the execution process can be referred [here](../operations/setting_dlt.md).

@@ -1,0 +1,101 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for Certs Generator chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#############################################################
+#                   Basic Configuration                     #
+#############################################################
+# Provide the name of the node
+# Eg. nodeName: cert-generation
+nodeName: doorman
+
+# This section contains the Corda metadata.
+metadata:
+  # Provide the namespace for the Corda Certs Generator.
+  # Eg. namespace: cenm
+  namespace: notary-ns
+  # Provide any additional labels for the Corda Certs Generator.
+  labels:
+
+# Provide information regarding the Docker images used.
+image:
+  # Provide the alpine utils image, which is used for all init-containers of deployments/jobs.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
+  initContainerName: ghcr.io/hyperledger/alpine-utils:1.0
+  # Provide the image for the certs container.
+  # Eg. certsContainerName: ghcr.io/hyperledger/bevel-doorman:latest
+  certsContainerName: ghcr.io/hyperledger/bevel-build:jdk8-latest
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecret: regcred
+  imagePullSecret: 
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: Always
+  pullPolicy: IfNotPresent
+
+
+#############################################################
+#               HashiCorp Vault Configuration               #
+#############################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication. 
+# For more info, see https://www.vaultproject.io/docs/auth/kubernetes
+
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address:
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role: vault-role
+  # Provide the authPath configured to be used.
+  # Eg. authPath: cordaentcenm
+  authPath: cordadoorman
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceAccountName: vault-auth
+  serviceAccountName: vault-auth
+  # Provide the vault path where the certificates are stored
+  # Eg. certSecretPrefix: secret/cenm-org-name
+  certSecretPrefix: doorman/data
+  
+  # The amount of times to retry fetching from/writing to Vault before giving up.
+  # Eg. retries: 10
+  retries: 10
+  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
+  # Eg. sleepTimeAfterError: 15  
+  sleepTimeAfterError: 15
+
+
+#############################################################
+#                  SUBJECT Details                          #
+#############################################################
+# This section details the X509 subjects
+
+subjects:  
+  # Mention the subject for rootca
+  # Eg. rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+  rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=New York,C=US"
+  # Mention the subject for mongorootca
+  # Eg. mongorootca: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  mongorootca: "/C=US/ST=New York/L=New York/O=Lite/OU=DBA/CN=mongoDB"
+  # Mention the subject for doormanca
+  # Eg. doormanca: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  doormanca: "CN=Corda Doorman CA,OU=DOORMAN,O=DOORMAN,L=New York,C=US"
+  # Mention the subject for networkmap
+  # Eg. networkmap: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  networkmap:
+
+
+#############################################################
+#                       Settings                            #
+#############################################################
+volume:
+  # Eg. baseDir: /opt/corda
+  baseDir: /home/bevel

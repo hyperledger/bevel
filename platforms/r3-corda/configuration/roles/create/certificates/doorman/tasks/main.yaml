@@ -112,7 +112,7 @@
 - name: Generate CAroot certificate
   shell: |
     cd {{ rootca }}
-    eval "keytool -genkey -alias key -dname {{ root_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme"
+    eval "keytool -genkey -keyalg RSA -alias key -dname {{ root_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme"
     eval "openssl ecparam -name prime256v1 -genkey -noout -out cordarootca.key"
     eval "openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -nodes -key cordarootca.key -days 1024 -out cordarootca.pem -extensions v3_ca -subj '/{{ cert_subject }}'"
     eval "openssl pkcs12 -export -name cert -inkey cordarootca.key -in cordarootca.pem -out cordarootcacert.pkcs12 -cacerts -passin pass:'changeme' -passout pass:'changeme'"
@@ -123,21 +123,28 @@
 
 - name: Check if doorman certs already created
   shell: |
-    vault kv get -field=doorman.jks {{ component_name }}/certs > {{ doormanca }}/keys.jks
+    vault kv get -field=doorman.jks {{ component_name }}/certs > {{ doormanca }}/tempkeys.jks
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: doorman_certs
   ignore_errors: yes
   tags:
-  - notest  
+  - notest
+
+- name: Decode base64
+  shell: |    
+    cat {{ doormanca }}/tempkeys.jks | base64 -d > {{ doormanca }}/keys.jks
+  when: not doorman_certs.failed
+  tags:
+  - notest
 
 # creating doorman certificates
 - name: Generate DoormanCA from generated root CA certificate
   shell: |
     cd {{ doormanca }}
     rm keys.jks
-    eval "keytool -genkey -alias key -dname {{ doorman_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme"
+    eval "keytool -genkey -keyalg RSA -alias key -dname {{ doorman_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme"
     eval "openssl ecparam -name prime256v1 -genkey -noout -out cordadoormanca.key"
     eval "openssl req -new -nodes -key cordadoormanca.key -days 1000 -out cordadoormanca.csr -subj '/{{ doorman_cert_subject }}'"
     eval "openssl x509  -req -days 1000 -in cordadoormanca.csr -CA {{ rootca }}/cordarootca.pem -CAkey {{rootca}}/cordarootca.key -out cordadoormanca.pem -CAcreateserial -CAserial serial -extfile {{playbook_dir}}/openssl.conf -extensions doorman"
@@ -150,7 +157,7 @@
 # checking root certificates for mongodb
 - name: Check if mongoroot certs already created
   shell: |
-    vault kv get -field=mongoCA.crt  {{ component_name }}/certs > {{ mongorootca }}/mongoCA.crt
+    vault kv get -field=mongoCA.crt  {{ component_name }}/certs > {{ mongorootca }}/tempmongoCA.crt
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -158,20 +165,27 @@
   ignore_errors: yes
   when: services.doorman.tls == 'on' 
   tags:
-  - notest  
+  - notest
+
+- name: Decode base64
+  shell: |    
+    cat {{ mongorootca }}/tempmongoCA.crt | base64 -d > {{ mongorootca }}/mongoCA.crt
+  when: not mongoCA_certs.failed
+  tags:
+  - notest
 
 # Generating mongoroot certificates
 - name: Generating Mongoroot certificates
   shell: |
     cd {{ mongorootca }}
     openssl genrsa -out mongoCA.key 3072
-    openssl req -x509 -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '/{{ mongoroot_cert_subj }}'
+    openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '{{ mongoroot_cert_subj }}'
   when: services.doorman.tls == 'on' and mongoCA_certs.failed == True and rootca_stat_result.stat.exists == False
 
 # checking if mongodb certificate already created
 - name: Check if mongodb certs already created
   shell: |
-    vault kv get -field=mongodb-{{component_name}}.pem  {{ component_name }}/certs > {{ mongodbca }}/mongodb-{{component_name}}.pem
+    vault kv get -field=mongodb-{{component_name}}.pem  {{ component_name }}/certs > {{ mongodbca }}/tempmongodb-{{component_name}}.pem
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -179,14 +193,21 @@
   ignore_errors: yes
   when: services.doorman.tls == 'on'
   tags:
-  - notest  
+  - notest
+
+- name: Decode base64
+  shell: |    
+    cat {{ mongodbca }}/tempmongodb-{{component_name}}.pem | base64 -d > {{ mongodbca }}/mongodb-{{component_name}}.pem
+  when: not mongodb_certs.failed
+  tags:
+  - notest
 
 # Generating mongodb certificates.
 - name: Generating mongodb certificates
   shell: |
     cd {{ mongodbca }}
-    openssl req -new -nodes -newkey rsa:4096 -keyout mongodb-{{ component_name}}.key -out mongodb-{{ component_name }}.csr -subj '/{{ mongoroot_cert_subj }}-{{component_name}}' 
-    openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
+    openssl req -new -nodes -newkey rsa:4096 -keyout mongodb-{{ component_name}}.key -out mongodb-{{ component_name }}.csr -subj '{{ mongoroot_cert_subj }}-{{component_name}}' 
+    openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -CAserial serial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
   when: services.doorman.tls == 'on' and mongodb_certs.failed == True and rootca_stat_result.stat.exists == False
 
