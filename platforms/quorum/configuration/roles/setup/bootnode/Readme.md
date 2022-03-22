@@ -16,40 +16,31 @@ This task check if bootnode is already installed or not
 ##### Output Variables
     bootnode_stat_result: This variable stores the info on availibility on bootnode binary
 
-#### 2. Check quorum repo dir exists
-This task check if bootnode is already installed or not
+#### 2. Create bootnode directory
+This task creates the bootnode directory
 
-**stat**: This module checks if quorum is cloned or not.
+**stat**: This module creates the bootnode directory
 
 ##### Output Variables
-    quorum_stat_result: This variable stores the info on availibility on quorum repo dir
+    bootnode_stat_result: This variable stores the info on availibility on bootnode binary
 
-#### 3. Clone the git repo
-This task clones the quorum git repository
-
-**git**: This module clones the quorum repository
+#### 3. Download bootnode tar
+This task downloads the bootnode tar
 
 ##### Input Variables
     repo: The path where the bootnode binary should be installed
-    dest: Path where the repository should be cloned
+    dest: Path where the repository should be placed
 
-**when**: It runs when *bootnode_stat_result.stat.exists* == False and *quorum_stat_result.stat.exists* == Flase i.e. when either bootnode is not installed or quorum dir is not there.
+**when**: It runs when *bootnode_stat_result.stat.exists* == False i.e. when either bootnode is not installed 
 
-#### 4. Make bootnode
-This task makes bootnode from the cloned repository and store the binary at build/bin
-
-**shell**: The task goes to the cloned repository.
-
-**when**: It runs when *bootnode_stat_result.stat.exists* == False, i.e. when bootnode is not installed.
-
-#### 5. Create bin directory
+#### 4. Create bin directory
 This task creates the bin directory if it does not exist.
 
 **file**: This module creates the bin directory if it does not exist.
 
 **when**: It runs when *bootnode_stat_result.stat.exists* == False, i.e. when bootnode is not installed.
 
-#### 6. Copy bootnode binary to destination directory
+#### 5. Copy bootnode binary to destination directory
 This task creates the bin directory if it does not exist.
 
 **copy**: This module copies the bootnode binary which is build in the above task and paste it in bin directory
