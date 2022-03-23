@@ -55,7 +55,7 @@ spec:
         args:
         - |-
           #!/usr/bin/env bash
-          apt-get update && apt-get install -y jq curl unzip;
+          apt-get update && apt-get install -y jq bc curl unzip;
           if [[ $? > 0 ]]
           then
             # download jq
@@ -92,11 +92,23 @@ spec:
 
           echo "Generate genesis"
           GENESIS=$($command build-spec --disable-default-bootnode --chain local)
+          GENESIS=$(echo $GENESIS | jq '.name |= {{ .Values.chain | quote }}')
+          GENESIS=$(echo $GENESIS | jq '.id |= {{ .Values.chain | replace "-" "_" | quote }}')
+          GENESIS=$(echo $GENESIS | jq '.chainType |= "Live"')
 
           echo "Swapping chaintype and removing palletAura and grandpaAura authorities"
-          GENESIS=$(echo $GENESIS | jq '.chainType |= "Live"')
           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletAura.authorities |= []')
           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletGrandpa.authorities |= []')
+          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletBalances.balances |= []')
+          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletNodeAuthorization.nodes |= []')
+          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletMembership.members |= []')
+
+          echo "Generating sudo key with scheme Sr25519..."          
+          $command key generate --scheme Sr25519 --output-type json >> sudoKeygenOutput.json
+          SUDO_SEED=$(jq -r '.secretPhrase' sudoKeygenOutput.json)
+          SUDO_ADDR=$(jq -r '.ss58Address' sudoKeygenOutput.json)
+          GENESIS=$(echo $GENESIS | jq --arg sudo $SUDO_ADDR --arg balance 1152921504606846976 '.genesis.runtime.palletBalances.balances += [[$sudo, ($balance | tonumber)]]')
+          GENESIS=$(echo $GENESIS | jq --arg sudo $SUDO_ADDR '.genesis.runtime.palletSudo.key |= $sudo')
 
           echo "Inserting keys into genesis"
 
@@ -112,8 +124,25 @@ spec:
           GENESIS=$(echo "$GENESIS" | jq --arg grandpa {{.}} '.genesis.runtime.palletGrandpa.authorities += [[$grandpa, 1]]')
           {{- end }}
 
-          echo "$GENESIS" > genesis.json
+          {{- range $idx, $member := .Values.members }}
+          GENESIS=$(echo $GENESIS | jq --arg account_id {{ $member.account_id }} --arg balance {{ $member.balance }} '.genesis.runtime.palletBalances.balances += [[$account_id, ($balance | tonumber)]]')
+          GENESIS=$(echo $GENESIS | jq --arg account_id {{ $member.account_id }} '.genesis.runtime.palletMembership.members += [$account_id]')
 
+          {{- range $member.nodes }}
+          this_node_id={{ . }}
+          arr_node_id=($(echo $this_node_id | fold -w2))
+          GENESIS=$(echo $GENESIS | jq --arg owner {{ $member.account_id }} '.genesis.runtime.palletNodeAuthorization.nodes += [[[], $owner]]')
+          for byte in "${arr_node_id[@]}"
+          do
+            GENESIS=$(echo $GENESIS | jq --arg byte $(echo "obase=10; ibase=16; $byte" | bc) '.genesis.runtime.palletNodeAuthorization.nodes[-1][0] += [($byte | tonumber)]')
+          done
+          {{- end }}
+          {{- end }}          
+
+          echo "$GENESIS" > genesis.json
+          echo "********* check genesis *********"
+          cat genesis.json
+          echo "********* check genesis *********"
           echo "Converting genesis to raw format"
           GENESIS=$($command build-spec --disable-default-bootnode --raw --chain ./genesis.json)
           echo "$GENESIS" > genesis_raw.json
@@ -137,7 +166,7 @@ spec:
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
           vault_secret_key="${CERTS_SECRET_PREFIX}/genesis"
           # Save the generated keys to VAULT
-          vault kv put $vault_secret_key genesis=@genesis_base64
+          vault kv put $vault_secret_key genesis=@genesis_base64 sudo_details=@sudoKeygenOutput.json
           
       volumes:
         - name: certcheck

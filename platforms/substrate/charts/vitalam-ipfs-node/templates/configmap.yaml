@@ -7,13 +7,19 @@ metadata:
 data:
   healthCheckPort: {{ .Values.config.healthCheckPort | quote }}
   logLevel: {{ .Values.config.logLevel }}
+  {{- if .Values.config.nodeHost }}
   nodeHost: {{ .Values.config.nodeHost }}
+  {{- else if .Values.vitalamNode.enabled }}
+  nodeHost: {{ include "vitalam-ipfs-node.fullname" . }}
+  {{- end }}
   ipfsCommand: {{ .Values.config.ipfsCommand }}
   ipfsLogLevel: {{ .Values.config.ipfsLogLevel }}
   ipfsArgs: {{ .Values.config.ipfsArgs | toJson | quote }}
+  ipfsSwarmAddrFilters: {{ .Values.config.ipfsSwarmAddrFilters | toJson | quote }}
   {{- if .Values.config.ipfsBootNodeAddress }}
   ipfsBootNodeAddress: {{ .Values.config.ipfsBootNodeAddress }}
   {{- end }}
   ipfsApiPort: {{ include "vitalam-ipfs.ipfsApiPort" . }}
   ipfsSwarmPort: {{ .Values.config.ipfsSwarmPort | quote }}
   dataVolumeSize: {{ .Values.storage.dataVolumeSize | quote }}
+  

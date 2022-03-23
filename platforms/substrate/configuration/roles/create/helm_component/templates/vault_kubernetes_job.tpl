@@ -27,7 +27,9 @@ spec:
       policydata: {{ policydata | to_nice_json }}
       secret_path: {{ vault.secret_path }}
       serviceaccountname: vault-auth
+{% if network.docker.password is defined %}    
       imagesecretname: regcred
+{% endif %}
     
     k8s:
       kubernetes_url: {{ kubernetes_url }}

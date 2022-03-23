@@ -37,6 +37,7 @@ spec:
               $ipfsCommand config --json Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/$ipfsSwarmPort\"]";
               $ipfsCommand config --json Addresses.Announce "[\"/dns4/{{ $fullname }}-swarm.{{ .Release.Namespace }}.svc.cluster.local/tcp/$ipfsSwarmPort/\"]";
               $ipfsCommand config Datastore.StorageMax $(echo "$dataVolumeSize""Gb");
+              $ipfsCommand config --json Swarm.AddrFilters $ipfsSwarmAddrFilters;
               $ipfsCommand config --json API.HTTPHeaders.Access-Control-Allow-Origin "[\"http://0.0.0.0:$ipfsApiPort\", \"http://127.0.0.1:$ipfsApiPort\"]";
               $ipfsCommand bootstrap rm --all;
               if [ ! -z "$ipfsBootNodeAddress" ]; then $ipfsCommand bootstrap add $ipfsBootNodeAddress; fi;
@@ -78,7 +79,7 @@ spec:
                 configMapKeyRef:
                   name: {{ include "vitalam-ipfs.fullname" . }}-config
                   key: ipfsArgs
-            - name: IPFS_LOG_LEVEL
+            - name: IPFS_LOGGING
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "vitalam-ipfs.fullname" . }}-config

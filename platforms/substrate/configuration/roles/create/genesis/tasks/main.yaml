@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This tasks creates an empty listed named
+# This tasks creates an empty list named 
 - name: Set aura_key_list to []
   set_fact:
     aura_key_list: []
@@ -13,13 +13,28 @@
   set_fact:
     grandpa_key_list: []
 
-- name: Pull keys for each validator peer
+- name: Set member_list to []
+  set_fact:
+    member_list: []
+
+# This task checks if the genesis already exists
+- name: Check if genesis file exists
+  shell: |
+    vault kv get -field=genesis {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}-subs/genesis
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: vault_genesis_result
+  ignore_errors: yes
+
+- name: Get keys for each peer
   include_tasks: nested_main.yaml
   vars:
     peers: "{{ item.services.peers }}"
     vault: "{{ item.vault }}"
     component_ns: "{{ item.name | lower }}-subs"
   loop: "{{ network['organizations'] }}"
+  when: vault_genesis_result.failed
 
 - name: Generate genesis helm release
   include_tasks: create_genesis_job.yaml
@@ -31,9 +46,9 @@
     component_ns: "{{ org.name | lower }}-subs"
     charts_dir: "{{ org.gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
-    org: "{{ network['organizations'] | first }}"
     gitops: "{{ org.gitops }}"
     kubernetes: "{{ org.k8s }}"
+  when: vault_genesis_result.failed
 
 # This tasks copies the genesis to each orgs vault
 - name: Put genesis into org vault
@@ -43,7 +58,8 @@
   vars:
     component_ns: "{{ item.name | lower }}-subs"
   shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/genesis genesis=@{{ network.config.genesis }}
-  loop: "{{ network.organizations[1:] }}"
-
-
+    vault kv put {{ item.vault.secret_path | default('secretsv2') }}/{{ component_ns }}/genesis genesis=@{{ network.config.genesis }}
+  loop: "{{ network.organizations }}"
+  when: 
+    - item.name != org.name
+    - vault_genesis_result.failed

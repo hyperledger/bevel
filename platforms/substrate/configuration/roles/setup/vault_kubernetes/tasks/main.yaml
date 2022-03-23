@@ -26,6 +26,19 @@
   vars: 
     namespace: "{{ component_ns }}"    
     check: "docker_credentials"
+  when: network.docker.password is defined
+
+# This task checks if the vault policy already exists
+- name: "Checking if the vault policies already exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    check: "vault_policies"
+    component_name: "{{ item.name | lower }}"
+  ignore_errors: yes
+
+- set_fact:
+    this_policy_result: "{{ vault_policy_result }}"
 
 #############################################################################################
 # This task creates secrets for the root token
@@ -35,6 +48,7 @@
   vars: 
     namespace: "{{ component_ns }}"    
     check: "token_secret"
+  when: this_policy_result.failed
 
 # Ensures the build directory
 - name: "Creating the build directory"
@@ -52,6 +66,7 @@
   template:
     src: "policy-ro.tpl"
     dest: "./build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl"
+  when: this_policy_result.failed
   changed_when: false
   
 #############################################################################################
@@ -60,6 +75,7 @@
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
   register: kubernetes_server_url
+  when: this_policy_result.failed
 
 #####################################################################################################################
 # This tasks generate vault_kubernetes helmrelease file
@@ -69,8 +85,6 @@
   vars:  
     name: "{{ item.name | lower }}"
     type: "vault_k8s_mgmt"    
-    vault_auth: "{{ vault_auth_status }}"
-    vault_policy: "{{ vault_policy_temp }}"
     git_url: "{{ item.gitops.git_url }}"
     git_branch: "{{ item.gitops.branch }}"
     charts_dir: "{{ item.gitops.chart_source }}"
@@ -80,6 +94,7 @@
     alpine_image: "hyperledgerlabs/alpine-utils:1.0"
     policydata: "{{ lookup('file', './build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl') }}"
     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+  when: this_policy_result.failed
   
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -90,6 +105,7 @@
     gitops: "{{ item.gitops }}"    
     GIT_RESET_PATH: "platforms/substrate/configuration"
     msg: "[ci skip] Pushing vault_kubernetes files"
+  when: this_policy_result.failed
    
 # Check if vault_kubernetes is completed
 - name: Check if vault_kubernetes job is completed
@@ -99,6 +115,7 @@
     component_type: Job
     namespace: "{{ component_ns }}"
     kubernetes: "{{ item.k8s }}"
+  when: this_policy_result.failed
 
 #############################################################################################
 # This task deletes the root token
@@ -110,3 +127,4 @@
     vault: "{{ item.vault }}"
     kubernetes: "{{ item.k8s }}"
     check: "token_secret"
+  when: this_policy_result.failed

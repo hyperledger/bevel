@@ -4,8 +4,10 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-- name: Create keys for each node
-  include_tasks: nested_main.yaml
-  loop: "{{ peers }}"
+# This populates the bootnode details
+- name: Get bootnode details from Vault
+  include_tasks: get_bootnode_data.yaml
+  loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
+  when: peer.type == "bootnode"

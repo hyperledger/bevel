@@ -42,23 +42,22 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
 
 # This task deletes crypto material
-- name: Delete Crypto material 
+- name: Delete Peer Crypto material 
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/{{ peer.name }}/substrate
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/genesis
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/tlscerts
-  loop: "{{ services.peers }}"
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/{{ peer.name }}/substrate  
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop: "{{ services.peers }}"
   loop_control:
     loop_var: peer
   ignore_errors: yes
 
-# This task deletes genesis for each org
-- name: Delete genesis
+# This task deletes org level secrets
+- name: Delete Org Crypto material 
   shell: |
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/genesis
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/tlscerts
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
@@ -66,7 +65,7 @@
   # This task deletes application crypto material
 - name: Delete Application Crypto material 
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/smartContracts/General
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/application
   loop: "{{ services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"

@@ -1,8 +1,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-metadata:
-  name:
 # substrate node runtime image
 # Eg. repository: parity/substrate
 image:
@@ -68,9 +66,6 @@ ingress:
 
 #extraLabels:
 #  type: rpc
-
-# bootnode contains the bootnode address for organizations to connect to
-bootnode: 
 
 # This section contains the Substrate node details.
 node:
@@ -143,13 +138,14 @@ node:
     #interval: 10s
     # scrapeTimeout: 10s
   perNodeServices:
-    createClusterIPService: true
-    createP2pNodePortService: false
+    createApiService: true
+    createP2pService: true
+    p2pServiceType: ClusterIP  # Must be type ClusterIP, NodePort or LoadBalancer, If using type NodePort or LoadBalancer then you must set NodeSelecter accordingly.
     relayServiceAnnotations: {}
     paraServiceAnnotations: {}
-    setPublicAddressToExternalIp:
+    setPublicAddressToExternal:
       enabled: false
-      ipRetrievalServiceUrl: https://ifconfig.io
+      ipRetrievalServiceUrl: https://ifconfig.io/ip
   #podManagementPolicy: Parallel
   ports:
   # Specifies the port to listen on for peer-to-peer (p2p) traffic
@@ -246,4 +242,3 @@ vault:
   # NOTE: The alpine image used is the base alpine image with CURL installed.
   # Eg. image: hyperledgerlabs/alpine-utils:1.0
   image:
-
