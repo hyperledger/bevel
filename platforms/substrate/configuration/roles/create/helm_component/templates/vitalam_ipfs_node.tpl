@@ -12,24 +12,28 @@ spec:
     ref: {{ org.gitops.branch }}
     path: {{ charts_dir }}/vitalam-ipfs-node
   values:
+    fullnameOverride: {{ peer.name }}-ipfs
     config:
-      fullNameOverride: {{ fullNameOverride }}
-      healthCheckPort: {{ healthCheckPort }}
-      logLevel: {{ logLevel }}
-      ipfsApiPort: {{ ipfsApiPort }}
+      healthCheckPort: 80
       nodeHost: {{ nodeHost }}
-      ipfsSwarmPort: {{ ipfsSwarmPort }}
-      ipfsDataPath: {{ ipfsDataPath }}
-      ipfsCommand: {{ ipfsCommand }}
-      ipfsArgs: {{ ipfsArgs }}
-      ipfsLogLevel: {{ ipfsLogLevel }}
-      enableLivenessProbe: {{ enableLivenessProbe }}
+      logLevel: info
+      ipfsApiPort: {{ peer.api.port }}
+      ipfsSwarmPort: {{ peer.swarm.port }}
+      ipfsDataPath: "/ipfs"
+      ipfsCommand: "/usr/local/bin/ipfs"
+      ipfsArgs:
+        - daemon
+      ipfsLogLevel: fatal
+{% if ipfs_bootnode is defined %}
+      ipfsBootNodeAddress: {{ ipfs_bootnode[1:] | join(',') }}
+{% endif %}      
+      enableLivenessProbe: true
     image:
-      repository: {{ imageRepo }}
+      repository: {{ docker_url }}/digicatapult/vitalam-ipfs
       pullPolicy: IfNotPresent
-      tag: {{ imageVersion }}
+      tag: 'v1.2.12'
     storage:
-      storageClass: ""
-      dataVolumeSize: 1  # in Gigabytes
+      storageClass: "{{ storageclass_name }}"
+      dataVolumeSize: 20  # in Gigabytes
     vitalamNode:
-      enabled: {{ vitalamNode }}
+      enabled: false

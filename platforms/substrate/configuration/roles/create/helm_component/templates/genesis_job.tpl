@@ -27,5 +27,8 @@ spec:
       serviceaccountname: vault-auth
       # Not using /data because vault cli is used in this container
       certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}
+    chain: {{ network.config.chain }}
     aura_keys: {{ aura_key_list }}
     grandpa_keys: {{ grandpa_key_list }}
+    members: 
+      {{ member_list | to_nice_yaml | indent(width=6) }}

@@ -71,6 +71,7 @@
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
     loop: "{{ network['organizations']}}"
+    when: network.env.proxy == "ambassador"
 
   # This role generates the key materials and stores them in vault
   - name: "Generate key materials for Nodes"
@@ -95,9 +96,11 @@
       name: create/genesis
     vars:
       build_path: "./build"
+      sudo_org_query: "organizations[?type=='superuser']"
+      org: "{{ network | json_query(sudo_org_query) | first }}"
 
-  # TODO This role deploys Substrate bootnodes
-  - name: "Deploy Bootnode"
+  # This role deploys Substrate bootnodes
+  - name: "Deploy Bootnodes"
     include_role:
       name: create/bootnode
     vars:
@@ -108,38 +111,27 @@
       peers: "{{ item.services.peers }}"
     loop: "{{ network['organizations'] }}"
 
-  # TODO This role deploys Substrate nodes
-  - name: "Deploy Substrate nodes"
+  # This role generates the bootnode list file
+  - name: "Generate bootnode file list for the network"
+    include_role:
+      name: create/bootnodefile
+
+  # This role deploys Substrate validator nodes
+  - name: "Deploy Substrate validators"
     include_role:
       name: create/validator_node
     vars:
       build_path: "./build"
       kubernetes: "{{ item.k8s }}"
-      consensus: "{{ network.config.consensus }}"
       component_ns: "{{ item.name | lower }}-subs"
       name: "{{ item.name | lower }}"
       peers: "{{ item.services.peers }}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
-      external_url: "{{ item.external_url_suffix }}"
-      vault: "{{ item.vault }}"
-      git_url: "{{ item.gitops.git_url }}"
-      git_branch: "{{ item.gitops.branch }}"
-      org: "{{ item }}"
-      docker_url: "{{ network.docker.url }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      bootnode_data: "{{ network.config.bootnodes | default('null') }}"
-      image: "{{ network.config.node_image }}"
-      command: "{{ network.config.command }}"
-      role: "validator"
     loop: "{{ network['organizations'] }}"
-    when: 
-    - item.services.peers.type == 'validator'
 
-  # Deploy ipfs nodes
-  - name: "Deploy ipfs nodes"
+  # Deploy ipfs bootnodes
+  - name: "Deploy ipfs bootnodes"
     include_role: 
-      name: create/ipfs_node
+      name: create/ipfs_bootnode
     vars:
       build_path: "./build"
       charts_dir: "{{ item.gitops.chart_source }}"
@@ -150,6 +142,23 @@
       component_name: "{{ item.name | lower }}"
       component_ns: "{{ item.name | lower }}-subs"
       name: "{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+
+  # This role generates the ipfsbootnode list file
+  - name: "Generate ipfsbootnode file list for the network"
+    include_role:
+      name: create/ipfsbootnodefile
+
+  # This role deploys Substrate validator nodes
+  - name: "Deploy Substrate members"
+    include_role:
+      name: create/member_node
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      component_ns: "{{ item.name | lower }}-subs"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
     loop: "{{ network['organizations'] }}"
   
   vars: #These variables can be overriden from the command line

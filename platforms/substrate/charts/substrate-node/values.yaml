@@ -1,6 +1,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-  
+
 # substrate node runtime image
 # Eg. repository: parity/substrate
 image:
@@ -67,9 +67,6 @@ ingress:
 #extraLabels:
 #  type: rpc
 
-# bootnode contains the bootnode address for organizations to connect to
-bootnode: 
-
 # This section contains the Substrate node details.
 node:
   # Provide the name of the node.
@@ -81,10 +78,10 @@ node:
   # Specifies the chain specification. It can be one of the predefined ones (dev, local, or staging) 
   # or it can be a path to a file with the chainspec (such as one exported by the `build-spec` subcommand). 
   # Eg. chain: local or chain: <path to chain spec file>
-  chain: "polkadot"
+  chain: 
   # Substrate CLI executable
   # Eg. command: substrate
-  command: "polkadot"
+  command: 
   # Provide the size of the volume
   # Eg. dataVolumeSize: 1Gi
   dataVolumeSize: 100Gi
@@ -93,7 +90,7 @@ node:
   replicas: 1
   # role of the node
   # Eg. role: full
-  role: full
+  role:
   #customChainspecUrl:
   ## Node may require custom name for chainspec file. Example: moonbeam https://github.com/PureStake/moonbeam/issues/1104#issuecomment-996787548
   ## Note: path should start with /data/ since this folder mount in init container download-chainspec.
@@ -117,14 +114,14 @@ node:
   #  relayChainDataKubernetesVolumeSnapshot: ""
   #  relayChainDataGcsBucketUrl: ""
   #  relayChainFlags:
-  enableStartupProbe: true
-  enableReadinessProbe: true
+  enableStartupProbe:
+  enableReadinessProbe:
   flags:
-    - "--rpc-external"
-    - "--ws-external"
-    - "--rpc-methods=safe"
-    - "--rpc-cors=all"
-    - "--prometheus-external"
+    # - "--rpc-external"
+    # - "--ws-external"
+    # - "--rpc-methods=safe"
+    # - "--rpc-cors=all"
+    # - "--prometheus-external"
   keys: {}
   #  - type: "gran"
   #    scheme: "ed25519"
@@ -141,24 +138,25 @@ node:
     #interval: 10s
     # scrapeTimeout: 10s
   perNodeServices:
-    createClusterIPService: true
-    createP2pNodePortService: false
+    createApiService: true
+    createP2pService: true
+    p2pServiceType: ClusterIP  # Must be type ClusterIP, NodePort or LoadBalancer, If using type NodePort or LoadBalancer then you must set NodeSelecter accordingly.
     relayServiceAnnotations: {}
     paraServiceAnnotations: {}
-    setPublicAddressToExternalIp:
+    setPublicAddressToExternal:
       enabled: false
-      ipRetrievalServiceUrl: https://ifconfig.io
+      ipRetrievalServiceUrl: https://ifconfig.io/ip
   #podManagementPolicy: Parallel
   ports:
   # Specifies the port to listen on for peer-to-peer (p2p) traffic
   # Eg. p2p: 30333
-    p2p: 30333
+    p2p:
   # Specifies the port to listen on for incoming WebSocket traffic
   # Eg. ws: 9944
-    ws: 9944
+    ws:
   # Specifies the port to listen on for incoming RPC traffic
   # Eg. 9933
-    rpc: 9933
+    rpc:
 
   # Enables Jaeger Agent as a sidecar
   tracing:

@@ -14,11 +14,15 @@ spec:
 
   values:
     image:
-      repository: {{ image }}
+      repository: {{ network.docker.url }}/{{ network.config.node_image }}
       tag: {{ network.version }}
-      pullPolicy: Always
+      pullPolicy: IfNotPresent
+{% if network.docker.password is defined %}
     imagePullSecrets: 
       - name: "regcred"
+{% endif %}
+    nameOverride: {{ peer.name }}
+    fullnameOverride: {{ peer.name }}
 
     serviceAccount:
       create: false
@@ -30,19 +34,17 @@ spec:
       fsGroup: 1000
     ingress:
       enabled: false
-{% if bootnode_data is defined %}
-    bootnode: {{ bootnode_data }}
-{% endif %}
 
     node:
       name: {{ peer.name }}
-      namespace: {{ component_ns }}      
-      chain: "local"
+      namespace: {{ component_ns }}
+      chain: {{ network.config.chain }}
       command: {{ command }}      
       dataVolumeSize: 10Gi
       replicas: 1
       role: {{ role }}
-      
+      customChainspecUrl: true
+      customChainspecPath: "/data/chainspec.json"
       collator:
         isParachain: false
                 
@@ -51,9 +53,22 @@ spec:
       flags:
         - "--rpc-external"
         - "--ws-external"
-        - "--rpc-methods=safe"
+        - "--rpc-methods=Unsafe"
         - "--rpc-cors=all"
-      keys: {}
+        - "--unsafe-ws-external"
+        - "--unsafe-rpc-external"
+{% if bootnode_data is defined %}
+        - "--bootnodes '{{ bootnode_data[1:] | join(',') }}'"
+{% endif %}
+{% if role == "validator" %}
+      keys:
+        - type: "gran"
+          scheme: "ed25519"
+          seed: "grandpa_seed"
+        - type: "aura"
+          scheme: "sr25519"
+          seed: "aura_seed"
+{% endif %}
       persistGeneratedNodeKey: false
       
       resources: {}
@@ -62,7 +77,8 @@ spec:
         
       perNodeServices:
         createClusterIPService: true
-        createP2pNodePortService: false
+        createP2pNodePortService: true
+        p2pServiceType: ClusterIP
         setPublicAddressToExternalIp:
           enabled: false
           ipRetrievalServiceUrl: https://ifconfig.io
@@ -90,4 +106,4 @@ spec:
       secretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}
       authPath: substrate{{ name }}
       appRole: vault-role
-      image: hyperledgerlabs/alpine-utils:1.0 
+      image: ghcr.io/hyperledger/alpine-utils:1.0 
