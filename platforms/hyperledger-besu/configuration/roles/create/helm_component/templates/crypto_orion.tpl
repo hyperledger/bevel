@@ -24,3 +24,9 @@ spec:
       role: vault-role
       serviceaccountname: vault-auth
       tmprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}/tm
+      retries: 30
+    sleepTimeAfterError: 60
+    sleepTime: 10
+    healthcheck:
+      readinesscheckinterval: 5
+      readinessthreshold: 2

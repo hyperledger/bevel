@@ -77,8 +77,6 @@ This is the nested Task for chaincode commit.
     *component_name: Name of the component, "{{ item.name | lower}}}}-vaultkubernetes-job"
     *component_type: Type of the component, "{{ item.type | lower}} }}"
     *component_ns: "Namespace of organisation , Format: {{ item.name | lower}}-net"
-    *vault_auth: "Value of checking for auth path"
-    *vault_policy: "Value of checking the existence of policies"
     *git_url: "Git SSH url"
     *git_branch: "Git Branch Name"
     *charts_dir: "Path of Charts Directory"

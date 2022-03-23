@@ -18,10 +18,11 @@ spec:
       name: {{ component_name }}
       namespace: {{ component_ns }}    
     image:      
-      repository: quorumengineering/tessera:{{ network.config.tm_version }}
+      repository: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       pullSecret: regcred
     vault:
       address: {{ vault.url }}
+      secretengine: {{ vault.secret_path | default('secretsv2') }}      
       authpath: quorum{{ org_name }}
       keyprefix: {{ component_ns }}/crypto
       role: vault-role
