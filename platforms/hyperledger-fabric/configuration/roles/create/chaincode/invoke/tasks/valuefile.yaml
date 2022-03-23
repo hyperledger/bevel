@@ -73,17 +73,14 @@
   set_fact:
     invoke_chaincode: "{{ result }}"
 
-  
-- name: "Write all endorsing orgs certificates to vault"
-  include_tasks: write.yaml
+- name: Get endorsers data
+  set_fact:
+    endorsers_var={{ endorsers_var|default([]) + [ {'org_name':endorser.name, 'peercoreaddress':endorser.peers | map(attribute='corepeerAddress') | first, 'certificate':cert } ] }}
   vars:
-    namespace: "{{ org.name |lower }}-net"
-    vault: "{{ org.vault }}"
-    peers: "{{ organization.services.peers | first }}"
-  loop: "{{ network.organizations }}"
+    cert: "{{ lookup('file', '{{ endorser.peers | map(attribute=\"certificate\") | first }}') | b64encode }}"
+  loop: "{{ approvers }}"
   loop_control:
-    loop_var: organization
-  when: organization.type == 'peer' and '2.' in network.version
+    loop_var: endorser
 
 # Nested task for chanincode invocation
 - name: "Create value file for chaincode invocation"
@@ -103,6 +100,7 @@
     fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     component_chaincode: "{{ peer.chaincode }}"
+    endorsers_list: "{{ endorsers_var }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
   loop: "{{ org.services.peers }}"
   loop_control:

@@ -31,9 +31,9 @@ spec:
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
+      secretgitprivatekey: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/git
       serviceaccountname: vault-auth
       imagesecretname: regcred
-      secretgitprivatekey: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/git?git_password
       tls: false
     orderer:
       address: {{ orderer_address }}
