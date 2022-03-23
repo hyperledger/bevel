@@ -151,3 +151,23 @@ This task creates the Ambassador TLS credentials for orderers
     *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml
     *namespace: Namespace of the component 
 **when**: Conditions is specified here, runs only when *get_orderer_secret.resources* is not found, *vault_orderercert_result.failed* is False, *vault_ordererkey_result.failed* is False and *network.env.proxy* is ambassador.
+
+#### 15. Check if git credentials already created 
+This tasks checks if the git credentials are already created or not
+##### Input Variables
+
+    *kind: This defines the kind of Kubernetes resource
+    *namespace: Namespace of the component 
+    *name: The name of credentials
+    *kubeconfig: The config file of the cluster
+    *context: This refer to the required kubernetes cluster context
+##### Output Variables
+
+    git_password_secret: This variable stores the output of git credentials check query.
+
+#### 16. Create the git credentials 
+This task creates the git credentials secret
+##### Input Variables
+    *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml
+    *namespace: Namespace of the component 
+**when**: Conditions is specified here, runs only when *git_password_secret.resources* is not found.
