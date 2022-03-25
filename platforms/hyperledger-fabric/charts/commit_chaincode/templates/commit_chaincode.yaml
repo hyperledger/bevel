@@ -55,8 +55,12 @@ spec:
           value: {{ $.Values.vault.role }}
         - name: VAULT_PEER_SECRET_PREFIX
           value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: SECRET_PATH
+          value: "{{ $.Values.vault.secretpath }}"
         - name: ENDORSING_ORG_NAMES
           value: "{{ $.Values.endorsers.name }}"
+        - name: ENDORSING_CERTS
+          value: "{{ $.Values.endorsers.certificates }}"
         - name: CREATOR_NS
           value: "{{ $.Values.endorsers.creator }}"
         - name: VAULT_ORDERER_SECRET_PREFIX
@@ -67,6 +71,15 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
+
+          formatCertificate () {
+            NAME="${1##*/}"
+            while read line || [ -n "$line" ];
+            do 
+              echo "$line\n"; 
+            done < ${1} > ${2}/${NAME}.txt
+          }
+
           validateVaultResponse () {
             if echo ${2} | grep "errors"; then
               echo "ERROR: unable to retrieve ${1}: ${2}"
@@ -143,32 +156,57 @@ spec:
           echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
 
           ######################################################################
+          FORMAT_CERTIFICATE_PATH="/formatcertificate"
+          mkdir -p ${FORMAT_CERTIFICATE_PATH}/endorsers
+  
+          endorsing_org_names_list=$ENDORSING_ORG_NAMES
+          endorsing_certificates_list=$ENDORSING_CERTS
 
-          #Downloading Certificates for all admin users
-          echo $ENDORSING_ORG_NAMES
-          for ns in $ENDORSING_ORG_NAMES
-          do
-            SECRETPREFIX=secretsv2/data/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${ns}/users/admin
-            echo "Fetching certificates for org: $ns"
-            echo $SECRETPREFIX
+          echo $endorsing_org_names_list | sed 's/ /\n/g' > /tmp/a.$$
+          echo $endorsing_certificates_list | sed 's/ /\n/g' > /tmp/b.$$
 
-            vault_secret_key="$SECRETPREFIX/msp"
-            echo "Getting MSP certificates from Vault using key $vault_secret_key"
+          paste /tmp/a.$$ /tmp/b.$$ | while read org_name endorser_certificate; do
+              OUTPUT_PATH="${MOUNT_PATH}/endorsers/$org_name/msp"
+              echo $OUTPUT_PATH
+              mkdir -p ${OUTPUT_PATH}/cacerts
+              echo $endorser_certificate | base64 -d >> ${OUTPUT_PATH}/cacerts/ca.crt
 
-            OUTPUT_PATH="${MOUNT_PATH}/endorsers/$ns/msp"
-            echo $OUTPUT_PATH
+              cat ${OUTPUT_PATH}/cacerts/ca.crt
 
-            LOOKUP_SECRET_RESPONSE=$(curl -sS  \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              mkdir -p ${FORMAT_CERTIFICATE_PATH}/${org_name}
+              formatCertificate "${OUTPUT_PATH}/cacerts/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${org_name}"
+              CACERTS_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/${org_name}/ca.crt.txt)
 
-            CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]')
+              echo "
+              {
+                \"data\": 
+                  {
+                    \"cacerts\": \"${CACERTS_FORMAT}\"
+                  }  
+              }" > payload.json
 
-            mkdir -p ${OUTPUT_PATH}/cacerts
-            echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
-            cat ${OUTPUT_PATH}/cacerts/ca.crt
+              SECRETPREFIX=${SECRET_PATH}/data/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${org_name}/users/admin
+              vault_secret_key=${SECRETPREFIX}/msp
+
+              # This task write the CA server admin credentials to Vault
+                curl \
+                  -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -X POST \
+                  -d @payload.json \
+                  ${VAULT_ADDR}/v1/${vault_secret_key}
+
+                # Check CA certificates
+                LOOKUP_SECRET_RESPONSE=$(curl -sS  \
+                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+                validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+                rm payload.json
           done
+          rm /tmp/a.$$
+          rm /tmp/b.$$
+
         volumeMounts:
         {{ if .Values.vault.tls  }}
         - name: vaultca
