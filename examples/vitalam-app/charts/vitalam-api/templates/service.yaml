@@ -1,50 +1,35 @@
-##############################################################################################
-#  Copyright Accenture. All Rights Reserved.
-#
-#  SPDX-License-Identifier: Apache-2.0
-##############################################################################################
-
-kind: Service
+{{ $fullname :=  include "vitalam-api.fullname" . }}
 apiVersion: v1
+kind: Service
 metadata:
-  name: {{- include "vitalam_api_chart.name" . | nindent 8 }}
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ include "vitalam-api.fullname" . }}
   labels:
-    run: {{- include "vitalam_api_chart.name" . | nindent 9 }}
-    {{- include "vitalam_api.selectorLabels" . | indent 4 }}
-spec:
-  type: {{ .Values.api.serviceType }}
-  selector:
-    app: {{- include "vitalam_api_chart.name" . | nindent 9 }}
-  ports:
-  - port: 80
-    targetPort: 80
-    protocol: TCP
-    name: http
-
-{{- if eq $.Values.proxy.provider "haproxy" }}
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: {{- include "vitalam_api_chart.name" . | nindent 8 }}
-  namespace:  {{ $.Values.metadata.namespace }}
+    {{- include "vitalam-api.labels" . | nindent 4 }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
-    kubernetes.io/ingress.class: "haproxy"
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v2
+      kind: Mapping
+      name: {{ $fullname }}_api_mapping
+      prefix: /      
+      host: {{ .Values.proxy.name }}-api.{{ .Values.proxy.external_url_suffix }}
+      service: {{ $fullname }}:{{ .Values.config.port }}
+      timeout_ms: 20000
+      tls: false      
+      ---
+      apiVersion: ambassador/v2
+      kind: TLSContext
+      name: {{ $fullname }}_mapping_tlscontext
+      hosts:
+      - {{ .Values.proxy.name }}-api.{{ .Values.proxy.external_url_suffix }}
+      secret: {{ $.Values.proxy.certSecret }}      
+      min_tls_version: v1.2
+  {{- end }}
 spec:
-  tls:
-  - hosts:
-    - {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
-    secretName: {{ .Values.proxy.peer_name }}-{{ .Values.metadata.namespace }}-ambassador-certs
-  rules:
-  - host: {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: {{- include "vitalam_api_chart.name" . | nindent 8 }}
-            port:
-              number: 80
-{{- end }}
+  selector:
+    name: {{ include "vitalam-api.fullname" . }}
+  ports:
+    - protocol: 'TCP'
+      port: {{ .Values.config.port }}
+      targetPort: {{ .Values.config.port }}

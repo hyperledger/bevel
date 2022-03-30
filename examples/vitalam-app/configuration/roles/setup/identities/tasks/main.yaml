@@ -4,6 +4,13 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-helm_templates:
-  vitalam-api: vitalam-api.tpl
-  vitalam-frontend: vitalam-frontend.tpl
+---
+# This populates the nodeid details
+- name: Get nodeid details from Vault
+  include_tasks: nested_main.yaml
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+  - peer.type == "member"
+  - peer.persona is defined

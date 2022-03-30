@@ -12,29 +12,53 @@
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
-  tasks:
-  - name: Copy test env files to build directory
-    copy:
-      src: "{{ item }}"
-      dest: "{{ playbook_dir }}/../../../build/"
-    with_fileglob:
-      - "{{ playbook_dir }}/../tests/SupplychainDemo_*"
+  tasks:  
 
-# Create api values file for the vitalam nodes
+  # Create api values file for the vitalam nodes
   - name: "Creating api values file for vitalam nodes"
     include_role:
       name: "create/vitalam/api"
     vars:
-      component_ns: "{{ organization_data.name | lower }}-subs"
-      component_gitops: "{{ organization_data.gitops }}"
-      component_vault: "{{ organization_data.vault }}"
-      auth_jwksUri: "{{ organization_data.auth.jwksUri }}"
-      auth_audience: "{{ organization_data.auth.audience }}"
-      auth_issuer: "{{ organization_data.auth.issuer }}"
-      auth_tokenUrl: "{{ organization_data.auth.tokenUrl }}"
-      values_dir: "{{ playbook_dir }}/../../../{{ organization_data.gitops.release_dir }}/{{ organization_data.name | lower }}"
+      component_ns: "{{ org.name | lower }}-subs"
+      component_gitops: "{{ org.gitops }}"
+      component_vault: "{{ org.vault }}"
+      auth_jwksUri: "{{ org.auth.jwksUri }}"
+      auth_audience: "{{ org.auth.audience }}"
+      auth_issuer: "{{ org.auth.issuer }}"
+      auth_tokenUrl: "{{ org.auth.tokenUrl }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org.name | lower }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organization_data
+      loop_var: org
     when: 
-      - network['type'] == 'substrate' 
+      - network.type == 'substrate'
+
+  - name: "Get the identities for each VitalAM role"
+    include_role:
+      name: "setup/identities"
+    vars:
+      component_ns: "{{ org.name | lower }}-subs"
+      vault: "{{ org.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - network.type == 'substrate'
+  
+  # Create frontend values file for the vitalam nodes
+  - name: "Creating frontend values file for vitalam nodes"
+    include_role:
+      name: "create/vitalam/frontend"
+    vars:
+      component_ns: "{{ org.name | lower }}-subs"
+      component_gitops: "{{ org.gitops }}"
+      component_vault: "{{ org.vault }}"
+      auth_audience: "{{ org.auth.audience }}"
+      auth_issuer: "{{ org.auth.issuer }}"
+      auth_clientId: "{{ org.auth.clientId }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - network.type == 'substrate' 

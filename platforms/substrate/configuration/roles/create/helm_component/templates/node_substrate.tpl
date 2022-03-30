@@ -37,7 +37,6 @@ spec:
 
     node:
       name: {{ peer.name }}
-      namespace: {{ component_ns }}
       chain: {{ network.config.chain }}
       command: {{ command }}      
       dataVolumeSize: 10Gi
@@ -60,7 +59,6 @@ spec:
 {% if bootnode_data is defined %}
         - "--bootnodes '{{ bootnode_data[1:] | join(',') }}'"
 {% endif %}
-{% if role == "validator" %}
       keys:
         - type: "gran"
           scheme: "ed25519"
@@ -68,7 +66,6 @@ spec:
         - type: "aura"
           scheme: "sr25519"
           seed: "aura_seed"
-{% endif %}
       persistGeneratedNodeKey: false
       
       resources: {}
@@ -98,6 +95,7 @@ spec:
       provider: ambassador
       external_url: {{ peer.name }}.{{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
+      certSecret: {{ org.name | lower }}-ambassador-certs
 
     storageClass: {{ storageclass_name }}
 

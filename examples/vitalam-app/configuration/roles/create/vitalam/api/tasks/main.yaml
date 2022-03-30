@@ -5,19 +5,21 @@
 ##############################################################################################
 
 #Check if the pods for the organizations are up and running
-- name: "Waiting for peer pod {{ peer_data.name }} in {{ component_ns }}"
+- name: "Waiting for peer pod {{ peer.name }} in {{ component_ns }}"
   include_role:
     name: "../../../platforms/shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Pod"
     namespace: "{{ component_ns }}"
-    component_name: "{{ peer_data.name }}"
-    kubernetes: "{{ organization_data.k8s }}"
+    component_name: "{{ peer.name }}"
+    kubernetes: "{{ org.k8s }}"
     label_selectors:
-      - name = {{ component_name }}
-  loop: "{{ organization_data.services.peers }}"
+      - app.kubernetes.io/name = {{ component_name }}
+      - chain = {{ network.config.chain }}
+  loop: "{{ org.services.peers }}"
   loop_control:
-    loop_var: peer_data
+    loop_var: peer
+  when: peer.api is defined
 
 # Create api values file for the peer nodes
 - name: "Create api values file for all peers"
@@ -25,17 +27,13 @@
     name: helm_component
   vars:
     type: "vitalam-api"
-    component_name: vitalam-api
-    name: "{{ peer_data.name }}"
-    charts_dir: "{{ organization_data.gitops.chart_source }}"
-    api_image: "{{ peer_data.api.image }}"
-    ipfs_api_port: "{{ peer_data.api.port }}"
-    peer_api_port: "{{ peer_data.ws-rpc.port }}"
-    peer_type: "{{ peer_data.type }}"
-  loop: "{{ organization_data.services.peers }}"
+    component_name: "{{ peer.name }}-api"
+    name: "{{ peer.name }}"
+    charts_dir: "examples/vitalam-app/charts"
+  loop: "{{ org.services.peers }}"
   loop_control:
-    loop_var: peer_data
-  when: peer_data.api is defined
+    loop_var: peer
+  when: peer.api is defined
 
 # Push the api deployment files to repository
 - name: "Push the created deployment files to repository"
@@ -55,10 +53,10 @@
     component_type: "Pod"
     namespace: "{{ component_ns }}"
     component_name: "{{ peer.name }}-api"
-    kubernetes: "{{ organization_data.k8s }}"
+    kubernetes: "{{ org.k8s }}"
     label_selectors:
-      - app = {{ component_name }}
-  loop: "{{ organization_data.services.peers }}"
+      - name = {{ component_name }}
+  loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
   when: peer.api is defined

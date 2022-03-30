@@ -1,63 +1,35 @@
-##############################################################################################
-#  Copyright Accenture. All Rights Reserved.
-#
-#  SPDX-License-Identifier: Apache-2.0
-##############################################################################################
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
 
-metadata:
-  name: 
-  #should hold the name of your vitalam-frontend release
-  #E.g. name: test
-  namespace:
-  #should hold the namespace of your vitalam-frontend release
-  #E.g. namespace: test-deployment
-  labels:
-  # prefix for the deployment names e.g orgName (cenm)
-
+# Provide a fullNameOverride
+fullNameOverride:
 config:
-  port: 
   #should contain the port number for HTTP protocol
-  #E.g. 80
-  logLevel: 
-  #E.g. loglevel: info
-  #Provide the value for tlsstatus to be true or false for organization's peer
+  #E.g. port: 80
+  port: 80
+  #E.g. logLevel: info
+  logLevel: info  
   enableLivenessProbe: true
-
+  # Provide the application details
   applicationConfig:
-    authDomain: 
     #should contain the domain name of the Auth0 API
-
-    clientID: 
-    ##sensitive data to be stored in vault
-    #should hold the Client ID provided by Auth0 for the API
-
-    custAuthClientID: 
-    ##sensitive data to be stored in vault
-    #should hold Client ID provided by Auth0 for identifying the OEM frontend login requests
-
-    t1AuthClientID: 
-    ##sensitive data to be stored in vault
-    #should hold Client ID provided by Auth0 for identifying the tier 1 supplier frontend login requests
-
-    authAudience: 
+    authDomain: inteli.eu.auth0.com
+    clientID: A5PgyCfBMIOhHQEIyImtqLGuD1VJ9VgP
     #should hold the identifier of the Auth0 API
-
-    apiHost: 
-    #should hold the address on which the API should run on
-    #E.g. localhost
-
-    apiPort: 
-    #should hold the port that the API should connect to
-
-    substrateHost: 
-    #should hold the address that substrate should run on
-    #E.g. localhost
-
-    substratePort:
-    #should hold port that the substrate network connects to
-
-    vitalamDemoPersona:
-    #you can pick a persona from either cust, lab, am, am-lab
+    authAudience: inteli-dev
+    #should hold the address of the API server
+    apiScheme: https
+    apiHost: localhost
+    apiPort: 3000
+     #should hold the address of teh substrate node
+    substrateHost: localhost
+    substratePort: 9944
+    #you can pick a persona from either cust, lab, am, amlab
+    vitalamDemoPersona: cust
+    vitalamCustIdentity:
+    vitalamAmIdentity: 
+    vitalamLabIdentity: 
+    vitalamAmlabIdentity: 
 
 ingress:
   # annotations: {}
@@ -65,11 +37,51 @@ ingress:
   paths:
     - /
 
+# eg. replicaCount: 1
+replicaCount: 1
+
+# image section provides the information about the image used
+# eg. repository: ghcr.io/digicatapult/inteli-demo
 image:
-  repository: 
-  # The image repository that you are pulling the image from
-  pullSecret: 
-  # The kubernetes secret used to access the image
-  tag:
-  # The version of your image
+  repository: ghcr.io/inteli-poc/inteli-demo
   pullPolicy: IfNotPresent
+  tag: 'v2.1.1'
+  # The kubernetes secret used to access the image
+  pullSecrets: 
+
+# This section contains the vault related information.
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to
+# use the Kubernetes service account token based authentication.
+vault:
+  # for eg. alpineutils: hyperledgerlabs/alpine-utils:1.0 #this image has curl installed
+  alpineutils:
+  # address provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address:
+  # secretprefix provide the vault path where the secrets are stored
+  # Eg. secretPrefix: secretsv2/sub-org-name
+  secretprefix:
+  # serviceaccountname provide the service account name authenticated to vault.
+  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceaccountname:
+  # role provide the vault role used.
+  # Eg. appRole: vault-role
+  role:
+  # authPath provide the auth path configured to be used. Default is /kubernetes
+  authpath:
+
+# This will be the proxy/ingress provider. Can have values "ambassador" or "haproxy"
+# Eg. provider: "ambassador"
+proxy:
+  provider:
+  # This will be the name of the organization
+  # Eg. name: carrier
+  name:
+  # External URL of the organization
+  # Eg. external_url_suffix: test.vitalam.example.com
+  external_url_suffix:
+  # provide the external port
+  port: 443
+  # Provide the secret name which contains the certificate
+  certSecret: 
