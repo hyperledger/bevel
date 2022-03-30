@@ -1,77 +1,48 @@
-##############################################################################################
-#  Copyright Accenture. All Rights Reserved.
-#
-#  SPDX-License-Identifier: Apache-2.0
-##############################################################################################
-
-apiVersion: app/v1
+apiVersion: apps/v1
 kind: Deployment
-metadata: 
-  name: {{ $.Values.metadata.name }}
-  namespace: {{ $.Values.metadata.namespace }}
+metadata:
+  name: {{ include "inteli-demo.fullname" . }}
   labels:
-    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "labels.custom" . | nindent 2 }}
+    {{- include "inteli-demo.labels" . | nindent 4 }}
 spec:
-  replicas: 1
-  selector: 
-    matchLabels: 
-      app: "{{ $.Values.metadata.name }}"
-      app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      {{- include "labels.custom" . | nindent 2 }}
+  selector:
+    matchLabels:
+      name: {{ include "inteli-demo.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
   template:
     metadata:
       annotations:
-        checksum/service: {{ include (print $.Template.BasePath "/service.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
-        app: "{{ $.Values.metadata.name }}"
-        app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
-        app.kubernetes.io/instance: {{ .Release.Name }}
-        {{- include "labels.custom" . | nindent 2 }}
+        name: {{ include "inteli-demo.fullname" . }}
     spec:
-      imagePullSecrets: 
-        - name: {{ $.Values.image.pullSecret }}
+      {{- include "inteli-demo.imagePullSecrets" . | indent 6 }}
       containers:
-      - name: frontend
-        env:
-        - name: AUTH_DOMAIN
-          value: {{ $.Values.config.applicationConfig.authDomain }}
-        - name: CLIENT_ID
-          value: {{ $.Values.config.applicationConfig.clientID }}
-        - name: CUST_AUTH_CLIENT_ID
-          value: {{ $.Values.config.applicationConfig.custAuthClientID }}
-        - name: T1_AUTH_CLIENT_ID
-          value: {{ $.Values.config.applicationConfig.t1AuthClientID }}
-        - name: AUTH_AUDIENCE
-          value: {{ $.Values.config.applicationConfig.authAudience }}
-        - name: API_HOST
-          value: {{ $.Values.config.applicationConfig.apiHost }}
-        - name: API_PORT
-          value: {{ $.Values.config.applicationConfig.apiPort }}
-        - name: SUBSTRATE_HOST
-          value: {{ $.Values.config.applicationConfig.substrateHost }}
-        - name: SUBSTRATE_PORT
-          value: {{ $.Values.config.applicationConfig.substratePort }}
-        - name: VITALAM_DEMO_PERSONA
-          value: {{ $.Values.config.applicationConfig.vitalamDemoPersona }}
-        image: {{ $.Values.image.repository }}:{{ .Values.image.tag }}
-        imagePullPolicy: {{ $.Values.image.pullPolicy }}
-        ports: 
-        - containerPort: {{ $.Values.config.port }}
-          name: http
-          protocol: TCP
-
-        {{- if .Values.config.enableLivenessProbe }}
-        livenessProbe:
-          httpGet:
-            path: /
-            port: http
-          initialDelaySeconds: 10
-          failureThreshold: 5
-          timeoutSeconds: 3
-          periodSeconds: 10
-        {{- end }}
+        - name: inteli-demo
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          env:
+            - name: REACT_APP_API_URL
+              value: "{{ .Values.config.applicationConfig.apiUrl }}"
+          ports:
+            - containerPort: {{ .Values.config.port }}
+              name: http
+              protocol: TCP
+          {{- if .Values.config.enableLivenessProbe }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            failureThreshold: 5
+            timeoutSeconds: 3
+            periodSeconds: 10
+          {{- end }}
+          volumeMounts:
+            - name: application-config
+              mountPath: /vitalam-demo-client/config.js
+              subPath: config.js
+      volumes:
+        - name: application-config
+          configMap:
+            name: {{ include "inteli-demo.fullname" . }}-config

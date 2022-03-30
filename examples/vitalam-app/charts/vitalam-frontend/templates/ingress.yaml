@@ -1,0 +1,28 @@
+{{- $fullName := include "inteli-demo.fullname" . -}}
+  {{- $ingressPaths := .Values.ingress.paths -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+  {{- include "inteli-demo.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          {{- range $ingressPaths }}
+          - pathType: Prefix
+            path: {{ . }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: 80
+          {{- end }}

@@ -15,10 +15,11 @@ spec:
     fullnameOverride: {{ peer.name }}-ipfs
     config:
       healthCheckPort: 80
-      nodeHost: {{ nodeHost }}
+      nodeHost: "{{ peer.name }}"
+      nodePort: "{{ peer.ws.port }}"
       logLevel: info
-      ipfsApiPort: {{ peer.api.port }}
-      ipfsSwarmPort: {{ peer.swarm.port }}
+      ipfsApiPort: {{ peer.ipfs.apiPort }}
+      ipfsSwarmPort: {{ peer.ipfs.swarmPort }}
       ipfsDataPath: "/ipfs"
       ipfsCommand: "/usr/local/bin/ipfs"
       ipfsArgs:
@@ -37,3 +38,8 @@ spec:
       dataVolumeSize: 20  # in Gigabytes
     vitalamNode:
       enabled: false
+    proxy:
+      provider: ambassador
+      external_url: {{ peer.name }}-ipfs-swarm.{{ external_url }}
+      port: {{ peer.ipfs.ambassador }}
+      certSecret: {{ org.name | lower }}-ambassador-certs

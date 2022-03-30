@@ -1,29 +1,57 @@
-
-##############################################################################################
-#  Copyright Accenture. All Rights Reserved.
-#
-#  SPDX-License-Identifier: Apache-2.0
-##############################################################################################
-
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# metadata provides information about the deployment
-# for eg. namespace: example-sub 
-# eg. replicaCount: 1
-metadata:
-  namespace:
-  replicaCount:
+# Provide a fullNameOverride
+fullNameOverride:
+config:
+  port: 80
+  externalNodeHost: "" # This overrides vitalamNode.enabled when setting the API_HOST envar
+  externalNodePort: 9944 # This overrides vitalamIpfs.enabled when setting the API_PORT envar
+  logLevel: info  
+  externalIpfsHost: "" # This overrides vitalamIpfs.enabled when setting the IPFS_HOST envar
+  externalIpfsPort: 5001 # This overrides vitalamIpfs.enabled when setting the IPFS_PORT envar
+  enableLivenessProbe: true
+  # Provide the Auth0 details. This should accept client_credentials as grant type
+  auth:
+    # Eg: jwksUri: https://inteli-poc.eu.auth0.com/.well-known/jwks.json
+    jwksUri:
+    # Eg: audience: https://inteli-poc.com/api
+    audience:
+    # Eg: issuer: https://inteli-poc.eu.auth0.com/
+    issuer:
+    # Eg: tokenUrl: https://inteli-poc.eu.auth0.com/oauth/token
+    tokenUrl:
 
-# image based on alpine linux
-# for eg. alpineutils: hyperledgerlabs/alpine-utils:1.0 #this image has curl installed
-images:
-  alpineutils:
+ingress:
+  # annotations: {}
+  # className: ""
+  paths:
+    - /v3
+
+# eg. replicaCount: 1
+replicaCount: 1
+
+# image section provides the information about the image used
+# eg. repository: ghcr.io/digicatapult/vitalam-api
+image:
+  repository: ghcr.io/digicatapult/vitalam-api
+  pullPolicy: IfNotPresent
+  tag: 'v3.0.1'
+
+vitalamNode:
+  enabled: false
+
+vitalamIpfs:
+  enabled: false
+  vitalamNode:
+    enabled: false
 
 # This section contains the vault related information.
 # NOTE: Make sure that the vault is already unsealed, intialized and configured to
 # use the Kubernetes service account token based authentication.
 vault:
+  # for eg. alpineutils: hyperledgerlabs/alpine-utils:1.0 #this image has curl installed
+  alpineutils:
   # address provide the vault address
   # Eg. address: http://vault.example.com:8200
   address:
@@ -40,46 +68,17 @@ vault:
   # authPath provide the auth path configured to be used. Default is /kubernetes
   authpath:
 
-# Node provides information on the peer
-# Eg. peerName: store; type: validator
-node:
-  peerName:
-  type:
-
-# api section provides the information about the image used and the node port
-# eg. repository: ghcr.io/digicatapult/vitalam-api
-api:
-  image:
-    repository:
-    tag:
-    pullPolicy:
-    pullSecrets:
-  port:
-  serviceType:
-
-# The environment variables used by the vitalam api 
-# Eg. logLevel: info
-# Eg. tokenUrl: https://example.eu.auth0.com/oauth/token
-env:
-  logLevel:
-  ipfsPort:
-  port:
-  auth:
-    jwksUri:
-    audience:
-    issuer:
-    tokenUrl:
-
 # This will be the proxy/ingress provider. Can have values "ambassador" or "haproxy"
-# Eg. provider: "haproxy"
+# Eg. provider: "ambassador"
 proxy:
   provider:
-# This will be the name of the organization
-# Eg. name: carrier
+  # This will be the name of the organization
+  # Eg. name: carrier
   name:
-# External URL of the organization
-# Eg. external_url_suffix: test.vitalam.example.com
+  # External URL of the organization
+  # Eg. external_url_suffix: test.vitalam.example.com
   external_url_suffix:
-# Name of the peer
-# Eg. peer_name: manufacturer
-  peer_name:
+  # provide the external port
+  port: 443
+  # Provide the secret name which contains the certificate
+  certSecret: 

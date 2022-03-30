@@ -1,0 +1,34 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Fetch peer id from vault
+  shell: |
+    vault kv get -field=account_addr {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: account_addr
+
+- name: Set constants
+  set_fact:
+    cust_peer_id={{ account_addr.stdout }}
+  when: peer.persona == "cust"
+
+- name: Set constants
+  set_fact:
+    am_peer_id={{ account_addr.stdout }}
+  when: peer.persona == "am"
+
+- name: Set constants
+  set_fact:
+    lab_peer_id={{ account_addr.stdout }}
+  when: peer.persona == "lab"
+
+- name: Set constants
+  set_fact:
+    amlab_peer_id={{ account_addr.stdout }}
+  when: peer.persona == "amlab"
