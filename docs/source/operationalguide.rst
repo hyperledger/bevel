@@ -8,6 +8,7 @@ Pre-requisites
     :maxdepth: 1
 
     prerequisites
+    prerequisites_machine
     operations/configure_prerequisites
 
 

@@ -203,7 +203,26 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse " secret $vault_secret_key" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+          # get nodekey from vault
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum | jq -r 'if .errors then . else . end')
+          nodekey=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["nodekey"]' 2>&1)
+          # get keystore from vault
+          keystore=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+          if [ "$nodekey" == "null" ] || [ "$cat base64_keystore" == "null" ] || [ "$nodekey" == "parse error"* ] || [ "$cat base64_keystore" == "parse error"* ]
+          then
+            echo "certificates write or read fail"
+            sleep {{ $.Values.healthcheck.readinessthreshold  }}
+            if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+            then
+              echo "Retry attempted $COUNTER times, certificates have not been saved"
+              exit 1
+            fi
+            COUNTER=`expr "$COUNTER" + 1`
+          fi
+
       volumes:
         - name: certcheck
           emptyDir:
             medium: Memory
+

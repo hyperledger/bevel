@@ -101,3 +101,21 @@ spec:
                 jq -r 'if .errors then . else .auth.client_token end')
               
               validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+              # get privateKey from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+              privateKey=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["privateKey"]' 2>&1)
+              # get publicKey from vault
+              publicKey=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["publicKey"]' 2>&1)
+
+              if [ "$privateKey" == "null" ] || [ "$publicKey" == "null" ] || [ "$privateKey" == "parse error"* ]|| [ ""$publicKey"" == "parse error"* ]
+              then
+                echo "certificates write or read fail"
+                sleep {{ $.Values.healthcheck.readinessthreshold  }}
+                if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+                then
+                  echo "Retry attempted $COUNTER times, certificates have not been saved"
+                  exit 1
+                fi
+                COUNTER=`expr "$COUNTER" + 1`
+              fi

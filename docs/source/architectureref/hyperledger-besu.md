@@ -55,7 +55,7 @@ Hyperledger Bevel uses the officially published Besu Docker images from [hub.doc
 
 Additionally, following common images are also used:
 
-*  [alpine-utils](https://hub.docker.com/r/hyperledgerlabs/alpine-utils) - Used as a utility to get crypto from Hashicorp Vault server
+*  [alpine-utils](https://github.com/hyperledger/bevel/pkgs/container/bevel-alpine-utils) - Used as a utility to get crypto from Hashicorp Vault server
 
 ### Ansible Playbooks
 Detailed information on ansible playbooks can be referred [here](../developer/besu-ansible.md) and the execution process can be referred [here](../operations/setting_dlt.md).
