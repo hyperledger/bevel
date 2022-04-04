@@ -18,6 +18,7 @@ spec:
       labels:
         name: {{ include "vitalam-ipfs.fullname" . }}
     spec:
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       {{- include "vitalam-ipfs.imagePullSecrets" . | indent 6 }}
       initContainers:
         - name: {{ include "vitalam-ipfs.initIpfsConfig.name" . }}
@@ -44,6 +45,85 @@ spec:
           volumeMounts:
             - mountPath: {{ .Values.config.ipfsDataPath }}
               name: ipfs-data
+        - name: ipfs-init
+          image: {{ .Values.initContainer.image }}
+          imagePullPolicy: {{ .Values.initContainer.pullPolicy | quote }}
+          env:
+            - name: MOUNT_PATH
+              value: {{ .Values.config.ipfsDataPath }}
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: VAULT_APP_ROLE
+              value: {{ $.Values.vault.role }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certsecretprefix }}   
+          volumeMounts:
+            - mountPath: {{ .Values.config.ipfsDataPath }}
+              name: ipfs-data
+          command: ["sh", "-c"]
+          args:
+            - |-
+              #!/usr/bin/env bash
+
+              echo "validating vault response"
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${vault_secret_key})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+              echo "done validating vault response"
+
+              apk update && apk add jq 
+              cd $MOUNT_PATH
+
+              peer_id=$(cat config | jq -r .Identity.PeerID)
+              private_key=$(cat config | jq -r .Identity.PrivKey)
+
+              echo "
+                {
+                  \"data\": {
+                  \"peer_id\": \"$peer_id\",
+                  \"private_key\": \"$private_key\"
+                }}" > ipfsKeys.json
+
+              echo "Saving keys into vault"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+              # Login to Vault and so I can get an approle token
+              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+                -H "Content-Type: application/json" \
+                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+                jq -r 'if .errors then . else .auth.client_token end')
+
+              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+              vault_secret_key="${CERTS_SECRET_PREFIX}/ipfs"
+              # Save the generated keys to VAULT
+              LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -X POST \
+                -d @ipfsKeys.json \
+                ${VAULT_ADDR}/v1/${vault_secret_key} | \
+                jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse " secret $vault_secret_key" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              echo "Done saving keys in vault"
+            
       containers:
         - name: {{ include "vitalam-ipfs.fullname" . }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}

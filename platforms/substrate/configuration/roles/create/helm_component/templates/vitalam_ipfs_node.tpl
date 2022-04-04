@@ -43,3 +43,9 @@ spec:
       external_url: {{ peer.name }}-ipfs-swarm.{{ external_url }}
       port: {{ peer.ipfs.ambassador }}
       certSecret: {{ org.name | lower }}-ambassador-certs
+    vault:
+      address: {{ vault.url }}
+      role: vault-role
+      authpath: substrate{{ name }}
+      serviceaccountname: vault-auth
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/{{ peer.name }}
