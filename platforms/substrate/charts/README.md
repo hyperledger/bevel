@@ -29,11 +29,17 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Charts description ##
 
-### 1. substrate-node ###
-- This chart directory contains templates for deploying a substrate node.
+### 1. substrate-genesis ###
+- This chart directory contains templates for building genesis file for the substrate network.
 
 ### 2. substrate-key-mgmt ###
 - This chart directory contains templates for generating crypto material for substrate node.
 
-### 3. vitalam-ipfs-node
+### 3. substrate-node ###
+- This chart directory contains templates for deploying a substrate node.
+
+### 4. vault-k8s-mgmt ###
+- This chart directory contains templates for authenticating vault with kubernetes cluster.
+
+### 5. vitalam-ipfs-node
 - This chart directory contains templates to deploy ipfs node.
