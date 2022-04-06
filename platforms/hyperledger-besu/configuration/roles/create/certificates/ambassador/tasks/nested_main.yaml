@@ -8,14 +8,6 @@
 # and places them in vault. Certificates are created using openssl
 
 ---
-# Ensures the rootca dir directory
-- name: "Ensure rootca dir exists"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
-  vars:
-    path: "{{ rootca }}"
-    check: "ensure_dir"
-
 # Ensures the ambassador tls directory
 - name: "Ensure ambassadortls dir exists"
   include_role:
@@ -24,184 +16,42 @@
     path: "{{ ambassadortls }}"
     check: "ensure_dir"
 
-# Checks if certificates for root are already created and stored in vault.
-- name: Check if root certs already created
-  shell: |
-    vault kv get -field=rootca_pem {{ vault.secret_path | default('secretsv2') }}/besu-{{ network.env.type }}/rootca
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: root_certs
-  ignore_errors: yes
-
-# Checks if certificates  are already created and stored in vault.
-- name: Check if ambassador and tls certs already created
-  shell: |
-    vault kv get -field=rootca_pem {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ node_name }}/tls
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: certs
-  ignore_errors: yes
-
-- name: Get all root certs data from Vault
-  shell: |
-    vault kv get -format=yaml {{ vault.secret_path | default('secretsv2') }}/besu-{{ network.env.type }}/rootca
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: root_certs_yaml
-  when: not root_certs.failed
-
-# Gets the existing root certificates if any.
-- name: Get root certs
-  include_role: 
-    name: "setup/get_crypto"
+# Create ambassador certs helmrelease file
+- name: "Create ambassador certs helmrelease file"
+  include_role:
+    name: create/helm_component
+  vars:     
+    type: "ambassador_besu" 
+    component_name: "{{ node_name }}-ambassador-job"   
+    name: "{{ node_name }}"
+    external_url_suffix: "{{ organizationItem.external_url_suffix }}"
+    tm_clientport: "{{ node.tm_clientport.port | default('8888') }}"
+    tls_enabled: "{{ network.config.tm_tls }}"
+        
+# push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
-    vault_output: "{{ root_certs_yaml.stdout | from_yaml }}"
-    type: "rootca"
-    cert_path: "{{ rootca }}"
-  when: root_certs.failed == False
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/hyperledger-besu/configuration"
+    msg: "[ci skip] Pushing ambassador job files for {{ component_ns }}"
 
-# Stores the exisiting pem file
-- name: check root certs
-  stat:
-    path: "{{ rootca }}/rootca.pem"
-  register: rootca_stat_result
-
-# generation of CA Root certificates
-- name: Generate CAroot certificate
-  shell: |
-    cd {{ rootca }}
-    eval "openssl genrsa -out rootca.key 2048"
-    eval "openssl req -x509 -new -nodes -key rootca.key -sha256 -days 1024 -out rootca.pem -subj '/{{ cert_subject }}'"
-  when: root_certs.failed == True and rootca_stat_result.stat.exists == False
-
-# Stores the genrated rootca.pem and rootca.key
-- name: Putting root certs to vault
-  shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/besu-{{ network.env.type }}/rootca rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: root_certs.failed == True
- 
-# Gets the existing ambassador tls certs
-- name: Get ambassador and tls certs from Vault
-  shell: |
-    vault kv get -format=yaml {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ node_name }}/tls
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: certs_yaml
-  when: not certs.failed
-  
-- name: Get ambassador tls certs
-  include_role: 
-    name: "setup/get_crypto"
+# Check if ambassador certs job is completed
+- name: Check if ambassador certs job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
-    vault_output: "{{ certs_yaml.stdout | from_yaml }}"
-    type: "ambassador"
-    cert_path: "{{ ambassadortls }}"
-  when: certs.failed == False
-
-# Generates the openssl file for domain
-- name: Generate openssl conf file
-  shell: |
-    cd {{ambassadortls}}
-    cat <<EOF >openssl{{ node_name }}.conf
-    [req]
-    req_extensions = v3_req
-    distinguished_name = dn
-
-    [dn]
-    
-    [ v3_req ]
-    basicConstraints = CA:FALSE
-    keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-    subjectAltName = @alt_names
-
-    [alt_names]
-    DNS.1 = {{ domain_name_pub }}
-    DNS.2 = {{ domain_name_priv }}
-    DNS.3 = {{ domain_name_tessera }}
-    EOF
-  vars:
-    domain_name_priv: "{{ node_name }}.{{ component_ns }}"
-    domain_name_tessera: "{{ node_name }}-tessera.{{ component_ns }}"
-    domain_name_pub: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
-  when: certs.failed == True or root_certs.failed == True
-
-# Generates the ambassador tls certificates if already not generated
-- name: Generate ambassador tls certs
-  shell: |
-    cd {{ ambassadortls }}
-    eval "openssl genrsa -out {{ node_name }}.key 2048"
-    eval "openssl req -new -nodes -key {{ node_name }}.key -days 1000 -out {{ node_name }}.csr \
-     -subj '/CN={{domain_name}}' -config {{ambassadortls}}/openssl{{node_name}}.conf"
-    eval "openssl x509 -req -in {{ node_name }}.csr -CA {{ rootca }}/rootca.pem -CAkey {{ rootca }}/rootca.key \
-      -CAcreateserial -out {{node_name}}.pem -days 1000 -sha256 -extfile {{ambassadortls}}/openssl{{node_name}}.conf -extensions v3_req"       
-    cat {{ node_name }}.pem > {{node_name}}-certchain.pem
-    cat {{ rootca }}/rootca.pem >> {{ node_name }}-certchain.pem
-  vars:
-    domain_name: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
-  when: certs.failed == True or root_certs.failed == True
-
-# Generate crypto for besu nodes and knownserver file
-- name: create tls credentials for besu
-  shell: |
-    cd {{ ambassadortls }}
-    eval "openssl genrsa -out {{ node_name }}-besu-node.key 2048"
-    eval "openssl req -new -key {{ node_name }}-besu-node.key -out {{ node_name }}-besu-node.csr -subj '/CN={{ common_name }}'"
-    eval "openssl x509 -req -in {{ node_name }}-besu-node.csr -CA {{ rootca }}/rootca.pem -CAkey {{ rootca }}/rootca.key -CAcreateserial -out {{ node_name }}-besu-node.pem -days 500 -sha256"
-    eval "cat {{ node_name }}-besu-node.key {{ node_name }}-besu-node.pem > {{ node_name }}_certificates.pem"
-    eval "openssl pkcs12 -export -in {{ node_name }}_certificates.pem -out {{ node_name }}-besu-node.pkcs12 -password pass:changeme -name myAlias -noiter -nomaciter"
-    eval "echo "changeme" > {{ node_name }}-password"
-    eval "openssl x509 -in {{node_name}}-certchain.pem -noout -fingerprint -sha256 > {{node_name}}-certchain-sha256"
-    eval "export DIGEST=$(awk '{print $2}' {{node_name}}-certchain-sha256 | sed -n 's/Fingerprint=\(.*\)/\1/p')"
-    eval "printf '%s\n' '{{ node_name }}-tessera.{{ component_ns }}:{{ node.tm_clientport.port | default('8888') }} $DIGEST' '{{ common_name }} $DIGEST' > {{ node_name }}-knownServer"
-  vars:
-    common_name: "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
-  when: 
-    - network.config.tm_tls 
-    - certs.failed == True
-
-# Stores the genreated ambassador tls certificates to vault if tls is off for network
-- name: Putting ambassador certs to vault
-  shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" 
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: 
-    - not network.config.tm_tls
-    - root_certs.failed == True or certs.failed == True 
-
-# This task stores the genreated ambassador tls certificates to vault
-- name: Putting tls certs to vault
-  shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{component_ns}}/crypto/{{node_name}}/tls rootca_pem="$(cat {{rootca}}/rootca.pem | base64)" rootca_key="$(cat {{ rootca }}/rootca.key | base64)" ambassadorcrt="$(cat {{ambassadortls}}/{{node_name}}-certchain.pem | base64)" ambassadorkey="$(cat {{ambassadortls}}/{{node_name}}.key | base64)" keystore="$(cat {{ambassadortls}}/{{ node_name }}-besu-node.pkcs12 | base64)" password="$(cat {{ambassadortls}}/{{ node_name }}-password | base64)" knownServer="$(cat {{ambassadortls}}/{{ node_name }}-knownServer | base64)"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: 
-    - network.config.tm_tls
-    - root_certs.failed == True or certs.failed == True
-
-# This task checks if Ambassador credentials exist already
-- name: Check Ambassador cred exists
-  k8s_info:
-    kind: Secret
+    component_name: "{{ node_name }}-ambassador-job"
+    component_type: Job
     namespace: "{{ component_ns }}"
-    name: "{{ node_name }}-ambassador-certs"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-  register: get_ambassador_secret
 
-# This task creates the Ambassador TLS credentials for ambassador
-- name: Create the Ambassador credentials
-  shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ node_name }}-ambassador-certs --cert={{ ambassadortls }}/{{ node_name }}-certchain.pem --key={{ ambassadortls }}/{{node_name}}.key -n {{ component_ns }}
-  when: 
-    - root_certs.failed == True or certs.failed == True
-    - get_ambassador_secret.resources|length == 0
+# This task creates the Ambassador TLS credentials
+- name: "Create the Ambassador credentials"
+  include_role:
+    name: create/k8s_secrets
+  vars: 
+    namespace: "{{ component_ns }}"
+    vault: "{{ organizationItem.vault }}"
+    kubernetes: "{{ organizationItem.k8s }}"
+    check: "ambassador_creds"
