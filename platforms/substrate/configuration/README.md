@@ -18,12 +18,12 @@ For more information on the installation pre-requisites, please refer to [this g
 
 ## Configuration pre-requisites
 For each organization in the DLT network you need to set up the following:
-1. One Managed Kubernetes cluster; Hyperledger Bevel is currently tested on Amazon EKS, which means you will need AWS CLI set up as well.
-2. A Hashicorp Vault installation for each organization which is initialized and unsealed. The Vault Address should be accessible from this machine (where the playbook is run) and the Kubernetes cluster. The Vault root token is used in the network configuration, so this should be available as well.
+1. One Managed Kubernetes cluster; Hyperledger Bevel is currently tested on Google's GKE and Amazon EKS. For EKS, you will need AWS CLI set up as well.
+2. A Hashicorp Vault installation for each organization. Vault should be initialized and unsealed. The Vault Address should be accessible from this machine (where the playbook is run) and the Kubernetes cluster. The Vault root token is used in the network configuration, so this should be available as well.
 3. A Git User with write access to all the branches in the chosen Git repository; as well as an access token.
 4. The network configuration file (`network.yaml`) which has been filled in according to your requirements. A sample `network.yaml` for Substrate can be found in [this folder](./samples/).
 
-For other general pre-quisites, such as Docker images, Ambassador and DNS setup, please refer to the ['Configure Pre-requisites' guide](https://hyperledger-bevel.readthedocs.io/en/latest/operations/configure_prerequisites/).
+For other general pre-requisites, such as Docker images, Ambassador and DNS setup, please refer to the ['Configure Pre-requisites' guide](https://hyperledger-bevel.readthedocs.io/en/latest/operations/configure_prerequisites/).
 
 ## Execution 
 ### Step 1
@@ -37,7 +37,7 @@ ansible-playbook platforms/shared/configuration/site.yaml -e "@/path/to/network-
 ```
 The [platforms/shared/configuration/site.yaml](../../shared/configuration/site.yaml) is the master playbook which does basic environment setup, configures the Kubernetes cluster and then calls platform specific deployment playbooks.
 
-You can also only run the platform specific deployment playbooks by running the command below (after the prerequisites have been installed) - executed from the root of the project:
+You can also run only the platform specific deployment playbooks by running the command below (after the prerequisites have been installed) - executed from the root of the project:
 ```
 ansible-playbook platforms/substrate/deploy-network.yaml -e "@/path/to/network-substrate.yaml"
 ```
@@ -49,7 +49,7 @@ After your Ansible command has completed. your nodes or the participants in the 
 
 1. `./openssl.conf`: This is the configuration file used to generate the Root CA certificates for Substrate-CA.
 
-2. If you want to reset the network, i.e. delete all created resources while setting up the Substrate network, you can run one of two following commands from the root folder of the project:
+2. If you want to reset the network, i.e. delete all created resources while setting up the Substrate network, you can run one of the following two commands from the root folder of the project:
    ```
     # Call the shared playbook with `reset=true` which will first clean up the configuration (Helm, Kubernetes, Vault) and then reset the network
     ansible-playbook platforms/shared/configuration/site.yaml -e "@/path/to/network-substrate.yaml" -e "reset=true"  
