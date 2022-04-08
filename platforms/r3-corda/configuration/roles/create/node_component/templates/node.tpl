@@ -11,6 +11,10 @@ spec:
     path: {{ gitops.chart_source }}/{{ chart }}
     git: {{ gitops.git_url }}
     ref: {{ gitops.branch }}
+{% if gitops.git_protocol == "https" %}
+    secretRef:
+      name: git-https-credentials
+{% endif %}
   values:
     nodeName: {{ component_name }}
     replicas: 1
@@ -19,7 +23,9 @@ spec:
     image:
       containerName: {{ network.docker.url }}/{{ docker_image }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
+{% if network.docker.username is defined %}
       imagePullSecret: regcred
+{% endif %}
       privateCertificate: true
       doormanCertAlias: {{ doorman_domain | regex_replace('/', '') }}
       networkmapCertAlias: {{ nms_domain | regex_replace('/', '') }}

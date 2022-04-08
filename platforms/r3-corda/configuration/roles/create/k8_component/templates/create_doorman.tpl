@@ -11,13 +11,17 @@ spec:
     path: {{ org.gitops.chart_source }}/{{ chart }}
     git: {{ org.gitops.git_url }}
     ref: {{ org.gitops.branch }}
+{% if org.gitops.git_protocol == "https" %}
+    secretRef:
+      name: git-https-credentials
+{% endif %}
   values:
     nodeName: {{ services.doorman.name }}
     metadata:
       namespace: {{component_ns }}
     image:
       authusername: sa
-      containerName: {{ network.docker.url }}/doorman-linuxkit:latest
+      containerName: {{ network.docker.url }}/bevel-doorman-linuxkit:latest
       env:
       - name: DOORMAN_PORT
         value: 8080
@@ -37,7 +41,9 @@ spec:
         value: admin
       - name: DB_USERNAME
         value: {{ services.doorman.name }}
+{% if network.docker.username is defined %}
       imagePullSecret: regcred
+{% endif %}
       tlsCertificate: {{ chart_tls }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:

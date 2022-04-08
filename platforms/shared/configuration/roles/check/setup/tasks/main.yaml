@@ -54,6 +54,17 @@
   register: get_regcred
   when: check == "docker_credentials"
 
+# Check if Git credentials exist already
+- name: Check git https cred exists
+  k8s_info:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: "git-https-credentials"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_gitcred
+  when: check == "git_credentials"
+
 # This task check if certs exists in vault.
 - name: check if certs exists in vault.
   shell: |

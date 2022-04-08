@@ -172,35 +172,14 @@
     - peer.peerstatus is not defined or peer.peerstatus == 'new'
     - network.env.proxy == 'ambassador'
 
-############################################################################################
-# This task copy the peer certificate to the path provided in network.yaml
-- name: Copy msp cacerts from auto-generated path to given path
-  shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/msp/cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem {{ peer.certificate }}
-  loop: "{{ item.services.peers }}"
+- name: "Copy msp cacerts to given path"
+  include_tasks: nested_endorsers.yaml
+  vars:
+    org_name: "{{ item.name |lower }}"
+    approvers: "{{ channel.endorsers }}"
+  loop: "{{ network.channels }}"
   loop_control:
-    loop_var: peer
-  when: 
-    - item.org_status == 'new'
-    - peer.certificate is defined
-    - peer.peerstatus is not defined or peer.peerstatus == 'new'
-    - network.env.proxy != 'none'
-
-############################################################################################
-# This task copy the peer certificate to the path provided in network.yaml (when proxy is none)
-- name: Copy msp cacerts from auto-generated path to given path
-  shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/msp/cacerts/ca-{{ component_name }}-7054.pem {{ peer.certificate }}
-  loop: "{{ item.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: 
-    - item.org_status == 'new'
-    - peer.certificate is defined
-    - peer.peerstatus is not defined or peer.peerstatus == 'new'
-    - network.env.proxy == 'none'
+    loop_var: channel
 
 ############################################################################################
 # This task copies the msp folder from the respective CA Tools CLI
