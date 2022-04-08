@@ -29,6 +29,7 @@ spec:
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
+      secretpath: {{ vault.secret_path | default('secretsv2') }}
       serviceaccountname: vault-auth
       imagesecretname: regcred
       tls: false
@@ -45,5 +46,8 @@ spec:
       name: {{ item.channel_name | lower }}
     endorsers:
       creator: {{ namespace }}
-      name: {% for name in approvers.name %} {{ name }} {% endfor %} 
-      corepeeraddress: {% for address in approvers.corepeerAddress %} {{ address }} {% endfor %}
+      name: {% for name in endorsers_list %}{%- for key, value in name.items() %}{% if key == 'org_name' %} {{ value }} {% endif %}{%- endfor %}{% endfor %}
+
+      corepeeraddress: {% for address in endorsers_list %}{%- for key, value in address.items() %}{% if key == 'peercoreaddress' %} {{ value }} {% endif %}{% endfor -%}{% endfor %}
+
+      certificates: {% for cert in endorsers_list %}{%- for key, value in cert.items() %}{% if key == 'certificate' %} {{ value }} {% endif %}{% endfor -%}{% endfor %}

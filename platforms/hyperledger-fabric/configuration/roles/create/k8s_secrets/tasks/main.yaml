@@ -213,3 +213,33 @@
     - vault_ordererkey_result.failed == False
     - get_orderer_secret.resources|length == 0
     - network.env.proxy == 'ambassador'
+
+############################################################################################
+# Check if git credentials secret exist
+- name: Check if git credentials exists
+  k8s_info:
+    kind: Secret
+    namespace: "{{ namespace }}"
+    name: "gitpassword"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: git_password_secret
+  when: check == "git_credentials"
+
+# ############################################################################################
+# This task Store git credentials as secret
+- name: Store git credentials as secret
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "gitpassword"
+        namespace: "{{ namespace }}"
+      stringData:
+        config.yaml: |-
+        password: "{{ password }}"
+    state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: check == "git_credentials" and git_password_secret.resources|length == 0 

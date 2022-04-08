@@ -47,9 +47,10 @@ spec:
       name: {{ item.channel_name | lower }}
 {% if '2.' in network.version %}
     endorsers:
-        creator: {{ namespace }}
-        name: {% for name in approvers.name %} {{ name }} {% endfor %} 
-        corepeeraddress: {% for address in approvers.corepeerAddress %} {{ address }} {% endfor %}
+      creator: {{ namespace }}
+      name: {% for name in endorsers_list %}{%- for key, value in name.items() %}{% if key == 'org_name' %} {{ value }} {% endif %}{%- endfor %}{% endfor %}
+
+      corepeeraddress: {% for address in endorsers_list %}{%- for key, value in address.items() %}{% if key == 'peercoreaddress' %} {{ value }} {% endif %}{% endfor -%}{% endfor %}
 {% else %}
     endorsers:
         creator: {{ namespace }}
