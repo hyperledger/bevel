@@ -25,7 +25,6 @@ spec:
       role: vault-role
       authpath: substrate{{ name }}
       serviceaccountname: vault-auth
-      # Not using /data because vault cli is used in this container
       certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}
     chain: {{ network.config.chain }}
     aura_keys: {{ aura_key_list }}

@@ -125,6 +125,9 @@ spec:
         args:
         - |-
           #!/usr/bin/env bash
+
+          {{- if ne $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template:latest" }}
+          
           apt-get update && apt-get install -y jq curl;
           if [[ $? > 0 ]]
           then
@@ -135,8 +138,9 @@ spec:
             export PATH=$PATH:.;
           else
             echo "jq and curl was installed using apt-get."
-          fi;         
-
+          fi;
+          {{- end }}
+        
           validateVaultResponse () {
             if echo ${2} | grep "errors"; then
               echo "ERROR: unable to retrieve ${1}: ${2}"
@@ -162,6 +166,7 @@ spec:
               echo "Certificates already present in the vault. Skipping.."
               exit 0
           fi
+
           command={{ $.Values.node.command }}
 
           echo "Generate nodekey"
