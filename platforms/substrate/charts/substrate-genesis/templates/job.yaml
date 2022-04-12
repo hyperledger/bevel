@@ -35,8 +35,8 @@ spec:
         imagePullPolicy: {{ $.Values.node.pullPolicy }}
         volumeMounts:
           - name: certcheck
-            mountPath: /certcheck
-        env:
+            mountPath: certcheck
+        env:    
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
         - name: KUBERNETES_AUTH_PATH
@@ -44,7 +44,7 @@ spec:
         - name: VAULT_APP_ROLE
           value: {{ $.Values.vault.role }}
         - name: MOUNT_PATH
-          value: "/certcheck"
+          value: "certcheck"
         - name: CERTS_SECRET_PREFIX
           value: {{ .Values.vault.certsecretprefix }}        
         - name: AURA_KEY
@@ -55,6 +55,8 @@ spec:
         args:
         - |-
           #!/usr/bin/env bash
+
+          {{- if ne $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template:latest" }}
           apt-get update && apt-get install -y jq bc curl unzip;
           if [[ $? > 0 ]]
           then
@@ -65,7 +67,8 @@ spec:
             export PATH=$PATH:.;
           else
             echo "jq and curl was installed using apt-get."
-          fi;         
+          fi;     
+          {{- end }}     
 
           validateVaultResponse () {
             if echo ${2} | grep "errors"; then
@@ -88,6 +91,7 @@ spec:
             fi
           }
 
+          mkdir certcheck
           command={{ $.Values.node.command }}
 
           echo "Generate genesis"
@@ -96,34 +100,55 @@ spec:
           GENESIS=$(echo $GENESIS | jq '.id |= {{ .Values.chain | replace "-" "_" | quote }}')
           GENESIS=$(echo $GENESIS | jq '.chainType |= "Live"')
 
-          echo "Swapping chaintype and removing palletAura and grandpaAura authorities"
-          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletAura.authorities |= []')
-          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletGrandpa.authorities |= []')
-          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletBalances.balances |= []')
-          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletNodeAuthorization.nodes |= []')
-          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletMembership.members |= []')
+          echo "Editing genesis config"
+          {{- if eq $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template:latest" }}
+          GENESIS=$(echo $GENESIS | jq 'del(.genesis.runtime | .aura.authorities, .grandpa.authorities, .balances.balances | . [])')
+          {{- else }}
+           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletAura.authorities |= []')
+           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletGrandpa.authorities |= []')
+           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletBalances.balances |= []')
+           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletNodeAuthorization.nodes |= []')
+           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.palletMembership.members |= []')
+          {{- end }}
 
           echo "Generating sudo key with scheme Sr25519..."          
-          $command key generate --scheme Sr25519 --output-type json >> sudoKeygenOutput.json
-          SUDO_SEED=$(jq -r '.secretPhrase' sudoKeygenOutput.json)
-          SUDO_ADDR=$(jq -r '.ss58Address' sudoKeygenOutput.json)
+          $command key generate --scheme Sr25519 --output-type json >> certcheck/sudoKeygenOutput.json
+          SUDO_SEED=$(jq -r '.secretPhrase' certcheck/sudoKeygenOutput.json)
+          SUDO_ADDR=$(jq -r '.ss58Address' certcheck/sudoKeygenOutput.json)
+          
+          echo "Adding sudo account key and balance into genesis"
+          {{- if eq $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template:latest" }}
+          GENESIS=$(echo $GENESIS | jq --arg sudo $SUDO_ADDR --arg balance 1152921504606846976 '.genesis.runtime.balances.balances += [[$sudo, ($balance | tonumber)]]')
+          GENESIS=$(echo $GENESIS | jq --arg sudo $SUDO_ADDR '.genesis.runtime.sudo.key |= $sudo')
+          {{- else }}
           GENESIS=$(echo $GENESIS | jq --arg sudo $SUDO_ADDR --arg balance 1152921504606846976 '.genesis.runtime.palletBalances.balances += [[$sudo, ($balance | tonumber)]]')
           GENESIS=$(echo $GENESIS | jq --arg sudo $SUDO_ADDR '.genesis.runtime.palletSudo.key |= $sudo')
-
+          {{- end }}
+          
           echo "Inserting keys into genesis"
 
           echo "Inserting aura keys into genesis"
           {{- range .Values.aura_keys }}
           echo {{.}}
+          {{- if eq $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template:latest" }}
+          GENESIS=$(echo "$GENESIS" | jq --arg aura {{.}} '.genesis.runtime.aura.authorities += [$aura]')
+          {{- else }}
           GENESIS=$(echo "$GENESIS" | jq --arg aura {{.}} '.genesis.runtime.palletAura.authorities += [$aura]')
+          {{- end }}
           {{- end }} 
 
           echo "Inserting grandpa keys into genesis"
           {{- range .Values.grandpa_keys }}
           echo {{.}}
+          {{- if eq $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template:latest" }}
+          GENESIS=$(echo "$GENESIS" | jq --arg grandpa {{.}} '.genesis.runtime.grandpa.authorities += [[$grandpa, 1]]')
+          {{- else }}
           GENESIS=$(echo "$GENESIS" | jq --arg grandpa {{.}} '.genesis.runtime.palletGrandpa.authorities += [[$grandpa, 1]]')
           {{- end }}
-
+          {{- end }}
+          
+          {{- if ne $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template:latest" }}
+          echo "Adding member accounts and their balances to genesis"
           {{- range $idx, $member := .Values.members }}
           GENESIS=$(echo $GENESIS | jq --arg account_id {{ $member.account_id }} --arg balance {{ $member.balance }} '.genesis.runtime.palletBalances.balances += [[$account_id, ($balance | tonumber)]]')
           GENESIS=$(echo $GENESIS | jq --arg account_id {{ $member.account_id }} '.genesis.runtime.palletMembership.members += [$account_id]')
@@ -138,16 +163,17 @@ spec:
           done
           {{- end }}
           {{- end }}          
-
-          echo "$GENESIS" > genesis.json
+          {{- end }}
+          
+          echo "$GENESIS" > certcheck/genesis.json
           echo "********* check genesis *********"
-          cat genesis.json
-          echo "********* check genesis *********"
+          head -c 1000 certcheck/genesis.json
+          tail -c 2000 certcheck/genesis.json
           echo "Converting genesis to raw format"
-          GENESIS=$($command build-spec --disable-default-bootnode --raw --chain ./genesis.json)
-          echo "$GENESIS" > genesis_raw.json
-          cat genesis_raw.json | base64 -w0 > genesis_base64
-
+          GENESIS=$($command build-spec --disable-default-bootnode --raw --chain certcheck/genesis.json)
+          echo "$GENESIS" > certcheck/genesis_raw.json
+          cat certcheck/genesis_raw.json | base64 -w0 > certcheck/genesis_base64
+      
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
 
@@ -161,13 +187,17 @@ spec:
           echo "installing vault cli"
           curl -O -L https://releases.hashicorp.com/vault/1.7.1/vault_1.7.1_linux_amd64.zip
           unzip vault_1.7.1_linux_amd64.zip
+          {{- if eq $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template:latest" }}
+          export PATH=$PATH:~/workspace
+          {{- else }}
           mv vault /bin
+          {{- end }}
+          vault --version
 
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
           vault_secret_key="${CERTS_SECRET_PREFIX}/genesis"
           # Save the generated keys to VAULT
-          vault kv put $vault_secret_key genesis=@genesis_base64 sudo_details=@sudoKeygenOutput.json
-          
+          vault kv put $vault_secret_key genesis="@${MOUNT_PATH}/genesis_base64" sudo_details="@${MOUNT_PATH}/sudoKeygenOutput.json"
       volumes:
         - name: certcheck
           emptyDir:

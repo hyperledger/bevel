@@ -12,7 +12,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: substrate
-  version: v3.0.0  #this is the version of Substrate docker image that will be deployed.
+  version: latest  #this is the version of Substrate docker image that will be deployed.
 
   #Environment section for Kubernetes setup
   env:
@@ -43,15 +43,14 @@ network:
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
     # Provide the docker image which will be used for the Substrate Nodes in this network. (will be downloaded from docker.url)
-    node_image: "parity/substrate"
+    node_image: "paritytech/substrate-playground-template-node-template"
     # Provide the command which is used to start the node
-    command: "substrate"     # Please ensure the command corresponds to the node_image above    
+    command: "substrate"     # Please ensure the command corresponds to the node_image above, for eg, target/debug/node-template    
     # provide a chain name for Substrate nodes
-    chain: "inteli-gcp"
+    chain: "substrate-gcp"
     # NOTE for the below paths, the directories should exist
     bootnodes: "/BUILD_DIR/substrate_bootnodes" # Location where bootnodes information is read or saved if empty
     genesis: "/BUILD_DIR/substrate_genesis"   # Location where information is read or saved if empty
-    ipfsbootnodes: "/BUILD_DIR/ipfs_bootnodes" # Location where IPFS bootnodes information is read or saved if empty    
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -126,22 +125,6 @@ network:
           ws:
             port: 9944
         - peer:
-          name: ca-ipfs-bn
-          subject: "O=CarrierIPFS,OU=CarrierIPFS,London,C=GB" # This is the node subject.
-          type: ipfs-bootnode         # value can be validator or bootnode ( or ipfs, for vitalAM)
-          p2p:
-            port: 30333
-            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 9933
-          ws:
-            port: 9944
-          swarm:
-            port: 4001
-            ambassador: 15014       #Port exposed on ambassador service (use one port per org if using single cluster)
-          api:
-            port: 5001
-        - peer:
           name: carrier
           subject: "O=CarrierIPFS,OU=CarrierIPFS,London,C=GB" # This is the node subject.
           type: member         # value can be validator or bootnode ( or ipfs, for vitalAM)
@@ -152,9 +135,6 @@ network:
             port: 9933
           ws:
             port: 9944
-          swarm:
-            port: 4001
-            ambassador: 15016       #Port exposed on ambassador service (use one port per org if using single cluster)
           api:
             port: 5001
 
@@ -206,9 +186,6 @@ network:
             port: 9933
           ws:
             port: 9944
-          swarm:
-            port: 4001
-            ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
           api:
             port: 5001
         - peer:
@@ -280,9 +257,6 @@ network:
             port: 9933
           ws:
             port: 9944
-          swarm:
-            port: 4001
-            ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
           api:
             port: 5001
 
@@ -332,8 +306,5 @@ network:
             port: 9933          
           ws:
             port: 9944
-          swarm:
-            port: 4001
-            ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
           api:
             port: 5001
