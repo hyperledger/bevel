@@ -48,7 +48,7 @@ spec:
       secretprefix: {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: quorum
-      tm_keyname: transaction
+      tm_keyname: tm
       role: vault-role
       authpath: quorum{{ name }}
     genesis: {{ genesis }}
