@@ -1,12 +1,12 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: {{ component_name }}
+  name: {{ component_name | replace('_','-') }}
   namespace: {{ component_ns }}
   annotations:
     flux.weave.works/automated: "false"
 spec:
-  releaseName: {{ component_name }}
+  releaseName: {{ component_name | replace('_','-') }}
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
