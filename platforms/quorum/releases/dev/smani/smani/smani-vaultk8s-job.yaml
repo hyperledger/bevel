@@ -1,0 +1,33 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: smani-vaultk8s-job
+  namespace: smani-quo
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: smani-vaultk8s-job
+  chart:
+    git: https://github.com/manikanta-darsi/bevel.git
+    ref: dev-test2
+    path: platforms/shared/charts/vault-k8s-mgmt
+  values:
+    metadata:
+      name: smani-vaultk8s-job
+      namespace: smani-quo    
+      images:
+        alpineutils: hyperledgerlabs/alpine-utils:1.0
+
+    vault:
+      reviewer_service: vault-reviewer
+      role: vault-role
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      authpath: quorumsmani
+      policy: vault-crypto-organization-smani-ro
+      policydata: "{\n  \"policy\": \"path \\\"secretsv2/data/smani-quo/crypto/*\\\" {\n    capabilities = [\\\"read\\\", \\\"list\\\", \\\"create\\\", \\\"update\\\"]\n  }\n  path \\\"secretsv2/data/smani-quo/smartContracts/*\\\" {\n    capabilities = [\\\"read\\\", \\\"list\\\"]\n  }\"\n}"
+      secret_path: secretsv2
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    
+    k8s:
+      kubernetes_url: https://C8FA1454BFC54EBEAC7D6A70501769F2.sk1.eu-west-1.eks.amazonaws.com
