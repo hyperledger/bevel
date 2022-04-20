@@ -1,0 +1,59 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: cmani-generate-ambassador-certs-job
+  namespace: cmani-quo
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: cmani-generate-ambassador-certs-job
+  chart:
+    git: https://github.com/manikanta-darsi/bevel.git
+    ref: dev-test2
+    path: platforms/quorum/charts/certs-ambassador-quorum
+  values:
+    metadata:
+      name: cmani-generate-ambassador-certs-job
+      namespace: cmani-quo
+      external_url: cmani.rc.dev2.aws.blockchaincloudpoc-develop.com
+    image:
+      initContainerName: ghcr.io/hyperledger/alpine-utils:1.0
+      node: quorumengineering/quorum:21.4.2
+      pullPolicy: Always
+      certsContainerName: ghcr.io/hyperledger/bevel-build:jdk8-latest
+      imagePullSecret: regcred
+      pullPolicy: Always
+    vault:
+      address: http://vault.internal.dev2.aws.blockchaincloudpoc-develop.com:20001
+      role: vault-role
+      authpath: quorumcmani
+      serviceaccountname: vault-auth
+      certsecretprefix: secretsv2/data/cmani-quo
+      retries: 30
+    subjects:
+      rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=New York,C=US"
+      ambassadortls: "C=US,L=New York,O=Lite,OU=DLT/CN=DLT ambassadortls CA"
+    opensslVars:
+      domain_name: "cmani.rc.dev2.aws.blockchaincloudpoc-develop.com"
+      domain_name_api: "cmaniapi.rc.dev2.aws.blockchaincloudpoc-develop.com"
+      domain_name_web: "cmaniweb.rc.dev2.aws.blockchaincloudpoc-develop.com"
+      domain_name_tessera: "cmani-tessera.cmani-quo"
+    vars:
+      ambassadortls: "/home/bevel/DATA/ambassadortls"
+      rootca: "/home/bevel/DATA/rootca" 
+      kubernetes: "{'context': 'arn:aws:eks:eu-west-1:895052373684:cluster/dev2-CLUSTER', 'config_file': '/home/mani/.kube/config'}"
+      node_name: "cmani"
+      root_subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+      cert_subject: "CN=DLT Root CA/OU=DLT/O=DLT/L=London/C=GB"
+    
+    metadata:
+      name: cmani-generate-ambassador-certs-job
+      namespace: cmani-quo
+      external_url: cmani.rc.dev2.aws.blockchaincloudpoc-develop.com
+    acceptLicense: YES
+    healthCheckNodePort: 0
+    sleepTimeAfterError: 60
+    sleepTime: 10
+    healthcheck:
+      readinesscheckinterval: 10
+      readinessthreshold: 1
