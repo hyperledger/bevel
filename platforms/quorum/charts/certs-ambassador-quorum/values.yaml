@@ -1,0 +1,110 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for Certs Generator chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#############################################################
+#                   Basic Configuration                     #
+#############################################################
+# Provide the name of the node
+# Eg. nodeName: cert-generation
+nodeName: 
+
+# This section contains the quorum metadata.
+metadata:
+  # Provide the namespace for the quorum Certs Generator.
+  # Eg. namespace: cenm
+  namespace:
+  # Provide any additional labels for the quorum Certs Generator.
+  labels:
+
+# Provide information regarding the Docker images used.
+image:
+  # Provide the alpine utils image, which is used for all init-containers of deployments/jobs.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
+  initContainerName: ghcr.io/hyperledger/alpine-utils:1.0
+  # Provide the image for the certs container.
+  # Eg. certsContainerName: ghcr.io/hyperledger/bevel-doorman:latest
+  certsContainerName: ghcr.io/hyperledger/bevel-build:jdk8-latest
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecret: regcred
+  imagePullSecret: 
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: Always
+  pullPolicy: IfNotPresent
+
+#############################################################
+#               HashiCorp Vault Configuration               #
+#############################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication. 
+# For more info, see https://www.vaultproject.io/docs/auth/kubernetes
+
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address: 
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role:
+  # Provide the authpath configured to be used.
+  authpath:
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceAccountName:
+  # Provide the vault path where the certificates are stored
+  # Eg. certsecretprefix: secret/cenm-org-name
+  certSecretPrefix:
+  # Number of retries to check contents from vault 
+  retries:
+
+#############################################################
+#                  SUBJECT Details                          #
+#############################################################
+# This section details the X509 subjects
+
+subjects:  
+  # Mention the subject for rootca
+  # Eg. rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+  rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=New York,C=US"
+  # Mention the subject for ambassadortls
+  # Eg. ambassadortls: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  ambassadortls: "C=US,L=New York,O=Lite,OU=DLT/CN=DLT ambassadortls CA "
+
+opensslVars: 
+  domain_name: "{{ node_name }}.{{ item.external_url_suffix }}"
+  domain_name_api: "{{ node_name }}api.{{ item.external_url_suffix }}"
+  domain_name_web: "{{ node_name }}web.{{ item.external_url_suffix }}"
+  domain_name_tessera: "{{ node_name }}-tessera.{{ component_ns }}"
+vars:
+  ambassadortls: "/home/bevel/DATA/ambassadortls"
+  rootca: "/home/bevel/DATA/rootca"
+  kubernetes: "{{ item.k8s }}"
+  node_name: "{{ item.name | lower }}"
+  root_subject: "{{ network.config.subject }}"
+  cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+#############################################################
+#                       Settings                            #
+############################################################# 
+# sleep time in seconds when error while registration
+# Ex. sleepTimeAfterError: 120
+sleepTimeAfterError: 120
+# custom sleep time in seconds
+sleepTime: 20
+healthcheck:
+  #Provide the wait interval in seconds in fetching certificates from vault
+  #Eg. readinesscheckinterval: 5
+  readinesscheckinterval: 5
+  #Provide the threshold number of retries in fetching certificates from vault
+  #Eg. readinessthreshold: 2
+  readinessthreshold: 2
+volume:
+  # Eg. baseDir: /opt/quorum
+  baseDir: /home/bevel

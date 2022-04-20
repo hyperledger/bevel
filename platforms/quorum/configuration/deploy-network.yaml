@@ -67,16 +67,27 @@
       name: create/certificates/ambassador
     vars:
       root_subject: "{{ network.config.subject }}"
+      name: "{{ item.name | lower }}"
       cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
       services: "{{ item.services }}"
       organisation: "{{ item.name | lower }}"
+      org_name: "{{ item.name }}"
+      gitops: "{{ item.gitops }}"
+      component_auth: "quorum{{ item.name | lower }}"
+      component_type: "organization"
       component_ns: "{{ item.name | lower }}-quo"
-      component_name: "{{ item.name | lower }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      component_name: "{{ item.name | lower }}-ambassador-certs"
       kubernetes: "{{ item.k8s }}"
+      external_url: "{{ item.external_url_suffix }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+      org: "{{ item }}"
       vault: "{{ item.vault }}"
+      peers: "{{ item.services.peers }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}"
     loop: "{{ network['organizations']}}"
 
-  # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
+ # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
   - name: "Generate crypto material for RAFT consensus"
     include_role:
       name: create/crypto/raft
