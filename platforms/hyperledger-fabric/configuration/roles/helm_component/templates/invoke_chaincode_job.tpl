@@ -30,6 +30,7 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
+      secretpath: {{ vault.secret_path | default('secretsv2') }}
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth
