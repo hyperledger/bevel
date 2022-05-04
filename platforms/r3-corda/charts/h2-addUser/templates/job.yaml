@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -104,10 +110,10 @@ spec:
              
              LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${DB_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
              validateVaultResponse "${DB_SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE}" "LOOKUPSECRETRESPONSE"
-             SA_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["sa"]')
+             SA_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["sa"]')
              echo "${SA_PASSWORD}" >> ${MOUNT_PATH}/db_cred
              {{- range .Values.users }}
-             USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["{{ .name }}"]')
+             USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["{{ .name }}"]')
              echo "${USER_PASS}" >> ${MOUNT_PATH}/{{ .name }}-password
              {{- end }}             
         volumeMounts:

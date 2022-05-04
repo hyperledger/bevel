@@ -11,13 +11,17 @@ spec:
     path: {{ org.gitops.chart_source }}/{{ chart }}
     git: {{ org.gitops.git_url }}
     ref: {{ org.gitops.branch }}
+{% if org.gitops.git_protocol == "https" %}
+    secretRef:
+      name: git-https-credentials
+{% endif %}
   values:
     nodeName: {{ component_name }}
     metadata:
       namespace: {{ component_ns }}
     image:
       authusername: sa
-      containerName: {{ network.docker.url }}/networkmap-linuxkit:latest
+      containerName: {{ network.docker.url }}/bevel-networkmap-linuxkit:latest
       env:
       - name: NETWORKMAP_PORT
         value: 8080
@@ -41,7 +45,9 @@ spec:
         value: 60S
       - name: NETWORKMAP_MONGOD_DATABASE
         value: networkmap
+{% if network.docker.username is defined %}
       imagePullSecret: regcred
+{% endif %}
       tlsCertificate: {{ chart_tls }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
@@ -56,11 +62,11 @@ spec:
       authpath: {{ component_auth }}
       serviceaccountname: vault-auth
       secretprefix: {{ component_name }}
-      certsecretprefix: {{ component_name }}/certs
-      dbcredsecretprefix: {{ component_name }}/credentials/mongodb
-      secretnetworkmappass: {{ component_name }}/credentials/userpassword
-      tlscertsecretprefix: {{ component_name }}/tlscerts
-      dbcertsecretprefix: {{ component_name }}/certs
+      certsecretprefix: {{ component_name }}/data/certs
+      dbcredsecretprefix: {{ component_name }}/data/credentials/mongodb
+      secretnetworkmappass: {{ component_name }}/data/credentials/userpassword
+      tlscertsecretprefix: {{ component_name }}/data/tlscerts
+      dbcertsecretprefix: {{ component_name }}/data/certs
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15

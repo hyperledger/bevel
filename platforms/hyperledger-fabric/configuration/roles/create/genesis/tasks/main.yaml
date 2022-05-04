@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ############################################################################################
 - name: Remove old genesis block
   file:
@@ -20,7 +26,7 @@
 
 - name: "Write genesis block to Vault"  
   shell: |
-    vault write {{ org.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ org.name }}-net {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
+    vault kv put {{ org.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ org.name }}-net {{ network.env.type }}GenesisBlock=@{{build_path}}/channel-artifacts/genesis.block.base64
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"

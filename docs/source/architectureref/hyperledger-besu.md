@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Hyperledger Besu Architecture Reference
 
 ## Kubernetes
@@ -39,10 +44,10 @@ The following diagram shows how Besu Validator nodes will be deployed on your Ku
 
 ## Components
 
-![Figure: Hyperledger Besu Components](../../images/blockchain-automation-framework-besu.png)
+![Figure: Hyperledger Besu Components](../../images/hyperledger-bevel-besu.png)
 
 ### Docker Images
-The Blockchain Automation Framework uses the officially published Besu Docker images from [hub.docker.com](https://hub.docker.com/u/hyperledger). The following Besu Images are used by the Blockchain Automation Framework.
+Hyperledger Bevel uses the officially published Besu Docker images from [hub.docker.com](https://hub.docker.com/u/hyperledger). The following Besu Images are used by Hyperledger Bevel.
 
 *  [besu](https://hub.docker.com/r/hyperledger/besu) - Besu Peer and Validator Node
 
@@ -50,7 +55,7 @@ The Blockchain Automation Framework uses the officially published Besu Docker im
 
 Additionally, following common images are also used:
 
-*  [alpine-utils](https://hub.docker.com/r/hyperledgerlabs/alpine-utils) - Used as a utility to get crypto from Hashicorp Vault server
+*  [alpine-utils](https://github.com/hyperledger/bevel/pkgs/container/bevel-alpine-utils) - Used as a utility to get crypto from Hashicorp Vault server
 
 ### Ansible Playbooks
 Detailed information on ansible playbooks can be referred [here](../developer/besu-ansible.md) and the execution process can be referred [here](../operations/setting_dlt.md).
@@ -62,9 +67,9 @@ Detailed information on helm charts can be referred [here](../developer/besu-hel
 
 ## Vault Configuration
 
-The Blockchain Automation Framework stores their `crypto` immediately in the Hashicorp Vault secrets engine.
-The crypto is stored by each organization under path `secret/org_namespace` - it contains node keys, keystore, passwords, TM keys, and CA certificates for proxy connections.
-Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+Hyperledger Bevel stores their `crypto` immediately in the Hashicorp Vault secrets engine.
+The crypto is stored by each organization under path `secretsv2/org_namespace` - it contains node keys, keystore, passwords, TM keys, and CA certificates for proxy connections.
+Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
 
 
 The complete key paths in the Vault can be referred [here](certificates_path_list_besu.md).

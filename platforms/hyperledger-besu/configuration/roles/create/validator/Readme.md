@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/validator
 This role creates the helm value file of orion transaction manager for each node of all organizations.
 ### main.yaml
@@ -25,13 +30,13 @@ peer_publicIP
     loop_var: loop variable used for iterating the loop.
 
 #### 5. Create Value files for validator for each node
-This task creates the value file by calling the helm_component role
+This task creates the value file by calling the create/helm_component role
 ##### Input Variables
 
     *genesis: "The genesis file fetched from the url defined by the network.yaml" 
     *component_name: "The name of the component"
     type: "node_orion"
-**include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here helm_component
+**include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here create/helm_component
 **loop**: loops over peers list fetched using *{{ peers }}* from network yaml
 **loop_control**: Specify conditions for controlling the loop.
                 
@@ -40,15 +45,10 @@ This task creates the value file by calling the helm_component role
 #### 6. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"
-    GIT_REPO: "The name of GIT REPO"
-    GIT_USERNAME: "Username of Repo"
-    GIT_PASSWORD: "Password for Repo"
-    GIT_EMAIL: "Email for git config"
-    GIT_BRANCH: "Branch Name"
+    GIT_DIR: "The path of directory which needs to be pushed"    
     GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
-These variables are fetched through network.yaml using *item.gitops*
 **include_role**: It includes the name of intermediatory role which is required for pushing  the value file to git repository.
 
 ----------------

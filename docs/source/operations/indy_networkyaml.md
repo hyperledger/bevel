@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Configuration file specification: Indy
 A network.yaml file is the base configuration file for setting up a Indy network. This file contains all the information related to the infrastructure and network specifications. Here is the structure of it.
 ![](./../_static/TopLevelClass-Indy.png)
@@ -5,6 +10,10 @@ A network.yaml file is the base configuration file for setting up a Indy network
 Before setting up a Indy network, this file needs to be updated with the required specifications.
 A sample configuration file is provide in the repo path:  
 `platforms/hyperledger-indy/configuration/samples/network-indyv3.yaml`  
+
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
 
 The configurations are grouped in the following sections for better understanding.
 
@@ -39,9 +48,12 @@ The snapshot of the `env` section with example values is below
   env:
     type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
-    # Any additional Ambassador ports can be given below, must be comma-separated without spaces. 
     # Must be different from all steward ambassador ports specified in the rest of this network yaml
-    ambassadorPorts: 15010,15020,15030,15040 
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      # portRange:              # For a range of ports 
+      #   from: 15010 
+      #   to: 15043
+      ports: 15010,15023,15024,15033,15034,15043,15044  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened 
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: disabled           # Should be enabled if using external-dns for automatic route configuration
@@ -52,8 +64,8 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Indy |
-|ambassadorPorts|Provide additional Ambassador ports for Identity sample app, must be comma-separated without spaces. These ports must be different from all steward ambassador ports specified in the rest of this network yaml |
-| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
+|ambassadorPorts|Provide additional Ambassador ports for Identity sample app. These ports must be different from all steward ambassador ports specified in the rest of this network yaml |
+| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks.|
 | external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. Must be `enabled` for Identity sample app.  |
 
@@ -98,8 +110,8 @@ The `genesis` section contains Information about pool transaction genesis and do
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | state        | State is placeholder for future, when there will be option to join to existing cluter. Currently only "absent" is supported. That means, that genesis will be always generated    |
-| pool         | Path to pool transaction genesis. [Readme here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis/).    |
-| domain | Path to domain transaction genesis. [Readme here](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/platforms/hyperledger-indy/configuration/roles/setup/domain_genesis/).      |
+| pool         | Path to pool transaction genesis. [Readme here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-indy/configuration/roles/setup/pool_genesis/).    |
+| domain | Path to domain transaction genesis. [Readme here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-indy/configuration/roles/setup/domain_genesis/).      |
 
 
 The `organizations` section allows specification of one or many organizations that will be connecting to a network. If an organization is also hosting the root of the network (e.g. membership service, etc), then these services should be listed in this section as well.
@@ -197,15 +209,15 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Do not check-in git_password
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "gitops_ssh_url"                   # Gitops https or ssh url for flux value files like "https://github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_url: "gitops_ssh_url"                   # Gitops https or ssh url for flux value files like "https://github.com/hyperledger/bevel.git"
         branch: "gitops_branch"                     # Git branch where release is being made
         release_dir: "gitops_release_dir"           # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "gitops_charts"               # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "gitops_repo_url"             # Gitops git repository URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"
+        git_repo: "gitops_repo_url"             # Gitops git repository URL for git push like "github.com/hyperledger/bevel.git"
         username: "git_username"                    # Git Service user who has rights to check-in in all branches
-        password: "git_password"                    # Git Server user password
+        password: "git_password"                    # Git Server user password/ user token (Optional for ssh; Required for https)
         email: "git_email"                          # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
 ```
 
@@ -213,15 +225,16 @@ The `gitops` field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
+| git_protocol | Option for git over https or ssh. Can be `https` or `ssh` |
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
-| password                             | Password of the user which has access rights to read/write on repository                                         |
+| password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)  |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |
+| private_key                          | Path to the private key file which has write-access to the git repo  (Optional for https; Required for ssh)    |
 
 
 The services field for each organization under `organizations` section of Indy contains list of `services` which could be trustee/steward/endorser
@@ -290,7 +303,7 @@ The snapshot of endorser service with example values is below
           full_name: Some Decentralized Identity Mobile Services Provider
           avatar: https://provider.com/avatar.png
           # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
-          # Eg. In this sample https://provider-endorser.indy.blockchaincloudpoc.com:15020/
+          # E.g. In this sample https://provider-endorser.indy.blockchaincloudpoc.com:15020/
           # For minikube: http://<minikubeip>>:15020
           server:
             httpPort: 15020

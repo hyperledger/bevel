@@ -18,7 +18,27 @@ spec:
         couchdb: {{ couchdb_image }}
         peer: {{ peer_image }}
         alpineutils: {{ alpine_image }}
-        
+{% if network.env.annotations is defined %}
+    annotations:  
+      service:
+{% for item in network.env.annotations.service %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+      pvc:
+{% for item in network.env.annotations.pvc %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+      deployment:
+{% for item in network.env.annotations.deployment %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+{% endif %}        
     peer:
       name: {{ peer_name }}
       gossippeeraddress: {{ peer.gossippeeraddress }}
@@ -46,11 +66,11 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ namespace }}-auth
-      secretprefix: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
-      secretambassador: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ namespace }}/ambassador
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
+      secretambassador: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/ambassador
       serviceaccountname: vault-auth
       imagesecretname: regcred
-      secretcouchdbpass: {{ vault.secret_path | default('secret') }}/credentials/{{ namespace }}/couchdb/{{ name }}?user
+      secretcouchdbpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/couchdb/{{ name }}?user
 
     service:
       servicetype: ClusterIP
@@ -74,3 +94,13 @@ spec:
     proxy:
       provider: "{{ network.env.proxy }}"
       external_url_suffix: {{ item.external_url_suffix }}
+
+    config:
+      pod:
+        resources:
+          limits:
+            memory: 512M
+            cpu: 1
+          requests:
+            memory: 512M
+            cpu: 0.5

@@ -1,5 +1,11 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 {{- if eq .Values.proxy.provider "haproxy" }}
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Values.node.name }}
@@ -13,30 +19,42 @@ spec:
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ .Values.node.name }}
-          servicePort: {{ .Values.node.ports.constellation }}
+          service:
+            name: {{ .Values.node.name }}
+            port:
+              number: {{ .Values.node.ports.constellation }}
   - host: {{ .Values.node.name }}rpc.{{ .Values.proxy.external_url_suffix }}
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ .Values.node.name }}
-          servicePort: {{ .Values.node.ports.rpc }}
+          service:
+            name: {{ .Values.node.name }}
+            port:
+              number: {{ .Values.node.ports.rpc }}
   - host: {{ .Values.node.name }}tcp.{{ .Values.proxy.external_url_suffix }}
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ .Values.node.name }}
-          servicePort: {{ .Values.node.ports.quorum }}
+          service:
+            name: {{ .Values.node.name }}
+            port:
+              number: {{ .Values.node.ports.quorum }}
   {{- if eq $.Values.node.consensus "raft" }}
   - host: {{ .Values.node.name }}raft.{{ .Values.proxy.external_url_suffix }}
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ .Values.node.name }}
-          servicePort: {{ .Values.node.ports.raft }}
+          service:
+            name: {{ .Values.node.name }}
+            port:
+              number: {{ .Values.node.ports.raft }}
   {{- end }}
 {{- end }}

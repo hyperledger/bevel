@@ -17,10 +17,6 @@ spec:
       namespace: {{ component_ns }}
     network:
       name: {{ network.name }}
-    genesis:
-      pool: {{ genesis.pool | indent(width=8) | b64encode }}
-      domain: {{ genesis.domain | indent(width=8) | b64encode }}
-      add_org: {{ genesis.add_org | default(false) }}
     image:
       cli:
         name: {{ component_name }}
@@ -36,12 +32,12 @@ spec:
       adminIdentity:
         name: {{ file_var.trustee_name }}
         did: {{ file_var.trustee_did }}
-        path: {{ admin_component_name }}/{{ admin_type }}
+        path: {{ admin_component_name }}/data/{{ admin_type }}
       newIdentity:
         name: {{ file_var.endorser_name }}
         role: {{ newIdentityRole }}
         did: {{ file_var.endorser_did }}
         verkey: {{ file_var.endorser_verkey }}
-        path: {{ component_name }}/endorsers
+        path: {{ component_name }}/data/endorsers
     node:
       name: {{ component_name }}

@@ -1,10 +1,20 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Configuration file specification: Hyperledger-Fabric
-A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
+A network.yaml file is the base configuration file designed in Hyperledger Bevel for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
 ![](./../_static/TopLevelClass-Fabric.png)
 
-Before setting up a Fabric DLT/Blockchain network, this file needs to be updated with the required specifications.  
+Before setting up a Fabric DLT/Blockchain network, this file needs to be updated with the required specifications.
+
 A sample configuration file is provided in the repo path:  
 `platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml` 
+
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
 
 The configurations are grouped in the following sections for better understanding.
 
@@ -28,11 +38,11 @@ Here is the snapshot from the sample configuration file
 
 ![](./../_static/NetworkYamlFabric1.png)
 
-The sections in the sample configuration file are  
+The sections in the sample configuration file are:  
 
 `type` defines the platform choice like corda/fabric, here in the example its Fabric
 
-`version` defines the version of platform being used. The current Fabric version support is 1.4.8 & 2.2.0
+`version` defines the version of platform being used. The current Fabric version support is 1.4.8, 2.2.0 & 2.2.2
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -43,7 +53,11 @@ The snapshot of the `env` section with example value is below
   env:
     type: "env_type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: haproxy                  # values can be 'haproxy' or 'none' (for minikube)
-    ambassadorPorts: 15010,15020    # is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 100                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -54,8 +68,8 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'haproxy' only as 'ambassador' has not been implemented for Fabric |
-| ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`     |
-| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
+| ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`     |
+| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -95,13 +109,13 @@ The snapshot of the `orderers` section with example values is below
       name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/blockchain-automation-framework/build/orderer1.crt           # Ensure that the directory exists
+      certificate: /home/bevel/build/orderer1.crt           # Ensure that the directory exists
     - orderer:
       type: orderer
       name: orderer2
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/blockchain-automation-framework/build/orderer2.crt           # Ensure that the directory exists
+      certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
 ```
 The fields under the each `orderer` are
 
@@ -166,6 +180,17 @@ The snapshot of channels section with its fields and sample values is below
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
         peerAddress: peer0.manufacturer-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+    endorsers:
+      name:
+      - carrier
+      - warehouse
+      - manufacturer
+      - store
+      corepeerAddress:
+      - peer0.carrier-net.hf.demo.aws.blockchaincloudpoc.com:8443
+      - peer0.warehouse-net.hf.demo.aws.blockchaincloudpoc.com:8443
+      - peer0.manufacturer-net.hf.demo.aws.blockchaincloudpoc.com:8443
+      - peer0.store-net.hf.demo.aws.blockchaincloudpoc.com:8443      
     genesis:
       name: OrdererGenesis
 ```
@@ -178,6 +203,9 @@ The fields under the `channel` are
 | genesis.name                    | Name of the genesis block                                  |
 | orderer.name                    | Organization name to which the orderer belongs             |
 | participants                    | Contains list of organizations participating in the channel|
+| endorsers.name                  | Contains list of endorsers names (v2.2+)                   |
+| endorsers.corepeerAddress       | Contains list of endorsers addresses (v2.2+)                |
+| channel_status                  | (only needed to add channel to existing org. Possible values are `new` or `existing`|
 
 Each `organization` field under `participants` field of the channel contains the following fields
 
@@ -193,6 +221,7 @@ Each `organization` field under `participants` field of the channel contains the
 
 
 The `organizations` section contains the specifications of each organization.  
+
 In the sample configuration example, we have five organization under the `organizations` section
 
 The snapshot of an organization field with sample values is below
@@ -225,7 +254,7 @@ Each `organization` under the `organizations` section has the following fields.
 | type                                        | This field can be orderer/peer            |
 | external_url_suffix                         | Public url suffix of the cluster.         |
 | org_status         | `new` (for inital setup) or `existing` (for add new org) | 
-| ca_data                                     | Contains the certificate authority url and certificate path; This has not been implemented yet |
+| ca_data                                     | Contains the certificate authority url and certificate path; this has not been implemented yet |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | When the organization cluster is on AWS |
 | k8s                                         | Kubernetes cluster deployment variables.|
@@ -266,34 +295,35 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops htpps or ssh url for flux value files
+        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # without https://
+        git_repo: "github.com/<username>/bevel.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
-        password: "<password>"          # Git Server user password/personal token
+        password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
         email: "<git_email>"              # Email to use in git config
-        private_key: "<path to gitops private key>"
+        private_key: "<path to gitops private key>" # Path to private key (Optional for https; Required for ssh)
 ```
 
 The gitops field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
+| git_protocol | Option for git over https or ssh. Can be `https` or `ssh` |
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
-| password                             | Password of the user which has access rights to read/write on repository                                         |
+| password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)        |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |
+| private_key                          | Path to the private key file which has write-access to the git repo (Optional for https; Required for ssh)       |
 
 The services field for each organization under `organizations` section of Fabric contains list of `services` which could be ca/orderers/consensus/peers based on if the type of organization. 
 
-Each organization will have a ca service under the service field. The snapshot of ca service with example values is below
+Each organization will have a CA service under the service field. The snapshot of CA service with example values is below
 ```yaml
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample is an orderer service and includes a zk-kafka consensus
@@ -323,6 +353,7 @@ Each organization with type as peer will have a peers service. The snapshot of p
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          certificate: "/path/ca.crt" # certificate path for peer
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
             port: 7051         
@@ -343,7 +374,7 @@ Each organization with type as peer will have a peers service. The snapshot of p
             repository:
               username: "git_username"          # Git Service user who has rights to check-in in all branches
               password: "git_password"
-              url: "github.com/hyperledger-labs/blockchain-automation-framework.git"
+              url: "github.com/hyperledger/bevel.git"
               branch: develop
               path: "chaincode_src"   #The path to the chaincode 
             arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
@@ -357,6 +388,7 @@ The fields under `peer` service are
 | type                          | Type can be `anchor` and `nonanchor` for Peer                                                                    |
 | gossippeeraddress             | Gossip address of another peer in the same Organization. If there is only one peer, then use that peer address. Must be internal as the peer is hosted in the same Kubernetes cluster. |
 | peerAddress             | External address of this peer. Must be the HAProxy qualified address. If using minikube, this can be internal address. |
+| certificate             | Certificate path for peer. |
 | cli             | Optional field. If `enabled` will deploy the CLI pod for this Peer. Default is `disabled`. |
 | grpc.port                     | Grpc port                                                                                                        |
 | events.port                   | Events port                                                                                                      |
@@ -368,6 +400,7 @@ The fields under `peer` service are
 | chaincode.name                | Name of the chaincode                                                                                            |
 | chaincode.version             | Version of the chaincode. Please do not use . (dot) in the version.    |
 | chaincode.maindirectory       | Path of main.go file                                                                                             |
+| chaincode.lang       | The language in which the chaincode is written ( golang/ java)                                                                                            |
 | chaincode.repository.username | Username which has access to the git repo containing chaincode                                                   |
 | chaincode.repository.password | Password of the user which has access to the git repo containing chaincode                                       |
 | services.peer.chaincode.repository.url      | URL of the git repository containing the chaincode                                                 |
@@ -419,6 +452,7 @@ The fields under `orderer` service are
 | name                        | Name of the Orderer service                                                                                                     |
 | type          | This type must be `orderer`  |
 | consensus                   | Consensus type, for example: `kafka`, `raft`                                                                               |
+| status                   | (Only needed to add new orderer). Possible values are `new` or `existing`                                                                                             |
 | grpc.port                   | Grpc port of orderer                                                                                             |
 
 

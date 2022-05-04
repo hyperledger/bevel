@@ -20,8 +20,8 @@ spec:
       labels: {}
     replicas: 1
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      mainContainerName: {{ network.docker.url }}/{{ docker_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_container_image }}
+      mainContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagePullSecret: regcred
       pullPolicy: Always
     vault:
@@ -29,7 +29,7 @@ spec:
       role: vault-role
       authpath: cordaent{{ org.name | lower }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/{{ org.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     volume:

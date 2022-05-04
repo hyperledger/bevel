@@ -1,14 +1,27 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ $.Values.server.name }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{- if eq $.Values.proxy.provider "ambassador" }}
   annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+    {{- if eq $.Values.proxy.provider "ambassador" }}  
     getambassador.io/config: |
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind:  Mapping
       {{ if eq $.Values.proxy.type "orderer" }}
       name:  ca_orderer_{{ $.Values.metadata.namespace }}_mapping
@@ -24,7 +37,7 @@ metadata:
       tls: ca_{{ $.Values.metadata.namespace }}_tls
       {{ end }}
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TLSContext
       {{ if eq $.Values.proxy.type "orderer" }}
       name: ca_orderer_{{ $.Values.metadata.namespace }}_tls
@@ -34,6 +47,7 @@ metadata:
       hosts:
       - ca.{{ $.Values.metadata.namespace }}
       secret: ca-{{ $.Values.metadata.namespace }}-ambassador-certs
+      min_tls_version: v1.2
   {{ end }}
   labels:
     run: {{ $.Values.server.name }}
@@ -54,24 +68,51 @@ spec:
     {{- if $.Values.service.ports.tcp.nodeport }}
     nodePort: {{ $.Values.service.ports.tcp.nodeport }}
     {{- end }}
+  - name: operations
+    protocol: TCP
+    targetPort: 9443
+    port: 9443
 
 {{- if eq $.Values.proxy.provider "haproxy" }}
 ---
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $.Values.server.name }}
   namespace:  {{ $.Values.metadata.namespace }}
   annotations:
     kubernetes.io/ingress.class: "haproxy"
-    ingress.kubernetes.io/ssl-passthrough: "true"  
+    ingress.kubernetes.io/ssl-passthrough: "true"
 spec:
   rules:
   - host: ca.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ $.Values.server.name }}
-          servicePort: {{ $.Values.service.ports.tcp.clusteripport }}    
+          service:
+            name: {{ $.Values.server.name }}
+            port:
+              number: {{ $.Values.service.ports.tcp.clusteripport }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.server.name }}-ops
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"    
+spec:
+  rules:
+  - host: ca-ops.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.server.name }}
+            port:
+              number: 9443
 {{- end }}

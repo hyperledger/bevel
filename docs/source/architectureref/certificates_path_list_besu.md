@@ -1,37 +1,42 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 Certificate Paths on Vault for Hyperledger Besu Network
 -------------------------------------------------------
 
-* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
 
 ### For IBFT2 WIP
 
 | Path                                                                              | Key Name               | Description         |
 |-----------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | key                       | Private Key Data for a node   |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | key.pub                      | Public Key (Identity for a node)  |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | nodeAddress                       | Besu Node Address     |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | key                       | Private Key Data for a node   |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | key.pub                      | Public Key (Identity for a node)  |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | nodeAddress                       | Besu Node Address     |
 
 ### For Orion
 
 | Path                                                                           | Key Name               | Description         |
 |--------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{ `component_ns` }}/crypto/{{ `peer_name` }}/orion               | key.pub                        | Public key of Transaction manager |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/orion                 | key                        | Private key of Transaction manager |
-| secret/{{`component_ns`}}/crypto/{{ `peer_name` }}/orion | password  | Password for the Key |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `peer_name` }}/orion               | key.pub                        | Public key of Transaction manager |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/orion                 | key                        | Private key of Transaction manager |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/orion | password  | Password for the Key |
 
 
 ### For Root Certificates
 
 | Path                                                                         | Key Name               | Description         |
 |------------------------------------------------------------------------------|-------------------------------|--------------|
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | rootca_key                        | Initial Root CA Key  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | rootca_pem                        | Initial Root CA Certificates  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | ambassadorcrt                 | Certificate chain for Ambassador proxy and Orion TLS |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | ambassadorkey                 | Ambassador key  |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | rootca_key                        | Initial Root CA Key  |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | rootca_pem                        | Initial Root CA Certificates  |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | ambassadorcrt                 | Certificate chain for Ambassador proxy and Orion TLS |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | ambassadorkey                 | Ambassador key  |
 for Ambassador proxy and Orion TLS |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | knownServer                 | Common name and SHA256 digest of authorized privacy enclave  |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | keystore                 | Keystore (PKCS #12 format) Besu TLS Certificate and key   |
-| secret/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | password                 | Password to decrypt the Keystore  |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | knownServer                 | Common name and SHA256 digest of authorized privacy enclave  |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | keystore                 | Keystore (PKCS #12 format) Besu TLS Certificate and key   |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | password                 | Password to decrypt the Keystore  |
 
 
 ------------------------------------------------------------------------------------------------

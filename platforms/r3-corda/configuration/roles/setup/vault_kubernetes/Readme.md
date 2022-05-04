@@ -1,9 +1,22 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: setup/vault_kubernetes
 This role setups communication between the vault and kubernetes cluster and install neccessary configurations.
 
 ### Tasks
-(Variables with * are fetched from the playbook which is calling this role)
-#### 1. "Ensures build dir exists"
+(Variables with * are fetched from the playbook which is calling this role) 
+#### 1. "check if dir exists or not"
+This task checks whether build directory present or not.
+##### Input Variables
+  
+    path: The path where to check is specified here
+    recurse: Yes/No to recursively check inside the path specified.
+    state: Type i.e. directory. 
+
+#### 2. "Ensures build dir exists"
 This task checks whether build directory present or not.If not present,creates one.
 ##### Input Variables
   
@@ -11,7 +24,7 @@ This task checks whether build directory present or not.If not present,creates o
     recurse: Yes/No to recursively check inside the path specified.
     state: Type i.e. directory.
 
-#### 2. Check if Kubernetes-auth already created for Organization
+#### 3. Check if Kubernetes-auth already created for Organization
 This task checks if the vault path already exists.
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -21,7 +34,7 @@ This task checks if the vault path already exists.
 ##### Output Variables
     auth_list: Stores the list of enables auth methods
 
-#### 3. Vault Auth enable for organisation
+#### 4. Vault Auth enable for organisation
 This task enables the path for the nms,doorman,notaries and nodes on vault
 This task runs only when {{auth_path}} is not already created
 ##### Input Variables
@@ -31,7 +44,7 @@ This task runs only when {{auth_path}} is not already created
 **when**: It runs Only when component_auth is *NOT* in the output of auth_list
 **ignore_errors**: This flag ignores the any errors and proceeds further.
 
-#### 4. "Get Kubernetes cert files for organizations"
+#### 5. "Get Kubernetes cert files for organizations"
 This task get the certificate for the cluster mentioned in k8 secret
 **shell** : This command get the certificates for cluster and stores them in the temporary build directory.
 ##### Input Variables
@@ -39,7 +52,7 @@ This task get the certificate for the cluster mentioned in k8 secret
      *component_ns: name of the resource
 **when**: It runs only when the *component_auth* is not created
 
-#### 5. Write reviewer token for Organisations
+#### 6. Write reviewer token for Organisations
 This task writes the Service Account token to the vault for various corda entity(nms,doorman,notary,nodes)
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -50,7 +63,7 @@ This task writes the Service Account token to the vault for various corda entity
 The vault write command writes the Service Account token to the vault for Organisations
 **when**: It runs only when the *auth_path* is not created
 
-#### 6. Check if secret-path already created for Organization
+#### 7. Check if secret-path already created for Organization
 This task checks if the vault secret path.
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -59,7 +72,7 @@ This task checks if the vault secret path.
 ##### Output Variables
     secrets_list: Stores the list of enables auth methods
 
-#### 7. Create Vault secrets path
+#### 8. Create Vault secrets path
 This task create Vault secrets path.
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -69,7 +82,7 @@ This task create Vault secrets path.
 **shell**: enable the vault secret path
 **when**: It runs only when the *secrets_list* is not created
 
-#### 8. Check if policy exists
+#### 9. Check if policy exists
 This task checks if the vault-ro polict already exists.
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -80,7 +93,15 @@ This task checks if the vault-ro polict already exists.
 ##### Output Variables
     vault_policy_result: Stores the list of policy
 
-#### 9. Create policy for Access Control
+#### 10."check if file exists or not"
+This task checks whether file exists or not.
+##### Input Variables
+  
+    path: The path where to check is specified here
+    recurse: Yes/No to recursively check inside the path specified.
+    state: Type i.e. file. 
+
+#### 11. Create policy for Access Control
 This task creates the access policy for various corda entity(nms,doorman,notary,nodes)
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -88,7 +109,15 @@ This task creates the access policy for various corda entity(nms,doorman,notary,
     *component_name: name of the resource
 **when**: Condition is specified here, runs only if the policy check is failed and component type is peer.
 
-#### 10. Create Vault auth role
+#### 12. Write policy to the vault
+This task writes policy to the vault
+##### Input Variables
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+    *component_name: name of the resource
+**when**: vault_policy_result.failed == True i.e Run if policy check failed
+
+#### 13. Create Vault auth role
 This task creates the vault auth
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml

@@ -1,31 +1,33 @@
-BAF current roadmap
-===================
+Bevel current roadmap
+=====================
+
 .. mermaid::
 
    gantt
-    title BAF current roadmap
+    title Bevel current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    Platforms and components upgrade: active, 21-01-07, 180d
-    Corda Ent. OFE*: active, 20-11-15, 180d
-    Fabric OFE*: active, 20-10-15, 240d
-    Besu OFE*: active, 21-01-07, 150d
+    Platforms and components upgrade : active, 22-01-03, 180d
+    Fabric OFE*: active, 22-01-03, 90d
+    Ansible Decoupling: active, 22-01-03, 60d 
     section Application
-    Besu Ref App: b4, 20-10-15, 120d
+    Besu Ref App: active, 22-02-14, 120d
+    section CI/CD
+    Moving to ghcr.io: active, 22-01-03, 60d
 
-.. |pin| image:: _static/pin.png
+.. |pin| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4cc.png?v8
     :width: 15pt
     :height: 15pt
-.. |tick| image:: _static/tick.png
+.. |tick| image:: https://github.githubassets.com/images/icons/emoji/unicode/2714.png?v8
     :width: 15pt
     :height: 15pt
-.. |run| image:: _static/run.png
+.. |run| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f3c3-2642.png?v8
     :width: 15pt
     :height: 15pt
-.. |muscle| image:: _static/muscle.png
+.. |muscle| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4aa.png?v8
     :width: 15pt
     :height: 15pt
-.. |hand| image:: _static/hand.png
+.. |hand| image:: https://github.githubassets.com/images/icons/emoji/unicode/270b.png?v8
     :width: 15pt
     :height: 15pt
 
@@ -50,41 +52,39 @@ Legend of annotations:
 General
 -------
 -  |run| Improve the existing ``readthedocs`` documentations
+    - |run| Update guide for deployment on Local k8s
 -  |run| Platforms and components upgrade:
-    - |tick| Helm3 upgrade
-    - |tick| EKS upgrade to 1.16
-    - |run| Ambassador upgrade to 1.9.1  
+    - |run| Flux version 2 upgrade
+    - |pin| Test and update platforms code to run on EKS v1.21 
+    - |pin| Setup AWS cloudwatch exporter
+    - |pin| Grafana and Promethus integration 
     - |pin| Improve logging/error messaging in playbooks
-    - |pin| Complete molecule test scenarios for BAF R3 Corda OS and HL Fabric  
-    - |hand| Java version upgrades
 
 Platforms
 ---------
-- |run| Corda Ent. operational feature enhancements
-    - |tick| Enable mutiple notaries
-    - |pin| Addition of notary node to an existing network
-    - |pin| R3 Corda version 4.x upgrade
-    - |pin| CENM version upgrade
-    - |hand| Removable of node
+- |run| Reduce/decouple ansible dependecy in DLT platforms automation
+- |run| Corda Enterprise operational feature enhancements
+    - |pin| HA Notary options
+    - |pin| Enable PostGreSQL support for Corda Enterprise
+    - |pin| Removal of node
 - |run| HL Fabric operational feature enhancements
-    - |tick| HL Fabric 2.2 version upgrade
-    - |tick| HL Fabric v1.4.8 upgrade
     - |run| Feature for user identities
-    - |pin| External chaincode for Fabric 2.2.x
-    - |pin| Multi Orderer organisation option for RAFT
-    - |pin| CI/CD piplelines for chaincode deployment 
+    - |run| External chaincode for Fabric 2.2.x
+    - |pin| CI/CD piplelines for chaincode deployment
 - |run| HL Besu operational feature enhancements
-    - |tick| Enable DNS support
-    - |pin| Enable deployment without proxy (proxy as none option)
-    - |hand| Addition of new validator node
+    - |run| Implement private transactions
     - |hand| Enable bootnodes
-
+- |run| Quorum operational feature enhancements
+    - |run| Vault secret engine integration with tessera
+    - |run| Implement private transactions
+- |run| HL Indy operational feature enhancements
+    - |hand| Removal of organizations from a running Indy Network
 
 Application
 -----------
--  |hand| Hyperledger Besu reference application
+-  |run| Hyperledger Besu reference application
 
 
 Histroic DLT/Blockchain support releases
 -----------------------------------------
-This section has been moved to the compatibilitymatrix
+This section has been moved to the :doc:`compatibilitymatrix`

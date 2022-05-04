@@ -1,0 +1,108 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates the assets which can be imported into fabric operations console
+#############################################################################################
+
+############################################################################################
+# This task creates directory for CA json files
+- name: Create CA directory if it does not exist
+  file:
+    path: "{{ build_path }}/Certificate_Authorities"
+    state: directory
+
+# This task gets CA info from public url
+- name: Get CA data info
+  uri:
+    url: "https://{{ item.ca_data.url }}/cainfo"
+    validate_certs: no
+    return_content: yes
+  register: url_output
+
+# This task sets the ca_info with the json output from above task
+- name: Set ca_info variable
+  set_fact:
+    ca_info: "{{ url_output.json.result }}"
+  when: not url_output.failed
+
+# This task creates the json files for CA servers
+- name: "Create json file for ca {{ component_name }}"
+  template:
+    src: "{{ templates[type] | default('helm_component.tpl') }}"
+    dest: "{{ build_path }}/Certificate_Authorities/{{ component_name }}.json"
+  vars:
+    type: ca
+    component_name: "{{ item.name | lower }}-ca"
+  when: 
+  - item.services.ca is defined
+  - not url_output.failed
+
+# This task creates directory for orderer json files
+- name: Create Orderer directory if it does not exist
+  file:
+    path: "{{ build_path }}/Ordering_Services"
+    state: directory
+
+# This task creates the json files for Orderers
+- name: "Create json file for orderer {{ component_name }}"
+  template:
+    src: "{{ templates[type] | default('helm_component.tpl') }}"
+    dest: "{{ build_path }}/Ordering_Services/{{ component_name }}.json"
+  vars:
+    type: orderer
+    component_name: "orderer-{{ item.name | lower }}-{{ orderer.name }}"
+  loop: "{{ item.services.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: 
+  - item.type == 'orderer'
+  - not url_output.failed
+
+# This task creates directory for OrgMSP json files
+- name: Create Org directory if it does not exist
+  file:
+    path: "{{ build_path }}/Organizations"
+    state: directory
+
+# This task creates the json files for OrgMSPs
+- name: "Create json file for Org {{ component_name }}"
+  template:
+    src: "{{ templates[type] | default('helm_component.tpl') }}"
+    dest: "{{ build_path }}/Organizations/{{ component_name }}.json"
+  vars:
+    type: org
+    component_name: "{{ item.name | lower }}-msp"  
+  when: 
+  - not url_output.failed
+
+# This task creates directory for Peer json files
+- name: Create Peers directory if it does not exist
+  file:
+    path: "{{ build_path }}/Peers"
+    state: directory
+
+# This task creates the json files for Peers
+- name: "Create json file for peer {{ component_name }}"
+  template:
+    src: "{{ templates[type] | default('helm_component.tpl') }}"
+    dest: "{{ build_path }}/Peers/{{ component_name }}.json"
+  vars:
+    type: peer
+    component_name: "{{ item.name | lower }}-{{ peer.name }}"
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+  - item.type == 'peer'
+  - not url_output.failed
+
+# Zip everything for import
+- name: Create zip file
+  archive:
+    path: "{{ build_path }}"      
+    dest: "{{ build_path }}/../console_assets.zip"
+    format: zip

@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supplychain
 
-One of the two reference applications for BAF, is the Supplychain usecase. On this page, we will describe the usecase and its models, as well as pre-requisites to set it up yourself.
+One of the two reference applications for Bevel, is the Supplychain usecase. On this page, we will describe the usecase and its models, as well as pre-requisites to set it up yourself.
 
 ## Use case description
 The Supplychain reference application is an example of a common usecase for a blockchain; the supplychain. The application defines a consortium of multiple organizations. The application allows nodes to track products or goods along their chain of custody. It provides the members of the consortium all the relevant data to their product. 
@@ -12,8 +17,9 @@ The application has been implemented for Hyperledger Fabric, Quorum and R3 Corda
 In the context of the supplychain, there are two types of items that can be tracked, products and containers. Below you will find a definition of the item and its properties:
 
 **Product**
-| Field                  | Description                                                                                                                                                   |
-|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+| Field  | Description                                                          |
+|----------|------------------------------------------------------------------------------------|
 | `trackingID`           | A predefined unique UUID                                                                                                                                      |
 | `type`                 | The type for the object, in this case `product`                                                                                                               |
 | `productName`          | The name of the product                                                                                                                                       |
@@ -38,7 +44,7 @@ The creator of the product will be marked as its initial custodian.  As a custod
 When handling an item, you can package it. It then stores data in an object called `ContainerState`, which is structured as such:
 
 | Field                  | Description                                                                                                                                                   |
-|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|-------------|-----------------------------------------------------------------------------------|
 | `trackingID`           | A predefined unique UUID                                                                                                                                      |
 | `type`                 | The type for the object, in this case `container`                                                                                                             |
 | `health`*              | Data from IOT sensors regarding condition of the item                                                                                                         |
@@ -87,4 +93,4 @@ When having completed the Prerequisites and setup guide, deploy the supplychain 
 `ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@/path/to/application/network.yaml"`
 
 ## Testing/validating the supplychain-app
-For testing the application, there are API tests included. For instructions on how to set this up, follow the `README.md` [here](examples/supplychain-app/tests/README.md).
+For testing the application, there are API tests included. For instructions on how to set this up, follow the `README.md` [here](https://github.com/hyperledger/bevel/tree/main/examples/supplychain-app/tests).

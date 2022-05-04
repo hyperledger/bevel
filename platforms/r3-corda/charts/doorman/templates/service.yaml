@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,20 +13,22 @@ metadata:
   annotations:
     getambassador.io/config: | 
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: Mapping
       name: {{ .Values.nodeName }}_mapping
       prefix: /
       service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
-      host: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}:8443
+      host: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
       tls: false
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TLSContext
       name: {{ .Values.nodeName }}_mapping_tlscontext
       hosts:
       - {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
-      secret: {{ .Values.nodeName }}-ambassador-certs
+      secret: {{ .Values.nodeName }}-ambassador-certs.{{ .Values.metadata.namespace }}
+      secret_namespacing: true
+      min_tls_version: v1.2
   {{ end }}
   labels:
     run: {{ .Values.nodeName }}

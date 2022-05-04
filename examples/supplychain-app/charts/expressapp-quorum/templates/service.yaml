@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 kind: Service
 apiVersion: v1
 metadata:
@@ -7,22 +13,24 @@ metadata:
   annotations:
     getambassador.io/config: | 
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TLSContext
       name: {{ .Values.proxy.name }}_api_context
       hosts:
       - {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
       {{ if eq .Values.proxy.type "fabric" }}
-      secret: {{ .Values.proxy.peer_name }}-{{ .Values.metadata.namespace }}-ambassador-certs
+      secret: {{ .Values.proxy.peer_name }}-{{ .Values.metadata.namespace }}-ambassador-certs.default
       {{ else }}
-      secret: {{ .Values.proxy.peer_name }}-ambassador-certs
+      secret: {{ .Values.proxy.peer_name }}-ambassador-certs.{{ .Values.metadata.namespace }}
       {{ end }}
+      secret_namespacing: true
+      min_tls_version: v1.2
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: Mapping
       name: {{ .Values.proxy.name }}_api_p2p_mapping
       prefix: /
-      host: {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}:8443
+      host: {{ .Values.proxy.name }}api.{{ .Values.proxy.external_url_suffix }}
       service: {{ .Values.proxy.name }}-expressapi.{{ .Values.metadata.namespace }}:{{ .Values.expressapp.nodePorts.port }}
       timeout_ms: 20000
       tls: false
@@ -45,7 +53,7 @@ spec:
     
 {{- if eq $.Values.proxy.provider "haproxy" }}
 ---
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Values.nodeName }}
@@ -66,7 +74,10 @@ spec:
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ .Values.proxy.name }}-expressapi
-          servicePort: {{ .Values.expressapp.nodePorts.port }}
+          service:
+            name: {{ .Values.proxy.name }}-expressapi
+            port:
+              number: {{ .Values.expressapp.nodePorts.port }}
 {{- end }}

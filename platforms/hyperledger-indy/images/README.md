@@ -1,6 +1,11 @@
-## Blockchain Automation Framework Indy Docker images
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
 
-Contains Dockerfile and other source files to create various Docker images needed for Blockchain Automation Framework Indy setup. These steps are also automated using [Jenkinsfile](../../../automation/hyperledger-indy/Jenkinsfile)
+## Hyperledger Bevel Indy Docker images
+
+Contains Dockerfile and other source files to create various Docker images needed for Hyperledger Bevel Indy setup. These steps are also automated using [Jenkinsfile](../../../automation/hyperledger-indy/Jenkinsfile)
 
 ## Folder Structure
 ```

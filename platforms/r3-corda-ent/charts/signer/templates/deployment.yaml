@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -34,7 +40,7 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: init-check-certificates
-          image: {{ .Values.image.initContainerName }}
+          image: {{ .Values.image.initContainer }}
           imagePullPolicy: Always
           env:
             - name: VAULT_ADDR
@@ -42,19 +48,33 @@ spec:
             - name: VAULT_APP_ROLE
               value: {{.Values.vault.role}}
             - name: KUBERNETES_AUTH_PATH
-              value: {{ $.Values.vault.authpath }}
+              value: {{ $.Values.vault.authPath }}
             - name: CERTS_SECRET_PREFIX
               value: {{ .Values.vault.certsecretprefix }}
           command: ["sh", "-c"]
           args:
           - |-
               #!/usr/bin/env sh
-               validateVaultResponse () {
-                 if echo ${2} | grep "errors"; then
+                validateVaultResponse () {
+                  if echo ${2} | grep "errors"; then
                     echo "ERROR: unable to retrieve ${1}: ${2}"
                     exit 1
-                 fi
-               }
+                  fi
+                  if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                  then
+                    http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                    --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                    ${VAULT_ADDR}/v1/${1})
+                    curl_response=$?
+                    if test "$http_code" != "200" ; then
+                        echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                        if test "$curl_response" != "0"; then
+                          echo "Error: curl command failed with error code - $curl_response"
+                          exit 1
+                        fi
+                    fi
+                  fi
+                }
 
               # Setting up the environment to get secrets/certificates from Vault
               echo "Getting secrets/certificates from Vault server"
@@ -68,10 +88,14 @@ spec:
               do
                   # Get keystores from Vault, to see if the certificates are created and have been put in Vault
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  echo ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs
+                  data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                  if [ "$data_info" == "null" ]
                   then
                     sleep {{ $.Values.vault.sleepTimeAfterError }}
                   else
+                    validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                     break
                   fi 
                   COUNTER=`expr "$COUNTER" + 1`
@@ -84,7 +108,7 @@ spec:
               fi
               echo "Done"      
         - name: init-certificates
-          image: {{ .Values.image.initContainerName }}
+          image: {{ .Values.image.initContainer }}
           imagePullPolicy: Always
           env:
            - name: VAULT_ADDR
@@ -96,19 +120,36 @@ spec:
            - name: BASE_DIR
              value: {{ $.Values.config.volume.baseDir }}
            - name: CERTS_SECRET_PREFIX
-             value: {{ .Values.vault.certSecretPrefix }}
+             value: {{ .Values.vault.certsecretprefix }}
+           - name: IDMAN_NODENAME
+             value: {{ $.Values.cenmServices.idmanName }}
            - name: MOUNT_PATH
              value: "/DATA"       
           command: ["sh", "-c"]
           args:
           - |-
                #!/usr/bin/env sh
-               validateVaultResponse () {
-               if echo ${2} | grep "errors"; then
-                echo "ERROR: unable to retrieve ${1}: ${2}"
-                exit 1
-                fi
-               }
+                validateVaultResponse () {
+                  if echo ${2} | grep "errors"; then
+                    echo "ERROR: unable to retrieve ${1}: ${2}"
+                    exit 1
+                  fi
+                  if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                  then
+                    http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                    --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                    ${VAULT_ADDR}/v1/${1})
+                    curl_response=$?
+                    if test "$http_code" != "200" ; then
+                        echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                        if test "$curl_response" != "0"; then
+                          echo "Error: curl command failed with error code - $curl_response"
+                          exit 1
+                        fi
+                    fi
+                  fi
+                }
+
                # setting up env to get secrets from vault
                echo "Getting secrets from Vault Server"
                KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -118,24 +159,31 @@ spec:
                mkdir -p ${MOUNT_PATH}
                mkdir -p ${MOUNT_PATH}/signer;
                mkdir -p ${MOUNT_PATH}/root;
+               mkdir -p ${MOUNT_PATH}/idman;
                
                # signer-files from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs)" "${LOOKUP_SECRET_RESPONSE}"
-               idm_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["identity-manager-key-store.jks"]')
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+               idm_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["identity-manager-key-store.jks"]')
                echo "${idm_jks}" | base64 -d > ${MOUNT_PATH}/signer/identity-manager-key-store.jks
 
-               nms_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-map-key-store.jks"]')
+               nms_jks=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-map-key-store.jks"]')
                echo "${nms_jks}" | base64 -d > ${MOUNT_PATH}/signer/network-map-key-store.jks
 
-               corda_ssl_signer=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-signer-keys.jks"]')
+               corda_ssl_signer=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-signer-keys.jks"]')
                echo "${corda_ssl_signer}" | base64 -d > ${MOUNT_PATH}/signer/corda-ssl-signer-keys.jks
+
+               # idman ssl key-stores from vault
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${IDMAN_NODENAME}/certs | jq -r 'if .errors then . else . end')
+               idm_ssl=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-identity-manager-keys.jks"]')
+               echo "${idm_ssl}" | base64 -d > ${MOUNT_PATH}/idman/corda-ssl-identity-manager-keys.jks
+               echo "Successfully got SSL Idman certifcates"
                
                # ssl trust-stores from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/root/certs)" "${LOOKUP_SECRET_RESPONSE}"
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-               corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["corda-ssl-trust-store.jks"]')
+               corda_ssl_trust_store=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-trust-store.jks"]')
                echo "${corda_ssl_trust_store}" | base64 -d > ${MOUNT_PATH}/root/corda-ssl-trust-store.jks
 
                # Fetching credentials from vault
@@ -144,9 +192,9 @@ spec:
 
                #Fetching truststore credentials from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-               SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ssl"]')
+               SSL_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ssl"]')
                echo "${SSL_TRUSTSTORE}"> ${OUTPUT_PATH}/sslts
 
                mkdir -p ${MOUNT_PATH}/credentials/keystore
@@ -154,11 +202,11 @@ spec:
 
                #Fetching keystore credentials from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/keystore)" "${LOOKUP_SECRET_RESPONSE}"
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/keystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-               IDMAN_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["idman"]')
+               IDMAN_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["idman"]')
                echo "${IDMAN_KEYSTORE}"> ${OUTPUT_PATH}/idmanks
-               NETWORKMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap"]')
+               NETWORKMAP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["networkmap"]')
                echo "${NETWORKMAP_KEYSTORE}"> ${OUTPUT_PATH}/networkmapks
 
                mkdir -p ${MOUNT_PATH}/credentials/ssl
@@ -166,10 +214,13 @@ spec:
 
                #Fetching ssl credentials from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/ssl | jq -r 'if .errors then . else . end')
-               validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials/ssl)" "${LOOKUP_SECRET_RESPONSE}"
+               validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/ssl" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-               SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signer"]')
+               SIGNER_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signer"]')
                echo "${SIGNER_SSL}"> ${OUTPUT_PATH}/signerssl
+
+               IDMAN_SSL=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["idman"]')
+               echo "${IDMAN_SSL}"> ${OUTPUT_PATH}/idmanssl
 
                echo "Done"
           volumeMounts:
@@ -177,21 +228,15 @@ spec:
             mountPath: /DATA
       containers:
       - name: signer
-        image: "{{ required "signer[main]: missing value for .Values.image.signerContainerName" .Values.image.signerContainerName }}"
+        image: "{{ .Values.image.signerContainer }}"
         env:
           - name: ACCEPT_LICENSE
-            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+            value: "{{ .Values.acceptLicense }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          echo 'shell = {
-              sshdPort = {{ .Values.service.ssh.port }}
-              user = "{{ .Values.service.shell.user }}"
-              password = "{{ .Values.service.shell.password }}"
-          }
-
-          signingKeys = {
+          echo 'signingKeys = {
               "cordaidentitymanagerca" = {
                   alias = "identitymanagerca"
                   type = LOCAL
@@ -211,124 +256,169 @@ spec:
                   }
               }
           }
-
-          serviceLocations = {
-              "identity-manager" = {
-                  host = {{ .Values.serviceLocations.identityManager.host }}
-                  port = {{ .Values.serviceLocations.identityManager.port }}
-                  ssl = {
-                      keyStore = {
-                          location = "./DATA/signer/corda-ssl-signer-keys.jks"
-                          password = SIGNER_SSL
-                          keyPassword = SIGNER_SSL
-                      }
-                      trustStore = {
-                          location = "./DATA/root/corda-ssl-trust-store.jks"
-                          password = SSL_TRUSTSTORE
-                      }
-                      validate = true
-                  }
-              },
-              "network-map" = {
-                  host = {{ .Values.serviceLocations.networkMap.host }}
-                  port = {{ .Values.serviceLocations.networkMap.port }}
-                  ssl = {
-                      keyStore = {
-                          location = "./DATA/signer/corda-ssl-signer-keys.jks"
-                          password = SIGNER_SSL
-                          keyPassword = SIGNER_SSL
-                      }
-                      trustStore = {
-                          location = "./DATA/root/corda-ssl-trust-store.jks"
-                          password = SSL_TRUSTSTORE
-                      }
-                      validate = true
-                  }
-              },
-              "revocation" = {
-                  host = {{ .Values.serviceLocations.identityManager.host }}
-                  port = {{ .Values.serviceLocations.revocation.port }}
-                  ssl = {
-                      keyStore = {
-                          location = "./DATA/signer/corda-ssl-signer-keys.jks"
-                          password = SIGNER_SSL
-                          keyPassword = SIGNER_SSL
-                      }
-                      trustStore = {
-                          location = "./DATA/root/corda-ssl-trust-store.jks"
-                          password = SSL_TRUSTSTORE
-                      }
-                      validate = true
-                  }
-              }
-          }
-
+          
           signers = {
               "CSR" = {
                   type = CSR
                   signingKeyAlias = "cordaidentitymanagerca"
-                  serviceLocationAlias = "identity-manager"
                   crlDistributionPoint = "https://{{ .Values.serviceLocations.identityManager.publicIp }}:{{ .Values.serviceLocations.identityManager.publicPort }}/certificate-revocation-list/doorman"
                   validDays = 7300 # 20 year certificate expiry
                   schedule {
                       interval = {{ .Values.signers.CSR.schedule.interval }}
                   }
+                  serviceLocation = [
+                    {
+                          host = {{ .Values.serviceLocations.identityManager.host }}
+                          port = {{ .Values.serviceLocations.identityManager.port }}
+                          ssl = {
+                              keyStore = {
+                                  location = "./DATA/signer/corda-ssl-signer-keys.jks"
+                                  password = SIGNER_SSL
+                                  keyPassword = SIGNER_SSL
+                              }
+                              trustStore = {
+                                  location = "./DATA/root/corda-ssl-trust-store.jks"
+                                  password = SSL_TRUSTSTORE
+                              }
+                              validate = true
+                            }
+                    }
+                ]
+
               },
               "CRL" = {
                   type = CRL
                   signingKeyAlias = "cordaidentitymanagerca"
-                  serviceLocationAlias = "revocation"
                   crlDistributionPoint = "https://{{ .Values.serviceLocations.identityManager.publicIp }}:{{ .Values.serviceLocations.identityManager.publicPort }}/certificate-revocation-list/doorman"
                   # updatePeriod = 86400000 # 1 day CRL expiry
                   updatePeriod = 604800000 # 1 week CRL expiry
                   schedule {
                       interval = {{ .Values.signers.CRL.schedule.interval }}
                   }
+                  serviceLocation = [
+                    {
+                          host = {{ .Values.serviceLocations.identityManager.host }}
+                          port = {{ .Values.serviceLocations.revocation.port }}
+                          ssl = {
+                              keyStore = {
+                                  location = "./DATA/signer/corda-ssl-signer-keys.jks"
+                                  password = SIGNER_SSL
+                                  keyPassword = SIGNER_SSL
+                              }
+                              trustStore = {
+                                  location = "./DATA/root/corda-ssl-trust-store.jks"
+                                  password = SSL_TRUSTSTORE
+                              }
+                              validate = true
+                            }
+                    }
+                ]
               },
               "NetworkMap" = {
                   type = NETWORK_MAP
                   signingKeyAlias = "cordanetworkmap"
-                  serviceLocationAlias = "network-map"
                   schedule {
                       interval = {{ .Values.signers.NetworkMap.schedule.interval }}
                   }
+                  serviceLocation = [
+                    {
+                      host = {{ .Values.serviceLocations.networkMap.host }}
+                      port = {{ .Values.serviceLocations.networkMap.port }}
+                      ssl = {
+                          keyStore = {
+                              location = "./DATA/signer/corda-ssl-signer-keys.jks"
+                              password = SIGNER_SSL
+                              keyPassword = SIGNER_SSL
+                          }
+                          trustStore = {
+                              location = "./DATA/root/corda-ssl-trust-store.jks"
+                              password = SSL_TRUSTSTORE
+                          }
+                          validate = true
+                      }
+                    }
+                  ]
               },
               "NetworkParameters" = {
                   type = NETWORK_PARAMETERS
                   signingKeyAlias = "cordanetworkmap"
-                  serviceLocationAlias = "network-map"
                   schedule {
                       interval = {{ .Values.signers.NetworkParameters.schedule.interval }}
+                  }
+                  serviceLocation = [
+                    {
+                      host = {{ .Values.serviceLocations.networkMap.host }}
+                      port = {{ .Values.serviceLocations.networkMap.port }}
+                      ssl = {
+                          keyStore = {
+                              location = "./DATA/signer/corda-ssl-signer-keys.jks"
+                              password = SIGNER_SSL
+                              keyPassword = SIGNER_SSL
+                          }
+                          trustStore = {
+                              location = "./DATA/root/corda-ssl-trust-store.jks"
+                              password = SSL_TRUSTSTORE
+                          }
+                          validate = true
+                      }
+                    }
+                  ]
+              }
+          }
+          authServiceConfig = {
+              disableAuthentication=false
+              host="{{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }}"
+              port={{ .Values.cenmServices.authPort }}
+              trustStore = {
+                  location = "./DATA/root/corda-ssl-trust-store.jks"
+                  password = SSL_TRUSTSTORE
+              }
+              issuer="http://test"
+              leeway=5s
+          }
+
+          adminListener = {
+              port = {{ .Values.service.adminListener.port }}
+              ssl = {
+                  keyStore = {
+                      location = ./DATA/idman/corda-ssl-identity-manager-keys.jks
+                      password = IDMAN_SSL
+                  }
+                  trustStore = {
+                      location = ./DATA/root/corda-ssl-trust-store.jks
+                      password = SSL_TRUSTSTORE
                   }
               }
           }' >> {{ .Values.config.configPath }}/signer.conf
 
           #replacement of the variables
-          export IDMAN_KEYSTORE=$(cat /opt/corda/DATA/credentials/keystore/idmanks)
+          export IDMAN_SSL=$(cat {{ .Values.config.volume.baseDir }}/DATA/credentials/ssl/idmanssl)
+          sed -i -e "s*IDMAN_SSL*${IDMAN_SSL}*g" etc/signer.conf
+          export IDMAN_KEYSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/credentials/keystore/idmanks)
           sed -i -e "s*IDMAN_KEYSTORE*${IDMAN_KEYSTORE}*g" {{ .Values.config.configPath }}/signer.conf
-          export NETWORKMAP_KEYSTORE=$(cat /opt/corda/DATA/credentials/keystore/networkmapks)
+          export NETWORKMAP_KEYSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/credentials/keystore/networkmapks)
           sed -i -e "s*NETWORKMAP_KEYSTORE*${NETWORKMAP_KEYSTORE}*g" {{ .Values.config.configPath }}/signer.conf
-          export SIGNER_SSL=$(cat /opt/corda/DATA/credentials/ssl/signerssl)
+          export SIGNER_SSL=$(cat {{ .Values.config.volume.baseDir }}/DATA/credentials/ssl/signerssl)
           sed -i -e "s*SIGNER_SSL*${SIGNER_SSL}*g" {{ .Values.config.configPath }}/signer.conf
-          export SSL_TRUSTSTORE=$(cat /opt/corda/DATA/credentials/truststore/sslts)
+          export SSL_TRUSTSTORE=$(cat {{ .Values.config.volume.baseDir }}/DATA/credentials/truststore/sslts)
           sed -i -e "s*SSL_TRUSTSTORE*${SSL_TRUSTSTORE}*g" {{ .Values.config.configPath }}/signer.conf
 
           java -Xmx{{ .Values.config.cordaJar.memorySize }}{{ .Values.config.cordaJar.unit }} -jar {{ .Values.config.jarPath }}/signer.jar --config-file {{ .Values.config.configPath }}/signer.conf
 
         volumeMounts:
         - name: pkitool-signer-etc
-          mountPath: /opt/corda/etc
+          mountPath: {{ .Values.config.volume.baseDir }}/etc
         - name: signer-logs
-          mountPath: /opt/corda/logs
+          mountPath: {{ .Values.config.volume.baseDir }}/logs
         - name: certificates
-          mountPath: /opt/corda/DATA
+          mountPath: {{ .Values.config.volume.baseDir }}/DATA
         resources:
           requests:
             memory: {{ .Values.config.pod.resources.requests }}
           limits:
             memory: {{ .Values.config.pod.resources.limits }}
       - name: logs
-        image: "{{ required "signer[main]: missing value for .Values.iamage.signerContainerName" .Values.image.signerContainerName }}"
+        image: "{{ .Values.image.signerContainer }}"
         env:
         - name: ACCEPT_LICENSE
           value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
@@ -336,15 +426,17 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          cd /opt/corda/
+          cd {{ .Values.config.volume.baseDir }}/
           while true; do tail -f logs/signing-service/*.log 2>/dev/null ; sleep 5; done
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
         - name: signer-logs
-          mountPath: /opt/corda/logs
+          mountPath: {{ .Values.config.volume.baseDir }}/logs
+    {{- with .Values.image.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ .Values.image.imagePullSecret }}
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       volumes:
         - name: pkitool-signer-etc
           emptyDir:

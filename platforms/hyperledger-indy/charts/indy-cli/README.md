@@ -1,1 +1,6 @@
-# Blockchain Automation Framework Indy indy-cli Helm chart
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
+# Hyperledger Bevel Indy indy-cli Helm chart

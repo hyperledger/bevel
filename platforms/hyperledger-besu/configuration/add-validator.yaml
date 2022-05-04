@@ -1,0 +1,101 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook adds a new validator org / validator to a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook add-validator.yaml -e "@./network.yaml" #  "add_new_org='true'" (for adding a new validator organization)
+#  ansible-playbook add-validator.yaml -e "@./network.yaml" #  (for adding just a validator node)
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run and a DLT network exists.
+---
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:      
+  # delete build directory 
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
+  # Create namespaces and service accounts
+  - name: "Create namespace and service account"
+    include_role: 
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-bes"
+      organisation: "{{ organizationItem.name | lower }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      gitops: "{{ organizationItem.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: add_new_org == 'true'
+
+  # Create Storageclass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "{{ organizationItem.cloud_provider }}storageclass"
+      git_dir: "{{ organizationItem.gitops.release_dir }}"
+      org: "{{ organizationItem }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: add_new_org == 'true'
+
+  # Setup Vault-Kubernetes accesses and Regcred for docker registry
+  - name: "Setup vault"   
+    include_role: 
+      name: "setup/vault_kubernetes"
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-bes"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      component_name: "{{ organizationItem.name | lower}}"
+      component_path: "{{ organizationItem.name | lower }}/"
+      component_auth: "besu{{ organizationItem.name | lower }}"
+      component_type: "besu"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: add_new_org == 'true'
+    
+  # Generate Ambassador certificate for nodes. These certificates are used for Orion TLS as well
+  - name: "Create ambassador certificates for Nodes" 
+    include_role: 
+      name: create/certificates/ambassador
+    vars:
+      root_subject: "{{ network.config.subject }}"
+      cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+      services: "{{ organizationItem.services }}"
+      organisation: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-bes"
+      component_name: "{{ organizationItem.name | lower }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations']}}"
+    loop_control:
+      loop_var: organizationItem
+
+  # This role generates the enode for the new validators and its acceptance for the network
+  - name: "Generates new validator materials and voting for its acceptance"
+    include_role:
+      name: create/validator_node  
+    vars:
+      build_path: "./build"
+    when: network.config.consensus == 'ibft'
+
+  vars: #These variables can be overriden from the command line
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"           #Default to /bin install directory for binaries
+    add_new_org: 'false'                #Default for this playbook is false

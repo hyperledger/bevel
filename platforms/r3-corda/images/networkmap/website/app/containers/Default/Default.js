@@ -2,7 +2,7 @@ import React from 'react'
 import {Page} from 'containers/Page/Page';
 import {Nav} from 'components/Nav/Nav';
 import {Sidebar} from 'components/Sidebar/Sidebar';
-import {getBraidAPI, getNodes, getNotaries, login} from 'scripts/restCalls';
+import {getBraidAPI, getBuildProperties, getNodes, getNotaries, login} from 'scripts/restCalls';
 import {isNotary, mutateNodes, sortNodes,} from 'scripts/processData';
 import {headersList} from 'scripts/headersList'
 import navOptions from 'navOptions.json';
@@ -14,27 +14,31 @@ export default class Default extends React.Component {
       nodes: [],
       notaries: [],
       page: 'home',
-      braid: {}
+      braid: {},
+      buildProperties: {}
     }
     
-    this.getNodes = this.getNodes.bind(this);
+    this.getData = this.getData.bind(this);
     this.sortTable = this.sortTable.bind(this);
   }
 
   componentDidMount(){    
-    this.getNodes();
+    this.getData();
   }
 
-  getNodes = async function(){
+  getData = async function(){
     let notaries = await getNotaries();
     let nodes = await getNodes();
+    let properties = await getBuildProperties();
+
     nodes = await mutateNodes(nodes);
     nodes = isNotary(nodes, notaries);
     nodes = sortNodes('Organisational Unit', nodes, headersList);
     
     this.setState({
       nodes: nodes,
-      notaries: notaries
+      notaries: notaries,
+      buildProperties: properties
     });
   }
 
@@ -77,6 +81,7 @@ export default class Default extends React.Component {
           {this.props.admin ? 
             <Sidebar 
               navOptions={navOptions} 
+              buildProperties={this.state.buildProperties}
               handleBtn={this.handleBtn}/>  : "" }
           <section id="main-content" className={"column" + (this.props.admin ? " column-offset-20" : "")}>
             <Page          
@@ -88,7 +93,7 @@ export default class Default extends React.Component {
               json={this.state.braid}
               toggleModal={this.props.toggleModal}
               admin={this.props.admin}
-              getNodes={this.getNodes}
+              getData={this.getData}
             /> 
           </section>
         </div>        

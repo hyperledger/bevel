@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
   - name: register temporary directory
     tempfile:
@@ -15,7 +21,7 @@
 
   - name: download aws cli
     get_url:
-      url: "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip"
+      url: "https://awscli.amazonaws.com/awscli-exe-linux-{{ aws_cli.install_arch }}.zip"
       dest: "{{ tmp_directory.path }}"
       checksum: ""
     when: not aws_cli_stat_result.stat.exists
@@ -24,7 +30,7 @@
 
   - name: extract aws cli
     unarchive:
-      src: "{{ tmp_directory.path }}/awscli-bundle.zip"
+      src: "{{ tmp_directory.path }}/awscli-exe-linux-{{ aws_cli.install_arch }}.zip"
       dest: "{{ tmp_directory.path }}"
       remote_src: yes
     when: not aws_cli_stat_result.stat.exists
@@ -44,7 +50,7 @@
   - name: install aws cli
     shell: |
       cd "{{ tmp_directory.path }}"
-      ./awscli-bundle/install -b {{ aws_cli.bin_directory }}/aws
+      ./aws/install -i {{ aws_cli.bin_directory }}/aws-cli -b {{ aws_cli.bin_directory }}
     when: not aws_cli_stat_result.stat.exists
     tags:
       - aws_cli

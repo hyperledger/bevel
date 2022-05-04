@@ -1,4 +1,10 @@
 ##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
 # This role sets up all cenm services
 ##############################################################################################
     
@@ -54,7 +60,7 @@
 # Check if the certs are already created
 - name: Check if the root certs are already created
   shell: |
-    vault kv get -format=yaml {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/root/certs
+    vault kv get -field=corda-ssl-root-keys.jks {{ vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/root/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -66,6 +72,21 @@
   include_role: 
     name: "setup/pki-generator"
   when: root_certs.failed
+  
+# Deploy Auth Service
+- name: "Deploy Auth Service"
+  include_role:
+    name: "setup/auth"
+
+# Deploy gateway service
+- name: Deploy gateway service
+  include_role:
+    name: setup/gateway
+ 
+# Deploy Zone service
+- name: Deploy Zone service
+  include_role:
+    name: setup/zone
 
 # Deploy Signer node
 - name: Deploy Signer service

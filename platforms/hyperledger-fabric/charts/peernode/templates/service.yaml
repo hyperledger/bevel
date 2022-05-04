@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -10,18 +16,26 @@ metadata:
   # Otherwise as ambassador is not able to passthrough TLS connection, grpc over ambassador is not going to work
   # hence we have used a HAProxy ingress whoich does ssl-passthrough.  
   annotations:
-  {{- if eq $.Values.proxy.provider "ambassador" }}
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+    {{- if eq $.Values.proxy.provider "ambassador" }} 
     getambassador.io/config: |
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: TLSContext
       name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       hosts:
       - {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
       secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
       alpn_protocols: h2
+      min_tls_version: v1.2
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: Mapping
       tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       grpc: True
@@ -32,7 +46,7 @@ metadata:
       rewrite: /
       service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
       ---
-      apiVersion: ambassador/v1
+      apiVersion: ambassador/v2
       kind: Mapping
       tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
       grpc: True
@@ -80,6 +94,14 @@ spec:
     {{- if $.Values.service.ports.couchdb.nodeport }}
     nodePort: {{ $.Values.service.ports.couchdb.nodeport }}
     {{- end }}
+  - name: grpc-web
+    protocol: TCP
+    targetPort: 7443
+    port: 7443
+  - name: operations
+    protocol: TCP
+    targetPort: 9443
+    port: 9443
   {{- if (eq $.Values.service.servicetype "ClusterIP") }}
   clusterIP: None
   {{- end }}
@@ -89,7 +111,7 @@ spec:
 
 {{- if eq $.Values.proxy.provider "haproxy" }}
 ---
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $.Values.peer.name }}
@@ -103,7 +125,40 @@ spec:
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: {{ $.Values.peer.name }}
-          servicePort: {{ $.Values.service.ports.grpc.clusteripport }}
+          service:
+            name: {{ $.Values.peer.name }}
+            port:
+              number: {{ $.Values.service.ports.grpc.clusteripport }}
+  - host: {{ $.Values.peer.name }}-proxy.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.peer.name }}
+            port:
+              number: 7443
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.peer.name }}-ops
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+spec:
+  rules:
+  - host: {{ $.Values.peer.name }}-ops.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.peer.name }}
+            port:
+              number: 9443
 {{- end }}

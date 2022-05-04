@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This playbook removes an organization from a DLT network on existing Kubernetes clusters
 # The Kubernetes clusters should already be created and the infomation to connect to the
 #  clusters be updated in the network.yaml file that is used as an input to this playbook
@@ -10,6 +16,7 @@
   # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
 - hosts: ansible_provisioners
   gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
 
     # delete build directory
@@ -46,6 +53,7 @@
         build_path: "./build"
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
+        remove_org: "True"
       loop: "{{ network['channels'] }}"
 
     # Delete Vault and Kubernetes secrets.

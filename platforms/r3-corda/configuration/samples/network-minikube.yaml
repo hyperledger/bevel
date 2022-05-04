@@ -1,11 +1,18 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
 # This is a sample configuration file for SupplyChain App on Single K8s Cluster.
 # For multiple K8s clusters, there should be multiple configuration files.
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: corda
-  version: 4.1
+  version: 4.4
 
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
 
@@ -13,7 +20,11 @@ network:
   env:
     type: "local"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15020
+    # ports: 15020,15021      # For specific ports
     retry_count: 20                 # Retry count for the checks
     external_dns: disabled           # Should be enabled if using external-dns for automatic route configuration
   
@@ -30,11 +41,11 @@ network:
     - service:
       type: doorman
       uri: http://<MINIKUBE_IP_ADDRESS>:30030
-      certificate: /home/blockchain-automation-framework/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
+      certificate: /home/bevel/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
     - service:
       type: networkmap
       uri: http://<MINIKUBE_IP_ADDRESS>:30040
-      certificate: /home/blockchain-automation-framework/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
+      certificate: /home/bevel/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
   
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
@@ -56,27 +67,27 @@ network:
       # the cluster has already been created.
       k8s:
         context: "minikube"
-        config_file: "/home/blockchain-automation-framework/build/config"
+        config_file: "/home/bevel/build/config"
 
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "local"           # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
-        email: "git_email"                # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "/home/bevel/build/gitops"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has doorman, nms and notary on one cluster but different namespaces
@@ -105,7 +116,8 @@ network:
         notary:
           name: notary
           subject: "O=Notary,OU=Notary,L=London,C=GB"
-          type: notary            
+          type: notary
+          validating: false             
           p2p:
             port: 10002
             targetPort: 10002
@@ -139,27 +151,27 @@ network:
       # the cluster has already been created.
       k8s:
         context: "minikube"
-        config_file: "/home/blockchain-automation-framework/build/config"
+        config_file: "/home/bevel/build/config"
 
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "local"           # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"      # Git Server user password/access token
-        email: "git_email"                # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        email: "git@email.com"                # Email to use in git config
+        private_key: "/home/bevel/build/gitops"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       
       # The participating nodes are named as peers 
       services:

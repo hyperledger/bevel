@@ -1,4 +1,10 @@
 ##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
 # This role get vault root token for organization and remove Indy crypto from vault
 ##############################################################################################
 
@@ -8,40 +14,17 @@
   environment:
     vault_token: "{{ vault.root_token }}"
   shell: |
-    validateDeletion () {
-      if [ ${1} != 404 ]; then
-        echo "ERROR: Secret is not deleted. Http status: ${1}"
-        exit 1
-      fi
-    }
-
     validateVaultResponse () {
       if [ ${1} != 200 ]; then
         echo "ERROR: Unable to retrieve. Http status: ${1}"
         exit 1
       fi
     }
-
-    validateVaultIsEmpty () {
-      if [ ${1} != 200 ]; then
-        echo "Vault is empty. Continue to next step. Http status: ${1}"
-        exit 0
-      fi
-    }
-
     # Check if vault URL is valid
     response_status=$(curl -o /dev/null -s -w "%{http_code}\n" {{ vault.url }}/ui/)
     validateVaultResponse ${response_status}
 
-    # Remove organization secret from Vault and check if is removed
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request LIST {{ vault.url }}/v1/{{ organization }})
-    validateVaultIsEmpty ${response_status}
-
     curl --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/mounts/{{ organization }}
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request LIST {{ vault.url }}/v1/{{ organization }})
-    validateDeletion ${response_status}
-
-    echo ${response_status}
 
 # Remove Policies of trustees
 - name: Remove Policies of trustees
@@ -109,7 +92,7 @@
       fi
     }
 
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/{{ organization }}-baf-ac-ro)
+    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/{{ organization }}-bevel-ac-ro)
     validateVaultResponse ${response_status}
     response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/{{ organization }}-admin-rw)
     validateVaultResponse ${response_status}
@@ -129,7 +112,7 @@
     }
     response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/{{ auth_path }}-admin-auth)
     validateVaultResponse ${response_status}
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/{{ auth_path }}-baf-ac-auth)
+    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/{{ auth_path }}-bevel-ac-auth)
     validateVaultResponse ${response_status}
   when: vault.root_token is defined
 

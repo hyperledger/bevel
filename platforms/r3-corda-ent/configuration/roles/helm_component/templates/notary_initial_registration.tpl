@@ -17,14 +17,14 @@ spec:
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url}}/{{ init_image }}
-      nodeContainerName: {{ network.docker.url}}/{{ docker_image }}
+      initContainerName: {{ network.docker.url}}/{{ init_container_image }}
+      nodeContainerName: {{ network.docker.url}}/{{ main_container_image }}
       imagePullSecret: regcred
       pullPolicy: Always
       privateCertificate: true
     vault:
       address: {{ org.vault.url }}
-      certSecretPrefix: {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
       serviceAccountName: vault-auth
       role: vault-role
       authPath: cordaent{{ org.name | lower }}
@@ -43,13 +43,13 @@ spec:
         users:
           username: notary
           password: notaryP
-    networkServices:
-      idmanName: {{ org.services.idman.name }}
+    networkServices:      
       doormanURL: {{ idman_url }}
-      idmanDomain: {{ idman_domain }}
-      networkmapName: {{ org.services.networkmap.name }}
+      idmanDomain: {{ idman_domain }}      
       networkMapURL: {{ networkmap_url }}
       networkMapDomain: {{ networkmap_domain }}
+      idmanName: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"
+      networkmapName: "{{ network | json_query('network_services[?type==`networkmap`].name') | first }}"
     dataSourceProperties:
       dataSource:
         password: "{{ notary_service.name }}-db-password"
@@ -64,14 +64,16 @@ spec:
       notaryPublicIP: {{ notary_service.name }}.{{ org.external_url_suffix }}
       devMode: false
       notary:
+        serviceLegalName: {{ notary_service.serviceName }}
         validating: {{ notary_service.validating }}
+        type: {{ org.type }}
       p2p:
         url: {{ notary_name }}.{{ component_ns }}
       ambassador:
         p2pPort: {{ notary_service.p2p.ambassador | default('10002') }}
         external_url_suffix: {{ org.external_url_suffix }}
         p2pAddress: {{ component_name }}.{{ org.external_url_suffix }}:{{ notary_service.p2p.ambassador | default('10002') }}
-      jarPath: /opt/corda
+      jarPath: bin
       configPath: etc
       cordaJar:
         memorySize: 1524

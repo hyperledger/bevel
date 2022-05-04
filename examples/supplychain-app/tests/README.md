@@ -1,11 +1,16 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Tests
 
 ## About
-This folder contains the files that are needed for the integration test of a Supplychain Application on a Corda or Fabric network that has been created using the Blockchain Automation Framework. 
+This folder contains the files that are needed for the integration test of a Supplychain Application on a Corda or Fabric network that has been created using Hyperledger Bevel. 
 
 ## Pre-requisites
 
-* A DLT network with at least 3 participants: Manufacturer, Carrier and Warehouse. Built using BAF by following [these instructions](../../../docs/source/operations/setting_dlt.md).
+* A DLT network with at least 3 participants: Manufacturer, Carrier and Warehouse. Built using Hyperledger Bevel by following [these instructions](../../../docs/source/operations/setting_dlt.md).
 * The Supplychain Application is deployed and the API endpoints are accessible.
 
 ## Test Supplychain Application

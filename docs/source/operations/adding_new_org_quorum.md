@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 <a name = "adding-new-org-to-existing-network-in-quorum"></a>
 # Adding a new node in Quorum
 
@@ -10,7 +15,7 @@
 To add a new organization in Quorum, an existing quorum network should be running, enode information of all existing nodes present in the network should be available, genesis block should be available in base64 encoding and the geth information of a node should be available and that node account should be unlocked prior adding the new node to the existing quorum network. 
 
 ---
-**NOTE**: Addition of a new organization has been tested on an existing network which is created by BAF. Networks created using other methods may be suitable but this has not been tested by BAF team.
+**NOTE**: Addition of a new organization has been tested on an existing network which is created by Bevel. Networks created using other methods may be suitable but this has not been tested by Bevel team.
 
 ---
 
@@ -19,7 +24,7 @@ To add a new organization in Quorum, an existing quorum network should be runnin
 
 Refer [this guide](./quorum_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organization` patch along with the enode information, genesis block in base64 encoding and geth account details
+The `network.yaml` file should contain the specific `network.organization` details along with the enode information, genesis block in base64 encoding and geth account details
 
 ---
 **NOTE**: Make sure that the genesis block information is given in base64 encoding. Also, if you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
@@ -35,16 +40,19 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: quorum
-  version: 2.5.0  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
+  version: 21.4.2  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
 
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Quorum
-    ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043  
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports  
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
@@ -52,7 +60,7 @@ network:
   # Please ensure all required images are built and stored in this registry. 
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "ghcr.io/hyperledger"
     username: "docker_username"
     password: "docker_password"
   
@@ -67,8 +75,7 @@ network:
     # This is the version of "tessera" or "constellation" docker image that will be deployed
     # Supported versions #
     # constellation: 0.3.2 (For all versions of quorum)
-    # tessera: 0.10.4 (for quorum 2.5.0)
-    tm_version: "0.10.4"               
+    tm_version: "21.7.3"               
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
@@ -122,22 +129,22 @@ network:
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/quorum/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password
+        password: "git_access_token"      # Git Server user access token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       # The participating nodes are named as peers
       services:
         peers:
         - peer:
           name: neworg
           subject: "O=Neworg,OU=Neworg,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
+          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
             port: 21000
@@ -177,7 +184,7 @@ The `network.config.bootnode` field contains:
 <a name = "run_network"></a>
 ## Run playbook
 
-The [site.yaml](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/configuration/site.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
+The [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"

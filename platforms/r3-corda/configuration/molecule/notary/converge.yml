@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 - name: Converge
   hosts: localhost
@@ -70,6 +76,7 @@
               name: notary
               subject: "O=Notary,OU=Notary,L=London,C=GB"
               type: notary            
+              validating: true
               p2p:
                 port: 10002
                 targetPort: 10002
@@ -104,7 +111,8 @@
         name: "configuration/roles/setup/notary"
       vars:
         auth_lists:
-          stdout: "abc"
+          stdout_lines:
+            - "abc"
         root_certs:
           failed: True
         doorman_certs:
@@ -136,7 +144,6 @@
         vault:
           url: http://localhost:9090/
           root_token: root
-          secret_path: "secret"
         gitops: "{{ item.gitops }}" 
         cordapps: "{{ item.cordapps | default() }}"
       loop: "{{ network['organizations'] }}"

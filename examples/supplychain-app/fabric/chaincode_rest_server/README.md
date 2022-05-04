@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supply Chain Fabric
 
 This project contains the hyperledger fabric-network files and smart contracts (chaincodes) for the Supply Chain application. This also includes the Kubernetes and Jenkins details/files which are use for the deployment of the fabric. 
@@ -188,11 +193,11 @@ printf '%s\n' y | ./byfn.sh generate -o etcdraft -s couchdb
 printf '%s\n' y | ./byfn.sh up -s couchdb -o etcdraft  
 ```
 
-3. Copy the chaincode from BAF repository and put it in the CLI container
+3. Copy the chaincode from Hyperledger Bevel repository and put it in the CLI container
 ```
 export CLI_CONTAINER_ID="$(docker ps -a | grep cli | awk '{print $1}')"
-git clone https://github.com/hyperledger-labs/blockchain-automation-framework.git
-cd blockchain-automation-framework
+git clone https://github.com/hyperledger/bevel.git
+cd bevel
 git checkout develop
 docker cp $PWD/examples/supplychain-app/fabric/chaincode_rest_server/chaincode/ $CLI_CONTAINER_ID:/opt/gopath/src/github.com/chaincode/
 ```

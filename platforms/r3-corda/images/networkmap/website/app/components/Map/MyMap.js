@@ -9,7 +9,7 @@ import clusterStyle from 'clusterStyle.json';
 
 const MapWithAMarkerClusterer = compose(
   withProps({
-    googleMapURL: "https://maps.googleapis.com/maps/api/js?key=AIzaSyC4QrPK-xamnJwHo-CFW0XzeDj4INbsQYU&v=3.exp&libraries=geometry,drawing,places",
+    googleMapURL: "https://maps.googleapis.com/maps/api/js?key=REPLACE_ME_GMAPS_KEY&v=3.exp&libraries=geometry,drawing,places",
     loadingElement: <div className='map-load-component' />,
     containerElement: <div className='map-container-component' />,
     mapElement: <div className='map-component' />,

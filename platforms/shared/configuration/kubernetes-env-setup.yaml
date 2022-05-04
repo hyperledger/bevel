@@ -1,12 +1,19 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 #######################################
-# Playbook to setup the Kubernetes environment for running Blockchain Automation Framework on the cluster
+# Playbook to setup the Kubernetes environment for running Hyperledger Bevel on the cluster
 #  - Installs Flux for GitOps
 #  - Installs Ambassador (if chosen)
 #  - Install HAproxy-ingress (if chosen)
 #######################################
 - hosts: ansible_provisioners
   gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
   - include_role:
       name:  setup/flux
@@ -14,11 +21,11 @@
       kubeconfig_path: "{{ item.k8s.config_file }}"
       kubecontext: "{{ item.k8s.context }}"
       git_username: "{{ item.gitops.username }}"
-      git_password: "{{ item.gitops.password }}"
       git_repo: "{{ item.gitops.git_repo }}"
+      git_password: "{{ item.gitops.password }}"
       git_branch: "{{ item.gitops.branch }}"
       git_path: "{{ item.gitops.release_dir }}"
-      git_host: "{{ item.gitops.git_repo.split('/')[0] | lower }}" # extract the hostname from the git_url
+      git_host: "{{ item.gitops.git_repo.split('/')[0] | lower }}" # extract the hostname from the git_repo
       git_protocol: "{{ item.gitops.git_protocol | default('https') }}"
       git_url: "{{ item.gitops.git_url }}"
       git_key: "{{ item.gitops.private_key | default() }}"
@@ -39,12 +46,6 @@
       kubeconfig_path: "{{ item.k8s.config_file }}"
       kubecontext: "{{ item.k8s.context }}"
       aws: "{{ item.aws }}"
-      ambassador:
-        version: "2.1.0"
-        targetPort: "443"
-        port: "8443"
-        image: quay.io/datawire/ambassador
-        tag: "0.53.1"
     with_items: "{{ network.organizations }}"
     when: network.env.proxy == 'ambassador'
   - include_role:

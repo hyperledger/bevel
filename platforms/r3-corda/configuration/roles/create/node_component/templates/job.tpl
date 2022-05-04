@@ -11,6 +11,10 @@ spec:
     path: {{ gitops.chart_source }}/{{ chart }}-initial-registration
     git: {{ gitops.git_url }}
     ref: {{ gitops.branch }}
+{% if gitops.git_protocol == "https" %}
+    secretRef:
+      name: git-https-credentials
+{% endif %}
   values:
     nodeName: {{ component_name }}
     replicas: 1
@@ -19,7 +23,9 @@ spec:
     image:
       containerName: {{ network.docker.url }}/{{ docker_image }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
+{% if network.docker.username is defined %}
       imagePullSecret: regcred
+{% endif %}
       privateCertificate: true
       doormanCertAlias: {{ doorman_domain | regex_replace('/', '') }}
       networkmapCertAlias: {{ nms_domain | regex_replace('/', '') }}
@@ -49,11 +55,11 @@ spec:
       attachmentCacheBound: 1024
       {% if chart == 'notary' %}      
       notary:
-        validating: false
+        validating: {{ node.validating }}
+        serviceLegalName: {{ node.serviceName | default() }}
       {% endif %} 
       detectPublicIp: false
       database:
-        transactionIsolationLevel: READ_COMMITTED
         exportHibernateJMXStatistics: false
       dbUrl: {{ component_name|e }}db
       dbPort: {{ node.dbtcp.port|e }}
@@ -105,11 +111,11 @@ spec:
       role: vault-role
       authpath: corda{{ component_name }}
       serviceaccountname: vault-auth
-      dbsecretprefix: {{ component_name }}/credentials/database
-      rpcusersecretprefix: {{ component_name }}/credentials/rpcusers
-      tokensecretprefix: {{ component_name }}/credentials/vaultroottoken
-      keystoresecretprefix: {{ component_name }}/credentials/keystore
-      certsecretprefix: {{ component_name }}/certs
+      dbsecretprefix: {{ component_name }}/data/credentials/database
+      rpcusersecretprefix: {{ component_name }}/data/credentials/rpcusers
+      keystoresecretprefix: {{ component_name }}/data/credentials/keystore
+      certsecretprefix: {{ component_name }}/data/certs
+      retries: 10
         
     healthcheck:
       readinesscheckinterval: 10

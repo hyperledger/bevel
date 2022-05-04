@@ -1,17 +1,8 @@
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: genesis-{{ .Values.node.name }}
-  namespace: {{ .Values.metadata.namespace }}
-  labels:
-    app.kubernetes.io/name: genesis-{{ .Values.node.name }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "labels.custom" . | nindent 2 }}
-data:
-  genesis.json.base64: {{ .Values.genesis | quote }}
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
 
 ---
 apiVersion: v1
@@ -25,49 +16,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 data:
-  tessera-config.json.tmpl: |-    
-    {
-      "useWhiteList": false,
-      "jdbc": {
-        "username": {{ .Values.tessera.dbusername | quote }},
-        "password": "",
-        "url": {{ .Values.tessera.dburl | quote }}
-      },
-      "server": {
-        "port": {{ .Values.node.ports.tm }},
-        "hostName": "http://{{ .Values.node.name }}",
-        "bindingAddress": "http://0.0.0.0:{{ .Values.node.ports.tm }}",
-        "sslConfig": {
-          "tls": {{ .Values.tessera.tls | quote }},
-          "generateKeyStoreIfNotExisted": true,
-          "serverKeyStore": "{{ .Values.node.mountPath }}/tm/server-keystore",
-          "serverKeyStorePassword": "quorum",
-          "serverTrustStore": "{{ .Values.node.mountPath }}/tm/server-truststore",
-          "serverTrustStorePassword": "quorum",
-          "serverTrustMode": {{ .Values.tessera.trust | quote }},
-          "knownClientsFile": "{{ .Values.node.mountPath }}/tm/knownClients",
-          "clientKeyStore": "{{ .Values.node.mountPath }}/tm/client-keystore",
-          "clientKeyStorePassword": "quorum",
-          "clientTrustStore": "{{ .Values.node.mountPath }}/tm/client-truststore",
-          "clientTrustStorePassword": "quorum",
-          "clientTrustMode": {{ .Values.tessera.trust | quote }},
-          "knownServersFile": "{{ .Values.node.mountPath }}/tm/knownServers"
-        }
-      },
-      "peer": {{ .Values.tessera.othernodes | toPrettyJson | indent 6 }},
-      "keys": {
-        "passwords": [],
-        "keyData": [
-          {
-            "privateKeyPath": "{{ .Values.node.mountPath }}tm/tm.key",
-            "publicKeyPath": "{{ .Values.node.mountPath }}/tm/tm.pub"
-          }
-        ]
-      },
-      "alwaysSendTo": [],
-      "unixSocketFile": "{{ .Values.node.mountPath }}/tm/tm.ipc"
-    }
-  tessera-config-enhanced.json.tmpl: |-
+  tessera-config.json.tmpl: |-
     {
       "useWhiteList": "false",
       "jdbc": {
@@ -79,33 +28,15 @@ data:
         {
           "app": "ThirdParty",
           "enabled": true,
-          "serverSocket": {
-            "type": "INET",
-            "port": 9080,
-            "hostName": "http://{{ .Values.node.name }}"
-          },
+          "serverAddress": "http://{{ .Values.node.name }}-tessera:9080",
           "communicationType": "REST"
         },
         {
           "app": "Q2T",
           "enabled": true,
-          "serverSocket": {
-            "type": "UNIX",
-            "path": "{{ .Values.node.mountPath }}/tm/tm.ipc"
-          },
-          "communicationType": "UNIX_SOCKET"
-        },
-        {
-          "app": "P2P",
-          "enabled": true,
-          "serverSocket": {
-            "type": "INET",
-            "port": {{ .Values.node.ports.tm }},
-            "hostName": "http://{{ .Values.node.name }}",
-            "bindingAddress": {{ .Values.tessera.url | quote }}
-          },
+          "serverAddress": {{ .Values.tessera.clienturl | quote }},          
           "sslConfig": {
-            "tls": {{ .Values.tessera.tls | quote }},
+            "tls": "OFF",
             "generateKeyStoreIfNotExisted": true,
             "serverKeyStore": "{{ .Values.node.mountPath }}/tm/server-keystore",
             "serverKeyStorePassword": "quorum",
@@ -120,40 +51,6 @@ data:
             "clientTrustMode": {{ .Values.tessera.trust | quote }},
             "knownServersFile": "{{ .Values.node.mountPath }}/tm/knownServers"
           },
-          "communicationType": "REST"
-        }
-      ],
-      "peer": {{ .Values.tessera.othernodes | toPrettyJson | indent 6 }},
-      "keys": {
-        "passwords": [],
-        "keyData": [
-          {
-            "config": "%THIS_PRIV_KEY%",
-            "publicKey": "%THIS_PUB_KEY%"
-          }
-        ]
-      },
-      "alwaysSendTo": []
-    }
-  tessera-config-9.0.json.tmpl: |-
-    {
-      "useWhiteList": "false",
-      "jdbc": {
-        "username": {{ .Values.tessera.dbusername | quote }},
-        "password": "",
-        "url": {{ .Values.tessera.dburl | quote }}
-      },
-      "serverConfigs": [
-        {
-          "app": "ThirdParty",
-          "enabled": true,
-          "serverAddress": "http://{{ .Values.node.name }}:9080",
-          "communicationType": "REST"
-        },
-        {
-          "app": "Q2T",
-          "enabled": true,
-          "serverAddress": "unix:{{ .Values.node.mountPath }}/tm/tm.ipc",
           "communicationType": "REST"
         },
         {
@@ -181,13 +78,22 @@ data:
       ],
       "peer": {{ .Values.tessera.othernodes | toPrettyJson | indent 6 }},
       "keys": {
-        "passwords": [],
-        "keyData": [
-          {
-            "privateKeyPath": "%THIS_PRIV_KEY%",
-            "publicKeyPath": "%THIS_PUB_KEY%"
-          }
-        ]
+          "keyVaultConfigs": [
+              {
+                  "keyVaultType": "HASHICORP",
+                  "properties": {
+                      "url": "{{ $.Values.vault.address }}"
+                  }
+              }
+          ],
+          "keyData": [
+              {
+                  "hashicorpVaultSecretEngineName": "{{ $.Values.vault.secretengine }}",
+                  "hashicorpVaultSecretName": "{{ $.Values.vault.tmsecretpath }}",
+                  "hashicorpVaultPrivateKeyId": "privateKey",
+                  "hashicorpVaultPublicKeyId": "publicKey"
+              }
+          ]
       },
       "alwaysSendTo": []
     }

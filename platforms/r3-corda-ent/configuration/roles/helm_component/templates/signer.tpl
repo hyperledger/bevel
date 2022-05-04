@@ -16,38 +16,39 @@ spec:
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
-      signerContainerName: {{ network.docker.url }}/corda/enterprise-signer:1.2-zulu-openjdk8u242
-      imagePullSecret: regcred
-      pullPolicy: Always
+      initContainer: {{ network.docker.url }}/{{ init_container_image }}
+      signerContainer: {{ network.docker.url }}/{{ main_container_image }}
+      pullPolicy: IfNotPresent
+      imagePullSecrets: 
+        - name: "regcred"
     acceptLicense: YES
     vault:
       address: {{ vault.url }}
       role: vault-role
       authPath: {{ component_auth }}
       serviceAccountName: vault-auth
-      certSecretPrefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
       retries: 10
       sleepTimeAfterError: 15
     service:
-      ssh:
-        port: 2222
-        targetPort: 2222
-        type: ClusterIP
-      shell:
-        user: signer
-        password: signerP
+      type: ClusterIP
+      adminListener:
+          port: 6000
     serviceLocations:
       identityManager:
         host: {{ org.services.idman.name }}.{{ org.name | lower }}-ent
         publicIp: {{ org.services.idman.name }}.{{ org.external_url_suffix }}
         port: 5052
-        publicPort: 8443
+        publicPort: 443
       networkMap:
         host: {{ org.services.networkmap.name }}.{{ org.name | lower }}-ent
         port: 5050
       revocation:
         port: 5053
+    cenmServices:
+      authName: {{ org.services.auth.name }}
+      authPort: {{ org.services.auth.port }}
+      idmanName: {{ org.services.idman.name }}
     signers:
       CSR:
         schedule:
@@ -63,7 +64,7 @@ spec:
           interval: 1m
     config:
       volume:
-        baseDir: /opt/corda
+        baseDir: /opt/cenm
       jarPath: bin
       configPath: etc
       cordaJar:

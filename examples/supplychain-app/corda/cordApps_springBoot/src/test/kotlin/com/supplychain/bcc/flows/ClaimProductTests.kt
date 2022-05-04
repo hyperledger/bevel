@@ -1,7 +1,7 @@
 package com.supplychain.bcc
 
 import com.supplychain.bcc.contractstates.ProductState
-import com.supplychain.baf.CreateProductRequest
+import com.supplychain.bevel.CreateProductRequest
 import net.corda.core.identity.CordaX500Name
 import org.junit.Test
 import java.util.*

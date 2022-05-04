@@ -104,7 +104,7 @@ class ProductMap extends React.Component{
     var temp = []
     temp.push(
       <div key="title" style = {{padding:'10px 0px'}}>
-        <Typography variant='h4' className ={classes.mediumText}>Blockchain Automation Framework</Typography>
+        <Typography variant='h4' className ={classes.mediumText}>Hyperledger Bevel</Typography>
       </div>
     )
     for (var key in this.state.sortedProducts) {

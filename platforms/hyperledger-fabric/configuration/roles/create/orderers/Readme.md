@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: orderer
  This role creates helm value file for zkKafka and orderer
 
@@ -34,13 +39,9 @@ network.yaml
 #### 3. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"
-    GIT_REPO: "The name of GIT REPO"
-    GIT_USERNAME: "Username of Repo"
-    GIT_PASSWORD: "Password for Repo}"
-    GIT_BRANCH: "Branch Name"
+    GIT_DIR: "The path of directory which needs to be pushed"    
     GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
-These variables are fetched through network.yaml using *item.gitops*
 
 **include_role**: It includes the name of intermediatory role which is required for creating the vault auth helm value file.

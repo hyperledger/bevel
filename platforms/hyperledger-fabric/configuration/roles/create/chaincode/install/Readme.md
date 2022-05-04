@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## chaincode/install
 This role creates helm value file for the deployment of chaincode_install job.
 ### main.yaml
@@ -128,14 +133,16 @@ This tasks checks if install-chaincode is already running or not.
 ##### Output Variables
 
     install_chaincode: This variable stores the output of install-chaincode query.
-#### 3. Write the git credentials to Vault
-This task writes git credentials to vault.
+
+#### 3. Create the git credentialss
+This task creates the git credentials secret
 ##### Input Variables
-    *namespace: Namespace of the component
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-**shell** : This command writes git credentials to vault. Password is fetched using `{{ peer.chaincode.repository.password }}`
-**vault* : This variable contains details of vault from network.yaml. It comes from previous calling playbook(deploy-network,yaml) 
+    *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
+    *component_name: "{{ namespace }}"
+    *vault: "Vault Details"
+    *kubernetes: "{{ item.k8s }}"
+    *password: "{{ peer.chaincode.repository.password }}"
+**include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
 
 #### 4. Create value file for chaincode installation - nested
 This is the nested Task for chaincode installation.
@@ -157,12 +164,7 @@ This is the nested Task for chaincode installation.
 #### 5. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"
-    GIT_REPO: "The name of GIT REPO"
-    GIT_USERNAME: "Username of Repo"
-    GIT_PASSWORD: "Password for Repo"
-    GIT_EMAIL: "Email for git config"
-    GIT_BRANCH: "Branch Name"
+    GIT_DIR: "The path of directory which needs to be pushed"    
     GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
-These variables are fetched through network.yaml using *item.gitops*

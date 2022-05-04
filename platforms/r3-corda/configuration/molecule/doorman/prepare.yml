@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 - name: Prepare for Molecule Test                       # This is a test scenario preparation file
   hosts: k8s                                            # refers to the inventory group we defined in molecule.yml
@@ -21,6 +27,12 @@
     replace:
       regexp: '8443'
       replace: "{{ lookup('env', 'KIND_PORT') }}"
+      path: '{{ kubeconfig }}'
+    delegate_to: localhost
+  - name: Change the kubeconfig server to localhost
+    replace:
+      regexp: '172.30.99.1'
+      replace: "localhost"
       path: '{{ kubeconfig }}'
     delegate_to: localhost
  

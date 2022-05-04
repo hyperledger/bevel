@@ -38,15 +38,17 @@ spec:
       lock: {{ peer.lock | lower }}
       ports:
         rpc: {{ peer.rpc.port }}
+{% if network.config.consensus == 'raft' %}
         raft: {{ peer.raft.port }}
+{% endif %}        
         constellation: {{ peer.transaction_manager.port }}
         quorum: {{ peer.p2p.port }}
     vault:
       address: {{ vault.url }}
-      secretprefix: {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: quorum
-      tm_keyname: transaction
+      tm_keyname: tm
       role: vault-role
       authpath: quorum{{ name }}
     genesis: {{ genesis }}

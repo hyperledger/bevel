@@ -16,8 +16,8 @@ spec:
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url }}/{{ init_image }}
-      pkiContainerName: {{ network.docker.url }}/{{ docker_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_container_image }}
+      pkiContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagePullSecret: regcred
       pullPolicy: Always
     acceptLicense: YES
@@ -30,7 +30,7 @@ spec:
       authpath: cordaent{{ org.name | lower }}
       authpathFloat: cordaent{{ org.name | lower }}float
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/{{ org.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     subjects:

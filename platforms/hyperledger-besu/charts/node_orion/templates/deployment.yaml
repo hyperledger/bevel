@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -38,6 +44,8 @@ spec:
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
       hostname: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}
+      securityContext:
+        fsGroup: 1000
       imagePullSecrets:
           - name: {{ .Values.node.imagePullSecret }}
       volumes:
@@ -59,7 +67,7 @@ spec:
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
@@ -77,12 +85,27 @@ spec:
           #!/usr/bin/env sh
           
           validateVaultResponse () {
-          if echo ${2} | grep "errors"; then
-           echo "ERROR: unable to retrieve ${1}: ${2}"
-           exit 1
-           fi
+            if echo ${2} | grep "errors"; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+            fi
+            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+            then
+              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key})
+              curl_response=$?
+              if test "$http_code" != "200" ; then
+                  echo "Http response code from Vault - $http_code"
+                  if test "$curl_response" != "0"; then
+                     echo "Error: curl command failed with error code - $curl_response"
+                     exit 1
+                  fi
+              fi
+            fi
           }
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
           #Login to Vault and to get an approle token
           VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
             -H "Content-Type: application/json" \
@@ -97,19 +120,19 @@ spec:
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]') 
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.oriondir }}" 
+          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
           LOOKUP_SECRET_RESPONSE=$(curl -sS \
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
-          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key"]')  
-          orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["key.pub"]')    
-          orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]') 
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]' | base64 -d)  
+          orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')    
+          orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]') 
           echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key
           echo "${orion_key_pub}" > ${MOUNT_PATH}/orion_key.pub
           echo "${orion_password}" > ${MOUNT_PATH}/passwordFile 
@@ -121,13 +144,13 @@ spec:
               --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
               jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
-            orion_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca_pem"]' | base64 -d)  
-            orion_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ambassadorcrt"]' | base64 -d)    
-            orion_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ambassadorkey"]' | base64 -d) 
-            orion_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["knownServer"]'| base64 -d) 
-            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')  
-            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["password"]' | base64 -d)
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+            orion_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' | base64 -d)  
+            orion_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorcrt"]' | base64 -d)    
+            orion_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorkey"]' | base64 -d) 
+            orion_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["knownServer"]'| base64 -d) 
+            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
+            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' | base64 -d)
             echo "${orion_ca}" > ${MOUNT_PATH}/orion_ca.pem
             echo "${orion_cer_pem}" > ${MOUNT_PATH}/orion_cer.pem
             echo "${orion_cer_key}" > ${MOUNT_PATH}/orion_cer.key
@@ -141,6 +164,7 @@ spec:
           mountPath: /secret
       - name: liveliness-check
         image: "{{ .Values.images.alpineutils }}"
+        imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
         - |-
@@ -166,6 +190,7 @@ spec:
       containers:
       - name: orion
         image: "{{ .Values.images.orion }}"
+        imagePullPolicy: IfNotPresent
         command:
           - /bin/sh
           - -c
@@ -203,15 +228,15 @@ spec:
           mountPath: {{ .Values.orion.confdir }}
       - name: besu
         image: "{{ .Values.images.node }}"
+        imagePullPolicy: IfNotPresent
         command:
           - /bin/sh
           - -c
         args:
-          - |
-            # tail -f /dev/null;
-            echo -n {{ .Values.staticnodes | toJson | quote }} > /opt/besu/static-nodes.json
+          - |            
+            echo -n {{ .Values.staticnodes | toJson | quote }} > {{ .Values.node.mountPath }}/static-nodes.json
             mkdir -p /tmp/genesis;
-            cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > /tmp/genesis/genesis.json
+            cat /etc/genesis/genesis.json.base64 | base64 -d > /tmp/genesis/genesis.json
             tr -d "\n\r" < /secrets/orion_key.pub > /secrets/nodekey.pub
             args="--rpc-http-enabled --rpc-http-api=ETH,NET,IBFT,DEBUG,ADMIN,WEB3,EEA,PRIV --rpc-ws-enabled --rpc-ws-api=ETH,NET,WEB3 --p2p-port {{ .Values.node.ports.p2p }} --rpc-http-port {{ .Values.node.ports.rpc }} --rpc-ws-port={{ .Values.node.ports.ws }}"
             if  {{ $.Values.orion.tls }} == "true" 
@@ -220,10 +245,12 @@ spec:
             else
               tls_args="--privacy-url=http://{{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.orion.ports.clientport }}"
             fi
+            
             exec /opt/besu/bin/besu \
             --identity={{ .Values.node.name }} \
             --discovery-enabled=false \
             --node-private-key-file=/secrets/nodekey \
+            --data-path={{ .Values.node.mountPath }} \
             --genesis-file=/tmp/genesis/genesis.json \
             --logging=DEBUG \
             --nat-method=AUTO \
@@ -242,7 +269,7 @@ spec:
             --Xdns-enabled=true \
             --Xdns-update-enabled=true \
             $args \
-            $tls_args \
+            $tls_args            
         ports:
           - name: json-rpc
             containerPort: {{ .Values.node.ports.rpc}}
@@ -264,7 +291,7 @@ spec:
                 fieldPath: metadata.name
         volumeMounts:
         - name: {{ .Values.node.name }}-genesis-volume
-          mountPath: {{ .Values.node.mountPath }}/genesis
+          mountPath: /etc/genesis
         - name: certificates
           mountPath: /secrets
         - name: {{ .Values.node.name }}-pv

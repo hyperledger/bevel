@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: `setup/credentials`
 This role writes passwords for keystores, truststores and ssl from network.yaml into the vault. There are some different tasks that are called for the type of organisation.
 - `main.yaml` as first task, which will call `cenm_tasks.yaml`
@@ -19,12 +24,20 @@ This task writes credentials for CENM services to vault from `network.yaml`.
 
 ---
 
-#### 2. "Call cenm_tasks.yaml for org as type node"
+#### 2. "Call node_tasks.yaml for org as type node"
 This task writes credentials for node to Vault from `network.yaml`.
 
 **when** - This role is called when the type of organization is `node`.
 
+---
+
+#### 3. "Call notary_tasks.yaml for org as type notary"
+This task writes credentials for notary to Vault from `network.yaml`.
+
+**when** - This role is called when the type of organization is `notary`.
+
 ---------
+
 ### Tasks (`cenm_tasks.yaml`)
 
 #### 1. Check if the keystore credentials are already present in the Vault
@@ -135,7 +148,7 @@ This task will check if the Node credentials are already present in the Float Va
 
 ---
 
-#### 3. Write networkroottruststore, node truststore, node keystore password to the Vault
+#### 3. Write networkroot truststore, node truststore, node keystore password to the Vault
 This task will write the passwords for the several truststores/keystores to the Vault
 ### Input variables
 - *`VAULT_ADDR` - The Vault address
@@ -145,7 +158,7 @@ This task will write the passwords for the several truststores/keystores to the 
 
 **when** - This role is only called if the result of `vault_credentials_node` is that the credentials did not exist yet
 
-#### 4. Write networkroottruststore, node truststore, node keystore password to the flloat Vault
+#### 4. Write networkroot truststore, node truststore, node keystore password to the float Vault
 This task will write the passwords for the several truststores/keystores to the float Vault
 ### Input variables
 - *`VAULT_ADDR` - The Vault address

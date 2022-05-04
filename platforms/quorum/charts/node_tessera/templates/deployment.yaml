@@ -1,23 +1,29 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   namespace: {{ .Values.metadata.namespace }}
   creationTimestamp: null
   labels:
-    app.kubernetes.io/name: {{ .Values.node.name }}
+    app.kubernetes.io/name: {{ .Values.node.name }}-tessera
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }} 
     {{- include "labels.custom" . | nindent 2 }}
-  name: {{ .Values.node.name }}
+  name: {{ .Values.node.name }}-tessera
 spec:
-  serviceName: {{ .Values.node.name }}
+  serviceName: {{ .Values.node.name }}-tessera
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: consortiumchain
-      service.rpc: {{ .Values.node.name }}
-      app.kubernetes.io/name: {{ .Values.node.name }}
+      service.rpc: {{ .Values.node.name }}-tessera
+      app.kubernetes.io/name: {{ .Values.node.name }}-tessera
       helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
       app.kubernetes.io/managed-by: {{ .Release.Service }}
       app.kubernetes.io/instance: {{ .Release.Name }} 
@@ -27,16 +33,16 @@ spec:
       creationTimestamp: null
       labels:
         app: consortiumchain
-        name: {{ .Values.node.name }}
-        service.rpc: {{ .Values.node.name }}
-        app.kubernetes.io/name: {{ .Values.node.name }}
+        name: {{ .Values.node.name }}-tessera
+        service.rpc: {{ .Values.node.name }}-tessera
+        app.kubernetes.io/name: {{ .Values.node.name }}-tessera
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
         app.kubernetes.io/instance: {{ .Release.Name }} 
         {{- include "labels.custom" . | nindent 2 }}
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
-      hostname: {{ .Values.node.name }}
+      hostname: {{ .Values.node.name }}-tessera
       imagePullSecrets:
           - name: {{ .Values.node.imagePullSecret }}
       volumes:
@@ -46,24 +52,16 @@ spec:
         - name: mysql
           emptyDir:
             medium: Memory
-        - name: {{ .Values.node.name }}-genesis-volume
-          configMap:
-            name: genesis-{{ .Values.node.name }}
-            items:
-              - key: genesis.json.base64
-                path: genesis.json.base64
         - name: tessera-config
           configMap:
             name: tessera-config-{{ .Values.node.name }}
             items:
-              - key: tessera-config-enhanced.json.tmpl
-                path: tessera-config-enhanced.json.tmpl
-              - key: tessera-config-9.0.json.tmpl
-                path: tessera-config-9.0.json.tmpl
+              - key: tessera-config.json.tmpl
+                path: tessera-config.json.tmpl
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
@@ -81,10 +79,24 @@ spec:
           #!/bin/bash
           
           validateVaultResponse () {
-          if echo ${2} | grep "errors"; then
-           echo "ERROR: unable to retrieve ${1}: ${2}"
-           exit 1
-           fi
+            if echo ${2} | grep "errors"; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+            fi
+            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+            then
+              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key})
+              curl_response=$?
+              if test "$http_code" != "200" ; then
+                  echo "Http response code from Vault - $http_code"
+                  if test "$curl_response" != "0"; then
+                     echo "Error: curl command failed with error code - $curl_response"
+                     exit 1
+                  fi
+              fi
+            fi
           }
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
@@ -101,40 +113,28 @@ spec:
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekey"]')
-          keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
-          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["gethpassword"]')
-          username=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["db_user"]')
-          password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["db_password"]')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekey"]')
+          keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' | base64 -d )  
+          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["geth_password"]')
+          username=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["db_user"]')
+          password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["db_password"]')
           
           OUTPUT_PATH="${MOUNT_PATH}/keys"
           mkdir -p ${OUTPUT_PATH}
           
-          echo -n "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt
+          echo -n "${geth_password}" > ${OUTPUT_PATH}/passwords.txt
           echo -n "${nodekey}" > ${OUTPUT_PATH}/nodekey
-          echo -n "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
+          echo -n "${keystore}" > ${OUTPUT_PATH}/keystore
           echo "${username}" > ${OUTPUT_PATH}/username
           echo "${password}" > ${OUTPUT_PATH}/password
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tm_keyname }}"
-          echo "Getting 2 keys from $vault_secret_key"          
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
-
-          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.pub"]')
-          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.key"]')
-          echo -n "${tmpub}" > ${OUTPUT_PATH}/tm.pub
-          echo -n "${tmkey}" > ${OUTPUT_PATH}/tm.key
-         
         volumeMounts:
         - name: certificates
           mountPath: /secret
       - name: mysql-init
         image: {{ .Values.images.busybox }}
+        imagePullPolicy: IfNotPresent
         command: ["/bin/sh"]
         args:
         - "-cx"
@@ -148,38 +148,20 @@ spec:
           UPDATE mysql.user SET authentication_string = PASSWORD('$var') WHERE User = 'root';
           CREATE TABLE IF NOT EXISTS ENCRYPTED_TRANSACTION (ENCODED_PAYLOAD BLOB NOT NULL, HASH VARBINARY(100) NOT NULL, TIMESTAMP BIGINT, PRIMARY KEY (HASH));
           CREATE TABLE IF NOT EXISTS ENCRYPTED_RAW_TRANSACTION (ENCRYPTED_KEY BLOB NOT NULL, ENCRYPTED_PAYLOAD BLOB NOT NULL, NONCE BLOB NOT NULL, SENDER BLOB NOT NULL, TIMESTAMP BIGINT, HASH VARBINARY(100) NOT NULL, PRIMARY KEY (HASH));
+          CREATE TABLE PRIVACY_GROUP(ID VARBINARY(100) NOT NULL, LOOKUP_ID BLOB NOT NULL, DATA BLOB NOT NULL, TIMESTAMP BIGINT, PRIMARY KEY (ID));
+          CREATE TABLE ST_TRANSACTION(ID BIGINT(19) NOT NULL, HASH VARCHAR(100) NOT NULL, PAYLOAD BLOB, PRIVACY_MODE BIGINT(10), TIMESTAMP BIGINT(19), VALIDATION_STAGE BIGINT(19), PRIMARY KEY (ID));
+          CREATE TABLE ST_AFFECTED_TRANSACTION(ID BIGINT(19) NOT NULL, AFFECTED_HASH VARCHAR(100) NOT NULL, TXN_ID BIGINT(19) NOT NULL, CONSTRAINT FK_ST_AFFECTED_TRANSACTION_TXN_ID FOREIGN KEY (TXN_ID) REFERENCES ST_TRANSACTION(ID), PRIMARY KEY (ID));
+          CREATE INDEX IF NOT EXISTS ST_TRANSACTION_VALSTG ON ST_TRANSACTION(VALIDATION_STAGE);
           EOF
         volumeMounts:
         - name: mysql
           mountPath: /docker-entrypoint-initdb.d
         - name: certificates
           mountPath: /secret
-      - name: quorum-genesis-init-container
-        image: "{{ .Values.images.node }}"
-        command: [ "sh" ]
-        args:
-        - "-cx"
-        - "mkdir -p $QUORUM_DATA_DIR;
-          cat {{ .Values.node.mountPath }}/genesis/genesis.json.base64 | base64 -d > $QUORUM_DATA_DIR/genesis.json;
-            if [ ! -f $QUORUM_DATA_DIR/genesis_created ]; then
-              /usr/local/bin/geth --datadir $QUORUM_DATA_DIR init $QUORUM_DATA_DIR/genesis.json;
-              date > $QUORUM_DATA_DIR/genesis_created;
-            fi;
-          "
-        env:
-          - name: QUORUM_DATA_DIR
-            value: {{ .Values.node.mountPath }}/dd
-          - name: QHOME
-            value: {{ .Values.node.mountPath }}
-        volumeMounts:
-        - name: {{ .Values.node.name }}-pv
-          mountPath: {{ .Values.node.mountPath }}
-        - name: {{ .Values.node.name }}-genesis-volume
-          mountPath: {{ .Values.node.mountPath }}/genesis
       containers:
       - name: mysql-db
         image: {{ .Values.images.mysql }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: "MYSQL_ROOT_PASSWORD"
           value: ""
@@ -201,168 +183,80 @@ spec:
           subPath: mysql
       - name: tessera
         image: {{ .Values.images.tessera }}
-        command: ["sh"]
+        imagePullPolicy: IfNotPresent        
+        command: ["sh", "-c"]
         args:
-        - "-cx"
-        - "chmod 600 $QUORUM_HOME/crypto/keys/tm.key;
-          mkdir -p $QUORUM_HOME/logs;
-          mkdir -p $QUORUM_HOME/tm;
-          DDIR=$QUORUM_HOME/tm;
-          PASSWORD=$(cat $QUORUM_HOME/crypto/keys/password);
+          - |-
+            apk update && apk add jq curl
+            mkdir -p $TESSERA_HOME/logs;
+            mkdir -p $TESSERA_HOME/tm;
+            DDIR=$TESSERA_HOME/tm;
+            PASSWORD=$(cat $TESSERA_HOME/crypto/keys/password);
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                echo "ERROR: unable to retrieve ${1}: ${2}"
+                exit 1
+              fi
+              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+              then
+                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${vault_secret_key})
+                curl_response=$?
+                if test "$http_code" != "200" ; then
+                    echo "Http response code from Vault - $http_code"
+                    if test "$curl_response" != "0"; then
+                      echo "Error: curl command failed with error code - $curl_response"
+                      exit 1
+                    fi
+                fi
+              fi
+            }
 
-          printenv;
-          wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.15.tar.gz;
-          tar -xf mysql-connector-java-8.0.15.tar.gz;
-          cp /mysql-connector-java-8.0.15/mysql-connector-java-8.0.15.jar $QUORUM_HOME;
-          SQL_JAR=$QUORUM_HOME/mysql-connector-java-8.0.15.jar;
-
-          TESSERA_VERSION=$(unzip -p /tessera/tessera-app.jar META-INF/MANIFEST.MF | grep Tessera-Version | cut -d\" \" -f2);
-          echo \"Tessera version (extracted from manifest file): ${TESSERA_VERSION}\";
-          TESSERA_JAR=/tessera/tessera-app.jar;
-
-          TESSERA_VERSION=\"${TESSERA_VERSION}-suffix\";
-          Tess_Ver_First=$(echo ${TESSERA_VERSION} | awk -F. '{print $1}');
-          Tess_Ver_Second=$(echo ${TESSERA_VERSION} | awk -F. '{print $2}');
-          Tess_Ver_Third=$(echo ${TESSERA_VERSION} | awk -F. '{print $3}');
-          echo \"version: first [$Tess_Ver_First], second [$Tess_Ver_Second], third [$Tess_Ver_Third]\";
-          echo \"Tessera version - suffix ${TESSERA_VERSION}\";
-          TESSERA_CONFIG_TYPE=;
-
-          if [ \"${Tess_Ver_Second}\" -ge \"8\" ]; then TESSERA_CONFIG_TYPE=\"-enhanced\"; fi;
-          if [[ \"${Tess_Ver_Second}\" -ge \"9\" ]]; then TESSERA_CONFIG_TYPE=\"-9.0\"; fi;
-
-          echo Config type ${TESSERA_CONFIG_TYPE};
-
-          CONFIG_TMPL=$(cat ${QUORUM_HOME}/tessera-config${TESSERA_CONFIG_TYPE}.json.tmpl);
-
-          PRIV_KEY=$(cat $QUORUM_HOME/crypto/keys/tm.key)
-          PUB_KEY=$(cat $QUORUM_HOME/crypto/keys/tm.pub)
-
-          CONFIG_FINAL=$(echo $CONFIG_TMPL | sed \"s@%THIS_PRIV_KEY%@${PRIV_KEY}@g\" |  sed \"s@%THIS_PUB_KEY%@${PUB_KEY}@g\");
-          CONFIG_FINAL_9_0=$(echo $CONFIG_TMPL | sed \"s@%THIS_PRIV_KEY%@${QUORUM_HOME}/crypto/keys/tm.key@g\" |  sed \"s@%THIS_PUB_KEY%@${QUORUM_HOME}/crypto/keys/tm.pub@g\");
-          if [[ \"${Tess_Ver_Second}\" -ge \"9\" ]]; then CONFIG_FINAL=${CONFIG_FINAL_9_0}; fi;
-          echo $CONFIG_FINAL >  ${DDIR}/tessera-config-with-hosts.json;
-          cat  ${DDIR}/tessera-config-with-hosts.json;
-
-          TESSERA_MAIN=com.quorum.tessera.Launcher;
-          if [[ \"${Tess_Ver_Second}\" -ge \"10\" ]]; then
-            TESSERA_MAIN=com.quorum.tessera.launcher.Main;
-          fi;
-          java -Xms128M -Xmx128M -cp $SQL_JAR:$TESSERA_JAR:. $TESSERA_MAIN -configfile ${DDIR}/tessera-config-with-hosts.json --jdbc.password $PASSWORD;
-        "
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+            # Login to Vault and so I can get an approle token
+            export HASHICORP_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+              -H "Content-Type: application/json" \
+              -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+              jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${HASHICORP_TOKEN}"
+                    
+            printenv;
+            # mysql connector required for mysql tessera DB 
+            wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.25.tar.gz;
+            tar -xf mysql-connector-java-8.0.25.tar.gz;
+            cp /mysql-connector-java-8.0.25/mysql-connector-java-8.0.25.jar /tessera/lib/;
+            CONFIG_TMPL=$(cat ${TESSERA_HOME}/tessera-config.json.tmpl);
+            echo $CONFIG_TMPL >  ${DDIR}/tessera-config-with-hosts.json;
+            cat ${DDIR}/tessera-config-with-hosts.json;
+            
+            /tessera/bin/tessera --configfile ${DDIR}/tessera-config-with-hosts.json -o jdbc.password=$PASSWORD;
         ports:
           - containerPort: {{ .Values.node.ports.tm }}
         env:
-          - name: QUORUM_HOME
+          - name: TESSERA_HOME
             value: {{ .Values.node.mountPath }}
           - name: QHOME
             value: {{ .Values.node.mountPath }}
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}          
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}            
         volumeMounts:
           - name: certificates
             mountPath: {{ .Values.node.mountPath }}/crypto/
-          - name: {{ .Values.node.name }}-pv
+          - name: {{ .Values.node.name }}-tessera-pv
             mountPath: {{ .Values.node.mountPath }}
           - name: tessera-config
             mountPath: {{ .Values.node.mountPath }}/tessera-config.json.tmpl
             subPath: tessera-config.json.tmpl
-          - name: tessera-config
-            mountPath: {{ .Values.node.mountPath }}/tessera-config-enhanced.json.tmpl
-            subPath: tessera-config-enhanced.json.tmpl
-          - name: tessera-config
-            mountPath: {{ .Values.node.mountPath }}/tessera-config-9.0.json.tmpl
-            subPath: tessera-config-9.0.json.tmpl
-      - name: quorum
-        image: "{{ .Values.images.node }}"
-        command: ["sh"]
-        args:
-        - "-cx"
-        - |-
-          #!/usr/bin/env sh
-          apk add curl;
-          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
-          mkdir -p $QUORUM_DATA_DIR/geth
-          mkdir -p $QUORUM_DATA_DIR/keystore          
-          # touch $qd/passwords.txt
-          cp $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }} $QUORUM_DATA_DIR/keystore/
-          cp $QUORUM_HOME/crypto/keys/nodekey $QUORUM_DATA_DIR/geth/
-          cp $QUORUM_HOME/crypto/keys/passwords.txt $QUORUM_DATA_DIR/password.txt
-          
-          echo what in this dir;
-          ls  $QUORUM_DATA_DIR;
-
-          rm -f $QUORUM_HOME/crypto/keys/{{ .Values.node.keystore }}
-          rm -f $QUORUM_HOME/crypto/keys/nodekey
-          rm -f $QUORUM_HOME/crypto/keys/passwords.txt
-
-          until $(curl -k --output /dev/null --silent --head --fail {{ .Values.tessera.url }}/upcheck); do echo 'waiting for transaction manager to start...'; sleep 5; done;
-          echo transaction manager is up;
-
-          args=""
-          NODE_STATUS=""
-          if [ $CONSENSUS == 'raft' ]; then
-            NODE_STATUS={{ .Values.node.status }}
-          fi;
-          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'additional' ]; then
-            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft --raftjoinexisting {{ .Values.node.peer_id }}";
-          fi;
-          if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'default' ]; then
-            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft ";
-          fi;
-          if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul "
-          fi;
-
-          LOCK_STATUS={{ .Values.node.lock }}
-          if [ $LOCK_STATUS = false ]
-          then
-            args=" ${args} --unlock 0 " 
-          fi
-
-          /usr/local/bin/geth \
-           --datadir $QUORUM_DATA_DIR \
-           $args \
-           --identity {{ .Values.node.subject | quote }} \
-           --vmdebug \
-           --gcmode=archive \
-           --nodiscover \
-           --nat=none \
-           --verbosity 9 \
-           --emitcheckpoints \
-           --rpc \
-           --rpcaddr 0.0.0.0 \
-           --rpcport {{ .Values.node.ports.rpc }} \
-           --rpcvhosts=* \
-           --port {{ .Values.node.ports.quorum }} \
-           --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
-           
-        ports:
-          - containerPort: {{ .Values.node.ports.rpc }}
-          - containerPort: {{ .Values.node.ports.quorum }}
-{{- if eq $.Values.node.consensus "raft" }}
-          - containerPort: {{ .Values.node.ports.raft }}
-{{- end }}
-        env:
-          - name: PRIVATE_CONFIG
-            value: {{ .Values.node.mountPath }}/tm/tm.ipc
-          - name: QUORUM_DATA_DIR
-            value: {{ .Values.node.mountPath }}/dd
-          - name: QUORUM_HOME
-            value: {{ .Values.node.mountPath }}
-          - name: QHOME
-            value: {{ .Values.node.mountPath }}
-          - name: TM_HOME
-            value: {{ .Values.node.mountPath }}/tm/
-          - name: CONSENSUS
-            value: {{ .Values.node.consensus }}
-        volumeMounts:
-        - name: certificates
-          mountPath: {{ .Values.node.mountPath }}/crypto/
-        - name: {{ .Values.node.name }}-pv
-          mountPath: {{ .Values.node.mountPath }}
       restartPolicy: Always
-  volumeClaimTemplates: 
+  volumeClaimTemplates:
     - metadata:
-        name: {{ .Values.node.name }}-pv
+        name: {{ .Values.node.name }}-tessera-pv
       spec:
         storageClassName: {{ .Values.storage.storageclassname }}
         accessModes: [ "ReadWriteOnce" ]

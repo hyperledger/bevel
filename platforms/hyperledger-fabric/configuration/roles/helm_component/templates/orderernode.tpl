@@ -17,7 +17,27 @@ spec:
       images:
         orderer: {{ orderer_image }}
         alpineutils: {{ alpine_image }}
-
+{% if network.env.annotations is defined %}
+    annotations:  
+      service:
+{% for item in network.env.annotations.service %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+      pvc:
+{% for item in network.env.annotations.pvc %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+      deployment:
+{% for item in network.env.annotations.deployment %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+{% endif %}
     orderer:
       name: {{ orderer.name }}
       loglevel: info
@@ -45,7 +65,7 @@ spec:
       address: {{ vault.url }}
       role: vault-role
       authpath: {{ network.env.type }}{{ namespace }}-auth
-      secretprefix: {{ vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
       imagesecretname: regcred
       serviceaccountname: vault-auth
 {% if orderer.consensus == 'kafka' %}
@@ -63,4 +83,14 @@ spec:
       external_url_suffix: {{ item.external_url_suffix }}
 
     genesis: |-
-{{ genesis | indent(width=6, indentfirst=True) }}
+{{ genesis | indent(width=6, first=True) }}
+
+    config:
+      pod:
+        resources:
+          limits:
+            memory: 512M
+            cpu: 1
+          requests:
+            memory: 512M
+            cpu: 0.5

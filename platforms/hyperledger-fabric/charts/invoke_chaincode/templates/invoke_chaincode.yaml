@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -40,7 +46,7 @@ spec:
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
@@ -50,6 +56,8 @@ spec:
           value: {{ $.Values.vault.role }}
         - name: VAULT_PEER_SECRET_PREFIX
           value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: VAULT_SECRET_PATH
+          value: "{{ $.Values.vault.secretpath }}"
         - name: ENDORSING_ORG_NAMES
           value: "{{ $.Values.endorsers.name }}"
         - name: CREATOR_NS
@@ -104,7 +112,7 @@ spec:
 
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ca.crt"]')
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
 
           mkdir -p ${OUTPUT_PATH}
           echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
@@ -118,11 +126,11 @@ spec:
             ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-          ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["admincerts"]')
-          CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["cacerts"]')
-          KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
-          SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signcerts"]')
-          TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+          ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]')
+          CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]')
+          KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
+          SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]')
+          TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
 
           mkdir -p ${OUTPUT_PATH}/admincerts
           mkdir -p ${OUTPUT_PATH}/cacerts
@@ -144,7 +152,7 @@ spec:
             echo $ENDORSING_ORG_NAMES
             for ns in $ENDORSING_ORG_NAMES
             do
-              SECRETPREFIX=secret/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${ns}/users/admin
+              SECRETPREFIX=${VAULT_SECRET_PATH}/data/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${ns}/users/admin
               echo "Fetching certificates for org: $ns"
               echo "Secret prefix for org: $SECRETPREFIX"
 
@@ -159,7 +167,7 @@ spec:
                 ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
               validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-              CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["cacerts"]')
+              CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]')
 
               mkdir -p ${OUTPUT_PATH}/cacerts
               echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
@@ -177,7 +185,7 @@ spec:
       containers:
       - name: invokechaincode
         image: {{ $.Values.metadata.images.fabrictools }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         stdin: true
         tty: true
         command: ["sh", "-c"]

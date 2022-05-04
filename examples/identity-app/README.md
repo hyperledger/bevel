@@ -1,7 +1,12 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Identity-App
 
 ## About
-This folder contains the files that are needed for the deployment of a Identity Application on a Indy network that has been created using the Blockchain Automation Framework.
+This folder contains the files that are needed for the deployment of a Identity Application on a Indy network that has been created using Hyperledger Bevel.
 
 ## Folder structure
 ```
@@ -37,13 +42,13 @@ Prepare a network.yaml file for your demo by following this sample for [AWS](../
 Run Ansible Playbook by following these [steps](../../platforms/hyperledger-indy/configuration/README.md)
 Can be started also via Docker container:
 1. Go to root directory of this git repository.
-2. Run command: `docker run -it -v $(pwd):/home/blockchain-automation-framework/ --entrypoint bash hyperledgerlabs/baf-build`
+2. Run command: `docker run -it -v $(pwd):/home/bevel/ --entrypoint bash hyperledgerlabs/baf-build`
 3. When are you entered into Docker container console, use command:
 `./run.sh`
 ### Step 5
 After Indy network has been set up, Identity App can be deployed via Ansible playbook:
 
-- Make sure that you are in Docker container (BAF), if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
+- Make sure that you are in Docker container, if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
 - Update Trustee service in your `network.yaml` file to add port of Indy WebServer, which will run with trustee role.
 example of trustee: 
 ```yaml
@@ -76,11 +81,11 @@ For minikube, pass additional parameter minikube_ip: `ansible-playbook examples/
 
 ### Step 6
 Agent for Student Alice don't have Ansible roles created. These agents have to be run manually:
-- Be sure that you are in Docker container (BAF), if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
-- Create environment variable for kubernetes config: `export KUBECONFIG=/home/blockchain-automation-framework/build/config`
+- Be sure that you are in Docker container, if not, then enter via command: `docker exec -it <docker_container_name_or_id> bash`
+- Create environment variable for kubernetes config: `export KUBECONFIG=/home/bevel/build/config`
 - Fill all variables in `value.yaml` file in helm [chart of alice](./charts/alice)
 - Create Helm release for Student Alice with command: `helm install --name alice examples/identity-app/charts/alice/`
-- If you reset the network, please delete the alice helm release manually: `helm delete --purge alice`
+- If you reset the network, please delete the alice helm release manually: `helm uninstall alice`
 
 ### Step 7
 Identity App is running and agents API via Swagger are available on IP address of your cluster with ports which you defined for your agents in `value.yaml` file.
@@ -89,7 +94,14 @@ For example, with the given sample network.yaml your Agent's Swagger will be ava
 - Alice: http://alice.id.example.blockchaincloudpoc.com:15040/
 
 ### Step 8
-Follow the [steps](./tests/README.md) to test the API using Postman. You can also follow [these steps](https://github.com/hyperledger/aries-cloudagent-python/blob/master/demo/AriesOpenAPIDemo.md#using-the-openapiswagger-user-interface) as per the Aries Demo on this Identity App.
+Follow the [steps](./tests/README.md) to test the API using Postman. You can also follow [these steps](https://github.com/hyperledger/aries-cloudagent-python/blob/main/demo/AriesOpenAPIDemo.md#using-the-openapiswagger-user-interface) as per the Aries Demo on this Identity App.
+
+---
+
+**NOTE**: This Sample Application uses `issue-credential` version 1.0 API
+
+---
+
 
 ### Challenge
 Similar to the Aries Demo challenge, you may want to run the Acme Endorser as well. Configure and run network.yaml accordingly.

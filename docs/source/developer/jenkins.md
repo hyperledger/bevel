@@ -1,19 +1,24 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Jenkins Pipeline
 Jenkins is a self-contained, open source automation server which can be used to automate all sorts of tasks related to building, testing, and delivering or deploying software.
 
-## Jenkins in Blockchain Automation Framework
-In Blockchain Automation Framework, although Jenkins is not mandatory, we have [a single Jenkinsfile](https://github.com/hyperledger-labs/blockchain-automation-framework/blob/master/automation/Jenkinsfile) as a sample to help you setup CI/CD Pipelines. 
+## Jenkins in Hyperledger Bevel
+In Hyperledger Bevel, although Jenkins is not mandatory, we have [a single Jenkinsfile](https://github.com/hyperledger/bevel/blob/main/automation/Jenkinsfile) as a sample to help you setup CI/CD Pipelines. 
 
 ## Pre-requisites
-1. Setup Jenkins with slave configurations. Declare a slave-config called `ansible` with the Docker Image [hyperledgerlabs/baf-build:jenkins](https://hub.docker.com/r/hyperledgerlabs/baf-build/tags).
+1. Setup Jenkins with slave configurations. Declare a slave-config called `ansible` with the Docker Image [ghcr.io/hyperledger/bevel-build:jenkins](https://github.com/hyperledger/bevel/pkgs/container/bevel-baf-build/tags).
 1. A EKS Cluster (Managed on AWS) and its kubeconfig file available and accessible from the Jenkins server.
 1. AWS user `jenkins` with CLI credentials with access to above EKS Cluster.
 1. A Hashicorp Vault installation which is accessible from the Jenkins server.
 1. A Git repo which will be added as multi-branch pipeline on Jenkins (this is a fork of this repo).
-1. A separate `baf-configuration` git repo where the templated network.yaml for different platforms are stored. Details of this repo needs to be updated in pipeline Stage `Create Configuration File`.
+1. A separate `bevel-configuration` git repo where the templated network.yaml for different platforms are stored. Details of this repo needs to be updated in pipeline Stage `Create Configuration File`.
 
 ## Branch Configuration
-The Jenkinsfile is designed to ignore `develop` and `master` branches by default. So, create platform specific branches in your forked repo.
+The Jenkinsfile is designed to ignore `develop` and `main` branches by default. So, create platform specific branches in your forked repo.
 - `corda` for Opensource Corda
 - `corda-ent` for Enterprise Corda
 - `fabric` for Hyperledger Fabric
@@ -21,7 +26,7 @@ The Jenkinsfile is designed to ignore `develop` and `master` branches by default
 - `indy` for Hyperledger Indy
 - `quorum` for Quorum
 
-Your `baf-configuration` repo should have the corresponding folders and files as demanded/configured in Stage `Create Configuration File`.
+Your `bevel-configuration` repo should have the corresponding folders and files as demanded/configured in Stage `Create Configuration File`.
 
 ## Jenkins Secrets
 Following secrets must be stored in Jenkins which is configured in the environment section. This can be renamed/updated in the Jenkinsfile according to your needs.
@@ -66,7 +71,7 @@ Configure Multi-branch pipeline with the forked repo as the source. In case you 
 1. `Prepare build environment`: Creates the build directory and sets up the necessary files for build like gitops.pem, vault.pem, kubeconfig, test jsons. Also creates the ssh-tunnel connection to Hashicorp Vault server.
 
 1. `<branch>-settings`: Set env variables CONSENSUS, VERSION and TM based on the branch i.e. based on the DLT platform.
-1. `Create Configuration File`: Downloads the config file (main network.yaml, addorg.yaml and application.yaml) depending on the BRANCH_NAME, CONSENSUS, VERSION and TM from baf-configuration and adds the secret parameters.
+1. `Create Configuration File`: Downloads the config file (main network.yaml, addorg.yaml and application.yaml) depending on the BRANCH_NAME, CONSENSUS, VERSION and TM from bevel-configuration and adds the secret parameters.
 1. `Reset existing network`: Resets the network based on application.yaml as that should contain all the orgs.
 1. `Deploy network`: Deploys the network based on main network.yaml.
 1. `Add a new node`: Adds a new organization to the above network. This is not enabled for Indy currently.
@@ -74,5 +79,5 @@ Configure Multi-branch pipeline with the forked repo as the source. In case you 
 1. `Deploy Identity-App`: Deploys the Identity app. Only for Indy.
 1. `Run SupplyChain API tests`: Runs Supplychain API test using newman. This step has a try-catch so that the whole pipeline does not fail if only API tests fail. Re-run the tests manually if only API tests fail. Not enabled for Indy. Corda Enterprise and Besu are in the future roadmap.
 1. `Run Identity API tests`: Runs Identity API test using newman. This step has a try-catch so that the whole pipeline does not fail if only API tests fail. Re-run the tests manually if only API tests fail. Only for Indy.
-1 `Manual Approval for resetting the deployment`: Waits for 20 minutes before resetting the network. If you want to keep the network for demo, Abort at this stage.
+1. `Manual Approval for resetting the deployment`: Waits for 20 minutes before resetting the network. If you want to keep the network for demo, Abort at this stage.
 1. `Reset network again`: Resets the network after the 20 minutes is over or you chose to reset. Keeps the network running if the previous step was aborted.

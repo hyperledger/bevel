@@ -17,10 +17,35 @@ spec:
       images:
         alpineutils: {{ alpine_image }}
         ca: {{ ca_image }}
+{% if network.env.annotations is defined %}
+    deployment:
+      annotations:
+{% for item in network.env.annotations.deployment %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+    annotations:  
+      service:
+{% for item in network.env.annotations.service %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+      pvc:
+{% for item in network.env.annotations.pvc %}
+{% for key, value in item.items() %}
+        - {{ key }}: {{ value | quote }}
+{% endfor %}
+{% endfor %}
+{% endif %} 
     server:
       name: {{ component_services.ca.name }}
       tlsstatus: true
-      admin: {{ component }}-admin
+      admin: {{ component }}-admin 
+{% if component_services.ca.configpath is defined %}
+      configpath: conf/fabric-ca-server-config-{{ component }}.yaml
+{% endif %}  
     storage:
       storageclassname: {{ component | lower }}sc
       storagesize: 512Mi
@@ -28,9 +53,9 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_name | e }}-auth
-      secretcert: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretadminpass: {{ vault.secret_path | default('secret') }}/credentials/{{ component_name | e }}/ca/{{ component }}?user
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
+      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name | e }}/ca/{{ component }}?user
       serviceaccountname: vault-auth
       imagesecretname: regcred
     service:

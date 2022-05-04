@@ -1,10 +1,16 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Developer Prerequisites
 
-The following mandatory pre-requisites must be completed to set up a development environment for BAF.   
-The process of setting up developer pre-requisites can be done manually or via an automation script(currently script is for windows OS only)
+The following mandatory pre-requisites must be completed to set up a development environment for Bevel.  
+
+The process of setting up developer pre-requisites can be done manually or via an automation script (currently script is for windows OS only)
 
 ## Script Based Setup
-You can use the scripts [here](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/shared/scripts) to setup developer prerequisites for Windows or Mac systems.   
+You can use the scripts [here](https://github.com/hyperledger/bevel/tree/main/platforms/shared/scripts) to setup developer prerequisites for Windows or Mac systems.   
 
 ---
 
@@ -18,7 +24,7 @@ You can use the scripts [here](https://github.com/hyperledger-labs/blockchain-au
 
 ---
 
-**NOTE:** You will need at least 8GB RAM to run BAF on local machine. 
+**NOTE:** You will need at least 8GB RAM to run Bevel on local machine. 
 
 ---
 
@@ -55,10 +61,10 @@ _Estimated Time: 5 minutes_
 
 [GitHub](https://github.com/) is a web-based Git repository hosting service. It offers all of the distributed revision control and source code management (SCM) functionality of Git as well as adding its own features. You can create projects and repositories for you and your teams’ need.
 
-Complete the following steps to download and configure BAF repository on your local machine.
+Complete the following steps to download and configure Bevel repository on your local machine.
 
 1. If you already have an account from previously, you can use the same account. If you don't have an account, create one.
-1. Go to [blockchain-automation-framework](https://github.com/hyperledger-labs/blockchain-automation-framework) on GitHub and click **Fork** button on top right. This will create a copy of the repo to your own GitHub account.
+1. Go to [bevel](https://github.com/hyperledger/bevel) on GitHub and click **Fork** button on top right. This will create a copy of the repo to your own GitHub account.
 1. In git bash, write and execute the command:
 
    ```bash
@@ -77,11 +83,11 @@ Complete the following steps to download and configure BAF repository on your lo
    ```bash
    mkdir ~/project
    cd ~/project
-   git clone git@github.com:<githubuser>/blockchain-automation-framework.git
+   git clone git@github.com:<githubuser>/bevel.git
    ```
 1. Checkout the develop branch.
    ```bash
-   cd blockchain-automation-framework
+   cd bevel
    git checkout develop
    ```
 
@@ -132,7 +138,7 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
 1. To install the precompiled binary, [download](https://www.vaultproject.io/downloads/) the appropriate package for your system.
 1. Once the zip is downloaded, unzip it into any directory. The `vault` binary inside is all that is necessary to run Vault (or `vault.exe` for Windows). Any additional files, if any, aren't required to run Vault.
 
-1. Create a directory `project/bin` and copy the binary there. Add `project/bin` directory to your `PATH`. Run following fron git bash.
+1. Create a directory `project/bin` and copy the binary there. Add `project/bin` directory to your `PATH`. Run following from git bash.
    ```
    mkdir ~/project/bin
    mv vault.exe ~/project/bin
@@ -160,7 +166,9 @@ We need [Hashicorp Vault](https://www.vaultproject.io/) for the certificate and 
    ```bash
    export VAULT_ADDR='http://<Your Vault local IP address>:8200' #e.g. http://192.168.0.1:8200
    export VAULT_TOKEN="<Your Vault root token>"
-   vault secrets enable -version=1 -path=<Your Secret Engine> kv
+
+   # enable Secrets v1
+   vault secrets enable -version=1 -path=secret kv   
    ```
 
 ### Setting up Minikube
@@ -170,11 +178,11 @@ _Estimated Time: 15 minutes_
 For development environment, minikube can be used as the Kubernetes cluster on which the DLT network will be deployed.
 
 1. Follow platform specific [instructions](https://kubernetes.io/docs/tasks/tools/install-minikube/) to install minikube on your local machine. Also install [Virtualbox](https://www.virtualbox.org/wiki/Downloads) as the Hypervisor. (If you already have **HyperV** it should be removed or disabled.)
-1. minikube is also a binary, so move it into your `~/project/bin` directory as it is already added to `PATH`.
+1. Minikube is also a binary, so move it into your `~/project/bin` directory as it is already added to `PATH`.
 1. Configure minikube to use 4GB memory and default kubernetes version
    ```bash
    minikube config set memory 4096
-   minikube config set kubernetes-version v1.16.13
+   minikube config set kubernetes-version v1.19.15
    ```
 1. Then start minikube. This will take longer the first time.
    ```bash

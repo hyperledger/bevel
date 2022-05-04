@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Corda Opensource Architecture Reference
 
 ## Kubernetes
@@ -26,15 +31,15 @@ The following diagram shows how the Corda Support Services (**Doorman**, **Netwo
 1. All storage uses a Kubernetes Persistent Volume.
 
 ## Components
-![Figure: Corda Components](../../images/blockchain-automation-framework-corda.png)
+![Figure: Corda Components](../../images/hyperledger-bevel-corda.png)
 
 ### Docker Images
 
-The Blockchain Automation Framework creates/provides a set of Corda Docker images that can be found in the [Hyperledger-Labs repository](https://hub.docker.com/u/hyperledgerlabs) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
-The following Corda Docker Images are used and needed by the Blockchain Automation Framework.
-* [Corda Network Map Service](https://hub.docker.com/r/hyperledgerlabs/networkmap-linuxkit) 
-* [Corda Doorman Service](https://hub.docker.com/r/hyperledgerlabs/doorman-linuxkit)
-* [Corda Node](https://hub.docker.com/r/hyperledgerlabs/corda)
+Hyperledger Bevel creates/provides a set of Corda Docker images that can be found in the [GitHub Repo](https://github.com/orgs/hyperledger/packages?repo_name=bevel) or can be built as per [configuring prerequisites](../operations/configure_prerequisites.md). 
+The following Corda Docker Images are used and needed by Hyperledger Bevel.
+* [Corda Network Map Service](https://github.com/hyperledger/bevel/pkgs/container/bevel-networkmap-linuxkit) 
+* [Corda Doorman Service](https://github.com/hyperledger/bevel/pkgs/container/bevel-doorman-linuxkit)
+* [Corda Node](https://github.com/hyperledger/bevel/pkgs/container/bevel-corda)
 
 ### Ansible Playbooks
 
@@ -46,11 +51,12 @@ Detailed information on helm charts can be referred [here](../developer/corda-he
 
 <a name="vault-config"></a>
 ## Vault Configuration
-The Blockchain Automation Framework stores their `crypto` and `credentials` immediately within the secret secrets engine.
-Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+Hyperledger Bevel stores their `crypto` and `credentials` immediately within the secret secrets engine.
+Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secretsv2/`.
+
 | Crypto Material Path | Credentials Path     |
 |----------------------|----------------------|
-| `secret/<servicename>`      | `secret/<servicename>/credentials` |
+| `secretsv2/<servicename>`      | `secretsv2/<servicename>/credentials` |
 
 *  `secrets/doorman/credentials/mongodb` - Contains password for doorman mongodb database.
 

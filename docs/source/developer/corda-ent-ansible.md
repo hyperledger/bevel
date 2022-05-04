@@ -1,6 +1,11 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Corda Enterprise Configurations
 
-In the Blockchain Automation Framework project, Ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the git repository for deployment, using GitOps. This is achieved using Ansible playbooks. 
+In Hyperledger Bevel project, Ansible is used to automate the certificate generation, putting them in vault and generate value files, which are then pushed to the git repository for deployment, using GitOps. This is achieved using Ansible playbooks. 
 Ansible playbooks contains a series of roles and tasks which run in sequential order to achieve the automation.
 For R3-Corda Enterprise, the ansible roles and playbooks are located at `platforms/r3-corda-ent/configuration/`
 Some of the common roles and playbooks between Hyperledger-Fabric, Hyperledger-Indy, Hyperledger-Besu, R3 Corda and Quorum are located at `platforms/shared/configurations/`
@@ -28,10 +33,13 @@ platforms/r3-corda-ent/configuration
 │   │   ├── templates
 │   │   └── vars
 │   └── setup
+│       ├── auth
 │       ├── bridge
 │       ├── cenm
 │       ├── credentials
 │       ├── float
+│       ├── float-environment
+│       ├── gateway
 │       ├── get_crypto
 │       ├── idman
 │       ├── nmap
@@ -40,11 +48,14 @@ platforms/r3-corda-ent/configuration
 │       ├── notary
 │       ├── notary-initial-registration
 │       ├── pki-generator
+│       ├── pki-generator-node
 │       ├── signer
 │       ├── tlscerts
-│       └── vault_kubernetes
+│       ├── vault_kubernetes
+│       └── zone
 └── samples
     ├── network-cordaent.yaml
+│   ├── network-addNotary.yaml
     └── README.md
 ```
 
@@ -81,7 +92,7 @@ This ansible playbook is used when deleting the network. This calls the below su
 * Remove build directory
 
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration) for detailed information.
 
 ## Roles defined for Corda Enterprise 
 Roles in ansible are a combination of logically inter-related tasks.
@@ -93,7 +104,7 @@ Below are the roles that are defined for Corda Enterprise.
 * Saves them to Vault
 * Creates Kubernetes secrets to be used by Ambassador pods
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/create/certificates/cenm) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/create/certificates/cenm) for detailed information.
 
 ## **create/certificates/node**
 
@@ -101,7 +112,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Saves them to Vault
 * Creates Kubernetes secrets to be used by Ambassador pods
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/create/certificates/node) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/create/certificates/node) for detailed information.
 
 ## **create/k8_component**
 
@@ -110,7 +121,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 Add new tpl files in `templates` folder when defining new storageclass.
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/create/k8_component) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/create/k8_component) for detailed information.
 
 ## **create/namespace_serviceaccount**
 
@@ -122,21 +133,21 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Creates the storageclass template with name "cordaentsc"
 * Checks-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/create/storageclass) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/create/storageclass) for detailed information.
 
 ## **delete/flux_releases**
 
 * Deletes all helmreleases in the namespace
 * Deletes the namespace
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/delete/flux_releases) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/delete/flux_releases) for detailed information.
 
 ## **delete/gitops_files**
 
 * Deletes all gitops files from release folder
 * Checks-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/delete/gitops_files) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/delete/gitops_files) for detailed information.
 
 ## **delete/vault_secrets**
 
@@ -144,7 +155,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Deletes the related Kubernetes secrets 
 * Deletes Vault access policies
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/delete/vault_secrets) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/delete/vault_secrets) for detailed information.
 
 ## **helm_component**
 
@@ -153,44 +164,62 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 
 Most default values are in the tpl files in `templates` folder. If any need to be changed, these tpl files need to be edited.
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/helm_component) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/helm_component) for detailed information.
+
+## **setup/auth**
+* Wait for pki-generator job to "Complete"
+* Create helmrelease files for Auth component
+* Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/auth) for detailed information.
 
 ## **setup/bridge**
 * Create helmrelease files for Bridge component
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/bridge) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/bridge) for detailed information.
 
 ## **setup/cenm**
 
 * Checks all the prerequisite namespaces and serviceaccounts are created
 * Creates vault access for cenm organization
 * Calls setup/pki-generator role to generate network crypto.
+* Calls setup/auth role to generate network crypto.
+* Calls setup/gateway role to generate network crypto.
+* Calls setup/zone role to generate network crypto.
 * Calls setup/signer role to deploy signer service.
 * Calls setup/idman role to deploy idman service.
 * Calls setup/nmap role to deploy nmap service.
 * Calls setup/notary role to deploy notary service.
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/cenm) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/cenm) for detailed information.
 
 ## **setup/credentials**
 
-* Writes keystore,truststore,ssl passwords for CENM services
+* Writes keystore, truststore, ssl passwords for CENM services
 * Writes node keystore, node truststore, network root-truststore passwords for CENM services
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/credentials) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/credentials) for detailed information.
 
 ## **setup/float**
 * Create helmrelease files for Float component
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/float) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/float) for detailed information.
+
+## **setup/gateway**
+* Wait for pki-generator job to "Complete"
+* Create gateway ambassador certificates
+* Create helmrelease files for Gateway component
+* Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/gateway) for detailed information.
 
 ## **setup/get_crypto**
 
 * Saves the Ambassador cert and key file to local file from Vault when playbook is re-run.
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/get_crypto) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/get_crypto) for detailed information.
 
 ## **setup/idman**
 * Wait for Signer pod to be "Running"
@@ -207,7 +236,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create nmap value files
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/nmap) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/nmap) for detailed information.
 
 ## **setup/node**
 * Wait for all the prerequisites (namespace, Vault auth, rbac, imagepullsecret)
@@ -220,14 +249,14 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create float, if enabled, by calling setup/float
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/node) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/node) for detailed information.
 
 ## **setup/node_registration**
 * Create node db helm value files
 * Create node initial registration helm value files, if not registered already
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/node_registration) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/node_registration) for detailed information.
 
 ## **setup/notary**
 * Wait for networkmap pod to be "Running"
@@ -235,7 +264,7 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create notary value files
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/notary) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/notary) for detailed information.
 
 ## **setup/notary-initial-registration**
 * Wait for idman pod to be "Running"
@@ -243,31 +272,46 @@ Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framew
 * Create notary initial registration helm value files, if not registered already
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/notary-initial-registration) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/notary-initial-registration) for detailed information.
 
 ## **setup/pki-generator**
 * Create pki-generator value files, if values are not in Vault
 * Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/pki-generator) for detailed information.
+
+## **setup/pki-generator-node**
+* Create pki-generator value files, if values are not in Vault
+* Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/pki-generator-node) for detailed information.
 
 ## **setup/signer**
 * Wait for pki-generator Job to be "Completed"
 * Create signer value files
 * Check-in to git repo
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/signer) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/signer) for detailed information.
 
 ## **setup/tlscerts**
 * Copies the idman/nmap certificates and truststore to each node's Vault
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/tlscerts) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/tlscerts) for detailed information.
 
 ## **setup/vault_kubernetes**
 * Creates vault auth path if it does not exist
-* Gets Kubernetes ca certs
+* Gets Kubernetes CA certs
 * Enables Kubernetes and Vault authentication
 * Creates Vault policies if they do not exist
 * Creates docker credentials if they do not exist
 
 If the Vault policies need to be changed, then this role will need to be edited.
 
-Follow [Readme](https://github.com/hyperledger-labs/blockchain-automation-framework/tree/master/platforms/r3-corda-ent/configuration/roles/setup/vault_kubernetes) for detailed information.
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/vault_kubernetes) for detailed information.
+
+## **setup/zone**
+* Wait for pki-generator job to "Complete"
+* Create zone helmrelease files
+* Check-in to git repo
+
+Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/configuration/roles/setup/zone) for detailed information.

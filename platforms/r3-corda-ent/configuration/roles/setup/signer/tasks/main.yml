@@ -1,11 +1,17 @@
 ##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
 # This role creates the value file for signer
 ##############################################################################################
 
 # Check if the signer certs are already created
 - name: Check if the signer certs are already created
   shell: |
-    vault kv get -format=yaml {{ org.vault.secret_path | default('secret') }}/{{ org.name | lower }}/{{ org.services.signer.name }}/certs
+    vault kv get -field=corda-ssl-signer-keys.jks {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/{{ org.services.signer.name }}/certs
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -30,6 +36,7 @@
   vars:
     type: "signer"
     chart: "signer"
+    corda_service_version: signer-{{ org.version }}
     name: "{{ org.name | lower }}"
     component_name: "{{ org.services.signer.name }}"
     charts_dir: "{{ org.gitops.chart_source }}"
@@ -44,10 +51,6 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_REPO: "{{ org.gitops.git_repo }}"
-    GIT_USERNAME: "{{ org.gitops.username }}"
-    GIT_EMAIL: "{{ org.gitops.email }}"
-    GIT_PASSWORD: "{{ org.gitops.password }}"
-    GIT_BRANCH: "{{ org.gitops.branch }}"
+    gitops: "{{ org.gitops }}"
     GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
     msg: "[ci skip] Pushing deployment files for signer service"

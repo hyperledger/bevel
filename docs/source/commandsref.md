@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Commands Reference
 Below are various debugging commands that can be used
 
@@ -58,7 +63,7 @@ Below are various debugging commands that can be used
     export VAULT_ADDR=
     export VAULT_TOKEN=
     vault read PATH_IN_VAULT
-    Ex. vault read /secret/crypto/ordererOrganizations/carrier-net/ca/carrier-net-CA.key
+    Ex. vault read secretsv2/crypto/ordererOrganizations/carrier-net/ca/carrier-net-CA.key
     ```
 * To list all enabled secrets engines with detailed output
     ```
@@ -72,7 +77,7 @@ Below are various debugging commands that can be used
 * To delete data on a given path in the key/value secrets engine
     ```
     vault kv delete PATH
-    Ex. vault kv delete secret/creds
+    Ex. vault kv delete secretsv2/creds
     ```
 ## Helm related debugging
 * To list down all helm releases
@@ -89,7 +94,7 @@ Below are various debugging commands that can be used
 * To login to docker registry
     ```
     docker login --username USERNAME --password PASSWORD URL
-    Ex. docker login --username abcd --password abcd index.docker.io/hyperledgerlabs
+    Ex. docker login --username abcd --password abcd ghcr.io/hyperledger
     ```
 * To pull images from docker registry
     ```

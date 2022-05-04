@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/new_orderer/create_syschannel_block
 This role creates the update_channel.sh script for modifying the latest configuration block and adding new orderer tls certificate and endpoint in the config block.
 

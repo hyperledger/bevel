@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role deletes the Vault configurations
 #############################################################################################
@@ -13,6 +19,7 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
+  changed_when: false
 
 - name: "Delete service creds"
   include_tasks: nested_main.yaml
@@ -25,7 +32,7 @@
 - name: Delete Ambassador creds
   k8s:
     kind: Secret
-    namespace: default
+    namespace: "{{ component_name }}"
     name: "{{ node.name }}-ambassador-certs"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
@@ -35,8 +42,8 @@
     loop_var: node
   when: component_type == 'node'
   ignore_errors: yes
+  changed_when: false
 
- 
 ############################################################################################
 # This task deletes vault auth
 - name: Delete vault-auth path
@@ -49,6 +56,8 @@
   loop_control:
     loop_var: node
   when: component_type == 'node'
+  tags:
+    molecule-idempotence-notest
 
 ############################################################################################
 # This task deletes crypto materials from vault
@@ -62,6 +71,8 @@
   loop_control:
     loop_var: node
   when: component_type == 'node'
+  tags:
+    molecule-idempotence-notest
 
 # This task deletes the policies
 - name: Delete policy
@@ -74,3 +85,5 @@
   loop_control:
     loop_var: node
   when: component_type == 'node'
+  tags:
+    molecule-idempotence-notest

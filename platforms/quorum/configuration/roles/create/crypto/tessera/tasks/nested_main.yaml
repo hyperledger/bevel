@@ -1,48 +1,68 @@
-# This task checks if the tm crypto material is already stored in the vault or not
-- name: Check if tm key is already present in the vault
-  shell: |
-    vault read -field=tm.key {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}/transaction
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_tmkey_result
-  ignore_errors: yes
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
 
-# This task creates the build directory if it does not exist
-- name: "Creating the build directory"
+# This tasks checks the crypto material in the vault
+- name: Check for the crypto material in the vault
+  include_tasks: check_vault.yaml
+  vars:    
+    vault: "{{ org.vault }}"
+    peers: "{{ org.services.peers }}"
+
+- name: "Wait for namespace creation"
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
-    path: "build/{{ component_name }}/{{ peer.name }}"
-    check: "ensure_dir"
-  when: vault_tmkey_result.failed == True 
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"    
+    type: "retry"
+  when: 
+  - generate_crypto_tessera is defined 
+  - generate_crypto_tessera
+  tags: 
+    - notest
 
-# This task checks if the tessera app jar exits
-- name: Check if tessera jar file exists
-  stat: 
-    path: build/tessera-app.jar
-  register: tessera_app_jar_result
-  when: vault_tmkey_result.failed == True
+# ---------------------------------------------------------------------
+# generate tessera crypto helmrelease file
+- name: "Create tessera crypto file"
+  include_role:
+    name: helm_component
+  vars:    
+    component_type: "crypto"    
+    type: "crypto_tessera"    
+    name: "{{ org.name | lower }}"
+    component_name: "{{ peer.name }}-tessera-job"    
+  when: 
+  - generate_crypto_tessera is defined 
+  - generate_crypto_tessera
+  tags: 
+    - molecule-idempotence-notest
 
-# This task downloads the tessera jar file
-- name: Download tessera jar
-  get_url:
-    url: "{{ tessera.repo }}"
-    dest: build/tessera-app.jar
-  when: vault_tmkey_result.failed == True and tessera_app_jar_result.stat.exists == False
+# ---------------------------------------------------------------------
+# push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/quorum/configuration"
+    msg: "[ci skip] Pushing tessera job files for {{ component_ns }}"
+  when: 
+  - generate_crypto_tessera is defined 
+  - generate_crypto_tessera
+  tags: notest
 
-# This task generates keys for node tm
-- name: Generate node tm keys
-  shell: |
-    cd build/{{ component_name }}/{{ peer.name}}
-    printf '\n\n' | java -jar ../../tessera-app.jar -keygen -filename tm
-  when: vault_tmkey_result.failed == True
-
-# This task copies the crypto material to the vault
-- name: Copy the crypto material to Vault
-  shell: |
-    vault kv put {{ vault.secret_path | default('secret') }}/{{ component_ns }}/crypto/{{ peer.name }}/transaction tm.pub="$(cat build/{{ component_name }}/{{ peer.name }}/tm.pub)" tm.key="$(cat build/{{ component_name }}/{{ peer.name }}/tm.key)"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_tmkey_result.failed == True
+# Check if tessera crypto job is completed
+- name: Check if tessera crypto job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ peer.name }}-tessera-job"
+    component_type: Job
+    namespace: "{{ component_ns }}"
+  when: 
+  - generate_crypto_tessera is defined 
+  - generate_crypto_tessera
+  tags: notest

@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: `setup/notary-initial-registration`
 This role creates deployments file for notary and also pushes the generated value file into repository.
 
@@ -8,9 +13,38 @@ This role creates deployments file for notary and also pushes the generated valu
 
 ---
 
-#### 1. Wait for idman pod to come up 
+#### 1 ."Check if the notary-registration is already completed."
+This task will check if the notary-registration is already completed or not.
+#### Input Variables
+- `VAULT_ADDR` -The Vault address
+- `VAULT_TOKEN` - Vault root/custom token which has the access to the path.
+##### Output variables 
+- `notary_certs` - Variable that stores the result of the command (`notary_certs.failed` will be `true` when the certs do not exist yet)
+ 
+**ignore_errors** is set to `yes` because when first setting up of network, this call will fail.
+
+---
+
+#### 2. "Create value file for notary registration job."
+This task will create value file for notary registration job
+**when** notary_certs are failed.
+
+---
+
+#### 3. "waiting for notary initial registration job to complete"
+This task will wait for notary initial registration job to complete.
+#### Input variables
+ - `component_type` - The type of component to check for, i.e. `job`
+ - `namespace` -  The namespace where the component is deployed
+ - `component_name` - The exact name of the component
+    kubernetes: The resources of the K8s cluster (context and configuration file).
+  **when** notary_certs are failed.
+
+---
+
+#### 4. Wait for idman pod to come up 
 This task waits for the idman service to be deployed before continuing, by calling the shared `check/helm_component` role.
-##### Input variables
+#### Input variables
 - `component_type` - The type of component to check for, i.e. `Pod`
 - `namespace` - The namespace where the component is deployed
 - `component_name` - The name of the component which is deployed
@@ -18,7 +52,7 @@ This task waits for the idman service to be deployed before continuing, by calli
 
 ---
 
-#### 2. Create DB for notary
+#### 5. Create DB for notary
 This task creates deployment files for the notary DB by calling the `helm_component` role.
 ##### Input Variables
 - `component_name` - The exact name of the component
@@ -40,7 +74,7 @@ This task creates deployment files for the notary DB by calling the `helm_compon
 
 ---
 
-#### 3. Check if nodekeystore is already created
+#### 6. Check if nodekeystore is already created
 This task checks if the nodekeystore already created for for the notary by checking in the Vault.
 ##### Input Variables
 - *`org.services.notary.name` -  Name of the notary which is also the Vault secret path
@@ -53,7 +87,7 @@ This task checks if the nodekeystore already created for for the notary by check
 
 ---
 
-#### 4. Create notary initial-registration job file
+#### 7. Create notary initial-registration job file
 This task creates deployment files for job for notary by calling the `helm_component` role.
 ##### Input Variables
 - `type` - The type of component to deploy, i.e. `notary-initial-registration`
@@ -69,20 +103,16 @@ This task creates deployment files for job for notary by calling the `helm_compo
 - `idman_domain` - The domain of the idman
 - `networkmap_url` - The URL of the networkmap
 - `networkmap_domain` - The domain of the networkmap
-- `corda_service_version` - `notary-{{ org.version }}`, this is used to find the Docker image from `helm_component/vars`
+- `corda_service_version` - `notary-{{ network.version }}`, this is used to find the Docker image from `helm_component/vars`
 
 **when** - This task is called only when `nodekeystore_result` is failed, i.e. only when first time set-up of network.
 
 ---
 
-#### 5. Push the created deployment files to repository
+#### 8. Push the created deployment files to repository
 This task pushes the created value files into repository by calling git_push role from shared.
 ##### Input Variables
 - `GIT_DIR` - The base path of the GIT repository, default `{{ playbook_dir }}/../../../`
-- *`GIT_REPO` - HTTPS URL for GIT repository, used for pushing deployment files; uses the variable `{{ gitops.git_url }}` from `network.yaml`
-- *`GIT_USERNAME`: Username with access to the GIT repository; uses `{{ gitops.username }}` from `network.yaml`
-- *`GIT_EMAIL`: Email associated with the username above; uses `{{ gitops.email }}` from `network.yaml`
-- *`GIT_PASSWORD`: Password (most of the time access token) with write access to the GIT repository; uses `{{ gitops.password }}` from `network.yaml`
-- *`GIT_BRANCH`: The name of the current branch, where the Helm releases are pushed; uses `{{ gitops.branch }}` from `network.yaml`
-- `GIT_RESET_PATH`: The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
+- `GIT_RESET_PATH` - The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
+- `gitops` - *item.gitops* from `network.yaml`
 - `msg` - The commit message to use when pushing deployment files.

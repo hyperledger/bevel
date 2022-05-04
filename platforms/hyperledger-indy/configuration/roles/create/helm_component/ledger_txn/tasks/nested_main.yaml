@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ################################################################################################
 # This tasks gets data from vault
 - name: Get identity data from vault
@@ -5,8 +11,8 @@
     rm data.yaml
     identity_data=""
     trustee_name={{ admin_name }}
-    trustee_did=$(curl --header "X-Vault-Token:{{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/"{{ admin_type }}"/"{{ admin_name }}"/identity/public | jq -r 'if .errors then . else .data.did end');
-    trustee_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/"{{ admin_type }}"/"{{ admin_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
+    trustee_did=$(curl --header "X-Vault-Token:{{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/data/"{{ admin_type }}"/"{{ admin_name }}"/identity/public | jq -r 'if .errors then . else .data.data.did end');
+    trustee_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/data/"{{ admin_type }}"/"{{ admin_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data.data."verification-key" end');
     first_trustee_in_org_did="${trustee_did}"
     identity_data="first_trustee_name: ${first_trustee_in_org_did}"
     echo "${identity_data}" >> data.yaml
@@ -18,8 +24,8 @@
     echo "${identity_data}" >> data.yaml
 
     endorser_name={{ identity_name }}
-    endorser_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/"{{ identity_type }}"/"{{ identity_name }}"/identity/public | jq -r 'if .errors then . else .data.did end');
-    endorser_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/"{{ identity_type }}"/"{{ identity_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data."verification-key" end');
+    endorser_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/data/"{{ identity_type }}"/"{{ identity_name }}"/identity/public | jq -r 'if .errors then . else .data.data.did end');
+    endorser_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/data/"{{ identity_type }}"/"{{ identity_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data.data."verification-key" end');
 
     identity_data="endorser_name: ${endorser_name}"
     echo "${identity_data}" >> data.yaml

@@ -1,62 +1,67 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 Certificate Paths on Vault for Corda Network
 ---------------------------------------------
 
-* Optionally, `secret_path` can be set on the network.yaml to change the secret engine from the default `secret/`.
+* Secrets engine kv path for each organization services (networkmap, doorman, notary, nodes) are enabled via the automation.
 
 ### For Networkmap 
 
-| Path (networkmap crypto material) | Crypto-material         | Type        |
-|-----------------------------------|-------------------------|-------------|
-| /secrets/networkmap/certs         | networkmap.jks          | Certificate |
-| /secrets/networkmap/certs         | cacerts                 | Certificate |
-| /secrets/networkmap/certs         | keystore                | Certificate |
-| /secrets/networkmap/certs         | rootcakey               | Private key |
-| /secrets/networkmap/tlscerts      | tlscacerts              | Certificate |
-| /secrets/networkmap/tlscerts      | tlskey                  | Private key |
+| Path (networkmap crypto material)          | Crypto-material         | Type        |
+|--------------------------------------------|-------------------------|-------------|
+| /`networkmap.name_lowercase`/certs         | networkmap.jks          | Certificate |
+| /`networkmap.name_lowercase`/certs         | cacerts                 | Certificate |
+| /`networkmap.name_lowercase`/certs         | keystore                | Certificate |
+| /`networkmap.name_lowercase`/certs         | rootcakey               | Private key |
+| /`networkmap.name_lowercase`/tlscerts      | tlscacerts              | Certificate |
+| /`networkmap.name_lowercase`/tlscerts      | tlskey                  | Private key |
 
 ----
 ### For Doorman 
 
-| Path (doorman crypto material) | Crypto-material         | Type        |
-|--------------------------------|-------------------------|-------------|
-| /secrets/doorman/certs         | doorman.jks             | Certificate |
-| /secrets/doorman/certs         | cacerts                 | Certificate |
-| /secrets/doorman/certs         | keystore                | Certificate |
-| /secrets/doorman/certs         | rootcakey               | private key |
-| /secrets/doorman/tlscerts      | tlscacerts              | Certificate |
-| /secrets/doorman/tlscerts      | tlskey                  | Private key |
+| Path (doorman crypto material)          | Crypto-material         | Type        |
+|-----------------------------------------|-------------------------|-------------|
+| /`doorman.name_lowercase`/certs         | doorman.jks             | Certificate |
+| /`doorman.name_lowercase`/certs         | cacerts                 | Certificate |
+| /`doorman.name_lowercase`/certs         | keystore                | Certificate |
+| /`doorman.name_lowercase`/certs         | rootcakey               | private key |
+| /`doorman.name_lowercase`/tlscerts      | tlscacerts              | Certificate |
+| /`doorman.name_lowercase`/tlscerts      | tlskey                  | Private key |
 
 -----
 ### For Notary organization 
 
-| Path (notary crypto material)              | Crypto-material        | Type        |
-|--------------------------------------------|------------------------|-------------|
-| /secrets/notary/certs                      | Notary.cer             | Certificate |
-| /secrets/notary/certs                      | Notary.key             | Private key |
-| /secrets/notary/certs/customnodekeystore   | nodekeystore.jks       | Certificate |
-| /secrets/notary/certs/doorman              | doorman.crt            | Certificate |
-| /secrets/notary/certs/networkmap           | networkmap.crt         | Certificate |
-| /secrets/notary/certs/networkmaptruststore | network-map-truststore | Certificate |
-| /secrets/notary/certs/nodekeystore         | nodekeystore.jks       | Certificate |
-| /secrets/notary/certs/sslkeystore          | sslkeystore.jks        | Certificate |
-| /secrets/notary/certs/truststore           | truststore.jks         | Certificate |
-| /secrets/notary/tlscerts                   | tlscacerts             | Certificate |
-| /secrets/notary/tlscerts                   | tlskey                 | Private key |
+| Path (notary crypto material)                       | Crypto-material        | Type        |
+|-----------------------------------------------------|------------------------|-------------|
+| /`notary.name_lowercase`/certs                      | Notary.cer             | Certificate |
+| /`notary.name_lowercase`/certs                      | Notary.key             | Private key |
+| /`notary.name_lowercase`/certs/customnodekeystore   | nodekeystore.jks       | Certificate |
+| /`notary.name_lowercase`/certs/doorman              | doorman.crt            | Certificate |
+| /`notary.name_lowercase`/certs/networkmap           | networkmap.crt         | Certificate |
+| /`notary.name_lowercase`/certs/networkmaptruststore | network-map-truststore | Certificate |
+| /`notary.name_lowercase`/certs/nodekeystore         | nodekeystore.jks       | Certificate |
+| /`notary.name_lowercase`/certs/sslkeystore          | sslkeystore.jks        | Certificate |
+| /`notary.name_lowercase`/certs/truststore           | truststore.jks         | Certificate |
+| /`notary.name_lowercase`/tlscerts                   | tlscacerts             | Certificate |
+| /`notary.name_lowercase`/tlscerts                   | tlskey                 | Private key |
 
 -----
 
 ### For Node/Peer Organization 
 
-| Path (`orgname_lowercase` crypto material)              | Crypto-material        | Type        |
-|--------------------------------------------------|------------------------|-------------|
-| /secrets/`orgname_lowercase`/certs                      | `orgname_lowercase`.cer       | Certificate |
-| /secrets/`orgname_lowercase`/certs                      | `orgname_lowercase`.key       | Private key |
-| /secrets/`orgname_lowercase`/certs/customnodekeystore   | nodekeystore.jks       | Certificate |
-| /secrets/`orgname_lowercase`/certs/doorman              | doorman.crt            | Certificate |
-| /secrets/`orgname_lowercase`/certs/networkmap           | networkmap.crt         | Certificate |
-| /secrets/`orgname_lowercase`/certs/networkmaptruststore | network-map-truststore | Certificate |
-| /secrets/`orgname_lowercase`/certs/nodekeystore         | nodekeystore.jks       | Certificate |
-| /secrets/`orgname_lowercase`/certs/sslkeystore          | sslkeystore.jks        | Certificate |
-| /secrets/`orgname_lowercase`/certs/truststore           | truststore.jks         | Certificate |
-| /secrets/`orgname_lowercase`/tlscerts                   | tlscacerts             | Certificate |
-| /secrets/`orgname_lowercase`/tlscerts                   | tlskey                 | Private key |
+| Path (`node.name_lowercase` crypto material)      | Crypto-material        | Type        |
+|---------------------------------------------------|------------------------|-------------|
+| /`node.name_lowercase`/certs                      | `node.name_lowercase`.cer       | Certificate |
+| /`node.name_lowercase`/certs                      | `node.name_lowercase`.key       | Private key |
+| /`node.name_lowercase`/certs/customnodekeystore   | nodekeystore.jks       | Certificate |
+| /`node.name_lowercase`/certs/doorman              | doorman.crt            | Certificate |
+| /`node.name_lowercase`/certs/networkmap           | networkmap.crt         | Certificate |
+| /`node.name_lowercase`/certs/networkmaptruststore | network-map-truststore | Certificate |
+| /`node.name_lowercase`/certs/nodekeystore         | nodekeystore.jks       | Certificate |
+| /`node.name_lowercase`/certs/sslkeystore          | sslkeystore.jks        | Certificate |
+| /`node.name_lowercase`/certs/truststore           | truststore.jks         | Certificate |
+| /`node.name_lowercase`/tlscerts                   | tlscacerts             | Certificate |
+| /`node.name_lowercase`/tlscerts                   | tlskey                 | Private key |

@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role creates the block modification script for system channel.
 #############################################################################################
@@ -102,7 +108,7 @@
 # add new genesis block to the vault
 - name: "Write genesis block to Vault"  
   shell: |
-    vault write {{ org.vault.secret_path | default('secret') }}/crypto/ordererOrganizations/{{ component_ns }}  {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
+    vault kv put {{ org.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_ns }}  {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"

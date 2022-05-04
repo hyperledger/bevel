@@ -1,0 +1,50 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+###########################################################
+# Playbook to create deployment files for the following:
+#  Update networkmap with additional notaries
+# Playbook arguments: network.yaml with CENM and additional notaries orgs
+# Prerequisites: Networkmap from CENM should already be running and notaries are registered
+###########################################################
+- hosts: ansible_provisioners
+  no_log: "{{ no_ansible_log | default(false) }}"
+  gather_facts: no
+  tasks:
+  # Delete build directory before start of play, can be commented if you do not want to delete it.
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
+  # ----------------------------------------------------------------------  
+  # Check that cenm services are reachable
+  - name: Check that CENM uri are reachable
+    uri:
+      url: "{{ item.uri }}/status"
+      validate_certs: no
+    register: this
+    until: this.status == 200
+    loop: "{{ network['network_services'] }}"
+    retries: "{{ network.env.retry_count}}"
+    delay: 50
+  
+  # Update networkmap with additional notaries
+  - name: Update networkmap with Additional Notary services
+    include_role:
+      name: update/nmap
+    vars:
+      services: "{{ org.services }}"
+      organisation: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-ent"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      build_path: "{{ playbook_dir }}/build"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.type == 'cenm'

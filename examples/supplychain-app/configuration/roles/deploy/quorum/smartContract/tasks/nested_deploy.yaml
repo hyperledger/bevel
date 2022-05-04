@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ############################################################################################
 # Check if the peer is up
 - name: "Waiting for peer pod {{ peer.name }} in {{ organization_data.name | lower }}-quo"
@@ -41,16 +47,10 @@
   delay: 5
   until: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
 
-- debug:
-    msg: 
-      - "{{address['cmd']}}"
-      - "{{address['stdout_lines']}}"
-    verbosity: 2
-
 # Set the variables
 - set_fact:
-    contract_address: "{{ address['stdout_lines'][1].split(':')[1] | trim }}"
-    contract_name: "{{ address['stdout_lines'][2].split(':')[1] | trim }}"
+    contract_address: "{{ address['stdout_lines']|select('regex','contract is stored')|first|regex_replace('^contract is stored at the address:(.*)$', '\\1')|trim }}"
+    contract_name: "{{ address['stdout_lines']|select('regex','contract Name')|first|regex_replace('^contract Name:(.*)$', '\\1')|trim }}"
     check: address['stdout_lines'][1]
   when: address['stdout_lines'][1] is defined and address['stdout_lines'][1] != "Error"
 

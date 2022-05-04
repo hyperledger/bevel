@@ -11,13 +11,17 @@ spec:
     path: {{ org.gitops.chart_source }}/{{ chart }}
     git: {{ org.gitops.git_url }}
     ref: {{ org.gitops.branch }}
+{% if org.gitops.git_protocol == "https" %}
+    secretRef:
+      name: git-https-credentials
+{% endif %}
   values:
     nodeName: {{ services.doorman.name }}
     metadata:
       namespace: {{component_ns }}
     image:
       authusername: sa
-      containerName: {{ network.docker.url }}/doorman-linuxkit:latest
+      containerName: {{ network.docker.url }}/bevel-doorman-linuxkit:latest
       env:
       - name: DOORMAN_PORT
         value: 8080
@@ -37,7 +41,9 @@ spec:
         value: admin
       - name: DB_USERNAME
         value: {{ services.doorman.name }}
+{% if network.docker.username is defined %}
       imagePullSecret: regcred
+{% endif %}
       tlsCertificate: {{ chart_tls }}
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       mountPath:
@@ -52,11 +58,11 @@ spec:
       role: vault-role
       authpath: {{ component_auth }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ services.doorman.name }}/certs
-      dbcredsecretprefix: {{ services.doorman.name }}/credentials/mongodb
-      secretdoormanpass: {{ services.doorman.name }}/credentials/userpassword
-      tlscertsecretprefix: {{ services.doorman.name }}/tlscerts
-      dbcertsecretprefix: {{ component_name }}/certs
+      certsecretprefix: {{ services.doorman.name }}/data/certs
+      dbcredsecretprefix: {{ services.doorman.name }}/data/credentials/mongodb
+      secretdoormanpass: {{ services.doorman.name }}/data/credentials/userpassword
+      tlscertsecretprefix: {{ services.doorman.name }}/data/tlscerts
+      dbcertsecretprefix: {{ component_name }}/data/certs
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15

@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -52,7 +58,7 @@ spec:
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
@@ -70,10 +76,24 @@ spec:
           #!/usr/bin/env sh
           
           validateVaultResponse () {
-          if echo ${2} | grep "errors"; then
-           echo "ERROR: unable to retrieve ${1}: ${2}"
-           exit 1
-           fi
+            if echo ${2} | grep "errors"; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+            fi
+            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+            then
+              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key})
+              curl_response=$?
+              if test "$http_code" != "200" ; then
+                  echo "Http response code from Vault - $http_code"
+                  if test "$curl_response" != "0"; then
+                     echo "Error: curl command failed with error code - $curl_response"
+                     exit 1
+                  fi
+              fi
+            fi
           }
           KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
@@ -93,12 +113,12 @@ spec:
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
           nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekey"]')
           keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
-          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["gethpassword"]')                    
+          geth_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["geth_password"]')                    
           
-          echo "${gethpassword}" > ${OUTPUT_PATH}/passwords.txt          
+          echo "${geth_password}" > ${OUTPUT_PATH}/passwords.txt          
           echo "${nodekey}" > ${OUTPUT_PATH}/nodekey
           echo "${keystore}" > ${OUTPUT_PATH}/{{ .Values.node.keystore }}
 
@@ -108,7 +128,7 @@ spec:
             --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
             ${VAULT_ADDR}/v1/${vault_secret_key} | \
             jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
 
           tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.pub"]')
           tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tm.key"]')
@@ -120,6 +140,7 @@ spec:
           mountPath: /secret
       - name: quorum-genesis-init-container
         image: "{{ .Values.images.node }}"
+        imagePullPolicy: IfNotPresent
         command: [ "sh" ]
         args:
         - "-cx"
@@ -142,6 +163,7 @@ spec:
       containers:
       - name: constellation
         image: {{ .Values.images.constellation }}
+        imagePullPolicy: IfNotPresent
         command: ["sh"]
         args:
         - "-cx"
@@ -177,13 +199,14 @@ spec:
           mountPath: {{ .Values.node.mountPath }}
       - name: quorum
         image: "{{ .Values.images.node }}"
+        imagePullPolicy: IfNotPresent
         command: ["sh"]
         args:
         - "-cx"
         - |-
           #!/usr/bin/env sh
           apk add curl;
-          echo -n {{ .Values.staticnodes | toJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
+          echo -n {{ .Values.staticnodes | toRawJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
           # touch $qd/passwords.txt

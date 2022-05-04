@@ -19,10 +19,7 @@ spec:
       name: {{ network.name }}
     organization:
       name: {{ organizationItem.name }}
-    genesis:
-      pool: {{ genesis.pool | indent(width=8) | b64encode }}
-      domain: {{ genesis.domain | indent(width=8) | b64encode }}
-      add_org: {{ genesis.add_org | default(false) }}
+    add_new_org: {{ add_new_org | default(false) }}
     image:
       pullSecret: regcred
       initContainer:
@@ -31,7 +28,7 @@ spec:
       cli:
         name: {{ component_name }}-ledger-txn
         repository: {{ network.docker.url }}/indy-ledger-txn:latest
-        pullSecret: regcred  
+        pullSecret: regcred
       indyNode:
         name: {{ component_name }}
         repository: {{ network.docker.url }}/indy-node:{{ network.version }}
@@ -81,13 +78,13 @@ spec:
 {% if organizationItem.cloud_provider != 'minikube' and network.env.proxy == 'ambassador' %}
       annotations: |-
         ---
-        apiVersion: ambassador/v1
+        apiVersion: ambassador/v2
         kind: TCPMapping
         name: {{ component_name|e }}-node-mapping
         port: {{ stewardItem.node.ambassador }}
         service: {{ component_name|e }}.{{ component_ns }}:{{ stewardItem.node.targetPort }}
         ---
-        apiVersion: ambassador/v1
+        apiVersion: ambassador/v2
         kind: TCPMapping
         name: {{ component_name|e }}-client-mapping
         port: {{ stewardItem.client.ambassador }}

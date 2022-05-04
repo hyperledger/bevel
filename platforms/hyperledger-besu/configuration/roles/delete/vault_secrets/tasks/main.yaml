@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role deletes the Vault configurations
 #############################################################################################
@@ -17,7 +23,7 @@
 - name: Delete Ambassador creds
   k8s:
     kind: Secret
-    namespace: default
+    namespace: "{{ org_namespace }}"
     name: "{{ peer.name }}-ambassador-certs"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
@@ -38,12 +44,12 @@
 # This task deletes crypto material
 - name: Delete Crypto material 
   shell: |
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/data
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/orion
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/certs
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tls
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/genesis
-    vault delete {{ item.vault.secret_path | default('secret') }}/besu-{{ network.env.type }}/rootca
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/data
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tm
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/credentials
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/genesis
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/ambassadorcerts/rootca
   loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"

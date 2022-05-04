@@ -1,18 +1,34 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
 # This is a sample configuration file for testing Fabric deployment on minikube which has 3 nodes.
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: fabric
-  version: 1.4.8                 # currently tested 1.4.4 and 2.2.0
+  version: 1.4.8                 # currently tested 1.4.4 and 2.2.2
 
   #Environment section for Kubernetes setup
   env:
     type: "local"                   # tag for the environment. Important to run multiple flux on single cluster
-    proxy: none                     # 'none' only minikube does not use a proxy
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    proxy: none                     # 'none' can be used in single-cluster networks to don´t use a proxy
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15020
+    # ports: 15020,15021      # For specific ports
     retry_count: 50                 # Retry count for the checks
     external_dns: disabled          # Should be disabled for minikube
+    annotations:              # Additional annotations that can be used for some pods (ca, ca-tools, orderer and peer nodes)
+      service: 
+       - example1: example2
+      deployment: {} 
+      pvc: {}
 
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry.
@@ -29,7 +45,7 @@ network:
       name: orderer1
       org_name: supplychain                 # org_name should match one organization definition below in organizations: key            
       uri: orderer1.supplychain-net:7050    # Internal URI for orderer which should be reachable by all peers
-      certificate: /home/blockchain-automation-framework/build/orderer1.crt   # the directory should be writable
+      certificate: /home/bevel/build/orderer1.crt   # the directory should be writable
   
   # The channels defined for a network with participating peers in each channel
   channels:
@@ -82,33 +98,37 @@ network:
         certificate: file/server.crt           # This has not been implemented yet
   
       cloud_provider: aws   # Options: aws, azure, gcp
+      
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
   
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
         region: "cluster_region"
         context: "cluster_context"
-        config_file: "/home/blockchain-automation-framework/build/config"
+        config_file: "/home/bevel/build/config"
 
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
         url: "vault_url"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"  # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"  # Gitops https or ssh url for flux value files 
         branch: "local"                                                                 # Git branch where release is being made
         release_dir: "platforms/hyperledger-fabric/releases/dev"                        # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"       # Gitops git repository URL for git push  (without https://)
+        git_repo: "github.com/<username>/bevel.git"       # Gitops git repository URL for git push  (without https://)
         username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "github_token"                                                        # Git Server user password or token
-        email: "github_email"                                                           # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops"               # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                                                           # Email to use in git config
+        private_key: "/home/bevel/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
      
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample is an orderer service and includes a zk-raft consensus
@@ -152,33 +172,37 @@ network:
         certificate: file/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp
-        
+
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+          
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
         region: "cluster_region"
         context: "cluster_context"
-        config_file: "/home/blockchain-automation-framework/build/config"
+        config_file: "/home/bevel/build/config"
 
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
         url: "vault_url"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"  # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"  # Gitops https or ssh url for flux value files 
         branch: "local"                                                                 # Git branch where release is being made
         release_dir: "platforms/hyperledger-fabric/releases/dev"                        # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"       # Gitops git repository URL for git push  (without https://)
+        git_repo: "github.com/<username>/bevel.git"       # Gitops git repository URL for git push  (without https://)
         username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "github_token"                                                        # Git Server user password or token
-        email: "github_email"                                                           # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops"               # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                                                           # Email to use in git config
+        private_key: "/home/bevel/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # The participating nodes are peers
       # This organization hosts it's own CA server
@@ -215,7 +239,7 @@ network:
             repository:
               username: "github_username"          # Git user
               password: "github_token"             # Git token or password of above user
-              url: "github.com/<username>/blockchain-automation-framework.git"
+              url: "github.com/<username>/bevel.git"
               branch: develop
               path: "examples/supplychain-app/fabric/chaincode_rest_server/chaincode/"  #The path to the chaincode in the repo
             arguments: '\"init\",\"\"'                                                  #Arguments to be passed along with the chaincode parameters
@@ -235,33 +259,37 @@ network:
         certificate: file/server.crt
       
       cloud_provider: aws   # Options: aws, azure, gcp
-        
+
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+          
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
         region: "cluster_region"
         context: "cluster_context"
-        config_file: "/home/blockchain-automation-framework/build/config"
+        config_file: "/home/bevel/build/config"
 
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
         url: "vault_url"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"  # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"  # Gitops https or ssh url for flux value files 
         branch: "local"                                                                 # Git branch where release is being made
         release_dir: "platforms/hyperledger-fabric/releases/dev"                        # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"       # Gitops git repository URL for git push  (without https://)
+        git_repo: "github.com/<username>/bevel.git"       # Gitops git repository URL for git push  (without https://)
         username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "github_token"                                                        # Git Server user password or token
-        email: "github_email"                                                           # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops"               # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                                                           # Email to use in git config
+        private_key: "/home/bevel/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       services:
         ca:
@@ -296,7 +324,7 @@ network:
             repository:
               username: "github_username"          # Git user
               password: "github_token"             # Git token or password of above user
-              url: "github.com/<username>/blockchain-automation-framework.git"
+              url: "github.com/<username>/bevel.git"
               branch: develop
               path: "examples/supplychain-app/fabric/chaincode_rest_server/chaincode/"  #The path to the chaincode in the repo
             arguments: '\"init\",\"\"'                                                  #Arguments to be passed along with the chaincode parameters

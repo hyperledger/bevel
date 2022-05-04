@@ -1,52 +1,64 @@
-# DLT Blockchain Network deployment using docker build
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
 
-## Building the docker image
+# DLT Blockchain Network deployment using Docker
 
-Build the docker image using the docker file  `Dockerfile` provided in the blockchain-automation-framework repository.
+Hyperledger Bevel is targeted for Production systems, but for quick developer deployments, you can create the containerized Ansible controller to deploy the dev DLT/Blockchain network.  
 
-The docker image should be built from the root directory of the repository, the image builds the required base enviorment for BAF deployment and copies the a provisional script `run.sh` in the `WORKDIR`, it also sets a path for mounting volume
+## Prerequisites
 
-Following is a code snippet of the docker image showing `WORKDIR` and `VOLUME`
+Follow instructions to [install](./prerequisites.md) and [configure](./operations/configure_prerequisites.md) common prerequisites. In summary, you should have details of the following:
 
-``` shell
-WORKDIR /home/
-```
-The VOLUME instruction creates a mount point with the specified name and marks it as holding externally mounted volumes from native host
+1. A machine (aka host machine) on which you can run docker commands i.e. which has docker command line installed and is connected to a docker daemon.
+2. At least one Kubernetes cluster (with connectivity to the host machine).
+3. At least one Hashicorp Vault server (with connectivity to the host machine).
+4. Read-write access to the Git repo (either ssh private key or https token).
 
-``` shell
-VOLUME /home/blockchain-automation-framework/
-```
+## Steps to use the bevel-build container
 
-Use the below command to build the image
-```
-docker build . -t hyperledgerlabs/baf-build
-```
+1.  Clone the git repo to host machine, call this the project folder
 
-This would create an image named hyperledgerlabs/baf-build
+    ```
+    git clone https://github.com/hyperledger/bevel
 
+    ```
+1. Depending on your platform of choice, there can be some differences in the configuration file. Please follow platform specific links below to learn more on updating the configuration file.
+    * [R3 Corda Configuration File](../operations/corda_networkyaml.md)
+    * [Hyperledger Fabric Configuration File](../operations/fabric_networkyaml.md)
+    * [Hyperledger Indy Configuration File](../operations/indy_networkyaml.md)
+    * [Quorum Configuration File](../operations/quorum_networkyaml.md)
+    * [Hyperledger Besu Configuration File](../operations/besu_networkyaml.md)
 
+1. Create a build folder in the project folder; this build folder should have the following files:
 
-## Running the docker and provisioning script
+    a) K8s config file as config  
+    b) Network specific configuration file as network.yaml  
+    c) If using SSH for Gitops, Private key file which has write-access to the git repo
 
-A shell script `run.sh` is provided in repository to set the environment variables and run the network deployment playbook.  
+    Screen shot of the folder structure is below:   
 
-The BAF `Dockerfile` provides defaults for the executing container using the `CMD` variable
+    ![](./../_static/DockerBuildFolder.png)
 
-``` shell
-CMD ["/home/run.sh"]
-```
-Use the below command to run the container and the provisioning scripts, the command needs to be run from the root directory of the repository. The command also binds and mounts a volume, in this case it binds the repository 
+1. Ensure the configuration file (`./build/network.yaml`) has been updated with the DLT network that you want to configure.
 
-```shell
-docker run -it -v $(pwd):/home/blockchain-automation-framework/ hyperledgerlabs/baf-build
-```
-Before running the above command add a build folder in the root directory of the repository, this build folder should have the following files:
+1. Run the following command to run the provisioning scripts, the command needs to be run from the project folder. The command also binds and mounts a volume, in this case it binds the repository 
 
-1) K8s config file as config  
-2) Network specific configuration file as network.yaml  
-3) Private key file which has write-access to the git repo
+    ```bash
+    docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
 
-Screen shot of the folder structure is below:  
-![](./../_static/DockerBuildFolder.png)
+    # For Corda use jdk8 version
+    docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:jdk8-latest
+    ```
+1. In case you have failures and need to debug, login to the bash shell
 
-The paths in network configuration file should be changed accordingly.
+    ```bash
+    docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest bash
+
+    # go to bevel directory
+    cd bevel
+    # Run the provisioning scripts
+    ansible-playbook  platforms/shared/configuration/site.yaml -e "@./build/network.yaml" 
+
+    ```

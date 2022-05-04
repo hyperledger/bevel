@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,11 +35,7 @@ spec:
     spec:
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
         fsGroup: 1000
-      imagePullSecrets:
-        - name: {{ .Values.image.imagepullsecret }}
       initContainers:
       - name: init-check-registration
         image: {{ .Values.image.initContainerName }}
@@ -56,13 +58,27 @@ spec:
                   echo "ERROR: unable to retrieve ${1}: ${2}"
                   exit 1
                 fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
               }
 
             # setting up env to get secrets from vault
             echo "Getting secrets from Vault Server"
             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-            
+
             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
             echo "logged into vault"
             COUNTER=1
@@ -70,12 +86,15 @@ spec:
             do
                 # get truststore from vault to see if registration is done or not
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore | jq -r 'if .errors then . else . end')
-                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                if [ "$data_info" == "null" ]
                 then
                   sleep {{ $.Values.vault.retryInterval }}
                 else
+                  validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                   break
-                fi 
+                fi
                 COUNTER=`expr "$COUNTER" + 1`
             done
 
@@ -105,12 +124,25 @@ spec:
         args:
         - |-
               #!/usr/bin/env sh
-              
               validateVaultResponse () {
-              if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-              fi
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
               }
               
               # setting up env to get secrets from vault
@@ -124,49 +156,49 @@ spec:
               
               # get nodekeystore.jks from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/nodekeystore | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/nodekeystore)" "${LOOKUP_SECRET_RESPONSE}"
-              TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekeystore.jks"]')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/nodekeystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekeystore.jks"]')
               echo "${TLS_NODEKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/nodekeystore.jks
 
               # get sslkeystore.jks from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/sslkeystore | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/sslkeystore)" "${LOOKUP_SECRET_RESPONSE}"
-              TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["sslkeystore.jks"]')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/sslkeystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["sslkeystore.jks"]')
               echo "${TLS_SSLKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/sslkeystore.jks
 
               # get truststore.jks from vault
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/truststore | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/truststore)" "${LOOKUP_SECRET_RESPONSE}"
-              TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["truststore.jks"]')
               echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks              
               echo "Done"
 
               mkdir -p ${OUTPUT_PATH}/tlscerts
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }} | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }})" "${LOOKUP_SECRET_RESPONSE}"
-              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.idmanName }}.crt"]')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.idmanName }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ .Values.networkServices.idmanName }}.crt"]')
               echo "${IDMAN_CERT}" | base64 -d > ${OUTPUT_PATH}/tlscerts/idman.crt
 
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }} | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }})" "${LOOKUP_SECRET_RESPONSE}"
-              NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.networkServices.networkmapName }}.crt"]')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/certs/{{ .Values.networkServices.networkmapName }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ .Values.networkServices.networkmapName }}.crt"]')
               echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/tlscerts/networkmap.crt
 
               # Fetching the node tlscerts
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/tlscerts | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/tlscerts)" "${LOOKUP_SECRET_RESPONSE}"
-              NODE_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              NODE_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
               echo "${NODE_CERT}" | base64 -d > ${OUTPUT_PATH}/tlscerts/node.crt 
 
               # Fetching node keystore, node truststore and network-root-truststore credentials from vault
               mkdir -p ${OUTPUT_PATH}/credentials
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/credentials)" "${LOOKUP_SECRET_RESPONSE}"
-              TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore"]')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TRUSTSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["truststore"]')
               echo "${TRUSTSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/truststorepass
-              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
               echo "${KEYSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/keystorepass  
-              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["root"]')
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["root"]')
               echo "${KEYSTORE_PASSWORD}" > ${OUTPUT_PATH}/credentials/rootpass
               echo "Done"
         volumeMounts:
@@ -239,12 +271,12 @@ spec:
             
             # save cordapps login password from vault
             LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials | jq -r 'if .errors then . else . end')                            
-            REPO_USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["repo_password"]')
-            REPO_USER=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["repo_username"]')
+            REPO_USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["repo_password"]')
+            REPO_USER=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["repo_username"]')
             
             # Downloading official corda provided jars using curl 
             {{- range .Values.cordapps.jars }}
-              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -J {{ .url }}
+              cd /tmp/downloaded-jars && curl -u $REPO_USER:$REPO_USER_PASS -O -L {{ .url }}
             {{- end }}
             cp -ar /tmp/downloaded-jars/* ${BASE_DIR}/cordapps
           {{- end }}
@@ -263,7 +295,7 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          mkdir bin
+          mkdir -p ${BASE_DIR}/etc
           echo 'myLegalName: "{{ .Values.nodeConf.legalName }}"
           emailAddress: "{{ .Values.nodeConf.emailAddress }}"
           p2pAddress: "{{ .Values.service.p2pAddress }}:{{ .Values.service.p2pPort }}"
@@ -322,26 +354,23 @@ spec:
           }
           database = {
           {{- if eq .Values.dataSourceProperties.dataSource.dataSourceClassName "oracle.jdbc.pool.OracleDataSource" }}
-              transactionIsolationLevel = READ_COMMITTED
               schema = xe
           {{- end}}
-              runMigration = true
-          }' >> ${BASE_DIR}/node.conf
+          }' > ${BASE_DIR}/node.conf
 
           export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/truststorepass)
           sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/node.conf
           export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
           sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/node.conf
 
-          cp corda.jar bin/
-          chmod +x bin/*
           # to clean network-parameters on every restart
           rm -rf ${BASE_DIR}/network-parameters
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/networkmap.crt -storepass changeit -alias {{ .Values.networkServices.networkMapDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/idman.crt -storepass changeit -alias {{ .Values.networkServices.idmanDomain }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/node.crt -storepass changeit -alias {{ .Values.nodeName }} -keystore /usr/lib/jvm/zulu8.33.0.1-jdk8.0.192-linux_musl_x64/jre/lib/security/cacerts
-          
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/networkmap.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.networkMapDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/idman.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.idmanDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/node.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.nodeName }} -keystore ${BASE_DIR}/certificates/truststore.jks
+
           /bin/sh
+          
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
           if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
           then
@@ -349,7 +378,12 @@ spec:
               echo "Starting Node node ..."
               echo
               # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
-              java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/node.conf --base-directory ${BASE_DIR}
+              java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks \
+                   -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks \
+                   -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} \
+                   -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
+                   -f ${BASE_DIR}/node.conf --base-directory ${BASE_DIR} \
+                   --log-to-console
               EXIT_CODE=${?}
           else
               echo "Missing node jar file in {{ .Values.nodeConf.jarPath }} folder:"
@@ -388,12 +422,14 @@ spec:
         args:
         - |-
           cd {{ .Values.nodeConf.volume.baseDir }}/
-          while true; do tail -f logs/*.log 2>/dev/null; sleep 5; done
+          tail -f logs/*.log 2>/dev/null
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
         - name: node-volume
           mountPath: {{ .Values.nodeConf.volume.baseDir }}
+      imagePullSecrets:
+        - name: {{ .Values.image.imagepullsecret }}
       volumes:
       - name: node-certificates
         emptyDir:

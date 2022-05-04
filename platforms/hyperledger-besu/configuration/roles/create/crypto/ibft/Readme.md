@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/crypto/ibft
 This role generates ibftConfigFile.json, key, key.pub, genesis.json and nodeAddress for each organization.
 ### main.yaml
@@ -163,7 +168,7 @@ This task adds the crypto material to Vault
 #### 1. Check if key already present in the vault
 This tasks checks if key is already present in the vault
 
-**shell**: This module runs the vault read command in a shell
+**shell**: This module runs the vault kv get command in a shell
 
 ##### Input Variables
 

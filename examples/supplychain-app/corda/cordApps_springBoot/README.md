@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supply Chain Corda
 
  This project consists of the cordapp, cordapp-supply-chain and cordapp-contract-states . Nodes with the cordapp-supply-chain may interact with the two TrackableStates; ProductState and a ContainerState as defined in cordapp-contract-states.
@@ -22,6 +27,8 @@
 
 See https://docs.corda.net/getting-set-up.html.
 
+Notably:
+ - Set JAVA_HOME to use JDK-8
 
 # Executing Tests
 
@@ -34,6 +41,28 @@ To run the test suite you can run the command
     **Windows:**
 
          gradlew.bat test
+
+# Build Cordapp Jars and publish to Maven repo
+
+To build the cordapp jars only, run the command
+     
+     **Unix:**
+
+         ./gradlew clean build
+
+    **Windows:**
+
+         gradlew.bat clean build
+
+To publish to repo, first update the repo addess and usename/password details in `gradle.properties` (Do not check in the username/password). Then, execute the command
+
+     **Unix:**
+
+         ./gradlew publish
+
+    **Windows:**
+
+         gradlew.bat publish
 
 
 # Nodes
@@ -129,6 +158,17 @@ see a single jar file, you can run multiple instances per application.properties
 
     java -Dspring.profiles.active=PartyA -jar webserver-supply-chain-0.1.jar
 
+## Creating Docker Image for Webserver
+1. Execute the following command from this folder. Use argument var_WEBAPP_NAME to pass the webserver jar file (so please ensure that the gradle build created the jar file).
+```
+	sudo docker build --build-arg var_WEBAPP_NAME=webserver-supply-chain-4.7.jar -t supplychain_corda:springboot_latest .
+
+```
+2. The above command will create an image with tag *supplychain_corda:springboot_latest*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command below:
+```
+	sudo docker tag supplychain_corda:springboot_latest hyperledgerlabs/supplychain_corda:springboot_latest
+	sudo docker push hyperledgerlabs/supplychain_corda:springboot_latest
+```
 
 # Interacting with the network
 

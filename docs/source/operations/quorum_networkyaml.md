@@ -1,10 +1,20 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Configuration file specification: Quorum
-A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Quorum DLT network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
+A network.yaml file is the base configuration file designed in Hyperledger Bevel for setting up a Quorum DLT network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
 ![](./../_static/TopLevelClass-Quorum.png)
 
 Before setting up a Quorum DLT/Blockchain network, this file needs to be updated with the required specifications.  
+
 A sample configuration file is provided in the repo path:  
 `platforms/quorum/configuration/samples/network-quorum.yaml` 
+
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
 
 The configurations are grouped in the following sections for better understanding.
 
@@ -28,10 +38,10 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum, here in the example its **quorum**.
 
-`version` defines the version of platform being used. The current Quorum version support is only for **2.5.0**
+`version` defines the version of platform being used. The current Quorum version support is only for **21.4.2**
 
 ---
-**NOTE**: Use Quorum Version 2.5.0 if you are deploying Supplychain smartcontracts from examples.
+**NOTE**: Use Quorum Version 21.4.2 if you are deploying Supplychain smartcontracts from examples.
 
 ---
 
@@ -42,10 +52,13 @@ The snapshot of the `env` section with example value is below
   env:
     type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Quorum
-    ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: 0.0.0.0/0 # Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'  
     retry_count: 50                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -56,8 +69,8 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Quorum |
-| ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
-| loadBalancerSourceRanges | Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
+| ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
+| loadBalancerSourceRanges | Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -96,8 +109,7 @@ The snapshot of the `config` section with example values is below
     # This is the version of "tessera" or "constellation" docker image that will be deployed
     # Supported versions #
     # constellation: 0.3.2 (For all versions of quorum)
-    # tessera: 0.10.4 (for quorum 2.5.0)
-    tm_version: "0.10.4"               # This is the version of "tessera" and "constellation" docker image that will be deployed
+    tm_version: "21.7.3"               # This is the version of "tessera" and "constellation" docker image that will be deployed
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
@@ -113,8 +125,8 @@ The snapshot of the `config` section with example values is below
       - "https://manufacturer.test.quorum.blockchaincloudpoc.com:8443"
       - "https://store.test.quorum.blockchaincloudpoc.com:8443"
       - "https://warehouse.test.quorum.blockchaincloudpoc.com:8443"
-    staticnodes: "/home/user/blockchain-automation-framework/build/quorum_staticnodes" # Location where staticnodes will be saved
-    genesis: "/home/user/blockchain-automation-framework/build/quorum_genesis"   # Location where genesis file will be saved
+    staticnodes: "/home/user/bevel/build/quorum_staticnodes" # Location where staticnodes will be saved
+    genesis: "/home/user/bevel/build/quorum_genesis"   # Location where genesis file will be saved
     # NOTE for the above paths, the directories should exist
     ##### Following keys are only used when adding new Node(s) to existing network and should NOT be used to create new network.
     bootnode:
@@ -134,7 +146,7 @@ The fields under `config` are
 | consensus   | Currently supports `raft` or `ibft`. Please update the remaining items according to the consensus chosen as not all values are valid for both the consensus.                                 |
 | subject     | This is the subject of the root CA which will be created for the Quorum network. The root CA is for development purposes only, production networks should already have the root certificates.   |
 | transaction_manager    | Options are `tessera` and `constellation`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager. |
-| tm_version         | This is the version of `tessera` and `constellation` docker image that will be deployed. Supported versions: `0.10.4` and `0.9.2` for `tessera` and `0.3.2` for `constellation`. |
+| tm_version         | This is the version of `tessera` and `constellation` docker image that will be deployed. Supported versions: `21.7.3` for `tessera` and `0.3.2` for `constellation`. |
 | tm_tls | Options are `strict` and `off`. This enables TLS for the transaction managers, and is not related to the actual Quorum network. `off` is not recommended for production. |
 | tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for tessera]( https://github.com/jpmorganchase/tessera/wiki/TLS) and [for consellation](https://github.com/jpmorganchase/constellation/blob/master/sample.conf).|
 | tm_nodes | The Transaction Manager nodes public addresses should be provided. For `tessera`, all participating nodes should be provided, for `constellation`, only one bootnode should be provided. NOTE The difference in the addresses for Tessera and Constellation. |
@@ -144,6 +156,7 @@ The fields under `config` are
 
 
 The `organizations` section contains the specifications of each organization.  
+
 In the sample configuration example, we have four organization under the `organizations` section.
 
 The snapshot of an organization field with sample values is below
@@ -199,30 +212,31 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops htpps or ssh url for flux value files
+        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/Quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/Quorum/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # without https://
+        git_repo: "github.com/<username>/bevel.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
-        password: "<password>"          # Git Server user password/personal token
+        password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
         email: "<git_email>"              # Email to use in git config
-        private_key: "<path to gitops private key>"
+        private_key: "<path to gitops private key>" # Path to private key (Optional for https; Required for ssh)
 ```
 
 The gitops field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
+| git_protocol | Option for git over https or ssh. Can be `https` or `ssh` |
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
-| password                             | Password of the user which has access rights to read/write on repository                                         |
+| password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https) |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |
+| private_key                          | Path to the private key file which has write-access to the git repo (Optional for https; Required for ssh) |
 
 The services field for each organization under `organizations` section of Quorum contains list of `services` which could be only peers as of now.
 
@@ -232,7 +246,7 @@ Each organization with type as peer will have a peers service. The snapshot of p
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
+          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
             port: 21000

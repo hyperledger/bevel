@@ -1,20 +1,30 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
 # This is a sample configuration file for Quorum network which has 4 nodes.
 # All text values are case-sensitive
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: quorum
-  version: 2.5.0 #this is the version of Quorum docker image that will be deployed
+  version: 21.4.2 #this is the version of Quorum docker image that will be deployed
 
   #Environment section for Kubernetes setup
   env:
     type: "local" # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador # value has to be 'ambassador' as 'haproxy' has not been implemented for Quorum
-    ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports
     retry_count: 20 # Retry count for the checks on Kubernetes cluster
     external_dns: disabled # Should be enabled if using external-dns for automatic route configuration
 
@@ -23,8 +33,8 @@ network:
   # Do not check-in docker_password.
   docker:
     url: "index.docker.io/hyperledgerlabs"
-    username: "<YOUR DOCKER USERNAME>"
-    password: "<YOUR DOCKER PASSWORD>"
+    username: "docker_username"
+    password: "docker_password"
 
   # Following are the configurations for the common Quorum network
   config:
@@ -34,7 +44,7 @@ network:
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
     transaction_manager: "tessera" # Options are "tessera" and "constellation"
-    tm_version: "0.10.4" # This is the version of "tessera" and "constellation" docker image that will be deployed
+    tm_version: "21.7.3" # This is the version of "tessera" and "constellation" docker image that will be deployed
     tm_tls: "strict" # Options are "strict" and "off"
     tm_trust: "tofu" # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
@@ -49,10 +59,9 @@ network:
       - "https://carrier.carrier-quo.svc.cluster.local:9001"
       - "https://manufacturer.manufacturer-quo.svc.cluster.local:9001"
       - "https://warehouse.warehouse-quo.svc.cluster.local:9001"
-    genesis: # Existing network's genesis.json file in base64 format like below
-    #     ewogICAgImFsbG9jIjogewogICAgICAgICIwOTg2Nzk2ZjM0ZDhmMWNkMmI0N2M3MzQ2YTUwYmY2
-    #     OWFhOWM1NzcyIjogewogICAgICAgICAgICAiYmFsYW5jZSI6ICIxMDAwMDAwMDAwMDAwMDAwMDAw
-    #     MDAwMDAwMDAwIgogICAgICAgIH0sCiAgICAgICAgImY2MjkyNTQ1YWVjNTkyMDU4MzQ
+    genesis: "/home/user/bevel/build/quorum_genesis"   # Location where genesis file will be saved
+    # NOTE for the above paths, the directories should exist
+
 
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -65,25 +74,25 @@ network:
       # the cluster has already been created.
       k8s:
         context: "minikube"
-        config_file: "/home/blockchain-automation-framework/build/config"
+        config_file: "/home/bevel/build/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
         url: "http://<Your Vault local IP address>:8200" #e.g. http://192.168.0.1:8200
-        root_token: "<Your Vault root token>"
+        root_token: "vault_root_token"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git" # Gitops https or ssh url for flux value files 
         branch: "local" # Git branch where release is being made
         release_dir: "platforms/quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment.
         chart_source: "platforms/quorum/charts" # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # Gitops git repository URL for git push  (without https://)
+        git_repo: "github.com/<username>/bevel.git" # Gitops git repository URL for git push  (without https://)
         username: "github_username" # Git user who has rights to check-in in all branches
-        password: "git password / token" # Git Server user password or token
-        email: "github_email" # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops" # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com" # Email to use in git config
+        private_key: "/home/bevel/build/gitops" # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # The participating nodes are named as peers
       services:
@@ -91,8 +100,8 @@ network:
           - peer:
             name: carrier
             subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-            type: validator # value can be validator or non-validator, only applicable if consensus = 'ibft'
-            geth_passphrase: 12345 # Passphrase to be used to generate geth account
+            type: validator # value can be validator or member, only applicable if consensus = 'ibft'
+            geth_passphrase: "12345" # Passphrase to be used to generate geth account
             p2p:
               port: 21000
               ambassador: 15010 #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -102,6 +111,7 @@ network:
             transaction_manager:
               port: 9001
               ambassador: 15012
+              clientport: 8888
             raft: # Only used if consensus = 'raft'
               port: 50401
               ambassador: 15013
@@ -117,25 +127,25 @@ network:
       # the cluster has already been created.
       k8s:
         context: "minikube"
-        config_file: "/home/blockchain-automation-framework/build/config"
+        config_file: "/home/bevel/build/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
         url: "http://<Your Vault local IP address>:8200" #e.g. http://192.168.0.1:8200
-        root_token: "<Your Vault root token>"
+        root_token: "vault_root_token"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git" # Gitops https or ssh url for flux value files 
         branch: "local" # Git branch where release is being made
         release_dir: "platforms/quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment.
         chart_source: "platforms/quorum/charts" # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # Gitops git repository URL for git push  (without https://)
+        git_repo: "github.com/<username>/bevel.git" # Gitops git repository URL for git push  (without https://)
         username: "github_username" # Git user who has rights to check-in in all branches
-        password: "git password / token" # Git Server user password or token
-        email: "github_email" # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops" # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com" # Email to use in git config
+        private_key: "/home/bevel/build/gitops" # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # The participating nodes are named as peers
       services:
@@ -143,8 +153,8 @@ network:
           - peer:
             name: manufacturer
             subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH" # This is the node identity. L=lat/long is mandatory for supplychain sample app
-            type: validator # value can be validator or non-validator, only applicable if consensus = 'ibft'
-            geth_passphrase: 12345 # Passphrase to be used to generate geth account
+            type: validator # value can be validator or member, only applicable if consensus = 'ibft'
+            geth_passphrase: "12345" # Passphrase to be used to generate geth account
             p2p:
               port: 21000
               ambassador: 15020 #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -154,6 +164,7 @@ network:
             transaction_manager:
               port: 9001
               ambassador: 15022
+              clientport: 8888
             raft: # Only used if consensus = 'raft'
               port: 50401
               ambassador: 15023
@@ -168,33 +179,33 @@ network:
       # the cluster has already been created.
       k8s:
         context: "minikube"
-        config_file: "/home/blockchain-automation-framework/build/config"
+        config_file: "/home/bevel/build/config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
       # Do not check-in root_token
       vault:
         url: "http://<Your Vault local IP address>:8200" #e.g. http://192.168.0.1:8200
-        root_token: "<Your Vault root token>"
+        root_token: "vault_root_token"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git" # Gitops https or ssh url for flux value files 
         branch: "local" # Git branch where release is being made
         release_dir: "platforms/quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment.
         chart_source: "platforms/quorum/charts" # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # Gitops git repository URL for git push  (without https://)
+        git_repo: "github.com/<username>/bevel.git" # Gitops git repository URL for git push  (without https://)
         username: "github_username" # Git user who has rights to check-in in all branches
-        password: "git password / token" # Git Server user password or token
-        email: "github_email" # Email to use in git config
-        private_key: "/home/blockchain-automation-framework/build/gitops" # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com" # Email to use in git config
+        private_key: "/home/bevel/build/gitops" # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       services:
         peers:
           - peer:
             name: warehouse
             subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
-            type: validator # value can be validator or non-validator, only applicable if consensus = 'ibft'
-            geth_passphrase: 12345 # Passphrase to be used to generate geth account
+            type: validator # value can be validator or member, only applicable if consensus = 'ibft'
+            geth_passphrase: "12345" # Passphrase to be used to generate geth account
             p2p:
               port: 21000
               ambassador: 15040 #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -204,6 +215,7 @@ network:
             transaction_manager:
               port: 9001
               ambassador: 15042
+              clientport: 8888
             raft: # Only used if consensus = 'raft'
               port: 50401
               ambassador: 15043

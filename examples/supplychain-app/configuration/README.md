@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Supplychain Playbooks
 
 ## Overview
@@ -9,15 +14,13 @@ These playbooks deploys the smart contract in case of Quorum.
 
 To run the playbooks and deploy the APIs, following are the pre-requisites
 1. Ansible and Git are required to be setup on the machine.
-2. The DLT network setup should be complete using the Blockchain Automation Framework, which includes the GitOps setup.
+2. The DLT network setup should be complete using Hyperledger Bevel, which includes the GitOps setup.
 3. A complete input configuration file: *network.yaml* as described in **Step 1**.
 
 ## Playbook Description 
 There are following playbooks.
 
-* `deploy-api.yaml` : Creates the value files for Corda springboot-server, Fabric REST-server and respective express-api and commits them into gitops repository.
-
-* `deploy-supplychain-smartContract.yaml` : Deploys the Smart Contract on a Quorum node in an existing Quorum or Hyperledger-Besu network using a javascript file.
+* `deploy-supplychain-app.yaml` : Deploys the Smart Contract/ Chaincode on a DLT network.
 
 ## To Deploy the Supply-Chain APIs:
 
@@ -123,8 +126,8 @@ network:
                 port: 8546
                 ambassador: 15021       
               transaction_manager:
-                port: 8443          
-                ambassador: 8443    
+                port: 443          
+                ambassador: 443    
               raft:                     
                 port: 50401
                 ambassador: 15023

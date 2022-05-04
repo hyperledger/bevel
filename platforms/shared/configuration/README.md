@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Playbooks
 
 ## Getting started
@@ -6,7 +11,7 @@ These playbooks enables creation of value files and felicitate deployment of the
 
 ## Prerequisites for Running Playbooks
 - Ansible is required to be setup on the machine.
-- In the Blockchain Automation Framework we only connect to kubernetes cluster through our ansible and do not modify or connect to any other machine directly hence we have everything running on ansible controller . Hence the ansible host file has localhost setting. Check configuration [sample](../../shared/inventory/ansible_provisioners) inventory settings.
+- In Hyperledger Bevel we only connect to kubernetes cluster through our ansible and do not modify or connect to any other machine directly hence we have everything running on ansible controller . Hence the ansible host file has localhost setting. Check configuration [sample](../../shared/inventory/ansible_provisioners) inventory settings.
 
 - A **network.yaml** file must be presented. This file is platform specific so far.
 1. For Hyperledger Fabric, this file is in the below path. Click on the below link to go to this file.<br>
@@ -27,7 +32,7 @@ To run the playbooks, following are the pre-requisites.
 Refer to the [Getting Started](https://learn.hashicorp.com/vault/getting-started/install) guide to install Vault. Make sure that your Vault server has been [initialized and unsealed](https://learn.hashicorp.com/vault/getting-started/deploy). Make a note of vault address and initialization token.     
 
 ### Private Key for GitOps
-For synchronizing the Git repo with the cluster, the Blockchain Automation Framework configures Flux for each cluster. The authentication is via SSH key, so this key should be generated before you run the playbooks. 
+For synchronizing the Git repo with the cluster, Hyperledger Bevel configures Flux for each cluster. The authentication is via SSH key, so this key should be generated before you run the playbooks. 
 Run the following command to generate a private-public key pair named **gitops**.
 
 ```

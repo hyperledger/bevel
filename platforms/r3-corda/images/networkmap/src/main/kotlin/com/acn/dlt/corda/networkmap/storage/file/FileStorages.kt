@@ -11,6 +11,7 @@ import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpHeaders
 import io.vertx.ext.web.RoutingContext
+import net.corda.core.crypto.SecureHash
 import net.corda.nodeapi.internal.SignedNodeInfo
 import net.corda.nodeapi.internal.crypto.CertificateAndKeyPair
 import net.corda.nodeapi.internal.network.ParametersUpdate
@@ -156,13 +157,13 @@ class TextStorage(vertx: Vertx, parentDirectory: File, childDirectory: String = 
 
   override fun deserialize(location: File): Future<String> {
     val result = future<Buffer>()
-    vertx.fileSystem().readFile(location.absolutePath, result.completer())
+    vertx.fileSystem().readFile(location.absolutePath, result)
     return result.map { it.toString() }
   }
 
   override fun serialize(value: String, location: File): Future<Unit> {
     val result = future<Void>()
-    vertx.fileSystem().writeFile(location.absolutePath, Buffer.buffer(value), result.completer())
+    vertx.fileSystem().writeFile(location.absolutePath, Buffer.buffer(value), result)
     return result.map { Unit }
   }
 
@@ -172,6 +173,25 @@ class TextStorage(vertx: Vertx, parentDirectory: File, childDirectory: String = 
       putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN)
         .sendFile(resolveKey(key).absolutePath)
     }
+  }
+}
+
+class SecureHashStorage(
+  vertx: Vertx,
+  parentDirectory: File,
+  childDirectory: String = DEFAULT_CHILD_DIR
+) :
+  AbstractFileBasedNameValueStore<SecureHash>(File(parentDirectory, childDirectory), vertx) {
+  companion object {
+    const val DEFAULT_CHILD_DIR = "secure-hash"
+  }
+  
+  override fun deserialize(location: File): Future<SecureHash> {
+    return deserialize(location, vertx)
+  }
+  
+  override fun serialize(value: SecureHash, location: File): Future<Unit> {
+    return serialize(value, location, vertx)
   }
 }
 

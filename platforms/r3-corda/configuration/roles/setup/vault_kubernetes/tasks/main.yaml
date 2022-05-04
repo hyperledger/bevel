@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #################################################################################################
 # This role setups communication between the vault and kubernetes cluster and install 
 # neccessary configurations.
@@ -40,7 +46,9 @@
 - set_fact:
     vault_auth_status: true
   loop: "{{ auth_lists.stdout_lines }}"
-  when: item == component_auth_temp 
+  loop_control:
+    loop_var: itemx
+  when: itemx == component_auth_temp 
 
 ###############################################################################################
 # This task enables the path for the nms,doorman,notaries and nodes on vault
@@ -75,7 +83,7 @@
 - name: Write reviewer token
   shell: |
     export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount -n {{ component_ns }} vault-reviewer -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 -d)
-    vault write auth/{{ component_auth }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host=$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view -o jsonpath="{.clusters[?(@.name==\"{{ kubernetes.context }}\")].cluster.server}") kubernetes_ca_cert=@"./build/{{ component_ns }}.ca.cert"
+    vault write auth/{{ component_auth }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host="$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " ")" kubernetes_ca_cert=@"./build/{{ component_ns }}.ca.cert"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -99,7 +107,7 @@
 # This task creates the secret-path
 - name: Create Vault secrets path
   shell: |
-    vault secrets enable -path={{ component_name }} kv
+    vault secrets enable -version=2 -path={{ component_name }} kv
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -108,7 +116,7 @@
     - notest  
   changed_when: false
 
-# This task checks if the vault-ro polict already exists
+# This task checks if the vault-ro policy already exists
 - name: Check if policy exists
   shell: |
     vault policy read vault-crypto-{{ component_name }}-ro
@@ -131,8 +139,8 @@
 - name: Create policy for Access Control
   shell: |
     cd ./build    
-    echo "path \"{{ component_name }}/*\" {
-        capabilities = [\"read\", \"list\"]
+    echo "path \"{{ component_name }}/data/*\" {
+        capabilities = [\"read\", \"list\", \"create\", \"update\"]
     }"  >>  vault-crypto-{{ component_name }}-ro.hcl
   environment:
     VAULT_ADDR: "{{ vault.url }}"

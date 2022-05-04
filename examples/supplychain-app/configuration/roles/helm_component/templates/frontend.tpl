@@ -21,16 +21,11 @@ spec:
       nodePorts:
         port: {{ peer_frontend_port }}
         targetPort: {{ peer_frontend_targetport }}
-      image: {{ network.docker.url }}/supplychain_frontend:latest
+      image: {{ network.container_registry.url | lower }}/bevel-supplychain-frontend:latest
       pullPolicy: Always
       pullSecrets: regcred
-{% if network.env.proxy == 'ambassador' %}
-      env:
-        webserver: https://{{ peer_name }}api.{{ organization_data.external_url_suffix }}:8443
-{% else %}
       env:
         webserver: https://{{ peer_name }}api.{{ organization_data.external_url_suffix }}
-{% endif %}
     deployment:
       annotations: {}
     proxy:

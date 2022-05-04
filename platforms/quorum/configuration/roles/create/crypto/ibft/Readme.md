@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/crypto/ibft
 This role generates the crypto material for ibft consensus
 ### main.yaml
@@ -18,7 +23,7 @@ This role generates the crypto material for ibft consensus
 #### 1. Check if nodekey already present in the vault
 This tasks checks if nodekey is already present in the vault
 
-**shell**: This module runs the vault read command in a shell
+**shell**: This module runs the vault kv get command in a shell
 
 ##### Input Variables
 

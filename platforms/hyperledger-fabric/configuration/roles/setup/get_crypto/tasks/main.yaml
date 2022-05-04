@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role saves the crypto from Vault into ansible_provisioner
 #############################################################################################
@@ -10,7 +16,7 @@
 
 # Save the admincerts file
 - name: Save admincerts
-  local_action: copy content="{{ vault_output['data'].admincerts }}" dest="{{msp_path}}/admincerts/Admin@{{component_name}}-cert.pem"
+  local_action: copy content="{{ vault_output['data'].data.admincerts }}" dest="{{msp_path}}/admincerts/Admin@{{component_name}}-cert.pem"
 
 # Ensure cacerts directory is present in build
 - name: Ensure cacerts directory exists
@@ -20,10 +26,10 @@
 
 # Save the cacerts file
 - name: Save cacerts
-  local_action: copy content="{{ vault_output['data'].cacerts }}" dest="{{msp_path}}/cacerts/ca-{{component_name}}-7054.pem"
+  local_action: copy content="{{ vault_output['data'].data.cacerts }}" dest="{{msp_path}}/cacerts/ca-{{component_name}}-7054.pem"
   when: network.env.proxy == 'none'
 - name: Save cacerts for other proxy
-  local_action: copy content="{{ vault_output['data'].cacerts }}" dest="{{msp_path}}/cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem"
+  local_action: copy content="{{ vault_output['data'].data.cacerts }}" dest="{{msp_path}}/cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem"
   when: network.env.proxy != 'none'
 
 # Ensure tlscacerts directory is present in build
@@ -34,8 +40,8 @@
 
 # Save the tlscacerts file
 - name: Save tlscacerts
-  local_action: copy content="{{ vault_output['data'].tlscacerts }}" dest="{{msp_path}}/tlscacerts/ca-{{component_name}}-7054.pem"
+  local_action: copy content="{{ vault_output['data'].data.tlscacerts }}" dest="{{msp_path}}/tlscacerts/ca-{{component_name}}-7054.pem"
   when: network.env.proxy == 'none'
 - name: Save tlscacerts
-  local_action: copy content="{{ vault_output['data'].tlscacerts }}" dest="{{msp_path}}/tlscacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem"
+  local_action: copy content="{{ vault_output['data'].data.tlscacerts }}" dest="{{msp_path}}/tlscacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem"
   when: network.env.proxy != 'none'

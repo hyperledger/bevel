@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 # Task to check if ServiceAccount or configmap is created
 # This task will try for a maximum of 10 times with an interval of
@@ -23,7 +29,7 @@
   shell: |
     secret="$(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount {{ service_account }} -n {{ component_ns }} -o go-template={% raw %}'{{ (index .secrets 0).name }}'{% endraw %})"
     kube_token="$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret ${secret} -n {{ component_ns }} -o go-template={% raw %}'{{ .data.token }}'{% endraw %} | base64 -d)"
-    vault_token=$(curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/kubernetes-{{ organization }}-baf-ac-auth/login | jq -j '.auth.client_token')
+    vault_token=$(curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/kubernetes-{{ organization }}-bevel-ac-auth/login | jq -j '.auth.client_token')
     echo ${vault_token}
   register: token_output
   when: component_type == "GetServiceAccount"

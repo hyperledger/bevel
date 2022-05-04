@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: `setup/tlscerts`
 This role fetches the TLS certificates specified at a given path in the `network.yaml` and then pushes them to the Vault of each node organization.
 

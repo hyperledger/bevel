@@ -1,10 +1,19 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Configuration file specification: Hyperledger Besu
-A network.yaml file is the base configuration file designed in the Blockchain Automation Framework for setting up a Hyperledger Besu DLT/Blockchain network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
+A network.yaml file is the base configuration file designed in Hyperledger Bevel for setting up a Hyperledger Besu DLT/Blockchain network. This file contains all the configurations related to the network that has to be deployed. Below shows its structure.
 ![](./../_static/TopLevelClass-Besu.png)
 
 Before setting up a Hyperledger Besu DLT/Blockchain network, this file needs to be updated with the required specifications.  
 A sample configuration file is provided in the repo path:  
 `platforms/hyperledger-besu/configuration/samples/network-besu.yaml` 
+
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
 
 The configurations are grouped in the following sections for better understanding.
 
@@ -28,7 +37,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum/besu, here in the example its **besu**.
 
-`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **1.5.5**.
+`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **21.10.6**.
 
 
 `env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
@@ -38,10 +47,13 @@ The snapshot of the `env` section with example value is below
   env:
     type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Hyperledger Besu
-    ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 50                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -52,8 +64,8 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Hyperledger Besu |
-| ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `10010,10020`. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
-| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
+| ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
+| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -83,38 +95,47 @@ The fields under `docker` section are
 The snapshot of the `config` section with example values is below
 ```yaml
   config:    
-    consensus: "ibft"                 # Options is "ibft" only
+    consensus: "ibft"                 # Options are "ibft", "ethash", "clique"
     ## Certificate subject for the root CA of the network. 
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "orion"    # Option is orion only
-    # This is the version of "orion" docker image that will be deployed
+    transaction_manager: "tessera"    # Transaction manager can be "tessera" or "orion"; 21.x.x features are same for both
+    # This is the version of transaction_manager docker image that will be deployed
     # Supported versions #
     # orion: 1.6.0 (for besu 1.5.5)
-    tm_version: "1.6.0"               # This is the version of "orion" docker image that will be deployed
-    # TLS can be True or False for the orion tm
+    # orion/tessra: 21.7.3(for besu 21.10.6)
+    tm_version: "21.7.3"
+    # TLS can be True or False for the transaction manager
     tm_tls: True
     # Tls trust value
-    tm_trust: "ca-or-tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
+    tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## File location for saving the genesis file should be provided.
-    genesis: "/home/user/blockchain-automation-framework/build/besu_genesis"   # Location where genesis file will be saved
+    genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be saved
+    ## At least one Transaction Manager nodes public addresses should be provided.
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15022" for orion
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
+    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
+    tm_nodes: 
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com"
 
 ```
 The fields under `config` are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| consensus   | Currently supports `ibft`.                                 |
+| consensus   | Currently supports `ibft`, `ethash` and `clique`. Please update the remaining items according to the consensus chosen as not all values are valid for all the consensus.                                 |
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
-| transaction_manager    | Currently supports `orion`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. |
-| tm_version         | This is the version of `orion` docker image that will be deployed. Supported versions: `1.6.0` for `orion`. |
+| transaction_manager    | Supports `orion` or `tessera`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera.  |
+| tm_version         | This is the version of transaction manager docker image that will be deployed. Supported versions: `1.6.0` for `orion` and `21.7.3` for `tessera` and `orion`. |
 | tm_tls | Options are `True` and `False`. This enables TLS for the transaction manager and Besu node. `False` is not recommended for production. |
-| tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for orion]( https://docs.orion.pegasys.tech/en/latest/Tutorials/TLS/ ).|
+| tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [on modes here]( https://docs.tessera.consensys.net/en/stable/HowTo/Configure/TLS/#trust-modes ).|
 | genesis | This is the path where `genesis.json` will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file. |
+| tm_nodes | This is an array. Provide at least one tessera/orion node details which will act as bootstrap for other tessera/orion nodes |
 
 
 The `organizations` section contains the specifications of each organization.  
+
 In the sample configuration example, we have four organization under the `organizations` section.
 
 The snapshot of an organization field with sample values is below
@@ -174,30 +195,31 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops htpps or ssh url for flux value files
+        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/hyperledger-besu/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git" # without https://
+        git_repo: "github.com/<username>/bevel.git" # without https://
         username: "<username>"          # Git Service user who has rights to check-in in all branches
-        password: "<password>"          # Git Server user password/personal token
+        password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
         email: "<git_email>"              # Email to use in git config
-        private_key: "<path to gitops private key>"
+        private_key: "<path to gitops private key>" # Path to private key (Optional for https; Required for ssh)
 ```
 
 The gitops field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
+| git_protocol | Option for git over https or ssh. Can be `https` or `ssh` |
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
-| password                             | Password of the user which has access rights to read/write on repository                                         |
+| password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)  |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |
+| private_key                          | Path to the private key file which has write-access to the git repo (Optional for https; Required for ssh)       |
 
 The services field for each organization under `organizations` section of Hyperledger Besu contains list of `services` which could be peers or validators.
 
@@ -207,7 +229,8 @@ Each organization with type as `member` will have a peers service. The snapshot 
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
+          lock: true        # (for future use) Sets Besu node to lock or unlock mode. Can be true or false
           p2p:
             port: 30303
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -216,6 +239,8 @@ Each organization with type as `member` will have a peers service. The snapshot 
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
             port: 8888         
             ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
@@ -229,14 +254,16 @@ The fields under `peer` service are
 | name            | Name of the peer                |
 | subject     | This is the alternative identity of the peer node    |
 | geth_passphrase | This is the passphrase used to generate the geth account. |
+| lock   | (for future use). Sets Besu node to lock or unlock mode. Can be true or false|
 | p2p.port   | P2P port for Besu|
 | p2p.ambassador | The P2P Port when exposed on ambassador service|
 | rpc.port   | RPC port for Besu|
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
 | ws.port   | Webservice port for Besu|
-| tm_nodeport.port   | Port used by Transaction manager `orion`. |
+| db.port   | Port for MySQL database which is only applicable for `tessera`|
+| tm_nodeport.port   | Port used by Transaction manager `orion` or `tessera`. |
 | tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
-| tm_clientport.port   | Client Port used by Transaction manager `orion`. |
+| tm_clientport.port   | Client Port used by Transaction manager `orion` or `tessera`. This is the port where Besu nodes connect to their respective transaction manager. |
 
 The peer in an organization with type as `member` can be used to deploy the smarcontracts with additional field `peer.smart_contract`. The snapshot of peers service with example values is below
 ```yaml
@@ -244,7 +271,7 @@ The peer in an organization with type as `member` can be used to deploy the smar
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          geth_passphrase: 12345  # Passphrase to be used to generate geth account
+          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
           p2p:
             port: 30303
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
@@ -258,38 +285,27 @@ The peer in an organization with type as `member` can be used to deploy the smar
             ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
           tm_clientport:
             port: 8080       
-            geth_url: "http://manufacturerl.test.besu.blockchaincloudpoc.com:15011"  # geth url of the node
+          geth_url: "http://manufacturerl.test.besu.blockchaincloudpoc.com:15011"  # geth url of the node
           # smartcontract to be deployed only from one node (should not be repeated in other nodes)
           smart_contract:
             name: "General"           # Name of the smart contract or Name of the main Smart contract Class
-            deployjs_path: "examples/supplychain-app/besu/smartContracts" # location of folder containing deployment script from BAF directory
+            deployjs_path: "examples/supplychain-app/besu/smartContracts" # location of folder containing deployment script from Bevel directory
             contract_path: "../../besu/smartContracts/contracts"       # Path of the smart contract folder relative to deployjs_path
             iterations: 200           # Number of Iteration of execution to which the gas and the code is optimised
             entrypoint: "General.sol" # Main entrypoint solidity file of the contract 
             private_for: "hPFajDXpdKzhgGdurWIrDxOimWFbcJOajaD3mJJVrxQ=,7aOvXjjkajr6gJm5mdHPhAuUANPXZhJmpYM5rDdS5nk=" # Orion Public keys for the privateFor         
 ```
-The fields under `peer` service are
+The additional fields under `peer` service are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| name            | Name of the peer                |
-| subject     | This is the alternative identity of the peer node    |
-| geth_passphrase | This is the passphrase used to generate the geth account. |
-| p2p.port   | P2P port for Besu|
-| p2p.ambassador | The P2P Port when exposed on ambassador service|
-| rpc.port   | RPC port for Besu|
-| rpc.ambassador | The RPC Port when exposed on ambassador service|
-| ws.port   | Webservice port for Besu|
-| tm_nodeport.port   | Port used by Transaction manager `orion`. |
-| tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
-| tm_clientport.port   | Client Port used by Transaction manager `orion`. |
 | geth_url  | RPC url for the `besu` node  |
 | smart_contract.name | Name of the main smartcontract class  |
-| smart_contract.deployjs_path | location of folder containing deployment script relative to BAF directory  |
+| smart_contract.deployjs_path | location of folder containing deployment script relative to Bevel directory  |
 | smart_contract.contract_path | Path of the smart contract folder relative to deployjs_path  |
 | smart_contract.iterations | Number of Iteration of executions for which the gas and the code is optimised  |
 | smart_contract.entrypoint | Main entrypoint solidity file of the smart contract   |
-| smart_contract.private_for | Comma seperated string of `Orion` Public keys for the `privateFor`  |
+| smart_contract.private_for | Comma seperated string of `orion` or `tessera` Public keys for the `privateFor`  |
 
 Each organization with type as `validator` will have a validator service. The snapshot of validator service with example values is below
 ```yaml

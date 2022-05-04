@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,7 +40,7 @@ spec:
         command:
         - /bin/sh
         - -c
-        - >
+        - >          
           if [ -f /data/db/admin-user.lock ]; then
           #file /data/db/admin-user.lock created and checked to ensure mongod is fully up for adding new db user in postStart hook.
             echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon"
@@ -139,7 +145,7 @@ spec:
             validateVaultResponse "${SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
 
-            MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["mongodbPassword"]')
+            MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["mongodbPassword"]')
             
             echo "${MONGODB_PASSWORD}" >> ${MOUNT_PATH}/db_root_password
             echo "${MONGODB_USERNAME}" >> ${MOUNT_PATH}/db_root_username
@@ -150,11 +156,11 @@ spec:
             validateVaultResponse "${CERT_SECRET_PREFIX}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
             
             # Getting certificates of server from vault and storing into /etc/ssl.
-            SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ $.Values.nodeName }}.pem"]')
+            SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ $.Values.nodeName }}.pem"]')
             echo "${SERVER_CERT}" | base64 -d > /etc/ssl/{{ $.Values.nodeName }}.pem
                         
             # Getting certificate authority cert from vault which is required for client validation and storing into /etc/ssl.
-            CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["mongoCA.crt"]')
+            CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["mongoCA.crt"]')
             echo "${CA_CERT}" | base64 -d > /etc/ssl/mongoCA.crt
         volumeMounts:
           - name: creds

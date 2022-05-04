@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 # Configuration file specification: R3 Corda
 A network.yaml file is the base configuration file for setting up a Corda DLT network. This file contains all the information related to the infrastructure and network specifications. Here is the structure of it.
 ![](./../_static/TopLevelClass-Corda.png)
@@ -5,6 +10,11 @@ A network.yaml file is the base configuration file for setting up a Corda DLT ne
 Before setting up a Corda DLT/Blockchain network, this file needs to be updated with the required specifications.
 A sample configuration file is provide in the repo path:  
 `platforms/r3-corda/configuration/samples/network-cordav2.yaml`  
+
+A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+
+`# yaml-language-server: $schema=../platforms/network-schema.json`
+
 
 The configurations are grouped in the following sections for better understanding.
 
@@ -30,7 +40,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/quorum. Use `corda` for **Corda Opensource** and `corda-enterprise` for **Corda Enterprise**.
 
-`version` defines the version of platform being used, here in example the Corda version is 4.0, the  corda version 4.1 and 4.4 is also supported and should be used. Please note only 4.4 is supported for **Corda Enterprise**.
+`version` defines the version of platform being used, here in example the Corda version is 4.0, the corda version 4.7 is supported by latest release. Please note only 4.4 above is supported for **Corda Enterprise**.
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -41,7 +51,11 @@ The snapshot of the `env` section with example values is below
   env:
     type: "env-type"                # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -52,8 +66,8 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports `ambassador` only as `haproxy` has not been implemented for Corda |
-| ambassadorPorts   | Any additional Ambassador ports can be given here; must be comma-separated without spaces like `15010,15020`. This is only valid if `proxy: ambassador`     |
-| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance BAF network security. This is only valid if `proxy: ambassador`.  |
+| ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`     |
+| loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a large number if your kubernetes cluster is slow. |
 | external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
@@ -144,7 +158,7 @@ Each organization under the `organizations` section has the following fields.
 | subject                                     | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | subordinate_ca_subject | Only for **Corda Enterprise**. Subordinate CA Subject for the CENM.|
 | type                                        | This field can be doorman-nms-notary/node/cenm              |
-| version | Defines the CENM version. Only for **Corda Enterprise**, must be `1.2` |
+| version | Defines the CENM version. Only for **Corda Enterprise**, must be `1.5` |
 | external_url_suffix                         | Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider.|
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure or gcp |
 | aws                                         | When the organization cluster is on AWS |
@@ -188,30 +202,31 @@ For gitops fields the snapshot from the sample configuration file with the examp
       # Git Repo details which will be used by GitOps/Flux.
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git" # Gitops htpps or ssh url for flux value files
+        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
         branch: "<branch_name>"                                                  # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"
+        git_repo: "github.com/<username>/bevel.git"
         username: "<username>"          # Git Service user who has rights to check-in in all branches
-        password: "<password>"          # Git Server user password/personal token
+        password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
         email: "<git_email>"              # Email to use in git config
-        private_key: "<path to gitops private key>"
+        private_key: "<path to gitops private key>" # Path to private key (Optional for https; Required for ssh)
 ```
 
 The `gitops` field under each organization contains
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
+| git_protocol | Option for git over https or ssh. Can be `https` or `ssh` |
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
-| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger-labs/blockchain-automation-framework.git"             |
+| git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
-| password                             | Password of the user which has access rights to read/write on repository                                         |
+| password                             | Password of the user which has access rights to read/write on repository (Optional for ssh; Required for https)  |
 | email                                | Email of the user to be used in git config                                                                       |
-| private_key                          | Path to the private key file which has write-access to the git repo                                              |   
+| private_key                          | Path to the private key file which has write-access to the git repo (Optional for https; Required for ssh)       |   
 
 
 The `credentials` field under each organization contains
@@ -229,8 +244,8 @@ For organization as type `cenm` the credential block looks like
           keystore: cordacadevpass #notary keystore password
           idman: password #idman keystore password
           networkmap: password #networkmap keystore password
-          subordinateca: password #subordinateca keystore password
-          rootca: password # rootca keystore password
+          subordinateca: password #subordinateCA keystore password
+          rootca: password # rootCA keystore password
           tlscrlsigner: password #tls-crl-signer keystore password
         truststore:
           truststore: trustpass #notary truststore password
@@ -241,6 +256,7 @@ For organization as type `cenm` the credential block looks like
           idman: password #ssl idman keystore password
           signer: password #ssl signer keystore password
           root: password #ssl root keystore password
+          auth: password #ssl auth keystore password
 ```
 For organization as type `node` the credential section is under peers section and looks like
 ```yaml
@@ -345,6 +361,66 @@ The fields under `nms` service are
 
 For **Corda Enterprise**, following services must be added to CENM Support.
 
+The snapshot of zone service with example values is below
+```yaml
+      services:
+        zone:
+          name: zone
+          type: cenm-zone
+          ports:
+            enm: 25000
+            admin: 12345
+```
+The fields under `zone` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the Zone service                                                                                 |
+| type                       | Service type must be `cenm-zone`                                                                             |
+| ports.enm          | HTTP enm port number where zone service is accessible internally                                     |
+| ports.admin          | HTTP admin port number of zone service                                     |
+
+The snapshot of auth service with example values is below
+```yaml
+        auth:
+          name: auth
+          subject: "CN=Test TLS Auth Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          type: cenm-auth
+          port: 8081
+          username: admin
+          userpwd: p4ssWord
+```
+The fields under `auth` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the Auth service                                                                                 |
+| subject                    | Certificate Subject for Auth service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| type                       | Service type must be `cenm-auth`                                                                             |
+| ports          | HTTP port number where auth service is accessible internally                                     |
+| username          | Admin user name for auth service                                     |
+| userpwd          | Admin password for auth service                                     |
+
+The snapshot of gateway service with example values is below
+```yaml
+        gateway:
+          name: gateway
+          subject: "CN=Test TLS Gateway Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+          type: cenm-gateway
+          ports: 
+            servicePort: 8080
+            ambassadorPort: 15008
+```
+The fields under `gateway` service are 
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name            | Name for the Gateway service                                                                                 |
+| subject                    | Certificate Subject for Gateway service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| type                       | Service type must be `cenm-gateway`                                                                             |
+| ports.servicePort          | HTTP port number where gateway service is accessible internally                                     |
+| ports.ambassadorPort          | Port where gateway service is exposed via Ambassador                                     |
+
 The snapshot of idman service with example values is below
 ```yaml
       services:
@@ -414,8 +490,9 @@ The snapshot of notary service with example values is below
 ```yaml
         # Currently only supporting a single notary cluster, but may want to expand in the future
         notary:
-          name: notaryskar
+          name: notary1
           subject: "O=Notary,OU=Notary,L=London,C=GB"
+          serviceName: "O=Notary Service,OU=Notary,L=London,C=GB" # available for Corda 4.7 onwards to support HA Notary
           type: notary          
           p2p:
             port: 10002
@@ -439,7 +516,8 @@ The fields under `notary` service are
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
 | name                     | Name of the notary service   |
-| subject                   | Certificate Subject for notary service. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| subject                   | Certificate Subject for notary node. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
+| serviceName            | Certificate Subject for notary service applicable from Corda 4.7 onwards. Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | type                      | Service type must be `notary`  |
 | validating | Only for **Corda Enterprise Notary**. Determines if Notary is validating or non-validating. Use `true` or `false` |
 | emailAddress | Only for **Corda Enterprise Notary**. Email address in the notary conf. |
@@ -471,15 +549,15 @@ The snapshot of float service with example values is below
           url: "float_vault_addr"
           root_token: "float_vault_root_token"
         gitops:
-          git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+          git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
           branch: "develop"           # Git branch where release is being made
           release_dir: "platforms/r3-corda-ent/releases/float" # Relative Path in the Git repo for flux sync per environment. 
           chart_source: "platforms/r3-corda-ent/charts"     # Relative Path where the Helm charts are stored in Git repo
-          git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+          git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
           username: "git_username"          # Git Service user who has rights to check-in in all branches
-          password: "git_access_token"          # Git Server user password/access token
+          password: "git_access_token"          # Git Server user password/access token (Optional for ssh; Required for https)
           email: "git_email"                # Email to use in git config
-          private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+          private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
         ports:
           p2p_port: 40000
           tunnelport: 39999

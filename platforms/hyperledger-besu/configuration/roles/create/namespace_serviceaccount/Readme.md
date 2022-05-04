@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: create/namespace_serviceaccount
 This role creates the value files for namespaces, vault-auth, vault-reviewer and clusterrolebinding for each node.
 
@@ -64,10 +69,6 @@ This task pushes all the value files created to the git repo by calling git_push
 ##### Input Variables
     
     GIT_DIR: root directory of the git cloned repository
-    GIT_REPO: Url of the git repo
-    GIT_USERNAME: username for git repo
-    GIT_PASSWORD: password for git repo
-    GIT_EMAIL: Email for git config
-    GIT_BRANCH: The branch where the files will be checked
     GIT_RESET_PATH: Any path that needs to be ignored.
+    gitops: *item.gitops* from network.yaml
     msg: Git commit message

@@ -1,0 +1,127 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    privilege_escalate: true 
+    install_os: "linux"
+    install_arch:  "amd64"
+    bin_install_dir:  "{{ playbook_dir }}/build/bin"
+    network:
+      type: quorum
+      version: 2.5.0
+      frontend: enabled
+      config:
+        subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+        transaction_manager: constellation
+        tm_version: "0.3.2"
+        tm_tls: "strict"
+        tm_trust: "tofu"
+        tm_nodes: 
+          - "https://carrier.test.quorum.blockchaincloudpoc.com"
+          - "https://manufacturer.test.quorum.blockchaincloudpoc.com"
+          - "https://store.test.quorum.blockchaincloudpoc.com"
+          - "https://warehouse.test.quorum.blockchaincloudpoc.com"
+      docker:
+        url: "index.docker.io/hyperledgerlabs"
+        username: "docker_username"
+        password: "docker_password"
+      env:
+        type: "dev"
+        proxy: crypto-constellation
+        ambassadorPorts:
+          portRange:
+            from: 15010 
+            to: 15043
+        retry_count: 20
+        extrenal_dns: enabled
+    
+      organizations:
+        - organization:
+          name: carrier
+          unit: Carrier
+          external_url_suffix: test.quorum.blockchaincloudpoc.com
+          cloud_provider: aws
+          aws:
+            access_key: "aws_access_key"
+            secret_key: "aws_secret_key"
+          k8s:
+            context: "kind"
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+        
+          gitops:
+            git_protocol: "https"
+            git_url: "https://github.com/<username>/bevel.git"
+            branch: "develop"
+            release_dir: "platforms/quorum/releases/dev"
+            chart_source: "platforms/quorum/charts"
+            git_repo: "github.com/<username>/bevel.git"
+            username: "git_username"
+            password: "git_access_token"
+            email: "git_email"
+            private_key: "path_to_private_key"
+          
+          vault:
+            url: http://localhost:9090/
+            root_token: "root"
+            secret_path: "secretsv2"
+
+          services:
+            peers:
+            - peer:
+              name: carrier
+              subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
+              type: validator
+              consortium_role: admin
+              geth_passphrase: 12345
+              p2p:
+                port: 21000
+                ambassador: 15010
+              rpc:
+                port: 8546
+                ambassador: 15011
+              transaction_manager:
+                port: 443
+                ambassador: 443
+              raft:
+                port: 50401
+                ambassador: 15013
+              db:
+                port: 3306
+              expressapi:
+                port: 3000
+                targetPort: 3000
+              frontend:
+                targetPort: 80
+                port: 8080
+              geth_url: "http://carrier.test.corda.blockchaincloudpoc.com:15011"
+
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+        
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+  
+  tasks:
+    - name: Test crypto/constellation 
+      include_role: 
+        name: create/crypto/constellation
+      vars:
+        component_name: "{{ item.name | lower}}"
+        component_ns: "{{ item.name | lower }}-quo"
+        vault: "{{ item.vault }}"
+        peers: "{{ item.services.peers }}"
+        organisation: "{{ item.name | lower }}"
+        version: "{{ network.config.tm_version }}"
+      loop: "{{ network['organizations'] }}"

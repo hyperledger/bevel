@@ -1,11 +1,18 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
 # This is a sample configuration file for SupplyChain App on Single K8s Cluster.
 # For multiple K8s clusters, there should be multiple configuration files.
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: corda
-  version: 4.4
+  version: 4.7
 
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
 
@@ -13,7 +20,11 @@ network:
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
-    ambassadorPorts: 15010,15020    # Any additional Ambassador ports can be given here, must be comma-separated without spaces, this is valid only if proxy='ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15020
+    # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -30,11 +41,11 @@ network:
   network_services:
     - service:
       type: doorman
-      uri: https://doorman.test.corda.blockchaincloudpoc.com:8443
+      uri: https://doorman.test.corda.blockchaincloudpoc.com
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
     - service:
       type: networkmap
-      uri: https://networkmap.test.corda.blockchaincloudpoc.com:8443
+      uri: https://networkmap.test.corda.blockchaincloudpoc.com
       certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
   
   # Allows specification of one or many organizations that will be connecting to a network.
@@ -67,32 +78,32 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
-        email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
         jars: 
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
-            url: 
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-supply-chain/4.7/cordapp-supply-chain-4.7.jar
+            url: https://repo/path/cordapp1.jar
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
-            url: 
-        username: "repository_username"
-        password: "repository_password"
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-contracts-states/4.7/cordapp-contracts-states-4.7.jar
+            url: https://repo/path/cordapp2.jar
+        username: "git_username"
+        password: "git_access_token"
 
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has doorman, nms and notary on one cluster but different namespaces
@@ -119,6 +130,8 @@ network:
         notary:
           name: notary
           subject: "O=Notary,OU=Notary,L=London,C=GB"
+          serviceName: "O=Notary Service,OU=Notary,L=London,C=GB"
+          validating: true            #true - if notary is validating, false  - if notary is non-validating
           type: notary            
           p2p:
             port: 10002
@@ -163,32 +176,32 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
-        email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
         jars: 
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
-            url: 
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-supply-chain/4.7/cordapp-supply-chain-4.7.jar
+            url: "https://repo/path/cordapp1.jar"
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
-            url: 
-        username: "repository_username"
-        password: "repository_password"
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-contracts-states/4.7/cordapp-contracts-states-4.7.jar
+            url: "https://repo/path/cordapp2.jar"
+        username: "git_username"
+        password: "git_access_token"
 
       # The participating nodes are named as peers 
       services:
@@ -245,32 +258,32 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
-        email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
         jars: 
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
-            url: 
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-supply-chain/4.7/cordapp-supply-chain-4.7.jar
+            url: "https://repo/path/cordapp1.jar"
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
-            url: 
-        username: "repository_username"
-        password: "repository_password"
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-contracts-states/4.7/cordapp-contracts-states-4.7.jar
+            url: "https://repo/path/cordapp2.jar"
+        username: "git_username"
+        password: "git_access_token"
       
       services:
         peers:
@@ -326,32 +339,32 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
-        email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
         jars: 
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
-            url: 
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-supply-chain/4.7/cordapp-supply-chain-4.7.jar
+            url: "https://repo/path/cordapp1.jar"
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
-            url: 
-        username: "repository_username"
-        password: "repository_password"
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-contracts-states/4.7/cordapp-contracts-states-4.7.jar
+            url: "https://repo/path/cordapp2.jar"
+        username: "git_username"
+        password: "git_access_token"
 
       services:
         peers:
@@ -407,32 +420,32 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/r3-corda/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/access token
-        email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       
       # Cordapps Repository details (optional if cordapps jar are store in a repository)
       cordapps:
         jars: 
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-supply-chain/0.1/cordapp-supply-chain-0.1.jar
-            url: 
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-supply-chain/4.7/cordapp-supply-chain-4.7.jar
+            url: "https://repo/path/cordapp1.jar"
         - jar:
-            # e.g https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/0.1/cordapp-contracts-states-0.1.jar
-            url: 
-        username: "repository_username"
-        password: "repository_password"
+            # e.g https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-contracts-states/4.7/cordapp-contracts-states-4.7.jar
+            url: "https://repo/path/cordapp2.jar"
+        username: "git_username"
+        password: "git_access_token"
         
       services:
         peers:

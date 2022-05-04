@@ -1,12 +1,12 @@
 package com.acn.dlt.corda.networkmap.storage.mongo
 
+import com.mongodb.ConnectionString
+import com.mongodb.MongoClientSettings
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Indexes
-import com.mongodb.reactivestreams.client.MongoClient
-import com.mongodb.reactivestreams.client.MongoClients
-import com.mongodb.reactivestreams.client.MongoCollection
-import com.mongodb.reactivestreams.client.MongoDatabase
+import com.mongodb.reactivestreams.client.*
 import io.bluebank.braid.core.logging.loggerFor
+import com.acn.dlt.corda.networkmap.storage.mongo.rx.toObservable
 import com.acn.dlt.corda.networkmap.storage.mongo.serlalisation.BsonId
 import com.acn.dlt.corda.networkmap.storage.mongo.serlalisation.JacksonCodecProvider
 import com.acn.dlt.corda.networkmap.storage.mongo.serlalisation.ObjectMapperFactory
@@ -34,7 +34,13 @@ object MongoStorage {
       nmsOptions.mongoConnectionString
     }
 
-    return MongoClients.create(connectionString)
+    val settings = MongoClientSettings.builder()
+      .applyConnectionString(ConnectionString(connectionString))
+      .applyToConnectionPoolSettings {
+        it.maxSize(10)
+      }.build()
+
+    return MongoClients.create(settings)
   }
 
   private fun startEmbeddedDatabase(nmsOptions: NMSOptions): String {
@@ -61,9 +67,11 @@ fun <T> Publisher<T>.toFuture(): Future<T> {
 class SubscriberOnFuture<T>(private val future: Future<T> = Future.future()) : Subscriber<T>, Future<T> by future {
   companion object {
     private val log = loggerFor<SubscriberOnFuture<*>>()
+    private val ignoreClasses = setOf(SubscriberOnFuture::class.java.name, "com.acn.dlt.corda.networkmap.storage.mongo.MongoStorageKt", Thread::class.java.name)
   }
 
   private var result: T? = null
+  private val stack = Thread.currentThread().stackTrace.first { !ignoreClasses.contains(it.className) }
 
   override fun onComplete() {
     try {
@@ -74,7 +82,7 @@ class SubscriberOnFuture<T>(private val future: Future<T> = Future.future()) : S
             true -> future.result()
             else -> future.cause() as Any
           }
-          }")
+          } execute from $stack")
         }
         else -> {
           future.complete(result)
@@ -93,10 +101,10 @@ class SubscriberOnFuture<T>(private val future: Future<T> = Future.future()) : S
     try {
       when {
         future.isComplete -> {
-          log.error("future has already been completed")
+          log.error("future has already been completed executed from stack $stack")
         }
         result != null -> {
-          log.error("already received one item $result")
+          log.error("already received one item $result for future executed from stack $stack")
         }
         else -> {
           result = t
@@ -115,7 +123,7 @@ class SubscriberOnFuture<T>(private val future: Future<T> = Future.future()) : S
           true -> future.result()
           else -> future.cause() as Any
         }
-        }")
+        } for future executed from $stack")
       }
       else -> {
         try {
@@ -128,12 +136,15 @@ class SubscriberOnFuture<T>(private val future: Future<T> = Future.future()) : S
   }
 }
 
-infix fun <R> KProperty<R>.eq(key: R): Bson {
+infix fun <R> KProperty<R>.eq(value: R) = Filters.eq(bsonName, value)
+infix fun <R> KProperty<R>.`in`(values: Iterable<R>) = Filters.`in`(bsonName, values)
+
+val <R> KProperty<R>.bsonName get() : String {
   val a = this.javaField!!.getDeclaredAnnotation(BsonId::class.java)
   return when (a) {
     null -> this.name
     else -> "_id"
-  }.let { Filters.eq(it, key) }
+  }
 }
 
 enum class IndexType {
@@ -141,7 +152,61 @@ enum class IndexType {
 }
 
 infix fun <R> IndexType.idx(property: KProperty<R>): Bson {
-  return when(this) {
+  return when (this) {
     IndexType.HASHED -> Indexes.hashed(property.name)
   }
+}
+
+inline fun <reified TResult, reified Key, reified Value> FindPublisher<TResult>.toFuture(crossinline keyExtractor: TResult.() -> Key, crossinline valueExtractor: TResult.() -> Value) : Future<Map<Key, Value>> {
+  val map = mutableMapOf<Key, Value>()
+  val result = Future.future<Map<Key, Value>>()
+
+  this.toObservable()
+    .subscribe(object : rx.Subscriber<TResult>(), Subscriber<TResult> {
+      override fun onCompleted() {
+        result.complete(map)
+      }
+
+      override fun onComplete() {
+        result.complete(map)
+      }
+
+      override fun onSubscribe(subscription: Subscription?) {}
+
+      override fun onNext(result: TResult) {
+        map[keyExtractor(result)] = valueExtractor(result)
+      }
+
+      override fun onError(exception: Throwable?) {
+        result.fail(exception)
+      }
+    })
+  return result
+}
+
+inline fun <reified TResult, reified Value> FindPublisher<TResult>.toFuture(crossinline valueExtractor: TResult.() -> Value) : Future<List<Value>> {
+  val items = mutableListOf<Value>()
+  val result = Future.future<List<Value>>()
+
+  this.toObservable()
+    .subscribe(object : rx.Subscriber<TResult>(), Subscriber<TResult> {
+      override fun onCompleted() {
+        result.complete(items)
+      }
+
+      override fun onComplete() {
+        result.complete(items)
+      }
+
+      override fun onSubscribe(subscription: Subscription?) {}
+
+      override fun onNext(result: TResult) {
+        items.add(valueExtractor(result))
+      }
+
+      override fun onError(exception: Throwable?) {
+        result.fail(exception)
+      }
+    })
+  return result
 }

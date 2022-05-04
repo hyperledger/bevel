@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -112,15 +118,15 @@ spec:
             # retrive keystore passwords and rpc user passwords from rpc
             if [ {{ $.Values.metadata.type }} == "cordaopensource" ]
             then
-              CONF_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["keyStorePassword"]')
-              CONF_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["trustStorePassword"]')
+              CONF_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["keyStorePassword"]')
+              CONF_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["trustStorePassword"]')
               LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${RPCUSER_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
-              CONF_RPCPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["{{ .Values.credentials.rpcUser }}"]')
+              CONF_RPCPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["{{ .Values.credentials.rpcUser }}"]')
             else
-              CONF_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["keystore"]')
-              CONF_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["truststore"]')
+              CONF_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["keystore"]')
+              CONF_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["truststore"]')
               LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${RPCUSER_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
-              CONF_RPCPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["{{ .Values.credentials.rpcUser }}"]')
+              CONF_RPCPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["{{ .Values.credentials.rpcUser }}"]')
             fi
 
             # create app.properties using values specified by user
@@ -238,19 +244,19 @@ spec:
                # get nodekeystore.jks from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore | jq -r 'if .errors then . else . end')
                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/nodekeystore)" "${LOOKUP_SECRET_RESPONSE}"
-               TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["nodekeystore.jks"]')
+               TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekeystore.jks"]')
                echo "${TLS_NODEKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/nodekeystore.jks
 
                # get sslkeystore.jks from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore | jq -r 'if .errors then . else . end')
                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/sslkeystore)" "${LOOKUP_SECRET_RESPONSE}"
-               TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["sslkeystore.jks"]')
+               TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["sslkeystore.jks"]')
                echo "${TLS_SSLKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/sslkeystore.jks
 
                # get truststore.jks from vault
                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore | jq -r 'if .errors then . else . end')
                validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/truststore)" "${LOOKUP_SECRET_RESPONSE}"
-               TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
+               TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["truststore.jks"]')
                echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks
                 
                # get network-map-truststore.jks from vault
@@ -258,12 +264,12 @@ spec:
                then               
                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmaptruststore | jq -r 'if .errors then . else . end')
                  validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/networkmaptruststore)" "${LOOKUP_SECRET_RESPONSE}"
-                 TLS_NMS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-map-truststore"]')
+                 TLS_NMS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-map-truststore"]')
                  echo "${TLS_NMS}" | base64 -d > ${OUTPUT_PATH}/network-map-truststore.jks
                else
                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/../root/certs | jq -r 'if .errors then . else . end')
                  validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/../root/certs)" "${LOOKUP_SECRET_RESPONSE}"
-                 TLS_NMS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["network-root-truststore.jks"]')
+                 TLS_NMS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-root-truststore.jks"]')
                  echo "${TLS_NMS}" | base64 -d > ${OUTPUT_PATH}/network-map-truststore.jks
                fi
 
@@ -277,22 +283,22 @@ spec:
                    then
                      LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmap | jq -r 'if .errors then . else . end')
                      validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/networkmap)" "${LOOKUP_SECRET_RESPONSE}"
-                     NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.crt"]')
+                     NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["networkmap.crt"]')
                      echo "${NETWORKMAP_CRT}" | base64 -d > ${OUTPUT_PATH}/networkmap/networkmap.crt
 
                      LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/doorman | jq -r 'if .errors then . else . end')
                      validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/doorman)" "${LOOKUP_SECRET_RESPONSE}"
-                     DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["doorman.crt"]')
+                     DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["doorman.crt"]')
                      echo "${DOORMAN_CRT}" | base64 -d > ${OUTPUT_PATH}/doorman/doorman.crt
                    else
                      LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.networkservices.networkmap }} | jq -r 'if .errors then . else . end')
                      validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ $.Values.networkservices.networkmap }})" "${LOOKUP_SECRET_RESPONSE}"
-                     NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ $.Values.networkservices.networkmap }}.crt"]')
+                     NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ $.Values.networkservices.networkmap }}.crt"]')
                      echo "${NETWORKMAP_CRT}" | base64 -d > ${OUTPUT_PATH}/networkmap/networkmap.crt
 
                      LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.networkservices.doorman }} | jq -r 'if .errors then . else . end')
                      validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/{{ $.Values.networkservices.doorman }})" "${LOOKUP_SECRET_RESPONSE}"
-                     DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ $.Values.networkservices.doorman }}.crt"]')
+                     DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ $.Values.networkservices.doorman }}.crt"]')
                      echo "${DOORMAN_CRT}" | base64 -d > ${OUTPUT_PATH}/doorman/doorman.crt
                    fi
                fi
@@ -307,12 +313,12 @@ spec:
                   SSL_KEYSTORE_FILE_NAME_KEY={{ .Values.nodeConf.ssl.sslKeystoreFileName }}
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${SSL_KEYSTORE_FILE_NAME_KEY} | jq -r 'if .errors then . else . end')
                   validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/${SSL_KEYSTORE_FILE_NAME_KEY})" "${LOOKUP_SECRET_RESPONSE}"
-                  SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["sslkeystore.jks"]')
+                  SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["sslkeystore.jks"]')
                   echo "${SSLKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/${SSL_CERT_PATH}/sslkeystore.jks
                   TRUSTKEYSTORE_FILE_NAME_KEY={{ .Values.nodeConf.ssl.ssltruststore }}
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/${TRUSTKEYSTORE_FILE_NAME_KEY} | jq -r 'if .errors then . else . end')
                   validateVaultResponse "secret (${CERTS_SECRET_PREFIX}/${TRUSTKEYSTORE_FILE_NAME_KEY})" "${LOOKUP_SECRET_RESPONSE}"
-                  TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["truststore.jks"]')
+                  TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["truststore.jks"]')
                   echo "${TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/${SSL_CERT_PATH}/truststore.jks
                else
                   echo ""

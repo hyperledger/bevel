@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 # This is a sample configuration file for Quorum network which has 4 nodes.
 # All text values are case-sensitive
@@ -5,7 +11,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: quorum
-  version: 2.5.0  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
+  version: 21.4.2  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
 
   frontend: enabled #Flag for frontend to enabled for nodes/peers
 
@@ -13,10 +19,13 @@ network:
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Quorum
-    ## Any additional Ambassador ports can be given below, must be comma-separated without spaces, this is valid only if proxy='ambassador'
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts: 15010,15011,15012,15013,15020,15021,15022,15023,15030,15031,15032,15033,15040,15041,15042,15043  
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15043
+    # ports: 15020,15021      # For specific ports  
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   
@@ -39,8 +48,7 @@ network:
     # This is the version of "tessera" or "constellation" docker image that will be deployed
     # Supported versions #
     # constellation: 0.3.2 (For all versions of quorum)
-    # tessera: 0.10.4 (for quorum 2.5.0)
-    tm_version: "0.10.4"               
+    tm_version: "21.7.3"               
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
@@ -52,10 +60,10 @@ network:
     # The above domain name is formed by the http://(peer.name).(org.external_url_suffix):(ambassador constellation port)/
     # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix):(ambassador default port)
     tm_nodes: 
-      - "https://carrier.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://manufacturer.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://store.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://warehouse.test.quorum.blockchaincloudpoc.com:8443"
+      - "https://carrier.test.quorum.blockchaincloudpoc.com"
+      - "https://manufacturer.test.quorum.blockchaincloudpoc.com"
+      - "https://store.test.quorum.blockchaincloudpoc.com"
+      - "https://warehouse.test.quorum.blockchaincloudpoc.com"
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -78,20 +86,20 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/quorum/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       
       #variables for frontend application
       app:
@@ -103,7 +111,7 @@ network:
         - peer:
           name: carrier
           subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
+          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
           consortium_role: admin
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
@@ -113,8 +121,8 @@ network:
             port: 8546
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15012 when transaction_manager = "constellation"
+            port: 443          # use port: 9001 when transaction_manager = "constellation"
+            ambassador: 443    # use ambassador: 15012 when transaction_manager = "constellation"
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15013
@@ -149,20 +157,20 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/quorum/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       #variables for frontend application
       app:
@@ -174,7 +182,7 @@ network:
         - peer:
           name: manufacturer
           subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
+          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
             port: 21000
@@ -183,8 +191,8 @@ network:
             port: 8546
             ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15022 when transaction_manager = "constellation"
+            port: 443          # use port: 9001 when transaction_manager = "constellation"
+            ambassador: 443    # use ambassador: 15022 when transaction_manager = "constellation"
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15023
@@ -225,20 +233,20 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/quorum/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       #variables for frontend application
       app:
@@ -249,7 +257,7 @@ network:
         - peer:
           name: store
           subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
+          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
             port: 21000
@@ -258,8 +266,8 @@ network:
             port: 8546
             ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15032 when transaction_manager = "constellation"
+            port: 443          # use port: 9001 when transaction_manager = "constellation"
+            ambassador: 443    # use ambassador: 15032 when transaction_manager = "constellation"
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15033
@@ -292,20 +300,20 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
-        secret_path: "secret"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/blockchain-automation-framework.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
         branch: "develop"           # Git branch where release is being made
         release_dir: "platforms/quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
         chart_source: "platforms/quorum/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/blockchain-automation-framework.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
         username: "git_username"          # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git_email"                # Email to use in git config
-        private_key: "path_to_private_key"          # Optional (required when protocol is ssh) : Path to private key file which has write-access to the git repo
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       #variables for frontend application
       app:
@@ -316,7 +324,7 @@ network:
         - peer:
           name: warehouse
           subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or non-validator, only applicable if consensus = 'ibft'
+          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
           geth_passphrase: 12345  # Passphrase to be used to generate geth account
           p2p:
             port: 21000
@@ -325,8 +333,8 @@ network:
             port: 8546
             ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15042 when transaction_manager = "constellation"
+            port: 443          # use port: 9001 when transaction_manager = "constellation"
+            ambassador: 443    # use ambassador: 15042 when transaction_manager = "constellation"
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15043

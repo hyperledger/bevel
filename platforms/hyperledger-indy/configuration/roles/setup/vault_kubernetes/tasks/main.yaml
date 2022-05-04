@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role setups communication between the vault and kubernetes cluster and install
 # neccessary configurations.
@@ -42,7 +48,9 @@
 - set_fact:
     vault_auth_status: true
   loop: "{{ auth_lists.stdout_lines }}"
-  when: item == component_auth_temp
+  loop_control:
+    loop_var: itemx
+  when: itemx == component_auth_temp
    
 ############################################################################################
 # This task enables the path for the organizations and orderers on vault
@@ -61,7 +69,7 @@
 # This task runs only when {{auth_path}} is not already created
 - name: Get Kubernetes cert files for organizations
   shell: |
-    KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ organization }}.ca.cert"
+    KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ organization }}.ca.cert"
 #  when: auth_list.stdout.find(auth_path) == -1
 
 #####################################################################################################################

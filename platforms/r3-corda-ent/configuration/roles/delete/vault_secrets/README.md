@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: `delete/vault_secrets`
 This role deletes the Vault configurations & secrets.
 
@@ -62,7 +67,7 @@ This task deletes Ambassador credentials for notary
 - `*kubeconfig` - The config file of the K8s cluster
 - `*context` - The context of the K8s cluster
 
-**when**: runs this task when the `org.type == 'cenm'` 
+**when**: runs this task when the `org.type == 'cenm' or org.type == 'notary'` 
 
 **ignore_errors**: This flag ignores the any errors and proceeds further.
 
@@ -129,7 +134,31 @@ This task deletes the crypto materials for the CENM from Vault on the previously
 
 ---
 
-#### 10. Delete Crypto materials for nodes
+#### 10. Delete Crypto material for CENM Notaries
+This task deletes the crypto materials for the CENM Notaries from Vault.
+##### Input Variables
+- `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
+- `*VAULT_TOKEN` - Contains Vault root token, fetched from the `network.yaml`
+- *`org.services` - The services of that organization, fetched from `network.yaml`
+- *`org.name` - The name of the organization, used in the Vault path, fetched from `network.yaml`
+
+**shell** : This command deletes the crypto for CENM Notaries.
+
+---
+
+#### 11. Delete Crypto material for Notary orgs
+This task deletes the crypto material for the Notary orgs from Vault.
+##### Input Variables
+- `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
+- `*VAULT_TOKEN` - Contains Vault root token, fetched from the `network.yaml`
+- *`org.services` - The services of that organization, fetched from `network.yaml`
+- *`org.name` - The name of the organization, used in the Vault path, fetched from `network.yaml`
+
+**shell** : This command deletes the crypto for Notary orgs.
+
+---
+
+#### 12. Delete Crypto materials for nodes
 This task deletes the crypto materials for each of the nodes from Vault.
 ##### Input Variables
 - `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
@@ -141,7 +170,7 @@ This task deletes the crypto materials for each of the nodes from Vault.
 
 ---
 
-#### 11. Delete Crypto materials for nodes
+#### 13. Delete Crypto material for nodes
 This task deletes crypto material from float vault path
 ##### Input Variables
 - `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
@@ -155,7 +184,7 @@ This task deletes crypto material from float vault path
 
 ---
 
-#### 10. Delete Crypto for nodes
+#### 14. Delete Crypto for nodes
 This task disables the secret path for each of the nodes from Vault.
 ##### Input Variables
 - `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
@@ -164,7 +193,7 @@ This task disables the secret path for each of the nodes from Vault.
 
 ---
 
-#### 11. Delete Crypto for float vault
+#### 15. Delete Crypto for float vault
 This task disables the secret path for float vault.
 ##### Input Variables
 - `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
@@ -175,17 +204,20 @@ This task disables the secret path for float vault.
 
 ---
 
-#### 12. Delete vault access control policy
+#### 16. Delete vault access control policy for the organizations.
 This task deletes the Vault policy for the organization from Vault.
 ##### Input Variables
 - `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
 - `*VAULT_TOKEN` - Contains Vault root token, fetched from the `network.yaml`
+
 ---
 
-#### 13. Delete vault access control policy for organizations float
+#### 17. Delete vault access control policy for organizations float
 This task deletes the float vault policies
 ##### Input Variables
 - `*VAULT_ADDR` - Contains Vault URL, fetched from the `network.yaml`
 - `*VAULT_TOKEN` - Contains Vault root token, fetched from the `network.yaml`
 
 **when**: runs this task when the `org.type == 'node' and org.firewall.enabled`
+
+---

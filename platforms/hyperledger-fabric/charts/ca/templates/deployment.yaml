@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -10,6 +16,14 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }} 
     {{- include "labels.custom" . | nindent 2 }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.deployment.annotations }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
 spec:
   replicas: 1
   selector:
@@ -37,6 +51,14 @@ spec:
       - name: certificates
         emptyDir:
           medium: Memory
+      {{- if (not (empty .Values.server.configpath)) }}
+      - name: {{ $.Values.server.name }}-config-volume
+        configMap:
+          name: {{ $.Values.server.name }}-config
+          items:
+            - key: fabric-ca-server-config.yaml
+              path: fabric-ca-server-config.yaml
+      {{- end }}        
       {{ if .Values.vault.tls  }}
       - name: vaultca
         secret:
@@ -48,7 +70,7 @@ spec:
       initContainers:
       - name: ca-certs-init
         image: {{ $.Values.metadata.images.alpineutils }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
@@ -100,7 +122,7 @@ spec:
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
               jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
+          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.crt
 
           SECRET_KEY={{ $.Values.vault.secretkey }}
@@ -111,7 +133,7 @@ spec:
               ${VAULT_ADDR}/v1/${vault_secret_key} | \
               jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
+          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.key
 
 
@@ -122,7 +144,7 @@ spec:
               --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
           ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
+          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/user_cred
           
         volumeMounts:
@@ -136,9 +158,20 @@ spec:
       containers:
       - name: ca
         image: {{ $.Values.metadata.images.ca }}
-        command: ["sh", "-c", "sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d"]
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          if [[ -d /custom-config/ ]] && [[ -f /custom-config/fabric-ca-server-config.yaml ]]; then
+            cp /custom-config/fabric-ca-server-config.yaml $FABRIC_CA_HOME/fabric-ca-server-config.yaml
+            fabric-ca-server start --config $FABRIC_CA_HOME/fabric-ca-server-config.yaml -d
+          else
+            sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d
+          fi
         ports:
         - containerPort: 7054
+        - containerPort: 9443
         env:
         - name: FABRIC_CA_HOME
           value: /etc/hyperledger/fabric-ca-server
@@ -158,9 +191,15 @@ spec:
           value: /etc/hyperledger/fabric-ca-server-config/server.key
         - name: FABRIC_CA_SERVER_DB_DATASOURCE
           value: /var/hyperledger/fabric-ca-server/db/fabric-ca-server.db
+        - name: FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS
+          value: 0.0.0.0:9443
         volumeMounts:
         - name: certificates
           mountPath: /etc/hyperledger/fabric-ca-server-config
           readOnly: true
         - name: ca-server-db
           mountPath: /var/hyperledger/fabric-ca-server/db/
+        {{- if (not (empty .Values.server.configpath)) }}
+        - name: {{ $.Values.server.name }}-config-volume
+          mountPath: /custom-config/
+        {{- end }}

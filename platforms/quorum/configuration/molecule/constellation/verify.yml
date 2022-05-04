@@ -1,0 +1,108 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Verify
+  hosts: localhost
+  tasks:
+
+  - name: Ensure the build directory has been created
+    stat:
+      path: "./build"
+    register: build_dir_check
+
+  - name: Assert that the build directory has been created  
+    assert: 
+      that: build_dir_check.stat.exists
+
+  # Check files and secrets of the vault created by create/genesis_raft rol
+  - name: Check if the Keystore.json file has been created
+    stat:
+      path: "./build/store/store/keystore.json"
+    register: keystore_check
+
+  - name: Assert that the Keystore.json file has been created
+    assert:
+      that: keystore_check.stat.exists
+
+  - name: Check if the genesis.yaml file has been created
+    stat:
+      path: "./build/genesis.yaml"
+    register: genesis_check
+
+  - name: Assert that the genesis.yaml file has been created
+    assert:
+      that: genesis_check.stat.exists
+
+  - name: Check if the quorum_genesis.json file has been created
+    stat:
+      path: "./build/quorum_genesis.json"
+    register: quorum_genesis_check
+
+  - name: Assert that the quorum_genesis.json file has been created
+    assert:
+      that: quorum_genesis_check.stat.exists
+  
+  - name: Check if genesis exists in the vault 
+    shell: |
+       vault kv get -field=genesisfile secretsv2/store-quo/crypto/genesis
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_genesis
+    delegate_to: localhost
+    ignore_errors: yes
+
+  - name: Assert that the crypto material exists in the vault 
+    assert:
+      that: vault_genesis.stdout
+  
+ # Check files created by nested_enode_data.yaml-create/constellation rol  
+  - name: Check if the nodekey file has been created
+    stat:
+      path: "./build/store/store/nodekey"
+    register: nodekey_check
+
+  - name: Assert that the nodekey file has been created
+    assert:
+      that: nodekey_check.stat.exists
+
+  - name: Check if the enode file has been created
+    stat:
+      path: "./build/store/store/enode"
+    register: enode_check
+
+  - name: Assert that the enode file has been created
+    assert:
+      that: enode_check.stat.exists
+  
+  # Check files created by main.yaml-create/constellation rol 
+  - name: Check if  the quorum_staticnodes file has been created
+    stat:
+      path: "./build/quorum_staticnodes"
+    register: quorum_staticnodes_check
+
+  - name: Assert if the quorum_staticnodes file has been created
+    assert:
+      that: quorum_staticnodes_check.stat.exists
+
+  - name: Check if the store-t1storeconstellation.yaml value file has been created
+    stat:
+      path: "./build/platforms/quorum/releases/dev/store-t1/store-t1storeconstellation.yaml"
+    register: t1_value_file_check
+
+  - name: Assert if the store-t1storeconstellation.yaml value file has been created
+    assert:
+      that: t1_value_file_check.stat.exists
+  
+  - name: Check if the store-t2storeconstellation.yaml value file has been created
+    stat:
+      path: "./build/platforms/quorum/releases/dev/store-t2/store-t2storeconstellation.yaml"
+    register: t2_value_file_check
+
+  - name: Assert if the store-t2storeconstellation.yaml value file has been created
+    assert:
+      that: t2_value_file_check.stat.exists

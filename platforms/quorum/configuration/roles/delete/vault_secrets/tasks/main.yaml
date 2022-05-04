@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role deletes the Vault configurations
 #############################################################################################
@@ -17,7 +23,7 @@
 - name: Delete Ambassador creds
   k8s:
     kind: Secret
-    namespace: default
+    namespace: "{{ org_namespace }}"
     name: "{{ peer.name }}-ambassador-certs"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
@@ -30,7 +36,7 @@
 # This task deletes vault auth
 - name: Delete vault-auth path
   shell: |
-    vault delete sys/auth/quorum{{ org_name }}
+    vault kv delete sys/auth/quorum{{ org_name }}
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
@@ -38,9 +44,10 @@
 # This task deletes crypto material
 - name: Delete Crypto material 
   shell: |
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/transaction
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/quorum
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/crypto/{{ peer.name }}/certs
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tm
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/quorum
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/certs
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/genesis
   loop: "{{ services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
@@ -52,7 +59,7 @@
   # This task deletes application crypto material
 - name: Delete Application Crypto material 
   shell: |
-    vault delete {{ item.vault.secret_path | default('secret') }}/{{ org_namespace }}/smartContracts/General
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/smartContracts/General
   loop: "{{ services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"

@@ -1,9 +1,16 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #########################
 # Playbook to deploy cordapps into exisitng Corda network
 # Playbook arguments: complete network.yaml, source_dir: directory where cordapp jars are stored.
 #########################
 - hosts: ansible_provisioners
   gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
   tasks:    
   # ----------------------------------------------------------------------
   - name: Check source_dir directory exists
@@ -36,3 +43,8 @@
     loop: "{{ network['organizations'] }}"
     when: item.type.find('node') != -1
   
+  vars: # These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"           #Default to ~/bin install directory for binaries

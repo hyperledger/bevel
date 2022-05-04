@@ -18,8 +18,8 @@ spec:
       namespace: {{ component_ns }}
       type: {{ platform_type }}
     image:
-      containerName: {{ network.docker.url }}/supplychain_corda:{{ image_tag }}
-      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
+      containerName: {{ network.container_registry.url | lower }}/bevel-supplychain-corda:{{ image_tag }}
+      initContainerName: ghcr.io/hyperledger/alpine-utils:1.0
       imagePullSecret: regcred
       privateCertificate: true
     smartContract:
@@ -69,9 +69,9 @@ spec:
       role: vault-role
       authpath: cordaent{{ node.name|e }}
       serviceaccountname: vault-auth
-      rpcusersecretprefix: {{ component_vault.secret_path | default('secret') }}/{{ organization_data.name}}/{{ node.name }}/credentials
-      keystoresecretprefix: {{ component_vault.secret_path | default('secret') }}/{{ organization_data.name}}/{{ node.name }}/credentials
-      certsecretprefix: {{ component_vault.secret_path | default('secret') }}/{{ organization_data.name}}/{{ node.name }}/certs
+      rpcusersecretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/{{ organization_data.name}}/{{ node.name }}/credentials
+      keystoresecretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/{{ organization_data.name}}/{{ node.name }}/credentials
+      certsecretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/{{ organization_data.name}}/{{ node.name }}/certs
     node:
       readinesscheckinterval: 10
       readinessthreshold: 15

@@ -1,0 +1,110 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.service.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  {{- if or $.Values.proxy (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
+  ##### TODO: Enable ambassador for Fabric
+  # This can be fixed only when https://jira.hyperledger.org/browse/FAB-8131 issue is fixed
+  # After the issue is fixed, changes similar to the commented code has to be done by using correct secrets.
+  # Otherwise as ambassador is not able to passthrough TLS connection, grpc over ambassador is not going to work
+  # hence we have used a HAProxy ingress whoich does ssl-passthrough.  
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+    {{- if eq $.Values.proxy.provider "ambassador" }} 
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v2
+      kind: TLSContext
+      name: tls_context_{{ $.Values.service.name }}_{{ $.Values.metadata.namespace }}_upstream
+      hosts:
+      - {{ $.Values.service.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+      secret: {{ $.Values.service.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
+      alpn_protocols: h2
+      min_tls_version: v1.2
+      ---
+      apiVersion: ambassador/v2
+      kind: Mapping
+      tls: tls_context_{{ $.Values.service.name }}_{{ $.Values.metadata.namespace }}_upstream      
+      name: {{ $.Values.service.name }}_{{ $.Values.metadata.namespace }}_mapping_rest
+      headers:
+        :authority: {{ $.Values.service.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+      prefix: /
+      rewrite: /
+      service: {{ $.Values.service.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.console.clusteripport }}
+  {{- end }} # end if Values.proxy  
+  {{- if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
+    cloud.google.com/load-balancer-type: "Internal"
+  {{- end }}
+  {{- end }}
+  labels:
+    run: {{ $.Values.service.name }}
+    app.kubernetes.io/name: {{ $.Values.service.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  type: {{ $.Values.service.servicetype }}
+  selector:
+    app: {{ $.Values.service.name }}
+  ports:
+  - name: console
+    protocol: TCP
+    targetPort: 3000
+    port: {{ $.Values.service.ports.console.clusteripport }}
+    {{- if $.Values.service.ports.console.nodeport }}
+    nodePort: {{ $.Values.service.ports.console.nodeport }}
+    {{- end }}  
+  - protocol: TCP
+    name: couchdb
+    targetPort: 5984
+    port: {{ $.Values.service.ports.couchdb.clusteripport }}
+    {{- if $.Values.service.ports.couchdb.nodeport }}
+    nodePort: {{ $.Values.service.ports.couchdb.nodeport }}
+    {{- end }}
+  - name: configtxlator
+    protocol: TCP
+    targetPort: 7059
+    port: 7059
+  {{- if (eq $.Values.service.servicetype "ClusterIP") }}
+  clusterIP: None
+  {{- end }}
+  {{- if $.Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ $.Values.service.loadBalancerIP }}
+  {{- end }}
+
+{{- if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.service.name }}
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+spec:
+  rules:
+  - host: {{ $.Values.service.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.service.name }}
+            port:
+              number: {{ $.Values.service.ports.console.clusteripport }}
+{{- end }}

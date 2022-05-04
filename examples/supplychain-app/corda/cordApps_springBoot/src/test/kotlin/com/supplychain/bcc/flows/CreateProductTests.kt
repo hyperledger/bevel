@@ -1,12 +1,11 @@
 package com.supplychain.bcc
 
 import com.supplychain.bcc.contractstates.ProductState
-import com.supplychain.baf.CreateProductRequest
+import com.supplychain.bevel.CreateProductRequest
 import org.junit.Test
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.fail
-
 
 
 class CreateProductTests : SupplyChainTests() {

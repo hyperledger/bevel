@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # Deployment
 # Creates the replicated container and manages lifecycle
 # TLS certs mounted
@@ -126,11 +132,11 @@ spec:
 
              validateVaultResponse "{{ .Values.vault.certsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
-             ROOTCA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootcakey"]')
+             ROOTCA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootcakey"]')
              mkdir -p ${OUTPUT_PATH}/root;
              echo "${ROOTCA_KEY}" | base64 -d > ${OUTPUT_PATH}/root/keys.jks
 
-             DOORMAN_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["doorman.jks"]')
+             DOORMAN_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["doorman.jks"]')
              mkdir -p ${OUTPUT_PATH}/doorman;
              echo "${DOORMAN_KEY}" | base64 -d > ${OUTPUT_PATH}/doorman/keys.jks
 
@@ -191,8 +197,8 @@ spec:
               # get doorman tls cert and key from vault          
               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.tlscertsecretprefix }} | jq -r 'if .errors then . else . end')
               validateVaultResponse "{{ .Values.vault.tlscertsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-              DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')
-              DOORMAN_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlskey"]')
+              DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
+              DOORMAN_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlskey"]')
               echo "${DOORMAN_CRT}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/doorman.crt 
               echo "${DOORMAN_KEY}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/doorman.key                          
           fi
@@ -200,7 +206,7 @@ spec:
           # get mongo tls cert from vault
           LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.dbcertsecretprefix }} | jq -r 'if .errors then . else . end')
           validateVaultResponse "{{ .Values.vault.dbcertsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["mongoCA.crt"]')
+          CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["mongoCA.crt"]')
           echo "${CA_CERT}" | base64 -d > ${OUTPUT_PATH}/mongoCA.crt
           
           # add permissions to dir
@@ -262,13 +268,13 @@ spec:
              
              validateVaultResponse "${DB_CRED_SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE_DB_PASS}" "LOOKUPSECRETRESPONSE"
 
-             MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE_DB_PASS} | jq -r '.data["mongodbPassword"]')
+             MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE_DB_PASS} | jq -r '.data.data["mongodbPassword"]')
              echo "${MONGODB_PASSWORD}" >> ${MOUNT_PATH}/db_root_password
              cat ${MOUNT_PATH}/db_root_password
              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${USER_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
              validateVaultResponse "${USER_SECRET_PREFIX}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
              
-             USER_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["{{ .Values.image.authusername }}"]')
+             USER_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ .Values.image.authusername }}"]')
              echo "${USER_PASSWORD}" >> ${MOUNT_PATH}/user_cred
              
         volumeMounts:

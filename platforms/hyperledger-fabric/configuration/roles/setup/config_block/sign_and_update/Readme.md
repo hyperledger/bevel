@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: setup/config_block/sign_and_update
  This role creates cli for the first peer of every existing organization in channel and get the modified config block signed by the admin of each organization.
 

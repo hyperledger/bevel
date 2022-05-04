@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -86,8 +92,8 @@ spec:
           LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
             
-          USER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["signcerts"]')
-          USER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["keystore"]')
+          USER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]')
+          USER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
           
           mkdir -p ${OUTPUT_PATH}
           echo "${USER_CERT}" >> ${OUTPUT_PATH}/${FABRIC_USER}.cert
@@ -101,7 +107,7 @@ spec:
           LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
 
-          ORG_TLS_CERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["tlscacerts"]')          
+          ORG_TLS_CERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')          
           mkdir -p ${OUTPUT_PATH}/tlscacerts
           echo "${ORG_TLS_CERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.pem
           
@@ -112,7 +118,7 @@ spec:
           LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
           validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" 
 
-          ORDERER_TLS_CERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["ca.crt"]')
+          ORDERER_TLS_CERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
           echo "${ORDERER_TLS_CERTS}" >> ${OUTPUT_PATH}/tlscacerts/orderer-tlsca.pem
 
           echo "DONE"

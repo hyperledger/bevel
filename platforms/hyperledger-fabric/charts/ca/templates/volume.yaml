@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -10,6 +16,14 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }} 
     {{- include "labels.custom" . | nindent 2 }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.pvc }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}  
 spec:
   storageClassName: {{ $.Values.storage.storageclassname }}
   accessModes:

@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## ROLE: setup/float
 This role creates deployment file for float and also pushes the generated value file into repository.
 
@@ -37,16 +42,25 @@ This tasks creates deployment file for the Float component of the Node firewall 
 - `dmz_external` - The external IP of DMZ
 
 
-#### 3. "Push the created deployment files to repository"
+#### 2. "Push the created deployment files to repository"
 This tasks push the created value files into repository by calling git_push role from shared.
 ##### Input Variables
 - `GIT_DIR` - The base path of the GIT repository, default `{{ playbook_dir }}/../../../`
-- *`GIT_REPO` - HTTPS URL for GIT repository, used for pushing deployment files; uses the variable `{{ gitops.git_url }}` from `network.yaml`
-- *`GIT_USERNAME`: Username with access to the GIT repository; uses `{{ gitops.username }}` from `network.yaml`
-- *`GIT_EMAIL`: Email associated with the username above; uses `{{ gitops.email }}` from `network.yaml`
-- *`GIT_PASSWORD`: Password (most of the time access token) with write access to the GIT repository; uses `{{ gitops.password }}` from `network.yaml`
-- *`GIT_BRANCH`: The name of the current branch, where the Helm releases are pushed; uses `{{ gitops.branch }}` from `network.yaml`
- - `GIT_RESET_PATH`: The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
- - `msg` - The commit message to use when pushing deployment files.
+- `GIT_RESET_PATH` - The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
+- `gitops` - *item.gitops* from `network.yaml`
+- `msg` - The commit message to use when pushing deployment files.
+
+#### 3. "Wait for float pod to come up"
+This task waits till the float pod is running.
+##### Input Variables
+- *`component_type` - The exact type of the component for whom the value file is created.
+- *`namespace` - namespace is the variable called component_ns.
+- *`component_name` - The exact name of the component for whom the value file is created.
+- *`kubernetes` - item.k8s can be found in your network yaml.
+
+---
+
+##############################################
+
 #### 4. "Copy the network-parameter file into the float pod"
 This task copies network-parameter file into the float pod.

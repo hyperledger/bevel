@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -54,9 +60,9 @@ spec:
               curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "'"$VAULT_ROLE"'"}' $VAULT_ADDR/v1/auth/$VAULT_AUTH_PATH/login | jq -j '.auth.client_token' > token;
               X_VAULT_TOKEN=$(cat token);
 
-              ENDORSER_SEED=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"{{ $.Values.organization.name }}"/endorsers/{{ $.Values.vault.endorserName }}/identity/private | jq -r 'if .errors then . else . end');
+              ENDORSER_SEED=$(curl --header "X-Vault-Token: $X_VAULT_TOKEN" $VAULT_ADDR/v1/"{{ $.Values.organization.name }}"/data/endorsers/{{ $.Values.vault.endorserName }}/identity/private | jq -r 'if .errors then . else . end');
               validateVaultResponse "secret ({{ $.Values.vault.trusteeName }}/identity/private)" "${ENDORSER_SEED}";
-              echo ${ENDORSER_SEED} | jq -j ".data.seed" > /keys/seed;
+              echo ${ENDORSER_SEED} | jq -j ".data.data.seed" > /keys/seed;
               chmod 644 /keys/seed;
 
       containers:

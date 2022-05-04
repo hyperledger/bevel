@@ -1,4 +1,9 @@
-## Blockchain Automation Framework Indy scripts
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
+## Hyperledger Bevel Indy scripts
 
 The following scripts does the following:
 - Setup a Hyperledger Indy cluster( with 4 nodes) on your machine.

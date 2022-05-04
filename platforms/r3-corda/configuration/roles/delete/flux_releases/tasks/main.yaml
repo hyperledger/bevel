@@ -1,15 +1,22 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 #############################################################################################
 # This role deletes the helm releases and uninstalls Flux
 #############################################################################################
 
 #############################################################################################
-
 # Remove CRD Helmrelease
 - name: "Deletes all the helmreleases in {{ component_name }}"
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl delete --all helmrelease -n "{{ component_name }}"
   ignore_errors: yes
-
+  tags:
+    molecule-idempotence-notest
+  
 # Remove all Helm releases of organization
 - name: Remove all Helm releases of namespace {{ component_name }}
   args:
@@ -21,6 +28,8 @@
       KUBECONFIG={{ kubernetes.config_file }} helm uninstall ${helm_release}
     done
   ignore_errors: yes
+  tags:
+    molecule-idempotence-notest
   
 - name: Deletes namespaces
   k8s:
@@ -30,3 +39,4 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
+  changed_when: false

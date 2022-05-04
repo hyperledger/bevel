@@ -63,7 +63,11 @@ export const getHeaders = (list) => {
 export const getLocations = (nodes) => {
   let locationArray = [];
   for(let i in nodes){
-    let obj = { city: nodes[i].L, country: nodes[i].C }
+    // convert lat/long/city to just city
+    var tempLoc = nodes[i].L;
+    var res = tempLoc.split("/");
+    var tempCity = res[res.length-1]; // get the last of the array
+    let obj = { city: tempCity, country: nodes[i].C }
     locationArray.push(obj);
   }
   locationArray = uniqueList(locationArray);
@@ -85,7 +89,11 @@ function uniqueObjects(value, index, self){
 export const geoCodeNodes = (nodesArray, locationsMap) => {
   let nodes = nodesArray;
   nodes = nodes.map((node, index) => {
-    let keyObj = `${node.L}${node.C}`
+    // convert lat/long/city to just city
+    var tempLoc = node.L;
+    var res = tempLoc.split("/");
+    var tempCity = res[res.length-1]; // get the last of the array    
+    let keyObj = `${tempCity}${node.C}`
     node.lat = locationsMap.get(keyObj).lat;
     node.lng = locationsMap.get(keyObj).lng;
     return node;    

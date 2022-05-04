@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # Check if the keystore.json exist in build directory
 - name: Check if enode is present in the build directory or not
   stat:
@@ -12,16 +18,18 @@
     mode: '0755'
     recurse: yes
   when: file_status.stat.exists == False
+  changed_when: false
 
 # Fetch nodekey from vault
 - name: Get the nodekey from vault and generate the enode
   shell: |
-    vault read -field=nodekey {{ vault.secret_path | default('secret') }}/{{ org.name }}-quo/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey
+    vault kv get -field=nodekey {{ vault.secret_path | default('secretsv2') }}/{{ org.name }}-quo/crypto/{{ peer.name }}/quorum > {{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey
     bootnode --nodekey={{ build_path }}/{{ org.name }}/{{ peer.name }}/nodekey --writeaddress > {{ build_path }}/{{ org.name }}/{{ peer.name }}/enode
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: file_status.stat.exists == False
+  changed_when: false
 
 # Get enode data
 - name: Get enode_data
@@ -29,6 +37,11 @@
     enode_data: "{{ lookup('file', '{{ build_path }}/{{ org.name }}/{{ peer.name }}/enode') }}"
 
 # Get information about each validator node present in network.yaml and store it as a list of org,node
-- name: Get validator node data
+- name: Get validator node data for raft
   set_fact:
     enode_data_list={{ enode_data_list|default([]) + [ {'peer_name':peer.name, 'enodeval':enode_data, 'external_url':org.external_url_suffix, 'p2p_ambassador':peer.p2p.ambassador, 'raft_ambassador':peer.raft.ambassador } ] }}
+  when: network.config.consensus == 'raft'
+- name: Get validator node data
+  set_fact:
+    enode_data_list={{ enode_data_list|default([]) + [ {'peer_name':peer.name, 'enodeval':enode_data, 'external_url':org.external_url_suffix, 'p2p_ambassador':peer.p2p.ambassador } ] }}
+  when: network.config.consensus != 'raft'

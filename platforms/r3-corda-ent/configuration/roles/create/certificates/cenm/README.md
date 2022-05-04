@@ -1,3 +1,8 @@
+[//]: # (##############################################################################################)
+[//]: # (Copyright Accenture. All Rights Reserved.)
+[//]: # (SPDX-License-Identifier: Apache-2.0)
+[//]: # (##############################################################################################)
+
 ## Role: `create/certificates/cenm`
 This role generates the Ambassador proxy certificates, and the Kubernetes secret required for inter-cluster communication, specific to the CENM suite.
 
@@ -67,14 +72,31 @@ This tasks creates the `openssl.conf` file if it does not exist.
 
 ---
 
-#### 7. Create Ambassador certfiicates
+#### 7. Check if the `tls.ca` file exists or not
+This tasks checks if the `tls ca` file exists on the given path.
+##### Input Variables
+- `path` -  The path to the `tls.ca` file
+##### Output Variables
+- `corda_ssl_ca_check` -  Stores the status of the command
+
+----
+
+#### 8. Get Corda SSL root ca
+This tasks gets Corda SSL root ca
+
+
+- *`VAULT_ADDR` - The Vault address
+- *`VAULT_TOKEN` - Vault root/custom token which has the access to the path
+
+
+#### 9. Create Ambassador certfiicates
 This tasks creates the Ambassador certificates using the `openssl.conf` file created in the previous task.
 
 **when**: It runs when **ambassador_tls_certs.failed** variable is true.
 
 ---
 
-#### 8. Store the Ambassador certs to the vault
+#### 10. Store the Ambassador certs to the vault
 This tasks stores the created/fetched Ambassador certificates to the Vault.
 ##### Input Variables
 - `VAULT_ADDR` - Address of the vault
@@ -84,7 +106,7 @@ This tasks stores the created/fetched Ambassador certificates to the Vault.
 
 --- 
 
-#### 9. Check Ambassador creds exists
+#### 11. Check Ambassador creds exists
 This tasks checks if the Ambassador secret is already created
 ##### Input Variables
 - `name` - Name of the Ambassador credential to check
@@ -95,7 +117,7 @@ This tasks checks if the Ambassador secret is already created
 
 ---
 
-#### 10. Create the Ambassador credentials
+#### 12. Create the Ambassador credentials
 This tasks creates the Ambassador credential secret if they don't exist
 ##### Input variables
 - `service_name` - The name of the service, used to create the secret (name)
@@ -105,7 +127,7 @@ This tasks creates the Ambassador credential secret if they don't exist
 
 ---
 
-#### 11. Copy generated Ambassador TLS certificates to build location
+#### 13. Copy generated Ambassador TLS certificates to build location
 This tasks copies the public Ambassador certificates to the build location provided in `network.yaml`
 ##### Input Variables
 - `tlscert_path` - The original path of the Ambassador certificates
