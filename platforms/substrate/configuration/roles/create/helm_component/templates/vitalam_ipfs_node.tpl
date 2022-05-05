@@ -24,6 +24,7 @@ spec:
       ipfsCommand: "/usr/local/bin/ipfs"
       ipfsArgs:
         - daemon
+      ipfsSwarmAddrFilters: null
       ipfsLogLevel: fatal
 {% if ipfs_bootnode is defined %}
       ipfsBootNodeAddress: {{ ipfs_bootnode[1:] | join(',') }}
