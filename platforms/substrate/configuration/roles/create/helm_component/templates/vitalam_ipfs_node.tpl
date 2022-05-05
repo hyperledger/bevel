@@ -30,9 +30,9 @@ spec:
 {% endif %}      
       enableLivenessProbe: true
     image:
-      repository: {{ docker_url }}/digicatapult/vitalam-ipfs
+      repository: {{ docker_url }}/digicatapult/dscp-ipfs
       pullPolicy: IfNotPresent
-      tag: 'v1.2.12'
+      tag: 'v2.0.2'
     storage:
       storageClass: "{{ storageclass_name }}"
       dataVolumeSize: 20  # in Gigabytes

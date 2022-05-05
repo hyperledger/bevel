@@ -21,10 +21,19 @@
   when: 
   - network.env.proxy == 'none'
 
-- name: Collect Bootnode data
+# - name: Collect Bootnode data
+#   set_fact:
+#     node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':external_url, 'p2p_port':peer.ipfs.ambassador} ] }}
+#   vars:
+#     external_url: "{{ peer.name }}-ipfs-swarm.{{ org.external_url_suffix }}"
+#   when: 
+#   - network.env.proxy == 'ambassador'
+
+# Temp task while ipfs is unable to use ambassador
+- name: Collect Bootnode data 
   set_fact:
-    node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':external_url, 'p2p_port':peer.ipfs.ambassador} ] }}
+    node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':internal_url, 'p2p_port':peer.ipfs.swarmPort} ] }}
   vars:
-    external_url: "{{ peer.name }}-ipfs-swarm.{{ org.external_url_suffix }}"
+    internal_url: "{{ peer.name }}-ipfs-swarm.{{ component_ns }}.svc.cluster.local"
   when: 
   - network.env.proxy == 'ambassador'
