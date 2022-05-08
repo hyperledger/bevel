@@ -1,0 +1,33 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: supplychain-cacerts-job
+  namespace: supplychain-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: supplychain-cacerts-job
+  chart:
+    git: https://github.com/prasanths96/bevel.git
+    ref: develop
+    path: platforms/hyperledger-fabric/charts/generate_cacerts
+  values:
+    metadata:
+      name: supplychain
+      component_name: supplychain-net
+      namespace: supplychain-net    
+      images:
+        fabrictools: hyperledger/fabric-tools:2.2.2
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    vault:
+      role: vault-role
+      address: http://100.21.17.156:9696
+      authpath: devsupplychain-net-auth
+      secretcryptoprefix: secret/data/crypto/ordererOrganizations/supplychain-net/ca
+      secretcredentialsprefix: secret/data/credentials/supplychain-net/ca/supplychain
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      
+    ca:
+      subject: /C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net.org1ambassador.getthespiderman.com
