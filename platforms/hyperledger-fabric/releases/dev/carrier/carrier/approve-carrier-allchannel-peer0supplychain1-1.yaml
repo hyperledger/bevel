@@ -1,0 +1,45 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: approve-carrier-allchannel-peer0supplychain1-1
+  namespace: carrier-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: approve-carrier-allchannel-peer0supplychain1-1
+  chart:
+    git: https://github.com/prasanths96/bevel.git
+    ref: develop
+    path: platforms/hyperledger-fabric/charts/approve_chaincode
+  values:
+    metadata:
+      namespace: carrier-net
+      images:
+        fabrictools: hyperledger/fabric-tools:2.2.2
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+    peer:
+      name: peer0
+      address: peer0.carrier-net:7051
+      localmspid: carrierMSP
+      loglevel: debug
+      tlsstatus: true
+    vault:
+      role: vault-role
+      address: http://100.21.17.156:9696
+      authpath: devcarrier-net-auth
+      adminsecretprefix: secret/data/crypto/peerOrganizations/carrier-net/users/admin 
+      orderersecretprefix: secret/data/crypto/peerOrganizations/carrier-net/orderer
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      tls: false
+    orderer:
+      address: orderer1.org1ambassador.getthespiderman.com:8443
+    chaincode:
+      builder: hyperledger/fabric-ccenv:2.2.2
+      name: supplychain
+      version: 1
+      sequence: 1
+      commitarguments: '\"init\",\"\"'
+      endorsementpolicies:  ''
+    channel:
+      name: allchannel
