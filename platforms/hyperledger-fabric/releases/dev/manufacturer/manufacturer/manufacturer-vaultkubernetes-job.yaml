@@ -1,0 +1,33 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: manufacturer-vaultkubenertes-job
+  namespace: manufacturer-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: manufacturer-vaultkubenertes-job
+  chart:
+    git: https://github.com/prasanths96/bevel.git
+    ref: develop
+    path: platforms/hyperledger-fabric/charts/vault_kubernetes
+  values:
+    metadata:
+      name: manufacturer
+      component_type: peer
+      namespace: manufacturer-net    
+      images:
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    vault:
+      reviewer_service: vault-reviewer
+      role: vault-role
+      address: http://100.21.17.156:9696
+      authpath: devmanufacturer-net-auth
+      policy: vault-crypto-peer-manufacturer-net-ro
+      secret_path: secret
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    
+    k8s:
+      kubernetes_url: https://3DED72309E29759F9F698FE7441BBD69.gr7.us-west-2.eks.amazonaws.com
