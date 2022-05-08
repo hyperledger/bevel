@@ -1,0 +1,70 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: supplychain-net-ca-tools
+  namespace: supplychain-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: supplychain-net-ca-tools
+  chart:
+    git: https://github.com/prasanths96/bevel.git
+    ref: develop
+    path: platforms/hyperledger-fabric/charts/catools
+  values:
+    metadata:
+      namespace: supplychain-net
+      name: ca-tools
+      component_type: orderer
+      org_name: supplychain
+      proxy: haproxy
+    annotations:  
+      service:
+        - example1: example2
+      pvc:
+      deployment:
+    replicaCount: 1
+
+    image:
+      repository: hyperledger/fabric-ca-tools
+      tag: 1.2.1
+      pullPolicy: IfNotPresent
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      
+    storage:
+      storageclassname: supplychainsc
+      storagesize: 512Mi
+    
+    vault:
+      role: vault-role
+      address: http://100.21.17.156:9696
+      authpath: devsupplychain-net-auth
+      secretmsp: secret/data/crypto/ordererOrganizations/supplychain-net/users/admin/msp
+      secrettls: secret/data/crypto/ordererOrganizations/supplychain-net/users/admin/tls
+      secretorderer: secret/data/crypto/ordererOrganizations/supplychain-net/orderers
+      secretpeer: secret/data/crypto/ordererOrganizations/supplychain-net/peers
+      secretpeerorderertls: secret/data/crypto/ordererOrganizations/supplychain-net/orderer/tls
+      secretambassador: secret/data/crypto/ordererOrganizations/supplychain-net/ambassador
+      secretcert: secret/data/crypto/ordererOrganizations/supplychain-net/ca?ca.supplychain-net-cert.pem
+      secretkey: secret/data/crypto/ordererOrganizations/supplychain-net/ca?supplychain-net-CA.key
+      secretcouchdb: secret/data/credentials/supplychain-net/couchdb/supplychain
+      secretconfigfile: secret/data/crypto/ordererOrganizations/supplychain-net/msp/config
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    
+    healthcheck: 
+      retries: 10
+      sleepTimeAfterError: 2
+
+    
+    org_data:
+      external_url_suffix: org1ambassador.getthespiderman.com
+      component_subject: O=Orderer,L=51.50/-0.13/London,C=GB
+      cert_subject: O=Orderer/L=51.50,-0.13,London/C=GB
+      component_country: UK
+      component_state: London
+      component_location: London
+      ca_url: ca.supplychain-net.org1ambassador.getthespiderman.com:8443
+
+    orderers:
+      name: orderer1-orderer2-orderer3-
