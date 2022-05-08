@@ -119,7 +119,8 @@
 # to the Ansible container
 - name: Copy the msp folder from the ca tools
   shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    export CA_TOOL_CLI
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config/{{ component_type }}Organizations/{{ component_name }}/msp ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/msp
 
 ############################################################################################
@@ -127,7 +128,8 @@
 # to the build directory
 - name: Copy the tls server.crt file from the ca tools
   shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    export CA_TOOL_CLI
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name }}/tls/server.crt ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name }}/tls/server.crt
   loop: "{{ network.orderers }}"
   loop_control:
@@ -138,7 +140,8 @@
 # to the address specified in network.yaml
 - name: Copy the tls ca.crt file from the ca tools
   shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    export CA_TOOL_CLI
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name }}/tls/ca.crt  {{ orderer.certificate }}
   loop: "{{ network.orderers }}"
   loop_control:
