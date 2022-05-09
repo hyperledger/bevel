@@ -36,118 +36,31 @@ This tasks checks if the ambassador tls dir already created or not.
     path: The path to the directory is specified here.
     recurse: Yes/No to recursively check inside the path specified.
 
-#### 3. Check if certs already created
-This tasks checks if ambassador tls certificates are already created or not.
+#### 2. Create ambassador certs helmrelease file
+This task creates ambassador certs helmrelease file by calling the create/helm_component role
 ##### Input Variables
 
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    ignore_errors: Ignore if any error occurs
+    *component_name: "The name of the component"
+    *name: "{{ node_name }}"
+    *type: "certs-ambassador-quorum"
 
-##### Output Variables
+**include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here create/helm_component
 
-    root_certs: This variable stores the output of root certificates check query.
-
-#### 4. Get root certs
-This task fetches the generated root certificates by calling role *setup/get_crypto
-
+#### 3. Git Push
+This task pushes the above generated value files to git repo.
 ##### Input Variables
-    *cert_path: The path where to check/create is specified here.
-    *vault_output: Yaml with root_certs output.
-    type:  rootca
-    
-**when**: It runs when *root_certs.failed* == False, i.e. root CA certs are present. 
+    GIT_DIR: "The path of directory which needs to be pushed"    
+    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    msg: "Message for git commit"
+**include_role**: It includes the name of intermediatory role which is required for pushing  the value file to git repository.
 
-#### 5. check root certs
-This task checks for the existing root certs in the specified folder.
-
+#### 4. Create the Ambassador credentials
+This task creates the Ambassador TLS credentials
 ##### Input Variables
-    *path: The path to check the root certificates.
-
-##### Output variables
-    *rootca_stat_result: The varaiable store the result of Root certificate query in local directory.
-
-#### 6. Generate CAroot certificate
-This task generates the Root CA certificates.
-
-##### Input Variables
-    *cert_subject: Contains subject name Fetched from network.yaml
-
-**shell**: It generates rootca.pem and rootca.key.
-**when**:  It runs when *root_certs.failed* == True, i.e. ambassador certs are not present and are generated. 
-
-#### 7. Check if ambassador tls already created
-This tasks checks if ambassador tls certificates are already created or not.
-##### Input Variables
-
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    ignore_errors: Ignore ifany error occurs
-##### Output Variables
-
-    ambassador_tls_certs: This variable stores the output of ambassador tls certificates check query.
-
-#### 8. Get ambassador tls certs
-This task fetches the generated ambassador tls certificates by calling role *setup/get_crypto
-
-##### Input Variables
-    *cert_path: The path where to check/create is specified here.
-    *vault_output: Yaml with ambassador_tls_certs output.
-    type:  ambassador 
-    
-**when**: It runs when *ambassador_tls_certs*.failed == False, i.e. ambassador tls certs are present.
-
-#### 9. Generate the openssl conf file
-This task generates component openssl configuration file.
-
-##### Input Variables
-    *domain_name: The name of the uri formed by attaching node_name with external_url_suffix.
-
-**shell**: It goes to the ./build directory and generates component's openssl configuration file.
-**when**: It runs when *ambassador_tls_certs.failed* == True, i.e. ambassador certs are not present and are generated.
-
-#### 10. Generate ambassador tls certs
-This task generates the ambassador tls certificates.
-
-##### Input Variables
-    domain_name: Contains component name and  external_url_suffix, Fetched using 'item.' from network.yaml
-
-**shell**: It generates ambassador.crt and ambassador.key.
-**when**:  It runs when *ambassador_tls_certs.failed* == True, i.e. ambassador certs are not present and are generated. 
-
-
-#### 11. Putting certs to vault
-This task writes the root and ambassador tls certificates to Vault
-##### Input Variables
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    *component_ns: The name of namespaces 
-    *node_name: The name of the node in the organisation.
-
-**shell**: It writes the generated certificates to the vault.
-**when**:  It runs when *ambassador_tls_certs.failed* == True, i.e. ambassador certs are not present and are generated. 
-
-#### 12. Check Ambassador cred exists
-This tasks check if the Check Ambassador credentials exists or not.
-##### Input Variables
-
-    kind: This defines the kind of Kubernetes resource
-    namespace: The namespace of the component
-    *name: Name of the component 
-    *kubeconfig: The config file of the cluster
-    *context: This refer to the required kubernetes cluster context
-##### Output Variables
-
-    get_ambassador_secret: This variable stores the output of Ambassador credentials check query.
-    
-#### 13. Create the Ambassador credentials
-This task creates the Ambassador TLS credentials.
-##### Input Variables
-    *node_name: The name of resource
-    *kubernetes.config_file: The config file of kubernetes cluster.
-
-**shell**: The specified command creates ambassador credentials.
-**when**: It runs when *get_ambassador_secret.resources* are not found.
+    *namespace: "Namespace of org , Format: {{ organizationItem.name | lower }}"
+    *vault: "Vault Details"
+    *kubernetes: "{{ organizationItem.k8s }}"
+**include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
 
 #### Note: 
 vars folder has environment variable for ambassador role.
