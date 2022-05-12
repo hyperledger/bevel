@@ -21,6 +21,10 @@ spec:
       externalIpfsHost: "{{ name }}-ipfs-api" 
       externalIpfsPort: {{ peer.ipfs.apiPort }} 
       enableLivenessProbe: true
+      substrateStatusPollPeriodMs: 10000
+      substrateStatusTimeoutMs: 2000
+      ipfsStatusPollPeriodMs: 10000
+      ipfsStatusTimeoutMs: 2000
       auth:
         jwksUri: {{ auth_jwksUri }}
         audience: {{ auth_audience }}
@@ -28,9 +32,9 @@ spec:
         tokenUrl: {{ auth_tokenUrl }}
     replicaCount: 1
     image:
-      repository: ghcr.io/digicatapult/vitalam-api
+      repository: ghcr.io/digicatapult/dscp-api
       pullPolicy: IfNotPresent
-      tag: 'v3.0.1'
+      tag: 'v4.1.0'
     vitalamNode:
       enabled: false
 

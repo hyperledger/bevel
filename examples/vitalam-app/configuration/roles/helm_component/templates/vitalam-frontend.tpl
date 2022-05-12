@@ -26,16 +26,16 @@ spec:
         apiPort: {{ peer.api.ambassador }}
         substrateHost: "{{ name }}"
         substratePort: {{ peer.ws.port }}         
-        vitalamDemoPersona: {{ peer.persona }}
-        vitalamCustIdentity: {{ cust_peer_id }}
-        vitalamAmIdentity: {{ am_peer_id }}
-        vitalamLabIdentity: {{ lab_peer_id }}
-        vitalamAmlabIdentity: {{ amlab_peer_id | default(lab_peer_id) }}
+        inteliDemoPersona: {{ peer.persona }}
+        inteliCustIdentity: {{ cust_peer_id }}
+        inteliAmIdentity: {{ am_peer_id }}
+        inteliLabIdentity: {{ lab_peer_id }}
+        inteliAmlabIdentity: {{ amlab_peer_id | default(lab_peer_id) }}
     replicaCount: 1
     image:
       repository: ghcr.io/inteli-poc/inteli-demo
       pullPolicy: Always
-      tag: 'v2.1.1'
+      tag: 'v3.0.1'
 
     vault:
       alpineutils: ghcr.io/hyperledger/alpine-utils:1.0

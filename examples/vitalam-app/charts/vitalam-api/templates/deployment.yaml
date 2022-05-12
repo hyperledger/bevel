@@ -148,6 +148,26 @@ spec:
                 configMapKeyRef:
                   name: {{ include "vitalam-api.fullname" . }}-config
                   key: authTokenUrl
+            - name: SUBSTRATE_STATUS_POLL_PERIOD_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-api.fullname" . }}-config
+                  key: substrateStatusPollPeriodMs
+            - name: SUBSTRATE_STATUS_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-api.fullname" . }}-config
+                  key: substrateStatusTimeoutMs
+            - name: IPFS_STATUS_POLL_PERIOD_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-api.fullname" . }}-config
+                  key: ipfsStatusPollPeriodMs
+            - name: IPFS_STATUS_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "vitalam-api.fullname" . }}-config
+                  key: ipfsStatusTimeoutMs
           ports:
             - containerPort: {{ .Values.config.port }}
               name: http
@@ -157,10 +177,10 @@ spec:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 10
-            failureThreshold: 5
-            timeoutSeconds: 3
-            periodSeconds: 10
+            initialDelaySeconds: 60
+            failureThreshold: 15
+            timeoutSeconds: 10
+            periodSeconds: 20
           {{- end }}
           volumeMounts:
           - name: config

@@ -4,6 +4,18 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+# Check if ipfs-bootnode is running
+- name: Check if ipfs-bootnode is running
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ peer.name }}-ipfs"
+    component_type: Pod
+    label_selectors:
+      - name = {{ component_name }}
+    namespace: "{{ component_ns }}"
+  tags: notest
+
 # This task fetches the bootnode's peer id from vault
 - name: Fetch bootnode peer id from vault
   shell: |
@@ -18,8 +30,9 @@
     node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':internal_url, 'p2p_port':peer.ipfs.swarmPort} ] }}
   vars:
     internal_url: "{{ peer.name }}-ipfs-swarm.{{ component_ns }}.svc.cluster.local"
-  when: 
-  - network.env.proxy == 'none'
+### TODO Following lines are commented as IPFS does not work with Ambassador proxy
+#  when: 
+#  - network.env.proxy == 'none'
 
 # - name: Collect Bootnode data
 #   set_fact:
@@ -28,12 +41,3 @@
 #     external_url: "{{ peer.name }}-ipfs-swarm.{{ org.external_url_suffix }}"
 #   when: 
 #   - network.env.proxy == 'ambassador'
-
-# Temp task while ipfs is unable to use ambassador
-- name: Collect Bootnode data 
-  set_fact:
-    node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':internal_url, 'p2p_port':peer.ipfs.swarmPort} ] }}
-  vars:
-    internal_url: "{{ peer.name }}-ipfs-swarm.{{ component_ns }}.svc.cluster.local"
-  when: 
-  - network.env.proxy == 'ambassador'
