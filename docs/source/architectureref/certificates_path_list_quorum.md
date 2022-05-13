@@ -15,8 +15,8 @@ Certificate Paths on Vault for Quorum Network
 | secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | nodekey                       | Public Key (Identity for a node)   |
 | secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | keystore                      | Private Key Data for a node |
 | secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_user                       | Username for Quorum keystore     |
-| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | dn_password                   | Password for Quorum keystore     |
-| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | gethpassword                   | Password for geth    |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | db_password                   | Password for Quorum keystore     |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/quorum                         | geth_password                   | Password for geth    |
 
 
 
@@ -44,5 +44,5 @@ Details of Variables
 | Variable | Description |
 |-------------------------------|--------------|
 |`component_ns` | Name of Component's Namespace |
-|`peer_name` | Name of Peer  | 
+|`peer_name` | Name of Peer  |
 |`node_name` | Name of Node  |

@@ -243,3 +243,33 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   when: check == "git_credentials" and git_password_secret.resources|length == 0 
+
+############################################################################################
+# Check if endorser certs secret exists in the namespace
+- name: Check if endorser certs secret exists in the namespace
+  k8s_info:
+    kind: Secret
+    namespace: "{{ namespace }}"
+    name: "{{ org_name }}-endorser-cert"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: endorser_certs_secret
+  when: check == "endorser_certs"
+
+############################################################################################
+# This task create endorser certs secret exists in the namespace
+- name: Create endorser certs secret exists in the namespace
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ org_name }}-endorser-cert"
+        namespace: "{{ namespace }}"
+      stringData:
+        config.yaml: |-
+        certificate: "{{ cert }}"
+    state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: check == "endorser_certs" and endorser_certs_secret.resources|length == 0
