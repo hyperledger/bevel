@@ -41,5 +41,5 @@ This folder contains helm charts which are used by the ansible playbooks for the
 ### 4. vault-k8s-mgmt ###
 - This chart directory contains templates for authenticating vault with kubernetes cluster.
 
-### 5. vitalam-ipfs-node
+### 5. dscp-ipfs-node
 - This chart directory contains templates to deploy ipfs node.

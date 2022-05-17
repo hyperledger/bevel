@@ -1,0 +1,46 @@
+{{ $fullname :=  include "dscp-ipfs.fullname" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dscp-ipfs.fullname" . }}-swarm
+  labels:
+    {{- include "dscp-ipfs.labels" . | nindent 4 }}
+  {{- if eq $.Values.proxy.provider "ambassador" }}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v2
+      kind: TCPMapping
+      name: {{ $fullname }}-swarm
+      port: {{ $.Values.proxy.port }}
+      service: {{ $fullname }}-swarm:{{ $.Values.config.ipfsSwarmPort }}
+      ---
+      apiVersion: ambassador/v2
+      kind: TLSContext
+      name: {{ $fullname }}_mapping_tlscontext
+      hosts:
+      - {{ $.Values.proxy.external_url }}
+      secret: {{ $.Values.proxy.certSecret }}
+      min_tls_version: v1.2
+  {{- end }}
+spec:
+  selector:
+    name: {{ include "dscp-ipfs.fullname" . }}
+  ports:
+    - protocol: 'TCP'
+      port: {{ .Values.config.ipfsSwarmPort }}
+      targetPort: {{ .Values.config.ipfsSwarmPort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dscp-ipfs.fullname" . }}-api
+  labels:
+    {{- include "dscp-ipfs.labels" . | nindent 4 }}
+spec:
+  selector:
+    name: {{ include "dscp-ipfs.fullname" . }}
+  ports:
+    - protocol: 'TCP'
+      port: {{ .Values.config.ipfsApiPort }}
+      targetPort: {{ .Values.config.ipfsApiPort }}

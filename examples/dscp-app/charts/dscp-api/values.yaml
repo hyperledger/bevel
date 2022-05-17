@@ -1,0 +1,88 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Provide a fullNameOverride
+fullNameOverride:
+config:
+  port: 80
+  externalNodeHost: "" # This overrides dscpNode.enabled when setting the API_HOST envar
+  externalNodePort: 9944 # This overrides dscpIpfs.enabled when setting the API_PORT envar
+  logLevel: info
+  externalIpfsHost: "" # This overrides dscpIpfs.enabled when setting the IPFS_HOST envar
+  externalIpfsPort: 5001 # This overrides dscpIpfs.enabled when setting the IPFS_PORT envar
+  enableLivenessProbe: true
+  substrateStatusPollPeriodMs: 10000
+  substrateStatusTimeoutMs: 2000
+  ipfsStatusPollPeriodMs: 10000
+  ipfsStatusTimeoutMs: 2000
+  # Provide the Auth0 details. This should accept client_credentials as grant type
+  auth:
+    # Eg: jwksUri: https://inteli-poc.eu.auth0.com/.well-known/jwks.json
+    jwksUri:
+    # Eg: audience: https://inteli-poc.com/api
+    audience:
+    # Eg: issuer: https://inteli-poc.eu.auth0.com/
+    issuer:
+    # Eg: tokenUrl: https://inteli-poc.eu.auth0.com/oauth/token
+    tokenUrl:
+
+ingress:
+  # annotations: {}
+  # className: ""
+  paths:
+    - /v3
+
+# eg. replicaCount: 1
+replicaCount: 1
+
+# image section provides the information about the image used
+# eg. repository: ghcr.io/digicatapult/dscp-api
+image:
+  repository: ghcr.io/digicatapult/dscp-api
+  pullPolicy: IfNotPresent
+  tag: 'v4.1.0'
+
+dscpNode:
+  enabled: false
+
+dscpIpfs:
+  enabled: false
+  dscpNode:
+    enabled: false
+
+# This section contains the vault related information.
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to
+# use the Kubernetes service account token based authentication.
+vault:
+  # for eg. alpineutils: hyperledgerlabs/alpine-utils:1.0 #this image has curl installed
+  alpineutils:
+  # address provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address:
+  # secretprefix provide the vault path where the secrets are stored
+  # Eg. secretPrefix: secretsv2/sub-org-name
+  secretprefix:
+  # serviceaccountname provide the service account name authenticated to vault.
+  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceaccountname:
+  # role provide the vault role used.
+  # Eg. appRole: vault-role
+  role:
+  # authPath provide the auth path configured to be used. Default is /kubernetes
+  authpath:
+
+# This will be the proxy/ingress provider. Can have values "ambassador" or "haproxy"
+# Eg. provider: "ambassador"
+proxy:
+  provider:
+  # This will be the name of the organization
+  # Eg. name: carrier
+  name:
+  # External URL of the organization
+  # Eg. external_url_suffix: test.dscp.example.com
+  external_url_suffix:
+  # provide the external port
+  port: 443
+  # Provide the secret name which contains the certificate
+  certSecret: 

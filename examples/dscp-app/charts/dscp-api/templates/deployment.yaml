@@ -1,0 +1,191 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dscp-api.fullname" . }}
+  labels:
+    {{- include "dscp-api.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ include "dscp-api.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        name: {{ include "dscp-api.fullname" . }}
+    spec:
+      {{- include "dscp-api.imagePullSecrets" . | indent 6 }}
+      serviceAccountName: {{ .Values.vault.serviceaccountname }}      
+      initContainers:
+        - name: vault-init
+          image: {{ .Values.vault.alpineutils }}
+          imagePullPolicy: Always
+          volumeMounts:
+          - name: config
+            mountPath: /secret
+          env:
+          - name: VAULT_ADDR
+            value: {{ .Values.vault.address }}
+          - name: VAULT_SECRET_PREFIX
+            value: {{ .Values.vault.secretprefix }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ .Values.vault.authpath }}
+          - name: VAULT_APP_ROLE
+            value: {{ .Values.vault.role }}
+          - name: MOUNT_PATH
+            value: "/secret"
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${vault_secret_key})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+
+              #Login to Vault and so I can get an approle token
+              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+                -H "Content-Type: application/json" \
+                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+                jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+              echo "Logged into Vault"
+  
+              vault_secret_key="${VAULT_SECRET_PREFIX}/substrate"
+
+              echo "Getting the node account key from vault: $vault_secret_key"          
+              LOOKUP_SECRET_RESPONSE=$(curl -sS \
+                --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${vault_secret_key} | \
+                jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              accountKey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["account_seed"]')
+                            
+              echo -n "${accountKey}" > ${MOUNT_PATH}/accountKey
+      containers:
+        - name: dscp-api
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+
+            export USER_URI=$(cat /secret/accountKey);
+
+            npm run start
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: port
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: logLevel
+            - name: API_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: nodeHost
+            - name: API_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: nodePort
+            - name: IPFS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: ipfsHost
+            - name: IPFS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: ipfsPort
+            - name: AUTH_JWKS_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: authJwksUri
+            - name: AUTH_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: authAudience
+            - name: AUTH_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: authIssuer
+            - name: AUTH_TOKEN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: authTokenUrl
+            - name: SUBSTRATE_STATUS_POLL_PERIOD_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: substrateStatusPollPeriodMs
+            - name: SUBSTRATE_STATUS_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: substrateStatusTimeoutMs
+            - name: IPFS_STATUS_POLL_PERIOD_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: ipfsStatusPollPeriodMs
+            - name: IPFS_STATUS_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-api.fullname" . }}-config
+                  key: ipfsStatusTimeoutMs
+          ports:
+            - containerPort: {{ .Values.config.port }}
+              name: http
+              protocol: TCP
+          {{- if .Values.config.enableLivenessProbe }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            failureThreshold: 15
+            timeoutSeconds: 10
+            periodSeconds: 20
+          {{- end }}
+          volumeMounts:
+          - name: config
+            mountPath: /secret
+      volumes:
+        - name: config
+          emptyDir:
+            medium: Memory

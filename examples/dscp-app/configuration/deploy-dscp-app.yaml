@@ -1,0 +1,64 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook deploys the supplychain apis and frontend to an existing DLT network
+# The DLT network should already be created using the same configuration file as that
+#   used for running this playbook.
+---
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:  
+
+  # Create api values file for the dscp nodes
+  - name: "Creating api values file for dscp nodes"
+    include_role:
+      name: "create/dscp/api"
+    vars:
+      component_ns: "{{ org.name | lower }}-subs"
+      component_gitops: "{{ org.gitops }}"
+      component_vault: "{{ org.vault }}"
+      auth_jwksUri: "{{ org.auth.jwksUri }}"
+      auth_audience: "{{ org.auth.audience }}"
+      auth_issuer: "{{ org.auth.issuer }}"
+      auth_tokenUrl: "{{ org.auth.tokenUrl }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - network.type == 'substrate'
+
+  - name: "Get the identities for each VitalAM role"
+    include_role:
+      name: "setup/identities"
+    vars:
+      component_ns: "{{ org.name | lower }}-subs"
+      vault: "{{ org.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - network.type == 'substrate'
+  
+  # Create frontend values file for the dscp nodes
+  - name: "Creating frontend values file for dscp nodes"
+    include_role:
+      name: "create/dscp/frontend"
+    vars:
+      component_ns: "{{ org.name | lower }}-subs"
+      component_gitops: "{{ org.gitops }}"
+      component_vault: "{{ org.vault }}"
+      auth_audience: "{{ org.auth.audience }}"
+      auth_issuer: "{{ org.auth.issuer }}"
+      auth_clientId: "{{ org.auth.clientId }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - network.type == 'substrate' 
