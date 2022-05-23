@@ -10,7 +10,11 @@ spec:
   chart:
     git: {{ git_url }}
     ref: {{ git_branch }}
-    path: {{ charts_dir }}/ca    
+    path: {{ charts_dir }}/ca 
+{% if git_protocol == 'https' %}
+    secretRef:
+      name: gitcredentials
+{% endif %}   
   values:
     metadata:
       namespace: {{ component_name | e }}

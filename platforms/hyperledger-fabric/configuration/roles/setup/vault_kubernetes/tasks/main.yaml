@@ -38,6 +38,19 @@
     vault: "{{ item.vault }}"
     kubernetes: "{{ item.k8s }}"
     check: "token_secret"
+
+#############################################################################################
+# This task creates secrets for the git credentials
+- name: "Create git credentials secret"
+  include_role:
+    name: create/k8s_secrets 
+  vars: 
+    namespace: "{{ item.name | lower}}-net"
+    username: "{{ item.gitops.username }}"
+    password: "{{ item.gitops.password }}"
+    kubernetes: "{{ item.k8s }}"
+    check: "git_credentials"
+  when: item.gitops.git_protocol == "https"
   
 #############################################################################################
 # This tasks gets the kubernetes server url
@@ -57,6 +70,7 @@
     component_name: "{{ item.name | lower }}-vaultkubernetes-job"
     component_type: "{{ item.type | lower }}"
     component_ns: "{{ item.name | lower }}-net"
+    git_protocol: "{{ item.gitops.git_protocol }}"
     git_url: "{{ item.gitops.git_url }}"
     git_branch: "{{ item.gitops.branch }}"
     charts_dir: "{{ item.gitops.chart_source }}"

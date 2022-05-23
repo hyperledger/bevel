@@ -11,6 +11,10 @@ spec:
     git: {{ git_url }}
     ref: {{ git_branch }}
     path: {{ charts_dir }}/peernode    
+{% if git_protocol == 'https' %}
+    secretRef:
+      name: gitcredentials
+{% endif %}
   values:
     metadata:
       namespace: {{ peer_ns }}
