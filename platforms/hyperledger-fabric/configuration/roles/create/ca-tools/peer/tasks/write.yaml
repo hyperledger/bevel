@@ -6,6 +6,18 @@
 
 ---
 ############################################################################################
+# Create the certs directory if it does not exist
+- name: Create the certs directory if it does not exist
+  file:
+    path: "{{ peer.certificate | dirname }}"
+    state: directory
+  loop: "{{ endorsers_peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - item.org_status == 'new'
+    - org_peer.peerstatus is not defined or org_peer.peerstatus == 'new'
+    - org_peer.name == peer.name
 # This task gets msp config.yaml file from vault
 - name: Get msp cacerts
   shell: |

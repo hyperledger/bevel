@@ -6,24 +6,24 @@
 
 ---
 # yaml-language-server: $schema=../../../../platforms/network-schema.json
-# This is a sample configuration file for testing Fabric deployment on minikube which has 3 nodes.
+# This is a sample configuration file for testing Fabric deployment which has 3 nodes.
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: fabric
-  version: 1.4.8                 # currently tested 1.4.4 and 2.2.2
+  version: 2.2.2                 # currently tested 1.4.4, 1.4.8 and 2.2.2
 
   #Environment section for Kubernetes setup
   env:
-    type: "local"                   # tag for the environment. Important to run multiple flux on single cluster
-    proxy: none                     # 'none' can be used in single-cluster networks to don´t use a proxy
-    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+    type: "local"             # tag for the environment. Important to run multiple flux on single cluster
+    proxy: none               # 'none' can be used in single-cluster networks to don´t use a proxy
+    ambassadorPorts:          # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
       portRange:              # For a range of ports 
         from: 15010 
         to: 15020
     # ports: 15020,15021      # For specific ports
     retry_count: 50                 # Retry count for the checks
-    external_dns: disabled          # Should be disabled for minikube
+    external_dns: disabled          # Should be enabled if using external-dns for automatic route configuration
     annotations:              # Additional annotations that can be used for some pods (ca, ca-tools, orderer and peer nodes)
       service: 
        - example1: example2
@@ -37,8 +37,9 @@ network:
     url: "index.docker.io/hyperledgerlabs"
     username: "docker_username"
     password: "docker_password"
-  
+
   # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
+  # For RAFT consensus, have odd number (2n+1) of orderers for consensus agreement to have a majority.
   orderers:
     - orderer:
       type: orderer
@@ -46,13 +47,13 @@ network:
       org_name: supplychain                 # org_name should match one organization definition below in organizations: key            
       uri: orderer1.supplychain-net:7050    # Internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer1.crt   # the directory should be writable
-  
+
   # The channels defined for a network with participating peers in each channel
   channels:
   - channel:
     consortium: SupplyChainConsortium
     channel_name: AllChannel
-    orderer: 
+    orderer:
       name: supplychain
     participants:
     - organization:
@@ -63,7 +64,7 @@ network:
       - peer:
         name: peer0
         gossipAddress: peer0.carrier-net:7051         # Internal URI of the gossip peer
-        peerAddress: peer0.carrier-net:7051           # Internal URI of the peer as this is for minikube
+        peerAddress: peer0.carrier-net:7051           # Internal URI of the peer
       ordererAddress: orderer1.supplychain-net:7050   # Internal URI of the orderer
     - organization:
       name: manufacturer
@@ -73,10 +74,26 @@ network:
       - peer:
         name: peer0
         gossipAddress: peer0.manufacturer-net:7051
-        peerAddress: peer0.manufacturer-net:7051     # Internal URI of the peer as this is for minikube
+        peerAddress: peer0.manufacturer-net:7051      # Internal URI of the peer
       ordererAddress: orderer1.supplychain-net:7050
+    endorsers:
+    # Only one peer per org required for endorsement
+    - organization:
+      name: carrier
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.carrier-net:7051
+        certificate: "/home/bevel/build/carrier/peer0.crt" # certificate path for peer
+    - organization:
+      name: manufacturer
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.manufacturer-net:7051
+        certificate: "/home/bevel/build/manufacturer/peer0.crt" # certificate path for peer
     genesis:
-      name: OrdererGenesis  
+      name: OrdererGenesis
 
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
@@ -93,16 +110,16 @@ network:
       type: orderer
       external_url_suffix: develop.local.com   # Ignore for proxy none
       org_status: new
+      fabric_console: enabled
       ca_data:
         url: ca.supplychain-net:7054
-        certificate: file/server.crt           # This has not been implemented yet
-  
+        certificate: /home/bevel/build/supplychain/server.crt
+
       cloud_provider: aws   # Options: aws, azure, gcp
-      
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-  
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -116,22 +133,23 @@ network:
         url: "vault_url"
         root_token: "vault_root_token"
         secret_path: "secretsv2"
+
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "https://github.com/<username>/bevel.git"  # Gitops https or ssh url for flux value files 
-        branch: "local"                                                                 # Git branch where release is being made
-        release_dir: "platforms/hyperledger-fabric/releases/dev"                        # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"       # Gitops git repository URL for git push  (without https://)
-        username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "git@email.com"                                                           # Email to use in git config
-        private_key: "/home/bevel/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
-     
+        branch: "local"                                          # Git branch where release is being made
+        release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment.
+        chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"              # Gitops git repository URL for git push  (without https://)
+        username: "github_username"                              # Git user who has rights to check-in in all branches
+        password: "git_access_token"                             # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                                   # Email to use in git config
+        private_key: "/home/bevel/build/gitops"                  # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
       # Services maps to the pods that will be deployed on the k8s cluster
-      # This sample is an orderer service and includes a zk-raft consensus
+      # This sample is an orderer service and includes a raft consensus
       services:
         ca:
           name: ca
@@ -139,23 +157,17 @@ network:
           type: ca
           grpc:
             port: 7054
-        
+
         consensus:
           name: raft
-          type: broker
-          replicas: 3
-          grpc:
-            port: 9092
-                
+        
         orderers:
-        # This sample has multiple orderers as an example.
-        # You can use a single orderer for most production implementations.
         - orderer:
           name: orderer1
           type: orderer
           consensus: raft
           grpc:
-            port: 7050       
+            port: 7050
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -165,18 +177,17 @@ network:
       location: Zurich
       subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
       type: peer
-      external_url_suffix: develop.local.com  # Ignore for proxy none
+      external_url_suffix: develop.local.com   # Ignore for proxy none
       org_status: new
       ca_data:
         url: ca.manufacturer-net:7054
-        certificate: file/server.crt
+        certificate: /home/bevel/build/manufacturer/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp
-
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-          
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -190,20 +201,28 @@ network:
         url: "vault_url"
         root_token: "vault_root_token"
         secret_path: "secretsv2"
+
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "https://github.com/<username>/bevel.git"  # Gitops https or ssh url for flux value files 
-        branch: "local"                                                                 # Git branch where release is being made
-        release_dir: "platforms/hyperledger-fabric/releases/dev"                        # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"       # Gitops git repository URL for git push  (without https://)
-        username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "git@email.com"                                                           # Email to use in git config
-        private_key: "/home/bevel/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+        branch: "local"                                          # Git branch where release is being made
+        release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment.
+        chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"              # Gitops git repository URL for git push  (without https://)
+        username: "github_username"                              # Git user who has rights to check-in in all branches
+        password: "git_access_token"                             # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                                   # Email to use in git config
+        private_key: "/home/bevel/build/gitops"                  # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
+      # Generating User Certificates with custom attributes using Fabric CA in BAF for Peer Organizations
+      users:
+      - user:
+        identity: user1
+        attributes:
+          - key: "hf.Revoker"
+            value: "true"
       # The participating nodes are peers
       # This organization hosts it's own CA server
       services:
@@ -216,19 +235,20 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: anchor                                    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
-          gossippeeraddress: peer0.manufacturer-net:7051  # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
-          peerAddress: peer0.manufacturer-net:7051        # Internal URI of the peer as this is for minikube
-          cli: disabled                                   # Creates a peer cli pod depending upon the (enabled/disabled) tag. 
+          type: anchor                                          # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
+          gossippeeraddress: peer0.manufacturer-net:7051        # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
+          peerAddress: peer0.manufacturer-net:7051              # Internal URI of the peer
+          certificate: /home/bevel/build/manufacturer/peer0.crt # Path to peer Certificate
+          cli: enabled                                          # Creates a peer cli pod depending upon the (enabled/disabled) tag. 
           grpc:
-            port: 7051         
+            port: 7051
           events:
             port: 7053
           couchdb:
             port: 5984
           restserver:           # This is for the rest-api server
             targetPort: 20001
-            port: 20001 
+            port: 20001
           expressapi:           # This is for the express api server
             targetPort: 3000
             port: 3000
@@ -236,15 +256,16 @@ network:
             name: "supplychain"    # This has to be replaced with the name of the chaincode
             version: "1"           # This has to be replaced with the version of the chaincode (do NOT use .)
             maindirectory: "cmd"   # The main directory where chaincode is needed to be placed
+            lang: "golang"  # The language in which the chaincode is written ( golang/java/node )
             repository:
-              username: "github_username"          # Git user
-              password: "github_token"             # Git token or password of above user
+              username: "github_username"          # Git user with read rights to repo
+              password: "git_access_token"         # Git token of above user
               url: "github.com/<username>/bevel.git"
               branch: develop
               path: "examples/supplychain-app/fabric/chaincode_rest_server/chaincode/"  #The path to the chaincode in the repo
             arguments: '\"init\",\"\"'                                                  #Arguments to be passed along with the chaincode parameters
             endorsements: ""                                                            #Endorsements (if any) provided along with the chaincode
-    
+
     - organization:
       name: carrier
       country: GB
@@ -252,18 +273,17 @@ network:
       location: London
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
       type: peer
-      external_url_suffix: develop.local.com  #Ignore for proxy none
+      external_url_suffix: develop.local.com   # Ignore for proxy none
       org_status: new
       ca_data:
         url: ca.carrier-net:7054
-        certificate: file/server.crt
-      
-      cloud_provider: aws   # Options: aws, azure, gcp
+        certificate: /home/bevel/build/carrier/server.crt
 
+      cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-          
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -277,20 +297,28 @@ network:
         url: "vault_url"
         root_token: "vault_root_token"
         secret_path: "secretsv2"
+
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "https://github.com/<username>/bevel.git"  # Gitops https or ssh url for flux value files 
-        branch: "local"                                                                 # Git branch where release is being made
-        release_dir: "platforms/hyperledger-fabric/releases/dev"                        # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/hyperledger-fabric/charts"                             # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"       # Gitops git repository URL for git push  (without https://)
-        username: "github_username"                                                     # Git user who has rights to check-in in all branches
-        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
-        email: "git@email.com"                                                           # Email to use in git config
-        private_key: "/home/bevel/build/gitops"               # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+        branch: "local"                                          # Git branch where release is being made
+        release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment.
+        chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"              # Gitops git repository URL for git push  (without https://)
+        username: "github_username"                              # Git user who has rights to check-in in all branches
+        password: "git_access_token"                             # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                                   # Email to use in git config
+        private_key: "/home/bevel/build/gitops"                  # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
+      # Generating User Certificates with custom attributes using Fabric CA in BAF for Peer Organizations
+      users:
+      - user:
+        identity: user1
+        attributes:
+          - key: "hf.Revoker"
+            value: "true"
       services:
         ca:
           name: ca
@@ -301,19 +329,20 @@ network:
         peers:
         - peer:
           name: peer0          
-          type: anchor                                # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
-          gossippeeraddress: peer0.carrier-net:7051   # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
-          peerAddress: peer0.carrier-net:7051         # Internal URI of the peer as this is for minikube     
-          cli: disabled                               # Creates a peer cli pod depending upon the (enabled/disabled) tag. 
+          type: anchor                                      # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
+          gossippeeraddress: peer0.carrier-net:7051         # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
+          peerAddress: peer0.carrier-net:7051               # Internal URI of the peer
+          certificate: /home/bevel/build/carrier/peer0.crt  # Path to peer Certificate
+          cli: disabled                                     # Creates a peer cli pod depending upon the (enabled/disabled) tag. 
           grpc:
-            port: 7051         
+            port: 7051
           events:
             port: 7053
           couchdb:
             port: 5984
           restserver:
             targetPort: 20001
-            port: 20001 
+            port: 20001
           expressapi:
             targetPort: 3000
             port: 3000
@@ -321,9 +350,10 @@ network:
             name: "supplychain"    # This has to be replaced with the name of the chaincode
             version: "1"           # This has to be replaced with the version of the chaincode (do NOT use .)
             maindirectory: "cmd"   # The main directory where chaincode is needed to be placed
+            lang: "golang"  # The language in which the chaincode is written ( golang/java/node )
             repository:
-              username: "github_username"          # Git user
-              password: "github_token"             # Git token or password of above user
+              username: "github_username"          # Git user with read rights to repo
+              password: "git_access_token"         # Git token of above user
               url: "github.com/<username>/bevel.git"
               branch: develop
               path: "examples/supplychain-app/fabric/chaincode_rest_server/chaincode/"  #The path to the chaincode in the repo
