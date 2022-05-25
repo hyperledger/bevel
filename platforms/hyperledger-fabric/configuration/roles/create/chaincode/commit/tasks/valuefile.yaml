@@ -42,13 +42,28 @@
 
 - name: Get endorsers data
   set_fact:
-    endorsers_orgs={{ endorsers_orgs|default([]) + [ {'org_name':endorser.name, 'peercoreaddress':endorser.peers | map(attribute='corepeerAddress') | first, 'certificate':cert } ] }}
-  vars:
-    cert: "{{ lookup('file', '{{ endorser.peers | map(attribute=\"certificate\") | first }}') | b64encode }}"
+    endorsers_orgs={{ endorsers_orgs|default([]) + [ {'name':endorser.name, 'peercoreaddress':endorser.peers | map(attribute='corepeerAddress') | first } ] }}
   loop: "{{ approvers }}"
   loop_control:
     loop_var: endorser
-  
+
+#####################################################################################################################
+# This task create endorser certs secret
+- name: "Create endorser certs secret"
+  include_role:
+    name: create/k8s_secrets
+  vars: 
+    namespace: "{{ org.name |lower }}-net"
+    component_name: "{{ org.name | lower}}-net"
+    vault: "{{ org.vault }}"
+    kubernetes: "{{ org.k8s }}"
+    org_name: "{{ endorser.name }}"
+    cert: "{{ lookup('file', '{{ endorser.peers | map(attribute=\"certificate\") | first }}') | b64encode }}"
+    check: "endorser_certs"
+  loop: "{{ approvers }}"
+  loop_control:
+    loop_var: endorser
+
 # Nested task for chaincode commit
 - name: "Create value file for chaincode commit"
   include_role:

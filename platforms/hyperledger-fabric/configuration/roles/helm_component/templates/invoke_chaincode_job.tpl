@@ -30,6 +30,7 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
+      secretpath: {{ vault.secret_path | default('secretsv2') }}
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth
@@ -48,9 +49,18 @@ spec:
 {% if '2.' in network.version %}
     endorsers:
       creator: {{ namespace }}
-      name: {% for name in endorsers_list %}{%- for key, value in name.items() %}{% if key == 'org_name' %} {{ value }} {% endif %}{%- endfor %}{% endfor %}
+      name: {% for name in endorsers_list %}{%- for key, value in name.items() %}{% if key == 'name' %} {{ value }} {% endif %}{%- endfor %}{% endfor %}
 
       corepeeraddress: {% for address in endorsers_list %}{%- for key, value in address.items() %}{% if key == 'peercoreaddress' %} {{ value }} {% endif %}{% endfor -%}{% endfor %}
+
+      nameslist: 
+{% for name in endorsers_list %}
+{% for key, value in name.items() %}
+{% if key == 'name' %}
+        - {{ key }}: {{ value }}
+{% endif %}
+{% endfor %}
+{% endfor %}
 {% else %}
     endorsers:
         creator: {{ namespace }}
