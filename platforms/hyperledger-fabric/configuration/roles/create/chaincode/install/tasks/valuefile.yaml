@@ -34,15 +34,14 @@
   set_fact:
     install_chaincode: "{{ result }}"
 
-- name: "Create git credentials secret"
-  include_role:
-    name: create/k8s_secrets
-  vars: 
-    namespace: "{{ org.name | lower}}-net"
-    component_name: "{{ namespace }}"
-    kubernetes: "{{ org.k8s }}"
-    password: "{{ peer.chaincode.repository.password }}"
-    check: "git_credentials"
+# This task write the git credentials to Vault
+- name: Write the git credentials to Vault
+  shell: |
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/credentials/{{ namespace }}/git git_password="{{ peer.chaincode.repository.password }}"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: install_chaincode.resources|length == 0
 
 # Nested task for chanincode installation
 - name: "Create value file for chaincode installation - nested"

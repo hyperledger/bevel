@@ -135,6 +135,16 @@
   loop_control:
     loop_var: orderer
 
+# Create the certs directory if it does not exist
+- name: Create the certs directory if it does not exist
+  file:
+    path: "{{ orderer.certificate | dirname }}"
+    state: directory
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: add_new_org == 'false' and add_peer is not defined
+
 ############################################################################################
 # This task copies the tls ca.crt file from the respective CA Tools CLI
 # to the address specified in network.yaml
