@@ -137,24 +137,60 @@ This task copy the peer certificate to the path provided in network.yaml
                 
     loop_var: loop variable used for iterating the loop.
 
-#### 12. Copy the the msp folder from the ca tools
-This task copies the msp folder from the respective CA Tools CLI to the Ansible container
+#### 12. Copy the msp admincerts from vault
+This task copies the msp admincerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
-    *component_type: "Type of the organization (orderer or peer)"
-    *KUBECONFIG: The config file of kubernetes cluster.
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
 
-#### 13. Get msp config.yaml file
+#### 13. Copy the msp cacerts from vault
+This task copies the msp cacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
+
+#### 14. Copy the msp tlscacerts from vault
+This task copies the msp tlscacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
+
+#### 15. Copy the msp cacerts from vault
+This task copies the msp cacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is none.
+
+#### 16. Copy the msp tlscacerts from vault
+This task copies the msp tlscacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is none.
+
+#### 17. Get msp config.yaml file
 This task gets msp config.yaml file from vault
 ##### Input Variables
     *component_name: The name of the resource
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    *KUBECONFIG: The config file of kubernetes cluster.
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 
-#### 14. Create user crypto
+#### 18. Create user crypto
 This task create user crypto 
 ##### Input Variables
     *org_name: "Name of the organization"
