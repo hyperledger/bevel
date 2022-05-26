@@ -24,16 +24,6 @@
       path: "./build"
       state: absent
 
-  # Create generate_crypto script for new organization
-  - name: "Generate crypto script for new orderer"
-    include_role:
-      name: "create/new_orderer/crypto_script"
-    vars:
-      component_type: "{{ item.type | lower}}"
-      orderers: "{{ item.services.orderers }}"
-    loop: "{{ network['organizations'] }}"
-    when: item.type == 'orderer'
-  
   # Create CA Tools helm-value files and check-in
   - name: Create CA tools for each organization
     include_role:
@@ -112,3 +102,7 @@
     loop: "{{ network.channels }}"
     loop_control:
       loop_var: channel
+
+  vars: #These variables can be overriden from the command line
+    add_new_org: 'false'                #Default for this playbook is false
+    add_orderer: 'true'                 #Default for this playbook is true

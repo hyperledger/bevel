@@ -55,18 +55,9 @@
       kubernetes: "{{ item.k8s }}"
       release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-
-  # Create generate_crypto script for new organization
+    
+  # Create Organization crypto materials for new organization
   - include_role:
-      name: "create/add_new_peer/crypto_script"
-    vars:
-      component_type: "{{ item.type | lower}}"
-      orderers: "{{ item.services.orderers }}"
-    loop: "{{ network['organizations'] }}"
-
-  # Create CA Tools helm-value files and check-in
-  - name: Create CA tools for each organization
-    include_role:
       name: "create/ca-tools/peer"
     vars:
       component_name: "{{ item.name | lower}}-net"
