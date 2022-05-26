@@ -56,10 +56,9 @@
       release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
 
-  # Create CA Tools helm-value files and check-in
-  - name: Create CA tools for each organization
-    include_role:
-      name: "create/ca-tools"
+  # Create Organization crypto materials for new organization
+  - include_role:
+      name: "create/ca-tools/peer"
     vars:
       component_name: "{{ item.name | lower}}-net"
       component: "{{ item.name | lower}}"
@@ -70,28 +69,6 @@
       ca: "{{ item.services.ca }}"
       gitops: "{{ item.gitops }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-    loop: "{{ network['organizations'] }}"
-  # Create generate_crypto script for new organization
-  - include_role:
-      name: "create/add_new_peer/crypto_script"
-    vars:
-      component_type: "{{ item.type | lower}}"
-      orderers: "{{ item.services.orderers }}"
-    loop: "{{ network['organizations'] }}"
-
-  # Create Organization crypto materials for new organization
-  - include_role:
-      name: "create/crypto/peer"
-    vars:
-      component_name: "{{ item.name | lower}}-net"
-      component_type: "{{ item.type | lower}}"
-      org_name: "{{ item.name }}"
-      services: "{{ item.services }}"
-      subject: "{{ item.subject }}"
-      ca_url: "{{ item.ca_data.url }}"
-      cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
     loop: "{{ network['organizations'] }}"
     when: item.type == 'peer'    
 

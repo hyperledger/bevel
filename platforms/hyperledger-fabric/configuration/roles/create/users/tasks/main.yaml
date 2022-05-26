@@ -36,13 +36,16 @@
 # This task copies generate-user-crypto.sh file using the CA Tools Pod 
 - name: Copy generate_crypto.sh file using the CA Tools 
   shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-user-crypto.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-user-crypto.sh  
+    CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    export CA_TOOL_CLI
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-user-crypto.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-user-crypto.sh
+
 ############################################################################################
 # This task executes generate-user-crypto.sh file using the CA Tools to generate user certificate 
 - name: Execute generate-user-crypto.sh file using the CA Tools 
   shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    export CA_TOOL_CLI
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -- /root/ca-tools/{{org_name|lower}}/./generate-user-crypto.sh peer {{component_name}} {{org_name|lower}} {{users|b64encode}} {{org_name}} "{{subject}}" "{{ca_url}}"
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
 
