@@ -76,22 +76,6 @@
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.services.ca is defined and item.org_status == 'new'
-        
-    # Create CA Tools value files and check-in for new organization
-    - include_role:
-        name: "create/ca-tools"
-      vars:
-        component_name: "{{ item.name | lower}}-net"
-        component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        ca: "{{ item.services.ca }}"
-        gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'
 
     # Create generate_crypto script for new organization
     - include_role:
@@ -107,7 +91,7 @@
     - pause:
         prompt: "Sleeping... so that the client certificates are valid"
         minutes: 6
-    
+
     # Generate script to modify the fetched configuration block
     - include_role:
         name: "create/new_organization/create_block"
@@ -118,21 +102,20 @@
       loop: "{{ network['channels'] }}"
       loop_control:
         loop_var: channel
-
-    # Create Organization crypto materials for new organization
-    - name: "Crypto"
-      include_role:
-        name: "create/crypto/peer"
+    
+    # Create CA Tools value files and check-in for new organization
+    - include_role:
+        name: "create/ca-tools/peer"
       vars:
         component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
-        org_name: "{{ item.name }}"
-        services: "{{ item.services }}"
-        subject: "{{ item.subject }}"
-        ca_url: "{{ item.ca_data.url }}"
-        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        component_services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer' and item.org_status == 'new'
 
@@ -188,7 +171,6 @@
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer' and item.org_status == 'new'
-
 
     # This role is to start the existing peer cli
     # Fetch the configuration block and modify the block
