@@ -15,8 +15,8 @@
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
-  tasks:      
-  # delete build directory 
+  tasks:
+  # delete build directory
   - name: Remove build directory
     file:
       path: "./build"
@@ -24,7 +24,7 @@
 
   # create namespace, service account and clusterrolebinding
   - name: "Create namespace and service account"
-    include_role: 
+    include_role:
       name: create/namespace_serviceaccount
     vars:
       component_ns: "{{ item.name | lower }}-quo"
@@ -43,40 +43,43 @@
       org: "{{ item }}"
       kubernetes: "{{ item.k8s }}"
     loop: "{{ network['organizations'] }}"
-  
+
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
-  - name: "Setup vault"   
-    include_role: 
+  - name: "Setup vault"
+    include_role:
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
     vars:
       policy_type: "quorum"
       name: "{{ item.name | lower }}"
       component_ns: "{{ item.name | lower }}-quo"
-      component_name: "{{ item.name | lower }}-vaultk8s-job"      
+      component_name: "{{ item.name | lower }}-vaultk8s-job"
       component_auth: "quorum{{ item.name | lower }}"
       component_type: "organization"
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}"      
+      gitops: "{{ item.gitops }}"
       reset_path: "platforms/quorum/configuration"
     loop: "{{ network['organizations'] }}"
 
   # Generate Ambassador certificate for nodes
-  - name: "Create ambassador certificates for Nodes" 
-    include_role: 
+  - name: "Create ambassador certificates for Nodes"
+    include_role:
       name: create/certificates/ambassador
     vars:
-      root_subject: "{{ network.config.subject }}"
-      cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
-      services: "{{ item.services }}"
-      organisation: "{{ item.name | lower }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      component_name: "{{ item.name | lower }}"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-    loop: "{{ network['organizations']}}"
+      gitops: "{{ org.gitops }}"
+      component_auth: "quorum{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-quo"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      component_name: "{{ org.name | lower }}-ambassador-certs"
+      kubernetes: "{{ org.k8s }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+      vault: "{{ org.vault }}"
+      peers: "{{ org.services.peers }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
 
-  # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
+ # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
   - name: "Generate crypto material for RAFT consensus"
     include_role:
       name: create/crypto/raft
@@ -98,7 +101,7 @@
   # This role generates the genesis.json and nodekey/enode for all orgs of the network
   - name: "Generate genesis and nodekey/enode for the network"
     include_role:
-      name: create/genesis_nodekey      
+      name: create/genesis_nodekey
     when: network.config.consensus == 'ibft'
 
   # This role generates the crypto material for quorum network based on ibft consensus and store it in vault
@@ -122,7 +125,7 @@
   # This role generates the crypto materials for tessera tm
   - name: "Generate crypto for the Tessera transaction manager"
     include_role:
-      name: create/crypto/tessera  
+      name: create/crypto/tessera
     vars:
       build_path: "{{ playbook_dir }}/build"
       component_ns: "{{ org.name | lower }}-quo"
@@ -132,11 +135,11 @@
       peers: "{{ org.services.peers }}"
       gitops: "{{ org.gitops }}"
       charts_dir: "{{ org.gitops.chart_source }}"
-      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
-    when: 
+    when:
       - network.config.transaction_manager == 'tessera'
 
   # This role generates the crypto material for quorum network based on constellation transaction manager and store it in vault
@@ -175,7 +178,7 @@
       geth_data: "{{ network.config.bootnode | default('null') }}"
     loop: "{{ network['organizations'] }}"
     when: network.config.transaction_manager == 'tessera'
-    
+
   # This role deployes nodes with constellation transaction mananger
   - name: "Deploy nodes with Constellation Transaction Manager"
     include_role:

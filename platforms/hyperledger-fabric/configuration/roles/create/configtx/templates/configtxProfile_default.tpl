@@ -9,8 +9,13 @@ Profiles:
       EtcdRaft:
         Consenters:
 {% for orderer in orderers %}
+{% if provider == 'none' %}
+        - Host: {{orderer.name}}.{{ component_ns }}
+          Port: 7050
+{% else %}
         - Host: {{ orderer.name }}.{{ item.external_url_suffix }}
           Port: 8443
+{% endif %}
           ClientTLSCert: ./crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt
           ServerTLSCert: ./crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt
 {% endfor %}

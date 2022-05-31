@@ -49,9 +49,18 @@ spec:
 {% if '2.' in network.version %}
     endorsers:
       creator: {{ namespace }}
-      name: {% for name in endorsers_list %}{%- for key, value in name.items() %}{% if key == 'org_name' %} {{ value }} {% endif %}{%- endfor %}{% endfor %}
+      name: {% for name in endorsers_list %}{%- for key, value in name.items() %}{% if key == 'name' %} {{ value }} {% endif %}{%- endfor %}{% endfor %}
 
       corepeeraddress: {% for address in endorsers_list %}{%- for key, value in address.items() %}{% if key == 'peercoreaddress' %} {{ value }} {% endif %}{% endfor -%}{% endfor %}
+
+      nameslist: 
+{% for name in endorsers_list %}
+{% for key, value in name.items() %}
+{% if key == 'name' %}
+        - {{ key }}: {{ value }}
+{% endif %}
+{% endfor %}
+{% endfor %}
 {% else %}
     endorsers:
         creator: {{ namespace }}
