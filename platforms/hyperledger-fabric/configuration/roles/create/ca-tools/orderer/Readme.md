@@ -125,7 +125,7 @@ This task copies the tls server.crt from vault to the build directory
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
-**loop**: loops over orderers list fetched from *{{  network.orderers }}* from network yaml
+**loop**: loops over orderers list fetched from *{{ item.services.orderers }}* from network yaml
 **loop_control**: Specify conditions for controlling the loop.
                 
     loop_var: loop variable used for iterating the loop.
