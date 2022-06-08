@@ -11,8 +11,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: fabric
-  version: 1.4.8                 # currently tested 1.4.8 and 2.2.2
-
+  version: 2.2.2                # currently tested 1.4.8 and 2.2.2
   frontend: enabled #Flag for frontend to enabled for nodes/peers
 
   #Environment section for Kubernetes setup
@@ -55,6 +54,12 @@ network:
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
+    - orderer:
+      type: orderer
+      name: orderer3
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer3.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
   
   # The channels defined for a network with participating peers in each channel
   channels:
@@ -267,24 +272,31 @@ network:
             port: 7054
         
         consensus:
-          name: kafka
-          type: broker
-          replicas: 4
+          name: raft
+          type: broker        #This field is not consumed for raft consensus
+          replicas: 4         #This field is not consumed for raft consensus
           grpc:
-            port: 9092
+            port: 9092        #This field is not consumed for raft consensus
                 
         orderers:
         # This sample has multiple orderers as an example.
         # You can use a single orderer for most production implementations.
+        # For RAFT consensus, have odd number (2n+1) of orderers for consensus agreement to have a majority.
         - orderer:
           name: orderer1
           type: orderer
-          consensus: kafka
+          consensus: raft
           grpc:
             port: 7050
         - orderer:
           name: orderer2
           type: orderer
-          consensus: kafka
+          consensus: raft
           grpc:
-            port: 7050   
+            port: 7050
+        - orderer:
+          name: orderer3
+          type: orderer
+          consensus: raft
+          grpc:
+            port: 7050    

@@ -215,6 +215,37 @@
     - network.env.proxy == 'ambassador'
 
 ############################################################################################
+# Check if git credentials secret exist
+- name: Check if git credentials exists
+  k8s_info:
+    kind: Secret
+    namespace: "{{ namespace }}"
+    name: "gitcredentials"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: git_credentials_secret
+  when: check == "git_credentials"
+
+# ############################################################################################
+# This task Store git credentials as secret
+- name: Store git credentials as secret
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "gitcredentials"
+        namespace: "{{ namespace }}"
+      stringData:
+        config.yaml: |-
+        username: "{{ username }}"
+        password: "{{ password }}"
+    state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: check == "git_credentials" and git_credentials_secret.resources|length == 0 
+
+############################################################################################
 # Check if endorser certs secret exists in the namespace
 - name: Check if endorser certs secret exists in the namespace
   k8s_info:
