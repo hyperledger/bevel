@@ -21,32 +21,32 @@ network:
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 3 ports for each Node. These ports are again specified for each organization below
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange:              # For a range of ports 
-        from: 15010 
+      portRange:              # For a range of ports
+        from: 15010
         to: 15052
     # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
-  
+
   # Docker registry details where images are stored. This will be used to create k8s secrets
-  # Please ensure all required images are built and stored in this registry. 
+  # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "ghcr.io/hyperledger"
     username: "docker_username"
     password: "docker_password"
-  
+
   # Following are the configurations for the common Besu network
-  config:    
+  config:
     consensus: "ibft"                 # Options are "ibft", "ethash" and "clique".
-    ## Certificate subject for the root CA of the network. 
+    ## Certificate subject for the root CA of the network.
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
     transaction_manager: "tessera"    # Transaction manager can be "tessera" or "orion"; 21.x.x features are same for both
     # This is the version of transaction_manager docker image that will be deployed
-    tm_version: "21.7.3"               
+    tm_version: "21.7.3"
     # TLS can be True or False for the transaction manager
     tm_tls: True
     # Tls trust value
@@ -57,9 +57,9 @@ network:
     #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15022" for orion
     #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
     # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
-    tm_nodes: 
+    tm_nodes:
       - "https://carrier.test.besu.blockchaincloudpoc-develop.com"
-  
+
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
     # Specification for the 1st organization. Each organization should map to a VPC and a separate k8s cluster for production deployments
@@ -68,7 +68,7 @@ network:
       type: validator
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
       external_url_suffix: test.besu.blockchaincloudpoc.com
-      
+
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -89,11 +89,11 @@ network:
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment.
         chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git@email.com"                # Email to use in git config
@@ -122,7 +122,7 @@ network:
             port: 8545
             ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
-            port: 8546          
+            port: 8546
         - validator:
           name: validator3
           bootnode: false          # true if the validator node is used also a bootnode for the network
@@ -133,7 +133,7 @@ network:
             port: 8545
             ambassador: 15015       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
-            port: 8546          
+            port: 8546
         - validator:
           name: validator4
           bootnode: false          # true if the validator node is used also a bootnode for the network
@@ -151,7 +151,7 @@ network:
       type: member
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
       external_url_suffix: test.besu.blockchaincloudpoc.com
-      
+
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -172,11 +172,11 @@ network:
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment.
         chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git@email.com"                # Email to use in git config
@@ -203,7 +203,7 @@ network:
             port: 443          # use port: 15022 when transaction_manager = "orion"
             ambassador: 443    # use ambassador: 15022 when transaction_manager = "orion"
           tm_clientport:
-            port: 8888           
+            port: 8888
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -211,7 +211,7 @@ network:
       type: member
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
       external_url_suffix: test.besu.blockchaincloudpoc.com
-      
+
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -232,17 +232,17 @@ network:
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment.
         chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git@email.com"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
-      # The participating nodes are named as peers 
+      # The participating nodes are named as peers
       services:
         peers:
         - peer:
@@ -268,10 +268,10 @@ network:
 
     - organization:
       name: store
-      type: member        
+      type: member
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
       external_url_suffix: test.besu.blockchaincloudpoc.com
-      
+
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -292,11 +292,11 @@ network:
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment.
         chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git@email.com"                # Email to use in git config
@@ -327,10 +327,10 @@ network:
 
     - organization:
       name: warehouse
-      type: member         
+      type: member
       # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
       external_url_suffix: test.besu.blockchaincloudpoc.com
-      
+
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -338,7 +338,7 @@ network:
         region: "aws_region"                # AWS Region where cluster and EIPs are created
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
-      k8s:        
+      k8s:
         context: "cluster_context"
         config_file: "cluster_config"
       # Hashicorp Vault server address and root-token. Vault should be unsealed.
@@ -351,11 +351,11 @@ network:
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files
         branch: "develop"           # Git branch where release is being made
-        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment.
         chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push
         username: "git_username"          # Git Service user who has rights to check-in in all branches
         password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git@email.com"                # Email to use in git config
