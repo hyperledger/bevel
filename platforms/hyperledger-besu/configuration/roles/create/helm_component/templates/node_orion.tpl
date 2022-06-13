@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name | replace('_','-')}}
@@ -7,10 +7,14 @@ metadata:
     flux.weave.works/automated: "false"
 spec:
   releaseName: {{ component_name | replace('_','-') }}
+  interval: 1m
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
-    path: {{ charts_dir }}/node_orion 
+   spec:
+    chart: {{ charts_dir }}/node_orion
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     replicaCount: 1
 
@@ -29,14 +33,14 @@ spec:
 
     liveliness_check:
       enabled: false
-{% if network.env.proxy == 'ambassador' %} 
+{% if network.env.proxy == 'ambassador' %}
     proxy:
       provider: ambassador
       external_url: {{ name }}.{{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
       rpc: {{ peer.rpc.ambassador }}
       tmport: {{ peer.tm_nodeport.ambassador }}
-{% else %}      
+{% else %}
     proxy:
       provider: none
       external_url: {{ name }}.{{ component_ns }}
@@ -47,8 +51,10 @@ spec:
 
     images:
       node: hyperledger/besu:{{ network.version }}
-      alpineutils: hyperledgerlabs/alpine-utils:1.0
+      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
       orion: pegasyseng/orion:{{ network.config.tm_version }}
+      pullPolicy: IfNotPresent
+
 
     node:
       name: {{ peer.name }}

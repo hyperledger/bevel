@@ -20,7 +20,8 @@ spec:
       name: {{ component_name }}
       namespace: {{ component_ns }}
       images:
-        alpineutils: {{ alpine_image }}
+        alpineutils: {{ network.docker.url }}/alpine-utils:1.0
+        pullPolicy: IfNotPresent
 
     vault:
       reviewer_service: vault-reviewer

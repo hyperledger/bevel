@@ -23,7 +23,7 @@ spec:
         app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
-        app.kubernetes.io/instance: {{ .Release.Name }} 
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       restartPolicy: OnFailure
       imagePullSecrets:
@@ -45,7 +45,7 @@ spec:
         - name: VAULT_SECRET_ROOTCA
           value: {{ $.Values.vault.rootcasecret }}
         - name: VAULT_SECRET_AMBASSADORTLS
-          value: {{ $.Values.vault.ambassadortlssecret }}         
+          value: {{ $.Values.vault.ambassadortlssecret }}
         - name: KUBERNETES_AUTH_PATH
           value: {{ $.Values.vault.authpath }}
         - name: VAULT_APP_ROLE
@@ -98,7 +98,7 @@ spec:
           CA_PEM=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
           CA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_key"]' 2>&1)
 
-          if [ "$CA_PEM" == "null" ] || [[ "$CA_PEM" = "parse error"* ]] || [ "$CA_PEM" = "" ]        
+          if [ "$CA_PEM" == "null" ] || [[ "$CA_PEM" = "parse error"* ]] || [ "$CA_PEM" = "" ]
           then
             echo "Certficates absent in vault. Ignore error warning"
             touch ${OUTPUT_PATH}/rootca_absent.txt
@@ -111,14 +111,14 @@ spec:
             mkdir -p ${ROOTCA_PATH}
             echo  $CA_PEM | base64 -d >> ${ROOTCA_PATH}/rootca.pem
             echo  $CA_KEY | base64 -d >> ${ROOTCA_PATH}/rootca.key
-          fi 
+          fi
 
           vault_secret_key=${VAULT_SECRET_AMBASSADORTLS}
           echo "Checking certs in ${vault_secret_key}"
           LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
           data_info=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
 
-          if [ "$data_info" == "null" ] || [[ "$data_info" = "parse error"* ]] || [ "$data_info" = "" ]        
+          if [ "$data_info" == "null" ] || [[ "$data_info" = "parse error"* ]] || [ "$data_info" = "" ]
           then
             echo "Certficates absent in vault. Ignore error warning"
             touch ${OUTPUT_PATH}/ambassadortls_absent.txt
@@ -126,7 +126,7 @@ spec:
             validateVaultResponse "${vault_secret_key}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
             echo "Certificates present in vault"
             touch ${OUTPUT_PATH}/ambassadortls_present.txt
-          fi 
+          fi
           echo "Done checking for certificates in vault"
 
         volumeMounts:
@@ -144,7 +144,7 @@ spec:
         - name: VAULT_SECRET_ROOTCA
           value: {{ $.Values.vault.rootcasecret }}
         - name: VAULT_SECRET_AMBASSADORTLS
-          value: {{ $.Values.vault.ambassadortlssecret }}      
+          value: {{ $.Values.vault.ambassadortlssecret }}
         - name: KUBERNETES_AUTH_PATH
           value: {{ $.Values.vault.authpath }}
         - name: VAULT_APP_ROLE
@@ -186,7 +186,7 @@ spec:
               # Generates the CA Root certificates
               openssl genrsa -out rootca.key 2048
               openssl req -x509 -new -nodes -key rootca.key -sha256 -days 1024 -out rootca.pem -subj "/${CERT_SUBJECT}"
-   
+
             fi
 
             if [ -e ${CERTS_CHECKS_PATH}/rootca_absent.txt ] || [ -e ${CERTS_CHECKS_PATH}/ambassadortls_absent.txt ]
@@ -198,7 +198,7 @@ spec:
             distinguished_name = dn
 
             [dn]
-            
+
             [ v3_req ]
             basicConstraints = CA:FALSE
             keyUsage = nonRepudiation, digitalSignature, keyEncipherment
@@ -210,7 +210,7 @@ spec:
             DNS.3 = ${DOMAIN_NAME_TESSERA}
             " > openssl${NODE_NAME}.conf
 
-              # Generates the ambassador tls certificates 
+              # Generates the ambassador tls certificates
               openssl genrsa -out ${NODE_NAME}.key 2048
               openssl req -new -nodes -key ${NODE_NAME}.key -days 1000 -out ${NODE_NAME}.csr -subj "/CN=${DOMAIN_NAME_PUB}" -config "openssl${NODE_NAME}.conf"
               openssl x509 -req -in ${NODE_NAME}.csr -CA ${ROOTCA_PATH}/rootca.pem -CAkey ${ROOTCA_PATH}/rootca.key -CAcreateserial -out ${NODE_NAME}.pem -days 1000 -sha256 -extfile "openssl${NODE_NAME}.conf" -extensions v3_req
@@ -247,7 +247,7 @@ spec:
         - name: VAULT_SECRET_ROOTCA
           value: {{ $.Values.vault.rootcasecret }}
         - name: VAULT_SECRET_AMBASSADORTLS
-          value: {{ $.Values.vault.ambassadortlssecret }}      
+          value: {{ $.Values.vault.ambassadortlssecret }}
         - name: KUBERNETES_AUTH_PATH
           value: {{ $.Values.vault.authpath }}
         - name: VAULT_APP_ROLE
@@ -262,15 +262,15 @@ spec:
         args:
           - |-
             apk update && apk add jq curl;
-            
+
             formatCertificate () {
               NAME="${1##*/}"
               while read line || [ -n "$line" ];
-              do 
-                echo "$line\n"; 
+              do
+                echo "$line\n";
               done < ${1} > ${2}/${NAME}.txt
             }
-            
+
             validateVaultResponse () {
               if echo ${2} | grep "errors"; then
                 echo "ERROR: unable to retrieve ${1}: ${2}"
@@ -306,14 +306,14 @@ spec:
               echo 'Waiting for generation of certificates'
               sleep 2s
             done
-    
+
             CERTS_CHECKS_PATH=${MOUNT_PATH}/check_certs
             ROOTCA_PATH=${MOUNT_PATH}/rootca
             AMBASSADORTLS_PATH=${MOUNT_PATH}/ambassadortls;
             FORMAT_CERTIFICATE_PATH="/formatcertificate"
             mkdir -p ${FORMAT_CERTIFICATE_PATH}/rootca
             mkdir -p ${FORMAT_CERTIFICATE_PATH}/ambassadortls
-   
+
             if [ -e ${CERTS_CHECKS_PATH}/rootca_present.txt ]; then ROOTCA_CERT_WRITTEN=true; else ROOTCA_CERT_WRITTEN=false; fi
             if [ -e ${CERTS_CHECKS_PATH}/ambassadortls_present.txt ]; then AMBASSADORTLS_CERT_WRITTEN=true; else AMBASSADORTLS_CERT_WRITTEN=false; fi
             COUNTER=1
@@ -321,7 +321,7 @@ spec:
             do
               if ([ -e ${CERTS_CHECKS_PATH}/rootca_absent.txt ] && [ "$ROOTCA_CERT_WRITTEN" =  "false" ]) || ([ -e ${CERTS_CHECKS_PATH}/ambassadortls_absent.txt ] && [ "$AMBASSADORTLS_CERT_WRITTEN" =  "false" ])
               then
-              
+
                 # these commands encode files
                 base64 ${ROOTCA_PATH}/rootca.key > ${ROOTCA_PATH}/encode_rootca.key
                 base64 ${ROOTCA_PATH}/rootca.pem > ${ROOTCA_PATH}/encode_rootca.pem
@@ -359,7 +359,7 @@ spec:
                   # this command creates the json with the data that will be saved in the vault when tm_tls is true
                   echo "
                   {
-                    \"data\": 
+                    \"data\":
                       {
                         \"rootca_pem\": \"${ROOTCAPEM_FORMAT}\",
                         \"rootca_key\": \"${ROOTCAKEY_FORMAT}\",
@@ -368,19 +368,19 @@ spec:
                         \"keystore\": \"${KEYSTORE_FORMAT}\",
                         \"password\": \"${PASSWORD_FORMAT}\",
                         \"knownServer\": \"${KNOWNSERVER_FORMAT}\"
-                      }  
+                      }
                   }" > payload.json
                 else
                   # this command creates the json with the data that will be saved in the vault when tm_tls is false
                   echo "
                   {
-                    \"data\": 
+                    \"data\":
                       {
                         \"rootca_pem\": \"${ROOTCAPEM_FORMAT}\",
                         \"rootca_key\": \"${ROOTCAKEY_FORMAT}\",
                         \"ambassadorcrt\": \"${AMBASSADORCRT_FORMAT}\",
                         \"ambassadorkey\": \"${AMBASSADORKEY_FORMAT}\"
-                      }  
+                      }
                   }" > payload.json
                 fi;
 
@@ -391,7 +391,7 @@ spec:
                     -X POST \
                     -d @payload.json \
                     ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADORTLS}
-                
+
                 if [ "$TM_TLS_ENABLED" == "true" ]
                 then
                   # Check tls certificates when tm_tls is true
@@ -404,7 +404,7 @@ spec:
                   PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' 2>&1)
                   KNOWNSERVER=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["knownServer"]' 2>&1)
 
-                  for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY" "$KEYSTORE" "$PASSWORD" "$KNOWNSERVER"        
+                  for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY" "$KEYSTORE" "$PASSWORD" "$KNOWNSERVER"
                   do
                     if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
                     then
@@ -415,14 +415,14 @@ spec:
                     fi
                   done
                 else
-                
+
                   # Check tls certificates when tm_tls is false
                   LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADORTLS} | jq -r 'if .errors then . else . end')
                   CA_PEM=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
                   CA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_key"]' 2>&1)
                   AMBASSADORCRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorcrt"]' 2>&1)
                   AMBASSADORKEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorkey"]' 2>&1)
-                
+
                   for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY"
                   do
                     if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
@@ -439,14 +439,14 @@ spec:
 
               if [ -e ${CERTS_CHECKS_PATH}/rootca_absent.txt ] && [ "$ROOTCA_CERT_WRITTEN" =  "false" ]
               then
-                # this command creates the json with the data that will be saved in the vault 
+                # this command creates the json with the data that will be saved in the vault
                 echo "
                   {
-                    \"data\": 
+                    \"data\":
                       {
                         \"rootca_pem\": \"${ROOTCAPEM_FORMAT}\",
                         \"rootca_key\": \"${ROOTCAKEY_FORMAT}\"
-                      }  
+                      }
                   }" > payload.json
 
                 # This command copy the rootca certificates to the Vault
@@ -462,7 +462,7 @@ spec:
                 CA_PEM=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
                 CA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_key"]' 2>&1)
 
-                for field in "$CA_PEM" "$CA_KEY"         
+                for field in "$CA_PEM" "$CA_KEY"
                 do
                   if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
                   then

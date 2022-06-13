@@ -8,16 +8,16 @@ apiVersion: v1
 kind: Service
 metadata:
   namespace: {{ .Values.metadata.namespace }}
-  annotations:    
+  annotations:
     version: '1'
     {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |      
+    getambassador.io/config: |
       ---
       apiVersion: ambassador/v2
       kind: Mapping
-      name: {{ .Values.tessera.name }}-tm      
+      name: {{ .Values.tessera.name }}-tm
       host: {{ .Values.proxy.external_url }}
-      prefix: /      
+      prefix: /
       service: {{ .Values.tessera.name }}.{{ .Values.metadata.namespace }}:{{ .Values.tessera.ports.tm }}
       tls: {{ .Values.tessera.name }}_mapping_tlscontext
       ---
@@ -28,14 +28,14 @@ metadata:
       - {{ .Values.proxy.external_url }}
       secret: {{ .Values.tessera.ambassadorSecret }}.{{ .Values.metadata.namespace }}
       secret_namespacing: true
-      min_tls_version: v1.2      
+      min_tls_version: v1.2
     {{- end }}
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: {{ .Values.tessera.name }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }} 
+    app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
   name: {{ .Values.tessera.name }}
 spec:
@@ -43,8 +43,9 @@ spec:
     app.kubernetes.io/name: {{ .Values.tessera.name }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }} 
+    app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
+    service.rpc: {{ .Values.tessera.name }}
   type: {{ .Values.tessera.servicetype }}
   ports:
   - name: tm-manager
@@ -63,5 +64,3 @@ spec:
     protocol: TCP
     port: {{ .Values.tessera.ports.db }}
     targetPort: {{ .Values.tessera.ports.db }}
-  selector:
-    service.rpc: {{ .Values.tessera.name }}
