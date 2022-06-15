@@ -17,12 +17,12 @@ Hyperledger Bevel configuration is essentially Ansible scripts, so install Ansib
 Please note that this machine (also called **Ansible Controller**) should have connectivity to the Kubernetes cluster(s) and the Hashicorp Vault service(s). And it is essential to install the [git client](https://git-scm.com/download) on the Ansible Controller. 
 
 ---
-**NOTE:** Minimum **Ansible** version should be **2.10.5** with **Python3** 
+**NOTE:** Minimum **Ansible** version should be **2.12.6** with **Python3** 
 
 Also, Ansible's k8s module requires the **openshift python package (>= 0.12.0)** and some collections and jq.
 
 ```bash
-pip3 install openshift==0.12.0
+pip3 install openshift==0.13.1
 ansible-galaxy install -r platforms/shared/configuration/requirements.yaml
 apt-get install -y jq       #Run equivalent for Mac or Linux
 ```
