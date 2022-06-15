@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ name }}-springboot
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ name }}-springboot
+  interval: 1m
   chart:
-    path: {{ component_gitops.chart_source }}/springbootwebserver
-    git: "{{ component_gitops.git_url }}"
-    ref: "{{ component_gitops.branch }}"
+    spec:
+      chart: {{ component_gitops.chart_source }}/springbootwebserver
+      sourceRef:
+        kind: GitRepository
+        name: flux-{{ network.env.type }}
+        namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ name }}-springboot
     replicas: 1
@@ -18,8 +22,8 @@ spec:
       namespace: {{ component_ns }}
       type: {{ platform_type }}
     image:
-      containerName: {{ network.container_registry.url | lower }}/bevel-supplychain-corda:{{ image_tag }}
-      initContainerName: ghcr.io/hyperledger/alpine-utils:1.0
+      containerName: {{ network.docker.url }}/bevel-supplychain-corda:{{ image_tag }}
+      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       imagePullSecret: regcred
       privateCertificate: true
     smartContract:
