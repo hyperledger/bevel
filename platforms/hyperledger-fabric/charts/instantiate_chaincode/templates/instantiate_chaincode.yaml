@@ -65,13 +65,13 @@ spec:
         - |-
           #!/usr/bin/env sh
           validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
+            if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
               echo "ERROR: unable to retrieve ${1}: ${2}"
               exit 1
             fi
             if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
             then
-              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
               --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
               ${VAULT_ADDR}/v1/${vault_secret_key})
               curl_response=$?
