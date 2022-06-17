@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
-    path: {{ charts_dir }}/float
+   spec:
+    chart: {{ charts_dir }}/float
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     deployment:
       annotations: {}
@@ -24,7 +28,7 @@ spec:
       initContainerName: {{ network.docker.url }}/{{ init_container_image }}
       mainContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagePullSecret: regcred
-      pullPolicy: Always
+      pullPolicy: IfNotPresent
     vault:
       address: {{ vault.url }}
       role: vault-role

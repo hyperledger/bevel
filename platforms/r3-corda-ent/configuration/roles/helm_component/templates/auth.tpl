@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ org.services.auth.name }}
@@ -7,12 +7,16 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
-    path: {{ charts_dir }}/auth
+   spec:
+    chart: {{ charts_dir }}/auth
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
-    metadata: 
+    metadata:
       namespace: {{ component_ns }}
       labels: {}
     prefix: {{ org.name }}
@@ -20,10 +24,10 @@ spec:
     image:
       initContainerName: {{ network.docker.url }}/{{ init_container_image }}
       authContainerName: {{ network.docker.url }}/{{ main_container_image }}
-      imagePullSecrets: 
+      imagePullSecrets:
         - name: regcred
       pullPolicy: IfNotPresent
-    storage: 
+    storage:
       name: cordaentsc
     vault:
       address: {{ vault.url }}
@@ -56,11 +60,11 @@ spec:
         resources:
           limits: 514Mi
           requests: 514Mi
-      
+
     storageClass: cordaentsc
     sleepTimeAfterError: 300
     logsContainerEnabled: true
-     
+
     nameOverride: ""
     fullnameOverride: ""
 
