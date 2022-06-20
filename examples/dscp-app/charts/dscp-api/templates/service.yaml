@@ -23,13 +23,37 @@ metadata:
       name: {{ $fullname }}_mapping_tlscontext
       hosts:
       - {{ .Values.proxy.name }}-api.{{ .Values.proxy.external_url_suffix }}
-      secret: {{ $.Values.proxy.certSecret }}      
+      secret: {{ .Values.proxy.name }}-certs
       min_tls_version: v1.2
   {{- end }}
 spec:
   selector:
     name: {{ include "dscp-api.fullname" . }}
+  type: NodePort
   ports:
     - protocol: 'TCP'
       port: {{ .Values.config.port }}
       targetPort: {{ .Values.config.port }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: {{ .Values.proxy.name }}-api-acme-cm
+spec:
+  host: {{ .Values.proxy.name }}-api.{{ .Values.proxy.external_url_suffix }}
+  prefix: /.well-known/acme-challenge/
+  rewrite: ""
+  service: {{ .Values.proxy.name }}-api-acme-cs
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.proxy.name }}-api-acme-cs
+spec:
+  ports:
+  - port: 80
+    targetPort: 8089
+  selector:
+    acme.cert-manager.io/http01-solver: "true"
+    issuedFor: "{{ .Values.proxy.issuedFor }}"

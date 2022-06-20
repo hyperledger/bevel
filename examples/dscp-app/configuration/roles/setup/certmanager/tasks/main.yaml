@@ -1,0 +1,65 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Checking if the namespace cert-manager already exists
+  k8s_info:
+    kind: "Namespace"
+    name: "cert-manager"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+  register: result
+
+# This task creates the value file of Namespace for cert-manager
+- name: Create namespaces cert-manager
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl create namespace cert-manager 
+  when: result.resources|length == 0
+  
+- name: Check if cert-manager is running
+  k8s_info:
+    kind: Pod
+    namespace: cert-manager
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+    label_selectors:
+      - app = cert-manager
+    field_selectors:
+      - status.phase=Running
+  register: cert_service
+  tags:
+    - certmanager
+
+- name: Helm repo add
+  shell: |
+    helm repo add jetstack https://charts.jetstack.io && helm repo update
+  when: cert_service.resources|length == 0
+  tags:
+    - certmanager
+    - molecule-idempotence-notest
+
+- name: Install certmanager for over https connection
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl apply -f https://github.com/jetstack/cert-manager/releases/latest/download/cert-manager.crds.yaml --context="{{ kubecontext }}"
+    KUBECONFIG={{ kubeconfig_path }} helm install cert-manager --namespace cert-manager jetstack/cert-manager
+  when: cert_service.resources|length == 0
+  tags:
+    - certmanager
+    - molecule-idempotence-notest
+
+# Wait for certmanager pod to start running
+- name: wait for pods to come up
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    namespace: cert-manager
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+    component_name: certmanager
+    component_type: "Pod"
+    label_selectors:
+      - app = cert-manager
+  when: cert_service.resources|length == 0

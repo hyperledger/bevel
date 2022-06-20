@@ -31,6 +31,11 @@ spec:
         inteliAmIdentity: {{ am_peer_id }}
         inteliLabIdentity: {{ lab_peer_id }}
         inteliAmlabIdentity: {{ amlab_peer_id | default(lab_peer_id) }}
+    ingress: 
+      enabled: false
+      className: "gce"
+      paths:
+        - /
     replicaCount: 1
     image:
       repository: ghcr.io/inteli-poc/inteli-demo
@@ -49,4 +54,4 @@ spec:
       provider: {{ network.env.proxy }}
       name: {{ org.name | lower }} 
       external_url_suffix: {{ org.external_url_suffix }}      
-      certSecret: {{ org.name | lower }}-ambassador-certs
+      issuedFor: {{ org.name | lower }}
