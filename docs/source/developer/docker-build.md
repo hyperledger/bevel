@@ -62,3 +62,4 @@ Follow instructions to [install](./prerequisites.md) and [configure](./operation
     ansible-playbook  platforms/shared/configuration/site.yaml -e "@./build/network.yaml" 
 
     ```
+1. For instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](./operations/bevel_verify.md)
