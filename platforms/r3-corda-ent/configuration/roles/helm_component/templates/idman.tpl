@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
-    path: {{ charts_dir }}/idman
+   spec:
+    chart: {{ charts_dir }}/idman
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ org.services.idman.name | lower }}
     bashDebug: false
@@ -22,7 +26,7 @@ spec:
       idmanContainer: {{ network.docker.url }}/{{ main_container_image }}
       enterpriseCliContainer: {{ docker_images.cenm["enterpriseCli-1.5"] }}
       pullPolicy: IfNotPresent
-      imagePullSecrets: 
+      imagePullSecrets:
         - name: "regcred"
     storage:
       name: "cordaentsc"
