@@ -11,6 +11,10 @@ spec:
     git: {{ git_url }}
     ref: {{ git_branch }}
     path: {{ charts_dir }}/catools
+{% if git_protocol == 'https' %}
+    secretRef:
+      name: gitcredentials
+{% endif %}
   values:
     metadata:
       namespace: {{ component_name }}
@@ -100,7 +104,10 @@ spec:
       name: {% for peer in peers_list %}{% for key, value in peer.items() %}{% if key == 'name' %}{{ value }},{% endif %}{% if key == 'peerstatus' %}{{ value }}{% endif %}{% endfor %}-{% endfor %}
       
     peer_count: "{{ peer_count }}"
-
+{% if add_peer_value  == 'true' %}
+    new_peer_count: "{{ new_peer_count }}"
+{% endif %}
     checks:
       refresh_cert_value: {{ refresh_cert_value }}
+      add_peer_value: {{ add_peer_value }}
 {% endif %}

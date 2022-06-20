@@ -116,6 +116,12 @@ The snapshot of the `orderers` section with example values is below
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
+    - orderer:
+      type: orderer
+      name: orderer3
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer3.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
 ```
 The fields under the each `orderer` are
 
@@ -157,8 +163,8 @@ The snapshot of channels section with its fields and sample values is below
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.store-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+        gossipAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443
+        peerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: warehouse
@@ -167,8 +173,8 @@ The snapshot of channels section with its fields and sample values is below
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.warehouse-net.org2ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.warehouse-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+        gossipAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443
+        peerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     - organization:
       name: manufacturer
@@ -178,19 +184,38 @@ The snapshot of channels section with its fields and sample values is below
       - peer:
         name: peer0
         gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.manufacturer-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+        peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     endorsers:
-      name:
-      - carrier
-      - warehouse
-      - manufacturer
-      - store
-      corepeerAddress:
-      - peer0.carrier-net.hf.demo.aws.blockchaincloudpoc.com:8443
-      - peer0.warehouse-net.hf.demo.aws.blockchaincloudpoc.com:8443
-      - peer0.manufacturer-net.hf.demo.aws.blockchaincloudpoc.com:8443
-      - peer0.store-net.hf.demo.aws.blockchaincloudpoc.com:8443      
+      # Only one peer per org required for endorsement
+    - organization:
+      name: carrier
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443
+        certificate: "/path/ca.crt" # certificate path for peer
+    - organization:
+      name: warehouse
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443
+        certificate: "/path/ca.crt" # certificate path for peer
+    - organization:
+      name: manufacturer
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
+        certificate: "/path/ca.crt" # certificate path for peer
+    - organization:
+      name: store
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443
+        certificate: "/path/ca.crt" # certificate path for peer     
     genesis:
       name: OrdererGenesis
 ```
@@ -203,8 +228,7 @@ The fields under the `channel` are
 | genesis.name                    | Name of the genesis block                                  |
 | orderer.name                    | Organization name to which the orderer belongs             |
 | participants                    | Contains list of organizations participating in the channel|
-| endorsers.name                  | Contains list of endorsers names (v2.2+)                   |
-| endorsers.corepeerAddress       | Contains list of endorsers addresses (v2.2+)                |
+| endorsers                       | Contains list of organizations (v2.2+)                     |
 | channel_status                  | (only needed to add channel to existing org. Possible values are `new` or `existing`|
 
 Each `organization` field under `participants` field of the channel contains the following fields
@@ -219,6 +243,14 @@ Each `organization` field under `participants` field of the channel contains the
 | peer.gossipAddress | Gossip address of the peer                                 |
 | peer.peerAddress | External address of the peer                                 |
 
+Each `organization` field under `endorsers` field of the channel contains the following fields
+
+| Field                           | Description                                                |
+|---------------------------------|------------------------------------------------------------|
+| name                 | Endorser name                                                         |
+| peer.name            | Name of the peer                                                      |
+| peer.corepeerAddress | Endorsers addresses                                                   |
+| peer.certificate     | Certificate path for peer                                             |
 
 The `organizations` section contains the specifications of each organization.  
 
@@ -353,7 +385,6 @@ Each organization with type as peer will have a peers service. The snapshot of p
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-          certificate: "/path/ca.crt" # certificate path for peer
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
             port: 7051         
@@ -388,7 +419,6 @@ The fields under `peer` service are
 | type                          | Type can be `anchor` and `nonanchor` for Peer                                                                    |
 | gossippeeraddress             | Gossip address of another peer in the same Organization. If there is only one peer, then use that peer address. Must be internal as the peer is hosted in the same Kubernetes cluster. |
 | peerAddress             | External address of this peer. Must be the HAProxy qualified address. If using minikube, this can be internal address. |
-| certificate             | Certificate path for peer. |
 | cli             | Optional field. If `enabled` will deploy the CLI pod for this Peer. Default is `disabled`. |
 | grpc.port                     | Grpc port                                                                                                        |
 | events.port                   | Events port                                                                                                      |
@@ -412,11 +442,11 @@ The fields under `peer` service are
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 ```yaml
         consensus:
-          name: kafka
-          type: broker
-          replicas: 4
+          name: raft
+          type: broker        #This field is not consumed for raft consensus
+          replicas: 4         #This field is not consumed for raft consensus
           grpc:
-            port: 9092
+            port: 9092        #This field is not consumed for raft consensus
 ```
 The fields under `consensus` service are
 
@@ -435,13 +465,19 @@ The organization with orderer type will have orderers service. The snapshot of o
         - orderer:
           name: orderer1
           type: orderer
-          consensus: kafka
+          consensus: raft
           grpc:
             port: 7050
         - orderer:
           name: orderer2
           type: orderer
-          consensus: kafka
+          consensus: raft
+          grpc:
+            port: 7050
+        - orderer:
+          name: orderer3
+          type: orderer
+          consensus: raft
           grpc:
             port: 7050 
 ```
