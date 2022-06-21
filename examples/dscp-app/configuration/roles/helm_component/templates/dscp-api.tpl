@@ -30,6 +30,11 @@ spec:
         audience: {{ auth_audience }}
         issuer: {{ auth_issuer }}
         tokenUrl: {{ auth_tokenUrl }}
+    ingress:
+      enabled: false
+      className: "gce"
+      paths:
+        - /v3
     replicaCount: 1
     image:
       repository: ghcr.io/digicatapult/dscp-api
@@ -55,4 +60,4 @@ spec:
       name: {{ org.name | lower }} 
       external_url_suffix: {{ org.external_url_suffix }}
       port: {{ peer.api.ambassador }}
-      certSecret: {{ org.name | lower }}-ambassador-certs
+      issuedFor: {{ org.name | lower }}

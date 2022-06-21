@@ -1,5 +1,6 @@
 {{- $fullName := include "inteli-demo.fullname" . -}}
-  {{- $ingressPaths := .Values.ingress.paths -}}
+{{- $ingressPaths := .Values.ingress.paths -}}
+{{if $.Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -15,7 +16,8 @@ spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- end }}
   rules:
-    - http:
+    - host: {{ $fullName }}.{{ .Values.proxy.external_url_suffix }}
+      http:
         paths:
           {{- range $ingressPaths }}
           - pathType: Prefix
@@ -24,5 +26,6 @@ spec:
               service:
                 name: {{ $fullName }}
                 port:
-                  number: 80
+                  number: {{ $.Values.config.port }}
           {{- end }}
+{{- end }}

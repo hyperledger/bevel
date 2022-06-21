@@ -1,0 +1,38 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#Check if the pods for the organizations are up and running
+- name: "Waiting for peer cert-manager pod"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    namespace: cert-manager
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+    component_name: certmanager
+    component_type: "Pod"
+    label_selectors:
+      - app = cert-manager
+
+# Create certissuer value file
+- name: "Create certissuer value file"
+  include_role:
+    name: helm_component
+  vars:
+    type: "certissuer"
+    component_name: "certissuer"
+    name: "certissuer"
+    charts_dir: "examples/dscp-app/charts"
+
+# Push the api deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ component_gitops }}"
+    GIT_RESET_PATH: "platforms/substrate/configuration"
+    msg: "[ci skip] Pushing certissuer files"
