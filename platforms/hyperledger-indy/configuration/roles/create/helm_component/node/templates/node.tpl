@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
   namespace: {{ component_ns }}
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    path: {{ gitops.chart_source }}/{{ chart }}
-    git: {{ gitops.git_url }}
-    ref: {{ gitops.branch }}
+   spec:
+    chart: {{ gitops.chart_source }}/{{ chart }}
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     metadata:
       name: {{ component_name }}
@@ -22,6 +26,7 @@ spec:
     add_new_org: {{ add_new_org | default(false) }}
     image:
       pullSecret: regcred
+      pullPolicy: IfNotPresent
       initContainer:
         name: {{ component_name }}-init
         repository: alpine:3.9.4
