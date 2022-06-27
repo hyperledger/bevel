@@ -182,4 +182,5 @@ The [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml" --extra-vars "add_new_org=True"
 ```
 
-
+## Verify network deployment
+For instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](./operations/bevel_verify.md)
