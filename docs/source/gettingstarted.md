@@ -48,3 +48,4 @@ ansible-playbook  platforms/shared/configuration/site.yaml -e "@/path/to/network
 ```
 
 For more detailed instructions to set up a network, read [Setting up a DLT/Blockchain network](./operations/setting_dlt.md).
+For instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](./operations/bevel_verify.md)
