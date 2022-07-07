@@ -1,0 +1,65 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#Check if the pods for the organizations are up and running
+- name: "Waiting for peer pod {{ peer.name }} in {{ component_ns }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app.kubernetes.io/name = {{ component_name }}
+      - chain = {{ network.config.chain }}
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.postgresql is defined
+
+# Create postgresql values file for the peer nodes
+- name: "Create postgresql values file for all peers"
+  include_role:
+    name: helm_component
+  vars:
+    type: "postgresql"
+    name: "{{ peer.name }}"
+    charts_dir: "examples/dscp-app/charts"
+    component_name: "{{ peer.name }}-{{ attached_to }}-postgresql"
+    postgres_password: "{{ peer.postgresql.password }}"
+    database_name: "{{ peer.postgresql.database_name }}"
+    postgres_port: "{{ peer.postgresql.port }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.postgresql is defined
+
+# Push the api deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ component_gitops }}"
+    GIT_RESET_PATH: "platforms/substrate/configuration"
+    msg: "[ci skip] Pushing deployment files for postgresql"
+
+# Wait for postgresql Pod to run
+- name: "Waiting for postgresql pod in {{ component_ns }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer.name }}-{{ attached_to }}-postgresql"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app.kubernetes.io/instance = {{ component_name }}
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.postgresql is defined

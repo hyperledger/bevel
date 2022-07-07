@@ -26,6 +26,7 @@ spec:
       ipfsStatusPollPeriodMs: 10000
       ipfsStatusTimeoutMs: 2000
       auth:
+        type: {{ auth_type }}
         jwksUri: {{ auth_jwksUri }}
         audience: {{ auth_audience }}
         issuer: {{ auth_issuer }}
@@ -39,7 +40,7 @@ spec:
     image:
       repository: ghcr.io/digicatapult/dscp-api
       pullPolicy: IfNotPresent
-      tag: 'v4.1.0'
+      tag: 'v4.2.0'
     dscpNode:
       enabled: false
 

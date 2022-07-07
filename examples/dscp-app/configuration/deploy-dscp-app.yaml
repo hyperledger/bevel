@@ -46,10 +46,26 @@
       component_ns: "{{ org.name | lower }}-subs"
       component_gitops: "{{ org.gitops }}"
       component_vault: "{{ org.vault }}"
+      auth_type: "{{ org.auth.type }}"
       auth_jwksUri: "{{ org.auth.jwksUri }}"
       auth_audience: "{{ org.auth.audience }}"
       auth_issuer: "{{ org.auth.issuer }}"
       auth_tokenUrl: "{{ org.auth.tokenUrl }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - network.type == 'substrate'
+
+  # Create postgresql values file for the dscp-id-service
+  - name: "Creating postgresql values file for dscp-id-service"
+    include_role:
+      name: "create/dscp/postgresql"
+    vars:
+      component_ns: "{{ org.name | lower }}-subs"
+      component_gitops: "{{ org.gitops }}"
+      attached_to: "id-service"
       values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org.name | lower }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
