@@ -28,7 +28,8 @@ The Hyperledger framework can spread across different organizations(hereafter ca
 
 The following are the steps to be  performed:
 ## 1. Setup network.yaml for upgrade
-Update the network network.yaml [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) 
+Update the network network.yaml [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml)
+ 
 	a. Set the required version tag under `network.version` for upgrading the base images of CA, orderer and peer.
 	b. Add the upgrade flag to true
 	For example:
