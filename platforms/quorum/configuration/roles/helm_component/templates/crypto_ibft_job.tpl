@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
-    path: {{ charts_dir }}/crypto_ibft
+   spec:
+    chart: {{ charts_dir }}/crypto_ibft
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     peer:
       name: {{ peer.name }}
@@ -21,7 +25,7 @@ spec:
     image:
       initContainerName: {{ network.docker.url }}/alpine-utils:1.0
       node: quorumengineering/quorum:{{ network.version }}
-      pullPolicy: Always
+      pullPolicy: IfNotPresent
     acceptLicense: YES
     vault:
       address: {{ vault.url }}
@@ -36,4 +40,3 @@ spec:
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 1
-

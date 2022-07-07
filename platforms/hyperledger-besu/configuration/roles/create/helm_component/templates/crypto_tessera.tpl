@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,19 +7,24 @@ metadata:
     flux.weave.works/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    path: {{ charts_dir }}/tessera_key_mgmt
-    git: {{ gitops.git_url }}
-    ref: {{ gitops.branch }}
+   spec:
+    chart: {{ charts_dir }}/tessera_key_mgmt
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     metadata:
       name: {{ component_name }}
       namespace: {{ component_ns }}
     peer:
-      name: {{ peer.name }}        
-    image:      
+      name: {{ peer.name }}
+    image:
       repository: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       pullSecret: regcred
+      pullPolicy: IfNotPresent
     vault:
       address: {{ vault.url }}
       secretengine: {{ vault.secret_path | default('secretsv2') }}

@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
-    path: {{ charts_dir }}/node-initial-registration
+   spec:
+    chart: {{ charts_dir }}/node-initial-registration
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ peer.name | lower }}-registration
     metadata:
@@ -20,13 +24,13 @@ spec:
       initContainerName: {{ network.docker.url }}/{{ init_container_image }}
       nodeContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagepullsecret: regcred
-      pullPolicy: Always
+      pullPolicy: IfNotPresent
     truststorePassword: password
     keystorePassword: password
     acceptLicence: true
     networkServices:
       doormanURL: {{ doorman_url }}
-      networkMapURL: {{ networkmap_url }} 
+      networkMapURL: {{ networkmap_url }}
       idmanDomain: "{{ doorman_url.split(':')[1] | regex_replace('/', '') }}"
       networkMapDomain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
       idmanName: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"

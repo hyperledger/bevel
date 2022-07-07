@@ -4,18 +4,11 @@
 [//]: # (##############################################################################################)
 
 ## delete/flux_releases
-This role deletes the helm releases and uninstalls Flux
+This role deletes the helm releases.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Uninstall Flux
-This task removes FLUX
-##### Input Variables
-    *KUBECONFIG: The config file of cluster
-**shell**: This commands deletes Flux.
-**ignore_errors**: This flag ignores any errors and proceeds furthur.
-
-#### 2. Delete the helmrelease for each peer
+#### 1. Delete the helmrelease for each peer
 This task deletes the helmrelease for each peer
 ##### Input Variables
     kind: Helmrelease, The kind of component
@@ -26,11 +19,11 @@ This task deletes the helmrelease for each peer
     *context: The context of the cluster
 **ignore_errors**: This flag ignores the any errors and proceeds further.
 
-#### 3. Remove node helm releases
+#### 2. Remove node helm releases
 This task deletes the helmrelease for each peer
 **ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
-#### 4. Remove Node Helm releases
+#### 3. Remove Node Helm releases
 This task deletes node helm releases for Tessera and Constellation Transaction Manager
 ##### Input Variables
     *namespace: Namespace of the component
@@ -38,7 +31,7 @@ This task deletes node helm releases for Tessera and Constellation Transaction M
 **shell**: This commands deletes HelmReleases.
 **ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
-#### 5. Deletes namespaces
+#### 4. Deletes namespaces
 This task removes namespaces
 ##### Input Variables
     kind: Namespace

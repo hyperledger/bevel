@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
-    path: {{ charts_dir }}/nmap
+   spec:
+    chart: {{ charts_dir }}/nmap
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ org.services.networkmap.name | lower }}
     bashDebug: false
@@ -25,7 +29,7 @@ spec:
       nmapContainer: {{ network.docker.url }}/{{ main_container_image }}
       enterpriseCliContainer: {{ docker_images.cenm["enterpriseCli-1.5"] }}
       pullPolicy: IfNotPresent
-      imagePullSecrets: 
+      imagePullSecrets:
         - name: "regcred"
     acceptLicense: YES
     vault:
@@ -36,7 +40,7 @@ spec:
       certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
       retries: 10
       sleepTimeAfterError: 15
-    service: 
+    service:
       external:
         port: {{ org.services.networkmap.ports.servicePort }}
       internal:
@@ -51,7 +55,7 @@ spec:
         domain: {{ idman_url.split(':')[1] | regex_replace('/', '') }}
         host: {{ org.services.idman.name }}.{{ component_ns }}
         port: 5052
-      notary: 
+      notary:
 {% for notary in org.services.notaries %}
         - {{ notary.name }}
 {% endfor %}
@@ -88,7 +92,7 @@ spec:
     nmapUpdate: true
     addNotaries:
 {% for enode in node_list %}
-      - notary: 
+      - notary:
           nodeinfoFileName: {{ enode.nodeinfo_name }}
           nodeinfoFile: {{ enode.nodeinfo }}
           validating: {{ enode.validating }}
@@ -96,7 +100,7 @@ spec:
 {% else %}
     nmapUpdate: false
     addNotaries:
-      - notary: 
+      - notary:
           nodeinfoFileName: dummy
           nodeinfoFile: dummy
           validating: false

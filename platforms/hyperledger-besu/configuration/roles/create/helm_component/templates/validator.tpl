@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name | replace('_','-') }}
@@ -7,10 +7,14 @@ metadata:
     flux.weave.works/automated: "false"
 spec:
   releaseName: {{ component_name | replace('_','-') }}
+  interval: 1m
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
-    path: {{ charts_dir }}/node_validator 
+   spec:
+    chart: {{ charts_dir }}/node_validator
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     replicaCount: 1
 
@@ -22,7 +26,7 @@ spec:
 {% for enode in enode_data_list %}
 {% if enode.enodeval != '' %}
       - "enode://{{ enode.enodeval }}@{{ enode.peer_name }}.{{ enode.external_url }}:{{ enode.p2p_ambassador }}"
-{% endif %}      
+{% endif %}
 {% endfor %}
 
     metadata:
@@ -34,13 +38,13 @@ spec:
 
     liveliness_check:
       enabled: false
-{% if network.env.proxy == 'ambassador' %} 
+{% if network.env.proxy == 'ambassador' %}
     proxy:
       provider: ambassador
       external_url: {{ name }}.{{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
       rpc: {{ peer.rpc.ambassador }}
-{% else %}      
+{% else %}
     proxy:
       provider: none
       external_url: {{ name }}.{{ component_ns }}
@@ -50,7 +54,8 @@ spec:
 
     images:
       node: hyperledger/besu:{{ network.version }}
-      alpineutils: hyperledgerlabs/alpine-utils:1.0
+      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
+      pullPolicy: IfNotPresent
 
     node:
       name: {{ peer.name }}

@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,14 +7,14 @@ metadata:
   namespace: {{ component_ns }}
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    path: {{ gitops.chart_source }}/{{ chart }}
-    git: {{ gitops.git_url }}
-    ref: {{ gitops.branch }}
-{% if gitops.git_protocol == "https" %}
-    secretRef:
-      name: git-https-credentials
-{% endif %}
+    spec:
+      chart: {{ gitops.chart_source }}/{{ chart }}
+      sourceRef:
+        kind: GitRepository
+        name: flux-{{ network.env.type }}
+        namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ component_name }}
     replicas: 1
