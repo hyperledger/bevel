@@ -1,0 +1,82 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role upgrades the orderer binaries on orderer node
+#############################################################################################
+
+############################################################################################
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "./build"
+    state: absent
+
+- name: Create build directory if it does not exist
+  file:
+    path: "./build/channel-artifacts/"
+    state: directory
+
+- name: "Get genesis block from Vault"
+  shell: |
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ org.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ org.name }}-net        
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: vault_orderer_genesis_block  
+
+- set_fact:
+    genesis_block: "{{ vault_orderer_genesis_block.stdout }}"
+
+- name: "Save genesis block"
+  local_action: copy content="{{ genesis_block }}" dest=./build/channel-artifacts/genesis.block.base64
+
+# This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
+- name: Create value file for orderer
+  include_role:
+        name: "create/orderers"
+  vars:
+    build_path: "./build"
+    namespace: "{{ org.name | lower}}-net"
+    component_type: "{{ org.type | lower}}"
+    component_services: "{{ org.services }}"
+    vault: "{{ org.vault }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    docker_url: "{{ network.docker.url }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    item: "{{ org }}"
+  
+# wait until the pod is not in running state as there is a time lag between when pod is recreated
+- name: 'Wait for {{ org.services.orderers[0].name }} in {{ org.name | lower}}-net'
+  k8s_info:
+    kind: "Pod"
+    namespace: "{{ org.name | lower}}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = {{ org.services.orderers[0].name }}
+    field_selectors:
+      - status.phase!=Running
+  register: component_data
+  retries: "{{ network.env.retry_count}}"
+  delay: "{{ delay | default(10) }}"
+  until: component_data.resources|length > 0
+  
+# Wait for orderer pods to be in the state of running
+- name: "Waiting for orderer pod {{ org.services.orderers[0].name }} in {{ org.name | lower }}-net"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ org.name | lower}}-net"
+    component_name: "{{ org.services.orderers[0].name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ org.services.orderers[0].name }}
+  tags:
+    - notest
