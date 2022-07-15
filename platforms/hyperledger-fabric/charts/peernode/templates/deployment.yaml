@@ -197,6 +197,8 @@ spec:
         env:
         - name: COUCHDB_USER
           value: "{{ $.Values.peer.couchdb.username }}"
+        - name: PEER_IMAGE
+          value: "{{ $.Values.metadata.images.peer }}"  
         volumeMounts:
         - name: datadir-couchdb
           mountPath: /opt/couchdb/data
@@ -210,7 +212,11 @@ spec:
         - |-
           cp /etc/hyperledger/fabric/NodeOUconfig/mspconfig  /etc/hyperledger/fabric/crypto/msp/config.yaml
           export CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
-          echo ${$.Values.metadata.images.peer##*:}
+          if [ ${PEER_IMAGE##*:} == "2.2.2" ]
+          then
+            echo ${PEER_IMAGE##*:}
+            peer node upgrade-dbs
+          fi          
           peer node start
         ports:
         - name: grpc
