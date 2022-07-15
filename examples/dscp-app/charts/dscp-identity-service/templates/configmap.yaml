@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dscp-identity-service.fullname" . }}-config
+  labels:
+    {{- include "dscp-identity-service.labels" . | nindent 4 }}
+data:
+  nodeHost: {{ include "dscp-identity-service.node-host" . }}
+  port: {{ .Values.config.port | quote }}
+  logLevel: {{ .Values.config.logLevel }}
+  dbHost: {{ include "dscp-identity-service.postgresql.fullname" . }}
+  dbPort: {{ .Values.config.dbPort | quote }}
+  dbName: {{ .Values.config.dbName }}
+  {{- if eq .Values.config.auth.type "JWT" }}
+  authJwksUri: {{ .Values.config.auth.jwksUri | quote }}
+  authAudience: {{ .Values.config.auth.audience | quote }}
+  authIssuer: {{ .Values.config.auth.issuer | quote }}
+  {{- end }}
+  selfAddress: {{ .Values.config.selfAddress }}
+  authType: {{ .Values.config.auth.type }}

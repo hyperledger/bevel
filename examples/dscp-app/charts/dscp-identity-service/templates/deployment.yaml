@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dscp-identity-service.fullname" . }}
+  labels:
+    {{- include "dscp-identity-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ include "dscp-identity-service.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        name: {{ include "dscp-identity-service.fullname" . }}
+    spec:
+      {{- include "dscp-identity-service.imagePullSecrets" . | indent 6 }}
+      initContainers:
+        - name: {{ include "dscp-identity-service.initDb.name" . }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          command: [ 'npx', 'knex', "migrate:latest", "--env", "production" ]
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: dbHost
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: dbPort
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: dbName
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-secret
+                  key: dbUsername
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-secret
+                  key: dbPassword
+      containers:
+        - name: {{ include "dscp-identity-service.fullname" . }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          env:
+            - name: SELF_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: selfAddress
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: port
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: logLevel
+            - name: API_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: nodeHost
+            - name: API_PORT
+              value: "9944"
+            {{- if eq .Values.config.auth.type "JWT" }}
+            - name: AUTH_JWKS_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: authJwksUri
+            - name: AUTH_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: authAudience
+            - name: AUTH_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: authIssuer
+            {{- end }}
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: dbHost
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: dbPort
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: dbName
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-secret
+                  key: dbUsername
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-secret
+                  key: dbPassword
+            - name: AUTH_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-identity-service.fullname" . }}-config
+                  key: authType
+          ports:
+            - containerPort: {{ .Values.config.port }}
+              name: http
+              protocol: TCP
+          {{- if .Values.config.enableLivenessProbe }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            failureThreshold: 5
+            timeoutSeconds: 3
+            periodSeconds: 10
+          {{- end }}
