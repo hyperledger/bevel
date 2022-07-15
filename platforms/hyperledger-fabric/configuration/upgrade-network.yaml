@@ -1,28 +1,39 @@
-- hosts: all
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook upgrades the binaries for orderers and peers of an existing DLT network which was
+# set up using Bevel on Kubernetes clusters. The DLT network is based on the network.yaml payload
+# The network.yaml file should be updated for version: 2.2.2 and upgrade should be set to 'yes' value
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook upgrade-network.yaml -e "@./network.yaml"
+############################################################################################
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
-
   tasks:
-    
     # This role upgrade the orderer binary to version provide in network.yaml payload
-    - name: upgrade binary of orderers
+    - name: upgrade orderers binary
       include_role:
         name: "upgrade/orderer-binary"
       vars:
         build_path: "./build"
-        namespace: "{{ org.name | lower}}-net"
-        component_type: "{{ org.type | lower}}"
-        component_services: "{{ org.services }}"
-        vault: "{{ org.vault }}"
-        git_url: "{{ org.gitops.git_url }}"
-        git_branch: "{{ org.gitops.branch }}"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"
         docker_url: "{{ network.docker.url }}"
-        charts_dir: "{{ org.gitops.chart_source }}"
-        values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-      when: org.type == 'orderer' and org.services.orderers is defined and org.services.consensus is defined
+      when: item.type == 'orderer'
 
     
     # # This role creates the value file for peers of organisations and write couch db credentials
