@@ -197,8 +197,6 @@ spec:
         env:
         - name: COUCHDB_USER
           value: "{{ $.Values.peer.couchdb.username }}"
-        - name: PEER_IMAGE
-          value: "{{ $.Values.metadata.images.peer }}"  
         volumeMounts:
         - name: datadir-couchdb
           mountPath: /opt/couchdb/data
@@ -212,8 +210,6 @@ spec:
         - |-
           cp /etc/hyperledger/fabric/NodeOUconfig/mspconfig  /etc/hyperledger/fabric/crypto/msp/config.yaml
           export CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
-          echo $PEER_IMAGE
-          echo "after"
           echo ${PEER_IMAGE}
           peer node start
         ports:
@@ -223,6 +219,9 @@ spec:
           containerPort: 7053
         - name: operations
           containerPort: 9443
+        env:
+        - name: PEER_IMAGE
+          value: "{{ $.Values.metadata.images.peer }}"    
         envFrom:
         - configMapRef:
             name: {{ $.Values.peer.name }}-config
