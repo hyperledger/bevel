@@ -1,0 +1,150 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inteli-api.fullname" . }}
+  labels:
+    {{- include "inteli-api.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ include "inteli-api.fullname" . }}
+  replicas: {{ .Values.deployment.replicaCount }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.deployment.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        name: {{ include "inteli-api.fullname" . }}
+    spec:
+      {{- include "inteli-api.imagePullSecrets" . | indent 6 }}
+      initContainers:
+        - name: {{ include "inteli-api.initDb.name" . }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          command: [ 'npx', 'knex', "migrate:latest", "--env", "production" ]
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: dbHost
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: dbPort
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: dbName
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-secret
+                  key: dbUsername
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-secret
+                  key: dbPassword
+      containers:
+        - name: {{ include "inteli-api.fullname" . }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          {{- if .Values.deployment.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.config.port }}
+            initialDelaySeconds: 15
+            timeoutSeconds: 3
+            periodSeconds: 5
+          {{- end }}
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: port
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: logLevel
+            - name: DSCP_API_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: dscpApiHost
+            - name: DSCP_API_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: dscpApiPort
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: dbHost
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: dbPort
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: dbName
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-secret
+                  key: dbUsername
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-secret
+                  key: dbPassword
+            {{- if eq .Values.config.auth.type "JWT" }}
+            - name: AUTH_JWKS_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: authJwksUri
+            - name: AUTH_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: authAudience
+            - name: AUTH_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: authIssuer
+            - name: AUTH_TOKEN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: authTokenUrl
+            {{- end }}
+            - name: IDENTITY_SERVICE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: identityServiceHost
+            - name: IDENTITY_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: identityServicePort
+            - name: AUTH_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "inteli-api.fullname" . }}-config
+                  key: authType
