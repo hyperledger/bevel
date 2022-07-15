@@ -19,39 +19,27 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: (peer.postgresql is defined) and (peer.id_service is defined)
+  when: (peer.postgresql is defined) and (peer.inteli_api is defined)
 
-# This populates the account_addr details
-- name: Get account_addr details from Vault
-  include_tasks: get_account_id.yaml
-  vars:
-    component_ns: "{{ org.name | lower }}-subs"
-    vault: "{{ org.vault }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: (peer.postgresql is defined) and (peer.id_service is defined)
-
-# Create id-service values file for the peer nodes
-- name: "Create id-service values file for all peers"
+# Create inteli-api values file for the peer nodes
+- name: "Create inteli-api values file for all peers"
   include_role:
     name: helm_component
   vars:
-    type: "dscp-id-service"
-    component_name: "{{ peer.name }}-id-service"
+    type: "inteli-api"
+    component_name: "{{ peer.name }}-inteli-api"
     name: "{{ peer.name }}"
     charts_dir: "examples/dscp-app/charts"
     account_addr: "{{ account_id.stdout }}"
-    db_name: "{{ peer.postgresql.database_name }}"
-    db_port: "{{ peer.postgresql.port }}"
-    db_address: "{{ peer.name }}-id-service-postgresql"
-    db_password: "{{ peer.postgresql.password }}"
+    db_address: "{{ peer.name }}-inteli-api-postgresql"
+    dscp_api_addr: "{{ peer.name }}-api"
+    id_service_addr: "{{ peer.name }}-id-service"
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: (peer.postgresql is defined) and (peer.id_service is defined)
+  when: (peer.postgresql is defined) and (peer.inteli_api is defined)
 
-# Push the id-service deployment files to repository
+# Push the inteli-api deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role: 
     name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
@@ -59,20 +47,20 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ component_gitops }}"
     GIT_RESET_PATH: "platforms/substrate/configuration"
-    msg: "[ci skip] Pushing deployment files for dscp id-service"
+    msg: "[ci skip] Pushing deployment files for inteli-api"
 
-# Wait for id-service Pod to run
-- name: "Waiting for id-service pod in {{ component_ns }}"
+# Wait for inteli-api Pod to run
+- name: "Waiting for inteli-api pod in {{ component_ns }}"
   include_role:
     name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Pod"
     namespace: "{{ component_ns }}"
-    component_name: "{{ peer.name }}-id-service"
+    component_name: "{{ peer.name }}-inteli-api"
     kubernetes: "{{ org.k8s }}"
     label_selectors:
       - name = {{ component_name }}
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when: (peer.postgresql is defined) and (peer.id_service is defined)
+  when: (peer.postgresql is defined) and (peer.inteli_api is defined)
