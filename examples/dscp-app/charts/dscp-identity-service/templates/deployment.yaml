@@ -18,6 +18,7 @@ spec:
         name: {{ include "dscp-identity-service.fullname" . }}
     spec:
       {{- include "dscp-identity-service.imagePullSecrets" . | indent 6 }}
+      serviceAccountName: {{ .Values.vault.serviceaccountname }}  
       initContainers:
         - name: {{ include "dscp-identity-service.initDb.name" . }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -49,16 +50,82 @@ spec:
                 secretKeyRef:
                   name: {{ include "dscp-identity-service.fullname" . }}-secret
                   key: dbPassword
+        - name: vault-init
+          image: {{ .Values.vault.alpineutils }}
+          imagePullPolicy: Always
+          volumeMounts:
+          - name: config
+            mountPath: /secret
+          env:
+          - name: VAULT_ADDR
+            value: {{ .Values.vault.address }}
+          - name: VAULT_SECRET_PREFIX
+            value: {{ .Values.vault.secretprefix }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ .Values.vault.authpath }}
+          - name: VAULT_APP_ROLE
+            value: {{ .Values.vault.role }}
+          - name: MOUNT_PATH
+            value: "/secret"
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${vault_secret_key})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+
+              #Login to Vault and so I can get an approle token
+              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+                -H "Content-Type: application/json" \
+                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+                jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+              echo "Logged into Vault"
+  
+              vault_secret_key="${VAULT_SECRET_PREFIX}/substrate"
+
+              echo "Getting the node account key from vault: $vault_secret_key"          
+              LOOKUP_SECRET_RESPONSE=$(curl -sS \
+                --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${vault_secret_key} | \
+                jq -r 'if .errors then . else . end')
+              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              accountAddr=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["account_addr"]')
+                            
+              echo -n "${accountAddr}" > ${MOUNT_PATH}/accountAddr
       containers:
         - name: {{ include "dscp-identity-service.fullname" . }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+
+            export SELF_ADDRESS=$(cat /secret/accountAddr);
+
+            node ./app/index.js
           env:
-            - name: SELF_ADDRESS
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "dscp-identity-service.fullname" . }}-config
-                  key: selfAddress
             - name: PORT
               valueFrom:
                 configMapKeyRef:
@@ -137,3 +204,10 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 10
           {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /secret
+      volumes:
+        - name: config
+          emptyDir:
+            medium: Memory

@@ -21,7 +21,7 @@ spec:
       dbName: {{ db_name }}
       dbPort: {{ db_port }}
       enableLivenessProbe: true
-      selfAddress: {{ account_addr }}
+      selfAddress: 
       auth:
         type: {{ auth_type }}
         jwksUri: {{ auth_jwksUri }}
@@ -48,6 +48,14 @@ spec:
       postgresqlPassword: {{ db_password }}
     dscpNode:
       enabled: false
+
+    vault:
+      alpineutils: ghcr.io/hyperledger/alpine-utils:1.0
+      address: {{ component_vault.url }}
+      secretprefix: {{ component_vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/{{ peer.name }}
+      serviceaccountname: vault-auth
+      role: vault-role
+      authpath: substrate{{ org.name | lower }}
 
     proxy:
       provider: {{ network.env.proxy }}
