@@ -33,7 +33,7 @@ spec:
     image:
       repository: {{ docker_url }}/digicatapult/dscp-ipfs
       pullPolicy: IfNotPresent
-      tag: 'v2.0.2'
+      tag: 'v2.4.0'
     storage:
       storageClass: "{{ storageclass_name }}"
       dataVolumeSize: 20  # in Gigabytes
