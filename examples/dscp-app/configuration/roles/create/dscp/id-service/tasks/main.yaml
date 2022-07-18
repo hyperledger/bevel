@@ -21,17 +21,6 @@
     loop_var: peer
   when: (peer.postgresql is defined) and (peer.id_service is defined)
 
-# This populates the account_addr details
-- name: Get account_addr details from Vault
-  include_tasks: get_account_id.yaml
-  vars:
-    component_ns: "{{ org.name | lower }}-subs"
-    vault: "{{ org.vault }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: (peer.postgresql is defined) and (peer.id_service is defined)
-
 # Create id-service values file for the peer nodes
 - name: "Create id-service values file for all peers"
   include_role:
@@ -41,7 +30,6 @@
     component_name: "{{ peer.name }}-id-service"
     name: "{{ peer.name }}"
     charts_dir: "examples/dscp-app/charts"
-    account_addr: "{{ account_id.stdout }}"
     db_name: "{{ peer.postgresql.database_name }}"
     db_port: "{{ peer.postgresql.port }}"
     db_address: "{{ peer.name }}-id-service-postgresql"
