@@ -33,10 +33,10 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer'
+      when: item.type == 'orderer' and network.upgrade == 'yes'
 
     
-    # This role creates the value file for peers of organisations and write couch db credentials
+    # This role upgrade the value file for peers of organisations and write couch db credentials
     # to the vault.
     - name: Create all peers binary
       include_role:
@@ -53,4 +53,34 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'
+      when: item.type == 'peer' and network.upgrade == 'yes'
+
+      # This role updates the CA Server helm-value files and check-in
+    - name: Create CA server for each organization
+      include_role:
+        name: "create/ca-server"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        docker_url: "{{ network.docker.url }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.services.ca is defined and network.upgrade == 'yes'
+
+      # This role updates the CLI pod for the upgraded version
+    - name: Create CLI pod for each peer with it enabled
+      include_role:
+        name: "create/cli_pod"
+      vars:
+        peers: "{{ org.services.peers }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == "peer" and org.org_status == "new" and network.upgrade == 'yes'
