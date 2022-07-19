@@ -41,18 +41,6 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Conditionally populate imagePullSecrets if present in the context
-*/}}
-{{- define "inteli-api.imagePullSecrets" -}}
-  {{- if (not (empty .Values.image.pullSecrets)) }}
-imagePullSecrets:
-    {{- range .Values.image.pullSecrets }}
-  - name: {{ . }}
-    {{- end }}
-  {{- end }}
-{{- end -}}
-
-{{/*
 Create a default fully qualified postgresql name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 */}}

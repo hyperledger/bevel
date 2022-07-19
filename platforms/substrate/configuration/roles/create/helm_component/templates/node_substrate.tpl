@@ -17,10 +17,6 @@ spec:
       repository: {{ network.docker.url }}/{{ network.config.node_image }}
       tag: {{ network.version }}
       pullPolicy: IfNotPresent
-{% if network.docker.password is defined %}
-    imagePullSecrets: 
-      - name: "regcred"
-{% endif %}
     nameOverride: {{ peer.name }}
     fullnameOverride: {{ peer.name }}
 

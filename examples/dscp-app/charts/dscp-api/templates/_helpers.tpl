@@ -54,15 +54,3 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
-
-{{/*
-Conditionally populate imagePullSecrets if present in the context
-*/}}
-{{- define "dscp-api.imagePullSecrets" -}}
-  {{- if (not (empty .Values.image.pullSecrets)) }}
-imagePullSecrets:
-    {{- range .Values.image.pullSecrets }}
-  - name: {{ . }}
-    {{- end }}
-  {{- end }}
-{{- end -}}

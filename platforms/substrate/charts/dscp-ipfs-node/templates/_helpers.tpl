@@ -56,15 +56,3 @@ IPFS init container name
 {{- printf "%s-%s-ipfs-config" .Release.Name .Chart.Name | lower | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 {{- end -}}
-
-{{/*
-Conditionally populate imagePullSecrets if present in the context
-*/}}
-{{- define "dscp-ipfs.imagePullSecrets" -}}
-  {{- if (not (empty .Values.image.pullSecrets)) }}
-imagePullSecrets:
-    {{- range .Values.image.pullSecrets }}
-  - name: {{ . }}
-    {{- end }}
-  {{- end }}
-{{- end -}}
