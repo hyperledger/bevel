@@ -4,18 +4,18 @@
 [//]: # (##############################################################################################)
 
 <a name = "upgrading-fabric"></a>
-# Upgrading Hyperledger Fabric version from 1.4.x to 2.2.2
+# Upgrading Hyperledger Fabric version from 1.4.x to 2.2.x
 
 - [Pre-requisites](#pre_req)
 - [Steps to upgrade](#upgrade_steps)
 
 <a name = "pre_req"></a>
 ## Pre-requisites
-A DLT system which is using Hyperledger Fabric version 1.4.8 and is setup using Bevel automation framework
+A DLT system which is using Hyperledger Fabric version 1.4.x and is setup using Bevel automation framework
 
 <a name = "upgrade_steps"></a>
 ## Steps to upgrade
-This involve upgrading the nodes and channels to the version 2.2.2 of Fabric is, at a high level, a four step process.
+This involve upgrading the nodes and channels to the version 2.2.x of Fabric is, at a high level, a four step process.
 
 1. Backup the ledger.
 2. Upgrade the orderer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
@@ -44,12 +44,15 @@ The playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platform
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
 ```
-It covers the first three [steps](#upgrade_steps). As stated earlier this execution is in rolling fashion i.e. in a specific cluster first orderer(s) are upgraded one by one. The script will pause after node is upgraded and provide information to operator to check the node health using 'kubectl logs' command and then decide whether to continue or abort the script. For this reason the operator should have access to each kubernetes cluster(s).
+It covers the first three [steps](#upgrade_steps). As stated earlier this execution is in rolling fashion i.e. in a specific cluster first orderer(s) are upgraded one by one, after that peers are upgraded in rolling fashion. The script will pause after node is upgraded and provide information to operator to check the node health using 'kubectl logs' command and then decide whether to continue or abort the script. For this reason the operator should have access to each kubernetes cluster(s).
 
 ## 3. Upgrade Capabilities level
 To upgrade the capabilities in system channel and across application channel, the steps in below image needs to be performed. 
 
+Note: Before execution of this step, it should be ensured that all nodes(orderer(s) and peer(s)) in entire network is upgraded to target version successfuly.
+
 ![](./../_static/upgrade_channel.png)
+
 
 As discussed earlier, the operator has access to all the kubernetes clusters, these steps may require the operator to sign and update the configuration transactions to upgrade the capabilities.
 
