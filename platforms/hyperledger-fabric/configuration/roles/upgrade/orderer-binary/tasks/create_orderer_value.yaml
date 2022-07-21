@@ -19,7 +19,7 @@
     type: "orderers"
     consensus: "{{component_services.consensus}}"
     genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"      
-    
+
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
@@ -29,11 +29,12 @@
     gitops: "{{ item.gitops }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing Orderer files"
+  register: git_result
   tags:
     - notest
 
 # wait until the pod is not in running state as there is a time lag between when pod is recreated
-- name: 'Wait for {{ orderer.name }} in {{ item.name | lower}}-net }} to terminate'
+- name: 'Wait for {{ orderer.name }} in {{ item.name | lower}}-net to terminate'
   k8s_info:
     kind: "Pod"
     namespace: "{{ item.name | lower}}-net"
@@ -47,6 +48,7 @@
   retries: "{{ 2*network.env.retry_count}}"
   delay: "{{ delay | default(2) }}"
   until: component_data.resources|length > 0
+  when: git_updated is defined
   tags:
     - notest
 
@@ -65,20 +67,26 @@
   retries: "{{ network.env.retry_count}}"
   delay: "{{ delay | default(5) }}"
   until: component_data.resources|length > 0
+  when: git_updated is defined
   tags:
     - notest
 
-- name: Log a Pod matching a label selector
-  kubernetes.core.k8s_log:
-    kind: "Pod"
-    namespace: "{{ item.name | lower}}-net"
-    kubeconfig: "{{ item.k8s.config_file }}"
-    context: "{{ item.k8s.context }}"
-    name: "{{ orderer.name }}-0"
-    container: "{{ orderer.name }}"
-  register: log
-  retries: "{{ 2*network.env.retry_count}}"
-  delay: "{{ delay | default(2) }}"
-  until: log is search('Start accepting requests as Raft leader at block')
-  tags:
-    - notest
+- name: 'Verify logs for pod {{ orderer.name }}-0 in {{ item.name | lower}}-net'
+  pause:
+    prompt: "Please verify logs of container {{ orderer.name }} in Pod {{ orderer.name }}-0 within namespace {{ item.name | lower}}-net to ensure it is upgraded and ready"
+  when: git_updated is defined
+  
+# - name: Log a Pod matching a label selector
+#   kubernetes.core.k8s_log:
+#     kind: "Pod"
+#     namespace: "{{ item.name | lower}}-net"
+#     kubeconfig: "{{ item.k8s.config_file }}"
+#     context: "{{ item.k8s.context }}"
+#     name: "{{ orderer.name }}-0"
+#     container: "{{ orderer.name }}"
+#   register: log
+#   retries: "{{ 2*network.env.retry_count}}"
+#   delay: "{{ delay | default(2) }}"
+#   until: log is search('Start accepting requests as Raft leader at block')
+#   tags:
+#     - notest
