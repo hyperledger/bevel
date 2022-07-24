@@ -54,14 +54,41 @@ Note: Before execution of this step, it should be ensured that all nodes(orderer
 ![](./../_static/upgrade_channel.png)
 
 
-As discussed earlier, the operator has access to all the kubernetes clusters, these steps may require the operator to sign and update the configuration transactions to upgrade the capabilities.
+As discussed earlier, the operator should have access to all the kubernetes clusters, these steps may require the operator to sign and update the configuration transactions to upgrade the capabilities.
 
-TODO: The steps will be mentioned for both the cases above will be detailed
+The following scripts needs to be executed for all the steps mentioned in diagram shown above. All the following steps shall store a copy of file in bevel/build folder, so that operator can get it signed from across companies(where applicable) 
+
+1.	Upgrade the System channel's orderer and channel level capabilities
+	ansible-playbook platforms/shared/configuration/upgrade-syschannel-capability.yaml --extra-vars "@path-to-network.yaml"
+
+2.	Upgrade all application channel's orderer, channel and application level capabilities
+	ansible-playbook platforms/shared/configuration/upgrade-appchannel-capability.yaml --extra-vars "@path-to-network.yaml"
+
+3.	Add Orderer endpoints in orderer and all application channels replacing the global Orderer Addresses  	 
+	section of channel configuration
+	ansible-playbook platforms/shared/configuration/upgrade-add-orderer-endpoints.yaml --extra-vars "@path-to-network.yaml"
+
+4.	Upgrade the system channel for enabling endorsement policy in consortium organizations
+	ansible-playbook platforms/shared/configuration/upgrade-orderer-consortium-org-lifecycle.yaml --extra-vars "@path-to-network.yaml"
+
+5.	Upgrade all the existing application channel orgs for enabling endorsement policy
+	ansible-playbook platforms/shared/configuration/upgrade-application-org-endorsement.yaml --extra-vars "@path-to-network.yaml"
+
+6. 	Upgrade all the existing application channels application policy for endorsement and lifecyle 			
+	ansible-playbook platforms/shared/configuration/upgrade-application-endorsement-lifecycle.yaml --extra-vars "@path-to-network.yaml"
+
+7. Optional: Upgrade all the existing application channels ACL policy
+	ansible-playbook platforms/shared/configuration/upgrade-application-ACL.yaml --extra-vars "@path-to-network.yaml"
+
+TODO: The above steps are to be further detailed on steps to execute when DLT network in multiple companies.
 
 ## 4. Compare core.yaml & orderer.yaml
 When core.yaml and orderer.yaml was modified in source system, a diff is done with new core.yaml and orderer.yaml in the target system. Based on this analysis the target system files can be modified
 
 ## 5. Upgrade existing Chaincode lifecycle
-Any existing chaincode should be verified as it should continue running as usual. It will be good practice to update them new Hyperledger Fabric 2.2.2 lifecycle.
+Any existing chaincode should be verified as it should continue running as usual. It will be good practice to update them new Hyperledger Fabric 2.2.x lifecycle.
+
+For each chaincode to be upgraded update the network.yaml for the specific chaincode and execute the following script to install, approve and commit as per 2.2.x lifecyle
+ansible-playbook platforms/shared/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
 
 TODO: the steps for upgrade to be mentioned here.
