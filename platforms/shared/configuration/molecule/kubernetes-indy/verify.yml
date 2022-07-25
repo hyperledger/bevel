@@ -16,22 +16,6 @@
       env:
         type: test
   tasks:
-  # Assert Flux is installed on Kubernetes
-  - name: Check Flux on Kubernetes clusters
-    k8s_info:
-      kind: Pod
-      namespace: flux-{{ network.env.type }}
-      kubeconfig: "{{ kubeconfig_path }}"
-      context: "{{ kubecontext }}"
-      label_selectors:
-        - app = flux
-        - release = flux-{{ network.env.type }}
-      field_selectors:
-        - status.phase=Running
-    register: flux_service
-  - name: Assert Flux has been installed
-    assert:
-      that: flux_service.resources|length == 1
   # Assert Ambassador is installed on Kubernetes
   - name: Check Ambassador on Kubernetes clusters
     k8s_info:
