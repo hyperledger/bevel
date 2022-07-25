@@ -12,8 +12,7 @@ FROM ubuntu:20.04
 
 # Create working directory
 WORKDIR /home/
-ENV PYTHON_VERSION='3.6.13'
-ENV OPENSHIFT_VERSION='0.12.0'
+ENV OPENSHIFT_VERSION='0.13.1'
 
 RUN apt-get update -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -33,15 +32,6 @@ RUN wget https://download.java.net/java/GA/jdk14/076bab302c7b4508975440c56f6cc26
     && tar xvf openjdk-14_linux-x64_bin.tar.gz \
     && rm openjdk-14_linux-x64_bin.tar.gz
 
-# Install Python 3.6.5
-RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz \
-    && tar xvf Python-${PYTHON_VERSION}.tar.xz \
-    && rm Python-${PYTHON_VERSION}.tar.xz \
-    && cd Python-${PYTHON_VERSION} \
-    && ./configure \
-    && make altinstall \
-    && cd / \
-    && rm -rf Python-${PYTHON_VERSION}
 
 RUN apt-get update && apt-get install -y \
     python3-pip && \

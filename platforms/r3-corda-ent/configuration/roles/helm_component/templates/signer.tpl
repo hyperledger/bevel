@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ org.services.signer.name }}
@@ -7,10 +7,14 @@ metadata:
   namespace: {{ component_ns }}
 spec:
   releaseName: {{ org.services.signer.name }}
+  interval: 1m
   chart:
-    path: {{ org.gitops.chart_source }}/{{ chart }}
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
+   spec:
+    chart: {{ org.gitops.chart_source }}/{{ chart }}
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ org.services.signer.name }}
     metadata:
@@ -19,7 +23,7 @@ spec:
       initContainer: {{ network.docker.url }}/{{ init_container_image }}
       signerContainer: {{ network.docker.url }}/{{ main_container_image }}
       pullPolicy: IfNotPresent
-      imagePullSecrets: 
+      imagePullSecrets:
         - name: "regcred"
     acceptLicense: YES
     vault:
@@ -70,7 +74,7 @@ spec:
       cordaJar:
         memorySize: 512
         unit: M
-      pod:  
+      pod:
         resources:
           limits: 512M
           requests: 512M

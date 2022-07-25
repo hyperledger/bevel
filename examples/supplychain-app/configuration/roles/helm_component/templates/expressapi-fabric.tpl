@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ name }}-expressapi
@@ -6,10 +6,14 @@ metadata:
   annotations:
     fluxcd.io/automated: "false"
 spec:
+  interval: 1m
   chart:
-    path: {{ component_gitops.chart_source }}/expressapp
-    git: "{{ component_gitops.git_url }}"
-    ref: "{{ component_gitops.branch }}"
+   spec:
+    chart: {{ component_gitops.chart_source }}/expressapp
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   releaseName: {{ name }}{{ network.type }}-expressapi
   values:
     nodeName: {{ name }}-expressapi

@@ -73,6 +73,58 @@
   loop_control:
     loop_var: orderer
 
+- set_fact:
+   new_peer_list: []
+
+# This task loops over the peers and finds the number of new peers
+- name: Count new peers
+  set_fact:
+    new_peer_list={{ new_peer_list + [ {'peer_name':peer.name } ] }}
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.peerstatus is defined and peer.peerstatus == 'new'
+    - add_peer is defined and add_peer == 'true'
+
+# This task initializes the list new_peer_listrs
+- name: Count new peers
+  set_fact:
+    new_peer_list={{ item.services.peers }}
+  when: 
+    - add_peer is not defined or add_peer == 'false'
+
+# This task delete the previously created ca-tools release file
+- name: Delete release file CA-Tools
+  file:
+    path: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"
+    state: absent
+  vars:
+    name: "ca-tools"
+  when: add_peer is defined and add_peer == 'true'
+
+#Git Push : Deleting the previously created CA-Tools value file
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Deleting the previously created CA-Tools value file"
+  when: add_peer is defined and add_peer == 'true'
+
+# This task delete the previously created ca-tools HelmRelease
+- name: Delete the previous CA-Tools HelmRelease
+  k8s:
+    kind: HelmRelease
+    name: "{{ component_name }}-ca-tools"
+    namespace: "{{ component_name }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: add_peer is defined and add_peer == 'true'
+
 ############################################################################################
 # This task creates the CA-tools value files
 - name: "Create CA-tools Values for peer"
@@ -94,12 +146,15 @@
     refresh_cert_value: "{{ refresh_cert | default(false) | quote }}"
     proxy: "{{ network.env.proxy }}"
     alpine_image: "{{ network.docker.url }}/alpine-utils:1.0"
+    git_protocol: "{{ item.gitops.git_protocol }}"
     git_url: "{{ gitops.git_url }}"
     git_branch: "{{ gitops.branch }}"
     charts_dir: "{{ gitops.chart_source }}"
     peers_list: "{{ item.services.peers }}"
     orderers_list: "{{ network.orderers }}"
     peer_count: "{{ item.services.peers | length }}"
+    add_peer_value: "{{ add_peer | default(false) | quote }}"
+    new_peer_count: "{{ new_peer_list | length }}"
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -182,16 +237,67 @@
     loop_var: channel
 
 ############################################################################################
-# This task copies the msp folder from the respective CA Tools CLI
-# to the build directory
-- name: Copy the msp folder from the ca tools
+# This task copies the msp admincerts from vault
+- name: Fetch the msp admincerts from vault
   shell: |
-    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }}  kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config/{{ component_type }}Organizations/{{ component_name }}/msp ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/msp
+    vault kv get -field=admincerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > Admin@{{ component_name }}-cert.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/admincerts/
+    mv Admin@{{ component_name }}-cert.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/admincerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  
+############################################################################################
+# This task copies the msp cacerts from vault
+- name: Fetch the msp cacerts from vault
+  shell: |
+    vault kv get -field=cacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/cacerts/
+    mv ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy != 'none'  
+
+############################################################################################
+# This task copies the msp tlscacerts from vault
+- name: Fetch the msp tlscacerts from vault
+  shell: |
+    vault kv get -field=tlscacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/tlscacerts/
+    mv ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy != 'none'
+
+############################################################################################
+# This task copies the msp cacerts from vault when proxy is none
+- name: Fetch the msp cacerts from vault
+  shell: |
+    vault kv get -field=cacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/cacerts/
+    mv ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy == 'none'  
+
+############################################################################################
+# This task copies the msp tlscacerts from vault when proxy is none
+- name: Fetch the msp tlscacerts from vault
+  shell: |
+    vault kv get -field=tlscacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/tlscacerts/
+    mv ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy == 'none'
 
 ############################################################################################
 # This task gets msp config.yaml file from vault
-- name: Get msp config.yaml file
+- name: Fetch msp config.yaml file from vault
   shell: |
     vault kv get -field=configfile {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/msp/config > config.yaml
     mv config.yaml ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/

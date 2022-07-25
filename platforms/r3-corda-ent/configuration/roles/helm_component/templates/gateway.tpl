@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
-    path: {{ charts_dir }}/gateway
+   spec:
+    chart: {{ charts_dir }}/gateway
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ component_name }}
     metadata:
@@ -20,7 +24,7 @@ spec:
     image:
       initContainerName: {{ network.docker.url }}/{{ init_container_image }}
       gatewayContainerName: {{ main_container_image }}
-      imagePullSecrets: 
+      imagePullSecrets:
         - name: "regcred"
       pullPolicy: IfNotPresent
     cenmServices:
@@ -51,9 +55,9 @@ spec:
         volumeSizeGatewayLogs: 5Gi
       pod:
         resources:
-          limits: 
+          limits:
             memory: 2Gi
-          requests: 
+          requests:
             memory: 2Gi
       replicas: 1
     service:

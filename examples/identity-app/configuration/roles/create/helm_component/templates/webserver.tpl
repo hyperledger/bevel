@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
   namespace: {{ component_ns }}
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    path: {{ chart_path }}/{{ chart }}
-    git: {{ gitops.git_url }}
-    ref: {{ gitops.branch }}
+   spec:
+    chart: {{ chart_path }}/{{ chart }}
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     metadata:
       namespace: {{ component_ns }}
@@ -19,6 +23,7 @@ spec:
       name: {{ organization.name }}
     image:
       pullSecret: regcred
+      pullPolicy: IfNotPresent
       init:
         name: {{ component_name }}-init
         repository: alpine:3.9.4
@@ -37,11 +42,11 @@ spec:
       size: 128Mi
       className: {{ organization.name }}-{{ organization.cloud_provider }}-storageclass
     proxy:
-{% if organization.cloud_provider == 'minikube' %}     
+{% if organization.cloud_provider == 'minikube' %}
       provider: "minikube"
-      external_url: 
+      external_url:
       port: {{ trustee.server.ambassador }}
-{% else %}      
+{% else %}
       provider: "ambassador"
       external_url: {{ component_name }}.{{ organization.external_url_suffix }}
       port: {{ trustee.server.ambassador }}

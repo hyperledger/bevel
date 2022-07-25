@@ -55,11 +55,10 @@
       kubernetes: "{{ item.k8s }}"
       release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-
-  # Create CA Tools helm-value files and check-in
-  - name: Create CA tools for each organization
-    include_role:
-      name: "create/ca-tools"
+    
+  # Create Organization crypto materials for new organization
+  - include_role:
+      name: "create/ca-tools/peer"
     vars:
       component_name: "{{ item.name | lower}}-net"
       component: "{{ item.name | lower}}"
@@ -71,29 +70,7 @@
       gitops: "{{ item.gitops }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-  # Create generate_crypto script for new organization
-  - include_role:
-      name: "create/add_new_peer/crypto_script"
-    vars:
-      component_type: "{{ item.type | lower}}"
-      orderers: "{{ item.services.orderers }}"
-    loop: "{{ network['organizations'] }}"
-
-  # Create Organization crypto materials for new organization
-  - include_role:
-      name: "create/crypto/peer"
-    vars:
-      component_name: "{{ item.name | lower}}-net"
-      component_type: "{{ item.type | lower}}"
-      org_name: "{{ item.name }}"
-      services: "{{ item.services }}"
-      subject: "{{ item.subject }}"
-      ca_url: "{{ item.ca_data.url }}"
-      cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-    loop: "{{ network['organizations'] }}"
-    when: item.type == 'peer'    
+    when: item.type == 'peer'
 
   # This role fetches block 0 and joins peers of new organizaion to the channel
   - include_role:
@@ -114,6 +91,7 @@
       component_type: "{{ item.type | lower}}"
       component_services: "{{ item.services }}"
       vault: "{{ item.vault }}"
+      git_protocol: "{{ item.gitops.git_protocol }}"
       git_url: "{{ item.gitops.git_url }}"
       git_branch: "{{ item.gitops.branch }}"
       docker_url: "{{ network.docker.url }}"

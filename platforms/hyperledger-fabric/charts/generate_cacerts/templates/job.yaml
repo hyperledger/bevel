@@ -55,13 +55,13 @@ spec:
             - |-
               #!/usr/bin/env sh
               validateVaultResponse () {
-                if echo ${2} | grep "errors"; then
+                if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
                   echo "ERROR: unable to retrieve ${1}: ${2}"
                   exit 1
                 fi
                 if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
                 then
-                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
                   --header "X-Vault-Token: ${VAULT_TOKEN}" \
                   ${VAULT_ADDR}/v1/${1})
                   curl_response=$?
@@ -148,15 +148,15 @@ spec:
               apk update && apk add jq curl openssl;
 
               validateVaultResponse () {
-                if echo ${2} | grep "errors"; then
+                if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
                   echo "ERROR: unable to retrieve ${1}: ${2}"
                   exit 1
                 fi
                 if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
                 then
-                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
                   --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${1})
+                  ${VAULT_ADDR}/v1/${vault_secret_key})
                   curl_response=$?
                   if test "$http_code" != "200" ; then
                       echo "Http response code from Vault - $http_code and curl_response - $curl_response"
@@ -216,20 +216,20 @@ spec:
                 VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                 validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
 
+                vault_secret_key="${VAULT_SECRET_CRYPTO_PATH}"
+
                 # This command copy the CA certificates to the Vault
                 curl \
                   -H "X-Vault-Token: ${VAULT_TOKEN}" \
                   -H "Content-Type: application/json" \
                   -X POST \
                   -d @payload.json \
-                  ${VAULT_ADDR}/v1/${VAULT_SECRET_CRYPTO_PATH}
+                  ${VAULT_ADDR}/v1/${vault_secret_key}
 
                 # Check CA certificates
-                response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                ${VAULT_ADDR}/v1/${VAULT_SECRET_CRYPTO_PATH});
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
 
-                validateVaultResponse 'certs creation' ${response_status};
+                validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
 
                 rm payload.json
               
@@ -238,20 +238,20 @@ spec:
               if [ -e /certcheck/absent_creds.txt ]
               then
 
+                vault_secret_key="${VAULT_SECRET_CREDENTIALS_PATH}"
+
                 # This task write the CA server admin credentials to Vault
                   curl \
                     -H "X-Vault-Token: ${VAULT_TOKEN}" \
                     -H "Content-Type: application/json" \
                     -X POST \
                     -d '{ "data": {"user":"'"$NAME-adminpw"'"}}' \
-                    ${VAULT_ADDR}/v1/${VAULT_SECRET_CREDENTIALS_PATH}
+                    ${VAULT_ADDR}/v1/${vault_secret_key}
 
                   # Check CA server admin credentials
-                  response_status=$(curl -s -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${VAULT_SECRET_CREDENTIALS_PATH});
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
 
-                  validateVaultResponse 'creds creation' ${response_status};
+                  validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
               fi
 
           volumeMounts:

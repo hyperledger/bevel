@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
-    path: {{ charts_dir }}/node
+   spec:
+    chart: {{ charts_dir }}/node
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ node_name }}
     metadata:
@@ -20,7 +24,7 @@ spec:
       initContainerName: {{ network.docker.url }}/{{ init_container_image }}
       nodeContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagepullsecret: regcred
-      pullPolicy: Always
+      pullPolicy: IfNotPresent
     acceptLicence: true
     storage:
       name: cordaentsc
@@ -33,7 +37,7 @@ spec:
       idmanName: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"
       networkmapName: "{{ network | json_query('network_services[?type==`networkmap`].name') | first }}"
     firewall:
-      enabled: {{ org.firewall.enabled }}      
+      enabled: {{ org.firewall.enabled }}
     vault:
       address: {{ org.vault.url }}
       role: vault-role

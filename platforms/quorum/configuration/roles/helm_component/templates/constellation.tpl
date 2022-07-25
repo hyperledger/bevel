@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,16 +7,19 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
-  helmVersion: v3
+  interval: 1m
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
-    path: {{ charts_dir }}/node_constellation
+   spec:
+    chart: {{ charts_dir }}/node_constellation
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     replicaCount: 1
     metadata:
       namespace: {{ component_ns }}
-      labels: 
+      labels:
     images:
       node: quorumengineering/quorum:{{ network.version }}
       alpineutils: {{ network.docker.url }}/alpine-utils:1.0
@@ -40,7 +43,7 @@ spec:
         rpc: {{ peer.rpc.port }}
 {% if network.config.consensus == 'raft' %}
         raft: {{ peer.raft.port }}
-{% endif %}        
+{% endif %}
         constellation: {{ peer.transaction_manager.port }}
         quorum: {{ peer.p2p.port }}
     vault:
@@ -52,8 +55,7 @@ spec:
       role: vault-role
       authpath: quorum{{ name }}
     genesis: {{ genesis }}
-    staticnodes: 
-      {{ staticnodes }}
+    staticnodes: {{ staticnodes }}
     constellation:
 {% if network.config.tm_tls == 'strict' %}
       url: https://{{ peer.name }}.{{ external_url }}:{{ peer.transaction_manager.ambassador }}/

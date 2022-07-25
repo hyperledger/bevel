@@ -73,28 +73,87 @@ This task creates the Ambassador TLS credentials
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador
 
-#### 6. Copy the the msp folder from the ca tools
-This task copies the msp folder from the respective CA Tools CLI to the Ansible container
+#### 6. Copy the msp admincerts from vault
+This task copies the msp admincerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
-    *component_type: "Type of the organization (orderer or peer)"
-    *KUBECONFIG: The config file of kubernetes cluster.
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
 
-#### 7. Copy tls server.crt file from the ca tools
-This task copies tls server.crt file from the respective CA Tools CLI to the Ansible container
+#### 7. Copy the msp cacerts from vault
+This task copies the msp cacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
-    *orderer.name: "orderer's name"
-    *KUBECONFIG: The config file of kubernetes cluster.
-**shell** : The specified commands copies the generated crypto material from the respective CA Tools CLI.
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
 
-#### 8. Copy tls ca.crt file from the ca tools
-This task copies tls server.crt file from the respective CA Tools CLI to the Ansible container
+#### 8. Copy the msp tlscacerts from vault
+This task copies the msp tlscacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
+
+#### 9. Copy the msp cacerts from vault
+This task copies the msp cacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is none.
+
+#### 10. Copy the msp tlscacerts from vault
+This task copies the msp tlscacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is none.
+
+#### 11. Copy the tls server.crt from vault
+This task copies the tls server.crt from vault to the build directory
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**loop**: loops over orderers list fetched from *{{ item.services.orderers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+#### 12. Create the certs directory if it does not exist
+This task create the certs directory if it is not present 
+##### Input Variables
+    path: The path where to check is specified here.
+    state: Type i.e. directory.
+**loop**: loops over orderers list fetched from *{{  network.orderers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+**when**: It runs Only when *add_new_org* is false and *add_peer* is not defined.
+
+#### 13. Copy the msp cacerts from vault
+This task copies the msp cacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
     *orderer.name: "orderer's name"
     *orderer.certificate: The certificate file path for the orderer.
-    *KUBECONFIG: The config file of kubernetes cluster.
-**shell** : The specified commands copies the generated crypto material from the respective CA Tools CLI.
-**when**: Condition is specified here, runs only when *add_new_org* is false and *peer.peerstatus* is not defined 
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**loop**: loops over orderers list fetched from *{{  network.orderers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+**when**: It runs Only when *add_new_org* is false and *add_peer* is not defined.

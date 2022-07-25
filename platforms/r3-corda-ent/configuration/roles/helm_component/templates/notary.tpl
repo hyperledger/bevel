@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -7,19 +7,23 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   releaseName: {{ component_name }}
+  interval: 1m
   chart:
-    git: {{ org.gitops.git_url }}
-    ref: {{ org.gitops.branch }}
-    path: {{ charts_dir }}/notary
+   spec:
+    chart: {{ charts_dir }}/notary
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     nodeName: {{ component_name }}
     metadata:
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url}}/{{ init_container_image }}
-      nodeContainerName: {{ network.docker.url}}/{{ main_container_image }}
+      initContainerName: {{ network.docker.url }}/{{ init_container_image }}
+      nodeContainerName: {{ network.docker.url }}/{{ main_container_image }}
       imagePullSecret: regcred
-      pullPolicy: Always
+      pullPolicy: IfNotPresent
       privateCertificate: true
     vault:
       address: {{ org.vault.url }}
@@ -43,9 +47,9 @@ spec:
         users:
           username: notary
           password: notaryP
-    networkServices:      
+    networkServices:
       doormanURL: {{ idman_url }}
-      idmanDomain: {{ idman_domain }}      
+      idmanDomain: {{ idman_domain }}
       networkMapURL: {{ networkmap_url }}
       networkMapDomain: {{ networkmap_domain }}
       idmanName: "{{ network | json_query('network_services[?type==`idman`].name') | first }}"
