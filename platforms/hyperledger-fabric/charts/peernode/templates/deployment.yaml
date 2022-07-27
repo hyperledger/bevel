@@ -210,10 +210,11 @@ spec:
         - |-
           cp /etc/hyperledger/fabric/NodeOUconfig/mspconfig  /etc/hyperledger/fabric/crypto/msp/config.yaml
           export CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
-          version=$( echo ${PEER_IMAGE} | sed 's/.*://')
-          if [ $version = "2.2.2" ]
+          version=$( echo ${PEER_IMAGE} | sed 's/.*://' | cut -d '.' -f 2- )
+          upgrade=$( echo ${IS_UPGRADE})
+          if [ $version = "2.2" ] && [ $upgrade = "yes" ]
           then
-            echo $version
+            echo $upgrade
             peer node upgrade-dbs
           fi
           peer node start
@@ -226,7 +227,9 @@ spec:
           containerPort: 9443
         env:
         - name: PEER_IMAGE
-          value: "{{ $.Values.metadata.images.peer }}"    
+          value: "{{ $.Values.metadata.images.peer }}"
+        - name: IS_UPGRADE
+          value: "{{ $.Values.upgrade }}"
         envFrom:
         - configMapRef:
             name: {{ $.Values.peer.name }}-config
