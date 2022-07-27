@@ -33,7 +33,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer' and network.upgrade == 'yes'
+      when: item.type == 'orderer' and network.upgrade
 
     
     # This role upgrade the value file for peers of organisations and write couch db credentials
@@ -53,7 +53,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer' and network.upgrade == 'yes'
+      when: item.type == 'peer' and network.upgrade
 
       # This role updates the CA Server helm-value files and check-in
     - name: Create CA server for each organization
@@ -71,7 +71,7 @@
         gitops: "{{ item.gitops }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.services.ca is defined and network.upgrade == 'yes'
+      when: item.services.ca is defined and network.upgrade
 
       # This role updates the CLI pod for the upgraded version
     - name: Create CLI pod for each peer with it enabled
@@ -83,4 +83,4 @@
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
-      when: org.type == "peer" and network.upgrade == 'yes'
+      when: org.type == "peer" and network.upgrade
