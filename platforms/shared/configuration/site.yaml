@@ -3,7 +3,6 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
 ---
 #######################################
 # Master Playbook for the setting up and reseting Hyperledger Bevel DLT network
@@ -19,11 +18,15 @@
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/deploy-network.yaml"
     vars:
       add_new_org: 'false'
-    when: network.type == 'fabric' and (reset is undefined or reset == 'false')
+    when: network.type == 'fabric' and (reset is undefined or reset == 'false') and ( network.upgrade == 'no')
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/chaincode-ops.yaml"
     vars:
       add_new_org: 'false'
-    when: network.type == 'fabric' and (reset is undefined or reset == 'false')
+    when: network.type == 'fabric' and (reset is undefined or reset == 'false') and ( network.upgrade == 'no')  
+  - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/upgrade-network.yaml"
+    vars:
+      add_new_org: 'false'
+    when: network.type == 'fabric' and (reset is undefined or reset == 'false') and ( network.upgrade == 'yes')    
   - import_playbook: "{{ playbook_dir }}/../../r3-corda/configuration/deploy-network.yaml"
     when: network.type == 'corda' and (reset is undefined or reset == 'false')
   - import_playbook: "{{ playbook_dir }}/../../hyperledger-indy/configuration/deploy-network.yaml"

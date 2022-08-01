@@ -1,0 +1,33 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: carrier-cacerts-job
+  namespace: carrier-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: carrier-cacerts-job
+  chart:
+    git: https://github.com/Mohitv/bevel.git
+    ref: main
+    path: platforms/hyperledger-fabric/charts/generate_cacerts
+  values:
+    metadata:
+      name: carrier
+      component_name: carrier-net
+      namespace: carrier-net    
+      images:
+        fabrictools: hyperledger/fabric-tools:2.2.2
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    vault:
+      role: vault-role
+      address: http://192.168.49.1:8200
+      authpath: localcarrier-net-auth
+      secretcryptoprefix: secretsv2/data/crypto/peerOrganizations/carrier-net/ca
+      secretcredentialsprefix: secretsv2/data/credentials/carrier-net/ca/carrier
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      
+    ca:
+      subject: /C=GB/ST=London/L=London/O=Carrier/CN=ca.carrier-net
