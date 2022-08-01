@@ -56,31 +56,21 @@ Note: Before execution of this step, it should be ensured that all nodes(orderer
 
 As discussed earlier, the operator should have access to all the kubernetes clusters, these steps may require the operator to sign and update the configuration transactions to upgrade the capabilities.
 
-The following scripts needs to be executed for all the steps mentioned in diagram shown above. All the following steps shall store a copy of file in bevel/build folder, so that operator can get it signed from across companies(where applicable) 
+It is an assumption that operator has one network.yaml file which consists of all participating organizations such as peers and orderers. If that is not the case the operator has to pass extra parameter to execute the script for each step of capability upgrade and get it signed from required organization(s) before moving to next step.
+
+The following are the steps:
 
 1.	Upgrade the System channel's orderer and channel level capabilities
-	ansible-playbook platforms/shared/configuration/upgrade-syschannel-capability.yaml --extra-vars "@path-to-network.yaml"
-
 2.	Upgrade all application channel's orderer, channel and application level capabilities
-	ansible-playbook platforms/shared/configuration/upgrade-appchannel-capability.yaml --extra-vars "@path-to-network.yaml"
-
 3.	Add Orderer endpoints in orderer and all application channels replacing the global Orderer Addresses  	 
 	section of channel configuration
-	ansible-playbook platforms/shared/configuration/upgrade-add-orderer-endpoints.yaml --extra-vars "@path-to-network.yaml"
-
 4.	Upgrade the system channel for enabling endorsement policy in consortium organizations
-	ansible-playbook platforms/shared/configuration/upgrade-orderer-consortium-org-lifecycle.yaml --extra-vars "@path-to-network.yaml"
-
 5.	Upgrade all the existing application channel orgs for enabling endorsement policy
-	ansible-playbook platforms/shared/configuration/upgrade-application-org-endorsement.yaml --extra-vars "@path-to-network.yaml"
-
-6. 	Upgrade all the existing application channels application policy for endorsement and lifecyle 			
-	ansible-playbook platforms/shared/configuration/upgrade-application-endorsement-lifecycle.yaml --extra-vars "@path-to-network.yaml"
-
+6. 	Upgrade all the existing application channels application policy for endorsement and lifecyle
 7. Optional: Upgrade all the existing application channels ACL policy
-	ansible-playbook platforms/shared/configuration/upgrade-application-ACL.yaml --extra-vars "@path-to-network.yaml"
-
-TODO: The above steps are to be further detailed on steps to execute when DLT network in multiple companies.
+	
+	When there is a single network file the following script automates the upgrade of capabilities as required by version 2.2.x
+	ansible-playbook platforms/shared/configuration/upgrade-capabilites.yaml --extra-vars "@path-to-network.yaml"
 
 ## 4. Compare core.yaml & orderer.yaml
 When core.yaml and orderer.yaml was modified in source system, a diff is done with new core.yaml and orderer.yaml in the target system. Based on this analysis the target system files can be modified
