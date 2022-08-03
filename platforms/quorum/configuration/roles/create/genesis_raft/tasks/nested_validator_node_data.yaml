@@ -1,0 +1,41 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Check if the keystore.json exist in build directory
+- name: Check if keystore.json is present in the build directory or not
+  stat:
+    path: "{{ build_path }}/{{ org2.name }}/{{ peer.name }}/keystore.json"
+  register: file_status
+
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "{{ build_path }}/{{ org2.name }}/{{ peer.name }}"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  when: file_status.stat.exists == False
+  changed_when: false
+
+# Fetch keystore.json from vault
+- name: Get the keystore.json from vault
+  shell: |
+    vault kv get -field=keystore {{ vault.secret_path | default('secretsv2') }}/{{ org2.name }}-quo/crypto/{{ peer.name }}/quorum | base64 -d > {{ build_path }}/{{ org2.name }}/{{ peer.name }}/keystore.json
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: file_status.stat.exists == False
+  changed_when: false
+
+# Get the node address
+- name: Get the node_address
+  set_fact:
+    node_address="{{ lookup('file', '{{ build_path }}/{{ org2.name }}/{{ peer.name }}/keystore.json') | from_json }}"
+
+# Append the node address into the list
+- name: Get validator node info
+  set_fact:
+    node_address_list={{ node_address_list|default([]) + [ node_address.address ] }}

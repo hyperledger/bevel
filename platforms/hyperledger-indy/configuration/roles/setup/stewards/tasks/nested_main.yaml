@@ -1,0 +1,110 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This Selects the Admin Identity for an organization from Network yaml.
+# If trustee is present the first trustee will be the admin
+# If trustee not present in a particular organization,
+# the first global admin will be the trustee for this organization.
+---
+- name: Select Admin Identity for Organisation {{ component_name }}
+  shell: |
+    selectedAdmin=""
+    first_global_admin=""
+    admin_Org=""
+    global_Org=""
+    admin_url=""
+    global_url=""
+    global_type=""
+    admin_type=""
+    {% if network['organizations'] is defined %}
+      {% for organization in network['organizations'] %}
+        first_admin_in_org=""
+        {% if organization.services.trustees is defined %}
+          {% for trustee in organization.services.trustees %}
+            if [ -z "$first_admin_in_org" ]
+            then
+              if [ {{ organization.name }} == "{{ component_name }}" ]
+              then
+                first_admin_in_org="{{ trustee.name }}"
+                admin_Org="{{ organization.name }}"
+                admin_url="{{ organization.vault.url }}"
+                admin_type="trustees"
+              fi
+            fi
+            if [ -z "$first_global_admin" ]
+            then
+              first_global_admin="{{ trustee.name }}"
+              global_Org="{{ organization.name }}"
+              global_url="{{ organization.vault.url }}"
+              global_type="trustees"
+            fi
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    if [ ! -z "$first_admin_in_org" ]
+    then
+      selectedAdmin="${first_admin_in_org}"
+      adminUrl="${admin_url}"
+      adminOrg="${admin_Org}"
+      admin_type="${admin_type}"
+    else
+      selectedAdmin="${first_global_admin}"
+      adminUrl="${global_url}"
+      adminOrg="${global_Org}"
+      admin_type="${global_type}"
+    fi
+    rm -rf admin.yaml
+    echo "selectedAdmin: ${selectedAdmin}" >> admin.yaml
+    echo "adminUrl: ${adminUrl}" >> admin.yaml
+    echo "adminOrg: ${adminOrg}" >> admin.yaml
+    echo "type: ${admin_type}" >> admin.yaml
+  register: admin_file
+
+#----------------------------------------------------------------------------------------------
+- name: "Inserting file into Variable"
+  include_vars:
+    file: admin.yaml
+    name: admin_var
+
+#----------------------------------------------------------------------------------------------
+# Create Deployment files for new Identities
+- name: "Calling Helm Release Development Role..."
+  include_role:
+    name: create/helm_component/ledger_txn
+  vars:
+    component_type: "steward"
+    component_name: "{{ organizationItem.name }}"
+    indy_version: "indy-{{ network.version }}"
+    release_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+    component_ns: "{{ organizationItem.name | lower }}-ns"
+    newIdentityName: "{{ newIdentityItem.name }}"
+    newIdentityRole: "STEWARD"
+    adminIdentityName: "{{ admin_var.selectedAdmin }}"
+    admin_component_name: "{{ admin_var.adminOrg }}"
+    admin_org_vault_url: "{{ admin_var.adminUrl }}"
+    new_org_vault_url: "{{ neworg.vault.url }}"
+    new_component_name: "{{ neworg.name | lower }}"
+    admin_type: "{{ admin_var.type }}"
+    identity_type: "stewards"
+  loop: "{{ newIdentity }}"
+  loop_control:
+    loop_var: newIdentityItem
+  when: newIdentity is defined
+
+- name: "Delete file"
+  shell: |
+    rm admin.yaml
+# ---------------------------------------------------------------------
+# push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "[ci skip] Pushing deployment files"

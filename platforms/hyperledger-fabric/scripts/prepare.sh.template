@@ -1,0 +1,50 @@
+#!/bin/bash
+#
+# This is a script template. Iw will prepare your private copy of
+# `network.yaml` by filling gaps in the public version.
+
+# Discover and fill the values of the following parameters.
+export AWS_ACCESS_KEY_ID=
+export AWS_SECRET_ACCESS_KEY=
+export VAULT_ADDR=
+export VAULT_TOKEN=
+export GIT_USERNAME=
+export GIT_PASSWORD=
+export DOCKER_PASSWORD= # password for $DOCKER_USER
+
+# Copy kubernetes configuration here.
+export KUBECONFIG="$HOME/.kube/config"
+export REGION="eu-central-1" # take this from config: clusters.cluster.server region
+export CLUSTER_CONTEXT="dltplatform-fabric-test" # take this from config: contexts.context.cluster
+
+# Tweak for yourself, if needed.
+export RELEASE_BRANCH="$USER-testrun" # your specific branch in $GITOPS_SSH
+
+# Following parameters are taken from
+# ./automation/hyperledger-fabric/Jenkinsfile.
+export DOCKER_REGISTRY="hyperledgerlabs"
+export DOCKER_USERNAME='ADOPBlockchainCloud0502'
+export GITOPS_SSH="https://github.com/hyperledger/bevel.git"
+export REL_PATH="platforms/hyperledger-fabric/releases/dev"
+export CHART_PATH="platforms/hyperledger-fabric/charts"
+export GITOPS_REPO="github.com/hyperledger/bevel.git"
+
+# Following substitutions are taken from
+# ./automation/hyperledger-fabric/Jenkinsfile.
+sed -i -e "s*docker_url*${DOCKER_REGISTRY}*g" network.yaml
+sed -i -e "s*docker_username*${DOCKER_USERNAME}*g" network.yaml
+sed -i -e "s*docker_password*${DOCKER_PASSWORD}*g" network.yaml
+sed -i -e "s*vault_addr*${VAULT_ADDR}*g" network.yaml
+sed -i -e "s*vault_root_token*${VAULT_TOKEN}*g" network.yaml
+sed -i -e "s*gitops_ssh_url*${GITOPS_SSH}*g" network.yaml
+sed -i -e "s*gitops_branch*${RELEASE_BRANCH}*g" network.yaml
+sed -i -e "s*gitops_release_dir*${REL_PATH}*g" network.yaml
+sed -i -e "s*gitops_charts*${CHART_PATH}*g" network.yaml
+sed -i -e "s*gitops_push_url*${GITOPS_REPO}*g" network.yaml
+sed -i -e "s*git_username*${GIT_USERNAME}*g" network.yaml
+sed -i -e "s+git_password+${GIT_PASSWORD}+g" network.yaml
+sed -i -e "s*cluster_region*${REGION}*g" network.yaml
+sed -i -e "s*cluster_context*${CLUSTER_CONTEXT}*g" network.yaml
+sed -i -e "s*cluster_config*${KUBECONFIG}*g" network.yaml
+sed -i -e "s+aws_access_key+${AWS_ACCESS_KEY_ID}+g" network.yaml
+sed -i -e "s+aws_secret_key+${AWS_SECRET_ACCESS_KEY}+g" network.yaml

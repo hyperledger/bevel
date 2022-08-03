@@ -1,0 +1,80 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+###########################################################################################
+# This task calls nested_sign_and_update and nested_update_channel tasks
+############################################################################################
+
+# Check or wait for the peer
+- name: Call valuefile when participant is new
+  include_tasks: valuefile.yaml
+  vars:
+    channelcreator_query: "participants[?org_status=='new']"
+  loop: "{{ item | json_query(channelcreator_query) }}"
+  loop_control:
+    loop_var: peer
+
+# Check or wait for the peer
+- name: Call valuefile when participant is Existing
+  include_tasks: valuefile.yaml
+  vars:
+    channelcreator_query: "participants[?org_status=='existing']"
+  loop: "{{ item | json_query(channelcreator_query) }}"
+  loop_control:
+    loop_var: peer
+  when:
+    - remove_org is defined
+    - remove_org == "True"
+
+# Task for creating the cli for first peer of each organization
+# Config block gets signed by the admin of every organization
+- name: Call nested_sign_and_update for each peer
+  include_tasks: nested_sign_and_update.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    peer: "{{ participant.peers | first }}"
+    config_block: "{{ item.channel_name | lower }}_config_block.pb"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when:
+    - participant.type != 'creator'
+    - participant.org_status != 'new'
+    - remove_org is undefined
+
+# Task for creating the cli for first peer of each organization
+# Config block gets signed by the admin of every organization
+- name: Call nested_sign_and_update for each peer
+  include_tasks: nested_sign_and_update.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    peer: "{{ participant.peers | first }}"
+    config_block: "{{ item.channel_name | lower }}_config_block.pb"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when:
+    - participant.type != 'creator'
+    - participant.org_status != 'new' # existing and delete orgs are signing
+    - remove_org is defined
+    - remove_org == "True"
+
+# Creator signs the config block and updates the channel with latest config block  
+- name: Call nested_update_channel for the peer
+  include_tasks: nested_update_channel.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    peer: "{{ participant.peers | first }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.type == 'creator'

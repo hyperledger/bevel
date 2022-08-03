@@ -1,0 +1,75 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook manages user certificates for peers using existing Fabric-CA deployment on k8s
+# It creates new user identities or updates them
+# The Kubernetes clusters should already be created and the infomation to connect to the
+# clusters be updated in the network-user-certificate.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command 
+# (network-user-certificate.yaml also in this directory)
+# ansible-playbook manage-user-certificate.yaml -e "@./network-user-certificate.yaml"
+############################################################################################
+
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+    # Check if CA server is available
+    - name: "Checking if CA server exists in {{ item.name | lower }}-net"
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+      vars:
+        component_name: "{{ component_services.ca.name }}"
+        component: "{{ item.name | lower}}"
+        component_type: "Pod"
+        component_services: "{{ item.services }}"
+        namespace: "{{ item.name | lower }}-net"
+        kubernetes: "{{ item.k8s }}"
+        label_selectors:
+          - name = {{ component_name }}
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+      loop: "{{ network['organizations'] }}"
+
+    # Check if CA CLI is available
+    - name: "Checking if CA CLI exists in {{ item.name | lower }}-net"
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+      vars:
+        component_name: "{{ component_services.ca.name }}-tools"
+        component: "{{ item.name | lower}}"
+        component_type: "Pod"
+        component_services: "{{ item.services }}"
+        namespace: "{{ item.name | lower }}-net"
+        kubernetes: "{{ item.k8s }}"
+        label_selectors:
+          - name = {{ component_name }}
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+      loop: "{{ network['organizations'] }}"
+
+    ############################################################################################
+    # This task generates the crypto material by executing the generate-user-crypto.sh script file
+    # present in the Organization's CA Tools CLI
+    - name: Generate crypto material for user
+      include_role:
+        name: "create/users"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name }}"
+        services: "{{ item.services }}"
+        subject: "{{ item.subject }}"
+        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        users: "{{ item.users }}"
+        proxy: "{{ network.env.proxy }}"
+        ca_url: "{{ item.ca_data.url }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'peer' and item.users is defined

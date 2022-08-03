@@ -1,0 +1,73 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Check if the joinchannel job is completed successfully or wait for it
+# This task will try for a maximum of 10 times with an interval of
+# 30 seconds between each try
+- name: "Waiting for the job anchorpeer-{{ channel.channel_name | lower }}-{{ name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    component_name: "anchorpeer-{{ channelx.channel_name | lower }}-{{ name }}"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channelx
+  when: 
+    - add_new_org is not defined or add_new_org == 'false'
+    - add_peer is not defined
+    - participant.org_status != 'new'
+
+# Check if install-chaincode is already run
+- name: "Checking for the install chaincode job is already done on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    job_title: "install_chaincode"
+    component_type: "OneTimeJob"
+    component_name: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+
+- name: "Set Variable install_chaincode"
+  set_fact:
+    install_chaincode: "{{ result }}"
+
+# This task write the git credentials to Vault
+- name: Write the git credentials to Vault
+  shell: |
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/credentials/{{ namespace }}/git git_password="{{ peer.chaincode.repository.password }}"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: install_chaincode.resources|length == 0
+
+# Nested task for chanincode installation
+- name: "Create value file for chaincode installation - nested"
+  include_role:
+    name: helm_component
+  vars:
+    orderer_address: "{{ orderer.uri }}"
+    type: "install_chaincode_job"
+    peer_name: "{{ peer.name }}"
+    peer_address: "{{ peer.name }}.{{ namespace }}:{{ peer.grpc.port }}"
+    component_name: "chaincode-install-{{ name }}-{{ peer.name }}-{{ peer.chaincode.version | replace('.','-')}}"
+    component_chaincode: "{{ peer.chaincode }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+  loop: "{{ network['orderers'] }}"
+  loop_control:
+    loop_var: orderer
+  when: install_chaincode.resources|length == 0
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing chaincode installation files"
+  when: install_chaincode.resources|length == 0

@@ -1,0 +1,289 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $.Values.orderer.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $.Values.orderer.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.deployment }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}     
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: "{{ $.Values.orderer.name }}"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $.Values.orderer.name }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/name: {{ $.Values.orderer.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        app: {{ $.Values.orderer.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/name: {{ $.Values.orderer.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:    
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      volumes:
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt  # curl expects certs to be in /etc/ssl/certs/ca-certificates.crt
+      {{ end  }}
+      - name: {{ $.Values.orderer.name }}-genesis-volume
+        configMap:
+          name: genesis-block-{{ $.Values.orderer.name }}
+          items:
+            - key: genesis.block.base64
+              path: genesis.block.base64
+      initContainers:
+      - name: kafka-healthcheck
+        image: {{ $.Values.metadata.images.healthcheck }}
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          if [ {{ $.Values.consensus.name }} == kafka ]
+          then
+          COUNTER=1
+          FLAG=true
+          KAFKACOUNT=0
+          COUNT=0
+          {{ range $.Values.kafka.brokers}}
+          COUNT=`expr "$COUNT" + 1`
+          {{ end }}
+          while [ "$COUNTER" -le {{ $.Values.kafka.readinessthreshold }} ]
+          do
+             {{ range $.Values.kafka.brokers}}
+             KAFKA_BROKERS={{ .  }}
+             STATUS=$(nc -vz $KAFKA_BROKERS 2>&1 | grep -c open )
+             if [ "$STATUS" == 0 ]
+             then
+                FLAG=false
+             else
+                FLAG=true
+                KAFKACOUNT=`expr "$KAFKACOUNT" + 1`
+                echo "$KAFKACOUNT kafka brokers out of $COUNT are up and running"
+             fi
+             {{ end }}
+             if [ "$FLAG" == false ]
+             then
+                echo "$KAFKACOUNT kafka brokers out of $COUNT are up and running!"
+                echo "Retry attempted $COUNTER times, retrying after {{ $.Values.kafka.readinesscheckinterval }} seconds"
+                COUNTER=`expr "$COUNTER" + 1`
+                sleep {{ $.Values.kafka.readinesscheckinterval }}
+
+             else
+                echo "SUCCESS!"
+                echo "All $KAFKACOUNT kafka broker are up and running!"
+                exit 0
+                break
+             fi
+          done
+          if [ "$COUNTER" -gt {{ $.Values.kafka.readinessthreshold }} ] || [ "$FLAG" == false ]
+          then
+             echo "Retry attempted $COUNTER times, no kafka brokers are up and running. Giving up!"
+             exit 1
+             break
+
+          fi
+          fi
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ $.Values.vault.secretprefix }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: MOUNT_PATH
+          value: /secret
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          validateVaultResponse () {
+            if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+            fi
+            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+            then
+              http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
+              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key})
+              curl_response=$?
+              if test "$http_code" != "200" ; then
+                  echo "Http response code from Vault - $http_code"
+                  if test "$curl_response" != "0"; then
+                     echo "Error: curl command failed with error code - $curl_response"
+                     exit 1
+                  fi
+              fi
+            fi
+          }
+
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          # Login to Vault and so I can get an approle token
+          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+            -H "Content-Type: application/json" \
+            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+            jq -r 'if .errors then . else .auth.client_token end')
+
+          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/tls"
+          echo "Getting TLS certificates from Vault using key $vault_secret_key"
+
+          OUTPUT_PATH="${MOUNT_PATH}/tls"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
+          TLS_SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.crt"]')
+          TLS_SERVER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.key"]')
+
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+          echo "${TLS_SERVER_CERT}" >> ${OUTPUT_PATH}/server.crt
+          echo "${TLS_SERVER_KEY}" >> ${OUTPUT_PATH}/server.key
+
+          vault_secret_key="${VAULT_SECRET_PREFIX}/msp"
+          echo "Getting MSP certificates from Vault using key $vault_secret_key"
+
+          OUTPUT_PATH="${MOUNT_PATH}/msp"
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+          ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]')
+          CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]')
+          KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
+          SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]')
+          TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
+
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+        volumeMounts:
+        - name: certificates
+          mountPath: /secret
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+      containers:
+      - name: {{ $.Values.orderer.name }}
+        image: {{ $.Values.metadata.images.orderer }}
+        imagePullPolicy: IfNotPresent 
+        workingDir: /opt/gopath/src/github.com/hyperledger/fabric
+        command: ["sh", "-c", "cat /var/hyperledger/orderer/genesis/genesis.block.base64 | base64 -d > /var/hyperledger/orderer/orderer.genesis.block && orderer"]
+        ports:
+        - containerPort: 7050
+        - name: operations
+          containerPort: 9443
+        envFrom:
+        - configMapRef:
+            name: {{ $.Values.orderer.name }}-config
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/hyperledger/production/orderer
+        - name: {{ $.Values.orderer.name }}-genesis-volume
+          mountPath: /var/hyperledger/orderer/genesis
+          readOnly: true
+        - name: certificates
+          mountPath: /var/hyperledger/orderer/crypto
+          readOnly: true
+        resources:
+          requests:
+            memory: {{ .Values.config.pod.resources.requests.memory }}
+            cpu: {{ .Values.config.pod.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.config.pod.resources.limits.memory }}
+            cpu: {{ .Values.config.pod.resources.limits.cpu }}
+      - name: grpc-web
+        image: "ghcr.io/hyperledger-labs/grpc-web:latest"
+        imagePullPolicy: IfNotPresent        
+        ports:
+        - name: grpc-web
+          containerPort: 7443        
+        env:
+        - name: BACKEND_ADDRESS
+          value: "{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}"
+        - name: SERVER_TLS_CERT_FILE
+          value: "/certs/tls/server.crt"
+        - name: SERVER_TLS_KEY_FILE
+          value: "/certs/tls/server.key"
+        - name: BACKEND_TLS_CA_FILES
+          value: "/certs/tls/ca.crt"
+        - name: SERVER_BIND_ADDRESS
+          value: "0.0.0.0"
+        - name: SERVER_HTTP_DEBUG_PORT
+          value: "8080"
+        - name: SERVER_HTTP_TLS_PORT
+          value: "7443"
+        - name: BACKEND_TLS
+          value: "true"
+        - name: SERVER_HTTP_MAX_WRITE_TIMEOUT
+          value: 5m
+        - name: SERVER_HTTP_MAX_READ_TIMEOUT
+          value: 5m
+        - name: USE_WEBSOCKETS
+          value: "true"
+        volumeMounts:        
+        - name: certificates
+          mountPath: /certs
+  volumeClaimTemplates:
+  #Lables are not being taken by Kubernetes as it dynamically creates PVC
+  - metadata:
+      name: datadir    
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: {{ $.Values.storage.storageclassname }}
+      resources:
+        requests:
+          storage: {{ $.Values.storage.storagesize }}

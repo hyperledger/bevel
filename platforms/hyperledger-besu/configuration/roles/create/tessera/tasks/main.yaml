@@ -1,0 +1,36 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This tasks checks the crypto material in the vault
+- name: Check for the crypto material in the vault
+  include_tasks: check_vault.yaml
+  vars:    
+    vault: "{{ org.vault }}"
+  with_items: "{{ org.services.peers }}"
+
+# This task creates the Tessera Transaction Manager value files for each node of organization
+- name: Create value file for Tessera TM for each node
+  include_role:
+    name: create/helm_component
+  vars:
+    component_name: "{{ peer.name }}tessera"
+    name: "{{ org.name | lower }}"
+    type: "tessera"    
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+    
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-besu/configuration"
+    msg: "[ci skip] Pushing tessera files"
+  tags:
+    - notest

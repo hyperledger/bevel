@@ -1,0 +1,224 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+  # delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
+  # Create namespaces and service accounts
+  - name: "Create namespace and service account"
+    include_role:
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-bes"
+      organisation: "{{ organizationItem.name | lower }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      gitops: "{{ organizationItem.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
+  # Create Storageclass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "{{ organizationItem.cloud_provider }}storageclass"
+      git_dir: "{{ organizationItem.gitops.release_dir }}"
+      org: "{{ organizationItem }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
+  # Setup Vault-Kubernetes accesses and Regcred for docker registry
+  - name: "Setup vault"
+    include_role:
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
+    vars:
+      policy_type: "besu"
+      name: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-bes"
+      component_name: "{{ organizationItem.name | lower }}-vaultk8s-job"
+      component_auth: "besu{{ organizationItem.name | lower }}"
+      component_type: "organization"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      gitops: "{{ organizationItem.gitops }}"
+      reset_path: "platforms/hyperledger-besu/configuration"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
+  # Generate Ambassador certificate for nodes. These certificates are used for Orion TLS as well
+  - name: "Create ambassador certificates for Nodes"
+    include_role:
+      name: create/certificates/ambassador
+    vars:
+      root_subject: "{{ network.config.subject }}"
+      cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+      services: "{{ organizationItem.services }}"
+      organisation: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-bes"
+      component_name: "{{ organizationItem.name | lower }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      charts_dir: "{{ organizationItem.gitops.chart_source }}"
+      gitops: "{{ organizationItem.gitops }}"
+      values_dir: "{{ playbook_dir }}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+    loop: "{{ network['organizations']}}"
+    loop_control:
+      loop_var: organizationItem
+
+  # This role generates the genesis.json and nodekey/enode for all orgs of the network
+  - name: "Generate crypto for the IBFT network"
+    include_role:
+      name: create/crypto/ibft
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+    when: network.config.consensus == 'ibft'
+
+  # This role generates the genesis.json and nodekey/enode for all orgs of the network
+  - name: "Generate crypto for the CLIQUE network"
+    include_role:
+      name: create/crypto/clique
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+    when: network.config.consensus == 'clique'
+
+  # This role generates the genesis.json and nodekey/enode for all orgs of the network
+  - name: "Generate crypto for the ETHASH network"
+    include_role:
+      name: create/crypto/ethash
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+    when: network.config.consensus == 'ethash'
+
+  # This role deploy validator nodes. Validator nodes do not use Orion crypto.
+  - name: "Deploy validator nodes"
+    include_role:
+      name: create/validator
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-bes"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.validators}}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_url }}"
+      git_branch: "{{ item.gitops.branch }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    when:
+    - network.config.consensus == 'ibft' or network.config.consensus == 'clique'
+    - item.type == 'validator'
+
+  # This role generates the crypto materials for orion tm
+  - name: "Generate crypto for the Orion transaction manager"
+    include_role:
+      name: create/crypto/orion
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name }}-bes"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when:
+      - org.type == 'member'
+      - network.config.transaction_manager == 'orion'
+
+  # This role generates the crypto materials for tessera tm
+  - name: "Generate crypto for the Tessera transaction manager"
+    include_role:
+      name: create/crypto/tessera
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name }}-bes"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when:
+      - org.type == 'member'
+      - network.config.transaction_manager == 'tessera'
+
+  # This role deploys  Tessera nodes
+  - name: "Deploy Tessera nodes"
+    include_role:
+      name: create/tessera
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name }}-bes"
+      storageclass_name: "{{ org.cloud_provider }}storageclass"
+      external_url: "{{ org.external_url_suffix }}"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when:
+      - org.type == 'member'
+      - network.config.transaction_manager == 'tessera'
+
+  # This role deploy nodes with for IBFT consensus
+  - name: "Deploy Besu nodes for IBFT consensus"
+    include_role:
+      name: create/member_node
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-bes"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_url }}"
+      git_branch: "{{ item.gitops.branch }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
+    loop: "{{ network['organizations'] }}"
+    when:
+      - item.type == 'member'
+
+  vars: #These variables can be overriden from the command line
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: false

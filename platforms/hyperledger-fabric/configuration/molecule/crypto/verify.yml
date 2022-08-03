@@ -1,0 +1,177 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Verify
+  hosts: localhost
+  tasks:
+
+#####################################################################################
+  # Check if root token secret exist of every organization in their namespace
+  - name: Check if root token does not exist in the namespace
+    k8s_info:
+      kind: Secret
+      namespace: "testorderer-net"
+      name: "roottoken"
+      kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+      context: "kind"
+    register: root_token_secret_orderer
+  
+#####################################################################################
+  #This task assert if the root token secret is created
+  - name: Assert if the root token secret is deleted for orderer
+    assert:
+      that: root_token_secret_orderer.resources|length == 0 
+
+#####################################################################################
+  #This task checks if the value file is created for cacerts-job of the orderers
+  - name: Check if the value file is created for cacerts-job of the orderers
+    stat:
+      path: "./build/testorderer/testorderer/testorderer-cacerts-job.yaml"
+    register: orderer_ca_job_check
+  
+#####################################################################################
+  #This task assert if the value file is created for cacerts-job of the orderers
+  - name: Assert if the value file is created for cacerts-job of the orderers
+    assert:
+      that: orderer_ca_job_check.stat.exists
+
+#####################################################################################
+  #This task checks if the value file is created for CA of the orderers
+  - name: Check if the value file is created for CA of the orderers
+    stat:
+      path: "test/test_ca/testorderer.yaml"
+    register: orderer_ca_check
+  
+#####################################################################################
+  #This task assert if the value file is created for CA of the orderers
+  - name: Assert if the value file is created for CA of the orderers
+    assert:
+      that: orderer_ca_check.stat.exists
+
+# 
+# ################# peers ##########################################
+#####################################################################################
+  # Check if root token secret exist in the namespace testpeer-net
+  - name: Check if root token does not exist in the namespace testpeer-net
+    k8s_info:
+      kind: Secret
+      namespace: "testpeer-net"
+      name: "roottoken"
+      kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+      context: "kind"
+    register: root_token_secret_peer
+  
+#####################################################################################
+  #This task assert if the root token secret is created for peers
+  - name: Assert if the root token secret is deleted for peers
+    assert:
+      that: root_token_secret_peer.resources|length == 0 
+
+#####################################################################################
+  #This task checks if the value file is created for cacerts-job of the peers
+  - name: Check if the value file is created for cacerts-job of the peers
+    stat:
+      path: "./build/testpeer/testpeer/testpeer-cacerts-job.yaml"
+    register: peer_ca_job_check
+  
+#####################################################################################
+  #This task assert if the value file is created for cacerts-job of the peers
+  - name: Assert if the value file is created for cacerts-job of the peers
+    assert:
+      that: peer_ca_job_check.stat.exists
+
+#####################################################################################
+  #This task checks if the value file is created for CA of the peers
+  - name: Check if the value file is created for CA of the peers
+    stat:
+      path: "test/test_ca/testpeer.yaml"
+    register: peer_ca_check
+  
+#####################################################################################
+  #This task assert if the value file is created for CA of the peers
+  - name: Assert if the value file is created for CA of the peers
+    assert:
+      that: peer_ca_check.stat.exists
+
+######## CRYPTO SCRIPT ##############################
+#####################################################################################
+#####################################################################################
+  #This task checks if the crypto_script is created for the orderers
+  - name: Check if the crypto_script is created for orderers
+    stat:
+      path: "./build/generate-crypto-testorderer-testorderer1.sh"
+    register: gc_orderer_check
+  
+#####################################################################################
+  #This task assert if the value file exists or not for orderers
+  - name: Assert if the value file exists or not for orderers
+    assert:
+      that: gc_orderer_check.stat.exists
+
+#####################################################################################
+  #This task checks if the crypto_script is created for the peers
+  - name: Check if the crypto_script is created for peers
+    stat:
+      path: "./build/generate-crypto-testpeer.sh"
+    register: gc_peer_check
+
+#####################################################################################
+  #This task assert if the value file exists or not for peers
+  - name: Assert if the value file exists or not for peers
+    assert:
+      that: gc_peer_check.stat.exists  
+
+#####################################################################################
+  #This task checks if configtx file is created or not
+  - name: Check if the configtx file is created or not
+    stat:
+      path: "./build/configtx.yaml"
+    register: configtx_check
+  
+#####################################################################################
+  #This task assert if  configtx file is created or not
+  - name: Assert if the configtx file is created or not
+    assert:
+      that: configtx_check.stat.exists
+
+#####################################################################################
+  #This task checks if channels are created or not
+  - name: Check if the channels are created or not
+    stat:
+      path: "./build/channel-artifacts/test_channel.tx.base64"
+    register: channel_check
+  
+#####################################################################################
+  #This task assert if the channels are created or not
+  - name: Assert if the channels are created or not
+    assert:
+      that: channel_check.stat.exists
+
+#####################################################################################
+  #This task checks if configtx file is created or not
+  - name: Check if the Anchor artifacts is created or not for participant 1
+    stat:
+      path: "./build/channel-artifacts/test_channeltestorg1MSPAnchor.tx.base64"
+    register: anchor_check
+  
+#####################################################################################
+  #This task assert if  configtx file is created or not
+  - name: Assert if the Anchor artifacts is created or not
+    assert:
+      that: anchor_check.stat.exists
+#####################################################################################
+  #This task checks if configtx file is created or not
+  - name: Check if the Anchor artifacts is created or not for participant 2
+    stat:
+      path: "./build/channel-artifacts/test_channeltestorg2MSPAnchor.tx.base64"
+    register: anchor_check2
+
+#####################################################################################
+  #This task assert if  configtx file is created or not
+  - name: Assert if the Anchor artifacts is created or not
+    assert:
+      that: anchor_check2.stat.exists

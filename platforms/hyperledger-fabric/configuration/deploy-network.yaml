@@ -1,0 +1,246 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+  
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+
+    # Create Namespaces and Vault-rbac kubernetes-value files
+    - name: Create namespace and Vault auth for each organization
+      include_role:
+        name: "create/namespace_vaultauth"
+      vars:
+        component_name: "{{ item.name | lower }}-net"
+        component_type_name: "{{ item.type | lower }}"
+        kubernetes: "{{ item.k8s }}"
+        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+    
+    #Setup Vault-Kubernetes accesses and Regcred for docker registry
+    - name: Setup Vault Kubernetes for each organization
+      include_role: 
+        name: "setup/vault_kubernetes"
+      vars:
+        component_name: "{{ item.name | lower }}-net"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        component_type: "{{ item.type | lower }}"
+        auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
+      loop: "{{ network['organizations'] }}"
+
+    # Create Storageclass 
+    - name: Create storageclass for each organization
+      include_role:
+        name: "create/storageclass"
+      vars:
+        sc_name: "{{ item.name | lower}}sc"
+        component_type: "{{ item.type | lower}}"
+        kubernetes: "{{ item.k8s }}"
+        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+        
+    # Create CA Server helm-value files and check-in
+    - name: Create CA server for each organization
+      include_role:
+        name: "create/ca-server"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        docker_url: "{{ network.docker.url }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.services.ca is defined
+        
+    # Create generate_crypto script for each organization
+    - name: Create generate_crypto.sh for each organization
+      include_role:
+        name: "create/crypto_script"
+      vars:
+        component_type: "{{ item.type | lower}}"        
+        orderers: "{{ item.services.orderers }}"
+      loop: "{{ network['organizations'] }}"
+
+    #Creating a pause so that the client certificates are valid
+    # You can continue if the CA-server pods are running for more than 5 minutes
+    - pause:
+        prompt: "Sleeping... so that the client certificates are valid"
+        minutes: 6
+    
+     # Create CA Tools helm-value files and check-in
+    - name: Create CA tools for each organization
+      include_role:
+        name: "create/ca-tools/orderer"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'orderer'
+    
+    # Create CA Tools helm-value files and check-in
+    - name: Create CA tools for each organization
+      include_role:
+        name: "create/ca-tools/peer"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'peer'
+
+    # Creating channel artifacts and putting them in vault
+    # This role creates configtx.yaml file as the requirements mentioned in network.yaml
+    # which is then consumed by configtxgen tool
+    - name: Create configtx.yaml
+      include_role:
+        name: "create/configtx"
+      vars:
+        config_file: "./build/configtx.yaml"
+
+    # This role generate genesis block and channeltx
+    - name: Create channel artifacts for all channels
+      include_role:
+        name: "create/channel_artifacts"
+      vars:
+        build_path: "./build"
+        channel_name: "{{ item.channel_name | lower}}"
+        profile_name: "{{ item.channel_name }}"
+        fetch_certs: "false"
+      loop: "{{ network['channels'] }}"
+
+    - name: "Create genesis block"
+      include_role: 
+        name: "create/genesis"
+      vars:
+        build_path: "./build"
+        genesis: "{{ item.genesis }}"
+      loop: "{{ network['channels'] }}"
+    
+    # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
+    - name: Create all orderers
+      include_role:
+        name: "create/orderers"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_protocol: "{{ item.gitops.git_protocol }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'orderer'
+
+    # This role creates the value file for peers of organisations and write couch db credentials
+    # to the vault.
+    - name: Create all peers
+      include_role:
+        name: "create/peers"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_protocol: "{{ item.gitops.git_protocol }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'peer'
+
+    # This role creates the value file for creating channel from creator organization
+    # to the vault.
+    - name: Create all create-channel jobs
+      include_role:
+        name: "create/channels"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+
+    # This role creates the value file for joining channel from each participating peer
+    # to the vault.
+    - name: Create all join-channel jobs
+      include_role:
+        name: "create/channels_join"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+
+    # This role creates the value file for anchor peer update over channel for
+    # each organization which is the part of the channel.
+    - name: Create all anchor-peer jobs
+      include_role:
+        name: "create/anchorpeer"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+
+    # Create CLI pod for peers with cli option enabled
+    - name: Create CLI pod for each peer with it enabled
+      include_role:
+        name: "create/cli_pod"
+      vars:
+        peers: "{{ org.services.peers }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == "peer" and org.org_status == "new"
+
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: 'false'                # Default to false as this is for main network creation

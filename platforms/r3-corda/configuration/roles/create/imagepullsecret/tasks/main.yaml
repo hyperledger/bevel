@@ -1,0 +1,52 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##########################################################################################
+# This role creates the docker pull registry secret within each namespace
+##########################################################################################
+- name: "Check for ImagePullSecret for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    component_name: "{{ component_ns }}"
+    check: "docker_credentials"
+  when: 
+  - network.docker.username is defined
+  
+- name: Setting the docker cred check task output to the local variable
+  set_fact:
+    secret_present: "{{ get_regcred }}"
+  when: 
+  - network.docker.username is defined
+
+- name: Create the docker pull registry secret for {{ component_ns }}
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_ns }} docker-registry regcred --docker-server={{ network.docker.url }} --docker-username={{ network.docker.username }} --docker-password={{ network.docker.password }} --docker-email="test@abc.mail"
+  when: 
+  - network.docker.username is defined
+  - secret_present.resources|length == 0
+  changed_when: false
+
+- name: "Check for git-https-secret for {{ organisation }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    component_name: "{{ component_ns }}"
+    check: "git_credentials"
+  when: gitops.git_protocol == "https"
+  
+- name: Setting the docker cred check task output to the local variable
+  set_fact:
+    secret_present: "{{ get_gitcred }}"
+  when: gitops.git_protocol == "https"
+
+- name: Create the docker pull registry secret for {{ component_ns }}
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_ns }} generic git-https-credentials --from-literal=username={{ gitops.username }} --from-literal=password={{ gitops.password }}
+  when: 
+  - gitops.git_protocol == "https"
+  - secret_present.resources|length == 0
+  changed_when: false

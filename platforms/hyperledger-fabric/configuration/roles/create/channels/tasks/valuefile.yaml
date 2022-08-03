@@ -1,0 +1,69 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+--- 
+############################################################################################
+# This task is the nested task for main.yaml which helps to create the channels_join files
+
+# Check or wait for the Orderer pod
+- name: "Check orderer pod is up"
+  include_tasks: orderercheck.yaml
+  vars:
+    orderer_namespace: "{{ ordererorg.name | lower }}-net"
+    orderer_kubeconfig: "{{ ordererorg.k8s.config_file }}"
+    orderer_context: "{{ ordererorg.k8s.context }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: ordererorg
+  when: ordererorg.type == 'orderer'
+
+# Check or wait for the peer
+- name: "Check peer pod is up"
+  include_tasks: peercheck.yaml
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    peers_data: "{{ peer | json_query('peers[*].name') }}"
+  loop: "{{ network | json_query(org_query) }}"
+  loop_control:
+    loop_var: org
+
+# This task creates the value file for creator Organization
+- name: "Create Create_Channel value file"
+  include_role:
+    name: helm_component
+  loop: "{{ network | json_query(org_query) }}"
+  loop_control:
+    loop_var: org
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    name: "{{ org.name | lower }}"
+    type: "create_channel_job"
+    component_name: "{{item.channel_name|lower}}"
+    component_ns: "{{ peer.name | lower}}-net"
+    peer_name: "{{ peer | json_query('peers[*].name') | first }}"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    channeltx: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{item.channel_name|lower}}.tx.base64') }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  loop: "{{ network | json_query(org_query) }}"
+  loop_control:
+    loop_var: org
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing channel-create files"

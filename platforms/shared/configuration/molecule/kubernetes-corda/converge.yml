@@ -1,0 +1,79 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"           
+    kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
+    kubecontext: "kind"
+    network:
+      type: "corda"
+      docker:
+        url: "index.docker.io/hyperledgerlabs"
+      env:
+        type: test
+        proxy: ambassador
+        ambassadorPorts:
+          portRange:
+            from: 15010 
+            to: 15020          
+        retry_count: 20
+        external_dns: disabled
+  pre_tasks:
+    - name: Create temp chart folder
+      file:
+        path: ../../../platforms/shared
+        state: directory
+    - name: Copy the charts
+      copy:
+        src: ../../../../../platforms/shared/charts
+        dest: ../../../platforms/shared
+        remote_src: yes
+        follow: yes
+    - name: Create secret
+      shell: |
+        ssh-keygen -q -N "" -f test_rsa.pem
+      changed_when: false
+      tags:
+        - molecule-idempotence-notest
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+  roles:
+    - role: setup/ambassador
+      vars:
+        item:
+          cloud_provider: "aws"
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+        aws:
+          access_key: test
+          secret_key: test
+  post_tasks:
+    - name: Delete the temp secret file
+      file:
+        path: test_rsa.pem
+        state: absent
+      tags:
+        - molecule-idempotence-notest
+    - name: Delete the temp secret file
+      file:
+        path: test_rsa.pem.pub
+        state: absent
+      tags:
+        - molecule-idempotence-notest

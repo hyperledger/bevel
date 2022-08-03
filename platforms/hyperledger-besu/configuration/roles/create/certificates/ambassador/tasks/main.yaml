@@ -1,0 +1,15 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This role calls for ambassador certificate creation for each node.
+---
+- name: Create Ambassador certificates
+  include_tasks: nested_main.yaml
+  vars:
+    node_name: "{{ node.name | lower }}"
+  loop: "{{ services.peers is defined | ternary(services.peers, services.validators) }}"
+  loop_control:
+    loop_var: node

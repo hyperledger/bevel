@@ -1,0 +1,171 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# We have enabled additional ports on Ambassador for TCP. By default 8443 is exposed.
+# The extra ports are pass as parameter --set ambassador.otherPorts={10010,10020} is taken from network.env.ambassadorPorts
+- name: Format ambassador ports
+  args:
+    executable: /bin/bash
+  shell: |
+    json='{{ stewards | to_json }}'
+    length=$(echo "${json}" | jq '.[] | length')
+    index=0
+    declare -A ports
+    while [[ ${index} < ${length} ]]
+    do
+      steward=$( echo ${json} | jq ".[${index}]")
+      name=$(echo ${steward} | jq '.name' | tr -d '"')
+      node_port=$(echo ${steward} | jq '.node.ambassador' | tr -d '"')
+      client_port=$(echo ${steward} | jq '.client.ambassador' | tr -d '"')
+      if [[ ${name} != null ]]
+      then
+        if [[ ${ports["{{ kubecontext }}"]} != "" ]]
+        then
+          ports+=( ["{{ kubecontext }}"]+=, )
+        fi
+        ports+=( ["{{ kubecontext }}"]+=${node_port},${client_port} )
+      fi
+      index=$(( ${index} + 1 ))
+    done
+    echo ${ports["{{ kubecontext }}"]}
+  register: terminal
+  when: network['type'] == 'indy' and item.services.stewards is defined
+  tags:
+    - molecule-idempotence-notest
+
+- name: Get Elastic IP
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ aws.access_key }}"
+    AWS_SECRET_ACCESS_KEY: "{{ aws.secret_key }}"
+  shell: |
+    # format ip addresses list to string with space separator
+    ips=$(echo '{{ item.publicIps }}' | tr -d '["]' | sed 's/,/\ /g')
+    data=$(aws ec2 describe-addresses --public-ips ${ips} --region {{ aws.region }} --output json | jq '.Addresses[].AllocationId')
+    # format eip addresses list to string with comma separator (comma has to be escaped)
+    echo ${data} | tr -d '"' | sed 's/\ /\\,/g'
+  register: allocation_ips
+  when: 
+    - (network.type == 'indy' and item.services.stewards is defined )
+    - item.cloud_provider == 'aws' or item.cloud_provider == 'aws-baremetal' #As this shell code is specific to AWS, cloud provider check has been added
+  tags:
+    - notest
+
+- name: Format ambassador range
+  args:
+    executable: /bin/bash
+  shell: |
+    from='{{ network.env.ambassadorPorts.portRange.from | default('') }}'
+    to='{{ network.env.ambassadorPorts.portRange.to | default('') }}'
+    if [ -z "$from" ] || [ -z "$to" ] 
+    then
+      echo ""
+    else
+      echo "--set ambassador.otherPorts.portRange.from=${from} --set ambassador.otherPorts.portRange.to=${to}"
+    fi
+  register: ambassadorRange
+  tags:
+    - molecule-idempotence-notest
+
+- name: Format ambassador ports for Corda/Besu/Quorum
+  args:
+    executable: /bin/bash
+  shell: |
+    ports=$(echo '{{ network.env.ambassadorPorts.ports | default('') }}' | sed -e 's/\[/\{/' -e 's/\]/\}/')
+    if [ -z "$ports" ] 
+    then
+      echo ""
+    else
+      echo "--set ambassador.otherPorts.ports={'${ports}'}"
+    fi
+  register: ambassadorPorts
+  when: network.type != 'indy'
+  tags:
+    - molecule-idempotence-notest
+
+- name: Format ambassador ports for Indy
+  args:
+    executable: /bin/bash
+  shell: |
+    ports=$(echo '{{ network.env.ambassadorPorts.ports | default('') }}' | sed -e 's/\[/\{/' -e 's/\]/\}/')
+    terminalPorts='{{ terminal.stdout | default('') }}'
+    if [ -z "$ports" ] 
+    then
+      echo ""
+    else
+      echo "--set ambassador.otherPorts.ports={'${ports},${terminalPorts}'}"
+    fi
+  register: ambassadorPortsIndy
+  when: network.type == 'indy'
+  tags:
+    - molecule-idempotence-notest
+
+# Remove default selfsigned ambassador tls if already exists
+- name: Remove Ambassador cred if exists
+  k8s:
+    kind: Secret
+    namespace: default
+    state: absent
+    name: "ambassador-default-tls"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+  tags:
+    - molecule-idempotence-notest  
+
+# Create and store selfsigned ambassador default certificate
+- name: Create Ambassador default certificate
+  shell: |
+    mkdir -p ./build/ambassador && cd ./build/ambassador/
+    openssl req -x509 -days 365 -out default_ambassador_tls.pem -keyout default_ambassador_tls.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ item.external_url_suffix }}"
+    KUBECONFIG={{ kubeconfig_path }} kubectl create secret tls ambassador-default-tls --cert="default_ambassador_tls.pem" --key="default_ambassador_tls.key" -n default
+  when: 
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+  tags:
+    - molecule-idempotence-notest  
+
+- name: Install Ambassador with EIP for Indy
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPortsIndy.stdout }} --set ambassador.eip='{{ allocation_ips.stdout }}' --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+  when: 
+    - network.type == 'indy'
+    - allocation_ips.stdout is defined
+  tags:
+    - ambassador
+    - molecule-idempotence-notest
+    
+- name: Install Ambassador for Corda/Quorum/Besu
+  shell: |
+      KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default {{ ambassadorRange.stdout }} {{ ambassadorPorts.stdout }} --set ambassador.loadBalancerSourceRanges={"{{ network.env.loadBalancerSourceRanges | default('0.0.0.0/0') }}"} ambassador {{ playbook_dir }}/../../../platforms/shared/charts/ambassador
+  when: network.type != 'indy'
+  tags:
+    - ambassador
+    - molecule-idempotence-notest
+  
+- name: Enable external DNS
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl annotate service ambassador --overwrite "external-dns.alpha.kubernetes.io/hostname=*.{{ item.external_url_suffix }}."
+  when: 
+    - (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+  tags:
+    - ambassador
+    - molecule-idempotence-notest
+
+# Wait for Ambassador pods to start running
+- name: wait for pods to come up
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    namespace: default
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+    component_name: ambassador
+    component_type: "Pod"
+    label_selectors: 
+      - app.kubernetes.io/name=ambassador
+  when: (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'

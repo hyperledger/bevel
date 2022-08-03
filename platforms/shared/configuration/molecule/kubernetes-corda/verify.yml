@@ -1,0 +1,33 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Verify
+  hosts: localhost
+  connection: local
+  vars:
+    bin_install_dir: "~/bin"
+    kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
+    kubecontext: "kind"
+    network:
+      env:
+        type: test
+  tasks:
+  # Assert Ambassador is installed on Kubernetes
+  - name: Check Ambassador on Kubernetes clusters
+    k8s_info:
+      kind: Pod
+      namespace: default
+      kubeconfig: "{{ kubeconfig_path }}"
+      context: "{{ kubecontext }}"
+      label_selectors:
+        - app.kubernetes.io/name=ambassador
+      field_selectors:
+        - status.phase=Running
+    register: ambassador_status
+  - name: Assert Ambassador has been installed and 3 pods running
+    assert:
+      that: ambassador_status.resources|length == 3

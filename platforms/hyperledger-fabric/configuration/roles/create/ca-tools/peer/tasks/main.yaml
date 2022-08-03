@@ -1,0 +1,332 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value file for the deployment of CA Tools CLI
+#############################################################################################
+
+# Check if CA server is available
+- name: "waiting for the CA server to be created in {{ item.name | lower }}-net"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ item.name | lower }}-net"
+    component_name: "{{ component_services.ca.name }}"
+    label_selectors:
+      - name = {{ component_name }}
+  when: add_peer is not defined or add_peer != 'true'
+
+# Check orderer-certificate file exists
+- name: Check that orderer-certificate file exists
+  stat:
+    path: "{{ orderer.certificate }}"
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  register: orderer_file_result
+  failed_when: add_new_org == 'true' and not orderer_file_result.stat.exists # Fail the task if new_org is added and orderer-cert does not exist
+  tags:
+    - notest
+
+# Check if Orderer certs exists in vault. If yes, get the certificate
+- name: Check if Orderer certs exist in Vault
+  shell: |
+    vault kv get -field=ca.crt {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  register: orderer_certs_result
+  ignore_errors: yes
+  changed_when: false
+  tags:
+    - notest
+
+- name: Save Orderer certs if not in Vault
+  local_action: copy content="{{ orderer_certs_result.results[0].stdout }}" dest="{{ orderer.certificate }}"
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: orderer_certs_result.results[0].failed == False
+  tags:
+    - notest
+
+############################################################################################
+# Create the certs directory if it does not exist
+- name: Create the certs directory if it does not exist
+  file:
+    path: "{{ playbook_dir }}/../charts/catools/certs"
+    state: directory
+
+############################################################################################
+# This task copies orderers certs from the path provided in network.yaml to ca-tools chart directory
+- name: Copy the tls orderers certs to the chart catools directory
+  shell: |
+    cp {{ orderer.certificate }} {{ playbook_dir }}/../charts/catools/certs/{{ orderer.name }}-ca.crt
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+
+- set_fact:
+   new_peer_list: []
+
+# This task loops over the peers and finds the number of new peers
+- name: Count new peers
+  set_fact:
+    new_peer_list={{ new_peer_list + [ {'peer_name':peer.name } ] }}
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.peerstatus is defined and peer.peerstatus == 'new'
+    - add_peer is defined and add_peer == 'true'
+
+# This task initializes the list new_peer_listrs
+- name: Count new peers
+  set_fact:
+    new_peer_list={{ item.services.peers }}
+  when: 
+    - add_peer is not defined or add_peer == 'false'
+
+# This task delete the previously created ca-tools release file
+- name: Delete release file CA-Tools
+  file:
+    path: "{{ values_dir }}/{{ name }}/{{ component_name }}.yaml"
+    state: absent
+  vars:
+    name: "ca-tools"
+  when: add_peer is defined and add_peer == 'true'
+
+#Git Push : Deleting the previously created CA-Tools value file
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Deleting the previously created CA-Tools value file"
+  when: add_peer is defined and add_peer == 'true'
+
+# This task delete the previously created ca-tools HelmRelease
+- name: Delete the previous CA-Tools HelmRelease
+  k8s:
+    kind: HelmRelease
+    name: "{{ component_name }}-ca-tools"
+    namespace: "{{ component_name }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: add_peer is defined and add_peer == 'true'
+
+############################################################################################
+# This task creates the CA-tools value files
+- name: "Create CA-tools Values for peer"
+  include_role:
+    name: helm_component
+  vars:
+    name: "ca-tools"
+    type: "ca-tools"
+    org_name: "{{ item.name | lower }}"
+    component_type: "{{ item.type | lower }}"
+    vault: "{{ item.vault }}"
+    external_url_suffix: "{{ item.external_url_suffix }}"
+    component_subject: "{{ item.subject }}"
+    cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+    component_country: "{{ item.country }}"
+    component_state: "{{ item.state }}"
+    component_location: "{{ item.location }}"
+    ca_url: "{{ item.ca_data.url }}"
+    refresh_cert_value: "{{ refresh_cert | default(false) | quote }}"
+    proxy: "{{ network.env.proxy }}"
+    alpine_image: "{{ network.docker.url }}/alpine-utils:1.0"
+    git_protocol: "{{ item.gitops.git_protocol }}"
+    git_url: "{{ gitops.git_url }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+    peers_list: "{{ item.services.peers }}"
+    orderers_list: "{{ network.orderers }}"
+    peer_count: "{{ item.services.peers | length }}"
+    add_peer_value: "{{ add_peer | default(false) | quote }}"
+    new_peer_count: "{{ new_peer_list | length }}"
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing CA-tools files"
+
+#####################################################################################################################
+# This task wait for key certs exists in vault.
+- name: Wait for CA key exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "{{ component_name }}-CA.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca"
+    check: "crypto_materials"
+
+# This task wait for admin tls exists in vault.
+- name: Wait for admin tls exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "client.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/tls"
+    check: "crypto_materials"
+
+# This task wait for orderers tls exists in vault.
+- name: Wait for peers tls exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "server.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/tls"
+    check: "crypto_materials"
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer
+
+# This task wait for ambassador key exists in vault.
+- name: Wait for ambassador key exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador"
+    check: "crypto_materials"
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: network.env.proxy == 'ambassador'
+
+#####################################################################################################################
+# This task creates the Ambassador TLS credentials for peers
+- name: "Create the Ambassador credentials for peers"
+  include_role:
+    name: create/k8s_secrets
+  vars: 
+    namespace: "{{ item.name | lower }}-net"
+    vault: "{{ item.vault }}"
+    kubernetes: "{{ item.k8s }}"
+    check: "ambassador_peer"
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.peerstatus is not defined or peer.peerstatus == 'new'
+    - network.env.proxy == 'ambassador'
+
+- name: "Copy msp cacerts to given path"
+  include_tasks: nested_endorsers.yaml
+  vars:
+    org_name: "{{ item.name |lower }}"
+    approvers: "{{ channel.endorsers }}"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+
+############################################################################################
+# This task copies the msp admincerts from vault
+- name: Fetch the msp admincerts from vault
+  shell: |
+    vault kv get -field=admincerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > Admin@{{ component_name }}-cert.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/admincerts/
+    mv Admin@{{ component_name }}-cert.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/admincerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  
+############################################################################################
+# This task copies the msp cacerts from vault
+- name: Fetch the msp cacerts from vault
+  shell: |
+    vault kv get -field=cacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/cacerts/
+    mv ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy != 'none'  
+
+############################################################################################
+# This task copies the msp tlscacerts from vault
+- name: Fetch the msp tlscacerts from vault
+  shell: |
+    vault kv get -field=tlscacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/tlscacerts/
+    mv ca-{{ component_name }}-{{ item.external_url_suffix }}-8443.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy != 'none'
+
+############################################################################################
+# This task copies the msp cacerts from vault when proxy is none
+- name: Fetch the msp cacerts from vault
+  shell: |
+    vault kv get -field=cacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/cacerts/
+    mv ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy == 'none'  
+
+############################################################################################
+# This task copies the msp tlscacerts from vault when proxy is none
+- name: Fetch the msp tlscacerts from vault
+  shell: |
+    vault kv get -field=tlscacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/tlscacerts/
+    mv ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy == 'none'
+
+############################################################################################
+# This task gets msp config.yaml file from vault
+- name: Fetch msp config.yaml file from vault
+  shell: |
+    vault kv get -field=configfile {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/msp/config > config.yaml
+    mv config.yaml ./build/crypto-config/peerOrganizations/{{ component_name }}/msp/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+
+############################################################################################
+# Create user crypto
+- name: "Create user crypto"
+  include_role:
+    name: "create/users"
+  vars:
+    org_name: "{{ item.name }}"
+    subject: "{{ item.subject }}"
+    ca_url: "{{ item.ca_data.url }}"
+    users: "{{ item.users }}"
+    proxy: "{{network.env.proxy}}"
+  when: item.users is defined
+
+# This task wait for users tls exists in vault.
+- name: Wait for users tls exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "client.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls"
+    check: "crypto_materials"
+  loop: "{{ item.users }}"
+  loop_control:
+    loop_var: user
+  when: item.users is defined

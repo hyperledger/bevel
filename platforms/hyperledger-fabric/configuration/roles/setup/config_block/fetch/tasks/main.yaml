@@ -1,0 +1,40 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+###########################################################################################
+# This task calls nested_fetch_role to generate the cli value files for first peer of organization
+# Create cli to get config block and add new organization configuration to it
+############################################################################################
+
+# This task calls nested_create_cli to generate the cli value files for the creator organization
+- name: Call nested_create_cli for the peer
+  include_tasks: nested_create_cli.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    peer: "{{ participant.peers | first }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.type == 'creator'
+
+# Start the cli, configure and download the configuration block
+- name: Call nested_fetch_role for the peer
+  include_tasks: nested_fetch_role.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participantx.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    peer: "{{ participantx.peers | first }}"    
+    component_type: "{{ participantx.type }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participantx
+  when: participantx.type == 'creator'

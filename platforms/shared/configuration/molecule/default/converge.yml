@@ -1,0 +1,49 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    privilege_escalate: true            #escalate root priviledge for default test
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"           
+    kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
+    kubecontext: "kind"
+    network:
+      env:
+        retry_count: 20                 # Retry count for the checks
+  roles:
+    - role: setup/kubectl
+      vars:
+        kubectl:
+          os: "{{ install_os }}"
+          arch: "{{ install_arch }}"
+          bin_directory: "{{ bin_install_dir }}"
+    - role: setup/helm
+      vars:
+        helm:
+          os: "{{ install_os }}"
+          arch: "{{ install_arch }}"
+          bin_directory: "{{ bin_install_dir }}"
+    - role: setup/vault
+      vars:
+        vault:
+          os: "{{ install_os }}"
+          arch: "{{ install_arch }}"
+          bin_directory: "{{ bin_install_dir }}"
+    - role: setup/aws-auth
+      vars:
+        aws_authenticator:
+          os: "{{ install_os }}"
+          arch: "{{ install_arch }}"
+          bin_directory: "{{ bin_install_dir }}"
+        item:
+          aws:
+            access_key: test
+            secret_key: test

@@ -1,0 +1,52 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Values.orderer.name }}-config
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $.Values.orderer.name }}-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  FABRIC_LOGGING_SPEC: {{ $.Values.orderer.loglevel }}
+  ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
+  ORDERER_GENERAL_GENESISMETHOD: file
+  ORDERER_GENERAL_GENESISFILE: /var/hyperledger/orderer/orderer.genesis.block
+  ORDERER_GENERAL_LOCALMSPID: {{ $.Values.orderer.localmspid }}
+  ORDERER_GENERAL_KEEPALIVE_SERVERINTERVAL: {{ $.Values.orderer.keepaliveserverinterval }}
+  ORDERER_GENERAL_LOCALMSPDIR: /var/hyperledger/orderer/crypto/msp
+  ORDERER_GENERAL_TLS_ENABLED: "{{ $.Values.orderer.tlsstatus }}"
+  ORDERER_GENERAL_TLS_PRIVATEKEY: /var/hyperledger/orderer/crypto/tls/server.key
+  ORDERER_GENERAL_TLS_CERTIFICATE: /var/hyperledger/orderer/crypto/tls/server.crt
+  ORDERER_GENERAL_TLS_ROOTCAS: '[/var/hyperledger/orderer/crypto/tls/ca.crt]'
+  ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE: /var/hyperledger/orderer/crypto/tls/server.crt
+  ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY: /var/hyperledger/orderer/crypto/tls/server.key
+  ORDERER_GENERAL_CLUSTER_ROOTCAS: '[/var/hyperledger/orderer/crypto/tls/ca.crt]'
+  ORDERER_KAFKA_RETRY_SHORTINTERVAL: "1s"
+  ORDERER_KAFKA_RETRY_SHORTTOTAL: "30s"
+  ORDERER_KAFKA_VERBOSE: "true"
+  GODEBUG: "netdns=go"
+  ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:9443
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: genesis-block-{{ $.Values.orderer.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: genesis-block
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  genesis.block.base64: {{ .Values.genesis | quote }}

@@ -1,0 +1,57 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This role generates certificates for rootca and ambassador
+# and places them in vault. Certificates are created using openssl
+
+---
+# Ensures the ambassador tls directory
+- name: "Ensure ambassadortls dir exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ ambassadortls }}"
+    check: "ensure_dir"
+
+# Create ambassador certs helmrelease file
+- name: "Create ambassador certs helmrelease file"
+  include_role:
+    name: create/helm_component
+  vars:     
+    type: "ambassador_besu" 
+    component_name: "{{ node_name }}-ambassador-job"   
+    name: "{{ node_name }}"
+    external_url_suffix: "{{ organizationItem.external_url_suffix }}"
+    tm_clientport: "{{ node.tm_clientport.port | default('8888') }}"
+    tls_enabled: "{{ network.config.tm_tls }}"
+        
+# push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/hyperledger-besu/configuration"
+    msg: "[ci skip] Pushing ambassador job files for {{ component_ns }}"
+
+# Check if ambassador certs job is completed
+- name: Check if ambassador certs job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ node_name }}-ambassador-job"
+    component_type: Job
+    namespace: "{{ component_ns }}"
+
+# This task creates the Ambassador TLS credentials
+- name: "Create the Ambassador credentials"
+  include_role:
+    name: create/k8s_secrets
+  vars: 
+    namespace: "{{ component_ns }}"
+    vault: "{{ organizationItem.vault }}"
+    kubernetes: "{{ organizationItem.k8s }}"
+    check: "ambassador_creds"

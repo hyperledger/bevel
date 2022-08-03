@@ -1,0 +1,69 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Verify
+  hosts: localhost
+  tasks:
+
+  - name: Ensure the build directory has been created
+    stat:
+      path: "./build"
+    register: build_dir_check
+
+  - name: Assert that the build directory has been created  
+    assert: 
+      that: build_dir_check.stat.exists
+
+  - name: Check if the nodekey file has been created
+    stat:
+      path: "./build/store/store/nodekey"
+    register: nodekey_check
+
+  - name: Assert that the nodekey file has been created
+    assert:
+      that: nodekey_check.stat.exists
+
+  - name: Check if the enode file has been created
+    stat:
+      path: "./build/store/store/enode"
+    register: enode_check
+
+  - name: Assert that the enode file has been created
+    assert:
+      that: enode_check.stat.exists
+
+  - name: Check if the keystore.json file has been created
+    stat:
+      path: "./build/store/store/keystore.json"
+    register: keystore_check
+
+  - name: Assert that the keystore.json file has been created
+    assert:
+      that: keystore_check.stat.exists
+
+  - name: Check if the password file has been created
+    stat:
+      path: "./build/store/store/password"
+    register: password_check
+
+  - name: Assert that the password file has been created
+    assert:
+      that: password_check.stat.exists
+      
+  - name: Check if the crypto material exists in the vault 
+    shell: |
+      vault kv get secretsv2/store-quo/crypto/store/quorum
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_store
+    delegate_to: localhost
+    ignore_errors: yes
+
+  - name: Assert that the crypto material exists in the vault 
+    assert:
+      that: vault_store.stdout

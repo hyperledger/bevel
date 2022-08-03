@@ -1,0 +1,66 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+name: Test Smartcontracts
+on: 
+  pull_request:
+
+jobs:
+  validate_fabric:
+    if: contains(github.event.pull_request.title, 'Fabric') || contains(github.event.pull_request.title, 'fabric')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |        
+        wget -c https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz -O - | sudo tar -xz -C /usr/local
+        export GOROOT=/usr/local/go
+        export GOPATH=/opt/gopath
+        mkdir -p $GOPATH/bin
+        export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+     
+    - name: Test Stage all chaincodes.
+      run: |
+        # export the bin path
+        export PATH=~/bin:$PATH
+        export GOROOT=/usr/local/go
+        export GOPATH=/opt/gopath
+        export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+        mkdir -p $GOPATH/src/github.com
+        ln -s $(pwd)/examples/supplychain-app/fabric/chaincode_rest_server/chaincode $GOPATH/src/github.com
+        cd $GOPATH/src/github.com/chaincode/supplychain
+        dep ensure
+        go test -v
+
+##########################################################################  
+  validate_quorum:
+    if: contains(github.event.pull_request.title, 'Quorum') || contains(github.event.pull_request.title, 'quorum')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install npm
+
+        npm version
+
+        npm install -g ganache-cli
+        npm install -g truffle
+        npm install -g truffle-export-abi
+    - name: Start local node
+      run: |
+        nohup ganache-cli --allowUnlimitedContractSize --gasLimit=68219752232 &
+        sleep 10
+    - name: Test quorum smartcontracts
+      run: |
+        pwd
+        cd examples/supplychain-app/quorum/smartContracts
+        truffle test --config ./truffle-config.js

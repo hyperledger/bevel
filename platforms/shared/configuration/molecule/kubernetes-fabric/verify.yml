@@ -1,0 +1,32 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Verify
+  hosts: localhost
+  connection: local
+  vars:
+    bin_install_dir: "~/bin"
+    kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
+    kubecontext: "kind"
+    network:
+      env:
+        type: test
+  tasks:
+  - name: Check Haproxy on Kubernetes clusters
+    k8s_info:
+      kind: Pod
+      namespace: "ingress-controller"
+      kubeconfig: "{{ kubeconfig_path }}"
+      context: "{{ kubecontext }}"
+      label_selectors:
+        - run = haproxy-ingress
+      field_selectors:
+        - status.phase=Running
+    register: haproxy_status
+  - name: Assert HAproxy has been installed
+    assert:
+      that: haproxy_status.resources|length == 1

@@ -1,0 +1,79 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# This tasks ensures the directory existance and registers the result essential for idempotence test
+- name: "check if dir exists or not"
+  stat:
+    path: "{{ path }}"
+  register: dir_check
+  when: check == "ensure_dir"
+
+# Check if directory is created
+# This task creates the directory
+- name: Ensures dir exists
+  file:
+    path: "{{ path }}"
+    recurse: yes
+    mode: '0755'
+    state: directory
+  when: check == "ensure_dir" and (not dir_check.stat.exists)
+  
+# This task checks if the vault path already exists
+- name: Check if Kubernetes-auth already created for Organization
+  shell: |
+    vault auth list --format json | jq "to_entries[] | select(.value.restricted|not) | .key"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: auth_lists
+  when: check == "vault_auth"
+
+# This task checks if the vault-ro policy already exists
+- name: Check if policy exists
+  shell: |
+    vault policy read vault-crypto-{{ component_type }}-{{ component_name }}-ro
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_policy_result
+  ignore_errors: yes
+  when: check == "vault_policies"
+
+# Check if Docker credentials exist already
+- name: Check docker cred exists
+  k8s_info:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: "regcred"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_regcred
+  when: check == "docker_credentials"
+
+# Check if Git credentials exist already
+- name: Check git https cred exists
+  k8s_info:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: "git-https-credentials"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_gitcred
+  when: check == "git_credentials"
+
+# This task check if certs exists in vault.
+- name: check if certs exists in vault.
+  shell: |
+    vault kv get -field={{ vault_field }} {{ vault_path }}
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_result
+  retries: "{{ network.env.retry_count}}"
+  delay: 30
+  until: vault_result.failed == False
+  when: check == "crypto_materials"

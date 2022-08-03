@@ -1,0 +1,122 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value files for service account for vault
+#############################################################################################
+
+# Create service account per identity of trustees
+- name: Create service account for trustees [{{ organization }}]
+  include_role:
+    name: create/serviceaccount/by_identities
+  vars:
+    component_namespace: "{{ component_ns }}"
+    component_name: "{{ organization }}-{{ trusteeItem.name }}-vault-auth"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trusteeItem
+  when: services.trustees is defined
+
+# Create service account per identity of stewards
+- name: Create service account for stewards [{{ organization }}]
+  include_role:
+    name: create/serviceaccount/by_identities
+  vars:
+    component_namespace: "{{ component_ns }}"
+    component_name: "{{ organization }}-{{ stewardItem.name }}-vault-auth"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined
+
+# Create service account per identity of endorsers
+- name: Create service account for endorsers [{{ organization }}]
+  include_role:
+    name: create/serviceaccount/by_identities
+  vars:
+    component_namespace: "{{ component_ns }}"
+    component_name: "{{ organization }}-{{ endorserItem.name }}-vault-auth"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorserItem
+  when: services.endorsers is defined
+
+# Create service account per organizations
+- name: Create service account for organization [{{ organization }}]
+  include_role:
+    name: create/serviceaccount/by_identities
+  vars:
+    component_namespace: "{{ component_ns }}"
+    component_name: "{{ organization }}-admin-vault-auth"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+
+# Create service account for read only public crypto per organizations
+- name: Create service account for read only public crypto [{{ organization }}]
+  include_role:
+    name: create/serviceaccount/by_identities
+  vars:
+    component_namespace: "{{ component_ns }}"
+    component_name: "{{ organization }}-bevel-ac-vault-auth"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+
+# Push the deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"    
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "[ci skip] Pushing deployment file for service account"
+
+# Waiting for trustees accounts and cluster binding roles
+- name: "Waiting for trustees accounts and cluster binding roles"
+  include_role:
+    name: create/serviceaccount/waiting
+  vars:
+    name: "{{ organization }}-{{ trusteeItem.name }}"
+  loop: "{{ services.trustees }}"
+  loop_control:
+    loop_var: trusteeItem
+  when: services.trustees is defined
+
+# Waiting for stewards accounts and cluster binding roles
+- name: "Waiting for stewards accounts and cluster binding roles"
+  include_role:
+    name: create/serviceaccount/waiting
+  vars:
+    name: "{{ organization }}-{{ stewardItem.name }}"
+  loop: "{{ services.stewards }}"
+  loop_control:
+    loop_var: stewardItem
+  when: services.stewards is defined
+
+# Waiting for endorsers accounts and cluster binding roles
+- name: "Waiting for endorsers accounts and cluster binding roles"
+  include_role:
+    name: create/serviceaccount/waiting
+  vars:
+    name: "{{ organization }}-{{ endorserItem.name }}"
+  loop: "{{ services.endorsers }}"
+  loop_control:
+    loop_var: endorserItem
+  when: services.endorsers is defined
+
+# Waiting for organization account and cluster binding role
+- name: "Waiting for organization accounts and cluster binding roles"
+  include_role:
+    name: create/serviceaccount/waiting
+  vars:
+    name: "{{ organization }}-admin"
+
+# Waiting for organization read only account and cluster binding role
+- name: "Waiting for organization read only account and cluster binding role"
+  include_role:
+    name: create/serviceaccount/waiting
+  vars:
+    name: "{{ organization }}-bevel-ac"

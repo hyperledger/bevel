@@ -1,0 +1,31 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates the value file for fabric operations console
+#############################################################################################
+
+############################################################################################
+# This task is the nested task for main.yaml which helps to iterate over all peers
+- name: Create Value files for Operations Console
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ item.name | lower }}"
+    type: "operations_console"
+    component_name: operations_console
+  
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing operations console deployment file"
+  tags:
+    - notest

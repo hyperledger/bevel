@@ -1,0 +1,37 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# This task checks the join channel job
+
+# Check or wait for the join channel job to complete
+- name: "waiting for {{ peer.name }} to join {{ channel_name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ participant.name | lower }}-net"
+    component_name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
+    kubernetes: "{{ org.k8s }}"
+  loop: "{{ participant.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.peerstatus is not defined or peer.peerstatus == 'new'
+
+# Restart peer pod when new peer is being added
+- name: Restart new peer pods
+  include_role:
+    name: "delete/peer_pod"
+  vars:
+    namespace: "{{ participant.name | lower }}-net"
+    pod_name: "{{ peer.name }}-0"
+    kubernetes: "{{ org.k8s }}"
+  loop: "{{ participant.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - add_peer is defined and add_peer == "true"
+    - peer.peerstatus == 'new'

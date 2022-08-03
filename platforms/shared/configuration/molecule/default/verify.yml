@@ -1,0 +1,49 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Verify
+  hosts: localhost
+  connection: local
+  vars:
+    bin_install_dir: "~/bin"
+    kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
+    kubecontext: "kind"
+  tasks:
+  - name: check kubectl cli
+    stat:
+      path: "{{ bin_install_dir }}/kubectl"
+    register: kubectl_stat_result
+  - name: Assert kubectl cli has been installed
+    assert:
+      that: kubectl_stat_result.stat.exists
+  - name: check helm cli
+    stat:
+      path: "{{ bin_install_dir }}/helm"
+    register: helm_stat_result
+  - name: Assert helm cli has been installed
+    assert:
+      that: helm_stat_result.stat.exists
+  - name: check vault cli
+    stat:
+      path: "{{ bin_install_dir }}/vault"
+    register: vault_stat_result
+  - name: Assert vault cli has been installed
+    assert:
+      that: vault_stat_result.stat.exists
+  - name: check aws cli
+    command: aws --version
+    register: aws_cli_stat_result
+  - name: Assert AWS cli has been installed
+    assert:
+      that: not aws_cli_stat_result.failed
+  - name: check aws-authenticator
+    stat:
+      path: "{{ bin_install_dir }}/aws-iam-authenticator"
+    register: aws_auth_stat_result
+  - name: Assert AWS authenticator has been installed
+    assert:
+      that:  aws_auth_stat_result.stat.exists

@@ -1,0 +1,160 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $.Values.zookeeper.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  {{- if $.Values.deployment.annotations }}
+    annotations:
+{{ toYaml $.Values.deployment.annotations | nindent 8 }}
+    {{- end }}
+  labels:
+    app.kubernetes.io/name: {{ $.Values.zookeeper.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  serviceName: "{{ $.Values.zookeeper.peerservicename }}"
+  replicas: {{ $.Values.zookeeper.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $.Values.zookeeper.name }}
+      app.kubernetes.io/name: {{ $.Values.zookeeper.name }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $.Values.zookeeper.name }}
+        app.kubernetes.io/name: {{ $.Values.zookeeper.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: {{ $.Values.zookeeper.name }}
+        image: {{ $.Values.metadata.images.zookeeper }}
+        # Modify the defautl Entrypoint built in docker image
+        command: ["/bin/sh"]
+        args: ["-c", "export ZOO_MY_ID=${HOSTNAME##*-}; /docker-entrypoint.sh zkServer.sh start-foreground"]
+        env:
+        - name: ZOO_SERVERS
+          value: {{range $i, $e := until (atoi (printf "%d" (int64 $.Values.zookeeper.replicas))) }} server.{{$i}}={{ $.Values.zookeeper.name }}-{{$i}}.{{ $.Values.zookeeper.peerservicename }}.{{ $.Values.metadata.namespace }}.svc.cluster.local:2888:3888 {{end}}
+        ports:
+        - containerPort: 2181
+          name: client
+        - containerPort: 2888
+          name: peer
+        - containerPort: 3888
+          name: leader-election
+       
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $.Values.kafka.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $.Values.kafka.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  serviceName: "{{ $.Values.kafka.brokerservicename }}"
+  replicas: {{ $.Values.kafka.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $.Values.kafka.name }}
+      app.kubernetes.io/name: {{ $.Values.kafka.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $.Values.kafka.name }}
+        app.kubernetes.io/name: {{ $.Values.kafka.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:
+      terminationGracePeriodSeconds: 10
+      initContainers:
+      - name: zk-healthcheck
+        image: {{ $.Values.metadata.images.healthcheck }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ZOOKEEPER_CLIENT_SERVICE
+          value: {{ $.Values.zookeeper.peerservicename }}
+        - name: NAMESPACE
+          value: {{ $.Values.metadata.namespace }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          ZK_STATUS=imnotok
+          COUNTER=1
+          while [ "$ZK_STATUS" != "imok" ]
+          do 
+             if [ "$COUNTER" -le {{ $.Values.zookeeper.readinessthreshold }} ]
+             then
+                ZK_STATUS=$(echo ruok | nc ${ZOOKEEPER_CLIENT_SERVICE}.${NAMESPACE} 2181)
+                echo "$ZK_STATUS"
+                if [ "$ZK_STATUS" != "imok" ]
+                then
+                    echo "Retry attempted $COUNTER times, retrying after {{ $.Values.zookeeper.readinesscheckinterval }} seconds"
+                    COUNTER=`expr "$COUNTER" + 1`
+                    sleep {{ $.Values.zookeeper.readinesscheckinterval }}
+                fi
+             else
+                echo "Retry attempted $COUNTER times, no zookeeper service is up and running. Giving up!"
+                exit 1
+                break   
+             fi                    
+          done
+
+      containers:
+      - name: {{ $.Values.kafka.name }}
+        image: {{ $.Values.metadata.images.kafka }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9092
+        env:
+        - name: KAFKA_MESSAGE_MAX_BYTES
+          value: "103809024 # 99 * 1024 * 1024 B"
+        - name: KAFKA_REPLICA_FETCH_MAX_BYTES
+          value: "103809024 # 99 * 1024 * 1024 B"
+        - name: KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE
+          value: "false"
+        - name: KAFKA_DEFAULT_REPLICATION_FACTOR
+          value: "3"
+        - name: KAFKA_MIN_INSYNC_REPLICAS
+          value: "2"
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: {{- $servercount := .Values.zookeeper.replicas | int }}{{ range $index0 := until $servercount }}{{ $index1 := $index0 | add1 }} {{ $.Values.zookeeper.name }}-{{ $index0 }}.{{ $.Values.zookeeper.peerservicename }}.{{ $.Values.metadata.namespace }}.svc.cluster.local:2181{{ if ne $index1 $servercount }},{{ end }}{{ end }}
+        - name: KAFKA_PORT
+          value: "9092"
+        - name: GODEBUG
+          value: netdns=go
+        - name: KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS
+          value: "30000"
+        - name: KAFKA_LOG_DIRS
+          value: /var/lib/kafka/data/logs
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/lib/kafka
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ $.Values.storage.storagesize }}
+
+

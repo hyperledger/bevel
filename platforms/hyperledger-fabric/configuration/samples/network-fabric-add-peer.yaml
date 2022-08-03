@@ -1,0 +1,302 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
+# This is a sample configuration file to add new Peers to existing Organizations and channels.
+network:
+  # Network level configuration specifies the attributes required for each organization
+  # to join an existing network.
+  type: fabric
+  version: 2.2.2                # currently tested 1.4.8 and 2.2.2
+  frontend: enabled #Flag for frontend to enabled for nodes/peers
+
+  #Environment section for Kubernetes setup
+  env:
+    type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
+    proxy: haproxy                  # values can be 'haproxy' or 'ambassador'
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010 
+        to: 15020
+    # ports: 15020,15021      # For specific ports
+    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
+    retry_count: 20                 # Retry count for the checks
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+    annotations:              # Additional annotations that can be used for some pods (ca, ca-tools, orderer and peer nodes)
+      service: 
+       - example1: example2
+      deployment: {} 
+      pvc: {}
+      
+  # Docker registry details where images are stored. This will be used to create k8s secrets
+  # Please ensure all required images are built and stored in this registry.
+  # Do not check-in docker_password.
+  docker:
+    url: "index.docker.io/hyperledgerlabs"
+    username: "docker_username"
+    password: "docker_password"
+  
+  # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
+  orderers:
+    - orderer:
+      type: orderer
+      name: orderer1
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: /home/bevel/build/orderer1.crt           # Ensure that the directory exists
+    - orderer:
+      type: orderer
+      name: orderer2
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
+    - orderer:
+      type: orderer
+      name: orderer3
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer3.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
+  
+  # The channels defined for a network with participating peers in each channel
+  channels:
+  - channel:
+    consortium: SupplyChainConsortium
+    channel_name: AllChannel
+    orderer: 
+      name: supplychain
+    participants:
+    - organization:
+      name: carrier
+      type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
+      org_status: existing  # org_status must be existing when adding peer
+      peers:
+      - peer:
+        name: peer0
+        peerstatus: existing    # old peers should have status as existing
+        gossipAddress: peer1.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
+        peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+      - peer:
+        name: peer1
+        peerstatus: new         # new peers should have status as new
+        gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
+        peerAddress: peer1.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer    
+    genesis:
+      name: OrdererGenesis  
+
+  # Allows specification of one or many organizations that will be connecting to a network.
+  # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
+  # then these services should be listed in this section as well.
+  organizations:      
+    # Specification for the Existing Peer organization.
+    - organization:
+      name: carrier
+      country: GB
+      state: London
+      location: London
+      subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
+      type: peer
+      external_url_suffix: org3ambassador.blockchaincloudpoc.com
+      org_status: existing  # org_status must be existing when adding peer
+      ca_data:
+        url: ca.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # CA Server URL must be public when adding peer on new cluster
+        certificate: /path/to/caserver.crt                                    # CA Server public cert must be provided when adding peer on new cluster
+      
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+  
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      # This will be different from original org when adding peer on new cluster 
+      k8s:
+        region: "cluster_region"
+        context: "cluster_context"
+        config_file: "cluster_config"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Both Kubernetes cluster and ansible controller should have access to same Vault when adding peer on new cluster 
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        secret_path: "secretsv2"
+
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        branch: "develop"           # Git branch where release is being made
+        # When adding peer on new cluster, if using same git branch, ensure release_dir is different
+        release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-fabric/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push  (without https://)
+        username: "git_username"          # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      services:
+        ca:
+          name: ca
+          subject: "/C=GB/ST=London/L=London/O=Carrier/CN=ca.carrier-net.org3ambassador.blockchaincloudpoc.com"
+          type: ca
+          grpc:
+            port: 7054      
+        # When adding peer on new cluster, ca as a service is removed
+        # Ensure existing peers are listed with peerstatus = existing
+        peers:
+        - peer:
+          name: peer0          
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
+          gossippeeraddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # No change from original configuration
+          peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          peerstatus: existing    # old peers should have status as existing
+          cli: disabled           # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
+          grpc:
+            port: 7051         
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001 
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          chaincode:
+            name: "chaincode_name"   #This has to be replaced with the name of the chaincode
+            version: "1"   #This has to be replaced with the version of the chaincode
+            maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
+            repository:
+              username: "git_username"          # Git Service user who has rights to check-in in all branches
+              password: "git_access_token"
+              url: "github.com/<username>/bevel.git"
+              branch: develop 
+              path: "chaincode_src"    #The path to the chaincode 
+            arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
+            endorsements: ""          #Endorsements (if any) provided along with the chaincode
+        - peer:
+          name: peer1         
+          type: nonanchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
+          gossippeeraddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External address of the existing anchor peer
+          peerAddress: peer1.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          peerstatus: new     # new peers should have status as new
+          cli: disabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
+          grpc:
+            port: 7051         
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001 
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          chaincode:
+            name: "chaincode_name"   #This has to be replaced with the name of the chaincode
+            version: "1"   #This has to be replaced with the version of the chaincode            
+            maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
+            repository:
+              username: "git_username"          # Git Service user who has rights to check-in in all branches
+              password: "git_access_token"
+              url: "github.com/<username>/bevel.git"
+              branch: develop 
+              path: "chaincode_src"    #The path to the chaincode 
+            arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
+            endorsements: ""          #Endorsements (if any) provided along with the chaincode
+    
+    # Specification for the Existing Orderer organization. Not needed when just adding new peer.
+    - organization:
+      name: supplychain
+      country: UK
+      state: London
+      location: London
+      subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
+      type: orderer
+      external_url_suffix: org1ambassador.blockchaincloudpoc.com
+      org_status: existing  # org_status must be existing when adding peer
+      ca_data:
+        url: ca.supplychain-net.org1ambassador.blockchaincloudpoc.com:8443
+        certificate: file/server.crt        # This has not been implemented in 0.2.0.0
+  
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+  
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "cluster_region"
+        context: "cluster_context"
+        config_file: "cluster_config"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        secret_path: "secretsv2"
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        branch: "develop"           # Git branch where release is being made
+        release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-fabric/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push  (without https://)
+        username: "git_username"          # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+     
+      # Services maps to the pods that will be deployed on the k8s cluster
+      # This sample is an orderer service and includes a zk-kafka consensus
+      services:
+        ca:
+          name: ca
+          subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net.org1ambassador.blockchaincloudpoc.com"
+          type: ca
+          grpc:
+            port: 7054
+        
+        consensus:
+          name: raft
+          type: broker        #This field is not consumed for raft consensus
+          replicas: 4         #This field is not consumed for raft consensus
+          grpc:
+            port: 9092        #This field is not consumed for raft consensus
+                
+        orderers:
+        # This sample has multiple orderers as an example.
+        # You can use a single orderer for most production implementations.
+        # For RAFT consensus, have odd number (2n+1) of orderers for consensus agreement to have a majority.
+        - orderer:
+          name: orderer1
+          type: orderer
+          consensus: raft
+          grpc:
+            port: 7050
+        - orderer:
+          name: orderer2
+          type: orderer
+          consensus: raft
+          grpc:
+            port: 7050
+        - orderer:
+          name: orderer3
+          type: orderer
+          consensus: raft
+          grpc:
+            port: 7050    

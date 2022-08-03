@@ -1,0 +1,208 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+  # delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
+  # create namespace, service account and clusterrolebinding
+  - name: "Create namespace and service account"
+    include_role:
+      name: create/namespace_serviceaccount
+    vars:
+      component_ns: "{{ item.name | lower }}-quo"
+      organisation: "{{ item.name | lower }}"
+      kubernetes: "{{ item.k8s }}"
+      gitops: "{{ item.gitops }}"
+    loop: "{{ network['organizations'] }}"
+
+  # Create Storageclass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      git_dir: "{{ item.gitops.release_dir }}"
+      org: "{{ item }}"
+      kubernetes: "{{ item.k8s }}"
+    loop: "{{ network['organizations'] }}"
+
+  # Setup Vault-Kubernetes accesses and Regcred for docker registry
+  - name: "Setup vault"
+    include_role:
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
+    vars:
+      policy_type: "quorum"
+      name: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-quo"
+      component_name: "{{ item.name | lower }}-vaultk8s-job"
+      component_auth: "quorum{{ item.name | lower }}"
+      component_type: "organization"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+      gitops: "{{ item.gitops }}"
+      reset_path: "platforms/quorum/configuration"
+    loop: "{{ network['organizations'] }}"
+
+  # Generate Ambassador certificate for nodes
+  - name: "Create ambassador certificates for Nodes"
+    include_role:
+      name: create/certificates/ambassador
+    vars:
+      gitops: "{{ org.gitops }}"
+      component_auth: "quorum{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-quo"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      component_name: "{{ org.name | lower }}-ambassador-certs"
+      kubernetes: "{{ org.k8s }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+      vault: "{{ org.vault }}"
+      peers: "{{ org.services.peers }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+
+ # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
+  - name: "Generate crypto material for RAFT consensus"
+    include_role:
+      name: create/crypto/raft
+    vars:
+      component_name: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-quo"
+      vault: "{{ item.vault }}"
+      peers: "{{ item.services.peers }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.consensus == 'raft'
+
+  # This role makes up the istanbul binary and place it in the bin directory
+  - name: "Setup istanbul-tools"
+    include_role:
+      name: setup/istanbul
+    loop: "{{ network['organizations'] }}"
+    when: network.config.consensus == 'ibft'
+
+  # This role generates the genesis.json and nodekey/enode for all orgs of the network
+  - name: "Generate genesis and nodekey/enode for the network"
+    include_role:
+      name: create/genesis_nodekey
+    when: network.config.consensus == 'ibft'
+
+  # This role generates the crypto material for quorum network based on ibft consensus and store it in vault
+  - name: "Generate crypto material for IBFT consensus"
+    include_role:
+      name: create/crypto/ibft
+    vars:
+      component_name: "{{ item.name | lower }}"
+      component_ns: "{{ item.name | lower }}-quo"
+      vault: "{{ item.vault }}"
+      org_name: "{{ item.name }}"
+      kubernetes: "{{ item.k8s }}"
+      peers: "{{ item.services.peers }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}"
+      gitops: "{{ item.gitops }}"
+      org: "{{ item }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.consensus == 'ibft'
+
+  # This role generates the crypto materials for tessera tm
+  - name: "Generate crypto for the Tessera transaction manager"
+    include_role:
+      name: create/crypto/tessera
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name | lower }}-quo"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      org_name: "{{ org.name }}"
+      peers: "{{ org.services.peers }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when:
+      - network.config.transaction_manager == 'tessera'
+
+  # This role generates the crypto material for quorum network based on constellation transaction manager and store it in vault
+  - name: "Generate crypto material for Constellation"
+    include_role:
+      name: create/crypto/constellation
+    vars:
+      component_name: "{{ item.name | lower}}"
+      component_ns: "{{ item.name | lower }}-quo"
+      vault: "{{ item.vault }}"
+      peers: "{{ item.services.peers }}"
+      version: "{{ network.config.tm_version }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.transaction_manager == 'constellation'
+
+  # This role deploy nodes with Tessera transaction manager
+  - name: "Deploy nodes with Tessera Transaction Manager"
+    include_role:
+      name: create/tessera
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-quo"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_url }}"
+      git_branch: "{{ item.gitops.branch }}"
+      org: "{{ item }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      geth_data: "{{ network.config.bootnode | default('null') }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.transaction_manager == 'tessera'
+
+  # This role deployes nodes with constellation transaction mananger
+  - name: "Deploy nodes with Constellation Transaction Manager"
+    include_role:
+      name: create/constellation
+    vars:
+      build_path: "./build"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-quo"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_url }}"
+      git_branch: "{{ item.gitops.branch }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      geth_data: "{{ network.config.bootnode | default('null') }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.transaction_manager == 'constellation'
+
+  vars: #These variables can be overriden from the command line
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: false

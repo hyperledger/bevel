@@ -1,0 +1,149 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# This role creates the domain genesis file for organization
+##############################################################################################
+---
+##############################################################################################
+# This tasks ensures the directory of ConfigMap existance, if not exits it creates a new one
+- name: Ensures {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
+  vars:
+    organization: "{{ organizationItem.name|lower }}"
+    component_name: "{{ organization }}-dtg"
+    gitops: "{{ organizationItem.gitops }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+  file:
+    path: "{{ release_dir  }}/{{ component_name }}/"
+    state: directory
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem
+
+################################################################################################
+# This tasks gets data from vault
+- name: Generate domain genesis for organization
+  args:
+    executable: /bin/bash
+  shell: |
+    domain_genesis=""
+    first_global_trustee_did=""
+    seqNo=1
+    {% if network['organizations'] is defined %}
+      {% for organization in network['organizations'] %}
+        first_trustee_in_org_did=""
+        {% if organization.services.trustees is defined %}
+          {% for trustee in organization.services.trustees %}
+            JSON_STRING=""
+            trustee_did=$(curl --header "X-Vault-Token:{{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/data/trustees/"{{ trustee.name }}"/identity/public | jq -r 'if .errors then . else .data.data.did end');
+            trustee_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/data/trustees/"{{ trustee.name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data.data."verification-key" end');
+
+            if [ -z "$first_trustee_in_org_did" ]
+            then
+              first_trustee_in_org_did="${trustee_did}"
+            fi
+            if [ -z "$first_global_trustee_did" ]
+            then
+
+              first_global_trustee_did="${trustee_did}"
+
+              JSON_STRING=$( jq -n -c \
+                  --arg trustee_did "${first_global_trustee_did}" \
+                  --arg trustee_verkey "${trustee_verkey}" \
+                  --arg seqNo $seqNo \
+                  --arg alias "{{ trustee.name }}" \
+                  '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$trustee_did,"role":"0","verkey":$trustee_verkey},"metadata":{},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
+
+            else
+              JSON_STRING=$( jq -n -c \
+                  --arg trustee_did "${trustee_did}" \
+                  --arg trustee_verkey "${trustee_verkey}" \
+                  --arg first_global_trustee_did "${first_global_trustee_did}" \
+                  --arg seqNo $seqNo \
+                  --arg alias "{{ trustee.name }}" \
+                  '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$trustee_did,"role":"0","verkey":$trustee_verkey},"metadata":{"from":$first_global_trustee_did},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
+
+            fi
+
+            ((seqNo++))
+            domain_genesis+="${JSON_STRING}"
+            domain_genesis+="\n"
+
+          {% endfor %}
+        {% endif %}
+        {% if organization.services.stewards is defined %}
+          {% for steward in organization.services.stewards %}
+
+
+            steward_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/data/stewards/"{{ steward.name }}"/identity/public | jq -r 'if .errors then . else .data.data.did end');
+            steward_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[organization.name] }}" "{{ organization.vault.url }}"/v1/"{{ organization.name }}"/data/stewards/"{{ steward.name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data.data."verification-key" end');
+
+            if [ -z "$first_trustee_in_org_did" ]
+            then
+              trustee_did="${first_global_trustee_did}"
+            else
+              trustee_did="${first_trustee_in_org_did}"
+            fi
+            JSON_STRING=$( jq -n -c \
+                        --arg steward_did "${steward_did}" \
+                        --arg trustee_did "${trustee_did}" \
+                        --arg steward_verkey "${steward_verkey}" \
+                        --arg seqNo $seqNo \
+                        --arg alias "{{ steward.name }}" \
+                        '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$steward_did,"role":"2","verkey":$steward_verkey},"metadata":{"from":$trustee_did},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
+
+            ((seqNo++))
+            domain_genesis+="${JSON_STRING}"
+            domain_genesis+="\n"
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    echo -e "${domain_genesis}"
+  register: domain_genesis
+  when: network.genesis.state == 'absent'
+
+# Create the domain genesis directories if it is not present
+- name: Create the domain genesis directory if it does not exist
+  file:
+    path: "{{ network.genesis.domain | dirname }}"
+    state: directory
+  when: network.genesis.state == 'absent'
+
+# Save the domain genesis in file
+- name: "Save domain_genesis in path provided"
+  local_action: copy content="{{ domain_genesis.stdout }}" dest="{{ network.genesis.domain }}"
+  when: network.genesis.state == 'absent'
+
+- name: Set domain_genesis_values when state is absent
+  set_fact:
+    domain_genesis_values: "{{ domain_genesis.stdout }}"
+  when: network.genesis.state == 'absent'
+
+- name: Set domain_genesis_values when state is present
+  set_fact:
+    domain_genesis_values: "{{ lookup('file', '{{ network.genesis.domain }}') }}"
+  when: network.genesis.state == 'present'
+
+# ################################################################################################
+# This task creates vaules file for domain genesis config map.
+- name: "create value file for {{ component_name }} {{ component_type }}"
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    organization: "{{ organizationItem.name | lower }}"
+    component_ns: "{{ organizationItem.name | lower }}-ns"
+    gitops: "{{ organizationItem.gitops }}"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+    component_name: "{{ organization }}-dtg"
+    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    chart: "indy-domain-genesis"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem
+  when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'

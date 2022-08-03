@@ -1,0 +1,160 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# This task ensures that the directory exists, and creates it, if it does not exist
+############################################################################################
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+
+- name: check configtxgen
+  stat:
+    path: "{{ build_path }}/configtxgen"
+  register: config_stat_result
+
+- name: register temporary directory
+  tempfile:
+    state: directory
+  register: tmp_directory
+  tags:
+    - molecule-idempotence-notest
+
+  #Fetch msp files from Vault 
+- name: Check if msp admincerts already created
+  vars:
+    query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
+    query_vault_url: "organizations[?name=='{{organization.name}}'].vault.url"
+    query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token" 
+    query_vault_secretPath: "organizations[?name=='{{organization.name}}'].vault.secret_path"
+  shell: |
+    vault kv get -field=admincerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > Admin@{{ organization.name | lower }}-net-cert.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/admincerts/
+    mv Admin@{{ organization.name | lower }}-net-cert.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/admincerts/
+  environment:
+    VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
+    VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   
+  loop: "{{ item['participants'] }}"
+  loop_control:
+    loop_var: organization    
+  when: fetch_certs == 'true'
+
+ #Fetch msp files from Vault 
+
+- name: Check if msp cacerts already created
+  vars:
+    query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
+    query_vault_url: "organizations[?name=='{{organization.name}}'].vault.url"
+    query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token" 
+    query_vault_secretPath: "organizations[?name=='{{organization.name}}'].vault.secret_path"
+  shell: |
+    vault kv get -field=cacerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/cacerts/
+    mv ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
+    VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   
+  loop: "{{ item['participants'] }}"
+  loop_control:
+    loop_var: organization    
+  when: fetch_certs == 'true'
+  
+  #Fetch msp files from Vault 
+- name: Check if msp tlscacerts already created
+  vars:
+    query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
+    query_vault_url: "organizations[?name=='{{organization.name}}'].vault.url"
+    query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token"
+    query_vault_secretPath: "organizations[?name=='{{organization.name}}'].vault.secret_path"
+  shell: |
+    vault kv get -field=tlscacerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/tlscacerts/
+    mv ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
+    VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   
+  loop: "{{ item['participants'] }}"
+  loop_control:
+    loop_var: organization    
+  when: fetch_certs == 'true'     
+
+############################################################################################
+# This task fetches the configtx gen tar file from the mentioned URL
+- name: "Getting the configtxgen binary tar"
+  get_url:
+    url: https://github.com/hyperledger/fabric/releases/download/v{{network.version}}/hyperledger-fabric-{{install_os}}-{{install_arch}}-{{network.version}}.tar.gz
+    dest: "{{ tmp_directory.path }}"
+  when: config_stat_result.stat.exists == False
+
+
+############################################################################################
+# This task unzips the above downloaded tar file
+- name: "Unziping the downloaded file"
+  unarchive:
+    src: "{{ tmp_directory.path }}/hyperledger-fabric-{{install_os}}-{{install_arch}}-{{network.version}}.tar.gz"
+    dest: "{{ tmp_directory.path }}"
+  when: config_stat_result.stat.exists == False
+
+############################################################################################
+# This task extracts the configtxgen binary and place it at appropriate path
+- name: "Moving the configtxgen from the extracted folder and place in it path"
+  copy:
+    src: "{{ tmp_directory.path }}/bin/configtxgen"
+    dest: "{{ build_path }}/configtxgen"
+    mode: 0755
+  when: config_stat_result.stat.exists == False
+
+############################################################################################
+# This task creates the channel-artifacts folder
+- name: "Creating channel-artifacts folder"
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+
+- name: remove old channel block
+  file:
+    path: "{{ build_path }}/channel-artifacts/{{channel_name}}.tx"
+    state: absent
+  when: add_new_org == 'false'
+
+############################################################################################
+# This task creates the channel by consuming the configtx.yaml file
+- name: "Creating channels"
+  shell: |
+    cd {{ build_path }}
+    ./configtxgen -profile {{ profile_name }} -outputCreateChannelTx ./channel-artifacts/{{channel_name}}.tx -channelID {{channel_name}}
+    cat ./channel-artifacts/{{channel_name}}.tx | base64 > ./channel-artifacts/{{channel_name}}.tx.base64
+  when: add_new_org == 'false'
+  tags:
+    - molecule-idempotence-notest
+
+############################################################################################
+# This task creates the anchortx files
+- name: "Creating Anchor artifacts"
+  shell: |
+    cd {{ build_path }}
+    ./configtxgen -profile {{ profile_name }} -outputAnchorPeersUpdate ./channel-artifacts/{{channel_name}}{{participant.name}}MSPAnchor.tx -channelID {{channel_name}} -asOrg {{participant.name}}MSP -configPath ./
+    cat ./channel-artifacts/{{channel_name}}{{participant.name}}MSPAnchor.tx | base64 > ./channel-artifacts/{{channel_name}}{{participant.name}}MSPAnchor.tx.base64
+  loop: "{{ item.participants }}"
+  loop_control:
+    loop_var: participant
+  when: add_new_org == 'false'
+  tags:
+    - molecule-idempotence-notest
+
+# This task creates the channel by consuming the configtx.yaml file
+- name: "Creating JSON configuration for new organization"
+  shell: |
+    cd {{ build_path }}
+    export FABRIC_CFG_PATH=$PWD
+    ./configtxgen -printOrg {{ participant.name }}MSP > ./channel-artifacts/{{ channel_name | lower }}.json
+  loop: "{{ item.participants }}"
+  loop_control:
+    loop_var: participant
+  register: result
+  when: participant.org_status == 'new' and add_new_org == 'true'

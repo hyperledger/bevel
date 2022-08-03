@@ -1,0 +1,2 @@
+## About
+This folder contains the common charts as prerequisites used for the deployment of a R3 Corda or Hyperledger Fabric network. Deployment of a real R3 Corda or Hyperledger Fabric network should use files within either the path: /bevel.git/platforms/r3-corda or /bevel.git/platforms/hyperledger-fabric. It contains a sample helm release file for erference purpose. The actual charts canbe found at either path: /bevel.git/platforms/r3-corda/charts or /bevel.git/platforms/hyperledger-fabric/charts

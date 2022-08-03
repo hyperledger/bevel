@@ -1,0 +1,40 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates the block modification script.
+#############################################################################################
+
+
+# Task generates the json file for anchor peer updation
+- name: Call nested_create_json for each peer
+  include_tasks: create_json.yaml
+  vars:
+    channel_name: "{{ channel.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    component_ns: "{{ org.name | lower }}-net"
+    org: "{{ network | json_query(org_query) | first }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.org_status == 'new'
+
+############################################################################################
+# This task creates the generate_block.sh file for new organizations
+- name: "Create create-block-{{ channel_name }}.sh script file for new organisations"
+  template:
+    src: "organisation_script.tpl"
+    dest: "./build/create-block-{{ channel_name }}.sh"
+  vars:
+    component_name: "{{ participant.name | lower }}"
+    orderer_address: " {{ participant.ordererAddress }} "
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.org_status == 'new'

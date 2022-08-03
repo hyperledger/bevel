@@ -1,0 +1,120 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    network:
+      type: quorum
+      version: 21.4.2
+      frontend: enabled
+      docker:
+        url: "test_url"
+        username: "test_username"
+        password: "test_password"
+      config:
+        subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+        tm_version: "21.7.3"               
+        tm_tls: "strict"
+        tm_trust: "tofu"
+      transaction_manager: "tessera"
+      env:
+        type: "dev"
+        proxy: ambassador
+        ambassadorPorts:
+          portRange:
+            from: 15010
+            to: 15020
+        retry_count: 20
+        external_dns: enabled
+
+      organizations:
+        - organisation:
+          name: store
+          unit: Store
+          external_url_suffix: test.quorum.blockchainpoc.com
+          cloud_provider: aws
+          aws:
+            access_key: "aws_access_key"
+            secret_key: "aws_secret_key"
+          k8s:
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+          vault:
+            url: http://localhost:9090
+            root_token: root
+            secret_path: secretsv2
+
+          gitops:
+            git_protocol: "https"
+            git_url: "https://github.com/<username>/bevel.git"
+            branch: "develop"
+            release_dir: "platforms/quorum/releases/dev"
+            chart_source: "platforms/quorum/charts"
+            git_repo: "github.com/<username>/bevel.git"
+            username: "git_username"
+            password: "git_access_token"
+            email: "git_email"
+            private_key: "path_to_private_key"
+
+          services:
+            peers:
+            - peer:
+              name: store
+              subject: "O=Store,OU=Store,L=42.36/-71.06/Boston,C=US"
+              type: member
+              geth_passphrase: 12345
+              lock: false
+              p2p:
+                port: 21000
+                ambassador: 15040
+              rpc:
+                port: 8546
+                ambassador: 15041
+              transaction_manager:
+                port: 443
+                ambassador: 443
+              db:
+                port: 3306
+
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+
+    - name: Test crypto-tessera role
+      include_role:
+        name: "configuration/roles/create/crypto/tessera"
+      vars:
+        root_certs:
+          failed: True
+        ambassador_tls_certs:
+          failed: True
+        certs_results:
+          failed: True
+        peers: "{{ org.services.peers }}"
+        organisation: "{{ org.name | lower }}"
+        org_name: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-quo"
+        component_name: "{{ org.name | lower }}"
+        node_name: "{{ node.name | lower }}"
+        gitops: "{{ org.gitops }}"
+        kubernetes: "{{ org.k8s }}"
+        values_dir: "./build/{{org.gitops.release_dir}}"
+        charts_dir: "../../{{ org.gitops.chart_source }}"
+        vault: "{{ org.vault }}"
+        build_path: "{{ playbook_dir }}/build"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org

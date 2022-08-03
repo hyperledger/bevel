@@ -1,0 +1,87 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook is a subsequent playbook
+# This playbook does following
+# 1. Installs chaincode provided in network.yaml from each peer
+# 2. Instantiates chaincode from the creator participant peer of the channel( For Fabric 1.4.x)
+# 3. Approves chaincode for Org and Commits chaincode on the peer (Fabric 2.2.X)
+# 4. Upgrade chaincode by repeating the chaincode installation process on peers ( Fabric 2.2.x )
+##########################################################################################
+# DO NOT RUN THIS IF YOU HAVE NOT RUN deploy-network.yaml and deployed the Fabric network
+##########################################################################################
+# This playbook can only be run after all pods and orderers are available, and channel is created
+# Please use the same network.yaml to run this playbook as used for deploy-network.yaml
+# For upgrading the chaincode in fabric 2.2.x, chaincode.version field in network.yaml is also used as the sequence number
+# Use strictly increasing integer values for chaincode.version in network.yaml
+---
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+  # delete build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+  # Install chaincode on all participants
+  - name: Install chaincode
+    include_role:
+      name: "create/chaincode/install"
+    vars:
+      participants: "{{ channel.participants }}"
+      docker_url: "{{ network.docker.url }}"
+    loop: "{{ network['channels'] }}"
+    loop_control:
+      loop_var: channel
+    when: participants is defined
+  # Instantiate chaincode on all participants for Fabric 1.4
+  - name: Instantiate chaincode
+    include_role:
+      name: "create/chaincode/instantiate"
+    vars:
+      participants: "{{ item.participants }}"
+      docker_url: "{{ network.docker.url }}"
+    loop: "{{ network['channels'] }}"
+    when: add_new_org == 'false' and '1.4' in network.version
+  # Approve chaincode on all participants for Fabric 2.2
+  - name: "Approve chaincode"
+    include_role:
+      name: "create/chaincode/approve"
+    vars:
+      participants: "{{ item.participants }}"
+      docker_url: "{{ network.docker.url }}"
+    loop: "{{ network['channels'] }}"
+    when: participants is defined and '2.2.' in network.version
+  # Commit chaincode on all participants for Fabric 2.2
+  - name: Commit chaincode
+    include_role:
+      name: "create/chaincode/commit"
+    vars:
+      participants: "{{ item.participants }}"
+      docker_url: "{{ network.docker.url }}"
+      approvers: "{{ item.endorsers }}"
+    loop: "{{ network['channels'] }}"
+    when: add_new_org == 'false' and '2.2.' in network.version    
+      
+  # This task invokes chaincode after the chaincode has been commited in v2 and
+  # after chaincode installation for the new organization to be added in existing network
+  - name: Invoke chaincode
+    include_role:
+      name: "create/chaincode/invoke"
+    vars:
+      participants: "{{ item.participants }}"
+      docker_url: "{{ network.docker.url }}"
+      approvers: "{{ item.endorsers | default(' ', true) }}"
+    loop: "{{ network['channels'] }}"
+    when: add_new_org == 'true' or '2.2.' in network.version    
+    
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"           #Default to /bin install directory for binaries
+    add_new_org: 'false'

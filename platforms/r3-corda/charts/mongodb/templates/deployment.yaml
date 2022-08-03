@@ -1,0 +1,117 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}  
+  {{- if .Values.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 8 }}
+    {{- end }}
+  labels:
+    appdb: {{ .Values.nodeName }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      appdb: {{ .Values.nodeName }}
+  template:
+    metadata:
+      labels:
+        appdb: {{ .Values.nodeName }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      hostname: {{ .Values.nodeName }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: {{ .Values.nodeName }}
+        image: {{ .Values.image.containerName }}
+        env:
+          - name: MONGO_INITDB_ROOT_USERNAME_FILE
+            value: /run/secrets/db_root_username
+          - name: MONGO_INITDB_ROOT_PASSWORD_FILE
+            value: /run/secrets/db_root_password
+        ports:
+        - containerPort: {{ .Values.service.tcp.targetPort }}
+        volumeMounts:
+        - name: {{ .Values.storage.volname }}
+          mountPath: {{ .Values.storage.mountPath }}
+        - name: creds
+          mountPath: "/run/secrets"
+          readOnly: false
+      initContainers:
+      - name: init-credential
+        image : {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: /run/secrets
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+          - name: MONGODB_USERNAME
+            value: {{.Values.mongodb.username}}
+        command: ["/bin/sh","-c"]
+        args:
+        - |-
+           #!/usr/bin/env sh
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                echo "ERROR: unable to retrieve ${1}: ${2}"
+                exit 1
+              fi
+              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+              then
+                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${1})
+                curl_response=$?
+                if test "$http_code" != "200" ; then
+                    echo "Http response code from Vault - $http_code"
+                    if test "$curl_response" != "0"; then
+                      echo "Error: curl command failed with error code - $curl_response"
+                      exit 1
+                    fi
+                fi
+              fi
+            }
+            echo "Getting secrets from Vault Server"
+           
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')           
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+            OUTPUT_PATH=${MOUNT_PATH}
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+
+            validateVaultResponse "${SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+            MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["mongodbPassword"]')
+            
+            echo "${MONGODB_PASSWORD}" >> ${MOUNT_PATH}/db_root_password
+            echo "${MONGODB_USERNAME}" >> ${MOUNT_PATH}/db_root_username
+           
+        volumeMounts:
+          - name: creds
+            mountPath: "/run/secrets"
+            readOnly: false
+      imagePullSecrets:
+        - name: {{ .Values.image.imagePullSecret }}      
+      volumes:
+      - name: {{ .Values.storage.volname }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.nodeName }}-pvc
+      - name: creds
+        emptyDir:
+          medium: Memory

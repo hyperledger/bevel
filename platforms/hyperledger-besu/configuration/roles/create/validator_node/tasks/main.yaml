@@ -1,0 +1,167 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Set enode_data_list to empty
+- name: Set enode_validator_list to []
+  set_fact:
+    enode_validator_list: []
+
+# Set enode_data_list to empty
+- name: Set new_validator_nodes to []
+  set_fact:
+    new_validator_nodes: [] 
+
+# Set node_list to empty
+- name: Set node_list to []
+  set_fact:
+    node_list: []
+
+# This task checks if the new validator has any entry in the vault
+- name: Check for the crypto material in the vault
+  include_tasks: check_vault.yaml
+  vars:    
+    vault: "{{ org.vault }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'validator'
+
+# This task fetch (org,node) pairs for the newest validators in the network
+- name: Fetching data of validator nodes in the network from network.yaml
+  include_tasks: node_data.yaml
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: generate_crypto is defined and generate_crypto == True and org.type == 'validator'
+
+# This task creates the build directory
+- name: Create build directory if it does not exist
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ playbook_dir }}/build"
+    check: "ensure_dir"
+  when: generate_crypto is defined and generate_crypto == True
+
+# This task creates the bin directory, if it doesn't exist, for storing the geth binary
+- name: Create bin directory
+  file:
+    path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
+    state: directory
+  when: generate_crypto is defined and generate_crypto == True
+
+# Check if besu binary already exists
+- name: check besu binary
+  stat:
+    path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}/besu"
+  register: besu_stat_result
+  when: generate_crypto is defined and generate_crypto == True
+
+# Create a temporary directory to download and extract besu tar
+- name: register temporary directory
+  tempfile:
+    state: directory
+  register: tmp_directory
+  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+
+# This task fetches the besu tar file from the mentioned URL
+- name: "Geting the besu binary tar"
+  get_url:
+    url: https://hyperledger.jfrog.io/artifactory/besu-binaries/besu/{{ network.version }}/besu-{{ network.version }}.zip
+    dest: "{{ tmp_directory.path }}"
+  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+
+# This task unzips the above downloaded tar file
+- name: "Unziping the downloaded file"
+  unarchive:
+    src: "{{ tmp_directory.path }}/besu-{{ network.version }}.zip"
+    dest: "{{ tmp_directory.path }}"
+  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+
+# This task extracts the besu binary and place it at appropriate path
+- name: "Moving the besu from the extracted folder and place in it path"
+  copy:
+    src: "{{ tmp_directory.path }}/besu-{{ network.version }}/bin/besu"
+    dest: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
+    mode: 0755
+  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+
+# This task extracts the supporting besu.bat and place it at appropriate path
+- name: "Moving the besu dependencies from the extracted folder and place in it path"
+  copy:
+    src: "{{ tmp_directory.path }}/besu-{{ network.version }}/lib"
+    dest: "{{ bin_install_dir }}/besu"
+    mode: 0755
+  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+
+# This task creates the organization directories for crypto material if not exists
+- name: Create organization directory if it does not exist
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    path: "{{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data"
+    check: "ensure_dir"
+  with_indexed_items: "{{ enode_validator_list }}"
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+
+# This task generates the enode for the new validator
+- name: "Creating the enode and pub key for the new validator"
+  include_tasks: create_enode.yaml
+  when: generate_crypto is defined and generate_crypto == True
+
+# This file stores the address of the validator nodes
+- name: Touch file to store information for validators
+  file:
+    path: "{{ build_path }}/validatorinfo"
+    state: touch
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+
+# This file used by besu binary to generate the extra data information
+- name: Touch toEncode.json file
+  file:
+    path: "{{ build_path }}/toEncode.json"
+    state: touch
+  when:  
+    - generate_crypto is defined and generate_crypto == True
+
+# Create the validator address array
+- name: Get node data
+  shell: |
+    echo "\"$(cat {{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data/nodeAddress)\"" >> {{ build_path }}/validatorinfo
+  with_indexed_items: "{{ enode_validator_list }}"
+  when:  
+    - item[1].type == "validator"
+    - generate_crypto is defined and generate_crypto == True
+    
+# This task converts the validator info to json format
+- name: Convert validatorInfo to json format
+  shell: |
+    cat {{ build_path }}/validatorinfo | paste -sd "," -| awk '{print "["$0"]"}'> {{ build_path }}/toEncode.json
+
+# This task displays the JSON file content
+- name: Display the JSON file content
+  shell: |
+    cat {{ build_path }}/toEncode.json
+  register: result
+    
+# This task saves the JSON data to a variable for future use
+- name: Save the data to a Variable as a Fact
+  set_fact:
+    validator_address: "{{ result.stdout }}"    
+
+# This task contains the voting from the existing validators for the new validator to be added
+- name: Voting for the addition of newest validator
+  include_tasks: validator_vote.yaml
+  vars:
+    besu_nodes: "{{ network.config.besu_nodes }}"
+    validator_addr: "{{ item.0 }}"
+    validator_name: "{{ item.1 }}"
+  with_together:
+    - "{{ validator_address }}"
+    - "{{ enode_validator_list }}"
+  when: generate_crypto is defined and generate_crypto == True

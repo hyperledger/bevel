@@ -1,0 +1,53 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value files for storage class
+#############################################################################################
+
+# Check StorageClass exists already
+- name: Check if storageclass exists
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    kind: StorageClass
+    name: "{{ storageclass_name }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    type: "no_retry"
+    component_type: StorageClass
+  # register: storageclass_state
+
+- name: "Set Variable"
+  set_fact:
+    storageclass_state: "{{ result }}"
+
+# Create StorageClass
+- name: Create storageclass
+  include_role:
+    name: create/k8_component
+  vars:
+    component_type: "{{ storageclass_name }}"
+    component_type_name: "storage-class"
+    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+  when: storageclass_state.resources|length == 0
+
+# Push the deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "[ci skip] Pushing deployment file for storageclass"
+
+- name: "Wait for Storageclass creation for {{ component_name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "StorageClass"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    type: "retry"
+  when: storageclass_state.resources|length == 0

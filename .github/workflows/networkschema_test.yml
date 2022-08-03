@@ -1,0 +1,58 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+name: Test Network.yaml samples
+
+on:
+  pull_request:
+    branches: [ develop ]
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  sample-nets-schema-validation:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        # install npm and ajv-cli
+        sudo apt-get install npm
+        npm install -g ajv-cli
+        # export the bin path
+        export PATH=~/bin:$PATH
+##########################################################################
+    - name: Test sample networks
+      run: |
+        WDIR=`pwd`
+        for PLATFORM in hyperledger-fabric \
+                        hyperledger-besu  \
+                        hyperledger-indy \
+                        r3-corda \
+                        r3-corda-ent \
+                        quorum
+        do
+          echo "**********************************"
+          echo Validating ${PLATFORM}
+          echo "**********************************"
+          cd ${WDIR}/platforms/${PLATFORM}/configuration/samples
+          sed -i 's/aws_access_key/aaaaaaaaaaaaaaaaaaaa/g' *.yaml
+          sed -i 's/aws_secret_key/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/g' *.yaml
+          sed -i 's/vault_root_token/s.aaaaaaaaaaaaaaaaaaaaaaaa/g' *.yaml
+          sed -i 's/git_email/user@email\.com/g' *.yaml
+          sed -i 's/github_email/user@email\.com/g' *.yaml
+          sed -i 's/chaincode_version/00001/g' *.yaml
+          sed -i 's/<MINIKUBE_IP_ADDRESS>/0.0.0.1/g' *.yaml
+          sed -i 's/<YOUR DOCKER USERNAME>/dockeruser/g' *.yaml
+          for SAMPLE in *.yaml
+          do
+            echo Validating ${SAMPLE}
+            ajv validate -s ../../../network-schema.json -d ${SAMPLE}
+          done
+        done

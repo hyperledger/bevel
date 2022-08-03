@@ -1,0 +1,180 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Verify
+  hosts: localhost
+  tasks:
+
+#####################################################################################
+  #This task checks if the crypto material are written to Vault for orderer
+  - name: Check if the crypto material are written to Vault for orderer
+    shell: |
+      vault kv get -field=ca.testorderer-cert.pem secretsv2/crypto/ordererOrganizations/testorderer/ca
+      vault kv get -field=testorderer-CA.key secretsv2/crypto/ordererOrganizations/testorderer/ca
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_orderer_CA_cert_key
+    delegate_to: localhost
+  
+#####################################################################################
+  #This task assert if the orderer tls certs is created or not
+  - name: Assert if the orderer tls cert are present in the Vault
+    assert:
+      that: vault_orderer_CA_cert_key.failed == False
+
+#####################################################################################
+  #This task checks if the ca server admin credentials is created or not
+  - name: Check if the ca server admin credentials are written to Vault for orderer
+    shell: |
+      vault kv get secretsv2/credentials/testorderer/ca/testorderer
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_caadmin_result
+    delegate_to: localhost
+  
+#####################################################################################
+  #This task assert if the ca server admin credentials is created or not
+  - name: Assert if the ca server admin credentials are written to Vault for orderer
+    assert:
+      that: vault_caadmin_result.failed == False
+
+#####################################################################################
+  # Check if root token secret exist of every organization in their namespace
+  - name: Check if root token does not exist in the namespace
+    k8s_info:
+      kind: Secret
+      namespace: "testorderer-net"
+      name: "roottoken"
+      kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+      context: "kind"
+    register: root_token_secret_orderer
+  
+#####################################################################################
+  #This task assert if the root token secret is created
+  - name: Assert if the root token secret is deleted for orderer
+    assert:
+      that: root_token_secret_orderer.resources|length == 0 
+
+#####################################################################################
+  #This task checks if the value file is created for cacerts-job of the orderers
+  - name: Check if the value file is created for cacerts-job of the orderers
+    stat:
+      path: "./build/testorderer/testorderer/testorderer-cacerts-job.yaml"
+    register: orderer_ca_job_check
+  
+#####################################################################################
+  #This task assert if the value file is created for cacerts-job of the orderers
+  - name: Assert if the value file is created for cacerts-job of the orderers
+    assert:
+      that: orderer_ca_job_check.stat.exists
+ 
+# ################# peers ##########################################
+#####################################################################################
+  #This task checks if the crypto material are written to Vault for peers
+  - name: Check if the crypto material are written to Vault for peers
+    shell: |
+      vault kv get -field=ca.testpeer-cert.pem secretsv2/crypto/peerOrganizations/testpeer/ca
+      vault kv get -field=testpeer-CA.key secretsv2/crypto/peerOrganizations/testpeer/ca
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_peer_CA_cert_key
+    delegate_to: localhost
+  
+#####################################################################################
+  #This task assert if the orderer tls certs is created or not
+  - name: Assert if the orderer tls cert are present in the Vault
+    assert:
+      that: vault_peer_CA_cert_key.failed == False
+
+#####################################################################################
+  #This task checks if the ca server admin credentials is created or not
+  - name: Check if the ca server admin credentials are written to Vault for peers
+    shell: |
+      vault kv get secretsv2/credentials/testpeer/ca/testpeer
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_caadmin_result
+    delegate_to: localhost
+  
+#####################################################################################
+  #This task assert if the ca server admin credentials is created or not
+  - name: Assert if the ca server admin credentials are written to Vault for peers
+    assert:
+      that: vault_caadmin_result.failed == False
+
+#####################################################################################
+  # Check if root token secret exist in the namespace testpeer-net
+  - name: Check if root token does not exist in the namespace testpeer-net
+    k8s_info:
+      kind: Secret
+      namespace: "testpeer-net"
+      name: "roottoken"
+      kubeconfig: "/tmp/molecule/kind-default/kubeconfig"
+      context: "kind"
+    register: root_token_secret_peer
+  
+#####################################################################################
+  #This task assert if the root token secret is deleted for peers
+  - name: Assert if the root token secret is deleted for peers
+    assert:
+      that: root_token_secret_peer.resources|length == 0 
+  
+#####################################################################################
+  #This task checks if the value file is created for cacerts-job of the peers
+  - name: Check if the value file is created for cacerts-job of the peers
+    stat:
+      path: "./build/testpeer/testpeer/testpeer-cacerts-job.yaml"
+    register: peer_ca_job_check
+  
+#####################################################################################
+  #This task assert if the value file is created for cacerts-job of the peers
+  - name: Assert if the value file is created for cacerts-job of the peers
+    assert:
+      that: peer_ca_job_check.stat.exists
+
+# #####################################################################################
+# #####################################################################################
+  #This task checks if the orderer tls cert is created or not
+  - name: Check if the orderer certs are written to Vault
+    shell: |
+      vault kv get -field=ca.crt secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls 
+      vault kv get -field=server.crt secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/tls 
+      vault kv get -field=admincerts secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp  
+      vault kv get -field=cacert secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp  
+      vault kv get -field=keystore secretsv2/crypto/ordererOrganizations/testorderer/orderers/testorderer1.testorderer/msp 
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_Ord_tls_result
+    delegate_to: localhost
+
+#####################################################################################
+  #This task assert if orderer tls is created or not
+  - name: Assert if the orderer tls cert are present in the Vault
+    assert:
+      that: vault_Ord_tls_result.failed == False
+
+#####################################################################################
+  #This task checks if the orderer ambassador cert is created or not
+  - name: Check if the crypto material for orderer ambassador are written to Vault
+    shell: |
+      vault kv get -field=certificate secretsv2/crypto/ordererOrganizations/testorderer/ambassador/testorderer1
+      vault kv get -field=key secretsv2/crypto/ordererOrganizations/testorderer/ambassador/testorderer1
+    environment:
+      VAULT_ADDR: "http://localhost:9090"
+      VAULT_TOKEN: "root"
+    register: vault_orderer_ambassador
+  
+#####################################################################################
+  #This task assert if the orderer tls certs is created or not
+  - name: Assert if the orderer tls cert are present in the Vault
+    assert:
+      that: vault_orderer_ambassador.failed == False

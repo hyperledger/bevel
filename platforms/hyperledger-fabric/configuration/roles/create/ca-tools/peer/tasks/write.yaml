@@ -1,0 +1,34 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+############################################################################################
+# Create the certs directory if it does not exist
+- name: Create the certs directory if it does not exist
+  file:
+    path: "{{ peer.certificate | dirname }}"
+    state: directory
+  loop: "{{ endorsers_peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - item.org_status == 'new'
+    - org_peer.peerstatus is not defined or org_peer.peerstatus == 'new'
+    - org_peer.name == peer.name
+# This task gets msp config.yaml file from vault
+- name: Get msp cacerts
+  shell: |
+    vault kv get -field=cacerts {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/msp > {{ peer.certificate }}
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ endorsers_peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - item.org_status == 'new'
+    - org_peer.peerstatus is not defined or org_peer.peerstatus == 'new'
+    - org_peer.name == peer.name

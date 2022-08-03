@@ -1,0 +1,184 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}  
+  {{- if .Values.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 8 }}
+    {{- end }}
+  labels:
+    appdb: {{ .Values.nodeName }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      appdb: {{ .Values.nodeName }}
+  template:
+    metadata:
+      labels:
+        appdb: {{ .Values.nodeName }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      hostname: {{ .Values.nodeName }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: {{ .Values.nodeName }}
+        image: {{ .Values.image.containerName }}
+        env:
+          - name: MONGO_INITDB_ROOT_USERNAME_FILE
+            value: /run/secrets/db_root_username
+          - name: MONGO_INITDB_ROOT_PASSWORD_FILE
+            value: /run/secrets/db_root_password
+        command:
+        - /bin/sh
+        - -c
+        - >          
+          if [ -f /data/db/admin-user.lock ]; then
+          #file /data/db/admin-user.lock created and checked to ensure mongod is fully up for adding new db user in postStart hook.
+            echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon"
+
+            # ensure wiredTigerCacheSize is set within the size of the containers memory limit, Setting up with tag --sslAllowConnectionsWithoutCertificates only client validates the server to ensure that it receives data from the intended server. 
+              if [ "$HOSTNAME" = "{{ $.Values.nodeName }}" ]; then
+                #for Mongodb single server.
+                echo "check 1"
+                mongod --wiredTigerCacheSizeGB 0.25 --bind_ip 0.0.0.0 --sslMode requireSSL --sslPEMKeyFile /etc/ssl/{{ $.Values.nodeName }}.pem --sslCAFile /etc/ssl/mongoCA.crt --sslAllowConnectionsWithoutCertificates --sslAllowInvalidHostnames --auth;
+              fi;
+          else
+            echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon with setup setting (authMode)"
+            mongod --auth;
+          fi;
+        lifecycle:
+            postStart:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - >
+                  if [ ! -f /data/db/admin-user.lock ]; then
+                    echo "KUBERNETES LOG $HOSTNAME no Admin-user.lock file found yet"
+                    # user name and password for creation of new db user.
+                    DB_PASSWORD=`cat /run/secrets/db_root_password`
+                    DB_USERNAME=`cat /run/secrets/db_root_username`
+                    # sleep 20 to 'ensure' mongod is accepting connections for creating db user.
+                    sleep 20;
+                    touch /data/db/admin-user.lock
+                    # Adding database user with password in admin database, checking for host name to create new db user.
+                    if [ "$HOSTNAME" = "{{ .Values.nodeName }}" ]; then
+                      echo "KUBERNETES LOG $HOSTNAME- creating admin user doorman"
+                      # Adding database user in admin db using mongo shell command.
+                      mongo --eval "db = db.getSiblingDB('admin'); db.createUser({ user: '${DB_USERNAME}', pwd: '${DB_PASSWORD}', roles: [{ role: 'root', db: 'admin' }]});" >> /data/db/config.log
+                    fi;
+                    echo "KUBERNETES LOG $HOSTNAME-shutting mongod down for final restart"
+                    mongod --shutdown;
+                  fi;
+        ports:
+        - containerPort: {{ .Values.service.tcp.targetPort }}
+        volumeMounts:
+        - name: {{ .Values.storage.volname }}
+          mountPath: {{ .Values.storage.mountPath }}
+        - name: creds
+          mountPath: "/run/secrets"
+          readOnly: false
+        - name: certs
+          mountPath: "/etc/ssl"
+          readOnly: false
+      initContainers:
+      - name: init-credential
+        image : {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: /run/secrets
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+          - name: CERT_SECRET_PREFIX
+            value: {{.Values.vault.certsecretprefix}}
+          - name: MONGODB_USERNAME
+            value: {{.Values.mongodb.username}}
+        command: ["/bin/sh","-c"]
+        args:
+        - |-
+           #!/usr/bin/env sh
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                echo "ERROR: unable to retrieve ${1}: ${2}"
+                exit 1
+              fi
+              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+              then
+                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${1})
+                curl_response=$?
+                if test "$http_code" != "200" ; then
+                    echo "Http response code from Vault - $http_code"
+                    if test "$curl_response" != "0"; then
+                      echo "Error: curl command failed with error code - $curl_response"
+                      exit 1
+                    fi
+                fi
+              fi
+            }
+            echo "Getting secrets from Vault Server"
+           
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')           
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+            OUTPUT_PATH=${MOUNT_PATH}
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+
+            validateVaultResponse "${SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+
+            MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["mongodbPassword"]')
+            
+            echo "${MONGODB_PASSWORD}" >> ${MOUNT_PATH}/db_root_password
+            echo "${MONGODB_USERNAME}" >> ${MOUNT_PATH}/db_root_username
+
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERT_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+            
+            # Validating vault response for mongodb certificates. 
+            validateVaultResponse "${CERT_SECRET_PREFIX}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+            
+            # Getting certificates of server from vault and storing into /etc/ssl.
+            SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ $.Values.nodeName }}.pem"]')
+            echo "${SERVER_CERT}" | base64 -d > /etc/ssl/{{ $.Values.nodeName }}.pem
+                        
+            # Getting certificate authority cert from vault which is required for client validation and storing into /etc/ssl.
+            CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["mongoCA.crt"]')
+            echo "${CA_CERT}" | base64 -d > /etc/ssl/mongoCA.crt
+        volumeMounts:
+          - name: creds
+            mountPath: "/run/secrets"
+            readOnly: false
+          - name: certs
+            mountPath: "/etc/ssl"
+            readOnly: false
+      imagePullSecrets:
+        - name: {{ .Values.image.imagePullSecret }}      
+      volumes:
+      - name: {{ .Values.storage.volname }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.nodeName }}-pvc
+      - name: creds
+        emptyDir:
+          medium: Memory
+      - name: certs
+        emptyDir:
+          medium: Memory
+          
