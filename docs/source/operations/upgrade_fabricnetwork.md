@@ -51,3 +51,5 @@ The playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platform
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
 ```
+## Verify network deployment
+For instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](./operations/bevel_verify.md)

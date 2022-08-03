@@ -119,4 +119,4 @@ kubectl apply -f https://raw.githubusercontent.com/fluxcd/flux/helm-0.10.1/deplo
 TBD
 
 ### How can I engage in Hyperledger Bevel community for any events?
-Connect us on [Rocket Chat](https://chat.hyperledger.org/channel/bevel)
+Connect us on Bevel Discord Channel [Discord Chat](https://discord.gg/wRaD4R6Q)

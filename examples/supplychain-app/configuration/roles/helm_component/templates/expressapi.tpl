@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ peer_name }}-expressapi
@@ -7,10 +7,14 @@ metadata:
     fluxcd.io/automated: "false"
 spec:
   chart:
-    path: {{ component_gitops.chart_source }}/expressapp
-    git: "{{ component_gitops.git_url }}"
-    ref: "{{ component_gitops.branch }}"
+    spec:
+      chart: {{ component_gitops.chart_source }}/expressapp
+      sourceRef:
+        kind: GitRepository
+        name: flux-{{ network.env.type }}
+        namespace: flux-{{ network.env.type }}
   releaseName: {{ peer_name }}{{ network.type }}-expressapi
+  interval: 1m
   values:
     nodeName: {{ peer_name }}-expressapi
     metadata:
@@ -18,7 +22,7 @@ spec:
     replicaCount: 1
     expressapp:
       serviceType: ClusterIP
-      image: {{ network.container_registry.url | lower }}/{{ expressapi_image }}
+      image: {{ network.docker.url }}/{{ expressapi_image }}
       pullPolicy: Always
       pullSecrets: regcred
       nodePorts:
