@@ -17,69 +17,85 @@
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
     # This role upgrade the orderer binary to version provide in network.yaml payload
-    - name: upgrade orderers binary
-      include_role:
-        name: "upgrade/orderer-binary"
-      vars:
-        build_path: "./build"
-        namespace: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        vault: "{{ item.vault }}"
-        git_url: "{{ item.gitops.git_url }}"
-        git_branch: "{{ item.gitops.branch }}"
-        docker_url: "{{ network.docker.url }}"
-        charts_dir: "{{ item.gitops.chart_source }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer' and network.upgrade == 'yes'
+    # - name: upgrade orderers binary
+    #   include_role:
+    #     name: "upgrade/orderer-binary"
+    #   vars:
+    #     build_path: "./build"
+    #     namespace: "{{ item.name | lower}}-net"
+    #     component_type: "{{ item.type | lower}}"
+    #     component_services: "{{ item.services }}"
+    #     vault: "{{ item.vault }}"
+    #     git_url: "{{ item.gitops.git_url }}"
+    #     git_branch: "{{ item.gitops.branch }}"
+    #     docker_url: "{{ network.docker.url }}"
+    #     charts_dir: "{{ item.gitops.chart_source }}"
+    #     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    #   loop: "{{ network['organizations'] }}"
+    #   when: item.type == 'orderer' and network.upgrade == 'yes'
 
     
-    # This role upgrade the value file for peers of organisations and write couch db credentials
-    # to the vault.
-    - name: Create all peers binary
+    # # This role upgrade the value file for peers of organisations and write couch db credentials
+    # # to the vault.
+    # - name: Create all peers binary
+    #   include_role:
+    #     name: "upgrade/peer-binary"
+    #   vars:
+    #     build_path: "./build"
+    #     namespace: "{{ item.name | lower}}-net"
+    #     component_type: "{{ item.type | lower}}"
+    #     component_services: "{{ item.services }}"
+    #     vault: "{{ item.vault }}"
+    #     git_url: "{{ item.gitops.git_url }}"
+    #     git_branch: "{{ item.gitops.branch }}"
+    #     docker_url: "{{ network.docker.url }}"
+    #     charts_dir: "{{ item.gitops.chart_source }}"
+    #     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    #   loop: "{{ network['organizations'] }}"
+    #   when: item.type == 'peer' and network.upgrade == 'yes'
+
+    #   # This role updates the CA Server helm-value files and check-in
+    # - name: Create CA server for each organization
+    #   include_role:
+    #     name: "create/ca-server"
+    #   vars:
+    #     component_name: "{{ item.name | lower}}-net"
+    #     component: "{{ item.name | lower}}"
+    #     component_type: "{{ item.type | lower}}"
+    #     component_services: "{{ item.services }}"
+    #     kubernetes: "{{ item.k8s }}"
+    #     vault: "{{ item.vault }}"
+    #     ca: "{{ item.services.ca }}"
+    #     docker_url: "{{ network.docker.url }}"
+    #     gitops: "{{ item.gitops }}"
+    #     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    #   loop: "{{ network['organizations'] }}"
+    #   when: item.services.ca is defined and network.upgrade == 'yes'
+
+    #   # This role updates the CLI pod for the upgraded version
+    # - name: Create CLI pod for each peer with it enabled
+    #   include_role:
+    #     name: "create/cli_pod"
+    #   vars:
+    #     peers: "{{ org.services.peers }}"
+    #     docker_url: "{{ network.docker.url }}"
+    #   loop: "{{ network.organizations }}"
+    #   loop_control:
+    #     loop_var: org
+    #   when: org.type == "peer" and network.upgrade == 'yes'
+
+    # This role upgrades capabilities of system channel
+    - name: "Modify the system channel with tls information of new orderer"
       include_role:
-        name: "upgrade/peer-binary"
+        name: "upgrade/orderer-capabilities"
       vars:
         build_path: "./build"
-        namespace: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        vault: "{{ item.vault }}"
-        git_url: "{{ item.gitops.git_url }}"
-        git_branch: "{{ item.gitops.branch }}"
+        orderers: "{{ org.services.orderers }}"
         docker_url: "{{ network.docker.url }}"
-        charts_dir: "{{ item.gitops.chart_source }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer' and network.upgrade == 'yes'
-
-      # This role updates the CA Server helm-value files and check-in
-    - name: Create CA server for each organization
-      include_role:
-        name: "create/ca-server"
-      vars:
-        component_name: "{{ item.name | lower}}-net"
-        component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        ca: "{{ item.services.ca }}"
-        docker_url: "{{ network.docker.url }}"
-        gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.services.ca is defined and network.upgrade == 'yes'
-
-      # This role updates the CLI pod for the upgraded version
-    - name: Create CLI pod for each peer with it enabled
-      include_role:
-        name: "create/cli_pod"
-      vars:
-        peers: "{{ org.services.peers }}"
-        docker_url: "{{ network.docker.url }}"
+        channel_name: "syschannel"
+        component_name: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-net"        
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
-      when: org.type == "peer" and network.upgrade == 'yes'
+      when: org.type == 'orderer' 

@@ -1,0 +1,117 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+- name: Get the first orderer name
+  set_fact:
+    ordererNode: "{{ orderers | first }}"
+
+# Ensure channel-artifacts dir exists
+- name: Ensure channel-artifacts dir exists
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+
+# Create a json file
+- name: Creating new json file
+  file:
+    path: "{{ build_path }}/channel-artifacts/capabilities.json"
+    state: touch
+
+# create a capabilities json 
+- name: "create capabilities json"
+  shell: |
+    echo -n "{\"channel\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"orderer\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"application\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"}}" >> {{ build_path }}/channel-artifacts/capabilities.json
+
+# Check or wait for the Orderer pod
+- name: "Wait for the new orderer pod"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"    
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ ordererNode.name | lower }}
+
+# This task creates the capabilities upgrade script for orderer
+- name: "Create script file to upgrade sys channel orderer group"
+  template:
+    src: "syschannel/orderer_group_capability.tpl"
+    dest: "{{ build_path }}/syschannel-orderer-group-capabilities.sh"
+  vars:    
+    channel: "{{ network.channels | first }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# This task updates capability of orderer group in system channel
+- name: Update orderer group capabilities of system channel
+  include_tasks: orderer_group_capability.yaml
+  vars:    
+    orderer: "{{ orderers | first }}"
+
+# This task calls sign_orderer.yaml for the signing of the block by all orderers
+- name: Call sign_orderer.yaml to sign from new update block
+  include_tasks: sign_orderer.yaml
+  vars:
+    component_ns: "{{ org.name | lower }}-net"
+    orderer: "{{ orderersNode }}"
+  loop: "{{ orderers }}"
+  loop_control:
+    loop_var: orderersNode
+  when: orderersNode.type == 'orderer' and orderersNode.name != creator_orderer
+ 
+# This task updates the block by the existing orderer
+- name: Call update_orderer.yaml to add the new orderer to the existing network
+  include_tasks: update_orderer.yaml
+  vars:    
+    component_ns: "{{ org.name | lower }}-net"
+    orderer: "{{ orderersNode }}"
+  loop: "{{ orderers }}"
+  loop_control:
+    loop_var: orderersNode
+  when: orderersNode.type == 'orderer' and orderersNode.name == creator_orderer
+
+# This task creates the capabilities upgrade script for orderer
+- name: "Create script file to upgrade sys channel orderer group"
+  template:
+    src: "syschannel/channel_group_capability.tpl"
+    dest: "{{ build_path }}/syschannel-channel-group-capabilities.sh"
+  vars:    
+    channel: "{{ network.channels | first }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+
+# This task updates capability of channel group in system channel
+- name: Update orderer group capabilities of system channel
+  include_tasks: channel_group_capability.yaml
+  vars:    
+    orderer: "{{ orderers | first }}"
+
+# This task calls sign_orderer.yaml for the signing of the block by all orderers
+- name: Call sign_orderer.yaml to sign from new update block
+  include_tasks: sign_orderer.yaml
+  vars:
+    component_ns: "{{ org.name | lower }}-net"
+    orderer: "{{ orderersNode }}"
+  loop: "{{ orderers }}"
+  loop_control:
+    loop_var: orderersNode
+  when: orderersNode.type == 'orderer' and orderersNode.name != creator_orderer
+ 
+# This task updates the block by the existing orderer
+- name: Call update_orderer.yaml to add the new orderer to the existing network
+  include_tasks: update_orderer.yaml
+  vars:    
+    component_ns: "{{ org.name | lower }}-net"
+    orderer: "{{ orderersNode }}"
+  loop: "{{ orderers }}"
+  loop_control:
+    loop_var: orderersNode
+  when: orderersNode.type == 'orderer' and orderersNode.name == creator_orderer
