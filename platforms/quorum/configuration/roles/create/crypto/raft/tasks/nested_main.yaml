@@ -4,48 +4,36 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task checks if the crypto material is already stored in the vault or not
-- name: Check if nodekey already present in the vault
-  shell: |
-    vault kv get -field=nodekey {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ peer.name }}/quorum
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_nodekey_result
-  ignore_errors: yes
-  tags:
-    molecule-idempotence-notest
-
-# This task creates the build directory if it does not exist
-- name: "Creating the build directory"
+# ---------------------------------------------------------------------
+# generate tessera crypto helmrelease file
+- name: "Create raft crypto file"
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+    name: helm_component
   vars:
-    path: "build/{{ component_name }}/{{ peer.name }}"
-    check: "ensure_dir"
-  when: vault_nodekey_result.failed == True
-
-# This task generates the crypto material for the node having raft consensus
-- name: Generate crypto for raft consensus
-  shell: |
-    {{ bin_install_dir }}/bootnode -genkey build/{{ component_name }}/{{ peer.name }}/nodekey
-    {{ bin_install_dir }}/bootnode --nodekey=build/{{ component_name }}/{{ peer.name }}/nodekey --writeaddress > build/{{ component_name }}/{{ peer.name }}/enode
-    echo {{ peer.geth_passphrase }} >> build/{{ component_name }}/{{ peer.name }}/password
-    {{ bin_install_dir }}/geth account new --datadir build/{{ component_name }}/{{ peer.name }} --password build/{{ component_name }}/{{ peer.name }}/password
-    cp build/{{ component_name }}/{{ peer.name }}/keystore/* build/{{ component_name }}/{{ peer.name }}/keystore.json
-    tr -d "\n\r" < build/{{ component_name }}/{{ peer.name }}/keystore.json > build/{{ component_name }}/{{ peer.name }}/newchange
-    openssl base64 -in build/{{ component_name }}/{{ peer.name }}/newchange -out build/{{ component_name }}/{{ peer.name }}/base64_keystore
-  when: vault_nodekey_result.failed == True
+    component_type: "crypto"
+    type: "crypto_raft_job"
+    name: "{{ org.name | lower }}"
+    component_name: "{{ peer.name }}-raft-job"
   tags:
-    molecule-idempotence-notest
+    - molecule-idempotence-notest
 
-# This tasks copy the crypto material to the vault
-- name: Copy the crypto material to Vault
-  shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ peer.name }}/quorum nodekey="$(cat build/{{ component_name }}/{{ peer.name }}/nodekey)" keystore="$(cat build/{{ component_name }}/{{ peer.name }}/base64_keystore)" db_user="demouser" db_password="password" geth_password="$(cat build/{{ component_name }}/{{ peer.name }}/password)"
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  when: vault_nodekey_result.failed == True
-  tags:
-    molecule-idempotence-notest
+# ---------------------------------------------------------------------
+# push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/quorum/configuration"
+    msg: "[ci skip] Pushing tessera job files for {{ component_ns }}"
+  tags: notest
+
+# Check if tessera crypto job is completed
+- name: Check if tessera crypto job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ peer.name }}-raft-job"
+    component_type: Job
+    namespace: "{{ component_ns }}"
+  tags: notest
