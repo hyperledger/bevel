@@ -54,6 +54,12 @@ spec:
           items:
             - key: policies-config-peer.json.tmpl
               path: policies-config-peer.json.tmpl
+      - name: policies-config-mixed
+        configMap:
+          name: policies-config-{{ .Values.metadata.component_type }}
+          items:
+            - key: policies-config-mixed.json.tmpl
+              path: policies-config-mixed.json.tmpl
       containers:
         - name: "vault-kubernetes"
           image: {{ $.Values.metadata.images.alpineutils }}
@@ -173,6 +179,17 @@ spec:
 
                 fi;
 
+                if [ $COMPONENT_TYPE == 'mixed' ]; then
+
+                  # This command writes the policies to the vault
+                  curl \
+                  --header "X-Vault-Token: $ROOT_TOKEN" \
+                  --request POST \
+                  --data @${POLICIES_PATH}/policies-config-mixed.json.tmpl \
+                  ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+
+                fi;
+
                 # Check policy
                 response_status=$(curl -s -o /dev/null -w "%{http_code}" \
                 --header "X-Vault-Token: $ROOT_TOKEN" \
@@ -180,7 +197,7 @@ spec:
 
                 validateVaultResponse ${response_status};
               fi;
-
+              
               if [ "$vault_auth_check" == 'null' ]; then
                 echo "Need vault auth role"
 
@@ -216,3 +233,6 @@ spec:
             - name: policies-config-peer
               mountPath: /policies/policies-config-peer.json.tmpl
               subPath: policies-config-peer.json.tmpl
+            - name: policies-config-mixed
+              mountPath: /policies/policies-config-mixed.json.tmpl
+              subPath: policies-config-mixed.json.tmpl

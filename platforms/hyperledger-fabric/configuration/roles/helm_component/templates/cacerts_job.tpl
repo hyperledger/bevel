@@ -30,6 +30,8 @@ spec:
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_ns }}-auth
       secretcryptoprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component }}-net/ca
+      secretorderercryptoprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component }}-net/ca
+      secretpeercryptoprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component }}-net/ca
       secretcredentialsprefix: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component }}-net/ca/{{ component }}
       serviceaccountname: vault-auth
       imagesecretname: regcred

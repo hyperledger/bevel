@@ -35,7 +35,7 @@
         name: "create/crypto/orderer"
       vars:
         component_name: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
+        component_type: "orderer"
         org_name: "{{ item.name }}"
         services: "{{ item.services }}"
         subject: "{{ item.subject }}"
@@ -44,7 +44,7 @@
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer'
+      when: item.services.orderers is defined and item.services.orderers | length > 0
     
     # Create Organization crypto materials
     - name: Create crypto materials for each peer
@@ -52,7 +52,7 @@
         name: "create/crypto/peer"
       vars:
         component_name: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
+        component_type: "peer"
         org_name: "{{ item.name }}"
         services: "{{ item.services }}"
         subject: "{{ item.subject }}"
@@ -61,7 +61,7 @@
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'
+      when: item.services.peers is defined and item.services.peers | length > 0
 
     # Creating channel artifacts and putting them in vault
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
@@ -98,7 +98,7 @@
       vars:
         build_path: "./build"
         namespace: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
+        component_type: "orderer"
         component_services: "{{ item.services }}"
         vault: "{{ item.vault }}"
         git_protocol: "{{ item.gitops.git_protocol }}"
@@ -108,7 +108,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer'
+      when: item.services.orderers is defined and item.services.orderers | length > 0
 
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
@@ -118,7 +118,7 @@
       vars:
         build_path: "./build"
         namespace: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
+        component_type: "peers"
         component_services: "{{ item.services }}"
         vault: "{{ item.vault }}"
         git_protocol: "{{ item.gitops.git_protocol }}"
@@ -128,7 +128,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'    
+      when: item.services.peers is defined and item.services.peers | length > 0    
 
     # Create CLI pod for peers with cli option enabled
     - name: Create CLI pod for each peer with it enabled
@@ -140,7 +140,7 @@
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
-      when: org.type == "peer" and org.org_status == "new"
+      when: org.services.peers is defined and org.services.peers | length > 0 and org.org_status == "new"
     
     # delete build directory
     - name: Remove build directory

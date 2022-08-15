@@ -134,6 +134,10 @@ spec:
             value: {{ $.Values.vault.authpath }}
           - name: VAULT_SECRET_CRYPTO_PATH
             value: {{ $.Values.vault.secretcryptoprefix }}
+          - name: VAULT_SECRET_CRYPTO_PATH_PEER
+            value: {{ $.Values.vault.secretpeercryptoprefix }}
+          - name: VAULT_SECRET_CRYPTO_PATH_ORDERER
+            value: {{ $.Values.vault.secretorderercryptoprefix }}
           - name: VAULT_SECRET_CREDENTIALS_PATH
             value: {{ $.Values.vault.secretcredentialsprefix }}
           - name: COMPONENT_NAME
@@ -217,6 +221,8 @@ spec:
                 validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
 
                 vault_secret_key="${VAULT_SECRET_CRYPTO_PATH}"
+                vault_secret_key_peer="${VAULT_SECRET_CRYPTO_PATH_PEER}"
+                vault_secret_key_orderer="${VAULT_SECRET_CRYPTO_PATH_ORDERER}"
 
                 # This command copy the CA certificates to the Vault
                 curl \
@@ -225,6 +231,20 @@ spec:
                   -X POST \
                   -d @payload.json \
                   ${VAULT_ADDR}/v1/${vault_secret_key}
+
+                curl \
+                  -H "X-Vault-Token: ${VAULT_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -X POST \
+                  -d @payload.json \
+                  ${VAULT_ADDR}/v1/${vault_secret_key_peer}
+
+                curl \
+                  -H "X-Vault-Token: ${VAULT_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -X POST \
+                  -d @payload.json \
+                  ${VAULT_ADDR}/v1/${vault_secret_key_orderer}
 
                 # Check CA certificates
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')

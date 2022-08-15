@@ -1,13 +1,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: {{ component_name }}-ca-tools
+  name: {{ component_name }}-{{ component_type }}-ca-tools
   namespace: {{ component_name }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
   interval: 1m
-  releaseName: {{ component_name }}-ca-tools
+  releaseName: {{ component_name }}-{{ component_type }}-ca-tools
   chart:
     spec:
       interval: 1m
@@ -19,9 +19,10 @@ spec:
   values:
     metadata:
       namespace: {{ component_name }}
-      name: ca-tools
+      name: {{ component_type }}-ca-tools
       component_type: {{ component_type }}
       org_name: {{ org_name }}
+      mixed_org: {{ mixed_org | default(false) }}
       proxy: {{ proxy }}
 {% if network.env.annotations is defined %}
     annotations:  
@@ -62,6 +63,8 @@ spec:
       authpath: {{ network.env.type }}{{ component_name }}-auth
       secretmsp: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/msp
       secrettls: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/tls
+      secretmsp_orderer: {{ vault.secret_path | default('secret') }}/data/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
+      secrettls_orderer: {{ vault.secret_path | default('secret') }}/data/crypto/ordererOrganizations/{{ component_name }}/users/admin/tls
       secretorderer: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderers
       secretpeer: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/peers
       secretpeerorderertls: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderer/tls
@@ -88,9 +91,12 @@ spec:
       ca_url: {{ ca_url }}
 
     orderers:
+{% if orderers_list  == '' %}
+      name: ''
+{% else %}
       name: {% for orderer in orderers_list %}{% for key, value in orderer.items() %}{% if key == 'name' %}{{ value }}-{% endif %}{% endfor %}{% endfor %}
-
-{% if item.type  == 'peer' %}
+{% endif %}
+{% if component_type  == 'peer' %}
     orderers_info:
 {% for orderer in orderers_list %}
 {% for key, value in orderer.items() %}

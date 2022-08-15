@@ -76,15 +76,6 @@
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.services.ca is defined
-        
-    # Create generate_crypto script for each organization
-    - name: Create generate_crypto.sh for each organization
-      include_role:
-        name: "create/crypto_script"
-      vars:
-        component_type: "{{ item.type | lower}}"        
-        orderers: "{{ item.services.orderers }}"
-      loop: "{{ network['organizations'] }}"
 
     #Creating a pause so that the client certificates are valid
     # You can continue if the CA-server pods are running for more than 5 minutes
@@ -99,15 +90,15 @@
       vars:
         component_name: "{{ item.name | lower}}-net"
         component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
+        component_type: "orderer"
         component_services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
         gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer'
+      when: item.services.orderers is defined and item.services.orderers | length > 0
     
     # Create CA Tools helm-value files and check-in
     - name: Create CA tools for each organization
@@ -116,7 +107,7 @@
       vars:
         component_name: "{{ item.name | lower}}-net"
         component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
+        component_type: "peer"
         component_services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
@@ -124,7 +115,7 @@
         gitops: "{{ item.gitops }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'
+      when: item.services.peers is defined and item.services.peers | length > 0
 
     # Creating channel artifacts and putting them in vault
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
@@ -161,7 +152,7 @@
       vars:
         build_path: "./build"
         namespace: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
+        component_type: "orderer"
         component_services: "{{ item.services }}"
         vault: "{{ item.vault }}"
         git_protocol: "{{ item.gitops.git_protocol }}"
@@ -171,7 +162,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer'
+      when: item.services.orderers is defined and item.services.orderers | length > 0
 
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
@@ -181,7 +172,7 @@
       vars:
         build_path: "./build"
         namespace: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
+        component_type: "peer"
         component_services: "{{ item.services }}"
         vault: "{{ item.vault }}"
         git_protocol: "{{ item.gitops.git_protocol }}"
@@ -191,7 +182,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'
+      when: item.services.peers is defined and item.services.peers | length > 0
 
     # This role creates the value file for creating channel from creator organization
     # to the vault.
@@ -236,11 +227,11 @@
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
-      when: org.type == "peer" and org.org_status == "new"
+      when: org.services.peers is defined and org.services.peers | length > 0 and org.org_status == "new"
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    bin_install_dir:  "~/bin"           #Default to /bin install directory for binaries
     add_new_org: 'false'                # Default to false as this is for main network creation

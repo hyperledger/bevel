@@ -31,7 +31,7 @@
     vars:
       component_name: "{{ item.name | lower}}-net"
       component: "{{ item.name | lower}}"
-      component_type: "{{ item.type | lower}}"
+      component_type: "orderer"
       component_services: "{{ item.services }}"
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
@@ -39,7 +39,7 @@
       gitops: "{{ item.gitops }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: item.type == 'orderer'
+    when: item.services.orderers is defined and item.services.orderers | length > 0
 
   # Generate script to modify the fetched configuration block
   - name: "Modify the system channel with tls information of new orderer"
@@ -55,7 +55,7 @@
     loop: "{{ network.organizations }}"
     loop_control:
       loop_var: org
-    when: org.type == 'orderer'
+    when: org.services.orderers is defined and org.services.orderers | length > 0
 
   # This role creates value file new orderer
   - name: "create new orderer"
@@ -64,7 +64,7 @@
     vars:
       build_path: "./build"
       namespace: "{{ item.name | lower}}-net"
-      component_type: "{{ item.type | lower}}"
+      component_type: "orderer"
       component_services: "{{ item.services }}"
       vault: "{{ item.vault }}"
       git_protocol: "{{ item.gitops.git_protocol }}"
@@ -74,7 +74,7 @@
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: item.type == 'orderer'
+    when: item.services.orderers is defined and item.services.orderers | length > 0
 
   # Generate script to modify the fetched configuration block
   - name: "Modify the system channel with endpoint information of new orderer"
@@ -90,7 +90,7 @@
     loop: "{{ network.organizations }}"
     loop_control:
       loop_var: org
-    when: org.type == 'orderer'
+    when: org.services.orderers is defined and org.services.orderers | length > 0
 
   # Generate script to modify the fetched configuration block from application channel
   - name: "Modify the application channel with tls and address information of new orderer"

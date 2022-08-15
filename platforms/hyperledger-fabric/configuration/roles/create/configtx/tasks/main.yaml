@@ -54,7 +54,7 @@
     marker: "#"
   vars:
     consensus: "{{ org.services.consensus }}"
-    org_query: "organizations[?type=='orderer']"
+    org_query: "organizations[? type=='orderer' || type==`mixed`]" #SSARK:TOFIX
     org: "{{ network | json_query(org_query) | first }}"
     filename: configtxinit_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfinit.stat.exists else 'default' }}.tpl
   tags:
@@ -99,7 +99,7 @@
     provider: "{{ network.env.proxy }}"
     filename: configtxOrderer_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cford.stat.exists else 'default' }}.tpl
   loop: "{{ network['organizations'] }}"
-  when: item.type == 'orderer'
+  when: item.services.orderers is defined and item.services.orderers | length > 0
   tags:
     - molecule-idempotence-notest
 
@@ -121,7 +121,7 @@
     provider: "{{ network.env.proxy }}"
     filename: configtxProfile_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfprofile.stat.exists else 'default' }}.tpl
   loop: "{{ network['organizations'] }}"
-  when: network.channels is defined and item.type == 'orderer'
+  when: network.channels is defined and item.services.orderers is defined and item.services.orderers | length > 0
   tags:
     - molecule-idempotence-notest
 
