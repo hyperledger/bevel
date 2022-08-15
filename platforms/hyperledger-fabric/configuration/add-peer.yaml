@@ -62,7 +62,7 @@
     vars:
       component_name: "{{ item.name | lower}}-net"
       component: "{{ item.name | lower}}"
-      component_type: "{{ item.type | lower}}"
+      component_type: "peer"
       component_services: "{{ item.services }}"
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
@@ -70,7 +70,7 @@
       gitops: "{{ item.gitops }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: item.type == 'peer'
+    when: item.services.peers is defined and item.services.peers | length > 0
 
   # This role fetches block 0 and joins peers of new organizaion to the channel
   - include_role:
@@ -88,7 +88,7 @@
     vars:
       build_path: "./build"
       namespace: "{{ item.name | lower}}-net"
-      component_type: "{{ item.type | lower}}"
+      component_type: "peer"
       component_services: "{{ item.services }}"
       vault: "{{ item.vault }}"
       git_protocol: "{{ item.gitops.git_protocol }}"
@@ -98,7 +98,7 @@
       charts_dir: "{{ item.gitops.chart_source }}"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: item.type == 'peer'
+    when: item.services.peers is defined and item.services.peers | length > 0
   # This role fetches block 0 and joins peers of new organizaion to the channel
   - include_role:
       name: "create/channels_join"
@@ -118,7 +118,7 @@
     loop: "{{ network.organizations }}"
     loop_control:
       loop_var: org
-    when: org.type == "peer"
+    when: org.services.peers is defined and org.services.peers | length > 0
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges

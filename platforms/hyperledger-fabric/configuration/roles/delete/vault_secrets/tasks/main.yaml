@@ -99,7 +99,16 @@
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  when: component_type == 'orderer'
+  when: item.services.orderers is defined and item.services.orderers | length > 0
+
+  # This task deletes crypto materials from vault
+- name: Delete Crypto for mixed
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/mixedOrganizations/{{ component_name }}/ca
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  when: component_type == 'mixed'
 
 ############################################################################################
 # This task deletes crypto materials from vault
@@ -127,7 +136,7 @@
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  when: component_type == 'peer'
+  when: item.services.peers is defined and item.services.peers | length > 0
 
 - name: Remove all endorsers
   args:
@@ -160,7 +169,7 @@
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  when: component_type == 'peer' and item.users is defined
+  when: item.services.peers is defined and item.services.peers | length > 0 and item.users is defined
 
 - name: Delete policy
   shell: |

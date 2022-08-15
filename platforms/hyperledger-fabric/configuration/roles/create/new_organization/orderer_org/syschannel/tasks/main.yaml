@@ -32,7 +32,7 @@
   loop: "{{ network.organizations }}"
   loop_control:
     loop_var: org
-  when: org.type == 'orderer' and org.name != creator_orderer
+  when: org.services.orderers is defined and org.services.orderers | length > 0 and org.name != creator_orderer
 
 # This task updates the block by the existing orderer
 - name: Call update_orderer.yaml to add the new orderer to the existing network
@@ -43,7 +43,7 @@
   loop: "{{ network.organizations }}"
   loop_control:
     loop_var: org
-  when: org.type == 'orderer' and org.name == creator_orderer
+  when: org.services.orderers is defined and org.services.orderers | length > 0 and org.name == creator_orderer
 
 - name: reset creator_orderer
   set_fact:

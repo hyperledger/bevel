@@ -115,6 +115,23 @@
     external_url_suffix: "{{ item.external_url_suffix }}"
   when: component_type == 'peer'
 
+############################################################################################
+# This task creates the CA value file for Organizations
+- name: "Create CA server values organizations"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ ca.name }}"
+    type: "ca-mixed"
+    ca_image: "hyperledger/fabric-ca:{{ ca_image_version[network.version] }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    git_protocol: "{{ gitops.git_protocol }}"
+    git_url: "{{ gitops.git_url }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+    external_url_suffix: "{{ item.external_url_suffix }}"
+  when: component_type == 'mixed'
+
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 

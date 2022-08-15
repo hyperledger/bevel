@@ -8,7 +8,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: crypto-scripts-cm
+  name: crypto-scripts-cm-{{ .Values.metadata.component_type }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
     app.kubernetes.io/name: crypto-scripts
@@ -150,6 +150,179 @@ data:
 
     cp ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/admincerts
 
+    cd ${CURRENT_DIR}
+
+  create-peer-crypto.sh: |-
+    #!/bin/bash
+
+    set -x
+
+    CURRENT_DIR=${PWD}
+    FULLY_QUALIFIED_ORG_NAME="{{ .Values.metadata.namespace }}"
+    ALTERNATIVE_ORG_NAMES=("{{ .Values.metadata.namespace }}.svc.cluster.local" "{{ .Values.metadata.org_name }}.net" "{{ .Values.metadata.namespace }}.{{ .Values.org_data.external_url_suffix }}")
+    ORG_NAME="{{ .Values.metadata.org_name }}"
+    EXTERNAL_URL_SUFFIX="{{ .Values.org_data.external_url_suffix }}"
+    AFFILIATION="{{ .Values.metadata.org_name }}"
+    SUBJECT="C={{ .Values.org_data.component_country }},ST={{ .Values.org_data.component_state }},L={{ .Values.org_data.component_location }},O={{ .Values.metadata.org_name }}"
+    SUBJECT_PEER="{{ .Values.org_data.component_subject }}"
+    CA="{{ .Values.org_data.ca_url }}"
+    CA_ADMIN_USER="${ORG_NAME}-admin"
+    CA_ADMIN_PASS="${ORG_NAME}-adminpw"
+
+    ORG_ADMIN_USER="Admin@${FULLY_QUALIFIED_ORG_NAME}"
+    ORG_ADMIN_PASS="Admin@${FULLY_QUALIFIED_ORG_NAME}-pw"
+
+    ORG_CYPTO_FOLDER="/crypto-config/peerOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
+
+    ROOT_TLS_CERT="/crypto-config/peerOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
+
+    CAS_FOLDER="${HOME}/ca-tools/cas/ca-${ORG_NAME}"
+    ORG_HOME="${HOME}/ca-tools/${ORG_NAME}"
+
+    NO_OF_PEERS={{ .Values.peer_count }}
+    NO_OF_NEW_PEERS={{ .Values.new_peer_count }}
+
+    ## Enroll CA administrator for Org. This user will be used to create other identities
+    fabric-ca-client enroll -d -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --tls.certfiles  ${ROOT_TLS_CERT} --home ${CAS_FOLDER}  --csr.names "${SUBJECT_PEER}"
+
+    ## Get the CA cert and store in Org MSP folder
+    fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
+
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+      mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
+    fi
+    mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+    cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+    
+    mkdir -p ${ORG_HOME}/admin/msp/cacerts/
+    cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_HOME}/admin/msp/cacerts/
+
+    validateVaultResponse () {
+      if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
+        echo "ERROR: unable to retrieve ${1}: ${2}"
+        exit 1
+      fi
+      if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+      then
+        http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
+        --header "X-Vault-Token: ${VAULT_TOKEN}" \
+        ${VAULT_ADDR}/v1/${1})
+        curl_response=$?
+        if test "$http_code" != "200" ; then
+            echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+            if test "$curl_response" != "0"; then
+              echo "Error: curl command failed with error code - $curl_response"
+              exit 1
+            fi
+        fi
+      fi
+    }
+
+    echo "Puting secrets/certificates from Vault server"
+    KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+    VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+    validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.secretmsp_orderer }} | jq -r 'if .errors then . else . end')
+    validateVaultResponse "{{ .Values.vault.secretmsp_orderer }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+    KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
+    SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]')
+    CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]')
+    TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
+
+    mkdir -p ${ORG_HOME}/admin/msp/signcerts/
+    mkdir -p ${ORG_HOME}/admin/msp/keystore/
+    mkdir -p ${ORG_HOME}/admin/msp/tlscacerts/
+    mkdir -p ${ORG_HOME}/admin/msp/cacerts/
+
+    echo "${KEYSTORE}" >> ${ORG_HOME}/admin/msp/keystore/key_sk
+    echo "${SIGNCERTS}" >> ${ORG_HOME}/admin/msp/signcerts/cert.pem
+    echo "${CACERTS}" >> ${ORG_HOME}/admin/msp/cacerts/cacerts.pem
+
+    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.secrettls_orderer }} | jq -r 'if .errors then . else . end')
+    validateVaultResponse "{{ .Values.vault.secrettls_orderer }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+    KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]')
+    SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]')
+    TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
+
+    mkdir -p ${ORG_HOME}/admin/tls/signcerts/
+    mkdir -p ${ORG_HOME}/admin/tls/keystore/
+    mkdir -p ${ORG_HOME}/admin/tls/tlscacerts/
+
+    echo "${KEYSTORE}" >> ${ORG_HOME}/admin/tls/keystore/client.key
+    echo "${SIGNCERTS}" >> ${ORG_HOME}/admin/tls/signcerts/client.crt
+    echo "${TLSCACERTS}" >> ${ORG_HOME}/admin/tls/tlscacerts/ca.crt
+    echo "${TLSCACERTS}" >> ${ORG_HOME}/admin/msp/tlscacerts/ca.crt
+
+    mkdir -p ${ORG_CYPTO_FOLDER}/msp/admincerts
+    cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir -p ${ORG_CYPTO_FOLDER}/msp/keystore
+    cp ${ORG_HOME}/admin/msp/keystore/* ${ORG_CYPTO_FOLDER}/msp/keystore/key_sk
+
+    mkdir -p ${ORG_HOME}/admin/msp/admincerts
+    cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_HOME}/admin/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir -p ${ORG_HOME}/admin/msp/cacerts
+    cp ${ORG_HOME}/admin/msp/tlscacerts/* ${ORG_HOME}/admin/msp/cacerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
+    cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
+
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+      mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
+    fi
+
+    # Copy the TLS key and cert to the appropriate place
+    mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls
+    cp ${ORG_HOME}/admin/tls/keystore/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/client.key
+    cp ${ORG_HOME}/admin/tls/signcerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/client.crt
+    cp ${ORG_HOME}/admin/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/ca.crt
+
+    ## Register and enroll peers and populate their MSP folder
+    COUNTER=0
+    while [  ${COUNTER} -lt ${NO_OF_PEERS} ]; do
+      PEER="peer${COUNTER}.${FULLY_QUALIFIED_ORG_NAME}"
+      CSR_HOSTS=${PEER}
+      for i in "${ALTERNATIVE_ORG_NAMES[@]}"
+      do
+        CSR_HOSTS="${CSR_HOSTS},peer${COUNTER}.${i}"
+      done
+      echo "Registering and enrolling $PEER with csr hosts ${CSR_HOSTS}"
+
+      # Register the peer
+      fabric-ca-client register -d --id.name ${PEER} --id.secret ${PEER}-pw --id.type peer --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER} -u https://${CA}
+
+      # Enroll to get peers TLS cert
+      fabric-ca-client enroll -d --enrollment.profile tls -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_HOME}/cas/peers/tls --csr.hosts "${CSR_HOSTS}" --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
+
+      # Copy the TLS key and cert to the appropriate place
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls
+      cp ${ORG_HOME}/cas/peers/tls/keystore/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/server.key	
+      cp ${ORG_HOME}/cas/peers/tls/signcerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/server.crt	
+      cp ${ORG_HOME}/cas/peers/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/ca.crt
+      
+      rm -rf ${ORG_HOME}/cas/peers/tls
+      
+      # Enroll again to get the peer's enrollment certificate (default profile)
+      fabric-ca-client enroll -d -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
+
+      # Create the TLS CA directories of the MSP folder if they don't exist.
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts	
+      
+      # Copy the peer org's admin cert into target MSP directory
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
+      if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+        mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
+      fi
+      cp ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts
+      cp ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
+      
+      let COUNTER=COUNTER+1
+    done
+    echo "Done"
     cd ${CURRENT_DIR}
 
   generate-crypto-peer.sh: |-
@@ -382,7 +555,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: orderer-script-store-vault
+  name: orderer-script-store-vault-{{ .Values.metadata.component_type }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
     app.kubernetes.io/name: orderer-script-vault
@@ -820,7 +993,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: peer-script-store-vault
+  name: peer-script-store-vault-{{ .Values.metadata.component_type }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
     app.kubernetes.io/name: peer-script-vault
@@ -1415,7 +1588,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: msp-config-file
+  name: msp-config-file-{{ .Values.metadata.component_type }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
     app.kubernetes.io/name: msp-config-file
@@ -1457,7 +1630,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tls-cert
+  name: tls-cert-{{ .Values.metadata.component_type }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
     app.kubernetes.io/name: tls-cert
