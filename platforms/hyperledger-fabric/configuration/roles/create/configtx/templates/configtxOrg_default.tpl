@@ -19,6 +19,9 @@
       Endorsement:
         Type: Signature
         Rule: "OR('{{ component_name }}MSP.member')"
+      Orderers:
+        Type: Signature
+        Rule: "OR('{{ component_name }}MSP.orderer')"
     {% if item.services.peers is defined and item.services.peers | length > 0  %}      
     AnchorPeers:
       # AnchorPeers defines the location of peers which can be used
