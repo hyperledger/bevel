@@ -23,10 +23,10 @@ open class Options {
   }
 
   fun printHelp() {
-    val propertyWidth = (options.map { it.width() }.max() ?: 0)
+    val propertyWidth = (options.map { it.width() }.maxOrNull() ?: 0)
     val envWidth = propertyWidth + 8
-    val defaultWidth = (options.map { it.default.length }.max() ?: 0) + 4
-    val descriptionWidth = (options.map { it.description.length }.max() ?: 0) + 4
+    val defaultWidth = (options.map { it.default.length }.maxOrNull()?: 0) + 4
+    val descriptionWidth = (options.map { it.description.length }.maxOrNull() ?: 0) + 4
 
     println("\njava properties (pass with -D<propertyname>=<property-value>) and env variables\n")
     println("| Property".padEnd(propertyWidth + 2) + " | Env Variable".padEnd(envWidth + 3) + " | Default".padEnd(defaultWidth + 3) + " | Description".padEnd(descriptionWidth + 3) + " |")
@@ -38,7 +38,7 @@ open class Options {
   }
 
   fun printOptions() {
-    val propertyWidth = (options.map { it.width() }.max() ?: 0)
+    val propertyWidth = (options.map { it.width() }.maxOrNull() ?: 0)
 
     options.toList().sortedBy { it.name }.map { it.name to it.stringValue }
       .map { (key, value) ->
