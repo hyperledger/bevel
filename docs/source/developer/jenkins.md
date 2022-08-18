@@ -10,7 +10,7 @@ Jenkins is a self-contained, open source automation server which can be used to 
 In Hyperledger Bevel, although Jenkins is not mandatory, we have [a single Jenkinsfile](https://github.com/hyperledger/bevel/blob/main/automation/Jenkinsfile) as a sample to help you setup CI/CD Pipelines. 
 
 ## Pre-requisites
-1. Setup Jenkins with slave configurations. Declare a slave-config called `ansible` with the Docker Image [ghcr.io/hyperledger/bevel-build:jenkins](https://github.com/hyperledger/bevel/pkgs/container/bevel-baf-build/tags).
+1. Setup Jenkins with agent configurations. Declare a agent-config called `ansible` with the Docker Image [ghcr.io/hyperledger/bevel-build:jenkins](https://github.com/hyperledger/bevel/pkgs/container/bevel-baf-build/tags).
 1. A EKS Cluster (Managed on AWS) and its kubeconfig file available and accessible from the Jenkins server.
 1. AWS user `jenkins` with CLI credentials with access to above EKS Cluster.
 1. A Hashicorp Vault installation which is accessible from the Jenkins server.
