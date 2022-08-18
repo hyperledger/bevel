@@ -1053,7 +1053,7 @@ data:
       mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts
       while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
       do
-        if [ -e /certcheck/absent_tls_${PEER_NAME}.txt ] && [ "$PEER_TLS_CERT_WRITTEN" =  "false" ] && [ "$SAVE" == 'true' ]; then
+        if ([ -e /certcheck/absent_tls_${PEER_NAME}.txt ] && [ "$PEER_TLS_CERT_WRITTEN" =  "false" ] && [ "$SAVE" == 'true' ]) || [ "$REFRESH_CERTS" == 'true' ]; then
 
           # This commands put the certificates with correct format for the curl command
           formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
@@ -1103,7 +1103,7 @@ data:
           rm payload.json
         fi;
 
-        if [ -e /certcheck/absent_msp_${PEER_NAME}.txt ] && [ "$PEER_MSP_CERT_WRITTEN" =  "false" ] && [ "$SAVE" == 'true' ]; then
+        if ([ -e /certcheck/absent_msp_${PEER_NAME}.txt ] && [ "$PEER_MSP_CERT_WRITTEN" =  "false" ] && [ "$SAVE" == 'true' ]) || [ "$REFRESH_CERTS" == 'true' ]; then
 
           # This commands put the certificates with correct format for the curl command
           SK_NAME=$(find ${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
