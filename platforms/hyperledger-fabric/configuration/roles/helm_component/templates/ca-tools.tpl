@@ -95,6 +95,7 @@ spec:
       name: ''
 {% else %}
       name: {% for orderer in orderers_list %}{% for key, value in orderer.items() %}{% if key == 'name' %}{{ value }}-{% endif %}{% endfor %}{% endfor %}
+      
 {% endif %}
 {% if component_type  == 'peer' %}
     orderers_info:
