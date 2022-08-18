@@ -1,0 +1,52 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: manufacturer-net-ca
+  namespace: manufacturer-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: manufacturer-net-ca
+  chart:
+    git: https://github.com/Mohitv/bevel.git
+    ref: main
+    path: platforms/hyperledger-fabric/charts/ca    
+  values:
+    metadata:
+      namespace: manufacturer-net
+      images:
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+        ca: hyperledger/fabric-ca:1.4.4
+    deployment:
+      annotations:
+    annotations:  
+      service:
+        - example1: example2
+      pvc:
+ 
+    server:
+      name: ca
+      tlsstatus: true
+      admin: manufacturer-admin 
+  
+    storage:
+      storageclassname: manufacturersc
+      storagesize: 512Mi
+    vault:
+      role: vault-role
+      address: http://192.168.49.1:8200
+      authpath: localmanufacturer-net-auth
+      secretcert: secretsv2/data/crypto/peerOrganizations/manufacturer-net/ca?ca.manufacturer-net-cert.pem
+      secretkey: secretsv2/data/crypto/peerOrganizations/manufacturer-net/ca?manufacturer-net-CA.key
+      secretadminpass: secretsv2/data/credentials/manufacturer-net/ca/manufacturer?user
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    service:
+      servicetype: ClusterIP
+      ports:
+        tcp:
+          port: 7054
+    proxy:
+      provider: none
+      type: peer
+      external_url_suffix: develop.local.com
