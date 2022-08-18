@@ -19,7 +19,7 @@ import (
 )
 
 // NewMockStubWithCreator creates a MockStub with the createor field set to the supplied msp and cert
-// This currently requires using fabric builds from the master branch as it requires the changes below, that are yet to be released:
+// This currently requires using fabric builds from the main branch as it requires the changes below, that are yet to be released:
 // See https://jira.hyperledger.org/browse/FAB-5644
 func NewMockStubWithCreatorContainer(name string, cc shim.Chaincode, mspID string, certPath string) *shim.MockStub {
 	// Create new mock
