@@ -84,18 +84,30 @@
     #     loop_var: org
     #   when: org.type == "peer" and network.upgrade == 'yes'
 
-    # This role upgrades capabilities of system channel
-    - name: "Modify the system channel with tls information of new orderer"
+    # # This role upgrades capabilities of system channel
+    # - name: "upgrade the capabilities of orderer channels"
+    #   include_role:
+    #     name: "upgrade/orderer-capabilities"
+    #   vars:
+    #     build_path: "./build"
+    #     orderers: "{{ org.services.orderers }}"
+    #     docker_url: "{{ network.docker.url }}"
+    #     channel_name: "syschannel"
+    #     component_name: "{{ org.name | lower }}"
+    #     component_ns: "{{ org.name | lower }}-net"
+    #   loop: "{{ network.organizations }}"
+    #   loop_control:
+    #     loop_var: org
+    #   when: org.type == 'orderer'
+
+    # # This role upgrades capabilities of application channels
+    - name: "Upgrade the capabilities of application channels"
       include_role:
-        name: "upgrade/orderer-capabilities"
+        name: "upgrade/application-capabilities"
       vars:
         build_path: "./build"
-        orderers: "{{ org.services.orderers }}"
         docker_url: "{{ network.docker.url }}"
-        channel_name: "syschannel"
-        component_name: "{{ org.name | lower }}"
-        component_ns: "{{ org.name | lower }}-net"        
-      loop: "{{ network.organizations }}"
+        organizations: "{{ network.organizations }}"    
+      loop: "{{ network.channels }}"
       loop_control:
-        loop_var: org
-      when: org.type == 'orderer' 
+        loop_var: channel
