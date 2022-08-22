@@ -15,11 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/ca
-{% if git_protocol == 'https' %}
-    secretRef:
-      name: gitcredentials
-{% endif %}    
+      chart: {{ charts_dir }}/ca  
   values:
 {% if network.env.annotations is defined %}
     deployment:
