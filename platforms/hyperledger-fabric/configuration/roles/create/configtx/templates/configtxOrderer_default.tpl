@@ -53,6 +53,6 @@ Orderer: &OrdererDefaults
       Rule: "MAJORITY Admins"
     BlockValidation:
       Type: ImplicitMeta
-      Rule: "ANY Orderers"
+      Rule: "ANY Writers"
   Capabilities:
     <<: *OrdererCapabilities
