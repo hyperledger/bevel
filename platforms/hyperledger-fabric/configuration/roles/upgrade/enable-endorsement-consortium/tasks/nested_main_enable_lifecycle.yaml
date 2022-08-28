@@ -1,0 +1,84 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# This task creates the orderer cli and fetch and modify the config block
+############################################################################################
+# Check or wait for the Orderer pod
+# - name: "Wait for the new orderer pod"
+#   include_role:
+#     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+#   vars:
+#     component_type: "Pod"
+#     namespace: "{{ component_ns }}"
+#     kubernetes: "{{ kubernetes }}"
+#     label_selectors:
+#       - app = {{ channel.orderer.name | lower }}
+
+# create json file
+- name: "Modify json for orderer MSP"
+  shell: |
+    jq '.["{{ participant.name }}MSPPolicies"]=.["org1Policies"] | del(.["org1Policies"])' {{ build_path }}/channel-artifacts/enable_lifeycle.json > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
+
+# update json file for orderer nodes address for the channel
+- name: "Add orderer addresses"
+  shell: |
+    cp {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp".json
+    jq '."{{ participant.name }}MSPPolicies".Endorsement.policy.value.identities[0].principal.msp_identifier |= "{{ participant.name }}MSP"' {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp.json" > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
+    
+# This task create script file to add enable lifecycle to syschannel consortium orgs
+- name: "Add enable lifecycle to syschannel consortium orgs"
+  template:
+    src: "add-orderer_enable_lifecycle.tpl"
+    dest: "{{ build_path }}/add-orderer_enable_lifecycle.sh"
+  vars:    
+    channel_name: "syschannel"
+    org_name: "{{ participant.name }}MSP"
+    consortium_name: "{{ channel.consortium }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# Set orderer org for the channel 
+- name: Set orderer organization
+  set_fact:
+    ordererOrg: "{{ org }}"
+  loop: "{{ organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org.name == channel.orderer.name
+
+# This task create enable lifecycle capability block 
+- name: Create enable lifecycle capability block 
+  include_tasks: orderer/add-orderer_enable_lifecycle.yaml
+  vars:
+    channel_name: "syschannel"
+    component_ns: "{{ ordererOrg.name | lower }}-net"
+    orderer: "{{ ordererOrg.services.orderers | first }}"
+    org: "{{ ordererOrg }}"
+
+# This task calls sign_block.yaml to sign from specific org
+- name: Call sign_block.yaml to sign from specific org
+  include_tasks: orderer/sign_block.yaml
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    org: "{{ network | json_query(org_query) | first }}" 
+    component_ns: "{{ org.name | lower }}-net"
+    channel_name: "{{ channel.channel_name | lower }}"
+    sys_channel_name: "syschannel"
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: peer
+  when: peer.name == participant.name
+
+# This task add enable lifecycle capability to syschannel
+- name: Add enable lifecycle capability block to syschannel
+  include_tasks: orderer/update_block_orderer.yaml
+  vars:    
+    channel_name: "syschannel"
+    component_ns: "{{ ordererOrg.name | lower }}-net"
+    orderer: "{{ ordererOrg.services.orderers | first }}"
+    org: "{{ ordererOrg }}"

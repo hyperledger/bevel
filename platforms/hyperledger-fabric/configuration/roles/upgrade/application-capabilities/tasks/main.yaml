@@ -23,22 +23,22 @@
     echo -n "{\"channel\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"orderer\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"application\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"}}" >> {{ build_path }}/channel-artifacts/capabilities.json
 
 # Upgrade the orderer group for application channel
-# - name: upgrade application channel orderer group
-#   include_tasks: nested_main_orderer_group.yaml
-#   vars:
-#     kubernetes: "{{ org.k8s }}"
-#     component_ns: "{{ org.name | lower }}-net"
-#     orderers: "{{ org.services.orderers }}"    
-#   loop: "{{ organizations }}"
-#   loop_control:
-#     loop_var: org
-#   when: org.type == 'orderer' and org.name == channel.orderer.name
+- name: upgrade application channel orderer group
+  include_tasks: nested_main_orderer_group.yaml
+  vars:
+    kubernetes: "{{ org.k8s }}"
+    component_ns: "{{ org.name | lower }}-net"
+    orderers: "{{ org.services.orderers }}"    
+  loop: "{{ organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org.name == channel.orderer.name
 
 # Upgrade the channel group for application channel
-# - name: upgrade application channel group capability
-#   include_tasks: nested_main_channel_group.yaml
-#   vars:
-#      channel_name: "{{ channel.channel_name | lower }}"
+- name: upgrade application channel group capability
+  include_tasks: nested_main_channel_group.yaml
+  vars:
+     channel_name: "{{ channel.channel_name | lower }}"
 
 # Upgrade the application group for application channel
 - name: upgrade application app group capability

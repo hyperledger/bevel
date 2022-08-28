@@ -16,7 +16,7 @@
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
-    # This role upgrade the orderer binary to version provide in network.yaml payload
+    # # This role upgrade the orderer binary to version provide in network.yaml payload
     # - name: upgrade orderers binary
     #   include_role:
     #     name: "upgrade/orderer-binary"
@@ -101,13 +101,49 @@
     #   when: org.type == 'orderer'
 
     # # This role upgrades capabilities of application channels
-    - name: "Upgrade the capabilities of application channels"
-      include_role:
-        name: "upgrade/application-capabilities"
-      vars:
-        build_path: "./build"
-        docker_url: "{{ network.docker.url }}"
-        organizations: "{{ network.organizations }}"    
-      loop: "{{ network.channels }}"
-      loop_control:
-        loop_var: channel
+    # - name: "Upgrade the capabilities of application channels"
+    #   include_role:
+    #     name: "upgrade/application-capabilities"
+    #   vars:
+    #     build_path: "./build"
+    #     docker_url: "{{ network.docker.url }}"
+    #     organizations: "{{ network.organizations }}"    
+    #   loop: "{{ network.channels }}"
+    #   loop_control:
+    #     loop_var: channel
+
+    # This role adds orderer end points
+    # - name: "Add ordererEndpoints to Orderer Orgs in syschannel and other channels"
+    #   include_role:
+    #     name: "upgrade/orderer-addresses"
+    #   vars:
+    #     build_path: "./build"
+    #     docker_url: "{{ network.docker.url }}"
+    #     organizations: "{{ network.organizations }}"    
+    #   loop: "{{ network.channels }}"
+    #   loop_control:
+    #     loop_var: channel
+
+  # # This role enable endorsement in system channel consortium
+  # - name: "Enable endorsement in system channel consortium"
+  #   include_role:
+  #     name: "upgrade/enable-endorsement-consortium"
+  #   vars:
+  #     build_path: "./build"
+  #     docker_url: "{{ network.docker.url }}"
+  #     organizations: "{{ network.organizations }}"    
+  #   loop: "{{ network.channels }}"
+  #   loop_control:
+  #     loop_var: channel
+
+  # This role enable endorsement and lifecycle in app channels
+  - name: "Enable endorsement and lifecycle in app channels"
+    include_role:
+      name: "upgrade/enable-endorsement-app-channels"
+    vars:
+      build_path: "./build"
+      docker_url: "{{ network.docker.url }}"
+      organizations: "{{ network.organizations }}"    
+    loop: "{{ network.channels }}"
+    loop_control:
+      loop_var: channel
