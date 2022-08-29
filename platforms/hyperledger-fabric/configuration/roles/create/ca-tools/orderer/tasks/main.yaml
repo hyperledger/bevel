@@ -86,6 +86,7 @@
   loop: "{{ item.services.orderers }}"
   loop_control:
     loop_var: orderer
+  when: item.services.orderers is defined and item.services.orderers | length > 0
 
 # This task wait for ambassador key exists in vault.
 - name: Wait for ambassador key exists in vault.
@@ -98,7 +99,9 @@
   loop: "{{ item.services.orderers }}"
   loop_control:
     loop_var: orderer
-  when: network.env.proxy == 'ambassador'
+  when: 
+    - network.env.proxy == 'ambassador'
+    - item.services.orderers is defined and item.services.orderers | length > 0
 
 #####################################################################################################################
 # This task creates the Ambassador TLS credentials for orderers
@@ -113,7 +116,9 @@
   loop: "{{ item.services.orderers }}"
   loop_control:
     loop_var: orderer
-  when: network.env.proxy == 'ambassador'
+  when: 
+    - network.env.proxy == 'ambassador'
+    - item.services.orderers is defined and item.services.orderers | length > 0
 
 ############################################################################################
 # This task copies the msp admincerts from vault
@@ -187,7 +192,8 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   loop: "{{ item.services.orderers }}"
   loop_control:
-    loop_var: orderer  
+    loop_var: orderer
+  when: item.services.orderers is defined and item.services.orderers | length > 0  
 
 ###########################################################################################
 # This task Create the certs directory if it does not exist
