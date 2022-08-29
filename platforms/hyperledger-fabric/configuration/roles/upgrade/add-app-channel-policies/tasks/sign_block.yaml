@@ -7,17 +7,6 @@
 ############################################################################################
 # This task creates the orderer cli and fetch and modify the config block
 ############################################################################################
-# Check or wait for the peer pod
-# - name: "Check if peer pod is running"
-#   include_role:
-#     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-#   vars:
-#     component_type: "Pod"
-#     namespace: "{{ component_ns }}"
-#     kubernetes: "{{ org.k8s.config_file }}"
-#     label_selectors:
-#       - app = {{ participant.name | lower }}
-
 # checking for fabric cli
 - name: "Check if fabric cli is already present"
   k8s_info:
@@ -28,7 +17,7 @@
     label_selectors:
       - app = cli
   register: existing_cli
-  
+
 # Create the value file for creater org first peer
 - name: "create valuefile for cli {{ peer.name }}-{{ org.name }}"
   include_role:
@@ -63,24 +52,17 @@
       - app = cli
   register: get_cli
   until: ("Running" in get_cli|json_query('resources[*].status.phase'))
-  retries: "{{ network.env.retry_count }}"
+  retries: "{{ network.env.retry_count}}"
   delay: 40
 
 ############################################################################################
 # This task fetch , modify, update and copy the configuration block from the blockchain with the new orderer information
 # from orderer cli
-- name: fetch, modify, sign and copy the configuration block from the blockchain
+- name: sign the configuration block
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/add_app_channel_endorsement.sh {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/add_app_channel_endorsement.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/enable_lifecycle_{{ org_name }}.json {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/enable_lifecycle_{{ org_name }}.json
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- chmod 777 ./add_app_channel_endorsement.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- sh ./add_app_channel_endorsement.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_update_in_envelope.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
-    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_update_in_envelope.pb {{ build_path }}/{{ channel_name }}_config_update.pb
-  environment:
-    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"    
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/{{ channel_name }}_config_update.pb {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_config_update.pb
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel signconfigtx -f {{ channel_name }}_config_update.pb
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_config_update.pb {{ build_path }}/{{ channel_name }}_config_update.pb
   vars: 
     kubernetes: "{{ org.k8s }}"
-    ordererAddress: "{{ participant.ordererAddress }}"
