@@ -1,0 +1,55 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+    
+# This task create script file to add acls to application channel
+- name: "Create script file to add policies to application channel"
+  template:
+    src: "add_app_channel_acls.tpl"
+    dest: "{{ build_path }}/add_app_channel_acls.sh"
+  vars:    
+    channel_name: "{{ channel.channel_name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# This task updates the acls to application channel
+- name: Update channel group capabilities of application channel
+  include_tasks: add_app_channel_acls.yaml
+  vars:
+    peer: "{{ participant }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"    
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.type == "creator"
+
+# This task signs the acls to application channel
+- name: Call sign_block.yaml to sign from all other peers
+  include_tasks: sign_block.yaml
+  vars:
+    peer: "{{ participant }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"    
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.type != "creator"
+ 
+# This task commits the acls to application channel
+- name: Call update_block.yaml to add the new orderer to the existing network
+  include_tasks: update_block.yaml
+  vars:
+    peer: "{{ participant }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"    
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.type == "creator"

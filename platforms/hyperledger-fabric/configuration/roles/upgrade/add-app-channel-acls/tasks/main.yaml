@@ -1,0 +1,42 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "./build"
+    state: absent
+
+- name: Create build directory if it does not exist
+  file:
+    path: "./build/channel-artifacts/"
+    state: directory
+
+# Ensure channel-artifacts dir exists
+- name: Ensure channel-artifacts dir exists
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+
+# Create a json file
+- name: Creating new json file
+  file:
+    path: "{{ build_path }}/channel-artifacts/add_app_channel.json"
+    state: touch
+
+# Create app-channel policies json 
+- name: "create add app-channel policies json"
+  shell: |
+    echo -n "{\"acls\":{\"_lifecycle/CheckCommitReadiness\":{\"policy_ref\":\"/Channel/Application/Writers\"},\"_lifecycle/CommitChaincodeDefinition\":{\"policy_ref\":\"/Channel/Application/Writers\"},\"_lifecycle/QueryChaincodeDefinition\":{\"policy_ref\":\"/Channel/Application/Readers\"},\"_lifecycle/QueryChaincodeDefinitions\":{\"policy_ref\":\"/Channel/Application/Readers\"}}}" >> {{ build_path }}/channel-artifacts/add_app_channel.json
+    jq . {{ build_path }}/channel-artifacts/add_app_channel.json >> {{ build_path }}/channel-artifacts/add_app_channel_acls.json
+
+# This task add default acls in app channels application group
+- name: Add add default acls in app channels application group 
+  include_tasks: nested_main_add_app_channel_acls.yaml
+  vars:
+    channel_name: "{{ channel.channel_name | lower }}"
+  
