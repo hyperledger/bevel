@@ -35,9 +35,23 @@
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
 
+############################################################################################
+# This task gets cli pod 
+- name: Gets the cli pod 
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ org.name }}-net | grep "cli" | head -n 1 | awk '{print $1}')
+    echo $PEER_CLI
+  register: get_pod
+
+# This task gets the name of the cli pod 
+- name: Gets the name of the cli pod
+  set_fact:
+    pod_name={{ get_pod.stdout_lines | first }}
+
 # waiting for fabric cli
 - name: "Check if fabric cli is present"
   k8s_info:
+    name: "{{ pod_name }}"
     kind: Pod
     namespace: "{{ component_ns }}"
     kubeconfig: "{{ org.k8s.config_file }}"
