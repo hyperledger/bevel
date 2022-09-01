@@ -84,12 +84,20 @@
     include_role:
       name: create/crypto/raft
     vars:
-      component_name: "{{ item.name | lower }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      vault: "{{ item.vault }}"
-      peers: "{{ item.services.peers }}"
+      gitops: "{{ org.gitops }}"
+      org_name: "{{ org.name }}"
+      component_name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-quo"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+      vault: "{{ org.vault }}"
+      peers: "{{ org.services.peers }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      kubernetes: "{{ org.k8s }}"
     loop: "{{ network['organizations'] }}"
     when: network.config.consensus == 'raft'
+    loop_control:
+      loop_var: org
+
 
   # This role makes up the istanbul binary and place it in the bin directory
   - name: "Setup istanbul-tools"
