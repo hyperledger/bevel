@@ -8,15 +8,18 @@ This role creates the helm value file for peers of organisations and write couch
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Write the couchdb credentials to Vault
-This task writes the couchdb credentials for each organizatiosn to the vault
+#### 1. Reset peers pods
+This task reset peers pods
 ##### Input Variables
-    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
-    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    *namespace: The namespace of resource
-**shell**: It writes the  couchdb credentials for each organizatiosn to the vault.
+    *pod_name: Provide the name of the pod
+    *name: Provide the name of the organization
+    *file_path: Provide the release file path
+    *gitops_value: *item.gitops* from network.yaml
+    *component_ns: Provide the namespace of the resource
+    *kubernetes: *item.k8s* from network.yaml
+    *hr_name: Provides the name of the helmrealse
+**when**: It runs Only when *refresh_cert* is defined and *refresh_cert* is true.
 
-    
 #### 2. Create Value files for Organization Peers
 This task is the nested task for main.yaml which helps to iterate over all peers.
 ##### Input Variables

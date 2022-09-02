@@ -10,6 +10,24 @@
 #############################################################################################
 
 ############################################################################################
+# This task reset peers pods
+- name: "Reset peers pods"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "{{ peer.name | lower }}"
+    name: "{{ item.name | lower }}"
+    file_path: "{{ values_dir }}/{{ name }}/values-{{ peer.name }}.yaml"
+    gitops_value: "{{ item.gitops }}"
+    component_ns: "{{ namespace }}"
+    kubernetes: "{{ item.k8s }}"
+    hr_name: "{{ item.name | lower }}-{{ peer.name }}"
+  loop: "{{ component_services.peers }}"
+  loop_control:
+    loop_var: peer 
+  when: refresh_cert is defined and refresh_cert == 'true'
+
+############################################################################################
 # This task is the nested task for main.yaml which helps to iterate over all peers
 - name: Create Value files for Organization Peers
   include_role:
@@ -40,6 +58,26 @@
     msg: "[ci skip] Pushing Peer files"
   tags:
     - notest
+
+# Wait for the Orderer HelmRelease
+- name: 'Wait for {{ peer.name }} HelmRelease in {{ namespace }}'
+  k8s_info:
+    api_version: "helm.toolkit.fluxcd.io/v2beta1"
+    kind: "HelmRelease"
+    namespace: "{{ item.name | lower }}-net"
+    kubeconfig: "{{  item.k8s.config_file }}"
+    context: "{{ item.k8s.context }}"
+    name: "{{ item.name | lower }}-{{ peer.name }}"
+    field_selectors:
+      - status.conditions=Ready
+  register: component_data
+  retries: "{{ network.env.retry_count}}"
+  delay: 30
+  until: component_data.resources|length > 0
+  loop: "{{ component_services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: refresh_cert is defined and refresh_cert == 'true'
 
 # Wait for peer pods to be in the state of running
 - name: "Waiting for peer pod {{ peer.name }} in {{ item.name | lower }}-net"
