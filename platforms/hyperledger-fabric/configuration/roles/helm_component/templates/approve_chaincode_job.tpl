@@ -32,8 +32,8 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
-      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
-      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
+      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ name }}/users/admin 
+      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ name }}/orderer
       serviceaccountname: vault-auth
       imagesecretname: regcred
       tls: false

@@ -33,9 +33,9 @@
     query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token" 
     query_vault_secretPath: "organizations[?name=='{{organization.name}}'].vault.secret_path"
   shell: |
-    vault kv get -field=admincerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > Admin@{{ organization.name | lower }}-net-cert.pem
-    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/admincerts/
-    mv Admin@{{ organization.name | lower }}-net-cert.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/admincerts/
+    vault kv get -field=admincerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/{{ organization.name | lower }}/users/admin/msp > Admin@{{ organization.name | lower }}-net-cert.pem
+    mkdir -p ./build/crypto-config/{{ organization.name | lower }}-net/msp/admincerts/
+    mv Admin@{{ organization.name | lower }}-net-cert.pem ./build/crypto-config/{{ organization.name | lower }}-net/msp/admincerts/
   environment:
     VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
     VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   
@@ -53,9 +53,9 @@
     query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token" 
     query_vault_secretPath: "organizations[?name=='{{organization.name}}'].vault.secret_path"
   shell: |
-    vault kv get -field=cacerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem
-    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/cacerts/
-    mv ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/cacerts/
+    vault kv get -field=cacerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/{{ organization.name | lower }}/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem
+    mkdir -p ./build/crypto-config/{{ organization.name | lower }}-net/msp/cacerts/
+    mv ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem ./build/crypto-config/{{ organization.name | lower }}-net/msp/cacerts/
   environment:
     VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
     VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   
@@ -72,9 +72,9 @@
     query_vault_token: "organizations[?name=='{{organization.name}}'].vault.root_token"
     query_vault_secretPath: "organizations[?name=='{{organization.name}}'].vault.secret_path"
   shell: |
-    vault kv get -field=tlscacerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/peerOrganizations/{{ organization.name | lower }}-net/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem
-    mkdir -p ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/tlscacerts/
-    mv ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem ./build/crypto-config/peerOrganizations/{{ organization.name | lower }}-net/msp/tlscacerts/
+    vault kv get -field=tlscacerts {{ network | json_query(query_vault_secretPath) | first | default('secretsv2') }}/crypto/{{ organization.name | lower }}/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem
+    mkdir -p ./build/crypto-config/{{ organization.name | lower }}-net/msp/tlscacerts/
+    mv ca-{{ organization.name | lower }}-net-{{ network | json_query(query) | first }}.pem ./build/crypto-config/{{ organization.name | lower }}-net/msp/tlscacerts/
   environment:
     VAULT_ADDR: "{{ network | json_query(query_vault_url) | first }}"
     VAULT_TOKEN: "{{ network | json_query(query_vault_token) | first }}"   

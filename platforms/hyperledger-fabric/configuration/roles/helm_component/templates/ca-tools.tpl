@@ -61,21 +61,19 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_name }}-auth
-      secretmsp: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/msp
-      secrettls: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/tls
-      secretmsp_orderer: {{ vault.secret_path | default('secret') }}/data/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
-      secrettls_orderer: {{ vault.secret_path | default('secret') }}/data/crypto/ordererOrganizations/{{ component_name }}/users/admin/tls
-      secretorderer: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderers
-      secretpeer: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/peers
-      secretpeerorderertls: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderer/tls
-      secretambassador: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador
-      secretcert: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretcouchdb: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name }}/couchdb/{{ org_name }}
-      secretconfigfile: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/msp/config
+      secretmsp: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/users/admin/msp
+      secrettls: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/users/admin/tls
+      secretorderer: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/orderers
+      secretpeer: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/peers
+      secretpeerorderertls: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/orderer/tls
+      secretambassador: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/ambassador
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/ca?{{ component_name | e }}-CA.key
+      secretcouchdb: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ org_name }}/couchdb
+      secretconfigfile: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ org_name }}/msp/config
       serviceaccountname: vault-auth
       imagesecretname: regcred
-    
+
     healthcheck: 
       retries: 10
       sleepTimeAfterError: 2
