@@ -200,7 +200,7 @@ router.post('/', upload.array(), function (req, res) {
       }
     })
     .on("error", function (error) {
-      res.send("Error! " + error);
+      res.end("Error! " + error);
       console.log("error" + JSON.stringify(error, null, 4));
       console.log(error);
     });
