@@ -7,17 +7,6 @@
 ############################################################################################
 # This task creates the orderer cli and fetch and modify the config block
 ############################################################################################
-# Check or wait for the Orderer pod
-# - name: "Wait for the new orderer pod"
-#   include_role:
-#     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-#   vars:
-#     component_type: "Pod"
-#     namespace: "{{ component_ns }}"
-#     kubernetes: "{{ kubernetes }}"
-#     label_selectors:
-#       - app = {{ channel.orderer.name | lower }}
-
 # create json file
 - name: "Modify json for orderer MSP"
   shell: |
@@ -60,6 +49,13 @@
     orderer: "{{ ordererOrg.services.orderers | first }}"
     org: "{{ ordererOrg }}"
 
+# check if original channel config and modified config is same
+# if that is the case we dont have to proceed doing the channel update
+- name: "Add orderer addresses"
+  shell: |
+    if diff {{ build_path }}/config_orig.json {{ build_path }}/config_modified.json >/dev/null; then echo true; else echo false; fi
+  register: is_config_same
+
 # This task calls sign_block.yaml to sign from specific org
 - name: Call sign_block.yaml to sign from specific org
   include_tasks: orderer/sign_block.yaml
@@ -72,7 +68,7 @@
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: peer
-  when: peer.name == participant.name
+  when: peer.name == participant.name and is_config_same.stdout == false
 
 # This task add enable lifecycle capability to syschannel
 - name: Add enable lifecycle capability block to syschannel
@@ -82,3 +78,4 @@
     component_ns: "{{ ordererOrg.name | lower }}-net"
     orderer: "{{ ordererOrg.services.orderers | first }}"
     org: "{{ ordererOrg }}"
+  when: is_config_same.stdout == false
