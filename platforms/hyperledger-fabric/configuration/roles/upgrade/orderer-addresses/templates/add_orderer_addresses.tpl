@@ -17,7 +17,6 @@ rm -r temp
 
 configtxlator proto_decode --input {{ channel_name }}_config_block.pb --type common.Block | jq .data.data[0].payload.data.config > {{ channel_name }}_config_block.json
 jq -s ".[0] * {\"channel_group\":{\"groups\":{\"Orderer\": {\"groups\": {\"{{ org_name }}\": {\"values\": .[1].{{ org_name }}Endpoint}}}}}}" {{ channel_name }}_config_block.json ./ordererAddresses.json > modified_config.json
-
 echo "converting the channel_config.json and channel_modified_config.json to .pb files"
 configtxlator proto_encode --input {{ channel_name }}_config_block.json --type common.Config --output {{ channel_name }}_config.pb
 configtxlator proto_encode --input modified_config.json --type common.Config --output {{ channel_name }}_updated_config.pb

@@ -30,6 +30,13 @@
     loop_var: participant
   when: participant.type == "creator"
 
+# check if original channel config and modified config is same
+# if that is the case we dont have to proceed doing the channel update
+- name: "Check if required channel config already exists"
+  shell: |
+    if diff {{ build_path }}/config_orig.json {{ build_path }}/config_modified.json >/dev/null; then echo true; else echo false; fi
+  register: is_config_same
+
 # # This task calls sign_block.yaml to generate the cli for the new orderer for the signing of the block
 - name: Call sign_block.yaml to sign from all other peers
   include_tasks: channel-group/sign_block.yaml
@@ -41,7 +48,7 @@
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
-  when: participant.type != "creator"
+  when: participant.type != "creator" and is_config_same.stdout == false
  
 # This task updates the block to the channel
 - name: Call update_block.yaml to add the new orderer to the existing network
@@ -54,4 +61,4 @@
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
-  when: participant.type == "creator"
+  when: participant.type == "creator" and is_config_same.stdout == false
