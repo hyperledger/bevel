@@ -5,7 +5,7 @@
 ##############################################################################################
 
 ############################################################################################
-# This task creates the value file for the peer as per requirements mentioned in 
+# This task creates the value file for the peer as per requirements mentioned in
 # network.yaml
 - name: Upgrade Value files for Organization peer
   include_role:
@@ -19,11 +19,11 @@
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     peer_name: "{{ peer.name }}"
     peer_ns: "{{ namespace }}"
-    provider: "{{ network.env.proxy }}"  
+    provider: "{{ network.env.proxy }}"
 
-#Git Push : Pushes the above generated files to git directory 
+#Git Push : Pushes the above generated files to git directory
 - name: Git Push
-  include_role: 
+  include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
@@ -72,9 +72,9 @@
   tags:
     - notest
 
+# Ask the operator to verify the logs
 - name: 'Verify logs for pod {{ peer.name }}-0 in {{ item.name | lower}}-net'
   pause:
     prompt: "Please verify logs of container {{ peer.name }} in Pod {{ peer.name }}-0 within namespace {{ item.name | lower}}-net to ensure it is upgraded and ready
             (ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)"
   when: git_updated is defined
-  
