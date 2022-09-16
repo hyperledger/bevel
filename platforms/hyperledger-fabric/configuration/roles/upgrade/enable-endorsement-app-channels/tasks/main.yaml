@@ -1,0 +1,45 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "./build"
+    state: absent
+
+- name: Create build directory if it does not exist
+  file:
+    path: "./build/channel-artifacts/"
+    state: directory
+
+# Ensure channel-artifacts dir exists
+- name: Ensure channel-artifacts dir exists
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+
+# Create a json file
+- name: Creating new json file
+  file:
+    path: "{{ build_path }}/channel-artifacts/enable_lifycle.json"
+    state: touch
+
+# Create a enable lifeycle json
+- name: "Create enable lifeycle json"
+  shell: |
+    echo -n "{\"org1Policies\":{\"Endorsement\":{\"mod_policy\":\"Admins\",\"policy\":{\"type\":1,\"value\":{\"identities\":[{\"principal\":{\"msp_identifier\":\"Org1ExampleCom\",\"role\":\"MEMBER\"},\"principal_classification\":\"ROLE\"}],\"rule\":{\"n_out_of\":{\"n\":1,\"rules\":[{\"signed_by\":0}]}},\"version\":0}},\"version\":\"0\"}}}" >> {{ build_path }}/channel-artifacts/enable_lifeycle.json
+
+# # Enable enable endorsement in application channels
+- name: Enable endorsement in application channels
+  include_tasks: nested_main_app_channel_endorsement.yaml
+  vars:
+    consortium: "{{ channel.consortium }}"
+    orderer_name: "{{ channel.orderer.name }}"
+    participant_name: "{{ participant.name }}"
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: participant

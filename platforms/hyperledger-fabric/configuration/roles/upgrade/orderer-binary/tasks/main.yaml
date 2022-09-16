@@ -13,23 +13,27 @@
     path: "./build"
     state: absent
 
+# Create build directory if it does not exist
 - name: Create build directory if it does not exist
   file:
     path: "./build/channel-artifacts/"
     state: directory
 
-- name: "Get genesis block from Vault"
+# Get genesis block from Vault
+- name: Get genesis block from Vault
   shell: |
-    vault kv get -field={{ network.env.type }}GenesisBlock {{ vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name }}-net        
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name }}-net
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_orderer_genesis_block  
+  register: vault_orderer_genesis_block
 
+# Declare fact
 - set_fact:
     genesis_block: "{{ vault_orderer_genesis_block.stdout }}"
 
-- name: "Save genesis block"
+# Store the genesis block
+- name: Save genesis block
   local_action: copy content="{{ genesis_block }}" dest=./build/channel-artifacts/genesis.block.base64
 
 # This role creates value file for each orderer
@@ -38,6 +42,5 @@
   loop: "{{ component_services.orderers }}"
   loop_control:
     loop_var: orderer
-  when: 
-    - component_services.orderers is defined and component_services.consensus is defined    
-  
+  when:
+    - component_services.orderers is defined and component_services.consensus is defined

@@ -1,0 +1,38 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+# create json file
+- name: "Modify json for orderer MSP"
+  shell: |
+    jq '.["{{ participant.name }}MSPPolicies"]=.["org1Policies"] | del(.["org1Policies"])' {{ build_path }}/channel-artifacts/enable_lifeycle.json > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
+
+# update json file for orderer nodes address for the channel
+- name: "Add orderer addresses"
+  shell: |
+    cp {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp".json
+    jq '."{{ participant.name }}MSPPolicies".Endorsement.policy.value.identities[0].principal.msp_identifier |= "{{ participant.name }}MSP"' {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp.json" > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
+
+# This task create script file to add enable lifecycle to syschannel consortium orgs
+- name: "Add enable lifecycle to syschannel consortium orgs"
+  template:
+    src: "add_app_channel_endorsement.tpl"
+    dest: "{{ build_path }}/add_app_channel_endorsement.sh"
+  vars:
+    channel_name: "{{ channel.channel_name | lower }}"
+    org_name: "{{ participant.name }}MSP"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# This task updates capability of channel group in application channel
+- name: Update channel group capabilities of application channel
+  include_tasks: update_app_channel_endorsement.yaml
+  vars:
+    peer: "{{ participant }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"
+    channel_name: "{{ channel.channel_name | lower }}"
+    org_name: "{{ participant.name }}MSP"
