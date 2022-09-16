@@ -21,7 +21,7 @@ These playbooks enables creation of value files and felicitate deployment of the
 [platforms/r3-corda/configuration/samples/network-cordav2.yaml](../../r3-corda/configuration/samples/network-cordav2.yaml)<br>
 
 To run the playbooks, following are the pre-requisites.
-1. Ansible 2.8.2 with jmespath installed (sample docker image can be made from this [Dockerfile](../../shared/images/ansibleSlave.Dockerfile)).
+1. Ansible 2.8.2 with jmespath installed (sample docker image can be made from this [Dockerfile](../../shared/images/ansibleAgent.Dockerfile)).
 2. Ansible controller configured like this [sample](../../shared/inventory) inventory settings.
 3. One Managed Kubernetes cluster for each organization (currently EKS tested so you need AWS cli credentials).
 4. A Hashicorp Vault installation for each organization which is initiated and unsealed. The Vault IP Address should be accessible from this machine (where the playbook is run), and the Vault root token is available.
@@ -57,7 +57,7 @@ To deploy everything from scratch, be run by the following command from the root
 ```
 ansible-playbook platforms/shared/configuration/site.yaml -e "@./platforms/hyperledger-fabric/configuration/network.yaml"
 ```
-The [site.yaml](./site.yaml) is the master playbook which does basic environment setup, kubernetes environment setup and the calls platform specific deployment playbooks.
+The [site.yaml](./site.yaml) is the main playbook which does basic environment setup, kubernetes environment setup and the calls platform specific deployment playbooks.
 
 ## Miscellenous
 #### Playbook description
