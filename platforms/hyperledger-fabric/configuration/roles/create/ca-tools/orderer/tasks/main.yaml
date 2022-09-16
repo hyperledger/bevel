@@ -21,6 +21,26 @@
   when: add_peer is not defined or add_peer != 'true'
 
 ############################################################################################
+# This task reset ca-tools pod
+- name: "Reset ca-tools pod"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "ca-tools"
+    file_path: "{{ values_dir }}/{{ pod_name }}/{{ component_name }}.yaml"
+    gitops_value: "{{ item.gitops }}"
+    component_ns: "{{ component_name }}"
+    kubernetes: "{{ item.k8s }}"
+    hr_name: "{{ component_name }}-ca-tools"
+  when: refresh_cert is defined and refresh_cert == 'true'
+
+- name: "Delete old certificates"
+  include_tasks: delete_old_certs.yaml
+  vars:
+    org_name: "{{ item.name | lower }}"
+  when: refresh_cert is defined and refresh_cert == 'true'
+
+############################################################################################
 # This task creates the CA-tools value files
 - name: "Create CA-tools Values for orderer"
   include_role:

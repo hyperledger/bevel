@@ -8,6 +8,36 @@
 # This role creates value file for zkKafka and orderer
 #############################################################################################
 
+############################################################################################
+# This task fetch the genesis block from vault
+# to the build directory
+- name: Fetch the genesis block from vault
+  shell: |
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name | lower }}-net > genesis.block.base64
+    mkdir -p ./build/channel-artifacts
+    mv genesis.block.base64 ./build/channel-artifacts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: refresh_cert is defined and refresh_cert == 'true'
+
+############################################################################################
+# This task reset peers pods
+- name: "Reset peers pods"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "{{ orderer.name | lower }}"
+    name: "{{ item.name | lower }}"
+    file_path: "{{ values_dir }}/orderer/{{ orderer.name | lower }}-{{ item.name | lower }}.yaml"
+    gitops_value: "{{ item.gitops }}"
+    component_ns: "{{ namespace }}"
+    kubernetes: "{{ item.k8s }}"
+    hr_name: "{{ item.name | lower }}-{{ orderer.name }}"
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer 
+  when: refresh_cert is defined and refresh_cert == 'true'
 
 ############################################################################################
 # This task creates the value file for kafka for orderes as per requirements mentioned in

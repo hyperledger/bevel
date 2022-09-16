@@ -37,7 +37,7 @@
         - organization:
           name: store
           unit: Store
-          external_url_suffix: test.corda.blockchaincloudpoc.com
+          external_url_suffix: test.quorum.blockchaincloudpoc.com
           cloud_provider: aws
           aws:
             access_key: "aws_access_key"
@@ -87,8 +87,8 @@
               frontend:
                 port: 8080
                 targetPort: 80
-              geth_url: "http://store.test.corda.blockchaincloudpoc.com:15031"
-  
+              geth_url: "http://store.test.quorum.blockchaincloudpoc.com:15031"
+
   pre_tasks:
     - name: Create temp roles dir folder
       file:
@@ -118,19 +118,28 @@
           failed: True
         vault_nodekey_result:
           failed: True
-        peers: "{{ item.services.peers }}"
-        organisation: "{{ item.name | lower }}"
-        component_ns: "{{ item.name | lower }}-quo"
-        component_name: "{{ item.name | lower }}"
+        peers: "{{ org.services.peers }}"
+        bin_install_dir:  "~/bin"
+        install_os: "linux"
+        install_arch:  "amd64"
+        org_name: "{{ org.name }}"
+        organisation: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-quo"
+        component_name: "{{ org.name | lower }}"
         node_name: "{{ node.name | lower }}"
+        values_dir: "./build/{{ org.gitops.release_dir }}"
+        gitops: "{{ org.gitops }}"
+        charts_dir: "../../{{ org.gitops.chart_source }}"
         kubernetes:
           config_file: "/tmp/molecule/kind-default/kubeconfig"
           context: "kind"
         vault:
-          vault: "{{ item.vault }}"
+          vault: "{{ org.vault }}"
           url: http://localhost:9090/
           root_token: root
           secret_path: "secretsv2"
         root_subject: "{{ network.config.subject }}"
-        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"  
+        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
       loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org

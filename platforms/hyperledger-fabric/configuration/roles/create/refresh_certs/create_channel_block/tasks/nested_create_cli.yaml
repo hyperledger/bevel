@@ -1,0 +1,129 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# This task creates the orderer cli and fetch and modify the config block
+############################################################################################
+
+# Create the value file for creater org first orderer
+- name: "Create valuefile for cli {{ orderer.name }}-{{ org.name }}"
+  include_role:
+    name: k8_component
+  vars:
+    component_type_name: "{{ org.name | lower }}"
+    component_type: "orderer_cli_job"    
+    component_name: "cli-{{ org.name }}-{{ orderer.name }}"
+    orderer_name: "{{ orderer.name }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    storage_class: "{{ org.name }}sc"
+    release_dir: "{{ build_path }}"
+    orderer_component: "{{ orderer.name | lower }}.{{ component_ns }}"
+    orderer_address: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+
+# Start the cli using the value file created in the previous step
+- name: "Start cli"
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+
+# waiting for fabric cli
+- name: "Wait for the fabric cli to come up"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: get_cli
+  until: ("Running" in get_cli|json_query('resources[*].status.phase'))
+  retries: "{{ network.env.retry_count}}"
+  delay: 40
+
+############################################################################################
+# This task calls get_update_block to fetch the syschannel channel block
+- name: Call get_update_block to fetch the syschannel channel block
+  include_tasks: get_update_block.yaml
+  vars:
+    script: "syschannel-update-script.sh"
+    channel_name: "{{ sys_channel_name }}"
+    check: "fetch_block"
+
+############################################################################################
+# This task calls get_update_block to fetch the appchannel channels block
+- name: Call get_update_block to fetch the {{ channel_name }} channel block
+  include_tasks: get_update_block.yaml
+  vars:
+    script: "{{ channel_name }}-update-channel-script.sh"
+    channel_name: "{{ channel.channel_name | lower }}"
+    check: "fetch_block"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+
+############################################################################################
+# This task calls get_update_block to update the syschannel channel block
+- name: Call get_update_block to update the syschannel channel block
+  include_tasks: get_update_block.yaml
+  vars:
+    script: "syschannel-update-script.sh"
+    channel_name: "{{ sys_channel_name }}"
+    check: "update_block"
+
+############################################################################################
+# This task calls get_update_block to fetch the appchannel channels block
+- name: Call get_update_block to update the {{ channel_name }} channel block
+  include_tasks: get_update_block.yaml
+  vars:
+    script: "{{ channel_name }}-update-channel-script.sh"
+    channel_name: "{{ channel.channel_name | lower }}"
+    check: "update_block"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+
+# This task delete the previously created orderer HelmRelease
+- name: Delete the previous {{ orderer_main.name }} HelmRelease
+  k8s:
+    api_version: "helm.toolkit.fluxcd.io/v2beta1"
+    kind: HelmRelease
+    name: "{{ org.name | lower }}-{{ orderer_main.name }}"
+    namespace: "{{ component_ns }}"
+    state: absent
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+
+# Wait for the Orderer HelmRelease
+- name: 'Wait for {{ orderer_main.name }} HelmRelease in {{ component_ns }}'
+  k8s_info:
+    api_version: "helm.toolkit.fluxcd.io/v2beta1"
+    kind: "HelmRelease"
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{  org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    name: "{{ org.name | lower }}-{{ orderer_main.name }}"
+    field_selectors:
+      - status.conditions=Ready
+  register: component_data
+  retries: "{{ network.env.retry_count}}"
+  delay: 30
+  until: component_data.resources|length > 0
+
+# Wait for the Orderer pod
+- name: "Waiting for orderer pod {{ orderer_main.name }} in {{ component_ns }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ orderer_main.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}

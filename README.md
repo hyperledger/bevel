@@ -24,7 +24,7 @@
 - [Sponsor](#sponsor)
 
 ## Short Description
-An automation framework for rapidly and consistently deploying production-ready DLT platforms.
+An automation framework for rapidly and consistently deploying production-ready Distributed Ledger Technology (DLT) platforms.
 
 ## Scope of Project
 Hyperledger Bevel delivers an automation framework for rapidly and consistently deploying production-ready DLT platforms to cloud infrastructure.
