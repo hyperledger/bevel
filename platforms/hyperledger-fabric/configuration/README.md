@@ -34,7 +34,7 @@ Execute the playbook by running the command below - executed from the root of th
 ```
 ansible-playbook platforms/shared/configuration/site.yaml -e "@/path/to/network-Fabricv3.yaml"
 ```
-The [platforms/shared/configuration/site.yaml](../../shared/configuration/site.yaml) is the master playbook which does basic environment setup, configures the Kubernetes cluster and then calls platform specific deployment playbooks.
+The [platforms/shared/configuration/site.yaml](../../shared/configuration/site.yaml) is the main playbook which does basic environment setup, configures the Kubernetes cluster and then calls platform specific deployment playbooks.
 
 You can also only run the platform specific deployment playbooks by running the command below (after the prerequisites have been installed) - executed from the root of the project:
 ```

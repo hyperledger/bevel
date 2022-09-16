@@ -1,0 +1,22 @@
+name: bevel_CI
+
+# Triggers the workflow on push or pull request events
+on:
+  push:
+    branches: [main]
+
+  pull_request:
+    branches: [main]
+
+jobs:
+  DCI-Lint:
+    runs-on: ubuntu-20.04
+    name: DCI-Lint
+    steps:
+    - name: Lint Git Repo
+      id: lint-git-repo
+      uses: petermetz/gh-action-dci-lint@v0.6.1
+      with:
+        lint-git-repo-request: '{"cloneUrl": "${{ github.server_url }}/${{ github.repository }}.git", "fetchArgs": ["--no-tags", "--prune", "--progress", "--no-recurse-submodules", "--depth=1", "origin" ,"+${{ github.sha }}:${{ github.ref }}"], "checkoutArgs": [ "${{ github.ref }}"], "targetPhrasePatterns": [], "configDefaultsUrl": "https://inclusivenaming.org/json/dci-lint-config-recommended-v1.json" }'
+    - name: Get the output response
+      run: echo "${{ steps.lint-git-repo.outputs.lint-git-repo-response }}"
