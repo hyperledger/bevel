@@ -7,17 +7,6 @@
 ############################################################################################
 # This task creates the orderer cli and fetch and modify the config block
 ############################################################################################
-# Check or wait for the peer pod
-# - name: "Check if peer pod is running"
-#   include_role:
-#     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-#   vars:
-#     component_type: "Pod"
-#     namespace: "{{ component_ns }}"
-#     kubernetes: "{{ org.k8s.config_file }}"
-#     label_selectors:
-#       - app = {{ participant.name | lower }}
-
 # checking for fabric cli
 - name: "Check if fabric cli is already present"
   k8s_info:
@@ -28,17 +17,17 @@
     label_selectors:
       - app = cli
   register: existing_cli
-  
+
 # Create the value file for creater org first peer
-- name: "create valuefile for cli {{ peer.name }}-{{ org.name }}"
+- name: "Create valuefile for cli {{ peer.name }}-{{ org.name }}"
   include_role:
     name: k8_component
-  vars:    
+  vars:
     component_type_name: "{{ participant.name }}"
-    component_type: "existing_peer_cli_job"    
+    component_type: "existing_peer_cli_job"
     component_name: "cli-{{ channel_name }}-{{ org.name }}-{{ peer.name }}"
     peer_name: "{{ peer.name }}"
-    vault: "{{ org.vault }}"    
+    vault: "{{ org.vault }}"
     fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     channel_name: "{{ channel_name }}"
@@ -47,7 +36,7 @@
   when: existing_cli.resources|length == 0
 
 # Start the cli using the value file created in the previous step
-- name: "start cli"
+- name: "Start cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
   when: existing_cli.resources|length == 0
@@ -76,12 +65,12 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/add_app_channel_acls.sh {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/add_app_channel_acls.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/add_app_channel_acls.json {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/add_app_channel_acls.json
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- chmod 777 ./add_app_channel_acls.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- sh ./add_app_channel_acls.sh    
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- sh ./add_app_channel_acls.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_update_in_envelope.pb {{ build_path }}/{{ channel_name }}_config_update.pb
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config_orig.json {{ build_path }}/config_orig.json
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config_modified.json {{ build_path }}/config_modified.json
   environment:
-    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"    
-  vars: 
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  vars:
     kubernetes: "{{ org.k8s }}"
     ordererAddress: "{{ participant.ordererAddress }}"

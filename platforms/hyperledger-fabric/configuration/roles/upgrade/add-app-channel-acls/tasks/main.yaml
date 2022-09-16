@@ -28,15 +28,14 @@
     path: "{{ build_path }}/channel-artifacts/add_app_channel.json"
     state: touch
 
-# Create app-channel policies json 
+# Create app-channel policies json
 - name: "create add app-channel policies json"
   shell: |
     echo -n "{\"acls\":{\"_lifecycle/CheckCommitReadiness\":{\"policy_ref\":\"/Channel/Application/Writers\"},\"_lifecycle/CommitChaincodeDefinition\":{\"policy_ref\":\"/Channel/Application/Writers\"},\"_lifecycle/QueryChaincodeDefinition\":{\"policy_ref\":\"/Channel/Application/Readers\"},\"_lifecycle/QueryChaincodeDefinitions\":{\"policy_ref\":\"/Channel/Application/Readers\"}}}" >> {{ build_path }}/channel-artifacts/add_app_channel.json
     jq . {{ build_path }}/channel-artifacts/add_app_channel.json >> {{ build_path }}/channel-artifacts/add_app_channel_acls.json
 
 # This task add default acls in app channels application group
-- name: Add add default acls in app channels application group 
+- name: Add add default acls in app channels application group
   include_tasks: nested_main_add_app_channel_acls.yaml
   vars:
     channel_name: "{{ channel.channel_name | lower }}"
-  

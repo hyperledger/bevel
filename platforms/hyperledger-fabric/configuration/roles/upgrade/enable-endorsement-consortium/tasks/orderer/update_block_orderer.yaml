@@ -19,14 +19,14 @@
   register: existing_cli
 
 # Create the value file for creater org first peer
-- name: "create valuefile for cli {{ orderer.name }}-{{ org.name }}-{{ channel_name }}"
+- name: "Create valuefile for cli {{ orderer.name }}-{{ org.name }}-{{ channel_name }}"
   include_role:
     name: k8_component
-  vars:    
+  vars:
     component_type_name: "{{ org.name | lower }}"
-    component_type: "orderer_cli_job"    
+    component_type: "orderer_cli_job"
     component_name: "cli-{{ channel_name }}-{{ org.name }}-{{ orderer.name }}"
-    orderer_name: "{{ orderer.name }}"    
+    orderer_name: "{{ orderer.name }}"
     git_url: "{{ org.gitops.git_url }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
@@ -41,7 +41,7 @@
   when: existing_cli.resources|length == 0
 
 # Start the cli using the value file created in the previous step
-- name: "start cli"
+- name: "Start cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
   when: existing_cli.resources|length == 0
@@ -67,10 +67,9 @@
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/{{ channel_name }}_config_update.pb {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_config_update.pb
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_config_update.pb -o ${ORDERER_URL} -c {{ channel_name }} --tls --cafile ${ORDERER_CA} 
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_config_update.pb -o ${ORDERER_URL} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
   environment:
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
     ORDERER_URL: "{{ orderer.name | lower }}.{{ org.name }}-net:{{ orderer.grpc.port }}"
-  vars: 
+  vars:
     kubernetes: "{{ org.k8s }}"
-

@@ -18,14 +18,14 @@
   register: existing_cli
 
 # Create the value file for creater org first peer
-- name: "create valuefile for cli {{ orderer.name }}-{{ org.name }}-{{ channel_name }}"
+- name: "Create valuefile for cli {{ orderer.name }}-{{ org.name }}-{{ channel_name }}"
   include_role:
     name: k8_component
   vars:
     component_type_name: "{{ org.name | lower }}"
     component_type: "orderer_cli_job"
     component_name: "cli-{{ channel_name }}-{{ org.name }}-{{ orderer.name }}"
-    orderer_name: "{{ orderer.name }}"    
+    orderer_name: "{{ orderer.name }}"
     git_url: "{{ org.gitops.git_url }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
@@ -40,7 +40,7 @@
   when: existing_cli.resources|length == 0
 
 # Start the cli using the value file created in the previous step
-- name: "start cli"
+- name: "Start cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
   when: existing_cli.resources|length == 0
@@ -59,8 +59,6 @@
   retries: "{{ network.env.retry_count }}"
   delay: 40
 
-- debug: 
-    msg: "{{ orderer.name | lower }}.{{ org.name }}-net:{{ orderer.grpc.port }}"
 ############################################################################################
 # This task fetch , modify, update and copy the configuration block from the blockchain with the new orderer information
 # from orderer cli
@@ -71,14 +69,14 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/add-orderer_enable_lifecycle.sh {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/add-orderer_enable_lifecycle.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/enable_lifecycle_{{ participant.name }}MSP.json {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/enable_lifecycle_{{ participant.name }}MSP.json
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- chmod 777 ./add-orderer_enable_lifecycle.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- sh ./add-orderer_enable_lifecycle.sh 
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- sh ./add-orderer_enable_lifecycle.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_diff_config_envelope.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_diff_config_envelope.pb {{ build_path }}/{{ channel_name }}_config_update.pb
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config_orig.json {{ build_path }}/config_orig.json
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config_modified.json {{ build_path }}/config_modified.json
   environment:
-    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"    
-  vars: 
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  vars:
     kubernetes: "{{ org.k8s }}"
     ordererAddress: "{{ orderer.name | lower }}.{{ org.name }}-net:{{ orderer.grpc.port }}"
 

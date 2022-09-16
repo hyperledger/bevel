@@ -5,26 +5,26 @@
 ##############################################################################################
 
 ############################################################################################
-# This task creates the orderer cli and fetch and modify the config block
+# This task creates the cli and fetch and modify the config block
 ############################################################################################
 # This task creates the capabilities upgrade script for channel group
-- name: "Create script file to upgrade application group"
+- name: Create script file to upgrade application group
   template:
     src: "application_group_capability.tpl"
     dest: "{{ build_path }}/appchannel-application-group-capabilities.sh"
-  vars:    
+  vars:
     os: "{{ fabric.os }}"
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
 
 # This task updates capability of channel group in application channel
 - name: Update channel group capabilities of application channel
-  include_tasks: application-group/application_group_capability.yaml  
+  include_tasks: application-group/application_group_capability.yaml
   vars:
     peer: "{{ participant.peers | first }}"
     org_query: "organizations[?name=='{{participant.name}}']"
     org: "{{ network | json_query(org_query) | first }}"
-    component_ns: "{{ org.name | lower }}-net"    
+    component_ns: "{{ org.name | lower }}-net"
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
@@ -41,24 +41,24 @@
 - name: Call sign_block.yaml to sign from all other peers
   include_tasks: channel-group/sign_block.yaml
   vars:
-    peer: "{{ participant.peers | first }}"    
+    peer: "{{ participant.peers | first }}"
     org_query: "organizations[?name=='{{participant.name}}']"
     org: "{{ network | json_query(org_query) | first }}"
-    component_ns: "{{ org.name | lower }}-net"    
+    component_ns: "{{ org.name | lower }}-net"
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
-  when: participant.type != "creator" and is_config_same.stdout == false
- 
+  when: participant.type != "creator" and is_config_same.stdout == "false"
+
 # This task updates the block to the channel
 - name: Call update_block.yaml to add the new orderer to the existing network
   include_tasks: channel-group/update_block.yaml
   vars:
-    peer: "{{ participant.peers | first }}"    
+    peer: "{{ participant.peers | first }}"
     org_query: "organizations[?name=='{{participant.name}}']"
     org: "{{ network | json_query(org_query) | first }}"
-    component_ns: "{{ org.name | lower }}-net"    
+    component_ns: "{{ org.name | lower }}-net"
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
-  when: participant.type == "creator" and is_config_same.stdout == false
+  when: participant.type == "creator" and is_config_same.stdout == "false"

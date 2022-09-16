@@ -18,6 +18,7 @@ rm -r temp
 configtxlator proto_decode --input {{ channel_name }}_config_block.pb --type common.Block | jq .data.data[0].payload.data.config > {{ channel_name }}_config_block.json
 
 jq -s '.[0] * {"channel_group":{"groups":{"Orderer": {"values": {"Capabilities": .[1].orderer}}}}}' {{ channel_name }}_config_block.json ./capabilities.json > modified_config.json
+echo "copy existing channel config and modified channel config"
 cp {{ channel_name }}_config_block.json config_orig.json
 cp modified_config.json config_modified.json
 echo "converting the channel_config.json and channel_modified_config.json to .pb files"

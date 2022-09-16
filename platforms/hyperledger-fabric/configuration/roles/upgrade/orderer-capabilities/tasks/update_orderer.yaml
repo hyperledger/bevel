@@ -8,7 +8,7 @@
 # This task creates the orderer cli and fetch and modify the config block
 ############################################################################################
 # checking for fabric cli
-- name: "Check if fabric cli is already present"
+- name: Check if fabric cli is already present
   k8s_info:
     kind: Pod
     namespace: "{{ component_ns }}"
@@ -22,11 +22,11 @@
 - name: "create valuefile for cli {{ orderer.name }}-{{ org.name }}-{{ channel_name }}"
   include_role:
     name: k8_component
-  vars:    
+  vars:
     component_type_name: "{{ org.name | lower }}"
-    component_type: "orderer_cli_job"    
+    component_type: "orderer_cli_job"
     component_name: "cli-{{ channel_name }}-{{ org.name }}-{{ orderer.name }}"
-    orderer_name: "{{ orderer.name }}"    
+    orderer_name: "{{ orderer.name }}"
     git_url: "{{ org.gitops.git_url }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
@@ -74,11 +74,11 @@
   environment:
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
     ORDERER_URL: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
-  vars: 
-    kubernetes: "{{ org.k8s }}"    
+  vars:
+    kubernetes: "{{ org.k8s }}"
 
 # This task saves the new genesis block to the vault
-- name: Save the genesis block to vault 
+- name: Save the genesis block to vault
   shell: |
     vault kv put {{ neworg.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ neworg.name }}-net {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
   environment:

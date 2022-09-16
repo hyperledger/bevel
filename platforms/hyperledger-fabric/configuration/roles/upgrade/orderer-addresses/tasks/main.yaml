@@ -28,12 +28,12 @@
     path: "{{ build_path }}/channel-artifacts/orglevelEndpoints.json"
     state: touch
 
-# Create a capabilities json 
-- name: "create orglevelEndpoints json"
+# Create a capabilities json
+- name: Create orglevelEndpoints json
   shell: |
     echo -n "{\"OrdererOrgEndpoint\":{\"Endpoints\":{\"mod_policy\":\"Admins\",\"value\":{\"addresses\":[]}}}}" >> {{ build_path }}/channel-artifacts/orglevelEndpoints.json
 
-# Set orderer org for the channel 
+# Set orderer org for the channel
 - name: Set orderer organization
   set_fact:
     ordererOrg: "{{ org }}"
@@ -43,12 +43,12 @@
   when: org.type == 'orderer' and org.name == channel.orderer.name
 
 # create json file
-- name: "Modify json for orderer MSP"
+- name: Modify json for orderer MSP
   shell: |
     jq '.["{{ ordererOrg.name }}MSPEndpoint"]=.["OrdererOrgEndpoint"] | del (.["OrdererOrgEndpoint"])' {{ build_path }}/channel-artifacts/orglevelEndpoints.json > {{ build_path }}/channel-artifacts/ordererAddresses.json
 
 # update json file for orderer nodes address for the channel
-- name: "Add orderer addresses"
+- name: Add orderer addresses
   shell: |
     cp {{ build_path }}/channel-artifacts/ordererAddresses.json {{ build_path }}/channel-artifacts/ordererAddressesTemp.json
     jq '."{{ ordererOrg.name }}MSPEndpoint".Endpoints.value.addresses |= ["{{ orderer.name }}.{{ ordererOrg.name }}-net:{{ orderer.grpc.port }}"]' {{ build_path }}/channel-artifacts/ordererAddressesTemp.json > {{ build_path }}/channel-artifacts/ordererAddresses.json
@@ -67,4 +67,3 @@
   loop_control:
     loop_var: org
   when: org.type == 'orderer' and org.name == channel.orderer.name
-

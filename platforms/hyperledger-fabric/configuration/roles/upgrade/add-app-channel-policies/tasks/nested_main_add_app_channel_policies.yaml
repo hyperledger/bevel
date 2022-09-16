@@ -3,13 +3,12 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-    
 # This task create script file to add policies to application channel
 - name: "Create script file to add policies to application channel"
   template:
     src: "add_app_channel_policies.tpl"
     dest: "{{ build_path }}/add_app_channel_policies.sh"
-  vars:    
+  vars:
     channel_name: "{{ channel.channel_name | lower }}"
     os: "{{ fabric.os }}"
     arch: "{{ fabric.arch }}"
@@ -22,7 +21,7 @@
     peer: "{{ participant }}"
     org_query: "organizations[?name=='{{participant.name}}']"
     org: "{{ network | json_query(org_query) | first }}"
-    component_ns: "{{ org.name | lower }}-net"    
+    component_ns: "{{ org.name | lower }}-net"
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
@@ -33,7 +32,7 @@
 - name: "Check if required channel config already exists"
   shell: |
     if diff {{ build_path }}/config_orig.json {{ build_path }}/config_modified.json >/dev/null; then echo true; else echo false; fi
-  register: is_config_same 
+  register: is_config_same
 
 # This task calls sign_block.yaml to generate the cli for the new orderer for the signing of the block
 - name: Call sign_block.yaml to sign from all other peers
@@ -42,12 +41,12 @@
     peer: "{{ participant }}"
     org_query: "organizations[?name=='{{participant.name}}']"
     org: "{{ network | json_query(org_query) | first }}"
-    component_ns: "{{ org.name | lower }}-net"    
+    component_ns: "{{ org.name | lower }}-net"
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
-  when: participant.type != "creator" and is_config_same.stdout == false
- 
+  when: participant.type != "creator" and is_config_same.stdout == "false"
+
 # This task updates the block to the channel
 - name: Call update_block.yaml to add the new orderer to the existing network
   include_tasks: update_block.yaml
@@ -55,8 +54,8 @@
     peer: "{{ participant }}"
     org_query: "organizations[?name=='{{participant.name}}']"
     org: "{{ network | json_query(org_query) | first }}"
-    component_ns: "{{ org.name | lower }}-net"    
+    component_ns: "{{ org.name | lower }}-net"
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
-  when: participant.type == "creator" and is_config_same.stdout == false
+  when: participant.type == "creator" and is_config_same.stdout == "false"

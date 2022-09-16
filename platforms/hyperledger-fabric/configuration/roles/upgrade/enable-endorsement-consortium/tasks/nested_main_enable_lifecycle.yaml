@@ -17,13 +17,13 @@
   shell: |
     cp {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp".json
     jq '."{{ participant.name }}MSPPolicies".Endorsement.policy.value.identities[0].principal.msp_identifier |= "{{ participant.name }}MSP"' {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp.json" > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
-    
+
 # This task create script file to add enable lifecycle to syschannel consortium orgs
 - name: "Add enable lifecycle to syschannel consortium orgs"
   template:
     src: "add-orderer_enable_lifecycle.tpl"
     dest: "{{ build_path }}/add-orderer_enable_lifecycle.sh"
-  vars:    
+  vars:
     channel_name: "syschannel"
     org_name: "{{ participant.name }}MSP"
     consortium_name: "{{ channel.consortium }}"
@@ -31,7 +31,7 @@
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
 
-# Set orderer org for the channel 
+# Set orderer org for the channel
 - name: Set orderer organization
   set_fact:
     ordererOrg: "{{ org }}"
@@ -40,8 +40,8 @@
     loop_var: org
   when: org.type == 'orderer' and org.name == channel.orderer.name
 
-# This task create enable lifecycle capability block 
-- name: Create enable lifecycle capability block 
+# This task create enable lifecycle capability block
+- name: Create enable lifecycle capability block
   include_tasks: orderer/add-orderer_enable_lifecycle.yaml
   vars:
     channel_name: "syschannel"
@@ -61,7 +61,7 @@
   include_tasks: orderer/sign_block.yaml
   vars:
     org_query: "organizations[?name=='{{peer.name}}']"
-    org: "{{ network | json_query(org_query) | first }}" 
+    org: "{{ network | json_query(org_query) | first }}"
     component_ns: "{{ org.name | lower }}-net"
     channel_name: "{{ channel.channel_name | lower }}"
     sys_channel_name: "syschannel"
@@ -73,7 +73,7 @@
 # This task add enable lifecycle capability to syschannel
 - name: Add enable lifecycle capability block to syschannel
   include_tasks: orderer/update_block_orderer.yaml
-  vars:    
+  vars:
     channel_name: "syschannel"
     component_ns: "{{ ordererOrg.name | lower }}-net"
     orderer: "{{ ordererOrg.services.orderers | first }}"

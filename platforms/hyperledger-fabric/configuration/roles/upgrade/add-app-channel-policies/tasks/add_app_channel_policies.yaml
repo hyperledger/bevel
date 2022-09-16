@@ -7,17 +7,6 @@
 ############################################################################################
 # This task creates the orderer cli and fetch and modify the config block
 ############################################################################################
-# Check or wait for the peer pod
-# - name: "Check if peer pod is running"
-#   include_role:
-#     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-#   vars:
-#     component_type: "Pod"
-#     namespace: "{{ component_ns }}"
-#     kubernetes: "{{ org.k8s.config_file }}"
-#     label_selectors:
-#       - app = {{ participant.name | lower }}
-
 # checking for fabric cli
 - name: "Check if fabric cli is already present"
   k8s_info:
@@ -30,7 +19,7 @@
   register: existing_cli
   
 # Create the value file for creater org first peer
-- name: "create valuefile for cli {{ peer.name }}-{{ org.name }}"
+- name: "Create valuefile for cli {{ peer.name }}-{{ org.name }}"
   include_role:
     name: k8_component
   vars:    
@@ -47,7 +36,7 @@
   when: existing_cli.resources|length == 0
 
 # Start the cli using the value file created in the previous step
-- name: "start cli"
+- name: "Start cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
   when: existing_cli.resources|length == 0
