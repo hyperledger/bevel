@@ -27,7 +27,7 @@ This tool is needed to build Hyperledger Bevel documentation from ``docs`` folde
 * Sphinx version used 2.1.1
 
 **Sphinx installation:**
-Follow the `link <http://www.sphinx-doc.org/en/master/usage/installation.html>`_ to install sphinx documentation tool.
+Follow the `link <http://www.sphinx-doc.org/>`_ to install sphinx documentation tool.
 
 All Hyperledger Bevel documentation and Sphinx Configuration files (``conf.py``) are located in `docs/source <https://github.com/hyperledger/bevel/tree/main/docs/source>`_ folder.
 To build the documentation, execute the following command from `docs` directory:

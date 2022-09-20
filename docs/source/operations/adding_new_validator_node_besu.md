@@ -80,7 +80,7 @@ network:
     # TLS can be True or False for the orion tm
     tm_tls: True
     # Tls trust value
-    tm_trust: "ca-or-tofu"                # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
+    tm_trust: "ca-or-tofu"                # Options are: "ca-or-tofu", "ca", "tofu"
     ## File location where the base64 encoded genesis file is located.
     genesis: "/home/user/bevel/build/besu_genesis"   
     ## Transaction Manager nodes public addresses should be provided.
