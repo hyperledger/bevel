@@ -209,7 +209,7 @@ apt-get update
 printf '%s\n' y | apt-get install vim
 cd /opt/gopath/src/github.com/chaincode
 mv chaincode/* .
-mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/hyperledger/bevel/main/platforms/hyperledger-fabric/scripts/install.sh | sh
 cd /opt/gopath/src/github.com/chaincode && dep ensure
 ```
 
