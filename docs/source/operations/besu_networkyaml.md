@@ -109,7 +109,7 @@ The snapshot of the `config` section with example values is below
     # TLS can be True or False for the transaction manager
     tm_tls: True
     # Tls trust value
-    tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
+    tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
     ## File location for saving the genesis file should be provided.
     genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be saved
     ## At least one Transaction Manager nodes public addresses should be provided.
@@ -129,7 +129,7 @@ The fields under `config` are
 | transaction_manager    | Supports `orion` or `tessera`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera.  |
 | tm_version         | This is the version of transaction manager docker image that will be deployed. Supported versions: `1.6.0` for `orion` and `21.7.3` for `tessera` and `orion`. |
 | tm_tls | Options are `True` and `False`. This enables TLS for the transaction manager and Besu node. `False` is not recommended for production. |
-| tm_trust | Options are: `whitelist`, `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [on modes here]( https://docs.tessera.consensys.net/en/stable/HowTo/Configure/TLS/#trust-modes ).|
+| tm_trust | Options are: `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [on modes here]( https://docs.tessera.consensys.net/en/stable/HowTo/Configure/TLS/#trust-modes ).|
 | genesis | This is the path where `genesis.json` will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file. |
 | tm_nodes | This is an array. Provide at least one tessera/orion node details which will act as bootstrap for other tessera/orion nodes |
 
