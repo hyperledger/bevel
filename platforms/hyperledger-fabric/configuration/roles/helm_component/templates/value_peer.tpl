@@ -71,11 +71,11 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ namespace }}-auth
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
-      secretambassador: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/ambassador
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ name }}/peers/{{ peer_name }}.{{ namespace }}
+      secretambassador: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ name }}/ambassador
       serviceaccountname: vault-auth
       imagesecretname: regcred
-      secretcouchdbpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/couchdb/{{ name }}?user
+      secretcouchdbpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ name }}/couchdb?user
 
     service:
       servicetype: ClusterIP

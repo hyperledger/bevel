@@ -319,17 +319,6 @@ spec:
                   touch ${MOUNT_PATH}/present_tls_${SERVICE_NAME}.txt
                 fi
 
-                # Check if orderer/peer msp already created
-                if [ "$COMPONENT_TYPE" = "peer" ]; then
-                  SERVICE_NAME="${SERVICE%%,*}"
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
-                fi;
-
-                if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                  SERVICE_NAME="${SERVICE}"
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
-                fi;
-
                 if [ "$PROXY" = "ambassador" ] ; then
                   
                   #Check if orderer/peer ambassador secrets already created
@@ -378,7 +367,7 @@ spec:
                     touch ${MOUNT_PATH}/present_config_file.txt
                   fi
 
-                  # Check if msp config file already created
+                  # Check if secret orderer tls already created
                   LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER_ORDERER_TLS} | jq -r 'if .errors then . else . end')
 
                   if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"

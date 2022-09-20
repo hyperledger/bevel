@@ -32,8 +32,8 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
-      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin
-      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
+      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ name }}/users/admin
+      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ name }}/orderer
       secretpath: {{ vault.secret_path | default('secretsv2') }}
       serviceaccountname: vault-auth
       imagesecretname: regcred
@@ -50,7 +50,7 @@ spec:
     channel:
       name: {{ item.channel_name | lower }}
     endorsers:
-      creator: {{ namespace }}
+      creator: {{ name }}
       name: {% for name in endorsers_list %}{%- for key, value in name.items() %}{% if key == 'name' %} {{ value }} {% endif %}{%- endfor %}{% endfor %}
 
       corepeeraddress: {% for address in endorsers_list %}{%- for key, value in address.items() %}{% if key == 'peercoreaddress' %} {{ value }} {% endif %}{% endfor -%}{% endfor %}

@@ -1,11 +1,7 @@
   - &{{ component_name }}Org
     Name: {{ component_name }}MSP
     ID: {{ component_name }}MSP
-{% if item.services.orderers is defined and item.services.orderers | length > 0 %}
-    MSPDir: ./crypto-config/ordererOrganizations/{{ component_ns }}/msp
-{% else %}
-    MSPDir: ./crypto-config/peerOrganizations/{{ component_ns }}/msp
-{% endif %}
+    MSPDir: ./crypto-config/{{ component_ns }}/msp
     Policies:
       Readers:
         Type: Signature

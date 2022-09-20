@@ -117,7 +117,7 @@ spec:
               fi 
 
               echo "Done checking for certificates in vault"
-           
+
           volumeMounts:
           - name: certcheck
             mountPath: /certcheck
@@ -134,10 +134,6 @@ spec:
             value: {{ $.Values.vault.authpath }}
           - name: VAULT_SECRET_CRYPTO_PATH
             value: {{ $.Values.vault.secretcryptoprefix }}
-          - name: VAULT_SECRET_CRYPTO_PATH_PEER
-            value: {{ $.Values.vault.secretpeercryptoprefix }}
-          - name: VAULT_SECRET_CRYPTO_PATH_ORDERER
-            value: {{ $.Values.vault.secretorderercryptoprefix }}
           - name: VAULT_SECRET_CREDENTIALS_PATH
             value: {{ $.Values.vault.secretcredentialsprefix }}
           - name: COMPONENT_NAME
@@ -188,6 +184,8 @@ spec:
               subjectKeyIdentifier = hash
               " > openssl.conf
 
+             
+
                 # this commands generate the CA certificate
                 openssl ecparam -name prime256v1 -genkey -noout -out  ${COMPONENT_NAME}-CA.key
                 openssl req -x509 -config "openssl.conf" -new -nodes -key ${COMPONENT_NAME}-CA.key -days 1024 -out ca.${COMPONENT_NAME}-cert.pem -extensions v3_req -subj "${CA_SUBJECT}"
@@ -214,15 +212,12 @@ spec:
                         \"${COMPONENT_NAME}-CA.key\": \"${KEY_CERTIFICATE}\"
                       }  
                   }" > payload.json
-
-                echo "Putting secrets/certificates to Vault server"
+              
                 KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
                 VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
                 validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
 
                 vault_secret_key="${VAULT_SECRET_CRYPTO_PATH}"
-                vault_secret_key_peer="${VAULT_SECRET_CRYPTO_PATH_PEER}"
-                vault_secret_key_orderer="${VAULT_SECRET_CRYPTO_PATH_ORDERER}"
 
                 # This command copy the CA certificates to the Vault
                 curl \
@@ -232,27 +227,12 @@ spec:
                   -d @payload.json \
                   ${VAULT_ADDR}/v1/${vault_secret_key}
 
-                curl \
-                  -H "X-Vault-Token: ${VAULT_TOKEN}" \
-                  -H "Content-Type: application/json" \
-                  -X POST \
-                  -d @payload.json \
-                  ${VAULT_ADDR}/v1/${vault_secret_key_peer}
-
-                curl \
-                  -H "X-Vault-Token: ${VAULT_TOKEN}" \
-                  -H "Content-Type: application/json" \
-                  -X POST \
-                  -d @payload.json \
-                  ${VAULT_ADDR}/v1/${vault_secret_key_orderer}
-
                 # Check CA certificates
                 LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
 
                 validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
 
-                rm payload.json
-              
+                rm payload.json    
               fi
 
               if [ -e /certcheck/absent_creds.txt ]

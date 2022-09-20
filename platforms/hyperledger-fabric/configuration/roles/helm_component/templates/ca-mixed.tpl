@@ -58,9 +58,9 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_name }}-auth
-      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/mixedOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/mixedOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name | e }}/ca/{{ component }}?user
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component }}/ca?{{ component_name | e }}-CA.key
+      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component }}/ca?user
       serviceaccountname: vault-auth
       imagesecretname: regcred
     service:

@@ -223,8 +223,8 @@ data:
     VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
     validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
 
-    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.secretmsp_orderer }} | jq -r 'if .errors then . else . end')
-    validateVaultResponse "{{ .Values.vault.secretmsp_orderer }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.secretmsp }} | jq -r 'if .errors then . else . end')
+    validateVaultResponse "{{ .Values.vault.secretmsp }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
     KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
     SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]')
@@ -240,8 +240,8 @@ data:
     echo "${SIGNCERTS}" >> ${ORG_HOME}/admin/msp/signcerts/cert.pem
     echo "${CACERTS}" >> ${ORG_HOME}/admin/msp/cacerts/cacerts.pem
 
-    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.secrettls_orderer }} | jq -r 'if .errors then . else . end')
-    validateVaultResponse "{{ .Values.vault.secrettls_orderer }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.secrettls }} | jq -r 'if .errors then . else . end')
+    validateVaultResponse "{{ .Values.vault.secrettls }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
     KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]')
     SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]')

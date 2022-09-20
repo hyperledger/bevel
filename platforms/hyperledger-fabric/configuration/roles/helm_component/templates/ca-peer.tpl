@@ -17,11 +17,6 @@ spec:
         namespace: flux-{{ network.env.type }}
       chart: {{ charts_dir }}/ca    
   values:
-    metadata:
-      namespace: {{ component_name | e }}
-      images:
-        alpineutils: {{ alpine_image }}
-        ca: {{ ca_image }}
 {% if network.env.annotations is defined %}
     deployment:
       annotations:
@@ -44,6 +39,11 @@ spec:
 {% endfor %}
 {% endfor %}
 {% endif %} 
+    metadata:
+      namespace: {{ component_name | e }}
+      images:
+        alpineutils: {{ alpine_image }}
+        ca: {{ ca_image }}
     server:
       name: {{ component_services.ca.name }}
       tlsstatus: true
@@ -58,9 +58,9 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_name | e }}-auth
-      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name | e }}/ca/{{ component }}?user
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component }}/ca?{{ component_name | e }}-CA.key
+      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component }}/ca?user
       serviceaccountname: vault-auth
       imagesecretname: regcred
     service:

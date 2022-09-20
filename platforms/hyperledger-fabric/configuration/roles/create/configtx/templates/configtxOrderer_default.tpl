@@ -36,8 +36,8 @@ Orderer: &OrdererDefaults
       - Host: {{ orderer.name }}.{{ item.external_url_suffix }}
         Port: 8443
 {% endif %}
-        ClientTLSCert: ./crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt
-        ServerTLSCert: ./crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt
+        ClientTLSCert: ./crypto-config/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt
+        ServerTLSCert: ./crypto-config/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt
 {% endfor %}
 {% endif %}
   Organizations:

@@ -42,24 +42,12 @@ spec:
       - name: policies
         emptyDir:
           medium: Memory
-      - name: policies-config-orderer
+      - name: policies-config
         configMap:
           name: policies-config-{{ .Values.metadata.component_type }}
           items:
-            - key: policies-config-orderer.json.tmpl
-              path: policies-config-orderer.json.tmpl
-      - name: policies-config-peer
-        configMap:
-          name: policies-config-{{ .Values.metadata.component_type }}
-          items:
-            - key: policies-config-peer.json.tmpl
-              path: policies-config-peer.json.tmpl
-      - name: policies-config-mixed
-        configMap:
-          name: policies-config-{{ .Values.metadata.component_type }}
-          items:
-            - key: policies-config-mixed.json.tmpl
-              path: policies-config-mixed.json.tmpl
+            - key: policies-config.json.tmpl
+              path: policies-config.json.tmpl
       containers:
         - name: "vault-kubernetes"
           image: {{ $.Values.metadata.images.alpineutils }}
@@ -157,38 +145,38 @@ spec:
                 echo "vaultpolicy does not exist. Creating ..."
                 mkdir -p ${POLICIES_PATH}
 
-                if [ $COMPONENT_TYPE == 'orderer' ]; then
+                # if [ $COMPONENT_TYPE == 'orderer' ]; then
                   
-                  # This command writes the policies to the vault
-                  curl \
-                  --header "X-Vault-Token: $ROOT_TOKEN" \
-                  --request POST \
-                  --data @${POLICIES_PATH}/policies-config-orderer.json.tmpl \
-                  ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+                #   # This command writes the policies to the vault
+                #   curl \
+                #   --header "X-Vault-Token: $ROOT_TOKEN" \
+                #   --request POST \
+                #   --data @${POLICIES_PATH}/policies-config-orderer.json.tmpl \
+                #   ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
 
-                fi;
+                # fi;
 
-                if [ $COMPONENT_TYPE == 'peer' ]; then
+                # if [ $COMPONENT_TYPE == 'peer' ]; then
 
-                  # This command writes the policies to the vault
-                  curl \
-                  --header "X-Vault-Token: $ROOT_TOKEN" \
-                  --request POST \
-                  --data @${POLICIES_PATH}/policies-config-peer.json.tmpl \
-                  ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+                #   # This command writes the policies to the vault
+                #   curl \
+                #   --header "X-Vault-Token: $ROOT_TOKEN" \
+                #   --request POST \
+                #   --data @${POLICIES_PATH}/policies-config-peer.json.tmpl \
+                #   ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
 
-                fi;
+                # fi;
 
-                if [ $COMPONENT_TYPE == 'mixed' ]; then
+                # if [ $COMPONENT_TYPE == 'mixed' ]; then
 
-                  # This command writes the policies to the vault
-                  curl \
-                  --header "X-Vault-Token: $ROOT_TOKEN" \
-                  --request POST \
-                  --data @${POLICIES_PATH}/policies-config-mixed.json.tmpl \
-                  ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+                # This command writes the policies to the vault
+                curl \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data @${POLICIES_PATH}/policies-config.json.tmpl \
+                ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
 
-                fi;
+                # fi;
 
                 # Check policy
                 response_status=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -227,12 +215,6 @@ spec:
               mountPath: "/etc/ssl/certs/"
               readOnly: true
           {{ end }}
-            - name: policies-config-orderer
-              mountPath: /policies/policies-config-orderer.json.tmpl
-              subPath: policies-config-orderer.json.tmpl
-            - name: policies-config-peer
-              mountPath: /policies/policies-config-peer.json.tmpl
-              subPath: policies-config-peer.json.tmpl
-            - name: policies-config-mixed
-              mountPath: /policies/policies-config-mixed.json.tmpl
-              subPath: policies-config-mixed.json.tmpl
+            - name: policies-config
+              mountPath: /policies/policies-config.json.tmpl
+              subPath: policies-config.json.tmpl
