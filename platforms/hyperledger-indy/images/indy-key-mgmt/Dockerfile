@@ -45,7 +45,7 @@ RUN apt-get update && \
 
 RUN add-apt-repository "deb http://us.archive.ubuntu.com/ubuntu xenial main universe" && \
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CE7709D068DB5E88 && \
-    add-apt-repository "deb https://repo.sovrin.org/deb xenial stable" && \
+    add-apt-repository "deb https://repo.sovrin.org/deb xenial master" && \
     add-apt-repository "deb https://repo.sovrin.org/sdk/deb xenial stable" && \
     apt-get update
 
