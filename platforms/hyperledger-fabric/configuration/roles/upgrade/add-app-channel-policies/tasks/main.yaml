@@ -22,17 +22,11 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# Create a json file
-- name: Creating new json file
-  file:
-    path: "{{ build_path }}/channel-artifacts/add_app_channel.json"
-    state: touch
-
 # Create app-channel policies json
-- name: "Create add app-channel policies json"
-  shell: |
-    echo -n "{\"appPolicies\":{\"Endorsement\":{\"mod_policy\":\"Admins\",\"policy\":{\"type\":3,\"value\":{\"rule\":\"MAJORITY\",\"sub_policy\":\"Endorsement\"}},\"version\":\"0\"},\"LifecycleEndorsement\":{\"mod_policy\":\"Admins\",\"policy\":{\"type\":3,\"value\":{\"rule\":\"MAJORITY\",\"sub_policy\":\"Endorsement\"}},\"version\":\"0\"}}}" >> {{ build_path }}/channel-artifacts/add_app_channel.json
-    jq . {{ build_path }}/channel-artifacts/add_app_channel.json >> {{ build_path }}/channel-artifacts/add_app_channel_policies.json
+- name: Create app-channel policies json
+  copy:
+    content: "{{ '{\"appPolicies\":{\"Endorsement\":{\"mod_policy\":\"Admins\",\"policy\":{\"type\":3,\"value\":{\"rule\":\"MAJORITY\",\"sub_policy\":\"Endorsement\"}},\"version\":\"0\"},\"LifecycleEndorsement\":{\"mod_policy\":\"Admins\",\"policy\":{\"type\":3,\"value\":{\"rule\":\"MAJORITY\",\"sub_policy\":\"Endorsement\"}},\"version\":\"0\"}}}' | from_json | to_nice_json}}"
+    dest: "{{ build_path }}/channel-artifacts/add_app_channel_policies.json"
 
 # This task add endorsement and lifecycle in app channels application group
 - name: Add endorsement and lifecycle in app channels application group

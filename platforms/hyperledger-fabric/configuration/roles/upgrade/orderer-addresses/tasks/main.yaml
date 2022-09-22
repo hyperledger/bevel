@@ -22,16 +22,11 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# Create a json file
-- name: Creating new json file
-  file:
-    path: "{{ build_path }}/channel-artifacts/orglevelEndpoints.json"
-    state: touch
-
-# Create a capabilities json
+# create a orglevelEndpoints json
 - name: Create orglevelEndpoints json
-  shell: |
-    echo -n "{\"OrdererOrgEndpoint\":{\"Endpoints\":{\"mod_policy\":\"Admins\",\"value\":{\"addresses\":[]}}}}" >> {{ build_path }}/channel-artifacts/orglevelEndpoints.json
+  copy:
+    content: "{{ '{\"OrdererOrgEndpoint\":{\"Endpoints\":{\"mod_policy\":\"Admins\",\"value\":{\"addresses\":[]}}}}' | from_json | to_nice_json}}"
+    dest: "{{ build_path }}/channel-artifacts/orglevelEndpoints.json"
 
 # Set orderer org for the channel
 - name: Set orderer organization

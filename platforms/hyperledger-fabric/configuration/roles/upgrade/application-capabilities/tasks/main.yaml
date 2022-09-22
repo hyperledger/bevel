@@ -11,17 +11,11 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# Create a json file
-- name: Creating new json file
-  file:
-    path: "{{ build_path }}/channel-artifacts/capabilities.json"
-    state: touch
-
-# Create a capabilities json
+# create a capabilities json
 - name: Create capabilities json
-  shell: |
-    echo -n "{\"channel\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"orderer\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"application\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"}}" > {{ build_path }}/channel-artifacts/capabilities.json
-             
+  copy:
+    content: "{{ '{\"channel\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"orderer\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"application\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"}}' | from_json | to_nice_json}}"
+    dest: "{{ build_path }}/channel-artifacts/capabilities.json"
 
 # Upgrade the orderer group for application channel
 - name: Upgrade application channel orderer group
