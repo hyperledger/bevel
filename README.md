@@ -7,7 +7,7 @@
 [chat-image]: https://img.shields.io/discord/905194001349627914?logo=Hyperledger&style=plastic.svg
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/hyperledger-bevel/badge/?version=latest)](https://hyperledger-bevel.readthedocs.io/en/latest/?badge=latest) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3548/badge)](https://bestpractices.coreinfrastructure.org/projects/3548)
-[![Build Status](https://circleci.com/gh/hyperledger/bevel.svg?style=shield)](https://circleci.com/gh/hyperledger/bevel)
+[![DCI Lint Status](https://github.com/hyperledger/bevel/actions/workflows/dci_lint.yml/badge.svg)](https://github.com/hyperledger/bevel/actions/workflows/dci_lint.yml)
 
 - [Short Description](#short-description)
 - [Scope of Project](#scope-of-project)
