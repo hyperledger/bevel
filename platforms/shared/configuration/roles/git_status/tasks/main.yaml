@@ -27,8 +27,7 @@
         git --git-dir={{ GIT_DIR }}/.git reset "{{ GIT_RESET_PATH }}"
     fi  
     
-    git --git-dir={{ GIT_DIR }}/.git commit -s -m "{{ msg }}" || true
-    git --git-dir={{ GIT_DIR }}/.git push {{ gitops.git_url }} HEAD:{{ gitops.branch }}  
+    git --git-dir={{ GIT_DIR }}/.git status "{{files_dir}}"
   register: GIT_OUTPUT_SSH
   when: 
   - gitops.git_protocol is defined 
@@ -52,8 +51,7 @@
         git --git-dir={{ GIT_DIR }}/.git reset "{{ GIT_RESET_PATH }}"
     fi  
     
-    git --git-dir={{ GIT_DIR }}/.git commit -s -m "{{ msg }}" || true
-    git --git-dir={{ GIT_DIR }}/.git push https://{{ gitops.username }}:{{ gitops.password }}@{{ gitops.git_repo }} HEAD:{{ gitops.branch }}
+    git --git-dir={{ GIT_DIR }}/.git status "{{files_dir}}"
   
   register: GIT_OUTPUT
   when: gitops.git_protocol is not defined or gitops.git_protocol == "https"
@@ -61,37 +59,11 @@
   tags:
     - notest
 
-# Display output of shell excution
-- name: "stdout for SSH gitpush"
-  debug:
-    msg: "{{ GIT_OUTPUT_SSH.stdout.split('\n') }}"
-  when: 
-  - gitops.git_protocol is defined 
-  - gitops.git_protocol == "ssh"
-  tags:
-    - notest
+- debug:
+    msg: "{{GIT_OUTPUT.stdout}}"
 
-- name: "stderr for SSH gitpush"
-  debug:
-    msg: "{{ GIT_OUTPUT_SSH.stderr.split('\n') }}"
-  when: 
-  - gitops.git_protocol is defined 
-  - gitops.git_protocol == "ssh"
-  tags:
-    - notest
-
-# Display output of shell excution
-- name: "stdout for gitpush"
-  debug:
-    msg: "{{ GIT_OUTPUT.stdout.split('\n') }}"
-  when: gitops.git_protocol is not defined or gitops.git_protocol == "https"
-  tags:
-    - notest
-
-# Display error of shell task
-- name: "stderr for git_push"
-  debug:
-    msg: "{{ GIT_OUTPUT.stderr.split('\n') }}"
-  when: gitops.git_protocol is not defined or gitops.git_protocol == "https"
-  tags:
-    - notest
+# Verify if files are pushed to github
+- name: 'set fact'
+  set_fact:
+    git_updated: true
+  when: GIT_OUTPUT.stdout is not search('nothing to commit, working tree clean')
