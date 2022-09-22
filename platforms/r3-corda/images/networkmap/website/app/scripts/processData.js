@@ -9,6 +9,7 @@ export async function mutateNodes(nodes){
   let uniqueLocations = getLocations(formatedNodes);
   let uniqueLocationsMap = await geoCode.nodesLatLong(uniqueLocations);
   formatedNodes = geoCodeNodes(formatedNodes, uniqueLocationsMap);
+  console.log(formatedNodes);
   return formatedNodes;
 }
 
@@ -69,6 +70,7 @@ export const getLocations = (nodes) => {
     var tempCity = res[res.length-1]; // get the last of the array
     let obj = { city: tempCity, country: nodes[i].C }
     locationArray.push(obj);
+    console.log(obj)
   }
   locationArray = uniqueList(locationArray);
   return locationArray

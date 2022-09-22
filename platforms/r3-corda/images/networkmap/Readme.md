@@ -11,6 +11,12 @@ lib, pom.xml, source, static files. It also contains the Dockerfile for building
 ## Dependencies ##
 * JDK 8u181
 * NodeJS 11
+
+## IMPORTANT ##
+Replace the Google Maps API key in the following files
+`website/app/scripts/geoCode.js`
+
+`website/app/components/Map/MyMap.js`
 	
 ## Steps to build the networkmap jar ##
 
@@ -44,6 +50,6 @@ Example: To run using env variables
 ```
 2. The above command will create an image with tag *nms:1.0*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command below:
 ```
-	sudo docker tag nms:1.0 hyperledgerlabs/networkmap-linuxkit:latest
-	sudo docker push hyperledgerlabs/networkmap-linuxkit:latest
+	sudo docker tag nms:1.0 ghcr.io/hyperledger/bevel-networkmap-linuxkit:latest
+	sudo docker push ghcr.io/hyperledger/bevel-networkmap-linuxkit:latest 
 ```
