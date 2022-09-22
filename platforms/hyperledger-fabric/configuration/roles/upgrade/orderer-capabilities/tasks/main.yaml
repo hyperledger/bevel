@@ -23,8 +23,9 @@
 
 # create a capabilities json
 - name: Create capabilities json
-  shell: |
-    echo -n "{\"channel\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"orderer\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"application\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"}}" >> {{ build_path }}/channel-artifacts/capabilities.json
+  copy:
+    content: "{{ '{\"channel\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"orderer\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"},\"application\":{\"mod_policy\":\"Admins\",\"value\":{\"capabilities\":{\"V2_0\":{}}},\"version\":\"0\"}}' | from_json | to_nice_json}}"
+    dest: "{{ build_path }}/channel-artifacts/capabilities.json"
 
 # Check or wait for the Orderer pod
 - name: Wait for the new orderer pod

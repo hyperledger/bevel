@@ -20,6 +20,20 @@
     consensus: "{{component_services.consensus}}"
     genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"
 
+#Git Status : check if there is any files modified in the directory
+- name: Git Status
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_status"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Checking git status"
+    files_dir: "{{values_dir}}"
+  register: git_result
+  tags:
+    - notest
+
 #Git Push : Pushes the above generated files to git directory
 - name: Git Push
   include_role:
@@ -30,6 +44,7 @@
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing Orderer files"
   register: git_result
+  when: git_updated is undefined
   tags:
     - notest
 
