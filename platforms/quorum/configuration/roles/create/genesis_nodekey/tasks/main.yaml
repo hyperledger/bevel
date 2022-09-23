@@ -4,6 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+# Set node_list to empty
+- name: Set validator_node_list to empty
+  set_fact:
+    validator_node_list: []
+
 #This task checks if genesis file is present in the vault or not, if present, skip all the below tasks
 - name: Check if genesis file is present in vault
   include_tasks: vault_genesis_check.yaml
@@ -47,10 +52,10 @@
     tmp=$(mktemp)
     # Remove any maxCodeSize key from the json file
     jq 'del(..| .maxCodeSize?)' genesis.json > "$tmp" && mv "$tmp" genesis.json
-    
+
     # Update values for existing keys
     jq '.config.txnSizeLimit = 128 | .config.byzantiumBlock = 0' genesis.json > "$tmp" && mv "$tmp" genesis.json
-    
+
     # Add addition key and values
     jq '.config += {"petersburgBlock": 0,"istanbulBlock": 0,"maxCodeSizeConfig": [{"block": 0,"size": 128}]}' genesis.json > "$tmp" && mv "$tmp" genesis.json
   when: vault_check|default(0)|int != 0
@@ -78,7 +83,7 @@
     loop_var: org
   when: vault_check|default(0)|int != 0 and ( not add_new_org )
 
-# This task rename the above created directories to the org_name/node_name 
+# This task rename the above created directories to the org_name/node_name
 - name: Rename the directories created above with the elements of validator_node_list
   copy: src=build/{{item.0}}/ dest=build/{{item.1.org}}/{{item.1.node}}
   with_indexed_items: "{{ validator_node_list }}"
@@ -95,7 +100,7 @@
   when: vault_check|default(0)|int != 0
   tags:
     molecule-idempotence-notest
-    
+
 # This tasks copy the crypto material to the vault
 - name: Copy the nodekey to Vault
   include_tasks: add_to_vault.yaml
