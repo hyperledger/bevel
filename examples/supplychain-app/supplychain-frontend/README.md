@@ -26,7 +26,20 @@ NGINX is not the only way to deploy.. this is just one way and can be used as an
 
 # Docker
 Pass the following environment variables to the image while running:
-     * REACT_APP_GMAPS_KEY: <your Google Maps API Key>
+* REACT_APP_GMAPS_KEY: your Google Maps API Key
+
+## Steps to build frontend image ##
+
+1. To build the image, execute the following command in this folder 
+```
+	sudo docker build -t frontend:1.0 .
+
+```
+2. The above command will create an image with tag *frontend:1.0*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command below:
+```
+	sudo docker tag frontend:1.0 ghcr.io/hyperledger/bevel-supplychain-frontend:latest
+	sudo docker push ghcr.io/hyperledger/bevel-supplychain-frontend:latest 
+```
 
 ## Development
 
