@@ -7,22 +7,32 @@
 ############################################################################################
 # This task creates the orderer cli and fetch and modify the config block
 ############################################################################################
-# create json file
-- name: "Modify json for orderer MSP"
-  shell: |
-    jq '.["{{ participant.name }}MSPPolicies"]=.["org1Policies"] | del(.["org1Policies"])' {{ build_path }}/channel-artifacts/enable_lifeycle.json > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
-
-# update json file for orderer nodes address for the channel
-- name: "Add orderer addresses"
-  shell: |
-    cp {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp".json
-    jq '."{{ participant.name }}MSPPolicies".Endorsement.policy.value.identities[0].principal.msp_identifier |= "{{ participant.name }}MSP"' {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp.json" > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
-
-# This task create script file to add enable lifecycle to syschannel consortium orgs
-- name: "Add enable lifecycle to syschannel consortium orgs"
+# Create yaml file with orderer address values
+- name: Create yaml file with orderer address values
   template:
-    src: "add-orderer_enable_lifecycle.tpl"
-    dest: "{{ build_path }}/add-orderer_enable_lifecycle.sh"
+    src: "enable-endorsement-consortium.yaml"
+    dest: "{{ values_file }}"
+  vars:
+    OrgName: "{{ participant.name }}"
+    values_file: "{{ build_path }}/channel-artifacts/enable-endorsement-consortium.yaml"
+
+# Save the yaml file to a variable  
+- name: Save yaml to variable
+  ansible.builtin.include_vars:
+    file: "{{ build_path }}/channel-artifacts/enable-endorsement-consortium.yaml"
+    name: ordererEndPoints
+
+# Convert the yaml file to json 
+- name: convert yaml to json
+  copy:
+    content: "{{ ordererEndPoints | to_nice_json }}"
+    dest: "{{ build_path }}/channel-artifacts/enable_lifecycle_{{ participant.name }}MSP.json"
+
+# This task create script file to add enable endorsement to syschannel consortium orgs
+- name: "Add enable endorsement to syschannel consortium orgs"
+  template:
+    src: "add-orderer_enable_endorsement.tpl"
+    dest: "{{ build_path }}/add-orderer_enable_endorsement.sh"
   vars:
     channel_name: "syschannel"
     org_name: "{{ participant.name }}MSP"
@@ -40,9 +50,9 @@
     loop_var: org
   when: org.type == 'orderer' and org.name == channel.orderer.name
 
-# This task create enable lifecycle capability block
-- name: Create enable lifecycle capability block
-  include_tasks: orderer/add-orderer_enable_lifecycle.yaml
+# This task create enable endorsement capability block
+- name: Create enable endorsement capability block
+  include_tasks: orderer/add-orderer_enable_endorsement.yaml
   vars:
     channel_name: "syschannel"
     component_ns: "{{ ordererOrg.name | lower }}-net"
@@ -51,10 +61,17 @@
 
 # check if original channel config and modified config is same
 # if that is the case we dont have to proceed doing the channel update
-- name: "Check if required channel config already exists"
-  shell: |
-    if diff {{ build_path }}/config_orig.json {{ build_path }}/config_modified.json >/dev/null; then echo true; else echo false; fi
-  register: is_config_same
+- name: Intialize the variable
+  set_fact:
+    is_config_same: false
+
+- name: Check if required channel config already exists
+  set_fact:
+    is_config_same: true
+  vars:
+    original_config: "{{ lookup('file', '{{ build_path }}/config_orig.json' ) }}"
+    modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
+  when: original_config == modified_config
 
 # This task calls sign_block.yaml to sign from specific org
 - name: Call sign_block.yaml to sign from specific org
@@ -68,7 +85,7 @@
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: peer
-  when: peer.name == participant.name and is_config_same.stdout == false
+  when: peer.name == participant.name and is_config_same == false
 
 # This task add enable lifecycle capability to syschannel
 - name: Add enable lifecycle capability block to syschannel
@@ -78,4 +95,4 @@
     component_ns: "{{ ordererOrg.name | lower }}-net"
     orderer: "{{ ordererOrg.services.orderers | first }}"
     org: "{{ ordererOrg }}"
-  when: is_config_same.stdout == false
+  when: is_config_same == false

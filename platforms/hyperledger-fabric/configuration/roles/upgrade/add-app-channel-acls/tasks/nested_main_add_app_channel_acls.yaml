@@ -29,10 +29,17 @@
 
 # check if original channel config and modified config is same
 # if that is the case we dont have to proceed doing the channel update
-- name: "Check if required channel config already exists"
-  shell: |
-    if diff {{ build_path }}/config_orig.json {{ build_path }}/config_modified.json >/dev/null; then echo true; else echo false; fi
-  register: is_config_same
+- name: Intialize the variable
+  set_fact:
+    is_config_same: false
+
+- name: Check if required channel config already exists
+  set_fact:
+    is_config_same: true
+  vars:
+    original_config: "{{ lookup('file', '{{ build_path }}/config_orig.json' ) }}"
+    modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
+  when: original_config == modified_config
 
 # This task signs the acls to application channel
 - name: Call sign_block.yaml to sign from all other peers
@@ -45,7 +52,7 @@
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
-  when: participant.type != "creator" and is_config_same.stdout == "false"
+  when: participant.type != "creator" and is_config_same == false
 
 # This task commits the acls to application channel
 - name: Call update_block.yaml to add the new orderer to the existing network
@@ -58,4 +65,4 @@
   loop: "{{ channel.participants }}"
   loop_control:
     loop_var: participant
-  when: participant.type == "creator" and is_config_same.stdout == "false"
+  when: participant.type == "creator" and is_config_same == false

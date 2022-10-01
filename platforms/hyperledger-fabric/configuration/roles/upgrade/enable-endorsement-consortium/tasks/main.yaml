@@ -22,15 +22,9 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# Create a enable lifeycle json
-- name: Create enable lifeycle json
-  copy:
-    content: "{{ '{\"org1Policies\":{\"Endorsement\":{\"mod_policy\":\"Admins\",\"policy\":{\"type\":1,\"value\":{\"identities\":[{\"principal\":{\"msp_identifier\":\"Org1ExampleCom\",\"role\":\"MEMBER\"},\"principal_classification\":\"ROLE\"}],\"rule\":{\"n_out_of\":{\"n\":1,\"rules\":[{\"signed_by\":0}]}},\"version\":0}},\"version\":\"0\"}}}' | from_json | to_nice_json}}"
-    dest: "{{ build_path }}/channel-artifacts/enable_lifeycle.json"
-
-# Enable lifecycle in system channel and application channels
-- name: Enable lifecycle in system channel and application channels
-  include_tasks: nested_main_enable_lifecycle.yaml
+# Enable endorsement in system channel and application channels
+- name: Enable endorsement in system channel and application channels
+  include_tasks: nested_main_enable_endorsement.yaml
   vars:
     consortium: "{{ channel.consortium }}"
     orderer_name: "{{ channel.orderer.name }}"

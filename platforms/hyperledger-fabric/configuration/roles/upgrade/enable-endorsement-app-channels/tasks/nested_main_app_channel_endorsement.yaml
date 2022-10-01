@@ -3,16 +3,26 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-# create json file
-- name: "Modify json for orderer MSP"
-  shell: |
-    jq '.["{{ participant.name }}MSPPolicies"]=.["org1Policies"] | del(.["org1Policies"])' {{ build_path }}/channel-artifacts/enable_lifeycle.json > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
+# Create yaml file with orderer address values
+- name: Create yaml file with orderer address values
+  template:
+    src: "enable-endorsement-consortium.yaml"
+    dest: "{{ values_file }}"
+  vars:
+    OrgName: "{{ participant.name }}"
+    values_file: "{{ build_path }}/channel-artifacts/enable-endorsement-consortium.yaml"
 
-# update json file for orderer nodes address for the channel
-- name: "Add orderer addresses"
-  shell: |
-    cp {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp".json
-    jq '."{{ participant.name }}MSPPolicies".Endorsement.policy.value.identities[0].principal.msp_identifier |= "{{ participant.name }}MSP"' {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSPTemp.json" > {{ build_path }}/channel-artifacts/enable_lifecycle_"{{ participant.name }}MSP".json
+# Save the yaml file to a variable
+- name: Save yaml to variable
+  ansible.builtin.include_vars:
+    file: "{{ build_path }}/channel-artifacts/enable-endorsement-consortium.yaml"
+    name: ordererEndPoints
+
+# Convert the yaml file to json
+- name: convert yaml to json
+  copy:
+    content: "{{ ordererEndPoints | to_nice_json }}"
+    dest: "{{ build_path }}/channel-artifacts/enable_lifecycle_{{ participant.name }}MSP.json"
 
 # This task create script file to add enable lifecycle to syschannel consortium orgs
 - name: "Add enable lifecycle to syschannel consortium orgs"

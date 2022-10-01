@@ -22,34 +22,9 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# create a orglevelEndpoints json
-- name: Create orglevelEndpoints json
-  copy:
-    content: "{{ '{\"OrdererOrgEndpoint\":{\"Endpoints\":{\"mod_policy\":\"Admins\",\"value\":{\"addresses\":[]}}}}' | from_json | to_nice_json}}"
-    dest: "{{ build_path }}/channel-artifacts/orglevelEndpoints.json"
-
-# Set orderer org for the channel
-- name: Set orderer organization
-  set_fact:
-    ordererOrg: "{{ org }}"
-  loop: "{{ organizations }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'orderer' and org.name == channel.orderer.name
-
-# create json file
-- name: Modify json for orderer MSP
-  shell: |
-    jq '.["{{ ordererOrg.name }}MSPEndpoint"]=.["OrdererOrgEndpoint"] | del (.["OrdererOrgEndpoint"])' {{ build_path }}/channel-artifacts/orglevelEndpoints.json > {{ build_path }}/channel-artifacts/ordererAddresses.json
-
-# update json file for orderer nodes address for the channel
-- name: Add orderer addresses
-  shell: |
-    cp {{ build_path }}/channel-artifacts/ordererAddresses.json {{ build_path }}/channel-artifacts/ordererAddressesTemp.json
-    jq '."{{ ordererOrg.name }}MSPEndpoint".Endpoints.value.addresses |= ["{{ orderer.name }}.{{ ordererOrg.name }}-net:{{ orderer.grpc.port }}"]' {{ build_path }}/channel-artifacts/ordererAddressesTemp.json > {{ build_path }}/channel-artifacts/ordererAddresses.json
-  loop: "{{ ordererOrg.services.orderers }}"
-  loop_control:
-    loop_var: orderer
+# Create json file for orderer addresses
+- name: Create json file for orderer addresses
+  include_tasks: nested_create_json.yaml
 
 # update orderer address in syschannel and application channel
 - name: Update orderer address in syschannel and application

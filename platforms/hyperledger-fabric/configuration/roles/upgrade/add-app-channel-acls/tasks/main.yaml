@@ -22,14 +22,22 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# Create app-channel acl json
-- name: "create add app-channel acl json"
-  copy:
-    content: "{{ '{\"acls\":{\"_lifecycle/CheckCommitReadiness\":{\"policy_ref\":\"/Channel/Application/Writers\"},\"_lifecycle/CommitChaincodeDefinition\":{\"policy_ref\":\"/Channel/Application/Writers\"},\"_lifecycle/QueryChaincodeDefinition\":{\"policy_ref\":\"/Channel/Application/Readers\"},\"_lifecycle/QueryChaincodeDefinitions\":{\"policy_ref\":\"/Channel/Application/Readers\"}}}' | from_json | to_nice_json}}"
+# Check if acl file exists
+- name: Check that acl json exists
+  stat:
+    path: "{{channel.acls}}"
+  register: acls_file
+
+# Copy file
+- name: Copy file with owner and permissions
+  ansible.builtin.copy:
+    src: "{{channel.acls}}"
     dest: "{{ build_path }}/channel-artifacts/add_app_channel_acls.json"
+  when: acls_file.stat.exists
 
 # This task add default acls in app channels application group
 - name: Add add default acls in app channels application group
   include_tasks: nested_main_add_app_channel_acls.yaml
   vars:
     channel_name: "{{ channel.channel_name | lower }}"
+  when: acls_file.stat.exists
