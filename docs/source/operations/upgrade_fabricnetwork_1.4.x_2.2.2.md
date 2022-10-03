@@ -17,8 +17,7 @@ A DLT system which is using Hyperledger Fabric version 1.4.x and is setup using 
 ## Steps to upgrade
 This involve upgrading the nodes and channels to the version 2.2.x of Fabric is, at a high level, a four step process.
 
-1. Backup the ledger.
-2. Upgrade the orderer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
+1. Upgrade the orderer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
 3. Upgrade the peer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
 4. Update the orderer system channel and any application channels for following
 	1.	Orderer address endpoint
