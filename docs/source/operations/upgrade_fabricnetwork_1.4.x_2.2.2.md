@@ -12,20 +12,23 @@
 <a name = "pre_req"></a>
 ## Pre-requisites
 A DLT system which is using Hyperledger Fabric version 1.4.x and is setup using Bevel automation framework
+The operator should have access to all the kubernetes clusters. It is an assumption that operator has one network.yaml file which consists of all participating organizations such as peers and orderers.
+All participants organization for each channel should be admins for the respective channel.
 
 <a name = "upgrade_steps"></a>
 ## Steps to upgrade
-This involve upgrading the nodes and channels to the version 2.2.x of Fabric is, at a high level, a four step process.
+The following are the steps of upgrade process:
 
 1. Upgrade the orderer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
 2. Upgrade the peer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
 3. Update the orderer system channel and any application channels for the following:
 	1.	Orderer address endpoint
-	2.	Endorsement policies for system channel consortium 
-	3.	Endorsement and lifecycle policies for application channels
-	4.	ACL for application channels
+	2.	Endorsement policies for system channel consortium
+	3.  Endorsement policies for application channel orgs 
+	4.	Endorsement and lifecycle policies of application group for application channels 
+	5.	Optional Step: Update the ACLs for application channels (The operator has to specify the acls json and mention the file path with in network.yaml at location network->channels-channel-acls)
 
-As mentioned in prerequisite, existing system(will be called as source system) is setup using Hyperledger Bevel and currently using verion 1.4.x. This guide provide the steps to upgrade it to Hyperledger Fabric version 2.2.x
+	Sample ACL json be format of "acls" element only as mentioned [here](https://hyperledger-fabric.readthedocs.io/en/release-2.2/enable_cc_lifecycle.html)
 
 Note: The operator doing this upgrade should have access to all kubernetes cluster(s) and can verify the logs of any pods as prompted by the workflow. 
 
@@ -38,49 +41,24 @@ Update the network network.yaml [here](https://github.com/hyperledger/bevel/tree
 	For example:
 		network:
 	  		version: 2.2.2
-			upgrade: true			
+			upgrade: true	
 
 Note: The network.yaml should reflect the entire network which requires to be upgraded
 
 ## 2. Executing Ansible playbook
-Execute the [run.sh] (https://github.com/hyperledger/bevel/tree/main/platforms/)
-The playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/)) can be run after the configuration file (for example: [network.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) for Fabric) has been updated.
-```
-ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
-```
-It covers all the [steps](#upgrade_steps). As stated earlier this execution is in rolling fashion i.e. in a specific cluster first orderer(s) are upgraded one by one, after that peers are upgraded in rolling fashion. The script will pause after node is upgraded and provide information to operator to check the upgraded node health using 'kubectl logs' command and then decide whether to continue or abort the script. For this reason the operator should have access to each kubernetes cluster(s).
-The script is idempotent and can be run mutiple times without impacting existing configurations
+Execute the [run.sh] (https://github.com/hyperledger/bevel/tree/main/run.sh) which internally runs the playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/)) using the network file (for example: [network.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) for Fabric).
 
-## 3. Upgrade Capabilities level
-To upgrade the capabilities in system channel and across application channel, the steps in below image needs to be performed. 
-
-Note: Before execution of this step, it should be ensured that all nodes(orderer(s) and peer(s)) in entire network is upgraded to target version successfuly.
+The ansible playbook will cover the upgrade steps as shown in the figure below:
 
 ![](./../_static/upgrade_channel.png)
 
-As discussed earlier, the operator should have access to all the kubernetes clusters. It is an assumption that operator has one network.yaml file which consists of all participating organizations such as peers and orderers.
-
-The following are the steps:
-
-1.	Upgrade the System channel's orderer and channel level capabilities
-2.	Upgrade all application channel's orderer, channel and application level capabilities
-3.	Add Orderer endpoints in orderer and all application channels replacing the global Orderer Addresses  	 
-	section of channel configuration
-4.	Upgrade the system channel for enabling endorsement policy in consortium organizations
-5.	Upgrade all the existing application channel orgs for enabling endorsement policy
-6. 	Upgrade all the existing application channels application policy for endorsement and lifecyle
-7.  Optional: Upgrade all the existing application channels ACL policy
-	
-	When there is a single network file the following script automates the upgrade of capabilities as required by version 2.2.x
-	ansible-playbook platforms/shared/configuration/upgrade-capabilites.yaml --extra-vars "@path-to-network.yaml"
+The operator will be shown messages to validate the nodes and then proceed for next steps.
 
 ## 4. Compare core.yaml & orderer.yaml
-When core.yaml and orderer.yaml was modified in source system, a diff is done with new core.yaml and orderer.yaml in the target system. Based on this analysis the target system files can be modified
+Where core.yaml and orderer.yaml is modified in existing network, a diff is done with new core.yaml and orderer.yaml in the upgraded network. Based on this analysis the target system files shall be modified. Please refer details [here](https://hyperledger-fabric.readthedocs.io/en/release-2.2/upgrading_your_components.html#overview)
 
 ## 5. Upgrade existing Chaincode lifecycle
-Any existing chaincode should be verified as it should continue running as usual. It will be good practice to update them new Hyperledger Fabric 2.2.x lifecycle.
+Any existing chaincode should be verified as it should continue running as usual. There are
+It will be good practice to update them new Hyperledger Fabric 2.2.x lifecycle.
 
-For each chaincode to be upgraded update the network.yaml for the specific chaincode and execute the following script to install, approve and commit as per 2.2.x lifecyle
-ansible-playbook platforms/shared/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
-
-TODO: the steps for upgrade to be mentioned here.
+The v2.x ccenv image that is used to build Go chaincodes no longer automatically vendors the Go chaincode shim dependency like the v1.4 ccenv image did. The recommended approach is to vendor the shim in your v1.4 Go chaincode before making upgrades to the peers and channels, since this approach works with both a v1.4.x and v2.x peer. Please refer this [link](https://hyperledger-fabric.readthedocs.io/en/release-2.2/upgrade_to_newest_version.html#chaincode-shim-changes) for details
