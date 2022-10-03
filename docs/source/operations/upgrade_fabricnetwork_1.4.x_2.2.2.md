@@ -18,8 +18,8 @@ A DLT system which is using Hyperledger Fabric version 1.4.x and is setup using 
 This involve upgrading the nodes and channels to the version 2.2.x of Fabric is, at a high level, a four step process.
 
 1. Upgrade the orderer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
-3. Upgrade the peer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
-4. Update the orderer system channel and any application channels for following
+2. Upgrade the peer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
+3. Update the orderer system channel and any application channels for the following:
 	1.	Orderer address endpoint
 	2.	Endorsement policies for system channel consortium 
 	3.	Endorsement and lifecycle policies for application channels
@@ -47,7 +47,8 @@ The playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platform
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
 ```
-It covers the first three [steps](#upgrade_steps). As stated earlier this execution is in rolling fashion i.e. in a specific cluster first orderer(s) are upgraded one by one, after that peers are upgraded in rolling fashion. The script will pause after node is upgraded and provide information to operator to check the node health using 'kubectl logs' command and then decide whether to continue or abort the script. For this reason the operator should have access to each kubernetes cluster(s).
+It covers all the [steps](#upgrade_steps). As stated earlier this execution is in rolling fashion i.e. in a specific cluster first orderer(s) are upgraded one by one, after that peers are upgraded in rolling fashion. The script will pause after node is upgraded and provide information to operator to check the upgraded node health using 'kubectl logs' command and then decide whether to continue or abort the script. For this reason the operator should have access to each kubernetes cluster(s).
+The script is idempotent and can be run mutiple times without impacting existing configurations
 
 ## 3. Upgrade Capabilities level
 To upgrade the capabilities in system channel and across application channel, the steps in below image needs to be performed. 
@@ -56,10 +57,7 @@ Note: Before execution of this step, it should be ensured that all nodes(orderer
 
 ![](./../_static/upgrade_channel.png)
 
-
-As discussed earlier, the operator should have access to all the kubernetes clusters, these steps may require the operator to sign and update the configuration transactions to upgrade the capabilities.
-
-It is an assumption that operator has one network.yaml file which consists of all participating organizations such as peers and orderers. If that is not the case the operator has to pass extra parameter to execute the script for each step of capability upgrade and get it signed from required organization(s) before moving to next step.
+As discussed earlier, the operator should have access to all the kubernetes clusters. It is an assumption that operator has one network.yaml file which consists of all participating organizations such as peers and orderers.
 
 The following are the steps:
 
@@ -70,7 +68,7 @@ The following are the steps:
 4.	Upgrade the system channel for enabling endorsement policy in consortium organizations
 5.	Upgrade all the existing application channel orgs for enabling endorsement policy
 6. 	Upgrade all the existing application channels application policy for endorsement and lifecyle
-7. Optional: Upgrade all the existing application channels ACL policy
+7.  Optional: Upgrade all the existing application channels ACL policy
 	
 	When there is a single network file the following script automates the upgrade of capabilities as required by version 2.2.x
 	ansible-playbook platforms/shared/configuration/upgrade-capabilites.yaml --extra-vars "@path-to-network.yaml"
