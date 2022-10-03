@@ -21,6 +21,7 @@ This involve upgrading the nodes and channels to the version 2.2.x of Fabric is,
 2. Upgrade the orderer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
 3. Upgrade the peer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
 4. Update the orderer system channel and any application channels to the latest capability levels, where available.
+5. Update the orderer system channel and any application channels for endorsement
 
 As mentioned in prerequisite, existing system(will be called as source system) is setup using Hyperledger Bevel and currently using verion 1.4.x. This guide provide the steps to upgrade it to Hyperledger Fabric version 2.2.x and the upgraded system(will be called as target system)
 
