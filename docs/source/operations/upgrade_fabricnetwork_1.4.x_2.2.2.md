@@ -43,6 +43,7 @@ Update the network network.yaml [here](https://github.com/hyperledger/bevel/tree
 Note: The network.yaml should reflect the entire network which requires to be upgraded
 
 ## 2. Executing Ansible playbook
+
 The playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/)) can be run after the configuration file (for example: [network.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) for Fabric) has been updated.
 ```
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
