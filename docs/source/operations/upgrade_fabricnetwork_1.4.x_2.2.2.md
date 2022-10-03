@@ -20,15 +20,18 @@ This involve upgrading the nodes and channels to the version 2.2.x of Fabric is,
 1. Backup the ledger.
 2. Upgrade the orderer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
 3. Upgrade the peer binaries in a rolling fashion to the Fabric version mentioned in network yaml file.
-4. Update the orderer system channel and any application channels to the latest capability levels, where available.
-5. Update the orderer system channel and any application channels for endorsement
+4. Update the orderer system channel and any application channels for following
+	1.	Orderer address endpoint
+	2.	Endorsement policies for system channel consortium 
+	3.	Endorsement and lifecycle policies for application channels
+	4.	ACL for application channels
 
-As mentioned in prerequisite, existing system(will be called as source system) is setup using Hyperledger Bevel and currently using verion 1.4.x. This guide provide the steps to upgrade it to Hyperledger Fabric version 2.2.x and the upgraded system(will be called as target system)
+As mentioned in prerequisite, existing system(will be called as source system) is setup using Hyperledger Bevel and currently using verion 1.4.x. This guide provide the steps to upgrade it to Hyperledger Fabric version 2.2.x
 
-Note: The operator doing this upgrade should have access to all kubernetes cluster(s) and require to coordinate the steps to execute the scripts, sign and update the configuration transactions. This guide will provide the steps.
+Note: The operator doing this upgrade should have access to all kubernetes cluster(s) and can verify the logs of any pods as prompted by the workflow. 
 
 The following are the steps to be  performed:
-## 1. Setup network.yaml for upgrade
+## 1. Update network.yaml for upgrade
 Update the network network.yaml [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml)
  
 	a. Set the required version tag under `network.version` for upgrading the base images of CA, orderer and peer.
@@ -38,7 +41,7 @@ Update the network network.yaml [here](https://github.com/hyperledger/bevel/tree
 	  		version: 2.2.2
 			upgrade: true			
 
-This change is required in each network.yaml file owned by different authorities.
+Note: The network.yaml should reflect the entire network which requires to be upgraded
 
 ## 2. Executing Ansible playbook
 The playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/)) can be run after the configuration file (for example: [network.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) for Fabric) has been updated.
