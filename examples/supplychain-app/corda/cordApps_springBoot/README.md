@@ -54,7 +54,13 @@ To build the cordapp jars only, run the command
 
          gradlew.bat clean build
 
-To publish to repo, first update the repo addess and usename/password details in `gradle.properties` (Do not check in the username/password). Then, execute the command
+To publish to repo, first set the environment variables 
+     
+     export REPO_URL=
+     export REPO_USERNAME=
+     export REPO_PASSWORD=
+
+Then, execute the command
 
      **Unix:**
 
@@ -161,12 +167,12 @@ see a single jar file, you can run multiple instances per application.properties
 ## Creating Docker Image for Webserver
 1. Execute the following command from this folder. Use argument var_WEBAPP_NAME to pass the webserver jar file (so please ensure that the gradle build created the jar file).
 ```
-	sudo docker build --build-arg var_WEBAPP_NAME=webserver-supply-chain-4.7.jar -t supplychain_corda:springboot_latest .
+	sudo docker build --build-arg var_WEBAPP_NAME=webserver-supply-chain-4.9.jar -t supplychain_corda:springboot_latest .
 
 ```
 2. The above command will create an image with tag *supplychain_corda:springboot_latest*. If you want to upload this image to a registry, update the tag accordingly and then push to docker. Sample command below:
 ```
-	sudo docker tag supplychain_corda:springboot_latest hyperledgerlabs/supplychain_corda:springboot_latest
+	sudo docker tag supplychain_corda:springboot_latest ghcr.io/hyperledger/bevel-supplychain-corda:springboot-latest
 	sudo docker push hyperledgerlabs/supplychain_corda:springboot_latest
 ```
 
