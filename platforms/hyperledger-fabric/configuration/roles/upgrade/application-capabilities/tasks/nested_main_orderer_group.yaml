@@ -8,22 +8,24 @@
 # This task creates the cli and fetch and modify the config block
 ############################################################################################
 # This task creates the capabilities upgrade script for orderer
-- name: "Create script file to upgrade sys channel orderer group"
+- name: "Create script file to upgrade application channel orderer group"
   template:
     src: "orderer_group_capability.tpl"
     dest: "{{ build_path }}/appchannel-orderer-group-capabilities.sh"
   vars:
-    channel_name: "{{ channel.channel_name | lower }}"
     os: "{{ fabric.os }}"
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
 
-# This task updates capability of orderer group in system channel
-- name: Update orderer group capabilities of system channel
+# This task create the config update for application capability
+- name: Update orderer group capabilities of application channel
   include_tasks: orderer-group/orderer_group_capability.yaml
   vars:
-    orderer: "{{ orderers | first }}"
-    channel_name: "{{ channel.channel_name | lower }}"
+    orderer: "{{ network.orderers | first }}"
+    org_query: "organizations[?name=='{{orderer.org_name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"    
 
 # check if original channel config and modified config is same
 # if that is the case we dont have to proceed doing the channel update
@@ -43,22 +45,24 @@
 - name: Call sign_orderer.yaml to sign from new update block
   include_tasks: orderer-group/sign_block_orderer.yaml
   vars:
+    org_query: "orderers[?org_name=='{{org.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
     component_ns: "{{ org.name | lower }}-net"
-    channel_name: "{{ channel.channel_name | lower }}"
-    orderer: "{{ orderersNode }}"
-  loop: "{{ orderers }}"
+  loop: "{{ network.organizations }}"
   loop_control:
-    loop_var: orderersNode
-  when: orderersNode.type == 'orderer' and orderersNode.name != creator_orderer and is_config_same == false
+    loop_var: org
+  when: org.type == 'orderer' and org.name != creator_orderer and is_config_same  == false
 
 # This task updates the block by the existing orderer
 - name: Call update_orderer.yaml to add the new orderer to the existing network
   include_tasks: orderer-group/update_block_orderer.yaml
   vars:
+    org_query: "orderers[?org_name=='{{org.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
     component_ns: "{{ org.name | lower }}-net"
-    channel_name: "{{ channel.channel_name | lower }}"
-    orderer: "{{ orderersNode }}"
-  loop: "{{ orderers }}"
+  loop: "{{ network.organizations }}"
   loop_control:
-    loop_var: orderersNode
-  when: orderersNode.type == 'orderer' and orderersNode.name == creator_orderer and is_config_same == false
+    loop_var: org
+  when: org.type == 'orderer' and org.name == creator_orderer and is_config_same  == false

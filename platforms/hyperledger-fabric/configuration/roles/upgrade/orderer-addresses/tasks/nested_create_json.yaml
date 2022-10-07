@@ -1,11 +1,7 @@
 # Set orderer org for the channel
 - name: Set orderer organization
   set_fact:
-    ordererOrg: "{{ org }}"
-  loop: "{{ organizations }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'orderer' and org.name == channel.orderer.name
+    ordererOrgs: "{{ org }}" 
 
 # Construct the orderer addresses list
 - name: Construct the orderer addresses list
@@ -15,9 +11,9 @@
       {% for orderer in ordererOrg.services.orderers %}
         "{{ orderer.name }}.{{ ordererOrg.name }}-net:{{ orderer.grpc.port }}",      
       {% endfor %}
-  # loop: "{{ ordererOrg.services.orderers }}"
-  # loop_control:
-  #   loop_var: orderer    
+  loop: "{{ ordererOrg.services.orderers }}"
+  loop_control:
+    loop_var: orderer 
 
 # Create yaml file with orderer address values
 - name: Create yaml file with orderer address values

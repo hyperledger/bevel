@@ -70,7 +70,6 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/capabilities.json {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/capabilities.json
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- chmod 777 ./syschannel-orderer-group-capabilities.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- sh ./syschannel-orderer-group-capabilities.sh
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_diff_config_envelope.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_diff_config_envelope.pb {{ build_path }}/{{ channel_name }}_config_block.pb
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config_orig.json {{ build_path }}/config_orig.json
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config_modified.json {{ build_path }}/config_modified.json
@@ -78,7 +77,7 @@
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
   vars:
     kubernetes: "{{ org.k8s }}"
-    ordererAddress: "{{ orderer.name | lower }}.{{ org.name }}-net:{{ orderer.grpc.port }}"
+    ordererAddress: "{{ orderer.uri }}"
 
 - name: Set creator_orderer
   set_fact:

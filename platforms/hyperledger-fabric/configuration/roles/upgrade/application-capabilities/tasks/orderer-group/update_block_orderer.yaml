@@ -73,16 +73,6 @@
     cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/genesis.block.base64
   environment:
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
-    ORDERER_URL: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+    ORDERER_URL: "{{ orderer.uri }}"
   vars:
-    kubernetes: "{{ org.k8s }}"
-
-# This task saves the new genesis block to the vault
-- name: Save the genesis block to vault
-  shell: |
-    vault kv put {{ neworg.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ neworg.name }}-net {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
-  environment:
-    VAULT_ADDR: "{{ neworg.vault.url }}"
-    VAULT_TOKEN: "{{ neworg.vault.root_token }}"
-  tags:
-    - molecule-idempotence-notest
+    kubernetes: "{{ org.k8s }}"    

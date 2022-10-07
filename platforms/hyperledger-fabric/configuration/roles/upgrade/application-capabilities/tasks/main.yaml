@@ -11,11 +11,12 @@
     path: "{{ build_path }}"
     state: absent
 
+# Create the build directory
 - name: Create build directory if it does not exist
   file:
     path: "{{ build_path }}/channel-artifacts/"
     state: directory
-    
+
 # Ensure channel-artifacts dir exists
 - name: Ensure channel-artifacts dir exists
   file:
@@ -29,25 +30,19 @@
     dest: "{{ build_path }}/channel-artifacts/capabilities.json"
 
 # Upgrade the orderer group for application channel
-- name: Upgrade application channel orderer group
+- name: Upgrade orderer group capability for application channel
   include_tasks: nested_main_orderer_group.yaml
   vars:
-    kubernetes: "{{ org.k8s }}"
-    component_ns: "{{ org.name | lower }}-net"
-    orderers: "{{ org.services.orderers }}"
-  loop: "{{ organizations }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'orderer' and org.name == channel.orderer.name
-
-# Upgrade the channel group for application channel
-- name: Upgrade application channel group capability
-  include_tasks: nested_main_channel_group.yaml
-  vars:
      channel_name: "{{ channel.channel_name | lower }}"
 
-# Upgrade the application group for application channel
-- name: Upgrade application app group capability
-  include_tasks: nested_main_application_group.yaml
-  vars:
-     channel_name: "{{ channel.channel_name | lower }}"
+# # Upgrade the channel group for application channel
+# - name: Upgrade the channel group for application channel
+#   include_tasks: nested_main_channel_group.yaml
+#   vars:
+#      channel_name: "{{ channel.channel_name | lower }}"
+
+# # Upgrade the application group for application channel
+# - name: Upgrade the application group for application channel
+#   include_tasks: nested_main_application_group.yaml
+#   vars:
+#      channel_name: "{{ channel.channel_name | lower }}"

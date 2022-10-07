@@ -61,12 +61,13 @@
 - name: Call sign_block_orderer.yaml to sign from all orderers
   include_tasks: channel-group/sign_block_orderer.yaml
   vars:
-    orderer: "{{ org.services.orderers | first }}"
+    orderer: "orderers[?name=='{{org.name}}']"
+    component_name: "{{ org.name | lower }}"
     component_ns: "{{ org.name | lower }}-net"
   loop: "{{ network.organizations }}"
   loop_control:
     loop_var: org
-  when: org.type == 'orderer' and org.name == channel.orderer.name and is_config_same == false
+  when: org.type == 'orderer' and is_config_same  == false
 
 # This task updates the block to the channel
 - name: Call update_block.yaml to add the new orderer to the existing network
