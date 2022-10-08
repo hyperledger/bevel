@@ -16,13 +16,13 @@
     OrgName: "{{ participant.name }}"
     values_file: "{{ build_path }}/channel-artifacts/enable-endorsement-consortium.yaml"
 
-# Save the yaml file to a variable  
+# Save the yaml file to a variable
 - name: Save yaml to variable
   ansible.builtin.include_vars:
     file: "{{ build_path }}/channel-artifacts/enable-endorsement-consortium.yaml"
     name: ordererEndPoints
 
-# Convert the yaml file to json 
+# Convert the yaml file to json
 - name: convert yaml to json
   copy:
     content: "{{ ordererEndPoints | to_nice_json }}"
@@ -41,23 +41,16 @@
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
 
-# Set orderer org for the channel
-- name: Set orderer organization
-  set_fact:
-    ordererOrg: "{{ org }}"
-  loop: "{{ organizations }}"
-  loop_control:
-    loop_var: org
-  when: org.type == 'orderer' and org.name == channel.orderer.name
-
 # This task create enable endorsement capability block
 - name: Create enable endorsement capability block
   include_tasks: orderer/add_orderer_enable_endorsement.yaml
   vars:
+    orderer: "{{ network.orderers | first }}"
+    org_query: "organizations[?name=='{{orderer.org_name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"
     channel_name: "syschannel"
-    component_ns: "{{ ordererOrg.name | lower }}-net"
-    orderer: "{{ ordererOrg.services.orderers | first }}"
-    org: "{{ ordererOrg }}"
 
 # check if original channel config and modified config is same
 # if that is the case we dont have to proceed doing the channel update
@@ -72,6 +65,20 @@
     original_config: "{{ lookup('file', '{{ build_path }}/config_orig.json' ) }}"
     modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
   when: original_config == modified_config
+
+# This task calls sign_orderer.yaml for the signing of the block by all orderers
+- name: Call sign_orderer.yaml to sign from new update block
+  include_tasks: orderer/sign_orderer.yaml
+  vars:
+    org_query: "orderers[?org_name=='{{org.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"
+    channel_name: "syschannel"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org.name != creator_orderer and is_config_same  == false
 
 # This task calls sign_block.yaml to sign from specific org
 - name: Call sign_block.yaml to sign from specific org
@@ -92,7 +99,11 @@
   include_tasks: orderer/update_block_orderer.yaml
   vars:
     channel_name: "syschannel"
-    component_ns: "{{ ordererOrg.name | lower }}-net"
-    orderer: "{{ ordererOrg.services.orderers | first }}"
-    org: "{{ ordererOrg }}"
-  when: is_config_same == false
+    org_query: "orderers[?org_name=='{{org.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org.name == creator_orderer and is_config_same  == false

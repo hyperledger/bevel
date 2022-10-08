@@ -41,7 +41,7 @@
     modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
   when: original_config == modified_config
 
-# This task calls sign_block.yaml to generate the cli for the new orderer for the signing of the block
+# This task calls sign_block.yaml from all other peers
 - name: Call sign_block.yaml to sign from all other peers
   include_tasks: sign_block.yaml
   vars:
@@ -55,7 +55,7 @@
   when: participant.type != "creator" and is_config_same == false
 
 # This task updates the block to the channel
-- name: Call update_block.yaml to add the new orderer to the existing network
+- name: Call update_block.yaml to update the channel configuration
   include_tasks: update_block.yaml
   vars:
     peer: "{{ participant }}"

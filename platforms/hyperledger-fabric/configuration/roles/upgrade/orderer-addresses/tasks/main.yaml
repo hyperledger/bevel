@@ -11,6 +11,7 @@
     path: "{{ build_path }}"
     state: absent
 
+# Create directory
 - name: Create build directory if it does not exist
   file:
     path: "./build/channel-artifacts/"
@@ -22,18 +23,31 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# Create json file for orderer addresses
-- name: Create json file for orderer addresses
-  include_tasks: nested_create_json.yaml
+# Construct the orderer addresses list
+- name: Construct the orderer addresses list
+  set_fact:
+    end_points:
+    |-
+      {% for orderer in network.orderers %}
+        "{{ orderer.uri }}",
+      {% endfor %}
 
-# update orderer address in syschannel and application channel
-- name: Update orderer address in syschannel and application
-  include_tasks: nested_main_orderer_addresses.yaml
+# Update orderer address in syschannel
+- name: Update orderer address in syschannel
+  include_tasks: update_orderer_address.yaml
   vars:
     kubernetes: "{{ org.k8s }}"
     component_ns: "{{ org.name | lower }}-net"
-    orderers: "{{ org.services.orderers }}"
+    channelName: "syschannel"
+    ordererOrg: "{{ org }}"
   loop: "{{ organizations }}"
   loop_control:
     loop_var: org
-  when: org.type == 'orderer' and org.name == channel.orderer.name
+  when: org.type == 'orderer'
+
+# update orderer address in application channel(s)
+- name: Update orderer address application channel(s)
+  include_tasks: update_orderer_address_appchannel.yaml
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
