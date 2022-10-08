@@ -1,0 +1,70 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: wholesale-net-ca-tools
+  namespace: wholesale-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: wholesale-net-ca-tools
+  chart:
+    git: https://github.com/Mohitv/bevel.git
+    ref: main
+    path: platforms/hyperledger-fabric/charts/catools
+  values:
+    metadata:
+      namespace: wholesale-net
+      name: ca-tools
+      component_type: orderer
+      org_name: wholesale
+      proxy: none
+    annotations:  
+      service:
+        - example1: example2
+      pvc:
+      deployment:
+    replicaCount: 1
+
+    image:
+      repository: hyperledger/fabric-ca-tools
+      tag: 1.2.1
+      pullPolicy: IfNotPresent
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      
+    storage:
+      storageclassname: wholesalesc
+      storagesize: 512Mi
+    
+    vault:
+      role: vault-role
+      address: http://192.168.49.1:8200
+      authpath: localwholesale-net-auth
+      secretmsp: secretsv2/data/crypto/ordererOrganizations/wholesale-net/users/admin/msp
+      secrettls: secretsv2/data/crypto/ordererOrganizations/wholesale-net/users/admin/tls
+      secretorderer: secretsv2/data/crypto/ordererOrganizations/wholesale-net/orderers
+      secretpeer: secretsv2/data/crypto/ordererOrganizations/wholesale-net/peers
+      secretpeerorderertls: secretsv2/data/crypto/ordererOrganizations/wholesale-net/orderer/tls
+      secretambassador: secretsv2/data/crypto/ordererOrganizations/wholesale-net/ambassador
+      secretcert: secretsv2/data/crypto/ordererOrganizations/wholesale-net/ca?ca.wholesale-net-cert.pem
+      secretkey: secretsv2/data/crypto/ordererOrganizations/wholesale-net/ca?wholesale-net-CA.key
+      secretcouchdb: secretsv2/data/credentials/wholesale-net/couchdb/wholesale
+      secretconfigfile: secretsv2/data/crypto/ordererOrganizations/wholesale-net/msp/config
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    
+    healthcheck: 
+      retries: 10
+      sleepTimeAfterError: 2
+
+    
+    org_data:
+      external_url_suffix: develop.local.com
+      component_subject: O=Orderer,L=51.50/-0.13/London,C=GB
+      cert_subject: O=Orderer/L=51.50,-0.13,London/C=GB
+      component_country: UK
+      component_state: London
+      component_location: London
+      ca_url: ca.wholesale-net:7054
+
+    orderers:
+      name: orderer1-
