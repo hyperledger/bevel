@@ -1,0 +1,33 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: wholesale-vaultkubenertes-job
+  namespace: wholesale-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: wholesale-vaultkubenertes-job
+  chart:
+    git: https://github.com/Mohitv/bevel.git
+    ref: main
+    path: platforms/hyperledger-fabric/charts/vault_kubernetes
+  values:
+    metadata:
+      name: wholesale
+      component_type: orderer
+      namespace: wholesale-net    
+      images:
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    vault:
+      reviewer_service: vault-reviewer
+      role: vault-role
+      address: http://192.168.49.1:8200
+      authpath: localwholesale-net-auth
+      policy: vault-crypto-orderer-wholesale-net-ro
+      secret_path: secretsv2
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    
+    k8s:
+      kubernetes_url: 
