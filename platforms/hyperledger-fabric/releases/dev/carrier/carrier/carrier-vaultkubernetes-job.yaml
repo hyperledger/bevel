@@ -1,0 +1,38 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: carrier-vaultkubenertes-job
+  namespace: carrier-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  interval: 1m
+  releaseName: carrier-vaultkubenertes-job
+  chart:
+    spec:
+      interval: 1m
+      sourceRef:
+        kind: GitRepository
+        name: flux-local
+        namespace: flux-local
+      chart: platforms/hyperledger-fabric/charts/vault_kubernetes
+  values:
+    metadata:
+      name: carrier
+      component_type: peer
+      namespace: carrier-net    
+      images:
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    vault:
+      reviewer_service: vault-reviewer
+      role: vault-role
+      address: http://192.168.49.1:8200
+      authpath: localcarrier-net-auth
+      policy: vault-crypto-peer-carrier-net-ro
+      secret_path: secretsv2
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    
+    k8s:
+      kubernetes_url: https://52.249.254.112:8443
