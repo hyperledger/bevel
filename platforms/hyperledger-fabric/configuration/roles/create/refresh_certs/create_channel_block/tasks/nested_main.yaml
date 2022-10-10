@@ -1,0 +1,49 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates the block modification script for system channel.
+#############################################################################################
+
+############################################################################################
+# This task creates the generate_block.sh file for organizations
+- name: "Create create-syschannel-block.sh script file for orderers"
+  template:
+    src: "update_consenter_script.tpl"
+    dest: "{{ build_path }}/syschannel-update-script.sh"
+  vars:
+    component_name: "{{ org.name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+    orderer_name: "{{ orderer_main.name | lower }}"
+    channel_name: "{{ sys_channel_name }}"
+    namespace: "{{ component_ns }}"
+
+############################################################################################
+# This task creates the update-channel-scriptk.sh file for organizations
+- name: "Create update-channel-script.sh script file for orderers"
+  template:
+    src: "update_consenter_script.tpl"
+    dest: "{{ build_path }}/{{ channel_name }}-update-channel-script.sh"
+  vars:
+    component_name: "{{ org.name | lower }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+    channel_name: "{{ channel.channel_name | lower }}"
+    orderer_name: "{{ orderer_main.name | lower }}"
+    namespace: "{{ component_ns }}"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+ 
+############################################################################################
+# This task calls nested_create_cli to generate the cli value files for the orderer organization
+- name: Call nested_create_cli for the first orderer
+  include_tasks: nested_create_cli.yaml
+  vars:
+    orderer: "{{ org.services.orderers | first }}"

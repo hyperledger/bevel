@@ -25,7 +25,24 @@ This tasks checks if CA server is available or not and waits for the CA server t
   **retries**: No of retries
   **delay**: Specifies the delay between every retry
 
-#### 2. Check that orderer-certificate File exists
+#### 2. Call delete_old_certs for delete the previous certificates
+This task delete the previous certificates
+##### Input Variables
+    *org_name: Provide the name of the organization
+**when**: It runs Only when *add_peer* is defined and *add_peer* is true or *refresh_cert* is defined and *refresh_cert* is true.
+
+#### 3. Reset ca-tools pod
+This task reset ca-tools pod
+##### Input Variables
+    *pod_name: Provide the name of the pod
+    *file_path: Provide the release file path
+    *gitops_value: *item.gitops* from network.yaml
+    *component_ns: Provide the namespace of the resource
+    *kubernetes: *item.k8s* from network.yaml
+    *hr_name: Provides the name of the helmrealse
+**when**: It runs Only when *refresh_cert* is defined and *refresh_cert* is true.
+
+#### 4. Check that orderer-certificate File exists
  This tasks Ensure orderer-certificate file is present.
 ##### Input Variables
     *orderer.certificate: The certificate file path for the orderer.
@@ -34,7 +51,7 @@ This tasks checks if CA server is available or not and waits for the CA server t
 
 **failed_when**: This task fails when add_new_org is true and the file(s) does not exist. For adding a new org the orderer certificate is mandatory.
 
-#### 3. Check if Orderer certs already created
+#### 5. Check if Orderer certs already created
 This tasks Check if Orderer certs exists in vault. If yes, get the certificate
 ##### Input Variables
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
@@ -51,7 +68,7 @@ This tasks Check if Orderer certs exists in vault. If yes, get the certificate
 
 **ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
-#### 4. Save Orderer certs if already created
+#### 6. Save Orderer certs if already created
  This tasks Ensure orderer-tls directory is present in build.
 ##### Input Variables
     *orderer.org_name: The org name of the orderer.
@@ -61,13 +78,13 @@ This tasks Check if Orderer certs exists in vault. If yes, get the certificate
     loop_var: loop variable used for iterating the loop.
 **when**: It runs Only when *orderer_certs_result.results[0]* is true.
 
-#### 5. Create the certs directory if it does not exist
+#### 7. Create the certs directory if it does not exist
 This task create the certs directory if it is not present 
 ##### Input Variables
     path: The path where to check is specified here.
     state: Type i.e. directory.
 
-#### 6. Copy the tls orderers certs to the chart catools directory
+#### 8. Copy the tls orderers certs to the chart catools directory
 This task copies orderers certs from the path provided in network.yaml to ca-tools chart directory
 ##### Input Variables
     *orderer.name: The orderer name.
@@ -75,7 +92,7 @@ This task copies orderers certs from the path provided in network.yaml to ca-too
 **loop_control**: Specify conditions for controlling the loop.                
     loop_var: loop variable used for iterating the loop.
 
-#### 7. Create CA-tools Values file
+#### 9. Create CA-tools Values file
 This task creates the CA-tools value files for peer.
 ##### Input Variables
     *name: The name of resource
@@ -101,7 +118,7 @@ This task creates the CA-tools value files for peer.
   
 **include_role** : It includes the name of intermediatory role which is required for creating the CA Tools value file.
 
-#### 8. Git Push
+#### 10. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
     GIT_DIR: "The path of directory which needs to be pushed"    
@@ -109,7 +126,7 @@ This task pushes the above generated value files to git repo.
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 
-#### 9. Check if crypto materials exists in vault.
+#### 11. Check if crypto materials exists in vault.
 This task Check if crypto materials exists in vault.
 ##### Input Variables
     *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
@@ -117,7 +134,7 @@ This task Check if crypto materials exists in vault.
     *component_type: "Type of org"
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `crypto_materials`.
 
-#### 10. Create the Ambassador credentials
+#### 12. Create the Ambassador credentials
 This task creates the Ambassador TLS credentials
 ##### Input Variables
     *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
@@ -126,7 +143,7 @@ This task creates the Ambassador TLS credentials
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador and *peer.peerstatus* is not defined or *peer.peerstatus* is new
 
-#### 11. Copy msp cacerts to given path
+#### 13. Copy msp cacerts to given path
 This task copy the peer certificate to the path provided in network.yaml
 ##### Input Variables
     *org_name: Name of Item
@@ -137,24 +154,60 @@ This task copy the peer certificate to the path provided in network.yaml
                 
     loop_var: loop variable used for iterating the loop.
 
-#### 12. Copy the the msp folder from the ca tools
-This task copies the msp folder from the respective CA Tools CLI to the Ansible container
+#### 14. Copy the msp admincerts from vault
+This task copies the msp admincerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
-    *component_type: "Type of the organization (orderer or peer)"
-    *KUBECONFIG: The config file of kubernetes cluster.
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
 
-#### 13. Get msp config.yaml file
+#### 15. Copy the msp cacerts from vault
+This task copies the msp cacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
+
+#### 16. Copy the msp tlscacerts from vault
+This task copies the msp tlscacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is not none.
+
+#### 17. Copy the msp cacerts from vault
+This task copies the msp cacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is none.
+
+#### 18. Copy the msp tlscacerts from vault
+This task copies the msp tlscacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**when**: It runs Only when *network.env.proxy* is none.
+
+#### 19. Get msp config.yaml file
 This task gets msp config.yaml file from vault
 ##### Input Variables
     *component_name: The name of the resource
     *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
-    *KUBECONFIG: The config file of kubernetes cluster.
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 
-#### 14. Create user crypto
+#### 20. Create user crypto
 This task create user crypto 
 ##### Input Variables
     *org_name: "Name of the organization"

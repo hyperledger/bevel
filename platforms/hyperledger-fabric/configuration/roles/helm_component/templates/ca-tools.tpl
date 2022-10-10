@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ component_name }}-ca-tools
@@ -6,11 +6,16 @@ metadata:
   annotations:
     fluxcd.io/automated: "false"
 spec:
+  interval: 1m
   releaseName: {{ component_name }}-ca-tools
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
-    path: {{ charts_dir }}/catools
+    spec:
+      interval: 1m
+      sourceRef:
+        kind: GitRepository
+        name: flux-{{ network.env.type }}
+        namespace: flux-{{ network.env.type }}
+      chart: {{ charts_dir }}/catools
   values:
     metadata:
       namespace: {{ component_name }}
@@ -100,7 +105,10 @@ spec:
       name: {% for peer in peers_list %}{% for key, value in peer.items() %}{% if key == 'name' %}{{ value }},{% endif %}{% if key == 'peerstatus' %}{{ value }}{% endif %}{% endfor %}-{% endfor %}
       
     peer_count: "{{ peer_count }}"
-
+{% if add_peer_value  == 'true' %}
+    new_peer_count: "{{ new_peer_count }}"
+{% endif %}
     checks:
       refresh_cert_value: {{ refresh_cert_value }}
+      add_peer_value: {{ add_peer_value }}
 {% endif %}

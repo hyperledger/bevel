@@ -24,30 +24,20 @@
       path: "./build"
       state: absent
 
-  # Create generate_crypto script for new organization
-  - name: "Generate crypto script for new orderer"
+  # Create CA Tools helm-value files and check-in
+  - name: Create CA tools for each organization
     include_role:
-      name: "create/new_orderer/crypto_script"
-    vars:
-      component_type: "{{ item.type | lower}}"
-      orderers: "{{ item.services.orderers }}"
-    loop: "{{ network['organizations'] }}"
-    when: item.type == 'orderer'
-    
-  # Create Orderer crypto materials
-  - name: "Generate crypto for new orderer"
-    include_role:
-      name: "create/crypto/orderer"
+      name: "create/ca-tools/orderer"
     vars:
       component_name: "{{ item.name | lower}}-net"
+      component: "{{ item.name | lower}}"
       component_type: "{{ item.type | lower}}"
-      org_name: "{{ item.name }}"
-      services: "{{ item.services }}"
-      subject: "{{ item.subject }}"
-      ca_url: "{{ item.ca_data.url }}"
-      cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+      component_services: "{{ item.services }}"
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
+      ca: "{{ item.services.ca }}"
+      gitops: "{{ item.gitops }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
     when: item.type == 'orderer'
 
@@ -77,6 +67,7 @@
       component_type: "{{ item.type | lower}}"
       component_services: "{{ item.services }}"
       vault: "{{ item.vault }}"
+      git_protocol: "{{ item.gitops.git_protocol }}"
       git_url: "{{ item.gitops.git_url }}"
       git_branch: "{{ item.gitops.branch }}"
       docker_url: "{{ network.docker.url }}"
@@ -112,3 +103,7 @@
     loop: "{{ network.channels }}"
     loop_control:
       loop_var: channel
+
+  vars: #These variables can be overriden from the command line
+    add_new_org: 'false'                #Default for this playbook is false
+    add_orderer: 'true'                 #Default for this playbook is true

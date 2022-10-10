@@ -1,0 +1,30 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value file for the deployment of CA Tools CLI
+#############################################################################################
+
+############################################################################################
+# This task deletes crypto materials from vault
+- name: Delete Crypto for peers
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/ambassador
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/msp/config
+    {% for peer in peers %}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/msp
+    {% endfor %}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
+  vars:
+    peers: "{{ item.services.peers }}"
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  when: component_type == 'peer'

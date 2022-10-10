@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ name }}-operations-console
@@ -6,11 +6,16 @@ metadata:
   annotations:
     fluxcd.io/automated: "false"
 spec:
+  interval: 1m
   releaseName: {{ name }}-operations-console
   chart:
-    git: {{ git_url }}
-    ref: {{ git_branch }}
-    path: {{ charts_dir }}/operations_console
+    spec:
+      interval: 1m
+      sourceRef:
+        kind: GitRepository
+        name: flux-{{ network.env.type }}
+        namespace: flux-{{ network.env.type }}
+      chart: {{ charts_dir }}/operations_console
   values:
     metadata:
       namespace: {{ component_ns }}

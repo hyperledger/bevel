@@ -10,6 +10,27 @@
 #                      CREATE CLI POD                                                      #
 ############################################################################################
 #
+
+############################################################################################
+# This task reset peers pods
+- name: "Reset peers pods"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "cli"
+    file_path: "{{ values_dir }}/{{ pod_name }}/{{ peer.name | lower}}-{{ org.name | lower }}-cli.yaml"
+    gitops_value: "{{ org.gitops }}"
+    component_ns: "{{ org.name | lower}}-net"
+    kubernetes: "{{ org.k8s }}"
+    hr_name: "{{ peer.name | lower}}-{{ org.name | lower }}-cli"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer 
+  when: 
+  - refresh_cert is defined and refresh_cert == 'true'
+  - peer.cli is defined 
+  - peer.cli == "enabled"
+
 ############################################################################################
 # This task creates the value file for the cli pod as per requirements mentioned in 
 # network.yaml
@@ -23,6 +44,7 @@
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"  
     orderer: "{{ network.orderers | first }}"
     component_ns: "{{ org.name | lower}}-net"
+    git_protocol: "{{ org.gitops.git_protocol }}"
     git_url: "{{ org.gitops.git_url }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
