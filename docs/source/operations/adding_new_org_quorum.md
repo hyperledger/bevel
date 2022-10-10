@@ -77,7 +77,7 @@ network:
     # constellation: 0.3.2 (For all versions of quorum)
     tm_version: "21.7.3"               
     tm_tls: "strict"                  # Options are "strict" and "off"
-    tm_trust: "tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
+    tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
     #  For "tessera", all participating nodes should be provided
     #  For "constellation", only one is bootnode should be provided
@@ -190,4 +190,5 @@ The [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml"
 ```
 
-
+## Verify network deployment
+For instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](./operations/bevel_verify.md)

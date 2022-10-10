@@ -5,12 +5,22 @@
 ##############################################################################################
 
 ---
-- name: Delete Helm release
+# Remove all Helm installations
+- name:  Remove all Helm installations of {{ organizationItem }}
+  args:
+    executable: /bin/bash
   shell: |
+    helm_releases=($(KUBECONFIG={{ kubernetes.config_file }} helm ls | grep {{ organizationItem }} | awk '{print $1}'))
+    for helm_release in "${helm_releases[@]}"
+    do
+      KUBECONFIG={{ kubernetes.config_file }} helm uninstall ${helm_release}
+    done
+  ignore_errors: yes
+
+- name: Delete namespace and secrets.
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl delete --all helmrelease -n "flux-{{ network.env.type }}"
     KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }} -n flux-{{ network.env.type }}
-    KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }} -n flux-{{ network.env.type }}
-    KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}-helm-operator -n flux-{{ network.env.type }}
-    KUBECONFIG={{ kubernetes.config_file }} helm uninstall alice -n default
     KUBECONFIG={{ kubernetes.config_file }} kubectl delete namespace flux-{{ network.env.type }}
   ignore_errors: yes
 

@@ -18,7 +18,7 @@ spec:
       namespace: {{ component_ns }}
       type: {{ platform_type }}
     image:
-      containerName: {{ network.container_registry.url | lower }}/bevel-supplychain-corda:{{ image_tag }}
+      containerName: {{ network.docker.url | lower }}/bevel-supplychain-corda:{{ image_tag }}
       initContainerName: ghcr.io/hyperledger/alpine-utils:1.0
       imagePullSecret: regcred
       privateCertificate: true

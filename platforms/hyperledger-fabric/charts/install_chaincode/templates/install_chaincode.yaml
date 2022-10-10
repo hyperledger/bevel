@@ -67,13 +67,13 @@ spec:
         - |-
           #!/usr/bin/env sh
           validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
+            if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
               echo "ERROR: unable to retrieve ${1}: ${2}"
               exit 1
             fi
             if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
             then
-              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
               --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
               ${VAULT_ADDR}/v1/${vault_secret_key})
               curl_response=$?
@@ -169,7 +169,13 @@ spec:
           apk add curl openssh
           ssh-keyscan {{ $.Values.chaincode.repository.hostname }} > /root/.ssh/known_hosts
           git_password=$(cat /opt/gopath/src/github.com/hyperledger/fabric/crypto/user_cred)
-          cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode
+          cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode > git.log 2>&1
+          ## Check if the repository was cloned correctly
+          if [[ ! $? -eq 0 ]];
+          then
+            cat git.log
+            exit 1
+          fi
           ls
           echo $GOPATH
           if [ ${CC_RUNTIME_LANGUAGE} = "golang" ]
@@ -179,7 +185,7 @@ spec:
             cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
 
             # Get dependencies
-            mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/hyperledger/bevel/main/platforms/hyperledger-fabric/scripts/install.sh | sh
             cd $GOPATH/src/github.com/chaincode && dep ensure
 
             #chaincode path
@@ -320,3 +326,4 @@ spec:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
+

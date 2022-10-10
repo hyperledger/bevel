@@ -67,12 +67,6 @@ A “cloud instance” refers to a virtual server instance from a public or priv
 ### Jenkins
 Jenkins is a free and open source automation server written in Java. Jenkins helps to automate the non-human part of the software development process, with continuous integration and facilitating technical aspects of continuous delivery. 
 For more details, refer: [Jenkins](https://jenkins.io/)
-### Jenkins Master
-Your main Jenkins server is the master machine called Jenkins Master.
-For more details, refer: [Jenkins Master](https://wiki.jenkins.io/pages/viewpage.action?pageId=75893612)
-### Jenkins Slave
-A slave is a Java executable that runs on a remote machine.
-For more details, refer: [Jenkins Slave](https://wiki.jenkins.io/pages/viewpage.action?pageId=75893612)
 ### Jenkins Stages
 A stage block in Jenkins defines a conceptually distinct subset of tasks performed through the entire Pipeline (e.g. "Build", "Test" and "Deploy" stages), which is used by many plugins to visualize or present Jenkins Pipeline status/progress.
 ### Kubeconfig File
@@ -81,7 +75,7 @@ A kubeconfig file is a file used to configure access to Kubernetes when used in 
 Kubernetes (K8s) is an open-source container-orchestration system for automating application deployment, scaling, and management. It was originally designed by Google, and is now maintained by the Cloud Native Computing Foundation.
 For more details, refer: [Kubernetes](https://kubernetes.io/)
 ### Kubernetes Node
-A node is a worker machine in Kubernetes, previously known as a minion. A node may be a VM or physical machine, depending on the cluster. Each node contains the services necessary to run pods and is managed by the master components. The services on a node include the container runtime, kubelet and kube-proxy. 
+A node is a worker machine in Kubernetes, previously known as a minion. A node may be a VM or physical machine, depending on the cluster. Each node contains the services necessary to run pods and is managed by the main components. The services on a node include the container runtime, kubelet and kube-proxy. 
 For more details, refer: [Kubernetes Node](https://kubernetes.io/docs/concepts/architecture/nodes/)
 ### Kubernetes Storage Class
 A StorageClass in Kubernetes provides a way for administrators to describe the “classes” of storage they offer. Different classes might map to quality-of-service levels, or to backup policies, or to arbitrary policies determined by the cluster administrators.
@@ -111,7 +105,7 @@ SHA-256 stands for Secure Hash Algorithm – 256 bit and is a type of hash funct
 For more details, refer: [SHA256](https://en.bitcoinwiki.org/wiki/SHA-256)
 ### Sphinx
 Sphinx is a tool that makes it easy to create intelligent and beautiful documentation, written by Georg Brandl and licensed under the BSD license. It was originally created for the Python documentation, and it has excellent facilities for the documentation of software projects in a range of languages.
-For more details, refer: [Sphinx](http://www.sphinx-doc.org/en/master/)
+For more details, refer: [Sphinx](https://www.sphinx-doc.org/)
 ### SSH
 SSH, also known as Secure Shell or Secure Socket Shell, is a network protocol that gives users, particularly system administrators, a secure way to access a computer over an unsecured network. SSH also refers to the suite of utilities that implement the SSH protocol.
 For more details, refer: [SSH](https://en.wikipedia.org/wiki/Secure_Shell)

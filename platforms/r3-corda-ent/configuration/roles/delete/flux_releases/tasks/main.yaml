@@ -8,14 +8,8 @@
 # This role deletes the helm releases and uninstalls Flux
 #############################################################################################
 
-# Remove CRD Helmrelease
-- name: "Deletes all the helmreleases in {{ component_ns }}"
-  shell: |
-    KUBECONFIG={{ k8s.config_file }} kubectl delete --all helmrelease -n "{{ component_ns }}"
-  ignore_errors: yes
-
-# Remove all Helm releases of organization
-- name: Remove all Helm releases of namespace {{ org.name | lower }}
+# Remove all Helm installations
+- name: Remove all Helm installations of namespace {{ org.name | lower }}
   args:
     executable: /bin/bash
   shell: |
@@ -25,7 +19,7 @@
       KUBECONFIG={{ k8s.config_file }} helm uninstall ${helm_release}
     done
   ignore_errors: yes
-  
+
 - name: Deletes namespaces
   k8s:
     kind: Namespace

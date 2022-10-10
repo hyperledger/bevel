@@ -21,10 +21,11 @@
         name: "delete/gitops_files"
       vars:
         gitops: "{{ item.gitops }}"
+        flux_mainfest_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/flux-{{ network.env.type }}"
         release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
       loop: "{{ network['organizations'] }}"
     # Delete Vault and Kubernetes secrets.
-    - include_role: 
+    - include_role:
         name: "delete/vault_secrets"
       vars:
         component_name: "{{ item.name | lower }}-ns"
@@ -36,10 +37,7 @@
     # remove this if not needed
     - name: Uninstall flux
       shell: |
-        KUBECONFIG={{ kubernetes.config_file }} kubectl delete secret git-auth-{{ network.env.type }} -n flux-{{ network.env.type }}
-        KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }} -n flux-{{ network.env.type }}
-        KUBECONFIG={{ kubernetes.config_file }} helm uninstall flux-{{ network.env.type }}-helm-operator -n flux-{{ network.env.type }}
-        KUBECONFIG={{ kubernetes.config_file }} kubectl delete namespace flux-{{ network.env.type }}
+        yes | KUBECONFIG={{ kubernetes.config_file }} {{ bin_install_dir }}/flux uninstall --namespace=flux-{{ network.env.type }}
       vars:
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"

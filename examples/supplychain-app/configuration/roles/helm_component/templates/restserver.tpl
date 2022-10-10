@@ -1,4 +1,4 @@
-apiVersion: helm.fluxcd.io/v1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: {{ name }}-restserver
@@ -6,11 +6,15 @@ metadata:
   annotations:
     fluxcd.io/automated: "false"
 spec:
-  chart:
-    path: {{ component_gitops.chart_source }}/fabric-restserver
-    git: {{ component_gitops.git_url }}
-    ref: {{ component_gitops.branch }}
   releaseName: {{ name }}-restserver
+  interval: 1m
+  chart:
+   spec:
+    chart: {{ component_gitops.chart_source }}/fabric-restserver
+    sourceRef:
+      kind: GitRepository
+      name: flux-{{ network.env.type }}
+      namespace: flux-{{ network.env.type }}
   values:
     metadata:
       namespace: {{ component_ns }}
@@ -18,7 +22,7 @@ spec:
       name: {{ name }}-restserver
       port: {{ peer_restserver_port }}
       localmspid: {{ name }}MSP
-      image: {{ network.container_registry.url | lower }}/bevel-supplychain-fabric:rest-server-latest
+      image: {{ network.docker.url | lower }}/bevel-supplychain-fabric:rest-server-stable
       username: user1
       cert_path: "/secret/tls/user1.cert"
       key_path: "/secret/tls/user1.pem"

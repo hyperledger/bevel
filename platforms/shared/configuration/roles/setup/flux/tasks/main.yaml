@@ -5,83 +5,49 @@
 ##############################################################################################
 
 ---
-- name: Checking if the namespace flux-{{ network.env.type }} already exists
-  k8s_info:
-    kind: "Namespace"
-    name: "flux-{{ network.env.type }}"
-    kubeconfig: "{{ kubeconfig_path }}"
-    context: "{{ kubecontext }}"
-  register: result
+- name: Install flux cli
+  shell: |
+    curl -s https://fluxcd.io/install.sh | bash -s {{ bin_install_dir }}
+  environment:
+    FLUX_VERSION: "{{ flux_version }}"
 
-# This task creates the value file of Namespace for flux
-- name: Create namespaces  flux-{{ network.env.type }}
+- name: Update the ssh host to known hosts
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} kubectl create namespace flux-{{ network.env.type }} 
-  when: result.resources|length == 0
-  
-- name: Check if Flux is running
-  k8s_info:
-    kind: Pod
-    namespace: flux-{{ network.env.type }}
-    kubeconfig: "{{ kubeconfig_path }}"
-    context: "{{ kubecontext }}"
-    label_selectors:
-      - app = flux
-      - release = flux-{{ network.env.type }}
-    field_selectors:
-      - status.phase=Running
-  register: flux_service
-  tags:
-    - flux
-- name: Get ssh known hosts
-  shell: |
-    ssh-keyscan {{ git_host }} > flux_known_hosts
-    chmod -R 777 flux_known_hosts
-  when: flux_service.resources|length == 0 and git_protocol == "ssh"
+    mkdir -p ~/.ssh/
+    ssh-keygen -R {{ git_host }}
+    ssh-keyscan {{ git_host }} >> ~/.ssh/known_hosts
+  when: git_protocol == "ssh"
   tags:
     - molecule-idempotence-notest
 
-- name: Helm repo add
+- name: Install flux cli and bootstrap flux v2
   shell: |
-    helm repo add fluxcd https://charts.fluxcd.io
-  when: flux_service.resources|length == 0
+    {{ bin_install_dir }}/flux bootstrap git \
+    --url={{ git_url }} \
+    --branch={{ git_branch }} \
+    --username={{ git_username }} \
+    --password={{ git_password }} \
+    --token-auth=true \
+    --path={{ git_path }} \
+    --namespace=flux-{{ network.env.type }}
+  when: git_protocol == "https"
+  environment:
+    KUBECONFIG: "{{ item.k8s.config_file }}"
   tags:
     - flux
     - molecule-idempotence-notest
 
-- name: Install flux for over https connection
+- name: Install flux cli and bootstrap flux v2
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} kubectl create secret generic git-auth-{{ network.env.type }} --from-literal=GIT_AUTHUSER={{ git_username }}  --from-literal=GIT_AUTHKEY={{ git_password }} --namespace flux-{{ network.env.type }}
-    KUBECONFIG={{ kubeconfig_path }} kubectl apply -f https://raw.githubusercontent.com/fluxcd/helm-operator/{{ helm_operator_version }}/deploy/crds.yaml --context="{{ kubecontext }}"
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install flux-{{ network.env.type }} {{ playbook_dir }}/../../../platforms/shared/charts/flux --namespace flux-{{ network.env.type }} --set git.secretName=git-auth-{{ network.env.type }} --set rbac.create=true --set git.timeout=200s --set git.pollInterval=2m --set git.url='https://{{ git_username }}:{{ git_password }}@{{ git_repo }}' --set git.branch={{ git_branch }} --set git.label='sync-{{ network.env.type }}' --set git.path="{{ git_path }}"  --set registry.insecureHosts="{{ network.docker.url }}" --kube-context="{{ kubecontext }}"
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install flux-{{ network.env.type }}-helm-operator fluxcd/helm-operator --namespace flux-{{ network.env.type }} --set rbac.create=true --set git.timeout=200s --set git.pollInterval=2m --set git.url='https://{{ git_username }}:{{ git_password }}@{{ git_repo }}' --set git.ssh.secretName=git-auth-{{ network.env.type }} --set helm.versions=v3 --kube-context="{{ kubecontext }}"
-  when: flux_service.resources|length == 0 and git_protocol == "https" 
+    yes | {{ bin_install_dir }}/flux bootstrap git \
+    --url={{ git_url }} \
+    --branch={{ git_branch }} \
+    --path={{ git_path }} \
+    --private-key-file={{ git_key }} \
+    --namespace=flux-{{ network.env.type }}
+  when: git_protocol == "ssh"
+  environment:
+    KUBECONFIG: "{{ item.k8s.config_file }}"
   tags:
     - flux
     - molecule-idempotence-notest
-
-- name: Install flux for over ssh connection
-  shell: |
-    KUBECONFIG={{ kubeconfig_path }} kubectl create secret generic git-auth-{{ network.env.type }} --from-file=identity={{ git_key }} --namespace flux-{{ network.env.type }}
-    KUBECONFIG={{ kubeconfig_path }} kubectl apply -f https://raw.githubusercontent.com/fluxcd/helm-operator/{{ helm_operator_version }}/deploy/crds.yaml --context="{{ kubecontext }}"
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install flux-{{ network.env.type }} {{ playbook_dir }}/../../../platforms/shared/charts/flux --namespace flux-{{ network.env.type }} --set git.secretName=git-auth-{{ network.env.type }} --set rbac.create=true --set git.timeout=200s --set git.pollInterval=2m --set git.url='{{ git_url }}' --set git.branch={{ git_branch }} --set git.label='sync-{{ network.env.type }}' --set git.path="{{ git_path }}" --set-file ssh.known_hosts=flux_known_hosts --set registry.insecureHosts="{{ network.docker.url }}" --kube-context="{{ kubecontext }}"
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install flux-{{ network.env.type }}-helm-operator fluxcd/helm-operator --namespace flux-{{ network.env.type }} --set rbac.create=true --set git.timeout=200s --set git.pollInterval=2m --set git.url='{{ git_url }}' --set git.ssh.secretName=git-auth-{{ network.env.type }} --set-file git.ssh.known_hosts=flux_known_hosts --set helm.versions=v3 --kube-context="{{ kubecontext }}"
-  when: flux_service.resources|length == 0 and git_protocol == "ssh" 
-  tags:
-    - flux
-    - molecule-idempotence-notest
-
-# Wait for flux pod to start running
-- name: wait for pods to come up
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-  vars:
-    namespace: flux-{{ network.env.type }}
-    kubeconfig: "{{ kubeconfig_path }}"
-    context: "{{ kubecontext }}"
-    component_name: flux
-    component_type: "Pod"
-    label_selectors:
-      - app = flux
-      - release = flux-{{ network.env.type }}
-  when: flux_service.resources|length == 0

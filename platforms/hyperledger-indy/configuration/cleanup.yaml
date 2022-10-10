@@ -29,7 +29,18 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
-
+  # Uninstalling Flux is needed so that everything is clean
+  # remove this if not needed
+  - name: Uninstall flux
+    shell: |
+        yes | KUBECONFIG={{ kubernetes.config_file }} {{ bin_install_dir }}/flux uninstall --namespace=flux-{{ network.env.type }}
+    vars:
+      kubernetes: "{{ organizationItem.k8s }}"
+      bin_install_dir: "~/bin" # Default to /bin install directory for binaries
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    ignore_errors: yes
 
   # Delete the Flux Helm release from all organizations's K8S clusters (including the Git secret)
   - name: Delete Flux
@@ -48,6 +59,7 @@
     vars:
       gitops: "{{ organizationItem.gitops }}"
       release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organizationItem.name|lower }}"
+      flux_mainfest_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/flux-{{ network.env.type }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem

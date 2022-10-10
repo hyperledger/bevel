@@ -82,7 +82,7 @@ network:
     # TLS can be True or False for the orion tm
     tm_tls: True
     # Tls trust value
-    tm_trust: "ca-or-tofu"                  # Options are: "whitelist", "ca-or-tofu", "ca", "tofu"
+    tm_trust: "ca-or-tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
     ## File location where the base64 encoded genesis file is located.
     genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be fetched
     ## Transaction Manager nodes public addresses should be provided.
@@ -182,4 +182,5 @@ The [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/
 ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml" --extra-vars "add_new_org=True"
 ```
 
-
+## Verify network deployment
+For instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](./operations/bevel_verify.md)

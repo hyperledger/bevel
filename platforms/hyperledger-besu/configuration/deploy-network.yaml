@@ -15,8 +15,8 @@
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
-  tasks:      
-  # delete build directory 
+  tasks:
+  # delete build directory
   - name: Remove build directory
     file:
       path: "./build"
@@ -24,7 +24,7 @@
 
   # Create namespaces and service accounts
   - name: "Create namespace and service account"
-    include_role: 
+    include_role:
       name: create/namespace_serviceaccount
     vars:
       component_ns: "{{ organizationItem.name | lower }}-bes"
@@ -49,14 +49,14 @@
       loop_var: organizationItem
 
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
-  - name: "Setup vault"   
-    include_role: 
+  - name: "Setup vault"
+    include_role:
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
     vars:
       policy_type: "besu"
       name: "{{ organizationItem.name | lower }}"
       component_ns: "{{ organizationItem.name | lower }}-bes"
-      component_name: "{{ organizationItem.name | lower }}-vaultk8s-job"      
+      component_name: "{{ organizationItem.name | lower }}-vaultk8s-job"
       component_auth: "besu{{ organizationItem.name | lower }}"
       component_type: "organization"
       kubernetes: "{{ organizationItem.k8s }}"
@@ -68,8 +68,8 @@
       loop_var: organizationItem
 
   # Generate Ambassador certificate for nodes. These certificates are used for Orion TLS as well
-  - name: "Create ambassador certificates for Nodes" 
-    include_role: 
+  - name: "Create ambassador certificates for Nodes"
+    include_role:
       name: create/certificates/ambassador
     vars:
       root_subject: "{{ network.config.subject }}"
@@ -90,17 +90,17 @@
   # This role generates the genesis.json and nodekey/enode for all orgs of the network
   - name: "Generate crypto for the IBFT network"
     include_role:
-      name: create/crypto/ibft  
+      name: create/crypto/ibft
     vars:
-      build_path: "{{ playbook_dir }}/build"    
+      build_path: "{{ playbook_dir }}/build"
     when: network.config.consensus == 'ibft'
 
   # This role generates the genesis.json and nodekey/enode for all orgs of the network
   - name: "Generate crypto for the CLIQUE network"
     include_role:
-      name: create/crypto/clique  
+      name: create/crypto/clique
     vars:
-      build_path: "{{ playbook_dir }}/build"    
+      build_path: "{{ playbook_dir }}/build"
     when: network.config.consensus == 'clique'
 
   # This role generates the genesis.json and nodekey/enode for all orgs of the network
@@ -110,7 +110,7 @@
     vars:
       build_path: "{{ playbook_dir }}/build"
     when: network.config.consensus == 'ethash'
-  
+
   # This role deploy validator nodes. Validator nodes do not use Orion crypto.
   - name: "Deploy validator nodes"
     include_role:
@@ -132,13 +132,13 @@
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
     when:
-    - network.config.consensus == 'ibft' or network.config.consensus == 'clique' 
+    - network.config.consensus == 'ibft' or network.config.consensus == 'clique'
     - item.type == 'validator'
 
   # This role generates the crypto materials for orion tm
   - name: "Generate crypto for the Orion transaction manager"
     include_role:
-      name: create/crypto/orion  
+      name: create/crypto/orion
     vars:
       build_path: "{{ playbook_dir }}/build"
       component_ns: "{{ org.name }}-bes"
@@ -146,18 +146,18 @@
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
       charts_dir: "{{ org.gitops.chart_source }}"
-      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
-    when: 
+    when:
       - org.type == 'member'
       - network.config.transaction_manager == 'orion'
 
   # This role generates the crypto materials for tessera tm
   - name: "Generate crypto for the Tessera transaction manager"
     include_role:
-      name: create/crypto/tessera  
+      name: create/crypto/tessera
     vars:
       build_path: "{{ playbook_dir }}/build"
       component_ns: "{{ org.name }}-bes"
@@ -165,18 +165,18 @@
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
       charts_dir: "{{ org.gitops.chart_source }}"
-      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
-    when: 
+    when:
       - org.type == 'member'
       - network.config.transaction_manager == 'tessera'
 
   # This role deploys  Tessera nodes
   - name: "Deploy Tessera nodes"
     include_role:
-      name: create/tessera  
+      name: create/tessera
     vars:
       build_path: "{{ playbook_dir }}/build"
       component_ns: "{{ org.name }}-bes"
@@ -186,11 +186,11 @@
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
       charts_dir: "{{ org.gitops.chart_source }}"
-      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"    
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
-    when: 
+    when:
       - org.type == 'member'
       - network.config.transaction_manager == 'tessera'
 

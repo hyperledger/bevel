@@ -7,13 +7,13 @@ Bevel current roadmap
     title Bevel current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    Platforms and components upgrade : active, 22-01-03, 180d
-    Fabric OFE*: active, 22-01-03, 90d
-    Ansible Decoupling: active, 22-01-03, 60d 
+    Platforms and components upgrade : active, 22-06-25, 180d
+    Fabric OFE*: active, 22-06-25, 75d
+    Ansible Decoupling: active, 22-06-25, 30d 
     section Application
-    Besu Ref App: active, 22-02-14, 120d
-    section CI/CD
-    Moving to ghcr.io: active, 22-01-03, 60d
+    Besu Ref App: active, 22-09-15, 90d
+    section GitOps
+    Upgrade to Flux v2: active, 22-06-25, 35d
 
 .. |pin| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4cc.png?v8
     :width: 15pt
@@ -54,8 +54,8 @@ General
 -  |run| Improve the existing ``readthedocs`` documentations
     - |run| Update guide for deployment on Local k8s
 -  |run| Platforms and components upgrade:
-    - |run| Flux version 2 upgrade
-    - |pin| Test and update platforms code to run on EKS v1.21 
+    - |tick| Flux version 2 upgrade
+    - |tick| Test and update platforms code to run on EKS v1.2x 
     - |pin| Setup AWS cloudwatch exporter
     - |pin| Grafana and Promethus integration 
     - |pin| Improve logging/error messaging in playbooks
@@ -75,8 +75,8 @@ Platforms
     - |run| Implement private transactions
     - |hand| Enable bootnodes
 - |run| Quorum operational feature enhancements
-    - |run| Vault secret engine integration with tessera
-    - |run| Implement private transactions
+    - |tick| Vault secret engine integration with tessera
+    - |pin| Implement private transactions
 - |run| HL Indy operational feature enhancements
     - |hand| Removal of organizations from a running Indy Network
 

@@ -16,9 +16,9 @@ metadata:
       ---
       apiVersion: ambassador/v2
       kind: Mapping
-      name: {{ .Values.node.name }}-tm      
+      name: {{ .Values.node.name }}-tm
       host: {{ .Values.proxy.external_url }}
-      prefix: /      
+      prefix: /
       service: {{ .Values.node.name }}-tessera.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.tm }}
       tls: {{ .Values.node.name }}_mapping_tlscontext
       ---
@@ -36,7 +36,7 @@ metadata:
     app.kubernetes.io/name: {{ .Values.node.name }}-tessera
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }} 
+    app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
   name: {{ .Values.node.name }}-tessera
 spec:
@@ -44,8 +44,9 @@ spec:
     app.kubernetes.io/name: {{ .Values.node.name }}-tessera
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }} 
+    app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
+    service.rpc: {{ .Values.node.name }}-tessera
   type: {{ .Values.node.servicetype }}
   ports:
   - name: tm-manager
@@ -64,5 +65,3 @@ spec:
     protocol: TCP
     port: {{ .Values.node.ports.db }}
     targetPort: {{ .Values.node.ports.db }}
-  selector:
-    service.rpc: {{ .Values.node.name }}-tessera
