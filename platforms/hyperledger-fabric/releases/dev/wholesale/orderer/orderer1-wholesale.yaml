@@ -1,0 +1,114 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: wholesale-orderer1
+  namespace: wholesale-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  interval: 1m
+  releaseName: wholesale-orderer1
+  chart:
+    spec:
+      interval: 1m
+      sourceRef:
+        kind: GitRepository
+        name: flux-local
+        namespace: flux-local
+      chart: platforms/hyperledger-fabric/charts/orderernode
+  values:
+    metadata:
+      namespace: wholesale-net
+      images:
+        orderer: hyperledger/fabric-orderer:1.4.8
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+    annotations:  
+      service:
+        - example1: example2
+      pvc:
+      deployment:
+    orderer:
+      name: orderer1
+      loglevel: info
+      localmspid: wholesaleMSP
+      tlsstatus: true
+      keepaliveserverinterval: 10s
+    
+    consensus:
+      name: raft
+
+    storage:
+      storageclassname: wholesalesc
+      storagesize: 512Mi  
+
+    service:
+      servicetype: ClusterIP
+      ports:
+        grpc:
+          clusteripport: 7050
+
+    vault:
+      address: http://192.168.49.1:8200
+      role: vault-role
+      authpath: localwholesale-net-auth
+      secretprefix: secretsv2/data/crypto/ordererOrganizations/wholesale-net/orderers/orderer1.wholesale-net
+      imagesecretname: regcred
+      serviceaccountname: vault-auth
+
+    proxy:
+      provider: none
+      external_url_suffix: develop.local.com
+
+    genesis: |-
+      CocSCucIChYIAhoGCOaxk5oGIgpzeXNjaGFubmVsEswICq8ICgx3aG9sZXNhbGVNU1ASnggtLS0t
+      LUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJQzNEQ0NBb0tnQXdJQkFnSVVmS0pscURWV2xiTENB
+      azBMTWNnUEljbkQwb2N3Q2dZSUtvWkl6ajBFQXdJdwpYREVMTUFrR0ExVUVCaE1DUjBJeER6QU5C
+      Z05WQkFnTUJreHZibVJ2YmpFUE1BMEdBMVVFQnd3R1RHOXVaRzl1Ck1SQXdEZ1lEVlFRS0RBZFBj
+      bVJsY21WeU1Sa3dGd1lEVlFRRERCQmpZUzUzYUc5c1pYTmhiR1V0Ym1WME1CNFgKRFRJeU1UQXhN
+      VEF5TXprd01Gb1hEVEl6TVRBeE1UQXlORFF3TUZvd2FqRUxNQWtHQTFVRUJoTUNSMEl4R3pBWgpC
+      Z05WQkFjVEVqVXhMalV3THkwd0xqRXpMMHh2Ym1SdmJqRVFNQTRHQTFVRUNoTUhUM0prWlhKbGNq
+      RU9NQXdHCkExVUVDeE1GWVdSdGFXNHhIREFhQmdOVkJBTU1FMEZrYldsdVFIZG9iMnhsYzJGc1pT
+      MXVaWFF3V1RBVEJnY3EKaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DQUFSZU5JSWE0eTNncXA0Wk5l
+      WUJNN0x4QThaaXNCVko4U3FUbmtGQQp5bFFuRDJuRmg1cnV0UXdwVUhKZGIvb1lZVEI1Nm9XSzhS
+      cmxJendrdld2ZEh1TEpvNElCRWpDQ0FRNHdEZ1lEClZSMFBBUUgvQkFRREFnZUFNQXdHQTFVZEV3
+      RUIvd1FDTUFBd0hRWURWUjBPQkJZRUZOdU0yWkpSSlBZOVVmU0MKWGxoL05KQ1pyVzJCTUI4R0Ex
+      VWRJd1FZTUJhQUZENVFRbUt6eklJbXgvTS9LMDRMTjVJbnZQKy9NQ1FHQTFVZApFUVFkTUJ1Q0dX
+      TmhMWFJ2YjJ4ekxUYzFOMkkwWmpobVpEa3RkSFpuY2pnd2dZY0dDQ29EQkFVR0J3Z0JCSHQ3Cklt
+      RjBkSEp6SWpwN0ltRmlZV011YVc1cGRDSTZJblJ5ZFdVaUxDSmhaRzFwYmlJNkluUnlkV1VpTENK
+      b1ppNUIKWm1acGJHbGhkR2x2YmlJNklpSXNJbWhtTGtWdWNtOXNiRzFsYm5SSlJDSTZJa0ZrYlds
+      dVFIZG9iMnhsYzJGcwpaUzF1WlhRaUxDSm9aaTVVZVhCbElqb2lZV1J0YVc0aWZYMHdDZ1lJS29a
+      SXpqMEVBd0lEU0FBd1JRSWhBTFFxCkNvTVhNV3UyNUI3ZTRjYTJvVjJuV0RYSk9QbTVNS0JDTFZK
+      Z0pINmRBaUJqbUtsRWtJb2phVUdHS1cxbWp5TE4KSUo4WncxTTRZTUtEVFVjV2tta1RhUT09Ci0t
+      LS0tRU5EIENFUlRJRklDQVRFLS0tLS0KEhhYjH2kWf4nTj0M27ZvM8Hk/OMA0YJTCFASmgkSlwkK
+      zAgKrwgKDHdob2xlc2FsZU1TUBKeCC0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQpNSUlDM0RD
+      Q0FvS2dBd0lCQWdJVWZLSmxxRFZXbGJMQ0FrMExNY2dQSWNuRDBvY3dDZ1lJS29aSXpqMEVBd0l3
+      ClhERUxNQWtHQTFVRUJoTUNSMEl4RHpBTkJnTlZCQWdNQmt4dmJtUnZiakVQTUEwR0ExVUVCd3dH
+      VEc5dVpHOXUKTVJBd0RnWURWUVFLREFkUGNtUmxjbVZ5TVJrd0Z3WURWUVFEREJCallTNTNhRzlz
+      WlhOaGJHVXRibVYwTUI0WApEVEl5TVRBeE1UQXlNemt3TUZvWERUSXpNVEF4TVRBeU5EUXdNRm93
+      YWpFTE1Ba0dBMVVFQmhNQ1IwSXhHekFaCkJnTlZCQWNURWpVeExqVXdMeTB3TGpFekwweHZibVJ2
+      YmpFUU1BNEdBMVVFQ2hNSFQzSmtaWEpsY2pFT01Bd0cKQTFVRUN4TUZZV1J0YVc0eEhEQWFCZ05W
+      QkFNTUUwRmtiV2x1UUhkb2IyeGxjMkZzWlMxdVpYUXdXVEFUQmdjcQpoa2pPUFFJQkJnZ3Foa2pP
+      UFFNQkJ3TkNBQVJlTklJYTR5M2dxcDRaTmVZQk03THhBOFppc0JWSjhTcVRua0ZBCnlsUW5EMm5G
+      aDVydXRRd3BVSEpkYi9vWVlUQjU2b1dLOFJybEl6d2t2V3ZkSHVMSm80SUJFakNDQVE0d0RnWUQK
+      VlIwUEFRSC9CQVFEQWdlQU1Bd0dBMVVkRXdFQi93UUNNQUF3SFFZRFZSME9CQllFRk51TTJaSlJK
+      UFk5VWZTQwpYbGgvTkpDWnJXMkJNQjhHQTFVZEl3UVlNQmFBRkQ1UVFtS3p6SUlteC9NL0swNExO
+      NUludlArL01DUUdBMVVkCkVRUWRNQnVDR1dOaExYUnZiMnh6TFRjMU4ySTBaamhtWkRrdGRIWm5j
+      amd3Z1ljR0NDb0RCQVVHQndnQkJIdDcKSW1GMGRISnpJanA3SW1GaVlXTXVhVzVwZENJNkluUnlk
+      V1VpTENKaFpHMXBiaUk2SW5SeWRXVWlMQ0pvWmk1QgpabVpwYkdsaGRHbHZiaUk2SWlJc0ltaG1M
+      a1Z1Y205c2JHMWxiblJKUkNJNklrRmtiV2x1UUhkb2IyeGxjMkZzClpTMXVaWFFpTENKb1ppNVVl
+      WEJsSWpvaVlXUnRhVzRpZlgwd0NnWUlLb1pJemowRUF3SURTQUF3UlFJaEFMUXEKQ29NWE1XdTI1
+      QjdlNGNhMm9WMm5XRFhKT1BtNU1LQkNMVkpnSkg2ZEFpQmptS2xFa0lvamFVR0dLVzFtanlMTgpJ
+      SjhadzFNNFlNS0RUVWNXa21rVGFRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQoSGGiTT+TA
+      p2hSJfRYgyNk4tVvGO9/vdORtRJGMEQCIG7l31Gbce07McY4cU2fwg0rTXpK/J/ySY2utqzE9Wnt
+      AiBo4Y/HOXAXOkvGpV+bZq4x/11zI2peaS/5mFa5tjvP0hJHMEUCIQDnbGEDL++m4x9UnqkZROvo
+      IGv+5jNGaIOKnI2IUOdgKQIgMMAecDAOA/fxTdPo9NxpZESOzaYAUDzOK5PGd+dNDPM=
+
+    config:
+      pod:
+        resources:
+          limits:
+            memory: 512M
+            cpu: 1
+          requests:
+            memory: 512M
+            cpu: 0.5     
