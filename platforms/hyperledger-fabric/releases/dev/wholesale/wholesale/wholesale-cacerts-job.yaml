@@ -1,0 +1,38 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: wholesale-cacerts-job
+  namespace: wholesale-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  interval: 1m
+  releaseName: wholesale-cacerts-job
+  chart:
+    spec:
+      interval: 1m
+      sourceRef:
+        kind: GitRepository
+        name: flux-local
+        namespace: flux-local
+      chart: platforms/hyperledger-fabric/charts/generate_cacerts
+  values:
+    metadata:
+      name: wholesale
+      component_name: wholesale-net
+      namespace: wholesale-net    
+      images:
+        fabrictools: hyperledger/fabric-tools:1.4.8
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+
+    vault:
+      role: vault-role
+      address: http://192.168.49.1:8200
+      authpath: localwholesale-net-auth
+      secretcryptoprefix: secretsv2/data/crypto/ordererOrganizations/wholesale-net/ca
+      secretcredentialsprefix: secretsv2/data/credentials/wholesale-net/ca/wholesale
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+      
+    ca:
+      subject: /C=GB/ST=London/L=London/O=Orderer/CN=ca.wholesale-net
