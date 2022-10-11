@@ -18,17 +18,11 @@ SUBJECT=$6
 
 CA=$7
 
-if [ "$1" != "peer" ]; then
-	ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
-	ROOT_TLS_CERT="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
-else
-	ORG_CYPTO_FOLDER="/crypto-config/$1Organizations/${FULLY_QUALIFIED_ORG_NAME}"
-	ROOT_TLS_CERT="/crypto-config/$1Organizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
-fi
+ORG_CYPTO_FOLDER="/crypto-config/${FULLY_QUALIFIED_ORG_NAME}"
+ROOT_TLS_CERT="/crypto-config/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
 
 CAS_FOLDER="${HOME}/ca-tools/cas/ca-${ORG_NAME}"
 ORG_HOME="${HOME}/ca-tools/${ORG_NAME}"
-
 
 ## Register and enroll users
 CUR_USER=0
@@ -55,12 +49,8 @@ while [ ${CUR_USER} -lt ${TOTAL_USERS} ]; do
 	if [ ! -d "${ORG_HOME}/client${USER}" ]; then # if user certificates do not exist
 
 		## Register and enroll User for Org
-		if [ "$1" = "peer" ]; then
-			fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.affiliation ${AFFILIATION} --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
-		else
-			fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
-		fi
-
+		fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+		
 		# Enroll the registered user to generate enrollment certificate
 		fabric-ca-client enroll -d -u https://${ORG_USER}:${ORG_USERPASS}@${CA} --csr.names "${SUBJECT}" --tls.certfiles ${ROOT_TLS_CERT} --home ${ORG_HOME}/client${USER}
 

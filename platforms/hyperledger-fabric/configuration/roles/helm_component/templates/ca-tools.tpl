@@ -19,7 +19,7 @@ spec:
   values:
     metadata:
       namespace: {{ component_name }}
-      name: {{ component_type }}-ca-tools
+      name: {{ component_name }}-ca-tools
       component_type: {{ component_type }}
       org_name: {{ org_name }}
       mixed_org: {{ mixed_org | default(false) }}
@@ -77,6 +77,7 @@ spec:
     healthcheck: 
       retries: 10
       sleepTimeAfterError: 2
+      priority: {{ priority }}
 
     
     org_data:
@@ -92,12 +93,24 @@ spec:
 {% if orderers_list  == '' %}
       name: ''
 {% else %}
-      name: {% for orderer in orderers_list %}{% for key, value in orderer.items() %}{% if key == 'name' %}{{ value }}-{% endif %}{% endfor %}{% endfor %}
-      
+      name: {% for orderer in orderers_list %}{% for key, value in orderer.items() %}{% if key == 'name' %}{{ value }}-{% endif %}{% endfor %}{% endfor %}    
 {% endif %}
-{% if component_type  == 'peer' %}
+
+    peers:
+{% if peers_list  == '' %}
+      name: ''
+{% else %}
+      name: {% for peer in peers_list %}{% for key, value in peer.items() %}{% if key == 'name' %}{{ value }},{% endif %}{% if key == 'peerstatus' %}{{ value }}{% endif %}{% endfor %}-{% endfor %}
+
+      add_peer_value: {{ add_peer_value }}
+{% endif %}
+
+    orderers_network:
+      name: {% for orderer in orderers_network_list %}{% for key, value in orderer.items() %}{% if key == 'name' %}{{ value | lower }},{% endif %}{% if key == 'org_name' %}{{ value | lower }}{% endif %}{% endfor %}-{% endfor %}
+
+{% if priority  == 'standard' %}   
     orderers_info:
-{% for orderer in orderers_list %}
+{% for orderer in orderers_network_list %}
 {% for key, value in orderer.items() %}
 {% if key == 'name' %}
       - {{ key }}: {{ value }}
@@ -105,15 +118,11 @@ spec:
 {% endif %}
 {% endfor %}
 {% endfor %}
-
-    peers:
-      name: {% for peer in peers_list %}{% for key, value in peer.items() %}{% if key == 'name' %}{{ value }},{% endif %}{% if key == 'peerstatus' %}{{ value }}{% endif %}{% endfor %}-{% endfor %}
-      
-    peer_count: "{{ peer_count }}"
-{% if add_peer_value  == 'true' %}
-    new_peer_count: "{{ new_peer_count }}"
 {% endif %}
+
+{% if add_peer_value  == 'true' %}
+    peer_count: "{{ peer_count }}"
+    new_peer_count: "{{ new_peer_count }}"
     checks:
-      refresh_cert_value: {{ refresh_cert_value }}
       add_peer_value: {{ add_peer_value }}
 {% endif %}

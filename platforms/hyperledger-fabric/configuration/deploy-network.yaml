@@ -83,14 +83,13 @@
         prompt: "Sleeping... so that the client certificates are valid"
         minutes: 6
     
-     # Create CA Tools helm-value files and check-in
+    # Create CA Tools helm-value files and check-in
     - name: Create CA tools for each organization
       include_role:
-        name: "create/ca-tools/orderer"
+        name: "create/ca-tools"
       vars:
         component_name: "{{ item.name | lower}}-net"
         component: "{{ item.name | lower}}"
-        component_type: "orderer"
         component_services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
@@ -98,23 +97,23 @@
         gitops: "{{ item.gitops }}"
         values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-    
-    # Create CA Tools helm-value files and check-in
+      when: item.priority == 'high'
+
+      # Create CA Tools helm-value files and check-in
     - name: Create CA tools for each organization
       include_role:
-        name: "create/ca-tools/peer"
+        name: "create/ca-tools"
       vars:
         component_name: "{{ item.name | lower}}-net"
         component: "{{ item.name | lower}}"
-        component_type: "peer"
         component_services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
         gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.services.peers is defined and item.services.peers | length > 0
+      when: item.priority == 'standard'
 
     # Creating channel artifacts and putting them in vault
     # This role creates configtx.yaml file as the requirements mentioned in network.yaml
