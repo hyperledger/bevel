@@ -3,8 +3,8 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-## ROLE: ca-tools/peer
-This role creates helm release value file for the deployment of CA Tools CLI and generate crypto for peer.
+## ROLE: ca-tools
+This role creates helm release value file for the deployment of CA Tools CLI and generate crypto materials.
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
@@ -66,6 +66,7 @@ This task create the certs directory if it is not present
 ##### Input Variables
     path: The path where to check is specified here.
     state: Type i.e. directory.
+**when**: It runs Only when item.priority* is standard.
 
 #### 6. Copy the tls orderers certs to the chart catools directory
 This task copies orderers certs from the path provided in network.yaml to ca-tools chart directory
@@ -74,13 +75,46 @@ This task copies orderers certs from the path provided in network.yaml to ca-too
     *orderer.certificate: The certificate file path for the orderer.
 **loop_control**: Specify conditions for controlling the loop.                
     loop_var: loop variable used for iterating the loop.
+**when**: It runs Only when *item.priority* is standard.
 
-#### 7. Create CA-tools Values file
-This task creates the CA-tools value files for peer.
+#### 7. Count new peers
+This task stores in a list the new peers to add in an existing network
+##### Input Variables
+    *peer.name: The peer name.
+**loop_control**: Specify conditions for controlling the loop.                
+    loop_var: loop variable used for iterating the loop.
+**when**: It runs Only when *item.services.peers* is defined, its length is greater than zero, *peer.peerstatus* is defined and *peer.peerstatus is new, *add_peer* is defined and *add_peer* is true.
+
+#### 8. Delete release file CA-Tools
+This task delete the previously created ca-tools release file
+##### Input Variables
+    *values_dir: Directory where the file is stored.
+    *name: "Namespace of org , Format: {{ item.name |lower }}-net"
+    *component_name: The namespace
+**when**: It runs Only when *item.services.peers* is defined, its length is greater than zero, *add_peer* is defined and *add_peer* is true.
+
+#### 9. Git Push
+This task pushes the above generated value files to git repo.
+##### Input Variables
+    GIT_DIR: "The path of directory which needs to be pushed"    
+    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    gitops: *item.gitops* from network.yaml
+    msg: "Message for git commit"
+**when**: It runs Only when *item.services.peers* is defined, its length is greater than zero, *add_peer* is defined and *add_peer* is true.
+
+#### 10. Delete the previous CA-Tools HelmRelease
+This task delete the previously created ca-tools HelmRelease
+##### Input Variables
+    *component_name: "Namespace of org , Format: {{ item.name |lower }}-net"
+    *kubernetes: "{{ item.k8s }}"
+**when**: It runs Only when *item.services.peers* is defined, its length is greater than zero, *add_peer* is defined and *add_peer* is true.
+        
+#### 11. Create CA-tools Values file
+This task creates the CA-tools value files for orderer.
 ##### Input Variables
     *name: The name of resource
     *type: "ca-tools"
-    *org_name: "Name of the organization"
+    *org_name: "Name of the organization in lowercase"
     *component_type: "Type of the organization (orderer or peer)"
     *vault: "Vault Details"
     *external_url_suffix: "External url of the organization"
@@ -90,18 +124,21 @@ This task creates the CA-tools value files for peer.
     *component_state: "State of the organization"
     *component_location: "Location of the organization"
     *ca_url: "Ca url of the organization"
-    *refresh_cert_value: "Indicates if it is necessary to refresh user certificates"
     *proxy: "The proxy/ingress provider"
     *git_url: "The URL of git repo"
     *git_branch: "Git repo branch name"
     *charts_dir: "The path of chart files"
-    peers_list: "Provides the names and states of the peers"
-    orderers_list: "orderer's names"
-    peer_count: "total number of peers"
-  
+    *orderers_list: "Provides orderer's names"
+    *peers_list: "Provides the names and states of the peers"
+    *orderers_network_list: "Provides the name of the orderers and the name of their organization"
+    *peer_count: "total number of peers"
+    *new_peer_count: "total number of new peers"
+    *add_peer_value: "Provides the value of add_peer"
+    *priority: "Provides the priority of organization"
+    
 **include_role** : It includes the name of intermediatory role which is required for creating the CA Tools value file.
 
-#### 8. Git Push
+#### 12. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
     GIT_DIR: "The path of directory which needs to be pushed"    
@@ -109,7 +146,7 @@ This task pushes the above generated value files to git repo.
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 
-#### 9. Check if crypto materials exists in vault.
+#### 13. Check if crypto materials exists in vault.
 This task Check if crypto materials exists in vault.
 ##### Input Variables
     *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
@@ -117,27 +154,25 @@ This task Check if crypto materials exists in vault.
     *component_type: "Type of org"
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `crypto_materials`.
 
-#### 10. Create the Ambassador credentials
+#### 14. Create the Ambassador credentials for orderers
 This task creates the Ambassador TLS credentials
 ##### Input Variables
     *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
     *vault: "Vault Details"
     *kubernetes: "{{ item.k8s }}"
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
-**when**: Condition is specified here, runs only when *network.env.proxy* is ambassador and *peer.peerstatus* is not defined or *peer.peerstatus* is new
+**when**: Condition is specified here, runs only when *network.env.proxy* is ambassador, *item.services.orderers* is defined and its length is greater than zero.
 
-#### 11. Copy msp cacerts to given path
-This task copy the peer certificate to the path provided in network.yaml
+#### 15. Create the Ambassador credentials for peers
+This task creates the Ambassador TLS credentials
 ##### Input Variables
-    *org_name: Name of Item
-    *approvers: {{ channel.endorsers }}
-**include_tasks**: It includes the name of intermediatory task which is required for copy msp cacerts, here `nested_endorsers.yaml`.
-**loop**: loops over channels list fetched from *{{ network.channels }}* from network yaml
-**loop_control**: Specify conditions for controlling the loop.
-                
-    loop_var: loop variable used for iterating the loop.
+    *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
+    *vault: "Vault Details"
+    *kubernetes: "{{ item.k8s }}"
+**include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
+**when**: Condition is specified here, runs only when *network.env.proxy* is ambassador, *peer.peerstatus* is not defined or *peer.peerstatus* is new, *item.services.peers* is defined and its length is greater than zero 
 
-#### 12. Copy the msp admincerts from vault
+#### 16. Copy the msp admincerts from vault
 This task copies the msp admincerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -146,7 +181,7 @@ This task copies the msp admincerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is not none.
 
-#### 13. Copy the msp cacerts from vault
+#### 17. Copy the msp cacerts from vault
 This task copies the msp cacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -155,7 +190,7 @@ This task copies the msp cacerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is not none.
 
-#### 14. Copy the msp tlscacerts from vault
+#### 18. Copy the msp tlscacerts from vault
 This task copies the msp tlscacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -164,7 +199,7 @@ This task copies the msp tlscacerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is not none.
 
-#### 15. Copy the msp cacerts from vault
+#### 19. Copy the msp cacerts from vault
 This task copies the msp cacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -173,7 +208,7 @@ This task copies the msp cacerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is none.
 
-#### 16. Copy the msp tlscacerts from vault
+#### 20. Copy the msp tlscacerts from vault
 This task copies the msp tlscacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -182,7 +217,47 @@ This task copies the msp tlscacerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is none.
 
-#### 17. Get msp config.yaml file
+#### 21. Copy the tls server.crt from vault
+This task copies the tls server.crt from vault to the build directory
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**loop**: loops over orderers list fetched from *{{ item.services.orderers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+#### 22. Create the certs directory if it does not exist
+This task create the certs directory if it is not present 
+##### Input Variables
+    path: The path where to check is specified here.
+    state: Type i.e. directory.
+**loop**: loops over orderers list fetched from *{{  network.orderers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+**when**: It runs Only when *add_new_org* is false and *add_peer* is not defined.
+
+#### 23. Copy the msp cacerts from vault
+This task copies the msp cacerts from vault when proxy is none
+##### Input Variables
+    *component_name: The name of the resource
+    *orderer.name: "orderer's name"
+    *orderer.certificate: The certificate file path for the orderer.
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
+**loop**: loops over orderers list fetched from *{{  network.orderers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+**when**: It runs Only when *add_new_org* is false and *add_peer* is not defined.
+
+#### 24. Get msp config.yaml file
 This task gets msp config.yaml file from vault
 ##### Input Variables
     *component_name: The name of the resource
@@ -190,7 +265,7 @@ This task gets msp config.yaml file from vault
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 
-#### 18. Create user crypto
+#### 25. Create user crypto
 This task create user crypto 
 ##### Input Variables
     *org_name: "Name of the organization"
