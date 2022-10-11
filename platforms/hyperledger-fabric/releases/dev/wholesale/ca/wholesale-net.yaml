@@ -1,0 +1,56 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: wholesale-net-ca
+  namespace: wholesale-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  interval: 1m
+  releaseName: wholesale-net-ca
+  chart:
+    spec:
+      interval: 1m
+      sourceRef:
+        kind: GitRepository
+        name: flux-local
+        namespace: flux-local
+      chart: platforms/hyperledger-fabric/charts/ca    
+  values:
+    deployment:
+      annotations:
+    annotations:  
+      service:
+        - example1: example2
+      pvc:
+    metadata:
+      namespace: wholesale-net
+      images:
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+        ca: hyperledger/fabric-ca:1.4.4
+    server:
+      name: ca
+      tlsstatus: true
+      admin: wholesale-admin
+        
+    storage:
+      storageclassname: wholesalesc
+      storagesize: 512Mi 
+    vault:
+      role: vault-role
+      address: http://192.168.49.1:8200
+      authpath: localwholesale-net-auth
+      secretcert: secretsv2/data/crypto/ordererOrganizations/wholesale-net/ca?ca.wholesale-net-cert.pem
+      secretkey: secretsv2/data/crypto/ordererOrganizations/wholesale-net/ca?wholesale-net-CA.key
+      secretadminpass: secretsv2/data/credentials/wholesale-net/ca/wholesale?user
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+    service:
+      servicetype: ClusterIP
+      ports:
+        tcp:
+          port: 7054
+    proxy:
+      provider: none
+      type: orderer
+      external_url_suffix: develop.local.com
