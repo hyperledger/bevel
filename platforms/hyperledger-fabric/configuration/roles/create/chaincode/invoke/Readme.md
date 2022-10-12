@@ -16,7 +16,7 @@ This task creates value file for chaincode invocation with creator organization.
     channelcreator_query:  query based on type, "participants[?type=='creator']"
     org_query: query based on name "organizations[?name=='{{participant.name}}']"
     org: query result of org_query"{{ network | json_query(org_query) | first }}"
-**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
+**include_tasks**: It includes the name of intermediatory nested task which is required for creating the value file, here `valuefile.yaml`.
 **loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
 **loop_control**: Specify conditions for controlling the loop.
                 
@@ -31,7 +31,7 @@ This task creates value file for chaincode invocation with new organization.
     channelcreator_query:  query based on type, "participants[?org_status=='new']"
     org_query: query based on name "organizations[?name=='{{participant.name}}']"
     org: query result of org_query"{{ network | json_query(org_query) | first }}"
-**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
+**include_tasks**: It includes the name of intermediatory nested task which is required for creating the value file, here `valuefile.yaml`.
 **loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
 **loop_control**: Specify conditions for controlling the loop.
                 
@@ -49,14 +49,10 @@ This tasks checks/Wait for install-chaincode job.
 
 ##### Input Variables
 
-    kind: The kind of task i.e. here `Job`
-    name: Name of join channel job. Format: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+    component_type: The kind of task i.e. here `Job`
+    component_name: Name of join channel job. Format: "installchaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
     namespace: Namespace of component
-    label_selectors:
-      - app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
-    kubeconfig: The config file of the cluster
     kubernetes: The kubernetes patch from network yaml
-    context: The context of kubernetes
 
 ##### Output Variables
 
