@@ -32,7 +32,7 @@
   register: ambassador_tls_certs
   ignore_errors: yes
   tags:
-  - notest
+  - molecule-idempotence-notest
 
 # Gets the existing ambassador tls certs
 
@@ -45,7 +45,7 @@
   register: ambassador_tls_certs_yaml
   when: not ambassador_tls_certs.failed
   tags:
-    molecule-idempotence-notest
+  - molecule-idempotence-notest
 
 - name: Get ambassador tls certs
   include_role: 
@@ -55,6 +55,8 @@
     type: "ambassador"
     cert_path: "{{ ambassadortls }}"
   when: ambassador_tls_certs.failed == False
+  tags:
+  - molecule-idempotence-notest
 
 
 # check if ambassadortls dir is there
@@ -87,6 +89,8 @@
     domain_name_api: "{{ component_name }}api.{{ item.external_url_suffix }}"
     domain_name_web: "{{ component_name }}web.{{ item.external_url_suffix }}"   
   when: ambassador_tls_certs.failed == True  and (not openssl_conf_check.stat.exists)
+  tags:
+  - molecule-idempotence-notest
 
 # Generates the ambassador tls certificates if already not generated
 - name: Generate ambassador tls certs
@@ -95,6 +99,8 @@
   vars:
     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
   when: ambassador_tls_certs.failed == True and (not openssl_conf_check.stat.exists)
+  tags:
+  - molecule-idempotence-notest
 
 # Stores the genreated ambassador tls certificates to vault
 - name: Putting tls certs to vault
@@ -105,7 +111,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: ambassador_tls_certs.failed == True
   tags:
-  - notest  
+  - molecule-idempotence-notest  
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
@@ -122,6 +128,8 @@
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ component_name }}-ambassador-certs --cert={{ ambassadortls }}/ambassador.crt --key={{ ambassadortls }}/ambassador.key -n {{ component_ns }}
   when: get_ambassador_secret.resources|length == 0
+  tags:
+  - molecule-idempotence-notest
 
 # Copy generated crt to build location for doorman and networkmap
 - name: Copy generated ambassador tls certs to given build location
@@ -130,3 +138,5 @@
     dest: "{{ cert_file }}"
     follow: yes
   when: cert_file is defined
+  tags:
+  - molecule-idempotence-notest
