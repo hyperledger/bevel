@@ -9,6 +9,10 @@
   hosts: localhost
   connection: local
   vars:
+    privilege_escalate: true 
+    install_os: "linux"
+    install_arch:  "amd64"
+    bin_install_dir:  "~/bin"
     network:
       type: "corda"
       version: 4.1
@@ -23,11 +27,11 @@
       network_services:
       - service:
         type: doorman
-        uri: http://<MINIKUBE_IP_ADDRESS>:30030
+        uri: http://localhost:9090
         certificate: /home/bevel/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
       - service:
         type: networkmap
-        uri: http://<MINIKUBE_IP_ADDRESS>:30040
+        uri: http://localhost:9090
         certificate: /home/bevel/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
 
       organizations:
@@ -39,18 +43,19 @@
           subject: "O=Manufacturer,OU=Manufacturer,L=Zurich,C=CH"
           type: node
           external_url_suffix: test.corda.blockchaincloudpoc.com
-
+          vault:
+            url: http://localhost:9090/
+            root_token: root
+          k8s: 
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
           cloud_provider: aws
-          aws:
-            access_key: "aws_access_key"
-            secret_key: "aws_secret_key"
-
           gitops:
             git_protocol: "https"
             git_url: "test_git.com"
             branch: "develop"
             release_dir: "{{ playbook_dir }}/build"
-            chart_source: "/charts"
+            chart_source: "charts"
             git_repo: "test_git.com"
             username: "git_username"
             password: "git_access_token"
@@ -65,30 +70,34 @@
                 url:
             username: "repository_username"
             password: "repository_password"
-
-    kubernetes:
-      config_file: "/tmp/molecule/kind-default/kubeconfig"
-      context: "kind"
-    item:
-      vault:
-        url: http://localhost:9090/
-        root_token: root
-      services:
-        ca:
-          name: ca
-          subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net"
-          type: ca
-          grpc:
-            port: 7054
-        nms:
-          name: networkmap
-          subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
-          db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
-          type: networkmap
-          ports:
-            servicePort: 8080
-            targetPort: 8080
-          tls: "on"
+          services:
+            peers:
+            - peer:
+              name: manufacturer
+              subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
+              type: node
+              p2p:
+                port: 10002
+                targetPort: 10002
+                ambassador: 15020
+              rpc:
+                port: 10003
+                targetPort: 10003
+              rpcadmin:
+                port: 10005
+                targetPort: 10005
+              dbtcp:
+                port: 9101
+                targetPort: 1521
+              dbweb:
+                port: 8080
+                targetPort: 81
+              springboot:             # This is for the springboot server
+                targetPort: 20001
+                port: 20001
+              expressapi:             # This is for the express api server
+                targetPort: 3000
+                port: 3000
 
   pre_tasks:
     - name: Create temp roles dir folder
@@ -100,97 +109,28 @@
       copy:
         src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
         dest: "{{ playbook_dir }}/../../shared/configuration"
-
-  tasks:
+    - name: Create temp charts dir folder
+      file:
+        path: "{{ playbook_dir }}/../../../platforms/shared"
+        state: directory
+    - name: Copy the charts
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/charts"
+        dest: "{{ playbook_dir }}/../../../platforms/shared/"
     - name: "Copy openssl.conf to molecule directory"                 # Copying openssl.conf to molecule playbook directory
       copy:
         src: "{{ playbook_dir }}/../../openssl.conf"
         dest: "{{ playbook_dir }}"
-
+  tasks:
     - name: "Test setup/node role"
       include_role:
-        name: "configuration/roles/setup/node"
+        name: "setup/node"
       vars:
-        auth_lists:
-          stdout_lines:
-            - "abc"
-        vault_policy_result:
-          failed: True
-        root_certs:
-          failed: True
-        networkmap_certs:
-          failed: True
-        mongoCA_certs:
-          failed: True
-        mongodb_certs:
-          failed: True
-        ambassador_tls_certs:
-          failed: True
-        nms_root_certs:
-          failed: True
-        services:
-          nms:
-            tls: "on"
-            name: networkmap
-            subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
-            db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
-            ports:
-              servicePort: 8080
-              targetPort: 8080
-          networkmap:
-            name: testnetworkmap
-            subject: "CN=Corda Networkmap CA,OU=DLT,O=DLT,L=Berlin,C=DE"
-            db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
-            type: networkmap
-            ports:
-              servicePort: 8080
-              targetPort: 8080
-            tls: "on"
-          peers:
-          - peer:
-            name: manufacturer
-            subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
-            type: node
-            p2p:
-              port: 10002
-              targetPort: 10002
-              ambassador: 15020
-            rpc:
-              port: 10003
-              targetPort: 10003
-            rpcadmin:
-              port: 10005
-              targetPort: 10005
-            dbtcp:
-              port: 9101
-              targetPort: 1521
-            dbweb:
-              port: 8080
-              targetPort: 81
-            springboot:             # This is for the springboot server
-              targetPort: 20001
-              port: 20001
-            expressapi:             # This is for the express api server
-              targetPort: 3000
-              port: 3000
-        organisation: testsupplychain
-        component_ns: "default"          # namespace where docker creds are checked only for testing
-        gitops:
-          git_protocol: "ssh"
-          git_url: test_git_ssh
-          branch: test_branch
-          chart_source: "charts"
-          release_dir: configuration/molecule/networkmap/test
-        vault:
-          url: http://localhost:9090/
-          root_token: root
-        item:
-          subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-          external_url_suffix: test_url
-          gitops:
-            git_protocol: "ssh"
-            git_url: test_git_ssh
-            branch: test_branch
-            chart_source: test_chart_source
-          cloud_provider: aws
+        services: "{{ item.services }}"
+        organisation: "{{ item.name | lower }}"
+        component_ns: "{{ item.name | lower }}-ns"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        gitops: "{{ item.gitops }}"
         cordapps: "{{ item.cordapps | default() }}"
+      loop: "{{ network['organizations'] }}"

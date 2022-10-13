@@ -26,6 +26,8 @@
   vars: 
     namespace: "{{ component_ns }}"    
     check: "docker_credentials"
+  when: 
+  - network.docker.username is defined
 
 #############################################################################################
 # This task creates secrets for the root token
@@ -60,6 +62,8 @@
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
   register: kubernetes_server_url
+  tags:
+  - molecule-idempotence-notest
 
 #####################################################################################################################
 # This tasks generate vault_kubernetes helmrelease file
@@ -92,6 +96,8 @@
   vars:
     component_type: Job
     namespace: "{{ component_ns }}"
+  tags:
+  - notest
 
 #############################################################################################
 # This task deletes the root token
