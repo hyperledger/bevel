@@ -90,6 +90,28 @@
     - peer.peerstatus is defined and peer.peerstatus == 'new'
     - add_peer is defined and add_peer == 'true'
 
+- set_fact:
+    new_orderer_list: []
+
+# This task loops over the peers and finds the number of new peers
+- name: Get orderers from the organization provided in the network.yaml
+  set_fact:
+    new_orderer_list={{ new_orderer_list + [orderer] }}
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when:
+    - item.priority == 'standard'
+    - item.orderer_org is defined
+    - item.orderer_org | lower == orderer.org_name | lower
+
+- name: Get orderers from the organization provided in the network.yaml
+  set_fact:
+    new_orderer_list={{ network.orderers }}
+  when:
+    - item.priority == 'high'
+    - item.orderer_org is not defined
+
 # This task delete the previously created ca-tools release file
 - name: Delete release file CA-Tools
   file:
@@ -153,7 +175,7 @@
     charts_dir: "{{ gitops.chart_source }}"
     orderers_list: "{{ item.services.orderers | default('') }}"
     peers_list: "{{ item.services.peers | default('') }}"
-    orderers_network_list: "{{ network.orderers }}"
+    orderers_network_list: "{{ new_orderer_list }}"
     peer_count: "{{ item.services.peers | default('') | length }}"
     new_peer_count: "{{ new_peer_list | length }}"
     add_peer_value: "{{ add_peer | default(false) | quote }}"
