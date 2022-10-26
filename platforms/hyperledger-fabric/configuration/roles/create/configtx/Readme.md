@@ -52,21 +52,23 @@ This task Adds organization patch to configtx.yaml.
 ##### Input Variables
 
     *config_file: The path of file.
-    orderer: The name of orderer
-    component_ns: The namespace of resource
-    consensus: The details of consensus
+    orderers: orderers provided in the network.orderers of the network.yaml
+    consensus: The details of consensus provided in the network.consensus of the network.yaml
+    provider: Proxy provided in the network.yaml
 **blockinfile**: Adds a block in file
 **dest**: The destination path for file
 **block**: Defines a block
 **marker**: Adds a marker after patch. Here '#'
-**loop**: Specify loop condition, here it loops over organisation patch in network.yaml 
-**when**: It runs when *organisation type*is orderer.
+
 
 #### 6. Adding profile patch to configtx.yaml
 This task adds profile patch to configtx.
 ##### Input Variables
 
     *config_file: The path of file.
+    orderers: orderers provided in the network.orderers of the network.yaml
+    consensus: The details of consensus provided in the network.consensus of the network.yaml
+    provider: Proxy provided in the network.yaml
 **blockinfile**: Adds a block in file
 **dest**: The destination path for file
 **block**: Defines a block
