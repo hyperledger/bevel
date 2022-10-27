@@ -98,6 +98,25 @@ The fields under `docker` section are
 
 ---
 
+`consensus` section contains the consensus service that uses the orderers provided in the following `orderers` section.
+
+```yaml
+  consensus:
+    name: raft
+    type: broker        #This field is not consumed for raft consensus
+    replicas: 4         #This field is not consumed for raft consensus
+    grpc:
+      port: 9092        #This field is not consumed for raft consensus
+```
+The fields under the each `consensus` are
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name                     | Name of the Consensus service. Can be `raft` or `kafka`.      |
+| type                      | Only for `kafka`. Consensus service type, only value supported is `broker` currently  |
+| replicas                  | Only for `kafka`. Replica count of the brokers  |
+| grpc.port                 | Only for `kafka`. Grpc port of consensus service |
+
 `orderers` section contains a list of orderers with variables which will expose it for the network.
 
 The snapshot of the `orderers` section with example values is below
@@ -145,8 +164,8 @@ The snapshot of channels section with its fields and sample values is below
     channel_name: AllChannel
     chaincodes:
       - "chaincode_name"
-    orderer: 
-      name: supplychain
+    orderers: 
+      - supplychain
     participants:
     - organization:
       name: carrier
@@ -229,7 +248,7 @@ The fields under the `channel` are
 | channel_name                    | Name of the channel                                        |
 | chaincodes                      | Contains list of chaincodes for the channel                |
 | genesis.name                    | Name of the genesis block                                  |
-| orderer.name                    | Organization name to which the orderer belongs             |
+| orderers                        | List of names of the organizations providing ordering service           |
 | participants                    | Contains list of organizations participating in the channel|
 | endorsers                       | Contains list of organizations (v2.2+)                     |
 | channel_status                  | (only needed to add channel to existing org. Possible values are `new` or `existing`|
@@ -288,7 +307,8 @@ Each `organization` under the `organizations` section has the following fields.
 | subject                                     | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | type                                        | This field can be orderer/peer            |
 | external_url_suffix                         | Public url suffix of the cluster.         |
-| org_status         | `new` (for inital setup) or `existing` (for add new org) | 
+| org_status         | `new` (for inital setup) or `existing` (for add new org) |
+| orderer_org        |  Ordering service provider. It should only be added to peer organizations |  
 | ca_data                                     | Contains the certificate authority url and certificate path; this has not been implemented yet |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | When the organization cluster is on AWS |
