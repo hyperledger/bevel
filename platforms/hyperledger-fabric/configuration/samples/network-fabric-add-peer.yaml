@@ -41,6 +41,12 @@ network:
     password: "docker_password"
   
   # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
+  consensus:
+    name: raft
+    type: broker        #This field is not consumed for raft consensus
+    replicas: 4         #This field is not consumed for raft consensus
+    grpc:
+      port: 9092        #This field is not consumed for raft consensus
   orderers:
     - orderer:
       type: orderer
@@ -68,8 +74,8 @@ network:
     channel_name: AllChannel
     chaincodes:
       - "chaincode_name"
-    orderer: 
-      name: supplychain
+    orderers: 
+      - supplychain
     participants:
     - organization:
       name: carrier
@@ -104,6 +110,7 @@ network:
       type: peer
       external_url_suffix: org3ambassador.blockchaincloudpoc.com
       org_status: existing  # org_status must be existing when adding peer
+      orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
         url: ca.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # CA Server URL must be public when adding peer on new cluster
         certificate: /path/to/caserver.crt                                    # CA Server public cert must be provided when adding peer on new cluster

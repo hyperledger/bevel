@@ -83,6 +83,19 @@
   when: 
     - add_peer is not defined or add_peer == 'false'
 
+- set_fact:
+    new_orderer_list: []
+
+# This task loops over the peers and finds the number of new peers
+- name: Get orderers from the organization provided in the network.yaml
+  set_fact:
+    new_orderer_list={{ new_orderer_list + [orderer] }}
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: 
+    - orderer_org == orderer.org_name | lower
+
 ############################################################################################
 # This task creates the CA-tools value files
 - name: "Create CA-tools Values for peer"
@@ -109,7 +122,7 @@
     git_branch: "{{ gitops.branch }}"
     charts_dir: "{{ gitops.chart_source }}"
     peers_list: "{{ item.services.peers }}"
-    orderers_list: "{{ network.orderers }}"
+    orderers_list: "{{ new_orderer_list }}"
     peer_count: "{{ item.services.peers | length }}"
     add_peer_value: "{{ add_peer | default(false) | quote }}"
     new_peer_count: "{{ new_peer_list | length }}"

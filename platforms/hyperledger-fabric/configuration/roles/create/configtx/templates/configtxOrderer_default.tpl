@@ -7,9 +7,9 @@ Orderer: &OrdererDefaults
   Addresses:
 {% for orderer in orderers %}
 {% if provider == 'none' %}
-    - {{orderer.name}}.{{ component_ns }}:7050
+    - {{ orderer.name }}.{{ orderer.org_name | lower }}-net:7050
 {% else %}
-    - {{orderer.name}}.{{ item.external_url_suffix }}:8443
+    - {{ orderer.uri }}
 {% endif %}
 {% endfor %}
 
@@ -21,19 +21,25 @@ Orderer: &OrdererDefaults
 {% if consensus.name == 'kafka' %}
   Kafka:
     Brokers:
+{% for org in network.organizations %}
+{% if org.services.orderers is defined and org.services.orderers|length > 0 %}
 {% for i in range(consensus.replicas) %}
-      - {{ consensus.name }}-{{ i }}.{{ consensus.type }}.{{ component_ns }}.svc.cluster.local:{{ consensus.grpc.port }}
+      - {{ consensus.name }}-{{ i }}.{{ consensus.type }}.{{ org.name |lower }}-net.svc.cluster.local:{{ consensus.grpc.port }}
+{% endfor %}
+{% endif %}
 {% endfor %}
 {% endif %}
 {% if consensus.name == 'raft' %}
   EtcdRaft:
     Consenters:
 {% for orderer in orderers %}
+{% set component_ns = orderer.org_name.lower() + '-net' %}
 {% if provider == 'none' %}
       - Host: {{orderer.name}}.{{ component_ns }}
         Port: 7050
 {% else %}
-      - Host: {{ orderer.name }}.{{ item.external_url_suffix }}
+{% set path = orderer.uri.split(':') %}
+      - Host: {{ path[0] }}
         Port: 8443
 {% endif %}
         ClientTLSCert: ./crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt
