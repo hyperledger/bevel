@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.metadata.namespace }}
+  name: {{ .Values.service.name | quote }}
+  annotations:
+    app: consortiumchain
+  # version: '1'
+  # {{- if eq $.Values.proxy.provider "ambassador" }}
+  # getambassador.io/config: |
+  #     ---
+  #     apiVersion: ambassador/v2
+  #     kind: TCPMapping
+  #     name: {{ .Values.service.name }}-http
+  #     port: {{ .Values.service.port }}
+  #     service: {{ .Values.service.name }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
+  #     ---
+  #     apiVersion: ambassador/v2
+  #     kind: TLSContext
+  #     name: {{ .Values.service.name }}_mapping_tlscontext
+  #     hosts:
+  #     - {{ .Values.proxy.external_url }}
+  #     secret: {{ .Values.service.name }}-ambassador-certs.{{ .Values.metadata.namespace }}
+  #     secret_namespacing: true
+  #     min_tls_version: v1.2
+  #   {{- end }}
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: {{ .Values.service.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+  name: {{ .Values.service.name }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: http
+    protocol: TCP
+    port: {{ .Values.service.port }}
+    targetPort: http
+  selector:
+     service.rpc: {{ .Values.service.name }}
+
+
+
