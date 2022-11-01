@@ -1,0 +1,77 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: aictevalidator1validator-node
+  namespace: aicte-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: aictevalidator1validator-node
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/node_validator
+    sourceRef:
+      kind: GitRepository
+      name: flux-prod
+      namespace: flux-prod
+  values:
+    replicaCount: 1
+
+    healthcheck:
+      readinessthreshold: 100
+      readinesscheckinterval: 5
+
+    staticnodes:
+      - "enode://b7a20804ff1a3b51fd84f7fd5969f8b63c72ff250dca4a951d2ef4a6ac4a2b75fa37609f2293f6c62a53af83ec9e57b5ea77c82e5e5e3de653a000681266326a@validator1.app.bharatblockchain.io:15010"
+      - "enode://904ce4d3d80b7fa22b89346decf36729c1bea3fa92c4153248624d7865380c20f614162567542648eea54cdb157e20a7aeff4ec8f5e2f8d7be7c73f6b83ea09b@validator2.app.bharatblockchain.io:15012"
+      - "enode://b10e2a14712d810a0bf195bdbcc675ff744394dc102efea801f559077be816a86ad8a14c4d270d828950eab8b53b4c311aea6d62cb2bfbeeaf16392896ec3ed0@validator3.app.bharatblockchain.io:15014"
+      - "enode://979d45a9afa36be35237c756b9d1bd67e612db0cbdb10f0d4af4a747588b9892c6e812e4d87d815a4f9ec6df35347a92bc904feb3db82aedd5734629e4a5708c@validator4.app.bharatblockchain.io:15016"
+      - "enode://aa1c49813522b484eff2d6bbc3a050845f89d9344471b4044c6e9dbf57b88b7f5a120f8f58a55126fcb79e5a9ea921b78d3009ebaa789efa4a004ca2d5609871@ids.app.bharatblockchain.io:15020"
+
+    metadata:
+      namespace: aicte-bes
+      labels:
+
+    ambassador:
+      external_url_suffix: app.bharatblockchain.io
+
+    liveliness_check:
+      enabled: false
+    proxy:
+      provider: ambassador
+      external_url: aicte.app.bharatblockchain.io
+      p2p: 15010
+      rpc: 15011
+
+    images:
+      node: hyperledger/besu:21.10.6
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      pullPolicy: IfNotPresent
+
+    node:
+      name: validator1
+      tls: True
+      consensus: ibft
+      mountPath: /opt/besu/data
+      servicetype: ClusterIP
+      imagePullSecret: regcred
+      ports:
+        p2p: 30303
+        rpc: 8545
+        ws: 8546
+
+    storage:
+      storageclassname: awsstorageclass
+      storagesize: 1Gi
+
+    vault:
+      address: http://afaa81f5113c849ca8e7cad72f262df9-2626065.ap-south-1.elb.amazonaws.com:8200
+      secretprefix: secretsv2/data/aicte-bes/crypto/validator1
+      serviceaccountname: vault-auth
+      keyname: data
+      tlsdir: tls
+      role: vault-role
+      authpath: besuaicte
+
+    genesis: ewogICJjb25maWciOiB7CiAgICAiY2hhaW5JZCI6IDIwMjMsCiAgICAiYmVybGluQmxvY2siOiAwLAogICAgImliZnQyIjogewogICAgICAiYmxvY2twZXJpb2RzZWNvbmRzIjogMiwKICAgICAgImVwb2NobGVuZ3RoIjogMzAwMDAsCiAgICAgICJyZXF1ZXN0dGltZW91dHNlY29uZHMiOiA0CiAgICB9CiAgfSwKICAibm9uY2UiOiAiMHgwIiwKICAidGltZXN0YW1wIjogIjB4NThlZTQwYmEiLAogICJkaWZmaWN1bHR5IjogIjB4MSIsCiAgIm1peEhhc2giOiAiMHg2Mzc0Njk2MzYxNmMyMDYyNzk3YTYxNmU3NDY5NmU2NTIwNjY2MTc1NmM3NDIwNzQ2ZjZjNjU3MjYxNmU2MzY1IiwKICAiY29pbmJhc2UiOiAiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwKICAiYWxsb2MiOiB7CiAgICAiYTc1NzgzRTdhNDkyZjllRDljNTJiMzFjNkE2MUFERmRGNjJBODQxMSI6IHsKICAgICAgImJhbGFuY2UiOiAiMHhhZDc4ZWJjNWFjNjIwMDAwMCIKICAgIH0sCiAgICAiNzUwM2E3OTRBNTk4MTcyNkVDMjdEMjZGMjI0N0RjMjYxZTc2NjM0NCI6IHsKICAgICAgImJhbGFuY2UiOiAiOTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiCiAgICB9LAogICAgIjU5MDAxQUVGRUZDRDcyQWMyNUNGYjM1RTAwQmFlZmM4NDhhQmRGODYiOiB7CiAgICAgICJiYWxhbmNlIjogIjkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIgogICAgfQogIH0sCiAgImV4dHJhRGF0YSI6ICIweGY4N2VhMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDBmODU0OTQ0MjFkM2I2NzNkMmMzMDEwYjk2Y2U4YThkZGJmZGVmM2Y1NzVmZTZkOTQyYzk5ZWVmNDY1YjNlNjU1MDg1ZmRlNDU0OWI4YmJjZmE3ZjlmMjMwOTQyMmRkYzRhMzZhNGRiZjZkZTc2YWJiMzAwMTAyZTgwOWQ2MTM4MmVmOTQzYjBhMmM3MTU2YTMwMjY5ZmYxZTZkYTMxN2FhZTk1MTljM2Q3ZjhjODA4NDAwMDAwMDAwYzAiCn0=
