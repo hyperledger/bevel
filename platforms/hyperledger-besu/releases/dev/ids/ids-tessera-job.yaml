@@ -1,0 +1,35 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: ids-tessera-job
+  namespace: ids-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: ids-tessera-job
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/tessera_key_mgmt
+    sourceRef:
+      kind: GitRepository
+      name: flux-prod
+      namespace: flux-prod
+  values:
+    metadata:
+      name: ids-tessera-job
+      namespace: ids-bes
+    peer:
+      name: ids
+    image:
+      repository: quorumengineering/tessera:hashicorp-21.7.3
+      pullSecret: regcred
+      pullPolicy: IfNotPresent
+    vault:
+      address: http://afaa81f5113c849ca8e7cad72f262df9-2626065.ap-south-1.elb.amazonaws.com:8200
+      secretengine: secretsv2
+      authpath: besuids
+      role: vault-role
+      keyprefix: ids-bes/crypto
+      serviceaccountname: vault-auth
+      tmprefix: secretsv2/data/ids-bes/crypto
