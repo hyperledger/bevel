@@ -1,0 +1,47 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: validator3-ambassador-job
+  namespace: aicte-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: validator3-ambassador-job
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/generate_ambassador_certs
+    sourceRef:
+      kind: GitRepository
+      name: flux-prod
+      namespace: flux-prod
+  values:
+    metadata:
+      name: validator3-ambassador-job
+      namespace: aicte-bes
+    image:
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      pullSecret: regcred
+      pullPolicy: IfNotPresent
+    network:
+      tmtls: True
+    node:
+      name: validator3
+      clientport: 8888
+    vault:
+      address: http://afaa81f5113c849ca8e7cad72f262df9-2626065.ap-south-1.elb.amazonaws.com:8200
+      secretengine: secretsv2
+      authpath: besuaicte
+      rootcasecret: secretsv2/data/aicte-bes/crypto/ambassadorcerts/rootca
+      ambassadortlssecret: secretsv2/data/aicte-bes/crypto/validator3/tls
+      role: vault-role
+      serviceaccountname: vault-auth
+    subject:
+      ambassadortls: CN=DLT Root CA/OU=DLT/O=DLT/L=London/C=GB
+    opensslVars:
+      domain_name_pub: validator3.app.bharatblockchain.io
+      domain_name_priv: validator3.aicte-bes
+      domain_name_tessera: validator3-tessera.aicte-bes
+    healthcheck:
+      retries: 10
+      sleepTimeAfterError: 2
