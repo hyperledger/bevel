@@ -1,0 +1,77 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: idsidsmember-node
+  namespace: ids-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: idsidsmember-node
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/node_besu
+    sourceRef:
+      kind: GitRepository
+      name: flux-prod
+      namespace: flux-prod
+  values:
+    metadata:
+      namespace: ids-bes
+      labels:
+    replicaCount: 1
+    staticnodes:
+      - "enode://ed37540f618bb511c4a7075f0f4065050264e76ec2796cfd9cfbedc30ddbe0f5bed2a1b039074a78cacd174468f966a5576b55e7f928d433b5bbdb7b938b76b4@validator1.app.bharatblockchain.io:15010"
+      - "enode://6b7ed10454895f928495bafe6a35647912d756ebca41cf441ab2f8bc3b9ff2e2f1da5ef7b44ee4b2dbbc110229e965cf48b8a44e154541925c51fbc09e7a93be@validator2.app.bharatblockchain.io:15012"
+      - "enode://45ab02ff5ef7586aeedf3340f57fd959df206a95ced05e8a7e62051c20c02e71037820a1b88734bda9ba3ef9e259eb8d290c7b241ad3e0bf24c5cd4a391745b7@validator3.app.bharatblockchain.io:15014"
+      - "enode://34588f2e77229efc52036a12e8cffdb524d7e3106a7164460342d5c19d6c92a08de0bcd15371599eef8cb9f05b5d0255f933b8fd41cd2420161cb401addecb15@validator4.app.bharatblockchain.io:15016"
+      - "enode://61373c28ea4cbb7f0d85c2c8ad5445e5ea972ea2f65b1a9e2981b3cde9b48dfeb0e5cbaf2843e70e781bf01debf758994bc51b210b281555711eb5fa92b94bfe@ids.app.bharatblockchain.io:15020"
+
+    liveliness_check:
+      enabled: false
+    healthcheck:
+      readinessthreshold: 100
+      readinesscheckinterval: 5
+    proxy:
+      provider: ambassador
+      external_url: ids.app.bharatblockchain.io
+      p2p: 15020
+      rpc: 15021
+
+    images:
+      node: hyperledger/besu:21.10.6
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      pullPolicy: IfNotPresent
+
+    node:
+      name: ids
+      consensus: ibft
+      subject: O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB
+      mountPath: /opt/besu/data
+      servicetype: ClusterIP
+      imagePullSecret: regcred
+      ports:
+        p2p: 30303
+        rpc: 8545
+        ws: 8546
+
+    tm:
+      type: tessera
+      tls: True
+      url: "https://ids-tessera.ids-bes:8888"
+
+    storage:
+      storageclassname: awsstorageclass
+      storagesize: 1Gi
+
+    vault:
+      address: http://afaa81f5113c849ca8e7cad72f262df9-2626065.ap-south-1.elb.amazonaws.com:8200
+      secretprefix: secretsv2/data/ids-bes/crypto/ids
+      serviceaccountname: vault-auth
+      keyname: data
+      tmdir: tm
+      tlsdir: tls
+      role: vault-role
+      authpath: besuids
+
+    genesis: ewogICJjb25maWciOiB7CiAgICAiY2hhaW5JZCI6IDIwMjMsCiAgICAiYmVybGluQmxvY2siOiAwLAogICAgImliZnQyIjogewogICAgICAiYmxvY2twZXJpb2RzZWNvbmRzIjogMiwKICAgICAgImVwb2NobGVuZ3RoIjogMzAwMDAsCiAgICAgICJyZXF1ZXN0dGltZW91dHNlY29uZHMiOiA0CiAgICB9CiAgfSwKICAibm9uY2UiOiAiMHgwIiwKICAidGltZXN0YW1wIjogIjB4NThlZTQwYmEiLAogICJnYXNMaW1pdCI6ICIweDlmZmZmZmZmZmZmZmZmIiwKICAiZGlmZmljdWx0eSI6ICIweDEiLAogICJtaXhIYXNoIjogIjB4NjM3NDY5NjM2MTZjMjA2Mjc5N2E2MTZlNzQ2OTZlNjUyMDY2NjE3NTZjNzQyMDc0NmY2YzY1NzI2MTZlNjM2NSIsCiAgImNvaW5iYXNlIjogIjB4MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgImFsbG9jIjogewogICAgImE3NTc4M0U3YTQ5MmY5ZUQ5YzUyYjMxYzZBNjFBREZkRjYyQTg0MTEiOiB7CiAgICAgICJiYWxhbmNlIjogIjB4YWQ3OGViYzVhYzYyMDAwMDAiCiAgICB9LAogICAgIjc1MDNhNzk0QTU5ODE3MjZFQzI3RDI2RjIyNDdEYzI2MWU3NjYzNDQiOiB7CiAgICAgICJiYWxhbmNlIjogIjkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIgogICAgfSwKICAgICI1OTAwMUFFRkVGQ0Q3MkFjMjVDRmIzNUUwMEJhZWZjODQ4YUJkRjg2IjogewogICAgICAiYmFsYW5jZSI6ICI5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIKICAgIH0KICB9LAogICJleHRyYURhdGEiOiAiMHhmODdlYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwZjg1NDk0MjAxZGNiMmNlMGVlM2I0ZGUwYzViN2UyZjZlZmY5ZjBlZDU3ZmM4YTk0NTA5ODEzYmEyYzc4MWY5NjEwNmE3Mjg0OTk3YmQ2ZWY5YzJlZWFkZDk0YmFhZDEzNmI0YWZjZWY4NDk2ZmM1NzJlM2RkODhlZjA3NDAzYjM5NDk0MWM3MDYyNTUyOTY2YjQ0NTk1ZTIzMDQ2NWQ0YjVkM2VkM2VlMjI4MTgwODQwMDAwMDAwMGMwIgp9
