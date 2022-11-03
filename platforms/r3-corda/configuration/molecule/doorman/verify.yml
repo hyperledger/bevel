@@ -12,15 +12,15 @@
   vars:
     kubeconfig_path: "/tmp/molecule/kind-default/kubeconfig"
     kubecontext: "kind"
-    namespace: "default"
-    component_name: "testdoorman"
+    namespace: "test-ns"
+    component_name: "doorman"
     tls: "on"                           # on/off based on service.doorman.tls on or off in converge.yml
   tasks:
 
   #This task checks if access policy for doorman is created or not
   - name: Check if the .hcl is created for doorman or not
     stat:
-      path: "./build/vault-crypto-testdoorman-ro.hcl"
+      path: "./build/vault-crypto-organization-doorman-ro.hcl"
     register: doorman_access_policy
   
   #This task assert if the .hcl exists for doorman
@@ -67,8 +67,7 @@
   #This task assert if the root certificates are created or not
   - name: Assert that the doormanCA certificate exists
     assert:
-      that: doormanca_certs.stat.exists
-     
+      that: doormanca_certs.stat.exists     
 
   #This task checks if doorman certificates are created or not
   - name: Check if the mongoroot certificate is created or not
@@ -88,7 +87,7 @@
   #This task checks if mongodb certificates are created or not
   - name: Check if the mongodb certificate is created or not
     stat:
-      path: "{{ mongodbca }}/mongodb-testdoorman.pem"
+      path: "{{ mongodbca }}/mongodb-{{ component_name }}.pem"
     vars:
       mongodbca: "{{playbook_dir}}/build/corda/mongodbca"
     register: mongodb_certs
@@ -103,7 +102,7 @@
   #This task checks if the openssl.conf for doorman is created or not
   - name: Check if openssl.conf is created or not
     stat:
-      path: "./build/openssltestdoorman.conf"
+      path: "./build/openssl{{ component_name }}.conf"
     register: openssl_file_check
   
   #This task assert if the openssl.conf is created or not
@@ -116,7 +115,7 @@
     stat:
       path: "{{ ambassadortls }}/ambassador.crt"
     vars:
-      ambassadortls: "{{playbook_dir}}/build/corda/testdoorman/tls"
+      ambassadortls: "{{playbook_dir}}/build/corda/{{ component_name }}/tls"
     register: ambassador_tls_certs
   
   #This task assert if the ambassador tls certificates exists
@@ -138,6 +137,19 @@
   - name: Assert for Ambassador cred secret exists for doorman
     assert:
       that: get_ambassador_secret.resources|length > 0
+
+  # Check if value file for vault_kubernetes exists or not
+  - name: Check if the vault_kubernetes value file exists or not
+    stat:
+      path: "{{ playbook_dir }}/test/{{ component_name }}/{{ component_name }}/{{ component_type }}.yaml"
+    vars:
+      component_type: "doorman-vaultk8s-job"
+    register: vault_value_check
+
+  # Assert that value file exists
+  - name: Assert if the value file for vault_kubernetes exists
+    assert:
+      that: vault_value_check.stat.exists
     
   # Check if value file for mongodb doorman exists or not
   - name: Check if the mongodb doorman value file exists or not
@@ -158,7 +170,6 @@
     stat:
       path: "{{ playbook_dir }}/test/{{ component_name }}/{{ component_type }}.yaml"
     vars:
-      component_name: "testdoorman"
       component_type: "doorman"
     register: doorman_value_check
 

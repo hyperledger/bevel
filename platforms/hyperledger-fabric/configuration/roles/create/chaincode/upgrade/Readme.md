@@ -16,7 +16,7 @@ This task creates value file for chaincode upgradation.
     channelcreator_query:  query based on type, "participants[?type=='creator']"
     org_query: query based on name "organizations[?name=='{{participant.name}}']"
     org: query result of org_query"{{ network | json_query(org_query) | first }}"
-**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
+**include_tasks**: It includes the name of intermediatory nested task which is required for creating the value file, here `valuefile.yaml`.
 **loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
 **loop_control**: Specify conditions for controlling the loop.
                 

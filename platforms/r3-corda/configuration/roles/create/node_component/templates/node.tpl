@@ -52,7 +52,6 @@ spec:
       exportJMXTo:
       transactionCacheSizeMegaBytes: 8
       attachmentContentCacheSizeMegaBytes: 10
-      attachmentCacheBound: 1024
       {% if chart == 'notary' %}      
       notary:
         validating: {{ node.validating }}

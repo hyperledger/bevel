@@ -20,20 +20,20 @@
         url: "test_url"
         username: "test_username"
         password: "test_password"
-      network_services:
-      - service:
-        type: networkmap
-        uri: http://localhost:9090
-        certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
-      - service:
-        type: doorman
-        uri: http://localhost:9090
-        certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
       env:
         type: test
         proxy: ambassador
         external_dns: disabled
         retry_count: 20
+      network_services:
+      - service:
+        type: doorman
+        uri: http://localhost:9090
+        certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
+      - service:
+        type: networkmap
+        uri: http://localhost:9090
+        certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
 
       organizations:
         - organization:
@@ -44,18 +44,19 @@
           subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
           type: doorman-nms-notary #for this test case to work this must contain "notary"
           external_url_suffix: test.corda.blockchaincloudpoc.com
-      
+          vault:
+            url: http://localhost:9090/
+            root_token: root
+          k8s: 
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
           cloud_provider: aws
-          aws:
-            access_key: "aws_access_key"
-            secret_key: "aws_secret_key"
-      
           gitops:
             git_protocol: "https"
             git_url: "test_git.com"
             branch: "develop"
-            release_dir: "{{ playbook_dir }}/build" 
-            chart_source: "/charts"
+            release_dir: "{{ playbook_dir }}/build"
+            chart_source: "charts"
             git_repo: "test_git.com"
             username: "git_username"
             password: "git_access_token"
@@ -63,11 +64,11 @@
             private_key: "path_to_private_key"
 
           cordapps:
-            jars: 
+            jars:
             - jar:
-                url: 
+                url:
             - jar:
-                url: 
+                url:
             username: "repository_username"
             password: "repository_password"
 
@@ -75,7 +76,7 @@
             notary:
               name: notary
               subject: "O=Notary,OU=Notary,L=London,C=GB"
-              type: notary            
+              type: notary
               validating: true
               p2p:
                 port: 10002
@@ -103,48 +104,26 @@
     - name: Copy the roles
       copy:
         src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
-        dest: "{{ playbook_dir }}/../../shared/configuration" 
-
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+    - name: Create temp charts dir folder
+      file:
+        path: "{{ playbook_dir }}/../../../platforms/shared"
+        state: directory
+    - name: Copy the charts
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/charts"
+        dest: "{{ playbook_dir }}/../../../platforms/shared/"
   tasks:
     - name: "Test setup/notary role"
       include_role:
-        name: "configuration/roles/setup/notary"
+        name: "setup/notary"
       vars:
-        auth_lists:
-          stdout_lines:
-            - "abc"
-        root_certs:
-          failed: True
-        doorman_certs:
-          failed: True
-        mongoCA_certs:
-          failed: True
-        mongodb_certs:
-          failed: True
-        ambassador_tls_certs:
-          failed: True 
-        truststore_result:
-          failed: True
-        vault_policy_result:
-          failed: True
-        certs_result:
-          failed: True
-        doorman_result:
-          failed: True
-        nodekeystore_result:
-          failed: True
         services: "{{ item.services }}"
-        node: "{{ item.services.notary }}"  
+        node: "{{ item.services.notary }}"
         organisation: "{{ item.name | lower }}"
         component_ns: "{{ item.name | lower }}-ns"
-        component_name: testname
-        kubernetes:
-          config_file: "/tmp/molecule/kind-default/kubeconfig"
-          context: "kind"
-        vault:
-          url: http://localhost:9090/
-          root_token: root
-        gitops: "{{ item.gitops }}" 
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        gitops: "{{ item.gitops }}"
         cordapps: "{{ item.cordapps | default() }}"
       loop: "{{ network['organizations'] }}"
-      when: network['type'] == 'corda' and item.type.find('notary') != -1
