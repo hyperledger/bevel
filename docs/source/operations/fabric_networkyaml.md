@@ -28,6 +28,8 @@ The configurations are grouped in the following sections for better understandin
 
 * env
 
+* consensus
+
 * orderers
 
 * channels

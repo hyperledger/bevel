@@ -189,3 +189,45 @@ This task create user crypto
     *proxy: "The proxy/ingress provider"
 **include_role**: It includes the name of intermediatory role which is required for creating user crypto, here `create/users`.
 **when**: It runs Only when *item.users* is defined.
+
+### delete_old_certs.yaml
+### Tasks
+#### 1. Delete Crypto for peers
+This task deletes crypto materials from vault
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands delete crypto materials from vault.
+**loop**: loops over peers list fetched from *{{ item.services.peers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+**when**: It runs Only when *component_type* is peer.
+
+### nested_orderers.yaml
+### Tasks
+#### 1. Check orderer-certificate file exists
+This tasks Check orderer-certificate file exists
+##### Input Variables
+    *orderer.certificate: Path where the certificate is stored.
+
+##### Output Variables
+    orderer_file_result: Stores the result of Orderer file check query.
+
+#### 2. Check if Orderer certs already created
+This tasks Check if Orderer certs exists in vault. If yes, get the certificate
+##### Input Variables
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+    *component_name: The name of the resource.
+
+#### 3. Save Orderer certs if already created
+ This tasks Ensure orderer-tls directory is present in build.
+##### Input Variables
+    *orderer.org_name: The org name of the orderer.
+**local_action**:  A shorthand syntax that you can use on a per-task basis
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+**when**: It runs Only when *orderer_certs_result.results[0]* is true.
