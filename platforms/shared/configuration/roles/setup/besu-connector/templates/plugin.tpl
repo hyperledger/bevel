@@ -3,8 +3,8 @@
   "type: org.hyperledger.cactus.plugin_import_type.LOCAL",
   "action": "org.hyperledger.cactus.plugin_import_action.INSTALL",
   "options": {
-    "rpcApiHttpHost": "http://validator1.app.mintnft.co.in:15011",
-    "rpcApiWsHost": "ws://mintnft.co.in:8546",
+    "rpcApiHttpHost": "http://validator1.app.bharatblockhain.io:15011",
+    "rpcApiWsHost": "ws://bharatblockhain.io:8546",
     "instanceId": 12345678
   }
 }

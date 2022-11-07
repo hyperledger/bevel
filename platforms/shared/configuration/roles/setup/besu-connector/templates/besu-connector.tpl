@@ -1,12 +1,12 @@
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: {{ component_name | replace('_','-') }}
+  name: {{ component_ns | replace('_','-') }}
   namespace: {{ component_ns }}
   annotations:
     flux.weave.works/automated: "false"
 spec:
-  releaseName: {{ component_name | replace('_','-') }}
+  releaseName: {{ component_ns | replace('_','-') }}
   interval: 1m
   chart:
    spec:
@@ -68,8 +68,8 @@ spec:
       type: org.hyperledger.cactus.plugin_import_type.LOCAL
       action: org.hyperledger.cactus.plugin_import_action.INSTALL
       options:
-        rpcApiHttpHost: http://validator1.app.mintnft.co.in:15011
-        rpcApiWsHost: ws://validator1.app.mintnft.co.in:8546 
+        rpcApiHttpHost: http://validator1.app.bharatblockchain.io:15011
+        rpcApiWsHost: ws://validator1.app.bharatblockchain.io:8546 
         instanceId: 12345678
 
 
