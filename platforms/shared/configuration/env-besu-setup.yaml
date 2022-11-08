@@ -14,38 +14,8 @@
     gather_facts: yes
     no_log: "{{ no_ansible_log | default(false) }}"
     tasks:
-    - include_role:
-        name: setup/besu-connector
-      vars:
-        build_path: "./build"
-        kubernetes: "{{ item.k8s }}"
-        consensus: "{{ network.config.consensus }}"
-        component_ns: "{{ item.name | lower }}-bes"
-        name: "{{ item.name | lower }}"
-        peers: "{{ item.services.peers }}"
-        storageclass_name: "{{ item.cloud_provider }}storageclass"
-        external_url: "{{ item.external_url_suffix }}"
-        vault: "{{ item.vault }}"
-        git_url: "{{ item.gitops.git_url }}"
-        git_branch: "{{ item.gitops.branch }}"
-        docker_url: "{{ network.docker.url }}"
-        charts_dir: "/home/bevel/platforms/shared/charts/besu-connector"
-        # charts_dir: "{{ item.gitops.chart_source }}"
-        values_dir: "/home/bevel/platforms/shared/charts/besu-connector"
-        # "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
-        # loop: "{{ network['organizations'] }}"      
-        aws_authenticator:
-          os: "{{ install_os }}"
-          arch: "{{ install_arch }}"
-          bin_directory: "{{ bin_install_dir }}"
-        kubeconfig_path: "{{ item.k8s.config_file }}"
-        kubecontext: "{{ item.k8s.context }}"
-      with_items: "{{ network.organizations }}"
-      # when: "network.node_connector == 'present'"
-    
-     
     # - include_role:
-    #     name: setup/fabric-connector
+    #     name: setup/besu-connector
     #   vars:
     #     build_path: "./build"
     #     kubernetes: "{{ item.k8s }}"
@@ -59,9 +29,9 @@
     #     git_url: "{{ item.gitops.git_url }}"
     #     git_branch: "{{ item.gitops.branch }}"
     #     docker_url: "{{ network.docker.url }}"
-    #     charts_dir: "/home/bevel/platforms/shared/charts/fabric-connector"
+    #     charts_dir: "/home/bevel/platforms/shared/charts/besu-connector"
     #     # charts_dir: "{{ item.gitops.chart_source }}"
-    #     values_dir: "/home/bevel/platforms/shared/charts/fabric-connector"
+    #     values_dir: "/home/bevel/platforms/shared/charts/besu-connector"
     #     # "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
     #     # loop: "{{ network['organizations'] }}"      
     #     aws_authenticator:
@@ -71,7 +41,37 @@
     #     kubeconfig_path: "{{ item.k8s.config_file }}"
     #     kubecontext: "{{ item.k8s.context }}"
     #   with_items: "{{ network.organizations }}"
-    #   when: "{{network.node_connector}} == true "
+    #   # when: "network.node_connector == 'present'"
+    
+     
+    - include_role:
+        name: setup/fabric-connector
+      vars:
+        build_path: "./build"
+        kubernetes: "{{ item.k8s }}"
+        consensus: "{{ network.config.consensus }}"
+        component_ns: "{{ item.name | lower }}-bes"
+        name: "{{ item.name | lower }}"
+        peers: "{{ item.services.peers }}"
+        storageclass_name: "{{ item.cloud_provider }}storageclass"
+        external_url: "{{ item.external_url_suffix }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "/home/bevel/platforms/shared/charts/fabric-connector"
+        # charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "/home/bevel/platforms/shared/charts/fabric-connector"
+        # "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
+        # loop: "{{ network['organizations'] }}"      
+        aws_authenticator:
+          os: "{{ install_os }}"
+          arch: "{{ install_arch }}"
+          bin_directory: "{{ bin_install_dir }}"
+        kubeconfig_path: "{{ item.k8s.config_file }}"
+        kubecontext: "{{ item.k8s.context }}"
+      with_items: "{{ network.organizations }}"
+      # when: "{{network.node_connector}} == true "
     
      
 
