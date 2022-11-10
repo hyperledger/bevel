@@ -9,11 +9,13 @@ Profiles:
       EtcdRaft:
         Consenters:
 {% for orderer in orderers %}
+{% set component_ns = orderer.org_name.lower() + '-net' %}
 {% if provider == 'none' %}
         - Host: {{orderer.name}}.{{ component_ns }}
           Port: 7050
 {% else %}
-        - Host: {{ orderer.name }}.{{ item.external_url_suffix }}
+{% set path = orderer.uri.split(':') %}
+        - Host: {{ path[0] }}
           Port: 8443
 {% endif %}
           ClientTLSCert: ./crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt
@@ -21,7 +23,9 @@ Profiles:
 {% endfor %}
 {% endif %}
       Organizations:
-        - *{{ channel.orderer.name }}Org
+{% for orderer in channel.orderers %}
+        - *{{ orderer }}Org
+{% endfor %}
     Consortiums:
       {{channel.consortium}}:
         Organizations:

@@ -109,3 +109,4 @@ spec:
           requests:
             memory: 512M
             cpu: 0.5
+    upgrade: "{{ network.upgrade }}"

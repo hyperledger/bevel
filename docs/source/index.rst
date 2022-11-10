@@ -40,4 +40,4 @@ An accelerator for delivering production-ready blockchain solutions
    faq
    glossary
    contributing
-   Maintainers
+   MAINTAINERS

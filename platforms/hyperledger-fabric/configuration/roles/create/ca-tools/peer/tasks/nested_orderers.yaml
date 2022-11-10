@@ -1,0 +1,38 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# Check orderer-certificate file exists
+- name: Check that orderer-certificate file exists
+  stat:
+    path: "{{ orderer.certificate }}"
+  register: orderer_file_result
+  failed_when: add_new_org == 'true' and not orderer_file_result.stat.exists # Fail the task if new_org is added and orderer-cert does not exist
+  tags:
+    - notest
+
+# Check if Orderer certs exists in vault. If yes, get the certificate
+- name: Check if Orderer certs exist in Vault
+  shell: |
+    vault kv get -field=ca.crt {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: orderer_certs_result
+  ignore_errors: yes
+  changed_when: false
+  when:
+  - not orderer_file_result.stat.exists
+  tags:
+    - notest
+
+- name: Save Orderer certs if not in Vault
+  local_action: copy content="{{ orderer_certs_result.results[0].stdout }}" dest="{{ orderer.certificate }}"
+  when: 
+  - not orderer_file_result.stat.exists
+  - orderer_certs_result.results[0].failed == False
+  tags:
+    - notest

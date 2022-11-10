@@ -18,6 +18,7 @@
                 "version":{ "type": "string","enum":["1.4.8","2.2.0","2.2.2"]},
                 "env": { "$ref":"#/definitions/shared_environment"},
                 "frontend": { "type": "string", "enum": ["enabled","disabled"]},
+                "consensus":{ "$ref":"#/definitions/fabric_service_consensus"},
                 "orderers": { "type":"array","items":{ "$ref":"#/definitions/fabric_orderer"}},
                 "channels": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel"}},
                 "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/fabric_organization"}}
@@ -37,7 +38,7 @@
             {"if": {"properties": { "type": { "const": "corda" } } },
              "then": {
               "properties":{
-                "version":{ "type": "number","enum":[4.4,4.7]},
+                "version":{ "type": "number","enum":[4.4,4.7,4.9]},
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "frontend": { "type": "string", "enum": ["enabled","disabled"]},
                 "network_services": { "type":"array","items":{ "$ref":"#/definitions/corda_network_service"}},
@@ -428,6 +429,7 @@
           "type": "object",
           "properties": {
             "channel": {},
+            "chaincodes": {},
             "consortium": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description":"Name of the consortium, the channel belongs to"},
             "channel_name": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description":"Name of the channel"},
             "channel_status":{ "type": "string","enum": ["new","existing"],"description":" (only needed to add channel to existing org. Possible values are `new` or `existing`"},
@@ -435,14 +437,12 @@
                 "name": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description": "Name of the genesis block"}},
               "required": [ "name"], "additionalProperties": false
             },
-            "orderer": { "type": "object", "properties": {
-                "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Organization name to which the orderer belongs"}},
-              "required": [ "name"], "additionalProperties": false
-           },
+           "orderers": { "type":"array", "items":{ "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Organization name to which the orderer belongs"}},
            "endorsers": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel_endorsers"}},
-           "participants": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel_participant"}}
+           "participants": { "type":"array","items":{ "$ref":"#/definitions/fabric_channel_participant"}},
+           "acls": { "type":"string","description": "File path for acls for a channel"}
           },
-          "required": [ "channel","consortium","channel_name","genesis","orderer","participants"],
+          "required": [ "channel","consortium","channel_name","genesis","orderers","participants"],
           "additionalProperties": false
         },
         "fabric_channel_participant":{
@@ -492,6 +492,10 @@
             "subject":  { "type": "string","description":"Subject format can be referred at OpenSSL Subject"},
             "external_url_suffix":  { "type": "string","description":"Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider."},
             "org_status": { "type": "string","enum": ["new","existing","delete"]},
+            "if": {"properties": { "type": { "const": "peer" } } },"then":{
+              "properties": {
+                "orderer_org": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description": "Name of the organization providing the ordering service"}
+            }},
             "ca_data": {  "type":"object", "description":"Contains the certificate authority url and certificate path; this has not been implemented yet","properties": {
                "url": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"Gossip address of the peer"},
                "certificate": { "type": "string","pattern":"^\/?([^\/ ]*\/)+[^\/ ]+\\.crt$","description":"Path to certificate"}},
@@ -583,7 +587,7 @@
             "restserver":{ "$ref":"#/definitions/corda_service_port","description":"Restserver target port"},
             "expressapi":{ "$ref":"#/definitions/corda_service_port","description":"Express server port"},
             "frontend":{ "$ref":"#/definitions/corda_service_port","description":"Frontend port"},
-            "chaincode":{ "$ref":"#/definitions/fabric_chaincode","description":"chaincode data"}
+            "chaincodes":{"type":"array","items":{ "$ref":"#/definitions/fabric_chaincode","description":"chaincode data"}}
             },
           "required": [ "type","name","gossippeeraddress","grpc","events"],
           "additionalProperties": false
