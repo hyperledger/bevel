@@ -31,12 +31,14 @@
     include_role:
       name: setup/notary
     vars:
+      services: "{{ item.services }}"
       node: "{{ item.services.notary }}"
       organisation: "{{ item.name | lower }}"
       component_ns: "{{ item.name | lower }}-ns"
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
       gitops: "{{ item.gitops }}" 
+      cordapps: "{{ item.cordapps | default() }}"
     loop: "{{ network['organizations'] }}"
     when: network['type'] == 'corda' and item.type.find('notary') != -1
 
@@ -51,6 +53,7 @@
       services: "{{ item.services }}"
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
+      cordapps: "{{ item.cordapps | default() }}"
       gitops: "{{ item.gitops }}" 
     loop: "{{ network['organizations'] }}"  
     when: network['type'] == 'corda' and item.type == 'node'

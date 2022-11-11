@@ -14,10 +14,10 @@ This task creates value file for chaincode commit.
 ##### Input Variables
 
     channelcreator_query:  query based on type, "participants[?type=='creator']"
-    org_query: query based on name "organizations[?name=='{{participant.name}}']"
+    org_query: query based on name "organizations[?name=='{{ participant.name }}']"
     org: query result of org_query"{{ network | json_query(org_query) | first }}"
-**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
-**loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
+**include_tasks**: It includes the name of intermediatory nested task which is required for creating the value file, here `valuefile.yaml`.
+**loop**: loops over creator participant of the channel
 **loop_control**: Specify conditions for controlling the loop.
                 
     loop_var: loop variable used for iterating the loop.
@@ -27,23 +27,19 @@ This task creates value file for chaincode commit.
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
 
-#### 1. 'Check/Wait for install-chaincode job'
-This tasks checks/Wait for install-chaincode job.
+#### 1. 'Check/Wait for approve-chaincode job'
+This tasks checks/Wait for approve-chaincode job.
 
 ##### Input Variables
 
-    kind: The kind of task i.e. here `Job`
-    name: Name of join channel job. Format: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+    component_type: The kind of task i.e. here `Job`
+    component_name: Name of join channel job. Format: "approvechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
     namespace: Namespace of component
-    label_selectors:
-      - app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
-    kubeconfig: The config file of the cluster
     kubernetes: The kubernetes patch from network yaml
-    context: The context of kubernetes
 
 ##### Output Variables
 
-    component_data: This variable stores the output of install-chaincode query.
+    component_data: This variable stores the output of approve-chaincode query.
 	
   **until**: This condition checks until *component_data.resources* variable exists and is not empty.
   **retries**: No of retries
@@ -54,18 +50,29 @@ This tasks checks if commit-chaincode is already run.
 
 ##### Input Variables
 
-    kind: The kind of task i.e. here `Job`
-    name: Name of commit chaincode job. Format: commitchaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}
+    component_type: The kind of task i.e. here `OneTimeJob`
+    name: Name of commit chaincode job. Format: commitchaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
     namespace: Namespace of component
-    label_selectors:
-      - app = commitchaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}
-    kubeconfig: The config file of the cluster
-    context: The context of kubernetes
+    kubernetes: The kubernetes patch from network yaml
+
 ##### Output Variables
 
     commit_chaincode: This variable stores the output of install-chaincode query.
-
-#### 3. Create value file for chaincode commit
+#### 3. Set endorsers data
+This task initializes the endorsers_org variable to empty array.
+#### 4. Get endorsers data
+This task sets the endorsers_org variable
+**loop**: loops over approvers
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+#### 5. Create endorser certs secret
+This task creates the k8s secrets for endorser certs
+**loop**: loops over approvers
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+#### 6. Create value file for chaincode commit
 This is the nested Task for chaincode commit.
 ##### Input Variables
 
@@ -82,13 +89,9 @@ This is the nested Task for chaincode commit.
     *component_chaincode: "Chaincode Data"
     *values_dir: "Destination directory"
 **include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here `helm_component`.
-**loop**: loops over peers list fetched from *{{ org.services.peers }}* from network yaml
-**loop_control**: Specify conditions for controlling the loop.
-                
-    loop_var: loop variable used for iterating the loop.
-**when** : It runs when chaincode is not committed i.e. *commit_chaincode.resources.length* == 0.
+**when** : It runs when chaincode is defined and is not committed i.e. *commit_chaincode.resources.length* == 0.
 
-#### 4. Git Push
+#### 7. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
     GIT_DIR: "The path of directory which needs to be pushed"    

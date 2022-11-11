@@ -93,13 +93,10 @@
     block: "{{ lookup('template', filename) }}"
     marker: "#"
   vars:
-    orderers: "{{ item.services.orderers }}"
-    consensus: "{{ item.services.consensus }}"
-    component_ns: "{{ item.name | lower }}-net"
+    orderers: "{{ network.orderers }}"
+    consensus: "{{ network.consensus }}"
     provider: "{{ network.env.proxy }}"
     filename: configtxOrderer_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cford.stat.exists else 'default' }}.tpl
-  loop: "{{ network['organizations'] }}"
-  when: item.type == 'orderer'
   tags:
     - molecule-idempotence-notest
 
@@ -115,13 +112,11 @@
     block: "{{ lookup('template', filename) }}"
     marker: "#"
   vars:
-    orderers: "{{ item.services.orderers }}"
-    consensus: "{{ item.services.consensus }}"
-    component_ns: "{{ item.name | lower }}-net"
+    orderers: "{{ network.orderers }}"
+    consensus: "{{ network.consensus }}"
     provider: "{{ network.env.proxy }}"
     filename: configtxProfile_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfprofile.stat.exists else 'default' }}.tpl
-  loop: "{{ network['organizations'] }}"
-  when: network.channels is defined and item.type == 'orderer'
+  when: network.channels is defined
   tags:
     - molecule-idempotence-notest
 

@@ -4,20 +4,18 @@
 [//]: # (##############################################################################################)
 
 
-## chaincode/commit
-This role creates helm value file for the deployment of chaincode_commit job
+## chaincode/approve
+This role creates helm value file for the deployment of chaincode_approve job
 ### main.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Create value file for chaincode commit
-This task creates value file for chaincode commit.
+#### 1. Create value files for multiple chaincode approvals
+This task creates value files for multiple chaincode approvals.
 ##### Input Variables
-
-    channelcreator_query:  query based on type, "participants[?type=='creator']"
-    org_query: query based on name "organizations[?name=='{{participant.name}}']"
+    org_query: query based on name "organizations[?name=='{{ participant.name }}']"
     org: query result of org_query"{{ network | json_query(org_query) | first }}"
-**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
-**loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
+**include_tasks**: It includes the name of intermediatory nested task which is required for creating the value file, here `valuefile.yaml`.
+**loop**: loops over channel participants list
 **loop_control**: Specify conditions for controlling the loop.
                 
     loop_var: loop variable used for iterating the loop.
@@ -32,14 +30,10 @@ This tasks checks/Wait for install-chaincode job.
 
 ##### Input Variables
 
-    kind: The kind of task i.e. here `Job`
-    name: Name of join channel job. Format: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+    component_type: The kind of task i.e. here `Job`
+    component_name: Name of join channel job. Format: "installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ chaincode.version }}"
     namespace: Namespace of component
-    label_selectors:
-      - app = installchaincode-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}
-    kubeconfig: The config file of the cluster
     kubernetes: The kubernetes patch from network yaml
-    context: The context of kubernetes
 
 ##### Output Variables
 
@@ -49,29 +43,25 @@ This tasks checks/Wait for install-chaincode job.
   **retries**: No of retries
   **delay**: Specifies the delay between every retry
   
-#### 2. Check for commit-chaincode job
-This tasks checks if commit-chaincode is already run.
+#### 2. Check for approve-chaincode job
+This tasks checks if approve-chaincode is already run.
 
 ##### Input Variables
 
-    kind: The kind of task i.e. here `Job`
-    name: Name of commit chaincode job. Format: commitchaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}
+    component_type: The kind of task i.e. here `OneTimeJob`
+    component_name: Name of approve chaincode job. Format: approvechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
     namespace: Namespace of component
-    label_selectors:
-      - app = commitchaincode-{{ peer.name }}-{{peer.chaincode.name}}-{{ peer.chaincode.version }}
-    kubeconfig: The config file of the cluster
-    context: The context of kubernetes
 ##### Output Variables
 
-    commit_chaincode: This variable stores the output of install-chaincode query.
+    approve_chaincode: This variable stores the output of approve_chaincode query.
 
-#### 3. Create value file for chaincode commit
-This is the nested Task for chaincode commit.
+#### 3. Create value file for chaincode approve
+This is the nested Task for chaincode approve.
 ##### Input Variables
 
     *name: "Name of the organisation"
-    type: "commit_chaincode_job"
-    *component_name: Name of the component, "commit-{{ org.name | lower }}-{{ peer.name }}-{{item.channel_name|lower}}-{{peer.chaincode.name}}{{peer.chaincode.version}}"
+    type: "approve_chaincode_job"
+    *component_name: Name of the component, "approve-{{ org.name | lower }}-{{ peer.name }}-{{item.channel_name|lower}}-{{ chaincode.name }}{{ chaincode.version }}"
     *namespace: "Namespace of org , Format: {{ org.name |lower }}-net"
     *peer_name: "Name of the peer"
     *peer_address: "Gossip peer Address"    
@@ -82,11 +72,7 @@ This is the nested Task for chaincode commit.
     *component_chaincode: "Chaincode Data"
     *values_dir: "Destination directory"
 **include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here `helm_component`.
-**loop**: loops over peers list fetched from *{{ org.services.peers }}* from network yaml
-**loop_control**: Specify conditions for controlling the loop.
-                
-    loop_var: loop variable used for iterating the loop.
-**when** : It runs when chaincode is not committed i.e. *commit_chaincode.resources.length* == 0.
+**when** : It runs when chaincode is defined and is not approved i.e. *approved_chaincode.resources.length* == 0.
 
 #### 4. Git Push
 This task pushes the above generated value files to git repo.

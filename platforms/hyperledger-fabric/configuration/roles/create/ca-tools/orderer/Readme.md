@@ -6,6 +6,7 @@
 ## ROLE: ca-tools/orderer
 This role creates helm release value file for the deployment of CA Tools CLI and generate crypto for orderer.
 
+### main.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
 #### 1. Check CA-server is available
@@ -25,13 +26,7 @@ This tasks checks if CA server is available or not and waits for the CA server t
   **retries**: No of retries
   **delay**: Specifies the delay between every retry
 
-#### 2. Call delete_old_certs for delete the previous certificates
-This task delete the previous certificates
-##### Input Variables
-    *org_name: Provide the name of the organization
-**when**: It runs Only when *refresh_cert* is defined and *refresh_cert* is true.
-
-#### 3. Reset ca-tools pod
+#### 2. Reset ca-tools pod
 This task reset ca-tools pod
 ##### Input Variables
     *pod_name: Provide the name of the pod
@@ -43,6 +38,12 @@ This task reset ca-tools pod
 **when**: It runs Only when *refresh_cert* is defined and *refresh_cert* is true.
     
 **include_role** : It includes the name of intermediatory role which is required for process of refresh certificates
+
+#### 3. Call delete_old_certs for delete the previous certificates
+This task delete the previous certificates
+##### Input Variables
+    *org_name: Provide the name of the organization
+**when**: It runs Only when *refresh_cert* is defined and *refresh_cert* is true.
 
 #### 4. Create CA-tools Values file
 This task creates the CA-tools value files for orderer.
@@ -75,7 +76,7 @@ This task pushes the above generated value files to git repo.
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 
-#### 4. Check if crypto materials exists in vault.
+#### 6. Check if crypto materials exists in vault.
 This task Check if crypto materials exists in vault.
 ##### Input Variables
     *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
@@ -83,7 +84,7 @@ This task Check if crypto materials exists in vault.
     *component_type: "Type of org"
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `crypto_materials`.
 
-#### 6. Create the Ambassador credentials
+#### 7. Create the Ambassador credentials
 This task creates the Ambassador TLS credentials
 ##### Input Variables
     *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
@@ -92,7 +93,7 @@ This task creates the Ambassador TLS credentials
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador
 
-#### 7. Copy the msp admincerts from vault
+#### 8. Copy the msp admincerts from vault
 This task copies the msp admincerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -101,7 +102,7 @@ This task copies the msp admincerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is not none.
 
-#### 8. Copy the msp cacerts from vault
+#### 9. Copy the msp cacerts from vault
 This task copies the msp cacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -110,7 +111,7 @@ This task copies the msp cacerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is not none.
 
-#### 9. Copy the msp tlscacerts from vault
+#### 10. Copy the msp tlscacerts from vault
 This task copies the msp tlscacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -119,7 +120,7 @@ This task copies the msp tlscacerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is not none.
 
-#### 10. Copy the msp cacerts from vault
+#### 11. Copy the msp cacerts from vault
 This task copies the msp cacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -128,7 +129,7 @@ This task copies the msp cacerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is none.
 
-#### 11. Copy the msp tlscacerts from vault
+#### 12. Copy the msp tlscacerts from vault
 This task copies the msp tlscacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -137,7 +138,7 @@ This task copies the msp tlscacerts from vault when proxy is none
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 **when**: It runs Only when *network.env.proxy* is none.
 
-#### 12. Copy the tls server.crt from vault
+#### 13. Copy the tls server.crt from vault
 This task copies the tls server.crt from vault to the build directory
 ##### Input Variables
     *component_name: The name of the resource
@@ -149,7 +150,7 @@ This task copies the tls server.crt from vault to the build directory
                 
     loop_var: loop variable used for iterating the loop.
 
-#### 13. Create the certs directory if it does not exist
+#### 14. Create the certs directory if it does not exist
 This task create the certs directory if it is not present 
 ##### Input Variables
     path: The path where to check is specified here.
@@ -161,7 +162,7 @@ This task create the certs directory if it is not present
 
 **when**: It runs Only when *add_new_org* is false and *add_peer* is not defined.
 
-#### 14. Copy the msp cacerts from vault
+#### 15. Copy the msp cacerts from vault
 This task copies the msp cacerts from vault when proxy is none
 ##### Input Variables
     *component_name: The name of the resource
@@ -176,3 +177,18 @@ This task copies the msp cacerts from vault when proxy is none
     loop_var: loop variable used for iterating the loop.
 
 **when**: It runs Only when *add_new_org* is false and *add_peer* is not defined.
+
+### delete_old_certs.yaml
+### Tasks
+#### 1. Delete Crypto for orderers
+This task deletes crypto materials from vault
+##### Input Variables
+    *component_name: The name of the resource
+    *VAULT_ADDR: Contains Vault URL, Fetched using 'vault.' from network.yaml
+    *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
+**shell** : The specified commands delete crypto materials from vault.
+**loop**: loops over orderers list fetched from *{{  network.orderers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+**when**: It runs Only when *component_type* is orderer.

@@ -250,7 +250,6 @@ spec:
             peer chaincode install -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -p ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANGUAGE}
             echo "Chaincode installed for Fabric v.1.4.X"         
           else
-
             ## Checking installed chaincode
             INSTALLED=$(peer lifecycle chaincode queryinstalled -O json | jq '.installed_chaincodes?' | \
               jq --arg CCLABEL "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" '.[]? | select(.label==$CCLABEL)')
@@ -282,6 +281,15 @@ spec:
             #query installed
             echo "peer query installed"
             peer lifecycle chaincode queryinstalled
+            
+            ## Check if chaincode got installed 
+            INSTALLED=$(peer lifecycle chaincode queryinstalled -O json | jq '.installed_chaincodes?' | \
+              jq --arg CCLABEL "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" '.[]? | select(.label==$CCLABEL)')
+            if ! [ -n "${INSTALLED}" ]
+            then
+              echo "Error while installing chaincode, exiting.."
+              exit 1
+            fi
           fi
         env:
         - name: PEER_NAME

@@ -28,6 +28,7 @@ Fabric operations
     operations/install_instantiate_chaincode.md
     operations/upgrading_chaincode.md
     operations/deploy_fabric_operations_console.md
+    operations/refresh_certs_fabric.md
     
 Corda operations
 -----------------------

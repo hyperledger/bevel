@@ -30,7 +30,7 @@ spec:
       authpath: {{ component_auth }}
       policy: vault-crypto-{{ component_type }}-{{ name }}-ro
       policydata: {{ policydata | to_nice_json }}
-      secret_path: {{ vault.secret_path }}
+      secret_path: {{ vault.secret_path | default(name)}}
       serviceaccountname: vault-auth
       imagesecretname: regcred
 

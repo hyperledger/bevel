@@ -8,6 +8,20 @@ This role creates helm value file for the deployment of chaincode_install job.
 ### main.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
+#### 1. Call nested install from here
+This task calls nested install
+##### Input Variables
+    org_query: query based on name "organizations[?name=='{{ participant.name }}']"
+    org: query result of org_query"{{ network | json_query(org_query) | first }}"
+**include_tasks**: It includes the name of intermediatory nested task which calls other nested task required for creating the value file, here `valuefile.yaml`.
+**loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
+**loop_control**: Specify conditions for controlling the loop.
+                
+    loop_var: loop variable used for iterating the loop.
+
+### nested_install.yaml
+### Tasks
+(Variables with * are fetched from the playbook which is calling this role)
 #### 1. Create value file for chaincode installation for fabric version 1.4.x
 This task create value file for chaincode installation.
 ##### Input Variables
@@ -22,7 +36,7 @@ This task create value file for chaincode installation.
     *git_branch: Git branch name
     *charts_dir: Charts directory path
     *values_dir: Destination directory which stores the generated value file.
-**include_tasks**: It includes the name of intermediatory task which is required for creating the value file, here `valuefile.yaml`.
+**include_tasks**: It includes the name of intermediatory nested task which calls other nested task required for creating the value file, here `valuefile.yaml`.
 **loop**: loops over peers list fetched from *{{ component_peers }}* from network yaml
 **loop_control**: Specify conditions for controlling the loop.
                 

@@ -3,12 +3,11 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "adding-new-org-to-existing-network-in-fabric"></a>
-# Adding a new organization in Hyperledger Fabric
+<a name = "refresh-certificates-to-existing-network-in-fabric"></a>
+# Refresh certificates in Hyperledger Fabric
 
-- [Adding a new organization in Hyperledger Fabric](#adding-a-new-organization-in-hyperledger-fabric)
-  - [Prerequisites](#prerequisites)
-  - [Run playbook](#run-playbook)
+- [Prerequisites](#prerequisites)
+- [Run playbook](#run-playbook)
 
 
 <a name = "prerequisites"></a>
