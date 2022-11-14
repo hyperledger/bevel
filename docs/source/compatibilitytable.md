@@ -3,9 +3,9 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# Compability Matrix
+# Compability Table
 Bevel current tools/platforms support version and historic details 
 ## Colour Legends
 ![](./_static/legends.png)
 ## Compatibility Table
-![](./_static/compatibility_matrix.png)
+![](./_static/compatibility_table.png)
