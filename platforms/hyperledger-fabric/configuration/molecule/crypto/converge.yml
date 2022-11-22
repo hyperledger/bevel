@@ -208,6 +208,18 @@
           configtx:
             custom: false
             folder_path: "/build/configtx_tpl/"
+          consensus:
+            name: raft
+            type: broker
+            replicas: 4
+            grpc:
+              port: 9092
+          orderers:
+            - orderer:
+              type: orderer
+              name: testorderer1
+              org_name: testorderer              
+              uri: orderer1.test.com:8443 
           organizations:
             - organization:
               name: testorderer
@@ -220,9 +232,9 @@
                   replicas: 3
                 orderers:
                   - orderer:
-                    name: testorderer
+                    name: testorderer1
                     type: orderer
-                    consensus: kafka
+                    consensus: raft
                     grpc:
                       port: 7050
             - organization:
@@ -230,6 +242,7 @@
               type: peer
               cloud_provider: aws
               external_url_suffix: test_url
+              orderer_org: testorderer
               services:
                 consensus:
                   name: "raft"
@@ -242,8 +255,8 @@
             - channel:
               channel_name: test_channel
               consortium: test_consortium
-              orderer:
-                name: testorderer
+              orderers: 
+                - testorderer
               genesis:
                 name: testOrdererGenesis
               participants:

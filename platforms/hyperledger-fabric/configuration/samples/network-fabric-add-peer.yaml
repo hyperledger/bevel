@@ -41,6 +41,12 @@ network:
     password: "docker_password"
   
   # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
+  consensus:
+    name: raft
+    type: broker        #This field is not consumed for raft consensus
+    replicas: 4         #This field is not consumed for raft consensus
+    grpc:
+      port: 9092        #This field is not consumed for raft consensus
   orderers:
     - orderer:
       type: orderer
@@ -66,8 +72,10 @@ network:
   - channel:
     consortium: SupplyChainConsortium
     channel_name: AllChannel
-    orderer: 
-      name: supplychain
+    chaincodes:
+      - "chaincode_name"
+    orderers: 
+      - supplychain
     participants:
     - organization:
       name: carrier
@@ -102,6 +110,7 @@ network:
       type: peer
       external_url_suffix: org3ambassador.blockchaincloudpoc.com
       org_status: existing  # org_status must be existing when adding peer
+      orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
         url: ca.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # CA Server URL must be public when adding peer on new cluster
         certificate: /path/to/caserver.crt                                    # CA Server public cert must be provided when adding peer on new cluster
@@ -171,18 +180,18 @@ network:
           expressapi:
             targetPort: 3000
             port: 3000
-          chaincode:
-            name: "chaincode_name"   #This has to be replaced with the name of the chaincode
-            version: "1"   #This has to be replaced with the version of the chaincode
-            maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
-            repository:
-              username: "git_username"          # Git Service user who has rights to check-in in all branches
-              password: "git_access_token"
-              url: "github.com/<username>/bevel.git"
-              branch: develop 
-              path: "chaincode_src"    #The path to the chaincode 
-            arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
-            endorsements: ""          #Endorsements (if any) provided along with the chaincode
+          chaincodes:
+            - name: "chaincode_name"   #This has to be replaced with the name of the chaincode
+              version: "1"   #This has to be replaced with the version of the chaincode
+              maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
+              repository:
+                username: "git_username"          # Git Service user who has rights to check-in in all branches
+                password: "git_access_token"
+                url: "github.com/<username>/bevel.git"
+                branch: develop 
+                path: "chaincode_src"    #The path to the chaincode 
+              arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
+              endorsements: ""          #Endorsements (if any) provided along with the chaincode
         - peer:
           name: peer1         
           type: nonanchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
@@ -202,18 +211,18 @@ network:
           expressapi:
             targetPort: 3000
             port: 3000
-          chaincode:
-            name: "chaincode_name"   #This has to be replaced with the name of the chaincode
-            version: "1"   #This has to be replaced with the version of the chaincode            
-            maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
-            repository:
-              username: "git_username"          # Git Service user who has rights to check-in in all branches
-              password: "git_access_token"
-              url: "github.com/<username>/bevel.git"
-              branch: develop 
-              path: "chaincode_src"    #The path to the chaincode 
-            arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
-            endorsements: ""          #Endorsements (if any) provided along with the chaincode
+          chaincodes:
+            - name: "chaincode_name"   #This has to be replaced with the name of the chaincode
+              version: "1"   #This has to be replaced with the version of the chaincode            
+              maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
+              repository:
+                username: "git_username"          # Git Service user who has rights to check-in in all branches
+                password: "git_access_token"
+                url: "github.com/<username>/bevel.git"
+                branch: develop 
+                path: "chaincode_src"    #The path to the chaincode 
+              arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
+              endorsements: ""          #Endorsements (if any) provided along with the chaincode
     
     # Specification for the Existing Orderer organization. Not needed when just adding new peer.
     - organization:

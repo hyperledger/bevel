@@ -47,22 +47,22 @@
     type: "retry"
   tags:
     - notest
-    
-# ----------------------------------------------------------------------  
-# create vault access policies
-- name: "Setup vault for nms"
-  include_role: 
-    name: setup/vault_kubernetes
-  vars:
-    component_name: "{{ services.nms.name | lower }}"
-    component_path: "{{ services.nms.name | lower }}/"
-    component_auth: "corda{{ services.nms.name | lower }}"
 
-# ----------------------------------------------------------------------  
-# create image pull secrets
-- name: "Create image pull secret for nms" 
-  include_role: 
-    name: create/imagepullsecret
+# Setup Vault-Kubernetes accesses and Regcred for docker registry
+- name: "Setup vault for nms"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
+  vars:
+    policy_type: "cordaos"
+    name: "{{ services.nms.name | lower }}"
+    component_ns: "{{ item.name | lower }}-ns"
+    component_name: "{{ services.nms.name | lower }}-vaultk8s-job"
+    component_auth: "corda{{ services.nms.name | lower }}"
+    component_type: "organization"
+    kubernetes: "{{ item.k8s }}"
+    vault: "{{ item.vault }}"
+    gitops: "{{ item.gitops }}"
+    reset_path: "platforms/r3-corda/configuration"
 
 # generate NMS certificates
 - name: "Create certificates for nms" 

@@ -28,6 +28,8 @@ The configurations are grouped in the following sections for better understandin
 
 * env
 
+* consensus
+
 * orderers
 
 * channels
@@ -98,6 +100,25 @@ The fields under `docker` section are
 
 ---
 
+`consensus` section contains the consensus service that uses the orderers provided in the following `orderers` section.
+
+```yaml
+  consensus:
+    name: raft
+    type: broker        #This field is not consumed for raft consensus
+    replicas: 4         #This field is not consumed for raft consensus
+    grpc:
+      port: 9092        #This field is not consumed for raft consensus
+```
+The fields under the each `consensus` are
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name                     | Name of the Consensus service. Can be `raft` or `kafka`.      |
+| type                      | Only for `kafka`. Consensus service type, only value supported is `broker` currently  |
+| replicas                  | Only for `kafka`. Replica count of the brokers  |
+| grpc.port                 | Only for `kafka`. Grpc port of consensus service |
+
 `orderers` section contains a list of orderers with variables which will expose it for the network.
 
 The snapshot of the `orderers` section with example values is below
@@ -143,8 +164,10 @@ The snapshot of channels section with its fields and sample values is below
   - channel:
     consortium: SupplyChainConsortium
     channel_name: AllChannel
-    orderer: 
-      name: supplychain
+    chaincodes:
+      - "chaincode_name"
+    orderers: 
+      - supplychain
     participants:
     - organization:
       name: carrier
@@ -225,8 +248,9 @@ The fields under the `channel` are
 |---------------------------------|------------------------------------------------------------|
 | consortium                      | Name of the consortium, the channel belongs to             |
 | channel_name                    | Name of the channel                                        |
+| chaincodes                      | Contains list of chaincodes for the channel                |
 | genesis.name                    | Name of the genesis block                                  |
-| orderer.name                    | Organization name to which the orderer belongs             |
+| orderers                        | List of names of the organizations providing ordering service           |
 | participants                    | Contains list of organizations participating in the channel|
 | endorsers                       | Contains list of organizations (v2.2+)                     |
 | channel_status                  | (only needed to add channel to existing org. Possible values are `new` or `existing`|
@@ -285,7 +309,8 @@ Each `organization` under the `organizations` section has the following fields.
 | subject                                     | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
 | type                                        | This field can be orderer/peer            |
 | external_url_suffix                         | Public url suffix of the cluster.         |
-| org_status         | `new` (for inital setup) or `existing` (for add new org) | 
+| org_status         | `new` (for inital setup) or `existing` (for add new org) |
+| orderer_org        |  Ordering service provider. It should only be added to peer organizations |  
 | ca_data                                     | Contains the certificate authority url and certificate path; this has not been implemented yet |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | When the organization cluster is on AWS |
@@ -398,18 +423,18 @@ Each organization with type as peer will have a peers service. The snapshot of p
           expressapi:           # This is for the express api server
             targetPort: 3000
             port: 3000
-          chaincode:
-            name: "chaincode_name" #This has to be replaced with the name of the chaincode
-            version: "chaincode_version" #This has to be replaced with the version of the chaincode
-            maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
-            repository:
-              username: "git_username"          # Git Service user who has rights to check-in in all branches
-              password: "git_password"
-              url: "github.com/hyperledger/bevel.git"
-              branch: develop
-              path: "chaincode_src"   #The path to the chaincode 
-            arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
-            endorsements: "" #Endorsements (if any) provided along with the chaincode
+          chaincodes:
+            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
+              version: "chaincode_version" #This has to be replaced with the version of the chaincode
+              maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
+              repository:
+                username: "git_username"          # Git Service user who has rights to check-in in all branches
+                password: "git_password"
+                url: "github.com/hyperledger/bevel.git"
+                branch: develop
+                path: "chaincode_src"   #The path to the chaincode 
+              arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
+              endorsements: "" #Endorsements (if any) provided along with the chaincode
 ```
 The fields under `peer` service are
 
@@ -427,17 +452,22 @@ The fields under `peer` service are
 | restserver.port               | Restserver port                                                                                                  |
 | expressapi.targetPort         | Express server target port                                                                                       |
 | expressapi.port               | Express server port                                                                                              |
-| chaincode.name                | Name of the chaincode                                                                                            |
-| chaincode.version             | Version of the chaincode. Please do not use . (dot) in the version.    |
-| chaincode.maindirectory       | Path of main.go file                                                                                             |
-| chaincode.lang       | The language in which the chaincode is written ( golang/ java)                                                                                            |
-| chaincode.repository.username | Username which has access to the git repo containing chaincode                                                   |
-| chaincode.repository.password | Password of the user which has access to the git repo containing chaincode                                       |
-| services.peer.chaincode.repository.url      | URL of the git repository containing the chaincode                                                 |
-| chaincode.repository.branch   | Branch in the repository where the chaincode resides                                                             |
-| chaincode.repository.path     | Path of the chaincode in the repository branch                                                                   |
-| chaincode.arguments           | Arguments to the chaincode                                                                                       |
-| chaincode.endorsements        | Endorsements (if any) provided along with the chaincode |
+
+The chaincodes section contains the list of chaincode for the peer, the fields under each chaincode are below
+
+| Field       | Description                                              |
+|-------------|----------------------------------------------------------|
+| name                | Name of the chaincode                                                                                            |
+| version             | Version of the chaincode. Please do not use . (dot) in the version.    |
+| maindirectory       | Path of main.go file                                                                                             |
+| lang                | The language in which the chaincode is written ( golang/ java)                                                   |
+| repository.username | Username which has access to the git repo containing chaincode                                                   |
+| repository.password | Password of the user which has access to the git repo containing chaincode                                       |
+| repository.url      | URL of the git repository containing the chaincode                                                               |
+| repository.branch   | Branch in the repository where the chaincode resides                                                             |
+| repository.path     | Path of the chaincode in the repository branch                                                                   |
+| arguments           | Arguments to the chaincode                                                                                       |
+| endorsements        | Endorsements (if any) provided along with the chaincode |
 
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 ```yaml

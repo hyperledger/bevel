@@ -30,8 +30,12 @@
     # Uninstalling Flux is needed so that everything is clean
     # remove this if not needed
     - name: Uninstall flux
-      shell: |
-        yes | KUBECONFIG={{ kubernetes.config_file }} {{ bin_install_dir }}/flux uninstall --namespace=flux-{{ network.env.type }}
+      k8s:
+        name: flux-{{ network.env.type }}
+        api_version: v1
+        kind: Namespace
+        state: absent
+        kubeconfig: "{{ kubernetes.config_file }}"
       vars:
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"

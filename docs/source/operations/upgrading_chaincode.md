@@ -21,7 +21,7 @@ Hyperledger Fabric network deployed, network.yaml configuration file already set
 
 Refer [this guide](./fabric_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organizations.services.peers.chaincode.arguments`, `network.organizations.services.peers.chaincode.version` and `network.organizations.services.peers.chaincode.name` variables which are used as arguments while upgrading the chaincode.
+The `network.yaml` file should contain the specific `network.organizations.services.peers.chaincodes[*].arguments`, `network.organizations.services.peers.chaincodes[*].version` and `network.organizations.services.peers.chaincodes[*].name` variables which are used as arguments while upgrading the chaincode.
 
 For reference, following snippet shows that section of `network.yaml`
 
@@ -40,19 +40,19 @@ network:
         - peer:
           name: peer0          
           ..
-          chaincode:
-            name: "chaincode_name" #This has to be replaced with the name of the chaincode
-            version: "chaincode_version" # This has to be greater than the current version, should be an integer.
-            maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
-            lang: "java" # The chaincode language, optional field with default vaule of 'go'.
-            repository:
-              username: "git_username"          # Git Service user who has rights to check-in in all branches
-              password: "git_password"
-              url: "github.com/hyperledger/bevel.git"
-              branch: develop
-              path: "chaincode_src"   #The path to the chaincode 
-            arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
-            endorsements: "" #Endorsements (if any) provided along with the chaincode
+          chaincodes:
+            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
+              version: "chaincode_version" # This has to be greater than the current version, should be an integer.
+              maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
+              lang: "java" # The chaincode language, optional field with default vaule of 'go'.
+              repository:
+                username: "git_username"          # Git Service user who has rights to check-in in all branches
+                password: "git_password"
+                url: "github.com/hyperledger/bevel.git"
+                branch: develop
+                path: "chaincode_src"   #The path to the chaincode 
+              arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
+              endorsements: "" #Endorsements (if any) provided along with the chaincode
 ```
 
 <a name = "run_network"></a>

@@ -1,0 +1,39 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+#############################################################################################
+# This role creates value file for the deployment of chaincode install
+#############################################################################################
+
+############################################################################################    
+
+# Check if the joinchannel job is completed successfully or wait for it
+# This task will try for a maximum of 10 times with an interval of 30 seconds between each try
+- name: "Waiting for the job anchorpeer-{{ channel.channel_name | lower }}-{{ name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    component_name: "anchorpeer-{{ channelx.channel_name | lower }}-{{ name }}"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channelx
+  when: 
+    - add_new_org is not defined or add_new_org == 'false'
+    - add_peer is not defined
+    - participant.org_status != 'new'
+
+# Create value file for chaincode installation 
+- name: "Create value file for chaincode installation"
+  include_tasks: valuefile.yaml
+  vars:
+    component_peers: "{{ org.services.peers }}"
+    peer_chaincodes: "{{ peer.chaincodes }}"
+  loop: "{{ peer_chaincodes }}"
+  loop_control:
+    loop_var: chaincode
+  when: chaincode.name in channel.chaincodes

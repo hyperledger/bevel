@@ -25,28 +25,7 @@ This task creates the root tooken secret
     *vault: Contains the root token, Fetched using 'vault.' from network.yaml
 **when**: Condition is specified here, runs only when *root_token_secret.resources* is not found.
 
-#### 3. Check if reviewer token exists in the namespace
-This task checks if the reviewer token exists
-##### Input Variables
-
-    *kind: This defines the kind of Kubernetes resource
-    *namespace: Namespace of the component 
-    *name: The name of secret
-    *kubeconfig: The config file of the cluster
-    *context: This refer to the required kubernetes cluster context
-##### Output Variables
-
-    reviewer_token_secret: This variable stores the output of reviewer token check query.
-    
-#### 4. Put reviewer token of every organization
-This task creates the reviewer tooken secrets
-##### Input Variables
-    *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml 
-    *namespace: Namespace of the component 
-**shell** : This command creates the reviewer token secret.
-**when**: Condition is specified here, runs only when *reviewer_token_secret.resources* is not found.
-
-#### 5.  Check docker cred exists
+#### 3.  Check docker cred exists
 This task checks if the docker credentials exists
 ##### Input Variables
 
@@ -59,14 +38,14 @@ This task checks if the docker credentials exists
 
     get_regcred: This variable stores the output of docker credentials check query.
     
-#### 6.  Create the docker pull credentials
+#### 4.  Create the docker pull credentials
 This task creates the docker pull credentials
 ##### Input Variables
     *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml
     *namespace: Namespace of the component 
 **when**: Condition is specified here, runs only when *get_regcred.resources* is not found.
 
-#### 7.  Check Ambassador cred exists
+#### 5.  Check Ambassador cred exists
 This task checks if Ambassador credentials exists already
 ##### Input Variables
 
@@ -80,7 +59,7 @@ This task checks if Ambassador credentials exists already
     get_secret: This variable stores the output of Ambassador credentials check query.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador.
     
-#### 8. Check if ca certs already created
+#### 6. Check if ca certs already created
 This tasks checks if the CA certificates are already created or not.
 ##### Input Variables
 
@@ -91,7 +70,7 @@ This tasks checks if the CA certificates are already created or not.
     vault_capem_result: This variable stores the output of ca certificates check query.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador.
 
-#### 9. Check if ca key already created
+#### 7. Check if ca key already created
 This tasks checks if the CA key are already created or not.
 ##### Input Variables
 
@@ -102,14 +81,14 @@ This tasks checks if the CA key are already created or not.
     vault_cakey_result: This variable stores the output of ca certificates check query.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador.
 
-#### 10.  Create the Ambassador credentials
+#### 8.  Create the Ambassador credentials
 This task creates the Ambassador TLS credentials
 ##### Input Variables
     *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml
     *namespace: Namespace of the component 
 **when**: Conditions is specified here, runs only when *get_secret.resources* is not found, *vault_capem_result.failed* is False, *vault_cakey_result.failed* is False and *network.env.proxy* is ambassador.
 
-#### 11.  Check Ambassador cred exists for orderers
+#### 9.  Check Ambassador cred exists for orderers
 This task checks if Ambassador credentials exists already for orderes
 ##### Input Variables
 
@@ -123,7 +102,7 @@ This task checks if Ambassador credentials exists already for orderes
     get_secret: This variable stores the output of Ambassador credentials check query.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador.
 
-#### 12. Check if ca certs already created for orderers
+#### 10. Check if ca certs already created for orderers
 This tasks checks if the CA certificates are already created or not for orderers.
 ##### Input Variables
 
@@ -134,7 +113,7 @@ This tasks checks if the CA certificates are already created or not for orderers
     vault_capem_result: This variable stores the output of ca certificates check query.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador.
 
-#### 13. Check if ca key already created for orderers
+#### 11. Check if ca key already created for orderers
 This tasks checks if the CA key are already created or not for orderers.
 ##### Input Variables
 
@@ -145,15 +124,15 @@ This tasks checks if the CA key are already created or not for orderers.
     vault_cakey_result: This variable stores the output of ca certificates check query.
 **when**: Condition is specified here, runs only when *network.env.proxy* is ambassador.
 
-#### 14.  Create the Ambassador credentials for orderers
+#### 12.  Create the Ambassador credentials for orderers
 This task creates the Ambassador TLS credentials for orderers
 ##### Input Variables
     *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml
     *namespace: Namespace of the component 
 **when**: Conditions is specified here, runs only when *get_orderer_secret.resources* is not found, *vault_orderercert_result.failed* is False, *vault_ordererkey_result.failed* is False and *network.env.proxy* is ambassador.
 
-#### 15. Check if git credentials already created 
-This tasks checks if the git credentials are already created or not
+#### 13. Check if endorser certs secret exists in the namespace
+This tasks checks if endorser certs secret exists in the namespace
 ##### Input Variables
 
     *kind: This defines the kind of Kubernetes resource
@@ -163,10 +142,10 @@ This tasks checks if the git credentials are already created or not
     *context: This refer to the required kubernetes cluster context
 ##### Output Variables
 
-    git_password_secret: This variable stores the output of git credentials check query.
+    endorser_certs_secret: This variable stores the output of endorser certificates check query.
 
-#### 16. Create the git credentials 
-This task creates the git credentials secret
+#### 14. Create endorser certs secret exists in the namespace
+This task creates endorser certs secret exists in the namespace
 ##### Input Variables
     *KUBECONFIG: Contains config file of cluster, Fetched using 'kubernetes.' from network.yaml
     *namespace: Namespace of the component 

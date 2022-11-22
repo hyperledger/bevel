@@ -87,6 +87,19 @@ spec:
                   exit 1
                 fi
               };
+              
+              # Check if secret_path already created
+              vault_kv_check=$(curl --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/$VAULT_SECRET_PATH/ | jq '.errors');
+
+              if [ "$vault_kv_check" != 'null' ]; then
+                echo "secret_path does not exist. Creating ..."
+                curl \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data '{ "type":"kv-v2" }' \
+                ${VAULT_ADDR}/v1/sys/mounts/${VAULT_SECRET_PATH}
+              fi;
 
               # Check if authpath already created
               vault_auth_check=$(curl --header "X-Vault-Token: $ROOT_TOKEN" \

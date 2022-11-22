@@ -14,7 +14,14 @@ This task deletes all the files from the release directory
     *release_dir: The release directory path
     state: absent ( This deletes any found result)
 
-#### 2. Git Push
+#### 2. Delete flux mainfest files
+This task deletes all the files from the flux mainfest directory
+##### Input Variables
+    *release_dir: The release directory path
+    state: absent ( This deletes any found result)
+**when**: It runs Only when *remove_org* is not defined or *remove_org* is false.
+
+#### 3. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
     GIT_DIR: "The path of directory which needs to be pushed"    

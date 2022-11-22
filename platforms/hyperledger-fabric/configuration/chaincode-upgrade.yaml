@@ -21,9 +21,13 @@
     - include_role:
         name: "create/chaincode/install"      
       vars:
+        participants: "{{ channel.participants }}"
         docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer'
+      loop: "{{ network['channels'] }}"
+      loop_control:
+        loop_var: channel
+      when: participants is defined
+
     # Then Upgrade, instantiation is not needed while upgrading
     - include_role:
         name: "create/chaincode/upgrade"

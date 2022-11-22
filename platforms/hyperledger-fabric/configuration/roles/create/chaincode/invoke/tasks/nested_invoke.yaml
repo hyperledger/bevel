@@ -1,0 +1,20 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+############################################################################################
+# This role creates the invoke_chaincode value file
+# Create value file for chaincode invoke 
+- name: "Create value file for chaincode invoke"
+  include_tasks: nested_valuefile.yaml
+  vars:      
+    name: "{{ org.name | lower}}"
+    namespace: "{{ org.name | lower}}-net"
+    component_type: "peer"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.chaincodes is defined
