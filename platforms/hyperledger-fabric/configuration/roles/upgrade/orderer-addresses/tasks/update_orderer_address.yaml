@@ -1,0 +1,50 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# This task creates orderer addresses json and updates system channel configuration for 
+# orderer endpoints
+############################################################################################
+
+# Create yaml file with orderer address values
+- name: Create yaml file with orderer address values
+  template:
+    src: "orderer-endpoints.yaml"
+    dest: "{{ build_path }}/channel-artifacts/orderer-endpoints.yaml"
+  vars:
+    ordererOrgEndpoint: "{{ ordererOrg.name }}MSPEndpoint"
+
+# Save the yaml file to a variable
+- name: Save yaml to variable
+  ansible.builtin.include_vars:
+    file: "{{ build_path }}/channel-artifacts/orderer-endpoints.yaml"
+    name: ordererEndPoints
+
+# Convert the yaml file to json
+- name: Convert yaml to json
+  copy:
+    content: "{{ ordererEndPoints | to_nice_json }}"
+    dest: "{{ build_path }}/channel-artifacts/ordererAddresses.json"
+
+# This task create script file to add orderer addresses
+- name: Create script file to add orderer addresses
+  template:
+    src: "add_orderer_addresses.tpl"
+    dest: "{{ build_path }}/add_orderer_addresses.sh"
+  vars:
+    channel_name: "{{ channelName }}"
+    org_name: "{{ ordererOrg.name }}MSP"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# This task add orderer addresses to channel
+- name: Add orderer addresses to channel
+  include_tasks: add-orderer_addresses.yaml
+  vars:
+    channel_name: "{{ channelName }}"
+    org_query: "orderers[?org_name=='{{ordererOrg.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
