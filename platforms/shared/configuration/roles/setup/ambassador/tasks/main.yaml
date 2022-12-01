@@ -124,8 +124,50 @@
   when: 
     - network.env.external_dns is defined
     - network.env.external_dns == 'enabled'
+    - fqdn is not defined
   tags:
     - molecule-idempotence-notest  
+
+#create Ingress class for Ambassador
+- name: creates IngressClass for ambassador
+  k8s:
+    state: present
+    definition:
+      apiVersion: networking.k8s.io/v1beta1
+      kind: IngressClass
+      metadata:
+        name: ambassador
+        annotations:
+          ingressclass.kubernetes.io/is-default-class: "true"
+      spec:
+        controller: getambassador.io/ingress-controller
+
+##Checks if cert-manager is installed 
+- name: check cert-manager deployment status
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    name: cert-manager
+    namespace: cert-manager
+  register: certmanager
+  when: fqdn is defined
+  tags:
+    - molecule-idempotence-notest 
+
+##installs cert-manager if its not installed
+- name: Install cert-manager
+  helm:
+    name: cert-manager
+    namespace: cert-manager
+    state: present
+    chart_ref: "{{ playbook_dir }}/../../../platforms/shared/charts/cert-manager"
+    create_namespace: true
+  when: 
+    - certmanager.resources[0].spec is not defined
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - fqdn is defined
+  tags:
+    -  molecule-idempotence-notest
 
 - name: Install Ambassador with EIP for Indy
   shell: |
@@ -169,3 +211,117 @@
     label_selectors: 
       - app.kubernetes.io/name=ambassador
   when: (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
+
+##check for an existing clusterissuer
+- name: check for an existing clusterissuer
+  kubernetes.core.k8s_info:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+    namespace: default
+  register: clusterissuer
+  when: 
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+  ignore_errors: true
+  tags:
+    - molecule-idempotence-notest
+
+##create clusterissuer if it is not deployed
+- name: create ClusterIssuer
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: letsencrypt-prod
+        namespace: default
+      spec:
+        acme: 
+          email: "{{ email }}"
+          server: https://acme-v02.api.letsencrypt.org/directory
+          privateKeySecretRef:
+            name: clusterissuer-account-key
+          solvers:
+            - http01:
+                ingress:
+                  class: ambassador
+  when: 
+    - clusterissuer.resources[0] is not defined
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - fqdn is defined
+  tags:
+    - molecule-idempotence-notest
+
+##create mapping for acme
+- name: create Mapping for Acme
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: getambassador.io/v2
+      kind: Mapping
+      metadata:
+        name: acme-challenge-mapping
+        namespace: default
+      spec:
+        hostname: "*"
+        prefix: /.well-known/acme-challenge/
+        rewrite: ""
+        service: acme-challenge-service
+  when: 
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - fqdn is defined
+  tags:
+    - molecule-idempotence-notest
+
+##create service for acme challenge
+- name: create acme challenge service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: service
+      metadata:
+        name: acme-challenge-service
+        namespace: default
+      spec:
+        ports:
+          - port: 80
+            targetPort: 8089
+        selector:
+          acme.cert-manager.io/http01-solver: "true"
+  when: 
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - fqdn is defined
+  tags:
+    - molecule-idempotence-notest
+
+##create Ambassador default TLS certificate by cert-manager
+- name: create Ambassador default tls certificate by cert-manager
+  k8s:
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: ambassador-default-tls
+        namespace: default
+      spec:
+        secretName: ambassador-default-tls
+        issuerRef:
+          name: letsencrypt-prod
+          kind: ClusterIssuer
+        duration: 8760h #365 days
+        renewBefore: 168h #7 days
+        isCA: false
+        dnsNames:
+          - "{{ fqdn }}"
+  when: 
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - fqdn is defined
+  tags:
+    - molecule-idempotence-notest
