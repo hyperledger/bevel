@@ -1,0 +1,47 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: validator1-ambassador-job
+  namespace: scravi-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: validator1-ambassador-job
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/generate_ambassador_certs
+    sourceRef:
+      kind: GitRepository
+      name: flux-dev-ravi
+      namespace: flux-dev-ravi
+  values:
+    metadata:
+      name: validator1-ambassador-job
+      namespace: scravi-bes
+    image:
+      alpineutils: ghcr.io/hyperledger/alpine-utils:1.0
+      pullSecret: regcred
+      pullPolicy: IfNotPresent
+    network:
+      tmtls: True
+    node:
+      name: validator1
+      clientport: 8888
+    vault:
+      address: http://a94f258ac51304b63a9bceb42a204cb6-2100507752.eu-west-1.elb.amazonaws.com:20002
+      secretengine: secretsv2
+      authpath: besuscravi
+      rootcasecret: secretsv2/data/scravi-bes/crypto/ambassadorcerts/rootca
+      ambassadortlssecret: secretsv2/data/scravi-bes/crypto/validator1/tls
+      role: vault-role
+      serviceaccountname: vault-auth
+    subject:
+      ambassadortls: CN=DLT Root CA/OU=DLT/O=DLT/L=London/C=GB
+    opensslVars:
+      domain_name_pub: validator1.bes.dev2.aws.blockchaincloudpoc-develop.com
+      domain_name_priv: validator1.scravi-bes
+      domain_name_tessera: validator1-tessera.scravi-bes
+    healthcheck:
+      retries: 10
+      sleepTimeAfterError: 2
