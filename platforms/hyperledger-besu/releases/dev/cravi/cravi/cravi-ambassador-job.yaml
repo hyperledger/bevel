@@ -1,0 +1,47 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: cravi-ambassador-job
+  namespace: cravi-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: cravi-ambassador-job
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/generate_ambassador_certs
+    sourceRef:
+      kind: GitRepository
+      name: flux-dev-ravi
+      namespace: flux-dev-ravi
+  values:
+    metadata:
+      name: cravi-ambassador-job
+      namespace: cravi-bes
+    image:
+      alpineutils: ghcr.io/hyperledger/alpine-utils:1.0
+      pullSecret: regcred
+      pullPolicy: IfNotPresent
+    network:
+      tmtls: True
+    node:
+      name: cravi
+      clientport: 8888
+    vault:
+      address: http://a94f258ac51304b63a9bceb42a204cb6-2100507752.eu-west-1.elb.amazonaws.com:20002
+      secretengine: secretsv2
+      authpath: besucravi
+      rootcasecret: secretsv2/data/cravi-bes/crypto/ambassadorcerts/rootca
+      ambassadortlssecret: secretsv2/data/cravi-bes/crypto/cravi/tls
+      role: vault-role
+      serviceaccountname: vault-auth
+    subject:
+      ambassadortls: CN=DLT Root CA/OU=DLT/O=DLT/L=London/C=GB
+    opensslVars:
+      domain_name_pub: cravi.bes.dev2.aws.blockchaincloudpoc-develop.com
+      domain_name_priv: cravi.cravi-bes
+      domain_name_tessera: cravi-tessera.cravi-bes
+    healthcheck:
+      retries: 10
+      sleepTimeAfterError: 2
