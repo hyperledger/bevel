@@ -124,8 +124,52 @@
   when: 
     - network.env.external_dns is defined
     - network.env.external_dns == 'enabled'
+    - network.type != "besu"
   tags:
     - molecule-idempotence-notest  
+
+
+#create Ingress class for Ambassador
+- name: creates IngressClass for ambassador
+  k8s:
+    state: present
+    definition:
+      apiVersion: networking.k8s.io/v1beta1
+      kind: IngressClass
+      metadata:
+        name: ambassador
+        annotations:
+          ingressclass.kubernetes.io/is-default-class: "true"
+      spec:
+        controller: getambassador.io/ingress-controller
+  tags:
+    - molecule-idempotence-notest
+
+##Checks if cert-manager is installed 
+- name: check cert-manager deployment status
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    name: cert-manager
+    namespace: cert-manager
+  register: certmanager
+  tags:
+    - molecule-idempotence-notest
+
+##installs cert-manager if its not installed
+- name: Install cert-manager
+  kubernetes.core.helm:
+    name: cert-manager
+    namespace: cert-manager
+    state: present
+    chart_ref: "{{ playbook_dir }}/../../../platforms/shared/charts/cert-manager"
+    create_namespace: true
+  when:
+    - certmanager.resources[0].spec is not defined
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest
 
 - name: Install Ambassador with EIP for Indy
   shell: |
@@ -169,3 +213,162 @@
     label_selectors: 
       - app.kubernetes.io/name=ambassador
   when: (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
+
+
+##create clusterissuer if it is not deployed
+- name: create ClusterIssuer
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: letsencrypt-prod
+        namespace: default
+      spec:
+        acme:
+          email: "{{ email }}"
+          server: https://acme-v02.api.letsencrypt.org/directory
+          privateKeySecretRef:
+            name: clusterissuer-account-key
+          solvers:
+            - http01:
+                ingress:
+                  class: ambassador
+  when:
+    - clusterissuer.resources[0] is not defined
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest
+
+##create mapping for acme
+- name: create Mapping for Acme
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: getambassador.io/v2
+      kind: Mapping
+      metadata:
+        name: acme-challenge-mapping
+        namespace: default
+      spec:
+        hostname: "*"
+        prefix: /.well-known/acme-challenge/
+        rewrite: ""
+        service: acme-challenge-service
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest
+
+##create service for acme challenge
+- name: create acme challenge service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: service
+      metadata:
+        name: acme-challenge-service
+        namespace: default
+      spec:
+        ports:
+          - port: 80
+            targetPort: 8089
+        selector:
+          acme.cert-manager.io/http01-solver: "true"
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest
+
+##pause for 2 min for clusterissuer to be Ready
+- name: Pause for 2 min for clusterissuer to be Ready
+  when:
+    - network.type == "besu"
+  pause:
+    minutes: 2
+
+
+## get the validator list and external url suffix for validator
+- set_fact:
+    validatorlist: "{{ organization.services.validators }}"
+    validatorexternalurlsuffix: "{{organization.external_url_suffix}}"
+  when:
+    - organization.type == "validator"
+    - network.type == "besu"
+  ignore_errors: true
+
+
+## get the peer list and external url suffix for peers
+- set_fact:
+    peerlist: "{{ organization.services.peers }}"
+    peerexternalurlsuffix: "{{organization.external_url_suffix}}"
+  when:
+    - organization.type == "member"
+    - network.type == "besu"
+  ignore_errors: true
+
+
+- name: Refresh facts
+  setup:
+
+- set_fact:
+      dnslist: "{{ dnslist |default([]) + [v.name +'.'+ validatorexternalurlsuffix] }}"
+  loop: "{{ validatorlist }}"
+  loop_control:
+    loop_var: v
+  ignore_errors: true
+  when:
+    - network.type == "besu"
+    - organization.type == "validator"
+
+
+- set_fact:
+    dnslist: "{{ dnslist |default([]) + [p.name +'.'+peerexternalurlsuffix]}}"
+  loop: "{{peerlist}}"
+  loop_control:
+    loop_var: p
+  ignore_errors: true
+  when:
+    - network.type == "besu"
+    - organization.type == "member"
+
+
+- name: get dns list
+  debug:
+    msg: "{{dnslist}}"
+  when: network.type == "besu"
+
+##create Ambassador default TLS certificate by cert-manager
+- name: create Ambassador default tls certificate by cert-manager
+  k8s:
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: ambassador-default-tls
+        namespace: default
+      spec:
+        secretName: ambassador-default-tls
+        issuerRef:
+          name: letsencrypt-prod
+          kind: ClusterIssuer
+        duration: 8760h #365 days
+        renewBefore: 168h #7 days
+        isCA: false
+        commonName: "{{dnslist| first}}"
+        dnsNames: "{{dnslist | unique}}"
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest
