@@ -94,6 +94,14 @@
     vars:
       build_path: "{{ playbook_dir }}/build"
     when: network.config.consensus == 'ibft'
+  
+    # This role generates the genesis.json and nodekey/enode for all orgs of the network
+  - name: "Generate crypto for the QBFT network"
+    include_role:
+      name: create/crypto/qbft
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+    when: network.config.consensus == 'qbft'
 
   # This role generates the genesis.json and nodekey/enode for all orgs of the network
   - name: "Generate crypto for the CLIQUE network"
@@ -117,6 +125,7 @@
        name: create/genesis/{{network.config.consensus}}    
     vars:
       build_path: "./build"
+
   # This role deploy validator nodes. Validator nodes do not use Orion crypto.
   - name: "Deploy validator nodes"
     include_role:
@@ -138,7 +147,7 @@
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
     when:
-    - network.config.consensus == 'ibft' or network.config.consensus == 'clique'
+    - network.config.consensus == 'ibft' or network.config.consensus == 'qbft' or network.config.consensus == 'clique'
     - item.type == 'validator'
 
   # This role generates the crypto materials for orion tm
