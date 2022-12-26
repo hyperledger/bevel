@@ -25,6 +25,10 @@ spec:
       repository: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       pullSecret: regcred
       pullPolicy: IfNotPresent
+      # alpineutils image has the binaries like jq,curl, wget and openssl in it. 
+      # having this image with binaries helps in removing the dependencies of utility binaries in the besu and tessera containers
+      # dockerfile can be found at shared/images/apline-utils.Dockerfile
+      alpineutils: {{ network.docker.url }}/alpine-utils:1.1
     vault:
       address: {{ vault.url }}
       secretengine: {{ vault.secret_path | default('secretsv2') }}
