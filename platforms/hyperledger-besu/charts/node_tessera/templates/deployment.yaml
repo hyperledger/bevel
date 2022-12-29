@@ -49,6 +49,9 @@ spec:
             medium: Memory
         - name: mysql
           emptyDir:
+            medium: Memory
+        - name: mysql-jar
+          emptyDir:
             medium: Memory        
         - name: tessera-config
           configMap:
@@ -104,6 +107,8 @@ spec:
             -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          
+          echo $VAULT_CLIENT_TOKEN > /secret/VAULT_CLIENT_TOKEN
 
           vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           echo "Getting 2 keys from $vault_secret_key"          
@@ -157,11 +162,16 @@ spec:
             echo "${keystore}" > ${MOUNT_PATH}/keystore
             base64 -d ${MOUNT_PATH}/keystore > ${MOUNT_PATH}/keystore.pkcs12
             echo "${keystore_password}" > ${MOUNT_PATH}/keystore_password
-          fi 
+          fi
+
+          #copy mysql jar
+          cp /mysql/* /mysql-jar
          
         volumeMounts:
         - name: certificates
           mountPath: /secret
+        - name: mysql-jar
+          mountPath: /mysql-jar
       - name: mysql-init
         image: {{ .Values.images.busybox }}
         imagePullPolicy: IfNotPresent
@@ -217,47 +227,17 @@ spec:
         command: ["sh", "-c"]
         args:
           - |-
-            apk update && apk add jq curl
             mkdir -p $TESSERA_HOME/logs;
             mkdir -p $TESSERA_HOME/tm;
             DDIR=$TESSERA_HOME/tm;
             PASSWORD=$(cat $TESSERA_HOME/crypto/keys/password);
-            validateVaultResponse () {
-              if echo ${2} | grep "errors"; then
-                echo "ERROR: unable to retrieve ${1}: ${2}"
-                exit 1
-              fi
-              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-              then
-                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-                --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                ${VAULT_ADDR}/v1/${vault_secret_key})
-                curl_response=$?
-                if test "$http_code" != "200" ; then
-                    echo "Http response code from Vault - $http_code"
-                    if test "$curl_response" != "0"; then
-                      echo "Error: curl command failed with error code - $curl_response"
-                      exit 1
-                    fi
-                fi
-              fi
-            }
 
-            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-            # Login to Vault and so I can get an approle token
-            VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-              -H "Content-Type: application/json" \
-              -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-              jq -r 'if .errors then . else .auth.client_token end')
-            validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-            
             # required for tessera vault integration
-            export HASHICORP_TOKEN=${VAULT_CLIENT_TOKEN};
+            export HASHICORP_TOKEN=$(cat $TESSERA_HOME/crypto/VAULT_CLIENT_TOKEN);
 
             printenv;
             # mysql connector required for mysql tessera DB 
-            wget -q http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.25.tar.gz;
+            cp /mysql-jar/mysql-connector-java-8.0.25.tar.gz mysql-connector-java-8.0.25.tar.gz
             tar -xf mysql-connector-java-8.0.25.tar.gz;
             cp /mysql-connector-java-8.0.25/mysql-connector-java-8.0.25.jar /tessera/lib/;
             CONFIG_TMPL=$(cat ${TESSERA_HOME}/tessera-config.json.tmpl);
@@ -285,7 +265,9 @@ spec:
             mountPath: {{ .Values.tessera.mountPath }}
           - name: tessera-config
             mountPath: {{ .Values.tessera.mountPath }}/tessera-config.json.tmpl
-            subPath: tessera-config.json.tmpl          
+            subPath: tessera-config.json.tmpl  
+          - name: mysql-jar
+            mountPath: /mysql-jar        
       restartPolicy: Always
   volumeClaimTemplates: 
     - metadata:
