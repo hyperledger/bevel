@@ -174,22 +174,12 @@
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
 
-# This task writes the genesis base64 data to the file
-- name: Write the genesis file
-  copy:
-    content: "{{ genesis }}"
-    dest: "{{ network.config.genesis }}"
-  vars:
-    genesis: "{{ lookup('file', '{{ build_path }}/crypto/newGenesis.json') | b64encode }}"
-  when:
-    - generate_crypto is defined and generate_crypto == True
-    - add_new_org is not defined or add_new_org|bool == False
-
 # This tasks copies the cryptomaterial to the vault
 - name: Copy the crypto material to Vault
   include_tasks: add_to_vault.yaml
   vars:
     component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-bes"
     vault: "{{ org.vault }}"
     peers: "{{ org.services.peers }}"
   loop: "{{ network['organizations'] }}"
