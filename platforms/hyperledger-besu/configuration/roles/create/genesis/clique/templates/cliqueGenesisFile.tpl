@@ -1,6 +1,6 @@
 {
    "config": {
-     "chainId": 2018,
+     "chainId": {{ chain_id }},
      "constantinoplefixblock": 0,
      "contractSizeLimit": 2147483647,
      "clique":{
