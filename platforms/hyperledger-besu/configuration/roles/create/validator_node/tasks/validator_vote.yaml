@@ -17,7 +17,9 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org
-  when: generate_crypto is defined and generate_crypto == True and org.type == 'validator' and peer | length>0
+  when: 
+  - org.type == 'validator' and peer | length>0
+  - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # Set enode_data_list to empty
 - name: Set enode_data_list to []
@@ -50,7 +52,9 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: val
-  when: network.config.consensus == 'ibft' and val.type == 'validator' and peer | length>0
+  when:
+    - network.config.consensus == 'ibft' and val.type == 'validator' and peer | length>0
+    - (network.crypto_only is undefined or network.crypto_only == false)
 
 # Check for local genesis file
 - name: Check that the gensis file exists
@@ -67,13 +71,17 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: vault_genesis
   ignore_errors: yes
-  when: stat_result.stat.exists == False
+  when:
+    - stat_result.stat.exists == False
+    - (network.crypto_only is undefined or network.crypto_only == false)
 
 #This task only runs when there is no local genesis file
 - name: Copy genesis from vault to correct path
   shell: |
     echo {{ vault_genesis.stdout }} > {{ network.config.genesis }}
-  when: stat_result.stat.exists == False
+  when:
+    - stat_result.stat.exists == False
+    - (network.crypto_only is undefined or network.crypto_only == false)
 
 # Looping the validator orgs
 - name: Pushing files to Git and creating helm release files
@@ -99,4 +107,6 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org_val
-  when: network.config.consensus == 'ibft' and org_val.type == 'validator' and peer_result | length>0
+  when:
+    - network.config.consensus == 'ibft' and org_val.type == 'validator' and peer_result | length>0
+    - (network.crypto_only is undefined or network.crypto_only == false)
