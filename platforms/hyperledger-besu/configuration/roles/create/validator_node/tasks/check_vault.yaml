@@ -16,7 +16,21 @@
   register: vault_result
   ignore_errors: yes
 
-# This sets a fact generate_crypto
-- set_fact:
-    generate_crypto: True
-  when: vault_result.failed is defined and vault_result.failed == True
+- name: Ensure validator directory exist
+  file:
+    path: "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data"
+    state: directory
+  with_items: "{{ org.services.peers is defined | ternary(org.services.peers, org.services.validators) }}"
+  when: item.status == 'new' and vault_result.failed is not defined
+
+- name: Get the crypto material from Vault
+  shell: |
+    vault kv get -field=key_pub {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/data > "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data/key.pub"
+    vault kv get -field=nodeAddress {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/data > "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data/nodeAddress"
+    vault kv get -field=key {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/data > "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data/key"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  with_items: "{{ org.services.peers is defined | ternary(org.services.peers, org.services.validators) }}"
+  when: item.status == 'new' and vault_result.failed is not defined
+  ignore_errors: yes
