@@ -9,18 +9,6 @@
 
 Before proceeding, first make sure that you've completed [Developer Pre-requisites](./dev_prereq.md).
 
-## Setup Minikube
-
-1. Install Minikube https://minikube.sigs.k8s.io/docs/start/ on VM
-
-2. Start minikube. The setup has been tested on a Ubuntu 20.4 VM which has a public ip
-   ```bash
-   minikube start --memory 16000 --cpus 4 --kubernetes-version=1.19.1 --apiserver-ips=<pubic ip of VM>
-   ```
-3. Start a proxy which is required for ansible controller(created later) to access the minikube k8s 
-   ```
-   docker run -d --network minikube -p 18443:18443 chevdor/nginx-minikube-proxy
-   ```
 ## Clone forked repo
 
 1. If you have not already done so, fork [bevel](https://github.com/hyperledger/bevel) and clone the forked repo to your machine.
@@ -36,6 +24,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
    git checkout -b local
    git push --set-upstream origin local
    ```
+
 ## Update kubeconfig file
 
 1. Create a `build` folder inside your Bevel repository:
@@ -55,17 +44,14 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 
    ```bash
    cp ~/.kube/config build/
-   ```   
+   ```
+
 1. Open the above config file and remove the paths for certificate-authority, client-certificate and client-key as in the figure below.
 
    ![](./../_static/minikube-config.jpg)
 
-   Update config `server` value to following:
-   ```bash
-   server: https://<pubic ip of VM>:18443
-   ```
-   
-   ***   
+   ***
+
    **NOTE**: If you ever delete and recreate minikube, the above steps have to be repeated.
 
    ***
@@ -172,26 +158,8 @@ vault status
 
 Now run the following to deploy Bevel Fabric on minikube:
 
-1. Create an ansible controller
 ```bash
-cd bevel
-docker build . -t bevel-build
-```
-
-2. Login an ansible controller
-```bash
-docker run -it -v $(pwd):/home/bevel/ bevel-build /bin/bash
-```
-3. Ensure that git config is setup
-```bash
-git config --global user.name "UserName"
-git config --global user.email "UserEmailAddress"
-```
-
-4. Execute the scripts to setup Hyperledger fabric network
-```bash
-cd bevel
-./run.sh
+docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
 ```
 
 Windows users should use following (make sure that the local volume was mounted as per [this step](#windows_mount)):
