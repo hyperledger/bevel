@@ -1,0 +1,28 @@
+---
+##Checks if cert-manager is installed 
+- name: check cert-manager deployment status
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    kind: Deployment
+    name: cert-manager
+    namespace: cert-manager
+  register: certmanager
+  tags:
+    - molecule-idempotence-notest
+
+##installs cert-manager if its not installed
+- name: Install cert-manager
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: cert-manager
+    namespace: cert-manager
+    state: present
+    chart_ref: "{{ playbook_dir }}/../../shared/charts/cert-manager"
+    create_namespace: true
+  when:
+    - certmanager.resources[0].spec is not defined
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest

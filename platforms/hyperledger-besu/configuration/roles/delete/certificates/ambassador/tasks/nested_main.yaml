@@ -1,0 +1,44 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This role generates certificates for rootca and ambassador
+# and places them in vault. Certificates are created using openssl
+
+---
+
+#delete ambassador tls certificate by cert-manager
+- name: delete Ambassador default tls certificate created by cert-manager for "{{ node_name }}"
+  k8s:
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    api_version: cert-manager.io/v1
+    kind: Certificate
+    name: "{{ node_name }}-ambassador-certs"
+    namespace: "{{ component_ns }}"
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+    - network.issuer|lower == "letsencrypt"
+  tags:
+    - molecule-idempotence-notest
+
+#Delete Secrets corresponding to Ambassador tls certifiactes created by cert-manager
+- name: delete Ambassador secrets of tls certificate created by cert-manager for "{{ node_name }}"
+  k8s:
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    api_version: v1
+    kind: Secret
+    name: "{{ node_name }}-ambassador-certs"
+    namespace: "{{ component_ns }}"
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+    - network.issuer|lower == "letsencrypt"
+  tags:
+    - molecule-idempotence-notest

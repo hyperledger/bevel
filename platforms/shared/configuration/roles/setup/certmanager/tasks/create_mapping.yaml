@@ -1,0 +1,47 @@
+---
+##create mapping for acme
+- name: create Mapping for Acme
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: getambassador.io/v2
+      kind: Mapping
+      metadata:
+        name: acme-challenge-mapping
+        namespace: default
+      spec:
+        hostname: "*"
+        prefix: /.well-known/acme-challenge/
+        rewrite: ""
+        service: acme-challenge-service
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest
+
+##create service for acme challenge
+- name: create acme challenge service
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: service
+      metadata:
+        name: acme-challenge-service
+        namespace: default
+      spec:
+        ports:
+          - port: 80
+            targetPort: 8089
+        selector:
+          acme.cert-manager.io/http01-solver: "true"
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest

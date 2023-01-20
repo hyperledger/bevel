@@ -1,0 +1,54 @@
+---
+##Creates namespace "{{ components_ns }}"
+- name: create namespace "{{ component_ns }}"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ component_ns }}"
+
+
+## creates Issuer in "{{ component_ns }}" namespace
+- name: create Issuer
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: Issuer
+      metadata:
+        name: letsencrypt-prod-{{ component_ns }}
+        namespace: "{{ component_ns }}"
+      spec:
+        acme:
+          email: "{{ email }}"
+          server: https://acme-v02.api.letsencrypt.org/directory
+          privateKeySecretRef:
+            name: issuer-account-key-{{ component_ns }}
+          solvers:
+            - http01:
+                ingress:
+                  class: ambassador
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+  tags:
+    - molecule-idempotence-notest
+
+
+#checks if Issuer is up and ready
+- name: check for an existing Issuer in "{{ components_ns }}" and wait for it to be ready
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    kind: Issuer
+    name: letsencrypt-prod-{{ component_ns }}
+    namespace: "{{ component_ns }}"
+  register: issuer
+  retries: "{{ network.env.retry_count }}"
+  delay: 20
+  until: issuer.resources[0].status.conditions[0].status|lower == "true"
+

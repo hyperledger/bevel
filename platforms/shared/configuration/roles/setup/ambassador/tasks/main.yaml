@@ -124,8 +124,28 @@
   when: 
     - network.env.external_dns is defined
     - network.env.external_dns == 'enabled'
+    - (network.issuer|lower == false) or (network.issuer is undefined)
   tags:
     - molecule-idempotence-notest  
+
+
+#create Ingress class for Ambassador
+- name: creates IngressClass for ambassador
+  k8s:
+    state: present
+    kubeconfig: "{{  kubeconfig_path }}"
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: IngressClass
+      metadata:
+        name: ambassador
+        annotations:
+          ingressclass.kubernetes.io/is-default-class: "true"
+      spec:
+        controller: getambassador.io/ingress-controller
+  tags:
+    - molecule-idempotence-notest
+
 
 - name: Install Ambassador with EIP for Indy
   shell: |
@@ -169,3 +189,12 @@
     label_selectors: 
       - app.kubernetes.io/name=ambassador
   when: (network.type == 'indy' and allocation_ips.stdout is defined) or network.type != 'indy'
+
+
+##Installs cert-manager helm chart
+- name: cert-manager role
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/certmanager"
+  when: 
+    - network.issuer|lower == "letsencrypt"
+    - network.type == "besu"

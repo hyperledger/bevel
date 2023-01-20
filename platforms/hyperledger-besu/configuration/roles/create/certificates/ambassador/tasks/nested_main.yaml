@@ -16,6 +16,40 @@
     path: "{{ ambassadortls }}"
     check: "ensure_dir"
 
+# Create ambassador tls certificate by cert-manager
+- name: create Ambassador default tls certificate by cert-manager for "{{ node_name }}"
+  k8s:
+    state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        annotations:
+          cert-manager.io/issue-temporary-certificate: "true"
+          acme.cert-manager.io/http01-edit-in-place: "true"
+        name: "{{ node_name }}-ambassador-certs"
+        namespace: "{{ component_ns }}"
+      spec:
+        secretName: "{{ node_name }}-ambassador-certs"
+        issuerRef:
+          name: letsencrypt-prod-{{ component_ns }}
+          kind: Issuer
+        duration: 8760h #365 days
+        renewBefore: 168h #7 days
+        isCA: false
+        dnsNames:  
+          - "{{ node_name }}.{{ organizationItem.external_url_suffix }}"
+          - "{{ node_name }}.{{ component_ns }}.{{ organizationItem.external_url_suffix }}"
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+    - network.type == "besu"
+    - network.issuer|lower == "letsencrypt"
+  tags:
+    - molecule-idempotence-notest
+
+
 # Create ambassador certs helmrelease file
 - name: "Create ambassador certs helmrelease file"
   include_role:
@@ -27,6 +61,8 @@
     external_url_suffix: "{{ organizationItem.external_url_suffix }}"
     tm_clientport: "{{ node.tm_clientport.port | default('8888') }}"
     tls_enabled: "{{ network.config.tm_tls }}"
+  when:
+    - (network.issuer|lower == "false") or (network.issuer is undefined)
         
 # push the created deployment files to repository
 - name: "Push the created deployment files to repository"
@@ -45,6 +81,8 @@
     component_name: "{{ node_name }}-ambassador-job"
     component_type: Job
     namespace: "{{ component_ns }}"
+  when:
+    - (network.issuer|lower == "false") or (network.issuer is undefined)
 
 # This task creates the Ambassador TLS credentials
 - name: "Create the Ambassador credentials"
@@ -55,3 +93,5 @@
     vault: "{{ organizationItem.vault }}"
     kubernetes: "{{ organizationItem.k8s }}"
     check: "ambassador_creds"
+  when:
+    (network.issuer|lower == "false") or (network.issuer is undefined)
