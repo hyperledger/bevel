@@ -52,8 +52,10 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: val
-  when:
-    - network.config.consensus == 'ibft' and val.type == 'validator' and peer | length>0
+  when: 
+    - network.config.consensus == 'ibft' or network.config.consensus == 'qbft'
+    - val.type == 'validator' 
+    - peer | length>0
     - (network.crypto_only is undefined or network.crypto_only == false)
 
 # Check for local genesis file
@@ -107,6 +109,7 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org_val
-  when:
-    - network.config.consensus == 'ibft' and org_val.type == 'validator' and peer_result | length>0
+  when: 
+    - network.config.consensus == 'ibft' or network.config.consensus == 'qbft'
+    - org_val.type == 'validator' and peer_result | length>0
     - (network.crypto_only is undefined or network.crypto_only == false)

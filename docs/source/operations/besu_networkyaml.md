@@ -37,7 +37,7 @@ The sections in the sample configuration file are
 
 `type` defines the platform choice like corda/fabric/indy/quorum/besu, here in the example its **besu**.
 
-`version` defines the version of platform being used. The current Hyperledger Besu version support is only for **21.10.6**.
+`version` defines the version of platform being used. The current Hyperledger Besu version support is for **21.10.6** and **22.10.2**.
 
 
 `env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
@@ -125,7 +125,7 @@ The fields under `config` are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| consensus   | Currently supports `ibft`, `ethash` and `clique`. Please update the remaining items according to the consensus chosen as not all values are valid for all the consensus.                                 |
+| consensus   | Currently supports `ibft`,`qbft`, `ethash` and `clique`. Please update the remaining items according to the consensus chosen as not all values are valid for all the consensus.                                 |
 | chain_id    | Custom chain Id, default value is `2018` |
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
 | transaction_manager    | Supports `orion` or `tessera`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera.  |
