@@ -68,6 +68,7 @@ The fields under `env` section are
 | loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
+| namespace         | (Optional) K8s Namespace on which proxy will be installed. Default value is `default`|
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
 
