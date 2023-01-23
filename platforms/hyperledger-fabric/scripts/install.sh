@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This install script is intended to download and install the latest available
-# release of the dep dependency manager for Golang.
+# release of the dev dependency manager for Golang.
 #
 # It attempts to identify the current platform and an error will be thrown if
 # the platform is not supported.
