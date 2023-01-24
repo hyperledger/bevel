@@ -1,0 +1,32 @@
+FROM ghcr.io/hyperledger/bevel-blockchain-linuxkit:latest
+
+# Override default value with 'docker build --build-arg BUILDTIME_CORDA_VERSION=version'
+# example: 'docker build --build-arg BUILDTIME_CORDA_VERSION=4.9 -t corda:4.9 .'
+ARG BUILDTIME_CORDA_VERSION=4.9
+ARG BUILDTIME_JAVA_OPTIONS
+
+ENV CORDA_VERSION=${BUILDTIME_CORDA_VERSION}
+ENV JAVA_OPTIONS=${BUILDTIME_JAVA_OPTIONS}
+
+# Set image labels
+LABEL net.corda.version = ${CORDA_VERSION} \
+      maintainer = "<devops@r3.com>" \
+      vendor = "R3"
+
+RUN addgroup corda && \
+    adduser -G corda -D -s /bin/bash corda && \
+    mkdir -p /opt/corda/logs
+
+# Copy corda jar
+ADD --chown=corda:corda https://jcenter.bintray.com/net/corda/corda/${CORDA_VERSION}/corda-${CORDA_VERSION}.jar /opt/corda/corda.jar
+
+RUN chmod 777 /opt/corda/corda.jar
+# Expose port for corda (default is 10002) and RPC
+EXPOSE 10002
+EXPOSE 10003
+EXPOSE 10005
+
+# Working directory for Corda
+WORKDIR /opt/corda
+ENV HOME=/opt/corda
+USER root 

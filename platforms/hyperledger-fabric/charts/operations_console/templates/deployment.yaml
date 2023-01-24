@@ -1,0 +1,97 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $.Values.service.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    name: {{ $.Values.service.name }}
+    app.kubernetes.io/name: {{ $.Values.service.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.deployment }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}     
+spec:
+  updateStrategy:
+    type: RollingUpdate 
+  serviceName: "{{ $.Values.service.name }}"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $.Values.service.name }}
+      app.kubernetes.io/name: {{ $.Values.service.name }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        app: {{ $.Values.service.name }}
+        app.kubernetes.io/name: {{ $.Values.service.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:   
+      serviceAccountName: {{ $.Values.service.serviceaccountname }}
+      imagePullSecrets:
+        - name: {{ $.Values.service.imagesecretname }}
+      containers:
+      - name: couchdb
+        image: {{ $.Values.metadata.images.couchdb }} 
+        imagePullPolicy: IfNotPresent        
+        ports:
+        - containerPort: 5984
+        env:
+        - name: COUCHDB_USER
+          value: "admin"
+        - name: COUCHDB_PASSWORD
+          value: "password"
+        volumeMounts:
+        - name: datadir-couchdb
+          mountPath: /opt/couchdb/data        
+      - name: fabric-console
+        image: {{ $.Values.metadata.images.console }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: console
+          containerPort: 3000
+        env:
+        - name: CONFIGURE_FILE
+          value: "./env/config.yaml"
+        - name: DB_SYSTEM
+          value: "athena_system"
+        - name: DB_CONNECTION_STRING
+          value: "http://admin:password@{{ $.Values.service.name }}.{{ $.Values.metadata.namespace }}:5984"
+        volumeMounts:         
+        - name: {{ $.Values.service.name }}-config-volume
+          mountPath: /home/athena/env
+      - name: configtxlator
+        image: {{ $.Values.metadata.images.configtxlator }}
+        imagePullPolicy: IfNotPresent        
+        ports:
+        - name: configtxlator
+          containerPort: 7059
+        command: ["sh", "-c"]
+        args:
+        - |-
+          /usr/local/bin/configtxlator start --CORS=*
+      volumes:      
+      - name: {{ $.Values.service.name }}-config-volume
+        configMap:
+          name: {{ $.Values.service.name }}-config          
+      - name: datadir-couchdb
+        persistentVolumeClaim:
+          claimName: {{ $.Values.service.name }}-db-volume

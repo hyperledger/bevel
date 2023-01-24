@@ -1,0 +1,52 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This role creates the the value file for idman chart and pushes it to the git repository
+
+# Waiting for the signer pod to come up
+- name: "Waiting for Signer pod to come up"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ org.services.signer.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+
+# Create ambassador certificates for idman
+- name: Create idman ambassador certificates
+  include_role:
+    name: create/certificates/cenm
+  vars:
+    tlscert_path: "./build/ambassador/{{ org.services.idman.name }}"
+    dest_path: "{{ network | json_query('network_services[?type==`idman`].certificate') | first }}"
+    service_name: "{{ org.services.idman.name }}"
+    namespace: "{{ component_ns }}"
+
+# This task will loop over the network.yaml to fetch the cenm details
+- name: Create value file for idman
+  include_role:
+    name: helm_component
+  vars:    
+    type: "idman"
+    name: "{{ org.name | lower }}"
+    component_name: "{{ org.name | lower }}idman"        
+    charts_dir: "{{ org.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
+    corda_service_version: idman-{{ org.version }}
+    helm_lint: "true"
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
+    msg: "[ci skip] Pushing idman files"

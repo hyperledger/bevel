@@ -1,0 +1,69 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+################################################################################################
+# This tasks gets data from vault
+- name: Get identity data from vault
+  shell: |
+    rm data.yaml
+    identity_data=""
+    trustee_name={{ admin_name }}
+    trustee_did=$(curl --header "X-Vault-Token:{{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/data/"{{ admin_type }}"/"{{ admin_name }}"/identity/public | jq -r 'if .errors then . else .data.data.did end');
+    trustee_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[admin_component_name] }}" "{{ admin_org_vault_url }}"/v1/"{{ admin_component_name }}"/data/"{{ admin_type }}"/"{{ admin_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data.data."verification-key" end');
+    first_trustee_in_org_did="${trustee_did}"
+    identity_data="first_trustee_name: ${first_trustee_in_org_did}"
+    echo "${identity_data}" >> data.yaml
+    identity_data="trustee_name: ${trustee_name}"
+    echo "${identity_data}" >> data.yaml
+    identity_data="trustee_did: ${trustee_did}"
+    echo "${identity_data}" >> data.yaml
+    identity_data="trustee_verkey: ${trustee_verkey}"
+    echo "${identity_data}" >> data.yaml
+
+    endorser_name={{ identity_name }}
+    endorser_did=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/data/"{{ identity_type }}"/"{{ identity_name }}"/identity/public | jq -r 'if .errors then . else .data.data.did end');
+    endorser_verkey=$(curl --header "X-Vault-Token: {{ ac_vault_tokens[new_component_name] }}" "{{ new_org_vault_url }}"/v1/"{{ new_component_name }}"/data/"{{ identity_type }}"/"{{ identity_name }}"/node/public/verif_keys | jq -r 'if .errors then . else .data.data."verification-key" end');
+
+    identity_data="endorser_name: ${endorser_name}"
+    echo "${identity_data}" >> data.yaml
+    identity_data="endorser_did: ${endorser_did}"
+    echo "${identity_data}" >> data.yaml
+    identity_data="endorser_verkey: ${endorser_verkey}"
+    echo "${identity_data}" >> data.yaml
+  register: identity_data
+
+- name: "Inserting file into Variable"
+  include_vars:
+    file: data.yaml
+    name: file_var
+
+##############################################################################################
+# This task creates deployment file for new identities.
+- name: "create value file for {{ new_component_name }} {{ component_type }}"
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    values_file: "{{ release_dir }}/{{ component_type }}/{{ identity_name }}-{{ component_type }}.yaml"
+    chart: "indy-ledger-txn"
+    identity_name: "{{ identity_name }}"
+    vault_role: "rw"
+
+- name: "Delete file"
+  shell: |
+    rm data.yaml
+
+################################################################################################
+# This task tests the value file for syntax errors/ missing values
+# This is done by calling the helm_lint role and passing the value file parameter
+# When a new k8_component is added, changes should be made in helm_lint role as well
+- name: Helm lint
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
+  vars:
+    helmtemplate_type: "{{ component_type }}"
+    chart_path: "{{ gitops.chart_source }}"
+    value_file: "{{ release_dir }}/{{ component_type }}/{{ identity_name }}.yaml"

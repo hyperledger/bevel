@@ -1,0 +1,34 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This task checks if the genesis file is already stored in the vault or not
+- name: Check if genesis already present in the vault
+  shell: |
+    vault kv get -field=genesisfile {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_genesis_result
+  ignore_errors: yes
+  tags:
+    molecule-idempotence-notest
+
+# This variable will have a value greater than zero if the nodekey of any of the node is missing
+- name: vault_check variable
+  set_fact:
+    vault_check={{ vault_check|default(0) | int + 1 }}
+  when: vault_genesis_result.failed
+  tags:
+    molecule-idempotence-notest
+
+#This task only runs when there is no local genesis file
+- name: Copy genesis from vault to correct path
+  copy:
+    content: "{{ vault_genesis_result.stdout | b64decode }}"
+    dest: "{{ network.config.genesis }}"
+  when: not vault_genesis_result.failed
+  tags:
+    molecule-idempotence-notest

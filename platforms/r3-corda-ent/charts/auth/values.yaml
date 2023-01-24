@@ -1,0 +1,226 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for Auth service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#############################################################
+#                   Basic Configuration                     #
+#############################################################
+# Provide the name of the deployment
+# Eg. nodeName: auth
+nodeName: 
+
+# This section contains the Corda Enterprise Auth metadata.
+metadata:
+  # Provide the namespace for the Corda Enterprise Auth.
+  # Eg. namespace: cenm
+  namespace: 
+  # Provide any additional labels for the Corda Enterprise Auth.
+  labels:
+# prefix for the deployment names e.g orgName (cenm)
+prefix: 
+
+# Provide information regarding the Docker images used.
+image:
+  # Provide the alpine utils image, which is used for all init-containers of deployments/jobs.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainerName: hyperledgerlabs/alpine-utils:1.0
+  initContainerName: 
+  # Provide the image for the main Signer container.
+  # Eg. authContainerName: corda/enterprise-auth:1.5.1-zulu-openjdk8u242
+  authContainerName: 
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecrets: regcred, can add multiple creds
+  imagePullSecrets: 
+    - name: 
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: Always
+  pullPolicy: 
+
+# This section contains the storage information.
+storage:
+  # Provide the name of the storageclass.
+  # NOTE: Make sure that the storageclass exist prior to this deployment as
+  # this chart doesn't create the storageclass.
+  # Eg. name: cenm
+  name:
+
+# Required parameter to start any .jar files
+# e.g. acceptLicense: YES 
+acceptLicense: YES
+
+#############################################################
+#               HashiCorp Vault Configuration               #
+#############################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication. 
+# For more info, see https://www.vaultproject.io/docs/auth/kubernetes
+
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address: 
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role: 
+  # Provide the authpath configured to be used.
+  # Eg. authpath: entcordacenm
+  authPath: 
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceAccountName: vault-auth
+  serviceAccountName: 
+  # Provide the vault path where the  certificates are stored
+  # Eg. certsecretprefix: secret/cenm-org-name/signer/certs
+  certSecretPrefix: 
+  # The amount of times to retry fetching from/writing to Vault before giving up.
+  # Eg. retries: 10
+  retries: 10
+  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
+  # Eg. sleepTimeAfterError: 15  
+  sleepTimeAfterError: 15
+
+#############################################################
+#                Database Options and Configuration         #
+#############################################################
+# Database configuration
+database:
+  # Java class name to use for the database
+  # Eg. driverClassName: "org.h2.Driver"
+  driverClassName: 
+  # The DB connection URL 
+  # Eg. url: "jdbc:h2:file:./h2/identity-manager-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
+  jdbcDriver: ""
+  url: 
+  # DB user
+  # Eg. user: "example-db-user"
+  user: 
+  # DB password 
+  # Eg. password: "example-db-password"
+  password: 
+  # Migrations of database can be run as part of the startup of Idman, if set to true. 
+  # If set to false, it will be run prior to setting up the Idman.
+  # Eg. runMigration: "true"
+  runMigration: true
+
+#############################################################
+#                       Settings                            #
+#############################################################
+config:
+  # Provide volume related specifications
+  volume:
+    # Eg. baseDir: /opt/corda
+    baseDir:
+
+  # Provide the path where the CENM Idman .jar-file is stored
+  # Eg. jarPath: bin
+  jarPath: bin
+
+  # Provide the path where the CENM Service configuration files are stored
+  # Eg. configPath: etc
+  configPath: etc
+
+  # Provide any extra annotations for the PVCs
+  pvc:
+    #   annotations:
+    #     key: "value"
+    annotations: {}
+    # Volume size for etc/ directory
+    volumeSizeAuthEtc: 
+    # Volume size for h2/ directory
+    volumeSizeAuthH2: 
+    # Volume size for logs/ directory
+    volumeSizeAuthLogs: 
+
+  # Provide any extra annotations for the deployment
+  deployment:
+    #   annotations:
+    #     key: "value"
+    annotations: {}
+
+  # Set memory limits of pod  
+  pod:  
+    resources:
+      limits:
+      requests:
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+  
+  podSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  # Provide the number of replicas for your pods
+  # Eg. replicas: 1
+  replicas:
+  # Enable container displaying live logs
+  logsContainersEnabled: true
+
+  # Specify the maximum size of the memory allocation pool
+  cordaJar:
+    # Provide the memory size.
+    # Eg. memorySize: 4096 (if using kilobytes)
+    # Eg. memorySize: 512 (if using megabytes)
+    # Eg. memorySize: 1 (if using gigabytes) 
+    memorySize: 512
+    # Provide the unit of greatness for the size, one of three options:
+    # - k or K for kilobytes
+    # - m or M for megabytes
+    # - g or G for gigabytes
+    # Eg. unit: M 
+    unit: M
+
+  # Sleep time in seconds, occurs after any error is encountered in start-up
+  # Eg. 120
+  sleepTimeAfterError: 120
+
+## Liveness and readiness probe values
+## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
+##
+livenessProbe:
+  enabled: false
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 1
+readinessProbe:
+  enabled: false
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 1
+
+########################################
+###     Auth Configuration           ###
+########################################
+
+service:
+  # e.g type: ClusterIP
+  type: 
+  # e.g port: 8081
+  port: 
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+# e.g authSubject: CN=abc1, OU=abc2, O=abc3, L=abc4, ST=abc5, C=abc6
+authSubject: 

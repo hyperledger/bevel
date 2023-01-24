@@ -1,0 +1,29 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# This tasks ensures the directory existance, if not exits it creates a new one
+- name: Ensures {{ release_dir }}/{{ component_type_name }} dir exists
+  file:
+    path: "{{ release_dir }}/{{ component_type_name }}"
+    state: directory
+  vars:
+    component_type_name: "{{ item.key }}"
+  loop: "{{ dlt['corda']['nodes'] | dict2items }}"
+
+# This task creates corresponding value files for each component name
+- name: "create value file for {{ component_type_name }} {{ type }}"
+  template:
+    src: "{{ dlt_templates[type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    component_type_name: "{{ item.key }}"
+    component_name: "node"
+    type: "node"
+    values_file: "{{ release_dir }}/{{ component_type_name }}/{{ component_name }}.yaml"
+    config: "{{ item.value['config'] }}"
+    vault_addr: "{{ ansible_env.VAULT_ADDR }}"
+  loop: "{{ dlt['corda']['nodes'] | dict2items }}"

@@ -1,0 +1,435 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  {{- if .Values.nodeConf.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.nodeConf.deployment.annotations | indent 8 }}
+    {{- end }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.nodeName }}
+      app.kubernetes.io/name: {{ .Values.nodeName }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.nodeName }}
+        app.kubernetes.io/name: {{ .Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceAccountName }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+      - name: init-check-registration
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authPath }}
+          - name: CERTS_SECRET_PREFIX
+            value: {{ .Values.vault.certSecretPrefix }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+            #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+
+            # setting up env to get secrets from vault
+            echo "Getting secrets from Vault Server"
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+            echo "logged into vault"
+            COUNTER=1
+            while [ "$COUNTER" -lt {{ $.Values.vault.retries }} ]
+            do
+                # get truststore from vault to see if registration is done or not
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/truststore | jq -r 'if .errors then . else . end')
+                data_info="$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["data"]')"
+              
+                if [ "$data_info" == "null" ]
+                then
+                  sleep {{ $.Values.vault.retryInterval }}
+                else
+                  validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                  break
+                fi 
+                COUNTER=`expr "$COUNTER" + 1`
+            done
+
+            if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+            then
+              # printing number of trial done before giving up
+              echo "$COUNTER"
+              echo "Node registration might not have been done."
+              exit 1
+            fi
+            echo "Done"
+      - name: init-certificates
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authPath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: BASE_DIR
+            value: {{ $.Values.nodeConf.volume.baseDir }}
+          - name: CERTS_SECRET_PREFIX
+            value: {{ .Values.vault.certSecretPrefix }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+              #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+
+              # setting up env to get secrets from vault
+              echo "Getting secrets from Vault Server"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+              OUTPUT_PATH=${BASE_DIR}/certificates              
+              # Getting intitial network parameters from Vault
+
+              # get nodekeystore.jks from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/nodekeystore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/nodekeystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekeystore.jks"]')
+              echo "${TLS_NODEKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/nodekeystore.jks
+
+              # get sslkeystore.jks from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/sslkeystore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/sslkeystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["sslkeystore.jks"]')
+              echo "${TLS_SSLKEYSTORE}" | base64 -d > ${OUTPUT_PATH}/sslkeystore.jks
+
+              # get truststore.jks from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ $.Values.nodeName }}/certs/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["truststore.jks"]')
+              echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/truststore.jks
+
+              {{- if eq .Values.nodeConf.notary.type "cenm" }}
+              # get ca ssl-truststore.jks from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/root/certs | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/root/certs" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["corda-ssl-trust-store.jks"]')
+              echo "${TLS_TRUSTSTORE}" | base64 -d > ${OUTPUT_PATH}/corda-ssl-trust-store.jks              
+              {{- else }}
+              # get idman and networkmap certs
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.idmanName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              IDMAN_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
+              echo "${IDMAN_CERT}" | base64 -d > ${OUTPUT_PATH}/idman.crt
+
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/{{ .Values.networkServices.networkmapName }}/tlscerts" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              NETWORKMAP_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
+              echo "${NETWORKMAP_CERT}" | base64 -d > ${OUTPUT_PATH}/networkmap.crt
+              {{- end }}
+              echo "Done fetching all certificates from vault"
+
+              # Fetching keystore credentials from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/keystore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/keystore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keyStorePassword"]')
+              echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/kspass
+
+              # Fetching truststore credentials from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["trustStorePassword"]')
+              echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/tspass    
+
+              # Fetching ssl truststore credentials from vault
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/truststore | jq -r 'if .errors then . else . end')
+              validateVaultResponse "${CERTS_SECRET_PREFIX}/credentials/truststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              KEYSTORE_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ssl"]')
+              echo "${KEYSTORE_PASSWORD}"> ${OUTPUT_PATH}/sslpass 
+              echo "Fetched credentials from vault"
+        volumeMounts:
+        - name: notary-certificates
+          mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
+      - name: db-healthcheck
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          COUNTER=1
+          FLAG=true
+          # perform health check if db is up and running before starting corda node
+          while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+          do
+            DB_NODE={{ .Values.dataSourceProperties.dbUrl }}:{{ .Values.dataSourceProperties.dbPort }}
+            STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
+            if [ "$STATUS" == 0 ]
+            then
+              FLAG=false
+            else
+              FLAG=true
+              echo "DB up and running"
+            fi
+            if [ "$FLAG" == false ]
+            then
+              echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+              COUNTER=`expr "$COUNTER" + 1`
+              sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+            else
+              echo "SUCCESS!"
+              echo "DB up and running!"
+              exit 0
+              break
+            fi
+          done
+          if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ]
+          then
+            echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
+            exit 1
+            break
+          fi
+      - name: init-cordapps
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        command: ["sh", "-c"]
+        env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authPath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: BASE_DIR
+            value: {{ $.Values.nodeConf.volume.baseDir }}
+          - name: CERTS_SECRET_PREFIX
+            value: {{ .Values.vault.certSecretPrefix }}
+        args:
+        - |-
+          # creating cordapps dir in volume to keep jars
+          {{- if .Values.cordapps.getcordapps }}
+          # Created cordapps directory using permission 'm755' to provide access to user
+            mkdir -p -m775 ${BASE_DIR}/cordapps
+            mkdir -p /tmp/downloaded-jars
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server"
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            
+            # save cordapps login password from vault
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/credentials/cordapps | jq -r 'if .errors then . else . end')                            
+            REPO_USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["repo_password"]')
+            REPO_USER=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["repo_username"]')
+            
+            # Downloading official corda provided jars using curl 
+            {{- range .Values.cordapps.jars }}
+              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -L {{ .url }}
+            {{- end }}
+            cp -ar /tmp/downloaded-jars/* ${BASE_DIR}/cordapps
+          {{- end }}
+        volumeMounts:
+        - name: notary-volume
+          mountPath: {{ .Values.nodeConf.volume.baseDir }}    
+      containers:
+      - name: notary
+        image: "{{ .Values.image.nodeContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: ACCEPT_LICENSE
+            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+          - name: BASE_DIR
+            value: {{ $.Values.nodeConf.volume.baseDir }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          mkdir -p ${BASE_DIR}/etc
+          echo 'networkServices {
+              doormanURL="{{ .Values.networkServices.doormanURL }}"
+              networkMapURL="{{ .Values.networkServices.networkMapURL }}"
+          }
+          dataSourceProperties {
+              dataSource {
+                  password = "{{ .Values.dataSourceProperties.dataSource.password }}"
+                  url = "{{ .Values.dataSourceProperties.dataSource.url }}"
+                  user = "{{ .Values.dataSourceProperties.dataSource.user }}"
+              }
+              dataSourceClassName = "{{ .Values.dataSourceProperties.dataSourceClassName }}"
+          }
+          notary {
+              serviceLegalName : "{{ .Values.nodeConf.notary.serviceLegalName }}"
+              validating = "{{ .Values.nodeConf.notary.validating }}"
+          }
+
+          devMode = {{ .Values.nodeConf.devMode }}
+          emailAddress : "{{ .Values.nodeConf.emailAddress }}"
+          myLegalName : "{{ .Values.nodeConf.legalName }}"
+          p2pAddress : "{{ .Values.nodeConf.p2p.url }}:{{ .Values.service.p2pPort }}"
+          trustStorePassword: "TRUSTSTORE_PASSWORD"
+          keyStorePassword: "KEYSTORE_PASSWORD"
+          additionalP2PAddresses : ["{{ .Values.nodeConf.ambassador.p2pAddress }}"]
+          detectPublicIp : false
+          rpcSettings {
+              address="{{ .Values.service.rpc.address }}:{{ .Values.service.rpc.addressPort }}"
+              adminAddress="{{ .Values.service.rpc.admin.address }}:{{ .Values.service.rpc.admin.addressPort }}"
+              standAloneBroker="{{ .Values.service.rpc.standAloneBroker }}"
+              useSsl="{{ .Values.service.rpc.useSSL }}"
+          }
+
+          rpcUsers=[
+              {
+                  username="{{ .Values.service.rpc.users.username }}"
+                  password="{{ .Values.service.rpc.users.password }}"
+                  permissions=[
+                      ALL
+                  ]
+              }
+          ]
+
+          sshd {
+              port={{ .Values.service.sshdPort }}
+          }' > ${BASE_DIR}/etc/notary.conf
+
+          export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/tspass)
+          sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
+          export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
+          sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
+
+
+          # to clean network-parameters on every restart
+          rm -rf ${BASE_DIR}/network-parameters
+
+          {{- if eq .Values.nodeConf.notary.type "cenm" }}
+          # add ssl-truststore to truststore
+          export SSLTRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/sslpass)
+          keytool -importkeystore -srckeystore ${BASE_DIR}/certificates/corda-ssl-trust-store.jks -srcstorepass $SSLTRUSTSTORE_PASSWORD -destkeystore ${BASE_DIR}/certificates/truststore.jks -deststorepass $TRUSTSTORE_PASSWORD -srcalias cordasslrootca -destalias cordasslrootca
+          {{- else }}
+          # add idman and networkmap certificates to truststore          
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.networkMapDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
+          yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.idmanDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks          
+          {{- end }}
+          
+          /bin/sh
+          KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
+          if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
+          then
+              echo
+              echo "CENM: starting Notary node ..."
+              echo
+              # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
+              java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks -Djavax.net.ssl.trustStorePassword=$TRUSTSTORE_PASSWORD -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/etc/notary.conf --base-directory=${BASE_DIR} -v --logging-level=DEBUG
+              EXIT_CODE=${?}
+          else
+              echo "Missing notary jar file in {{ .Values.nodeConf.jarPath }} folder:"
+              ls -al {{ .Values.nodeConf.jarPath }}
+              EXIT_CODE=1
+          fi
+
+          if [ "${EXIT_CODE}" -ne "0" ]
+          then
+              HOW_LONG={{ .Values.sleepTimeAfterError }}
+              echo
+              echo "Notary failed - exit code: ${EXIT_CODE} (error)"
+              echo
+              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
+              echo
+              sleep ${HOW_LONG}
+          fi
+          echo
+        volumeMounts:
+        - name: notary-certificates
+          mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
+          readOnly: false
+        - name: notary-volume
+          mountPath: {{ $.Values.nodeConf.volume.baseDir }}
+          readOnly: false
+        resources:
+          requests:
+            memory: {{ .Values.nodeConf.pod.resources.requests }}
+          limits:
+            memory: {{ .Values.nodeConf.pod.resources.limits }}
+      - name: logs
+        image: "{{ .Values.image.nodeContainerName }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: ACCEPT_LICENSE
+            value: "{{required "You must accept the license agreement to run this software" .Values.acceptLicense }}"
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          cd {{ $.Values.nodeConf.volume.baseDir }}/
+          tail -f logs/*.log 2>/dev/null
+          # in case sth went wrong just wait indefinitely ...
+          tail -f /dev/null
+        volumeMounts:
+        - name: notary-volume
+          mountPath: {{ $.Values.nodeConf.volume.baseDir }}
+      imagePullSecrets:
+      - name: {{ .Values.image.imagePullSecret }}
+      volumes:
+      - name: notary-certificates
+        emptyDir:
+          medium: Memory
+      - name: notary-volume
+        persistentVolumeClaim:
+          claimName: {{ .Values.nodeName }}-volume

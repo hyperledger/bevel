@@ -1,0 +1,219 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    bin_install_dir:  "~/bin"
+    install_os: "linux"
+    install_arch:  "amd64"
+    network:
+      type: quorum
+      version: 2.5.0
+      frontend: enabled
+      docker:
+        url: "index.docker.io/hyperledgerlabs"
+        username: "docker_username"
+        password: "docker_password"
+      config:
+        consensus: "raft"
+        subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+        transaction_manager: "tessera"
+        tm_version: "0.10.4"               
+        tm_tls: "strict"
+        tm_trust: "tofu"
+        tm_nodes: 
+          - "https://carrier.test.quorum.blockchaincloudpoc.com"
+          - "https://manufacturer.test.quorum.blockchaincloudpoc.com"
+          - "https://store.test.quorum.blockchaincloudpoc.com"
+          - "https://warehouse.test.quorum.blockchaincloudpoc.com"
+        staticnodes: "./build/quorum_staticnodes" 
+        genesis: "./build/quorum_genesis.json" 
+        bootnode:
+          name: store
+          url: store.test.quorum.blockchaincloudpoc.com
+          rpcport: 15031
+          nodeid: 1  
+      env:
+        type: "dev"
+        proxy: ambassador
+        ambassadorPorts:
+          portRange:
+            from: 15010
+            to: 15043
+        retry_count: 2
+        external_dns: enabled
+
+      organizations:
+        - organization:
+          name: store
+          unit: Store
+          external_url_suffix: test.corda.blockchaincloudpoc.com
+          cloud_provider: aws
+          aws:
+            access_key: "aws_access_key"
+            secret_key: "aws_secret_key"
+          k8s:         
+            config_file: "/tmp/molecule/kind-default/kubeconfig"
+            context: "kind"
+            region: "cluster_region"            
+          vault:
+            url: http://localhost:9090
+            root_token: root
+            secret_path: secretsv2
+          gitops:
+            git_protocol: "https"
+            git_url: "https://github.com/<username>/bevel.git"
+            branch: "develop"
+            release_dir: "platforms/quorum/releases/dev"
+            chart_source: "charts"
+            git_repo: "github.com/<username>/bevel.git"
+            username: "git_username"
+            password: "git_access_token"
+            email: "git_email"
+            private_key: "path_to_private_key"
+
+          services:
+            peers:
+            - peer:
+              name: store
+              subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
+              type: member
+              geth_passphrase: 12345
+              lock: false
+              p2p:
+                port: 21000
+                ambassador: 15030u
+              rpc:
+                port: 8546
+                ambassador: 15031
+              transaction_manager:
+                port: 8443
+                ambassador: 8443
+                clientport: 8888
+              raft:                     # Only used if consensus = 'raft'
+                port: 50401
+                ambassador: 15033
+              db:                       # Only used if transaction_manager = "tessera"
+                port: 3306
+              geth_url: "http://store.test.corda.blockchaincloudpoc.com:15031"
+  
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+   
+    - name: Create temp ./build/store/store folder
+      file:
+        path: "{{ playbook_dir }}/build/store/store"
+        state: directory
+
+    - name: Generate crypto for raft consensus
+      shell: |
+        {{ bin_install_dir }}/bootnode -genkey ./build/store/store/nodekey
+        {{ bin_install_dir }}/bootnode --nodekey=build/store/store/nodekey --writeaddress > build/store/store/enode
+        echo 12345 >> build/store/store/password
+        {{ bin_install_dir }}/geth account new --datadir build/store/store --password build/store/store/password
+        cp build/store/store/keystore/* build/store/store/keystore.json
+        openssl base64 -in build/store/store/keystore.json -out build/store/store/base64_keystore
+      tags:
+        molecule-idempotence-notest
+
+    - name: Copy the crypto material to Vault
+      shell: |
+        vault kv put secretsv2/store-quo/crypto/store/quorum nodekey="$(cat build/store/store/nodekey)" keystore="$(cat build/store/store/base64_keystore)" db_user="demouser" db_password="password" geth_password="$(cat build/store/store/password)"
+      environment:
+        VAULT_ADDR: "http://localhost:9090/"
+        VAULT_TOKEN: "root"
+      tags:
+        molecule-idempotence-notest
+
+    - name: Delete temporary store directory
+      file:
+        path: "./build/store"
+        state: absent
+      changed_when: false
+ 
+  tasks:
+    - name: "Copy openssl.conf to molecule directory"
+      copy:
+        src: "{{ playbook_dir }}/../../openssl.conf"
+        dest: "{{ playbook_dir }}"
+
+    ####################################################################################
+    # Testing create/tessera role when add_new_org: False
+    - name: "Test create/tessera role when add_new_org: False"
+      include_role:
+        name: "configuration/roles/create/tessera"
+      vars:
+        add_new_org: False
+        root_certs:
+          failed: True
+        ambassador_tls_certs:
+          failed: True
+        certs_result:
+          failed: True
+        vault_nodekey_result:
+          failed: True
+        build_path: "./build"
+        kubernetes: "{{ item.k8s }}"
+        consensus: "{{ network.config.consensus }}"
+        component_ns: "{{ item.name | lower }}-quo"
+        name: "{{ item.name | lower }}-t1"
+        peers: "{{ item.services.peers }}"
+        storageclass_name: awsstorageclass
+        external_url: "{{ item.external_url_suffix }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"
+        org: "{{ item }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "./build/{{item.gitops.release_dir}}"
+        geth_data: "{{ network.config.bootnode }}"
+      loop: "{{ network['organizations'] }}"
+
+    ####################################################################################
+    # Testing create/tessera role when add_new_org: True
+    - name: "Test create/tessera role when add_new_org: True"
+      include_role:
+        name: "configuration/roles/create/tessera"
+      vars:
+        add_new_org: True
+        root_certs:
+          failed: True
+        ambassador_tls_certs:
+          failed: True
+        certs_result:
+          failed: True
+        vault_nodekey_result:
+          failed: True        
+        peer_id: 0
+        build_path: "./build"
+        kubernetes: "{{ item.k8s }}"
+        consensus: "{{ network.config.consensus }}"
+        component_ns: "{{ item.name | lower }}-quo"
+        name: "{{ item.name | lower }}-t2"
+        peers: "{{ item.services.peers }}"
+        storageclass_name: awsstorageclass
+        external_url: "{{ item.external_url_suffix }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"
+        org: "{{ item }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "./build/{{item.gitops.release_dir}}"
+        geth_data: "{{ network.config.bootnode }}"
+      loop: "{{ network['organizations'] }}"

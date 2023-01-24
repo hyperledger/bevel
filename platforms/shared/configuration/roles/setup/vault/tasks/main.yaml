@@ -1,0 +1,56 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+  - name: register temporary directory
+    tempfile:
+      state: directory
+    register: tmp_directory
+    tags:
+      - molecule-idempotence-notest
+
+  - name: check vault
+    stat:
+      path: "{{ vault.bin_directory }}/vault"
+    register: vault_stat_result
+    tags:
+      - vault
+
+  - name: Install vault client
+    get_url:
+      url: https://releases.hashicorp.com/vault/{{ vault.version | default(default.version) }}/vault_{{ vault.version | default(default.version) }}_{{ vault.os }}_{{ vault.arch }}.zip
+      dest: "{{ tmp_directory.path }}/vault_{{ vault.version | default(default.version) }}_{{ vault.os }}_{{ vault.arch }}.zip"
+      mode: 0755
+    register: vault_download
+    when: not vault_stat_result.stat.exists
+    tags:
+      - vault
+
+  - name: create bin directory
+    file:
+      path: "{{ vault.bin_directory }}"
+      state: directory
+    when: not vault_stat_result.stat.exists
+    tags:
+      - vault
+
+  - name: Unzip vault archive
+    unarchive:
+      src: "{{ vault_download.dest }}"
+      copy: no
+      dest: "{{ vault.bin_directory }}"
+      mode: 0755
+    when: not vault_stat_result.stat.exists
+    with_items:
+      - vault
+    loop_control:
+      loop_var: bin_item
+
+  - name: Test vault installation
+    command: "vault version"
+    changed_when: false
+    tags:
+      - molecule-idempotence-notest

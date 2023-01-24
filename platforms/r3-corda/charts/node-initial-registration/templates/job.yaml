@@ -1,0 +1,545 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.nodeName }}-registration
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Values.nodeName }}-registration
+    app.kubernetes.io/name: {{ .Values.nodeName }}-registration
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+    backoffLimit: 6
+    template:
+      metadata:
+        labels:
+          app: {{ .Values.nodeName }}-initial-registration
+          app.kubernetes.io/name: {{ .Values.nodeName }}-registration
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        restartPolicy: "OnFailure"
+        serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+        hostname: {{ .Values.nodeName }}
+        securityContext:
+          fsGroup: 1000
+        containers:
+        - name: node-initial-registration
+          image: {{ .Values.image.containerName }}
+          imagePullPolicy: Always
+          env:
+             - name: JAVA_OPTIONS
+               value: -Xmx512m
+             - name: CORDA_HOME
+               value: /opt/corda
+             - name: BASE_DIR
+               value: {{ $.Values.volume.baseDir }}
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            rm -rf ${BASE_DIR}/certificates/done.txt
+            
+            # Setting up enviroment variables 
+            export DEFAULT_TRUSTSTORE_PASSWORD=`cat /opt/node/creds/default_truststore_cred`
+            export KEYSTORE_PASSWORD=`cat /opt/node/creds/keystore_cred`
+            export TRUSTSTORE_PASSWORD=`cat /opt/node/creds/truststore_cred`
+            export DEFAULT_KEYSTORE_PASSWORD=`cat /opt/node/creds/default_keystore_cred`
+
+            # import self signed tls certificate of doorman and networkmap, since java only trusts certificate signed by well known CA  
+            {{- if .Values.image.privateCertificate }}
+            yes | keytool -importcert -file {{ $.Values.volume.baseDir }}/certificates/networkmap/networkmap.crt -storepass changeit -alias {{ $.Values.image.networkmapCertAlias }} -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts
+            yes | keytool -importcert -file {{ $.Values.volume.baseDir }}/certificates/doorman/doorman.crt -storepass changeit -alias {{ $.Values.image.doormanCertAlias }} -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts
+            {{- end }}
+            
+            # command to run corda jar and perform initial-registration            
+            java $JAVA_OPTIONS -jar ${CORDA_HOME}/corda.jar initial-registration --network-root-truststore-password ${DEFAULT_TRUSTSTORE_PASSWORD} --network-root-truststore ${BASE_DIR}/certificates/network-map-truststore.jks --base-directory=${BASE_DIR}
+
+            #changing password of keystore.
+            keytool -storepasswd -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${DEFAULT_KEYSTORE_PASSWORD}
+            keytool -storepasswd -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/sslkeystore.jks -storepass ${DEFAULT_KEYSTORE_PASSWORD}
+            keytool -storepasswd -new ${TRUSTSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/truststore.jks -storepass ${DEFAULT_TRUSTSTORE_PASSWORD}
+
+            #changing password of nodekeystore.jks certificate.
+            keytool -keypasswd -alias cordaclientca -keypass ${DEFAULT_KEYSTORE_PASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${KEYSTORE_PASSWORD}
+            keytool -keypasswd -alias identity-private-key -keypass ${DEFAULT_KEYSTORE_PASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${KEYSTORE_PASSWORD}
+
+            #changing password of sslkeystore.jks certificate.
+            keytool -keypasswd -alias cordaclienttls -keypass ${DEFAULT_KEYSTORE_PASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/sslkeystore.jks -storepass ${KEYSTORE_PASSWORD}
+            
+            # create dummy file to perform check if last line of the container is executed or not
+            touch ${BASE_DIR}/certificates/done.txt
+          volumeMounts:
+          - name: node-volume
+            mountPath: "{{ $.Values.volume.baseDir }}"
+            readOnly: false
+          - name: certificates
+            mountPath: "{{ $.Values.volume.baseDir }}/certificates"
+            readOnly: false
+          - name: nodeconf
+            mountPath: "{{ $.Values.volume.baseDir }}/node.conf"
+            subPath: "node.conf"
+            readOnly: false
+          - name: creds
+            mountPath: "/opt/node/creds"
+            readOnly: false
+        - name: store-certs
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+             - name: VAULT_ADDR
+               value: {{ $.Values.vault.address }}
+             - name: KUBERNETES_AUTH_PATH
+               value: {{ $.Values.vault.authpath }}
+             - name: VAULT_APP_ROLE
+               value: {{ $.Values.vault.role }}
+             - name: BASE_DIR
+               value: {{ $.Values.volume.baseDir }}
+             - name: CERTS_SECRET_PREFIX
+               value: {{ .Values.vault.certsecretprefix }}
+             - name: JAVA_OPTIONS
+               value: -Xmx512m
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+
+            OUTPUT_PATH=${BASE_DIR}
+
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+
+            # perform check if certificates are ready or not, and upload certificate into vault when ready
+            COUNTER=1
+            cd ${BASE_DIR}/certificates
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                if [ -e nodekeystore.jks ] && [ -e sslkeystore.jks ] && [ -e truststore.jks ] && [ -e done.txt ]
+                then
+                  echo "found certificates, performing vault put"
+                  (echo '{"data": {"nodekeystore.jks": "'; base64 ${BASE_DIR}/certificates/nodekeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore
+                  (echo '{"data": {"sslkeystore.jks": "'; base64 ${BASE_DIR}/certificates/sslkeystore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore
+                  (echo '{"data": {"truststore.jks": "'; base64 ${BASE_DIR}/certificates/truststore.jks; echo '"}}') | curl -H "X-Vault-Token: ${VAULT_TOKEN}" -d @- ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore
+                  # get nodekeystore.jks from vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore | jq -r 'if .errors then . else . end')
+                  TLS_NODEKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "nodekeystore.jks" ]' 2>&1)
+                  # get sslkeystore.jks from vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore | jq -r 'if .errors then . else . end')
+                  TLS_SSLKEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "sslkeystore.jks" ]' 2>&1)
+                  # get truststore.jks from vault
+                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore | jq -r 'if .errors then . else . end')
+                  TLS_TRUSTSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data[ "truststore.jks" ]' 2>&1) 
+                  if [ "$TLS_NODEKEYSTORE" == "null" ] || [ "$TLS_SSLKEYSTORE" == "null" ] || [ "$TLS_TRUSTSTORE" == "null" ] || [[ "$TLS_NODEKEYSTORE" == "parse error"* ]] || [[ "$TLS_SSLKEYSTORE" == "parse error"* ]] || [[ "$TLS_TRUSTSTORE" == "parse error"* ]]
+                  then
+                    echo "certificates write or read fail"
+                    sleep {{ $.Values.healthcheck.readinessthreshold  }}
+                    if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
+                    then
+                      echo "Retry attempted $COUNTER times, certificates have not been saved"
+                      exit 1
+                    fi
+                  fi
+                  COUNTER=`expr "$COUNTER" + 1`
+                fi
+            done
+          volumeMounts:
+          - name: node-volume
+            mountPath: "{{ $.Values.volume.baseDir }}"
+            readOnly: false
+          - name: certificates
+            mountPath: "{{ $.Values.volume.baseDir }}/certificates"
+            readOnly: false
+          - name: nodeconf
+            mountPath: "{{ $.Values.volume.baseDir }}/node.conf"
+            subPath: "node.conf"
+            readOnly: false
+        initContainers:
+        - name: init-nodeconf
+          image : {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+           - name: VAULT_ADDR
+             value: {{ $.Values.vault.address }}
+           - name: KUBERNETES_AUTH_PATH
+             value: {{ $.Values.vault.authpath }}
+           - name: VAULT_APP_ROLE
+             value: {{ $.Values.vault.role }}
+           - name: BASE_DIR
+             value: {{ $.Values.volume.baseDir }}
+           - name: KS_SECRET_PREFIX
+             value: {{ .Values.vault.keystoresecretprefix }}
+           - name: DB_SECRET_PREFIX
+             value: {{ .Values.vault.dbsecretprefix }}
+           - name: RPCUSER_SECRET_PREFIX
+             value: {{ .Values.vault.rpcusersecretprefix }}
+          command: ["/bin/sh","-c"]
+          args:
+          - |-
+            #!/bin/bash
+            # delete previously created node.conf, and create a new node.conf
+            rm -f ${BASE_DIR}/node.conf;
+            touch ${BASE_DIR}/node.conf;
+            
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server"
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+
+            # save keyStorePassword & trustStorePassword from vault
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${KS_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+            CONF_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["defaultKeyStorePassword"]')
+            CONF_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["defaultTrustStorePassword"]')
+
+            # save dataSourceUserPassword from vault
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${DB_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+            CONF_DATASOURCEPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["{{ .Values.credentials.dataSourceUser }}"]')
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${RPCUSER_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+
+            #For more information for node.Conf fields please refer to: https://docs.corda.r3.com/releases/4.0/corda-configuration-file.html
+            cat << EOF > ${BASE_DIR}/node.conf
+            p2pAddress : "{{ .Values.nodeConf.p2p.url }}:{{ .Values.nodeConf.p2p.port }}"
+            myLegalName : "{{ .Values.nodeConf.legalName }}"
+            keyStorePassword : "${CONF_KEYSTOREPASSWORD}"
+            trustStorePassword : "${CONF_TRUSTSTOREPASSWORD}"
+            transactionCacheSizeMegaBytes : {{ .Values.nodeConf.transactionCacheSizeMegaBytes }}
+            attachmentContentCacheSizeMegaBytes : {{ .Values.nodeConf.attachmentContentCacheSizeMegaBytes }}
+            detectPublicIp = {{ .Values.nodeConf.detectPublicIp }}
+            additionalP2PAddresses = ["{{ .Values.nodeConf.ambassadorAddress }}"]
+            devMode : {{ .Values.nodeConf.devMode }}
+            dataSourceProperties = {
+                dataSourceClassName = "{{ .Values.nodeConf.dataSourceClassName }}"
+                dataSource.url = "{{ .Values.nodeConf.dataSourceUrl }}"
+                dataSource.user = {{ .Values.credentials.dataSourceUser }}
+                dataSource.password = "${CONF_DATASOURCEPASSWORD}"
+            }
+            database = {
+                exportHibernateJMXStatistics = {{ .Values.nodeConf.database.exportHibernateJMXStatistics }}
+            }
+            jarDirs = ["{{ .Values.nodeConf.jarPath }}"]
+            EOF
+
+            if [ -z "{{ .Values.nodeConf.compatibilityZoneURL }}" ]
+            then
+               echo 'networkServices = {
+                doormanURL = "{{ .Values.nodeConf.doormanURL }}"
+                networkMapURL = "{{ .Values.nodeConf.networkMapURL }}"
+            }' >> ${BASE_DIR}/node.conf
+            else
+               echo 'compatibilityZoneURL : "{{ .Values.nodeConf.compatibilityZoneURL }}"' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.jvmArgs }}" ]
+            then
+               echo 'jvmArgs is not configured'
+            else
+               echo 'jvmArgs = "{{ .Values.nodeConf.jvmArgs }}" ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.sshd.port }}" ]
+            then
+               echo 'sshd port is not configured'
+            else
+               echo 'sshd { port = {{ .Values.nodeConf.sshd.port }} } ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.systemProperties }}" ]
+            then
+               echo 'systemProperties is not configured'
+            else
+               echo 'systemProperties = {{ .Values.nodeConf.systemProperties }} ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.exportJMXTo }}" ]
+            then
+               echo 'exportJMXTo is not configured'
+            else
+               echo 'exportJMXTo = {{ .Values.nodeConf.exportJMXTo }} ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.messagingServerAddress }}" ]
+            then
+               echo 'The address of the ArtemisMQ broker instance is not configured'
+            else
+               echo 'messagingServerAddress : "{{ .Values.nodeConf.messagingServerAddress }}" ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.credentials.rpcUser }}" ]
+            then
+               echo 'rpc useer is not configured'
+            else
+               echo 'rpcUsers : [' >> ${BASE_DIR}/node.conf
+               {{- range $.Values.credentials.rpcUser }}
+               echo '{ username={{ .name }} ,permissions={{ .permissions }} , ' >> ${BASE_DIR}/node.conf
+               echo " password=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["{{ .name }}"]') }" >> ${BASE_DIR}/node.conf
+               {{- end }}
+               echo ']' >> ${BASE_DIR}/node.conf
+            fi
+
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${KS_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+            if [ "{{ .Values.nodeConf.rpcSettings.useSsl }}" == true ]
+            then
+               echo "rpcSettings {
+               standAloneBroker = {{ .Values.nodeConf.rpcSettings.standAloneBroker }}
+               address = "{{ .Values.nodeConf.rpcSettings.address }}"
+               adminAddress = "{{ .Values.nodeConf.rpcSettings.adminAddress }}"
+               useSsl = {{ .Values.nodeConf.rpcSettings.useSsl }}
+               ssl = {
+                  keyStorePassword = $(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["sslkeyStorePassword"]')
+                  trustStorePassword = $(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["ssltrustStorePassword"]')
+                  certificatesDirectory = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}
+                  sslKeystore = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}/{{ .Values.nodeConf.rpcSettings.ssl.sslKeystoreFileName }}
+                  trustStoreFile = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}/{{ .Values.nodeConf.rpcSettings.ssl.trustStoreFileName }}
+                  }
+                }" >> ${BASE_DIR}/node.conf
+            else
+                echo 'rpcSettings {
+                standAloneBroker = {{ .Values.nodeConf.rpcSettings.standAloneBroker }}
+                address = "{{ .Values.nodeConf.rpcSettings.address }}"
+                adminAddress = "{{ .Values.nodeConf.rpcSettings.adminAddress }}"
+                 }' >> ${BASE_DIR}/node.conf
+            fi
+            echo "node.conf created in ${BASE_DIR}"
+          volumeMounts:
+          - name: nodeconf
+            mountPath: "{{ $.Values.volume.baseDir }}"
+        - name: init-certificates
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+           - name: VAULT_ADDR
+             value: {{ $.Values.vault.address }}
+           - name: KUBERNETES_AUTH_PATH
+             value: {{ $.Values.vault.authpath }}
+           - name: VAULT_APP_ROLE
+             value: {{ $.Values.vault.role }}
+           - name: BASE_DIR
+             value: {{ $.Values.volume.baseDir }}
+           - name: CERTS_SECRET_PREFIX
+             value: {{.Values.vault.certsecretprefix}}
+           - name: H2SSL_SECRET_PREFIX
+             value: {{ .Values.vault.h2sslsecretprefix }}            
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+            
+            # To check if custom nodekeystore is retrived from vault, if yes then store it in nodekeystore.jks
+            validateVaultResponseCustomnodeKeystore () {
+              if echo ${2} | grep "errors";
+              then
+                  echo "custom nodekeystore.jks is not provided and new one will be created."
+              else
+                  echo "Found custom nodekeystore.jks"
+                  echo "${NODE_KEY}" | base64 -d > ${OUTPUT_PATH}/nodekeystore.jks
+              fi
+            }
+            
+            # To check if certificates are already present in vault or not
+            validateVaultResponseKeystore () {
+              if echo ${2} | grep "errors";
+              then
+                  echo "Initial registration will create keystore ${1}"
+              else
+                  echo "Initial registration was performed before."
+                  exit 1
+              fi
+            }
+
+            # setting up env to get secrets from vault            
+            echo "Getting secrets from Vault Server"
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+            
+            OUTPUT_PATH=${BASE_DIR}
+
+            # get customnodekeystore from vault
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/customnodekeystore )
+            NODE_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekeystore.jks"]')
+            validateVaultResponseCustomnodeKeystore "secret (${CERTS_SECRET_PREFIX}/customnodekeystore)" "${LOOKUP_SECRET_RESPONSE}"
+
+            # get network-map-truststore.jks from vault
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmaptruststore | jq -r 'if .errors then . else . end')
+            validateVaultResponse "${CERTS_SECRET_PREFIX}/networkmaptruststore" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+            TLS_NMS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["network-map-truststore"]')
+            echo "${TLS_NMS}" | base64 -d > ${OUTPUT_PATH}/network-map-truststore.jks
+
+            # To check if sslkeystore,nodekeystore,truststore are present in vault 
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/nodekeystore | jq -r 'if .errors then . else . end')
+            validateVaultResponseKeystore "secret on (${CERTS_SECRET_PREFIX}/nodekeystore)" "${LOOKUP_SECRET_RESPONSE}"
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/sslkeystore | jq -r 'if .errors then . else . end')
+            validateVaultResponseKeystore "secret on (${CERTS_SECRET_PREFIX}/sslkeystore)" "${LOOKUP_SECRET_RESPONSE}"
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/truststore | jq -r 'if .errors then . else . end')
+            validateVaultResponseKeystore "secret on (${CERTS_SECRET_PREFIX}/truststore)" "${LOOKUP_SECRET_RESPONSE}"
+
+            # when using doorman and networkmap in TLS: true, and using private certificate then download certificate
+            if [ "{{ .Values.image.privateCertificate }}" == true ]
+            then
+                mkdir -p ${OUTPUT_PATH}/networkmap
+                mkdir -p ${OUTPUT_PATH}/doorman
+
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/networkmap | jq -r 'if .errors then . else . end')
+                validateVaultResponse "${CERTS_SECRET_PREFIX}/networkmap" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                NETWORKMAP_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["networkmap.crt"]')
+                echo "${NETWORKMAP_CRT}" | base64 -d > ${OUTPUT_PATH}/networkmap/networkmap.crt
+
+                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/doorman | jq -r 'if .errors then . else . end')
+                validateVaultResponse "${CERTS_SECRET_PREFIX}/doorman" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["doorman.crt"]')
+                echo "${DOORMAN_CRT}" | base64 -d > ${OUTPUT_PATH}/doorman/doorman.crt
+            fi
+            chmod 777 -R ${BASE_DIR}/;
+            echo "Done"
+          volumeMounts:
+          - name: certificates
+            mountPath: {{ $.Values.volume.baseDir }}
+        - name: init-credential
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          env:
+            - name: VAULT_ADDR
+              value: {{.Values.vault.address}}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{.Values.vault.authpath}}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: BASE_DIR
+              value: /opt/node/creds
+            - name: KS_SECRET_PREFIX
+              value: {{ .Values.vault.keystoresecretprefix }}
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            validateVaultResponse () {
+              if echo ${2} | grep "errors"; then
+                echo "ERROR: unable to retrieve ${1}: ${2}"
+                exit 1
+              fi
+              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+              then
+                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                ${VAULT_ADDR}/v1/${1})
+                curl_response=$?
+                if test "$http_code" != "200" ; then
+                    echo "Http response code from Vault - $http_code"
+                    if test "$curl_response" != "0"; then
+                      echo "Error: curl command failed with error code - $curl_response"
+                      exit 1
+                    fi
+                fi
+              fi
+            }
+
+            # setting up env to get secrets from vault
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            echo "Getting secrets from Vault Server"
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+            validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+            OUTPUT_PATH=${BASE_DIR}
+            
+            # get keystore passwords from vault
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${KS_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+            validateVaultResponse "${KS_SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE}" "LOOKUPSECRETRESPONSE"
+            DEFAULT_TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["defaultTrustStorePassword"]')
+            DEFAULT_KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["defaultKeyStorePassword"]')
+            KEYSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["keyStorePassword"]')
+            TRUSTSTOREPASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["trustStorePassword"]')
+            echo "${DEFAULT_TRUSTSTOREPASSWORD}" >> ${BASE_DIR}/default_truststore_cred
+            echo "${KEYSTOREPASSWORD}" >> ${BASE_DIR}/keystore_cred
+            echo "${TRUSTSTOREPASSWORD}" >> ${BASE_DIR}/truststore_cred
+            echo "${DEFAULT_KEYSTOREPASSWORD}" >> ${BASE_DIR}/default_keystore_cred
+
+            echo "Done"
+          volumeMounts:
+          - name: creds
+            mountPath: "/opt/node/creds"
+            readOnly: false
+        - name: db-healthcheck
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: Always
+          command: ["sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            COUNTER=1
+            FLAG=true
+            # perform health check if db is up and running before starting corda node
+            while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+              DB_NODE={{ .Values.nodeConf.dbUrl }}:{{ .Values.nodeConf.dbPort }}
+              STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
+
+              if [ "$STATUS" == 0 ]
+              then
+                  FLAG=false
+              else
+                  FLAG=true
+                  echo "DB up and running"
+              fi
+
+              if [ "$FLAG" == false ]
+              then
+                  echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+                  COUNTER=`expr "$COUNTER" + 1`
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+              else
+                  echo "SUCCESS!"
+                  echo "DB up and running!"
+                  exit 0
+                  break
+              fi
+            done
+
+            if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ]
+            then
+                echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
+                exit 1
+                break
+            fi
+        imagePullSecrets:
+          - name: {{ .Values.image.imagePullSecret }}
+        volumes:
+          - name: node-volume
+            emptyDir:
+              medium: Memory
+          - name: certificates
+            emptyDir:
+              medium: Memory
+          - name: nodeconf
+            emptyDir:
+              medium: Memory
+          - name: creds
+            emptyDir:
+              medium: Memory
+

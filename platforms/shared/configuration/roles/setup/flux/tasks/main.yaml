@@ -1,0 +1,53 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Install flux cli
+  shell: |
+    curl -s https://fluxcd.io/install.sh | bash -s {{ bin_install_dir }}
+  environment:
+    FLUX_VERSION: "{{ flux_version }}"
+
+- name: Update the ssh host to known hosts
+  shell: |
+    mkdir -p ~/.ssh/
+    ssh-keygen -R {{ git_host }}
+    ssh-keyscan {{ git_host }} >> ~/.ssh/known_hosts
+  when: git_protocol == "ssh"
+  tags:
+    - molecule-idempotence-notest
+
+- name: Install flux cli and bootstrap flux v2
+  shell: |
+    {{ bin_install_dir }}/flux bootstrap git \
+    --url={{ git_url }} \
+    --branch={{ git_branch }} \
+    --username={{ git_username }} \
+    --password={{ git_password }} \
+    --token-auth=true \
+    --path={{ git_path }} \
+    --namespace=flux-{{ network.env.type }}
+  when: git_protocol == "https"
+  environment:
+    KUBECONFIG: "{{ item.k8s.config_file }}"
+  tags:
+    - flux
+    - molecule-idempotence-notest
+
+- name: Install flux cli and bootstrap flux v2
+  shell: |
+    yes | {{ bin_install_dir }}/flux bootstrap git \
+    --url={{ git_url }} \
+    --branch={{ git_branch }} \
+    --path={{ git_path }} \
+    --private-key-file={{ git_key }} \
+    --namespace=flux-{{ network.env.type }}
+  when: git_protocol == "ssh"
+  environment:
+    KUBECONFIG: "{{ item.k8s.config_file }}"
+  tags:
+    - flux
+    - molecule-idempotence-notest

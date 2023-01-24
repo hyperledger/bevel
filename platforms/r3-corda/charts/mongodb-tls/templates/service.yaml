@@ -1,0 +1,31 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  {{- if .Values.service.annotations }}
+  annotations:
+{{ toYaml .Values.service.annotations | indent 8 }}
+    {{- end }}
+  labels:
+    run: {{ .Values.nodeName }}
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    app: {{ .Values.nodeName }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - protocol: TCP
+    port: {{ .Values.service.tcp.port }}
+    targetPort: {{ .Values.service.tcp.targetPort }}
+    {{- if .Values.service.tcp.nodePort }}
+    nodePort: {{ .Values.service.tcp.nodePort}}
+    {{- end }} 
+  selector:
+    appdb: {{ .Values.nodeName }}
+    

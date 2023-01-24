@@ -1,0 +1,85 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#Check if the pods for the organizations are up and running
+- name: "Waiting for peer pod {{ peer_data.name }} in {{ component_ns }}"
+  include_role:
+    name: "../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer_data.name }}"
+    kubernetes: "{{ organization_data.k8s }}"
+    label_selectors:
+      - name = {{ component_name }}
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+
+# Create express-api value file for the peer nodes
+- name: "Create express-api values file for peer organizations"
+  include_role:
+    name: helm_component
+  vars:
+    type: "express_app_besu"
+    component_name: express-app
+    name: "{{ peer_data.name }}"
+    charts_dir: "{{ organization_data.gitops.chart_source }}"
+    express_app_image: "supplychain_quorum:express_app_latest"
+    geth_address: "{{ peer_data.geth_url }}"
+    peer_express_api_port: "{{ peer_data.expressapi.port }}"
+    peer_express_api_targetport: "{{ peer_data.expressapi.targetPort }}"
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer_data
+  when: peer_data.expressapi is defined
+
+# Push the express-api deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role: 
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ component_gitops }}"
+    GIT_RESET_PATH: "platforms/besu/configuration"
+    msg: "[ci skip] Pushing deployment files for besu expressapi"
+
+# Wait for express-api Pod to run
+- name: "Waiting for express-api pod in {{ component_ns }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ peer.name }}-express-api"
+    kubernetes: "{{ organization_data.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.expressapi is defined
+
+# Set node_list to empty
+- name: Set node_address_list to []
+  set_fact:
+    node_address_list: []
+  
+- name: Get member node data
+  include_tasks: nested_main.yaml
+  loop: "{{ organization_data.services.peers }}"
+  loop_control:
+    loop_var: peer
+ 
+# Replace accountid in postman env file
+- name: Replace accountid in postman env file
+  replace:
+    path: "{{ playbook_dir }}/../../../tests/SupplychainDemo_besu.postman_environment.json"
+    regexp: "{{ organization_data.name | lower }}_account"
+    replace: "{{ node_info.node_address }}"
+  loop: "{{ node_address_list }}"
+  loop_control:
+    loop_var: node_info

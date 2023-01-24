@@ -1,0 +1,21 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This role calls for pushing tlscerts to vault for each node
+---
+- name: Push tls certificates to vault for nodes
+  include_tasks: nested_main.yaml
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: org.type == "node"
+
+- name: Push tls certificates to vault for notary
+  include_tasks: nested_notary.yaml
+  loop: "{{ org.services.notaries }}"
+  loop_control:
+    loop_var: peer
+  when: org.type == "notary"

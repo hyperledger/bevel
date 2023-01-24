@@ -1,0 +1,30 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Values.service.name }}-config
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $.Values.service.name }}-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  config.yaml: |
+    ---
+    version: v1.0
+    app_port: 3000
+    auth_scheme: couchdb
+    initial_admin: admin
+    max_req_per_min: 100
+    default_consortium: {{ $.Values.service.default_consortium }}
+    configtxlator_url_original: http://{{ $.Values.service.name }}.{{ $.Values.metadata.namespace }}:7059
+    host_url: https://{{ $.Values.service.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    default_user_password_initial: password

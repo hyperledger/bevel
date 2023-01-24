@@ -1,0 +1,45 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+###################################################################################################
+# This role creates the values files for organizations domain genesis and pushes them to repository
+###################################################################################################
+
+# Create  pool genesis variable
+- name: 'Create pool genesis'
+  include_role:
+    name: create/helm_component/pool_genesis
+  vars:
+    component_type: "pool_genesis"
+    chartName: "pool_genesis"
+
+#---------------------------------------------------------------------
+#push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    gitops: "{{ organizationItem.gitops }}"
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/hyperledger-indy/configuration"
+    msg: "[ci skip] Pushing configmap files for {{ organizationItem.name }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem
+
+#---------------------------------------------------------------------
+#Wait until pool genesis configmap are created
+- name: "Wait until pool genesis configmap are created"
+  include_role:
+    name: check/k8_component
+  vars:
+    component_type: "ConfigMap"
+    kubernetes: "{{ organizationItem.k8s }}"
+    component_name: "{{ organizationItem.name }}-ptg"
+    component_ns: "{{ organizationItem.name | lower }}-ns"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organizationItem

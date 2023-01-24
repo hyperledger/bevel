@@ -1,0 +1,62 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This task creates the value file for the node registration as well the db required and push them to the git repository
+
+# Check if the node-registration is already completed
+- name: Check if the node-registration is already completed
+  shell: |
+    vault kv get -field=nodekeystore.jks {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/{{ peer.name | lower }}/certs/nodekeystore
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: node_certs
+  ignore_errors: yes
+
+# Create value file for the db required alongside node registration
+- name: "Create value file of db for node registration"
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ peer.name | lower }}db"
+    type: "db"
+    name: "{{ org.name | lower }}"
+    node_name: "{{ peer.name | lower }}"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    container_name: "index.docker.io/hyperledgerlabs/h2:2018"
+    helm_lint: "true"
+    # These variables are needed as the db.tpl is used for both notary & node registration
+    # The values for the below variables are fetched from different parts in the network.yaml
+    tcp_port: "{{ peer.dbtcp.port }}"
+    tcp_targetport: "{{ peer.dbtcp.targetPort }}"
+    web_port: "{{ peer.dbweb.port }}"
+    web_targetport: "{{ peer.dbweb.targetPort }}"
+
+- name: "Create value file for node registration"
+  include_role:
+    name: helm_component
+  vars:
+    component_name: "{{ peer.name | lower }}registration"
+    type: node_registration
+    name: "{{ org.name | lower }}"
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    corda_service_version: node-{{ org.version }}
+    doorman_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
+    networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
+    helm_lint: "true"
+  when: node_certs.failed
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
+    msg: "[ci skip] Pushing node registartion and its db files"

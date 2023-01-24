@@ -1,0 +1,32 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.service.name }}-db-volume
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.service.name }}-db-volume
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.pvc }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}          
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.storage.couchdb.storageclassname }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.couchdb.storagesize }}

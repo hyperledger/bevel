@@ -1,0 +1,82 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: ingress-default-backend
+  name: ingress-default-backend
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  selector:
+    matchLabels:
+      run: ingress-default-backend
+  template:
+    metadata:
+      labels:
+        run: ingress-default-backend
+    spec:
+      containers:
+      - name: ingress-default-backend
+        image: {{ .Values.image.defaultbackend }}
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 10m
+            memory: 20Mi
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    run: haproxy-ingress
+  name: haproxy-ingress
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      run: haproxy-ingress
+  template:
+    metadata:
+      labels:
+        run: haproxy-ingress
+    spec:
+      hostNetwork: true
+      serviceAccountName: ingress-controller
+      containers:
+      - name: haproxy-ingress
+        image: {{ .Values.image.haproxy }}:{{ .Values.image.version }}
+        args:
+        - --default-backend-service=$(POD_NAMESPACE)/ingress-default-backend
+        - --configmap=$(POD_NAMESPACE)/haproxy-ingress
+        - --sort-backends
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        - name: stat
+          containerPort: 5061
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10253
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+              

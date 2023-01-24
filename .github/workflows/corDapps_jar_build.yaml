@@ -1,0 +1,55 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Build corda os docker images triggered by :
+#  - push on develop branch for latest tags
+#  - create tag vx.y.z for release tags
+#  - Can be triggered manually
+
+name: Build CorDapps jar
+
+on:
+  workflow_dispatch:
+    inputs:
+      corda_version:
+        default: '4.7'
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - '.github/workflows/corDapps_jar_build.yaml'
+      - 'examples/supplychain-app/corda/cordApps_springBoot/**'
+
+jobs:
+  # on push to develop branch, create docker tags latest
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        java-version: '8'
+
+    - name: Publish to Github Packages
+      run: |
+        WDIR=`pwd`
+
+        cd ${WDIR}/examples/supplychain-app/corda/cordApps_springBoot
+        ./gradlew clean
+        ./gradlew test
+        ./gradlew build
+        ./gradlew publish --stacktrace
+      env:
+        REPO_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        REPO_USERNAME: ${{ github.actor }}
+        REPO_URL: https://maven.pkg.github.com/${{ github.repository }}

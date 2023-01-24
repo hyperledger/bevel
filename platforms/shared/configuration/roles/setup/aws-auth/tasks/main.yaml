@@ -1,0 +1,47 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+  - name: register temporary directory
+    tempfile:
+      state: directory
+    register: tmp_directory
+    tags:
+      - molecule-idempotence-notest
+
+  - name: check aws-authenticator
+    stat:
+      path: "{{ aws_authenticator.bin_directory }}/aws-iam-authenticator"
+    register: aws_auth_stat_result
+    tags:
+      - aws_auth
+
+  - name: create bin directory
+    file:
+      path: "{{ aws_authenticator.bin_directory }}"
+      state: directory
+    when: not aws_auth_stat_result.stat.exists
+    tags:
+      - aws_auth
+
+  - name: Install aws-authenticator
+    get_url:
+      url: "https://amazon-eks.s3-us-west-2.amazonaws.com/{{ aws_authenticator.version | default(default.version) }}/{{ aws_authenticator.release_date | default(default.release_date) }}\
+      /bin/{{ aws_authenticator.os }}/{{ aws_authenticator.arch }}/aws-iam-authenticator"
+      dest: "{{ aws_authenticator.bin_directory }}/aws-iam-authenticator"
+      mode: 0755
+      checksum: "{{ aws_authenticator.checksum | default(default.checksum) }}"
+    when: not aws_auth_stat_result.stat.exists
+    tags:
+      - aws_auth
+
+  - name: Test Kubernetes connection
+    k8s_info:
+      kind: Pod
+      namespace: default
+      kubeconfig: "{{ kubeconfig_path }}"
+      context: "{{ kubecontext }}"
+    register: pods_default

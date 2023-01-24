@@ -1,0 +1,29 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Values.pvc.name }}
+  {{- if .Values.pvc.annotations }}
+  annotations:
+{{ toYaml .Values.pvc.annotations | indent 8 }}
+  {{- end }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.pvc.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  storageClassName: {{ .Values.pvc.storageClassName }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.pvc.memory }}

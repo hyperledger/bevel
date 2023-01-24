@@ -1,0 +1,24 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Verify
+  hosts: localhost
+  tasks:
+
+  - name: Ensure the build directory has been created
+    stat:
+      path: "./build"
+    register: build_dir_check
+
+  - name: Check if the store-raft-job value file has been created
+    stat:
+      path: "{{ playbook_dir }}/build/platforms/quorum/releases/dev/store/store-raft-job.yaml"
+    register: job_file_check
+
+  - name: Assert if the value file has been created
+    assert:
+      that: job_file_check.stat.exists
