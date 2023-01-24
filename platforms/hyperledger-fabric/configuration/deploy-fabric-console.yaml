@@ -1,0 +1,52 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook deploys Fabric Operations Console on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-fabric-console.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the Fabric network has already been created using the same network.yaml
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+    # This role creates the value file for deploying fabric operations console
+    - name: Create operations console
+      include_role:
+        name: "create/operations_console"
+      vars:        
+        component_ns: "{{ item.name | lower }}-net"  
+        git_protocol: "{{ item.gitops.git_protocol }}"      
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"        
+        charts_dir: "{{ item.gitops.chart_source }}"
+        default_channel: "{{ network.channels | first }}"
+        default_consortium: "{{ default_channel.consortium }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: 
+      - item.fabric_console is defined
+      - item.fabric_console == 'enabled'
+
+    # This role creates the json files for importing into fabric operations console
+    - name: Create json files and bulk import zip
+      include_role:
+        name: "create/console_assets"
+      vars:
+        build_path: "{{ playbook_dir }}/../../../build/assets"  # default path for generation of assets is project_dir/build
+        component_ns: "{{ item.name | lower }}-net"        
+      loop: "{{ network['organizations'] }}"
+
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

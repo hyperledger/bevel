@@ -1,0 +1,48 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook is a subsequent playbook
+# This playbook does following
+# 1. Upgrades the chaincode provided in network.yaml from each peer (for fabric version 1.4.x )
+##########################################################################################
+# DO NOT RUN THIS IF YOU HAVE NOT RUN deploy-network.yaml and deployed the Fabric network
+##########################################################################################
+# This playbook can only be run after all pods and orderers are available, and channel is created
+# Please use the same network.yaml to run this playbook as used for deploy-network.yaml
+---
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+    # First install the new chaincode version
+    - include_role:
+        name: "create/chaincode/install"      
+      vars:
+        participants: "{{ channel.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      loop_control:
+        loop_var: channel
+      when: participants is defined
+
+    # Then Upgrade, instantiation is not needed while upgrading
+    - include_role:
+        name: "create/chaincode/upgrade"
+      vars:
+        docker_url: "{{ network.docker.url }}"
+        participants: "{{ item.participants }}"
+      loop: "{{ network['channels'] }}"
+    
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

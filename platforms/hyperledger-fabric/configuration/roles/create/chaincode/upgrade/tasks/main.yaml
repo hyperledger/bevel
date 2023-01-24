@@ -1,0 +1,22 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value file for the deployment of chaincode upgradation
+#############################################################################################
+
+############################################################################################
+# Create value file for chaincode upgradation
+---
+- name: "Create value file for chaincode upgradation"
+  include_tasks: nested_upgrade.yaml
+  vars:
+    channelcreator_query: "participants"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+  loop: "{{ item | json_query(channelcreator_query) }}"
+  loop_control:
+    loop_var: participant

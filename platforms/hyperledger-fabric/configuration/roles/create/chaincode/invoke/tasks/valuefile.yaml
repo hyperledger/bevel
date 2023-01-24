@@ -1,0 +1,124 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+############################################################################################
+# This role creates the invoke_chaincode value file
+
+# Check or Wait if commit-chaincode is already run for v.2.x
+- name: "Waiting for chaincode to be commited on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "commitchaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ chaincode.sequence | default('1') }}"
+  when: 
+    - chaincode is defined and '2.' in network.version
+    - add_new_org is not defined or add_new_org == 'false'
+
+# Check or Wait if approve-chaincode is already run for v.2.x when adding a new org
+- name: "Waiting for chaincode to be approved on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "approvechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}-{{ chaincode.sequence | default('1') }}"
+  when: 
+    - chaincode is defined and '2.' in network.version 
+    - add_new_org is defined and add_new_org == 'true'
+
+# Check or Wait if install-chaincode is already run for v.1.4.x
+- name: "Waiting for chaincode to be installed on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "installchaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
+  when: chaincode is defined and '1.4' in network.version 
+
+# Check if invoke-chaincode is already run
+- name: 'Check for invoke-chaincode job'
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "OneTimeJob"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "invokechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
+  register: invoke_chaincode
+  when: chaincode is defined
+
+- name: "Set Variable invoke_chaincode"
+  set_fact:
+    invoke_chaincode: "{{ result }}"
+
+- set_fact:
+   endorsers_var: []
+
+- name: Get endorsers data
+  set_fact:
+    endorsers_var={{ endorsers_var + [ {'name':endorser.name, 'peercoreaddress':endorser.peers | map(attribute='corepeerAddress') | first } ] }}
+  loop: "{{ approvers }}"
+  loop_control:
+    loop_var: endorser
+
+# This task create endorser certs secret
+- name: "Create endorser certs secret"
+  include_role:
+    name: create/k8s_secrets
+  vars: 
+    namespace: "{{ org.name |lower }}-net"
+    component_name: "{{ org.name | lower}}-net"
+    vault: "{{ org.vault }}"
+    kubernetes: "{{ org.k8s }}"
+    org_name: "{{ endorser.name }}"
+    cert: "{{ lookup('file', '{{ endorser.peers | map(attribute=\"certificate\") | first }}') | b64encode }}"
+    check: "endorser_certs"
+  loop: "{{ approvers }}"
+  loop_control:
+    loop_var: endorser
+
+# Nested task for chanincode invocation
+- name: "Create value file for chaincode invocation"
+  include_role:
+    name: helm_component
+  vars:    
+    name: "{{ org.name | lower }}"
+    type: "invoke_chaincode_job"
+    component_name: "invoke-{{ org.name | lower }}-{{item.channel_name|lower}}-{{chaincode.name}}{{chaincode.version}}"
+    namespace: "{{ org.name |lower }}-net"
+    peer_name: "{{ peer.name }}"
+    peer_address: "{{ peer.name }}.{{ org.name |lower }}-net:{{ peer.grpc.port }}"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    component_chaincode: "{{ chaincode }}"
+    endorsers_list: "{{ endorsers_var }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+  when: 
+    - chaincode is defined
+    - invoke_chaincode.resources|length == 0 or add_new_org == 'true'
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing chaincode invocation files"
+  when: invoke_chaincode.resources|length == 0 or add_new_org == 'true'

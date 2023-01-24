@@ -1,0 +1,18 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+#                      This role deletes the channel artifacts                              #       
+#############################################################################################
+
+# This task deletes the BASE 64 encoded genesis blocks for all channels
+- name: Delete genesis block from Vault
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_name }}
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  ignore_errors: yes

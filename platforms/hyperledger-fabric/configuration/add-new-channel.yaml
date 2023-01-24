@@ -1,0 +1,112 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook is a subsequent playbook
+##########################################################################################
+# DO NOT RUN THIS IF YOU HAVE NOT RUN deploy-network.yaml and deployed the Fabric network
+# and want to add a new channel to the existing network
+##########################################################################################
+# This playbook can only be run after all pods and orderers are available
+# Please edit the same network.yaml according to the documenation in docs/sourc/operations/add_new_channel_fabric.md.
+# Refer the example under platforms/hyperledger-fabric/configurations/samples/network-fabric-add-new-channel.yaml
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+
+    #Setup Vault-Kubernetes accesses and Regcred for docker registry
+    - name: Setup Vault Kubernetes for each organization
+      include_role: 
+        name: "setup/vault_kubernetes"
+      vars:
+        component_name: "{{ item.name | lower }}-net"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        component_type: "{{ item.type | lower }}"
+        auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
+      loop: "{{ network['organizations'] }}"        
+        
+    # Create generate_crypto script for each organization
+    - include_role:
+        name: "create/crypto_script"
+      vars:
+        component_type: "{{ item.type | lower}}"
+        orderers: "{{ item.services.orderers }}"
+      loop: "{{ network['organizations'] }}"
+
+    # Creating channel artifacts 
+    # This role creates configtx.yaml file as the requirements mentioned in network.yaml
+    # which is then consumed by configtxgen tool
+    - include_role:
+        name: "create/configtx"
+      vars:
+        config_file: "./build/configtx.yaml"
+
+    # This role generate channeltx
+    - include_role:
+        name: "create/channel_artifacts"
+      vars:
+        build_path: "./build"
+        genesis: "{{ item.genesis }}"
+        channel_name: "{{ item.channel_name | lower}}"
+        profile_name: "{{ item.channel_name }}"
+        add_new_org: 'false'
+        fetch_certs: "true"
+      loop: "{{ network['channels'] }}"
+      when: item.channel_status == 'new'
+
+    # This role creates the value file for creating channel from creator organization
+    # to the vault.
+    - include_role:
+        name: "create/channels"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: item.channel_status == 'new'
+
+    # This role creates the value file for joining channel from each participating peer
+    # to the vault.
+    - include_role:
+        name: "create/channels_join"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: item.channel_status == 'new'
+
+    # This role creates the value file for anchor peer update over channel for
+    # each organization which is the part of the channel.
+    - include_role:
+        name: "create/anchorpeer"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: item.channel_status == 'new'
+      
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent    
+
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

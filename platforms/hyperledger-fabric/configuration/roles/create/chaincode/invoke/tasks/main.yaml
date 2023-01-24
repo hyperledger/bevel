@@ -1,0 +1,37 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+#############################################################################################
+# This role creates value file for the deployment of chaincode instantiaition
+#############################################################################################
+
+############################################################################################
+# Create value file for chaincode invocation with creator organization
+- name: "Create value file for chaincode invocation with creator organization"
+  include_tasks: nested_invoke.yaml
+  vars:
+    channelcreator_query: "participants[?type=='creator']"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    add_organization: 'false'
+  loop: "{{ item | json_query(channelcreator_query) }}"
+  loop_control:
+    loop_var: participant
+  when: add_new_org is not defined or add_new_org == 'false'
+
+# Create value file for chaincode invocation with new organization
+- name: "Create value file for chaincode invocation with new organization"
+  include_tasks: nested_invoke.yaml
+  vars:
+    channelcreator_query: "participants[?org_status=='new']"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    add_organization: 'true'
+  loop: "{{ item | json_query(channelcreator_query) }}"
+  loop_control:
+    loop_var: participant
+  when: add_new_org is defined and add_new_org == 'true'

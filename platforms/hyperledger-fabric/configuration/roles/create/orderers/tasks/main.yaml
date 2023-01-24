@@ -1,0 +1,90 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value file for zkKafka and orderer
+#############################################################################################
+
+############################################################################################
+# This task fetch the genesis block from vault
+# to the build directory
+- name: Fetch the genesis block from vault
+  shell: |
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name | lower }}-net > genesis.block.base64
+    mkdir -p ./build/channel-artifacts
+    mv genesis.block.base64 ./build/channel-artifacts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: refresh_cert is defined and refresh_cert == 'true'
+
+############################################################################################
+# This task reset peers pods
+- name: "Reset peers pods"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "{{ orderer.name | lower }}"
+    name: "{{ item.name | lower }}"
+    file_path: "{{ values_dir }}/orderer/{{ orderer.name | lower }}-{{ item.name | lower }}.yaml"
+    gitops_value: "{{ item.gitops }}"
+    component_ns: "{{ namespace }}"
+    kubernetes: "{{ item.k8s }}"
+    hr_name: "{{ item.name | lower }}-{{ orderer.name }}"
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer 
+  when: refresh_cert is defined and refresh_cert == 'true'
+
+############################################################################################
+# This task creates the value file for kafka for orderes as per requirements mentioned in
+# network.yaml
+- name: "create kafka clusters"
+  include_role:
+    name: helm_component
+  vars:
+    name: "orderer"
+    org_name: "{{ item.name | lower }}"
+    kafka_image: "hyperledger/fabric-kafka:{{ kafka_image_version[network.version] }}"
+    zookeeper_image: "hyperledger/fabric-zookeeper:{{ zookeeper_image_version[network.version] }}"
+    component_name: "zkkafka"
+    type: "zkkafka"
+    consensus: "{{component_services.consensus}}"
+  when: component_services.consensus.name == 'kafka' and component_services.consensus is defined
+
+############################################################################################
+# This task creates the value file for the Orderers as per requirements mentioned in 
+# network.yaml
+- name: "create orderers"
+  include_role:
+    name: helm_component
+  vars:
+    name: "orderer"
+    org_name: "{{ item.name | lower }}"
+    component_name: "{{ orderer.name }}-{{ org_name }}"
+    orderer_image: "hyperledger/fabric-orderer:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    type: "orderers"
+    consensus: "{{component_services.consensus}}"
+    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: 
+    - component_services.orderers is defined and component_services.consensus is defined
+    - orderer.status is not defined or orderer.status == 'new'
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing Orderer files"
+  tags:
+    - notest

@@ -1,0 +1,33 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates the block modification script.
+#############################################################################################
+############################################################################################
+# This task calls nested_create_appchannel_block for the orderer organization
+- name: Call create_appchannel_block for each orderer
+  include_tasks: create_appchannel_block.yaml
+  vars:
+    orderers: "{{ org.services.orderers }}"
+    component_ns: "{{ org.name | lower }}-net"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer'
+
+############################################################################################
+# Delete the orderer cli   
+- name: "delete all temp {{ orderer.name }}-{{ org.name }}-cli"
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} helm uninstall {{ orderer.name }}-{{ org.name }}-cli
+  vars:
+    orderer: "{{ org.services.orderers | first }}"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer'
+  ignore_errors: yes

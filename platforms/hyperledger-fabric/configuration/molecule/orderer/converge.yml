@@ -1,0 +1,141 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    kubernetes: 
+      config_file: "/tmp/molecule/kind-default/kubeconfig"
+      context: "kind"
+    #The below network was taken from the sample network-fabricv2.yaml
+    network:
+      version: 1.4.4
+      env:
+        type: test
+        proxy: haproxy
+      docker:
+        url: "testurl.com"
+        username: "docker_username"
+        password: "docker_password"
+      organizations:
+      - organization:
+        name: supplychain
+        country: UK
+        state: London
+        location: London
+        subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
+        type: orderer
+        external_url_suffix: test.url.com
+        org_status: new
+        cli: disabled
+        ca_data:
+          url: test.url:7054
+          certificate: file/server.crt 
+    
+        cloud_provider: aws 
+        aws:
+          access_key: "aws_access_key"
+          secret_key: "aws_secret_key" 
+  
+        k8s:
+          region: "cluster_region"
+          context: "cluster_context"
+          config_file: "cluster_config"
+
+        vault:
+          url: "vault_addr"
+          root_token: "vault_root_token"
+          secret_path: "secret"
+
+        gitops:
+          git_protocol: "https" 
+          git_url: "https://github.com/<username>/bevel.git"
+          branch: "develop"
+          release_dir: "platforms/hyperledger-fabric/releases/dev"
+          chart_source: "platforms/hyperledger-fabric/charts"
+          git_repo: "github.com/<username>/bevel.git"
+          username: "git_username"
+          password: "git_access_token"
+          email: "git_email"
+          private_key: "path_to_private_key"
+
+        services:
+          ca:
+            name: ca
+            subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net"
+            type: ca
+            grpc:
+              port: 7054
+          
+          consensus:
+            name: kafka
+            type: broker
+            replicas: 4
+            grpc:
+              port: 9092
+                  
+          orderers:
+          - orderer:
+            name: orderer1
+            type: orderer
+            consensus: kafka
+            grpc:
+              port: 7050
+          - orderer:
+            name: orderer2
+            type: orderer
+            consensus: kafka
+            grpc:
+              port: 7050
+
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+        
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+
+#######################################################################################
+  tasks:
+    # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
+    - name: Create all orderers
+      include_role:
+        name: "configuration/roles/create/orderers"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_protocol: "{{ item.gitops.git_protocol }}"
+        git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "./build/{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'orderer'
+
+#######################################################################################
+  post_tasks:
+    - name: Delete the temp secret file
+      file:
+        path: test_rsa.pem
+        state: absent
+      tags:
+        - molecule-idempotence-notest
+    - name: Delete the temp secret file
+      file:
+        path: test_rsa.pem.pub
+        state: absent
+      tags:
+        - molecule-idempotence-notest

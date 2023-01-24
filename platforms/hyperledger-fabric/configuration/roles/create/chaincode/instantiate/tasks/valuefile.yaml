@@ -1,0 +1,68 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+############################################################################################
+# This role creates the instantiate_chaincode value file
+
+# Check or Wait if install-chaincode is already run
+- name: "Waiting for chaincode to be installed on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "installchaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
+  when: chaincode is defined
+
+# Check if instantate-chaincode is already run
+- name: 'Check for instantiate-chaincode job'  
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "OneTimeJob"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "instantiatechaincode-{{ chaincode.name }}-{{ chaincode.version }}"
+  when: chaincode is defined
+
+- name: "Set Variable instantiate_chaincode"
+  set_fact:
+    instantiate_chaincode: "{{ result }}"
+
+# Nested task for chanincode instantiaiton
+- name: "Create value file for chaincode instantiaiton"
+  include_role:
+    name: helm_component
+  vars:    
+    name: "{{ org.name | lower }}"
+    type: "instantiate_chaincode_job"
+    component_name: "instantiate-{{ org.name | lower }}-{{ item.channel_name|lower }}-{{ chaincode.name }}{{ chaincode.version }}"
+    namespace: "{{ org.name |lower }}-net"
+    peer_name: "{{ peer.name }}"
+    peer_address: "{{ peer.name }}.{{ org.name |lower }}-net:{{ peer.grpc.port }}"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    component_chaincode: "{{ chaincode }}"
+    values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+  when: chaincode is defined and instantiate_chaincode.resources|length == 0
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing chaincode instantiation files"
+  when: instantiate_chaincode.resources|length == 0

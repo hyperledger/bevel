@@ -1,0 +1,126 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value files for namespaces of organizations and ordererers
+#############################################################################################
+
+# Check if namespace created
+- name: "Checking if the namespace {{ item.name | lower }}-net already exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ item.name | lower }}-net"
+    type: "no_retry"
+  register: get_namespace
+  tags:
+    - notest
+
+- name: "Set Variable"
+  set_fact:
+    get_namespace: "{{ result }}"
+ 
+
+############################################################################################
+# This task creates the value file of Namespace for Organizations
+- name: Create namespaces
+  include_role:
+    name: k8_component
+  vars:    
+    component_type: "namespace"    
+  when: get_namespace.resources|length == 0
+
+#############################################################################################
+# This role creates value file for vault reviewer service account of orderers and organizations
+#############################################################################################
+
+
+############################################################################################
+# Create vault reviewer service account value file for Organizations
+- name: Create vault reviewer service account for Organizations
+  include_role:
+    name: k8_component
+  vars:
+    component_type: "vault-reviewer"
+  when: get_namespace.resources|length == 0
+
+#############################################################################################
+# This role creates value file for vault auth service account of orderers and organizations
+#############################################################################################
+
+
+############################################################################################
+# Create vault auth service account value file for Organizations
+- name: Create vault auth service account for Organizations
+  include_role:
+    name: k8_component
+  vars:
+    component_type: "vaultAuth"
+  when: get_namespace.resources|length == 0
+
+#############################################################################################
+# This role creates value file for clusterrolebinding for orderers and organizations 
+#############################################################################################
+
+
+############################################################################################
+# Create clusterrolebinding value file for Orderers
+- name: Create clusterrolebinding for Ordrers
+  include_role:
+    name: k8_component
+  vars:
+    component_type: "reviewer_rbac"
+  when: get_namespace.resources|length == 0
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing deployment files for namespace, service accounts and clusterrolebinding"
+  tags:
+    - notest
+
+# Check if ClusterRoleBinding created
+- name: "Checking for the {{ item.name | lower }}-net-role-tokenreview-binding"
+  tags:
+    - notest
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ item.name | lower }}-net-role-tokenreview-binding"
+    type: "retry"
+  when: get_namespace.resources|length == 0
+  
+
+# Check if ServiceAccount is created for vault-reviwer
+- name: "Including the check for ServiceAccount vault-reviewer in {{ item.name | lower }}-net "
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_ns: "{{ item.name | lower }}-net"
+    component_name: "vault-reviewer"
+    type: "retry"
+  tags:
+    - notest
+
+# Check if ServiceAccount is created for vault-auth
+- name: "Including the check for ServiceAccount vault-auth in {{ item.name | lower }}-net "
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "ServiceAccount"
+    component_ns: "{{ item.name | lower }}-net"
+    component_name: "vault-auth"
+    type: "retry"
+  tags:
+    - notest

@@ -1,0 +1,51 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# This role creates the upgrade_chaincode value file
+
+# Check or Wait if install-chaincode is already run
+---
+- name: 'Check/Wait for install-chaincode job'
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name |lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "installchaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
+  when: chaincode is defined
+
+# Nested task for chanincode upgradation
+- name: "Create value file for chaincode upgrade"
+  include_role:
+    name: helm_component
+  vars:    
+    name: "{{ org.name | lower }}"
+    type: "upgrade_chaincode_job"
+    component_name: "upgrade-{{item.channel_name|lower}}-{{chaincode.name}}{{chaincode.version}}"
+    namespace: "{{ org.name |lower }}-net"
+    peer_name: "{{ peer.name }}"
+    peer_address: "{{ peer.name }}.{{ org.name |lower }}-net:{{ peer.grpc.port }}"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    component_chaincode: "{{ chaincode }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing chaincode upgrade files"

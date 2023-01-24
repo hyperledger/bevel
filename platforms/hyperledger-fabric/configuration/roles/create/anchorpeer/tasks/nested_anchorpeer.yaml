@@ -1,0 +1,54 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+######################################################################
+# This task initiates the nested anchorpeer role for each organization
+
+# Check or wait for the join channel job to complete
+- name: "Waiting for {{ peer.name }} to join channel {{ channel_name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ participant.name | lower}}-net"
+    component_name: "joinchannel-{{ peer.name }}-{{ channel_name }}"
+    kubernetes: "{{ org.k8s }}"
+  loop: "{{ participant.peers }}"
+  loop_control:
+    loop_var: peer
+
+# Create the anchorpeer value file for each organization
+- name: "Creating value file of anchor peer for {{ channel_name }}"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ participant.name }}"
+    type: "anchorpeer_job"    
+    component_name: "anchorpeer-{{ channel_name }}-{{ participant.name }}"
+    peer_name: "{{ peer.name }}"
+    component_ns: "{{ participant.name | lower}}-net"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    anchorstx: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{item.channel_name|lower}}{{participant.name|lower}}MSPAnchor.tx.base64') }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+  loop: "{{ participant.peers }}"
+  loop_control:
+    loop_var: peer
+
+#Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"    
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing anchorpeer files"

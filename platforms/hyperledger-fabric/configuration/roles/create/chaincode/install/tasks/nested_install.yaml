@@ -1,0 +1,76 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+#############################################################################################
+# This role creates value file for the deployment of chaincode install
+#############################################################################################
+
+############################################################################################    
+# Create value file for chaincode installation for fabric version 1.4.x
+- name: "Create value file for chaincode installation for fabric version 1.4.x"
+  include_tasks: nested_valuefile.yaml
+  vars:      
+    name: "{{ org.name | lower}}"
+    namespace: "{{ org.name | lower}}-net"
+    component_type: "peer"
+    component_peers: "{{ org.services.peers }}"
+    vault: "{{ org.vault }}"
+    kubernetes: "{{ org.k8s }}"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+  loop: "{{ component_peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.chaincodes is defined and '1.4' in network.version
+
+# Create value file for chaincode installation for first pod in fabric version 2.2.x
+- name: "Create value file for chaincode installation for first pod in fabric version 2.2.x"
+  include_tasks: nested_valuefile.yaml
+  vars:      
+    name: "{{ org.name | lower }}"
+    namespace: "{{ org.name | lower}}-net"
+    component_type: "peer"
+    component_peers: "{{ org.services.peers }}"
+    vault: "{{ org.vault }}"
+    kubernetes: "{{ org.k8s }}"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+  loop: "{{ component_peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.chaincodes is defined and '2.' in network.version
+    - peer.name == 'peer0'
+
+# Create value file for chaincode installation for fabric version 2.2.x
+- name: "Create value file for chaincode installation for fabric version 2.2.x"
+  include_tasks: nested_valuefile.yaml
+  vars:      
+    name: "{{ org.name | lower}}"
+    namespace: "{{ org.name | lower}}-net"
+    component_type: "peer"
+    component_peers: "{{ org.services.peers }}"
+    vault: "{{ org.vault }}"
+    kubernetes: "{{ org.k8s }}"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+  loop: "{{ component_peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.chaincodes is defined and '2.' in network.version
+    - peer.name != 'peer0'

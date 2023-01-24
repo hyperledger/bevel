@@ -1,0 +1,185 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+  vars:
+    kubernetes: 
+      config_file: "/tmp/molecule/kind-default/kubeconfig"
+      context: "kind"
+    #The below network was taken from the sample network-fabricv2.yaml
+    network:
+      version: 1.4.4
+      env:
+        retry_count: 10
+        proxy: haproxy
+        type: test
+      docker:
+        url: "testurl.com"
+        username: "docker_username"
+        password: "docker_password"
+      organizations:
+      - organization:
+        name: manufacturer
+        country: CH
+        state: Zurich
+        location: Zurich
+        subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
+        type: peer
+        external_url_suffix: org2ambassador.blockchaincloudpoc.com
+        org_status: new
+        cli: enabled
+        ca_data:
+          url: ca.manufacturer-net:7054
+          certificate: file/server.crt
+
+        cloud_provider: aws
+        aws:
+          access_key: "aws_access_key"
+          secret_key: "aws_secret_key"
+    
+        k8s:
+          region: "cluster_region"
+          context: "cluster_context"
+          config_file: "cluster_config"
+
+        vault:
+          url: http://localhost:9090/
+          root_token: "root"
+          secret_path: "secretsv2"
+
+        gitops:
+          git_protocol: "https"
+          git_url: "https://github.com/<username>/bevel.git" 
+          branch: "develop"
+          release_dir: "platforms/hyperledger-fabric/releases/dev"
+          chart_source: "platforms/hyperledger-fabric/charts"
+          git_repo: "github.com/<username>/bevel.git"
+          username: "git_username"
+          password: "git_access_token"
+          email: "git_email"
+          private_key: "path_to_private_key"
+
+        services:
+          ca:
+            name: ca
+            subject: "/C=CH/ST=Zurich/L=Zurich/O=Manufacturer/CN=ca.manufacturer-net"
+            type: ca
+            grpc:
+              port: 7054
+          peers:
+          - peer:
+            name: peer0          
+            type: anchor
+            gossippeeraddress: testaddress:7051
+            peerAddress: testaddress:8443
+            cli: disabled     
+            grpc:
+              port: 7051         
+            events:
+              port: 7053
+            couchdb:
+              port: 5984
+            restserver:
+              targetPort: 20001
+              port: 20001 
+            expressapi:
+              targetPort: 3000
+              port: 3000
+            chaincode:
+              name: "chaincode_name"
+              version: "chaincode_version"
+              maindirectory: "chaincode_main"
+              lang: "golang"
+              repository:
+                username: "git_username"
+                password: "git_access_token"
+                url: "github.com/<username>/bevel.git"
+                branch: develop
+                path: "chaincode_src"
+              arguments: 'chaincode_args'
+              endorsements: ""
+          - peer:
+            name: peer1          
+            type: anchor  
+            gossippeeraddress: testaddress:7051
+            peerAddress: testaddress:8443
+            cli: disabled       
+            grpc:
+              port: 7051         
+            events:
+              port: 7053
+            couchdb:
+              port: 5984
+            restserver:
+              targetPort: 20001
+              port: 20001 
+            expressapi:
+              targetPort: 3000
+              port: 3000
+            chaincode:
+              name: "chaincode_name"
+              version: "chaincode_version"
+              maindirectory: "chaincode_main"
+              lang: "golang"
+              repository:
+                username: "git_username"
+                password: "git_access_token"
+                url: "github.com/<username>/bevel.git"
+                branch: develop
+                path: "chaincode_src"
+              arguments: 'chaincode_args'
+              endorsements: ""
+
+  pre_tasks:
+    - name: Create temp roles dir folder
+      file:
+        path: "{{ playbook_dir }}/../../shared/configuration"
+        state: directory
+        
+    - name: Copy the roles
+      copy:
+        src: "{{ playbook_dir }}/../../../../shared/configuration/roles"
+        dest: "{{ playbook_dir }}/../../shared/configuration"
+
+#######################################################################################
+  tasks:
+    # This role creates the value file for peers of organisations and write couch db credentials
+    # to the vault.
+    - name: Create all peers
+      include_role:
+        name: "configuration/roles/create/peers"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_protocol: "{{ item.gitops.git_protocol }}"
+        git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "./build/{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'peer'
+
+#######################################################################################
+  post_tasks:
+    - name: Delete the temp secret file
+      file:
+        path: test_rsa.pem
+        state: absent
+      tags:
+        - molecule-idempotence-notest
+    - name: Delete the temp secret file
+      file:
+        path: test_rsa.pem.pub
+        state: absent
+      tags:
+        - molecule-idempotence-notest

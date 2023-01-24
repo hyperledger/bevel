@@ -1,0 +1,31 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- set_fact:
+   endorsers_peers_data: []
+
+# This task gets peers from the endorser
+- name: Get endorsers peers
+  set_fact:
+    endorsers_peers_data={{ endorsers_peers_data + [ {'name':peer.name | lower, 'certificate':peer.certificate } ] }}
+  loop: "{{ endorsers_peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.certificate is defined
+
+# This task Cop the certificates in the path provided in the network.yaml
+- name: "Copy certificates"
+  include_tasks: write.yaml
+  vars:
+    endorsers_peers: "{{ endorsers_peers_data }}"
+  loop: "{{ org_peers }}"
+  loop_control:
+    loop_var: org_peer
+  when: 
+    - org_name == endorser.name
+    - endorsers_peers_data is defined
+    - endorsers_peers_data|length > 0

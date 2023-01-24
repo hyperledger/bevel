@@ -1,0 +1,78 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value file for Cli pods
+############################################################################################
+#                      CREATE CLI POD                                                      #
+############################################################################################
+#
+############################################################################################
+# This task creates the value file for the cli pod as per requirements mentioned in
+# network.yaml
+#this task checks if pods are present or not
+- name: 'checking for job {{ component_name }} in {{ namespace }}'
+  k8s_info:
+    kind: "Pod"
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    label_selectors:
+      - app = cli
+  vars:
+    name: "cli"
+    kubernetes: "{{ org.k8s }}"
+    component_name: "{{ peer.name | lower}}-{{ org.name | lower }}-cli"
+    component_ns: "{{ org.name | lower}}-net"
+    loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  register: existing_cli
+
+# this task creates the value file
+- name: "Create Value file for CLI Pod"
+  include_role:
+    name: helm_component
+  vars:
+    name: "cli"
+    component_name: "{{ peer.name | lower}}-{{ org.name | lower }}-cli"
+    orderer_image: "hyperledger/fabric-orderer:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    orderer: "{{ network.orderers | first }}"
+    component_ns: "{{ org.name | lower}}-net"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    storage_class: "{{ org.name | lower }}sc"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    type: "cli"
+    external_url_suffix: "{{ org.external_url_suffix }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when:
+  - peer.peerstatus is not defined or peer.peerstatus == 'new'
+  - peer.cli is defined
+  - peer.cli == "enabled"
+  - existing_cli.resources|length == 0
+#Git Push : Pushes the above generated files to git directory
+- name: Git Push
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing CLI value files"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when:
+    - peer.cli is defined
+    - peer.cli == "enabled"
