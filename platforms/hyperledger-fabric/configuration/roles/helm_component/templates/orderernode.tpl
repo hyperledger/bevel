@@ -65,6 +65,9 @@ spec:
 {% if orderer.grpc.nodePort is defined %}
           nodeport: {{ orderer.grpc.nodePort }}
 {% endif %}
+        metrics: 
+          enabled: {{ orderer.metrics.enabled | default(false) }}
+          clusteripport: {{ orderer.metrics.port | default(9443) }}
 
     vault:
       address: {{ vault.url }}

@@ -203,6 +203,13 @@
           ],
           "required": [ "name","cloud_provider","k8s","vault","gitops"]
         },
+        "shared_metrics":{
+          "type": "object",
+           "properties":{
+            "enabled": {"type": "boolean", "description":"Enable metrics via service monitor"}, 
+            "port": { "type": "number","description": "Optional field. Default value is 9443 ) "}
+           }
+        },
         "corda_network_service":{
           "type": "object",
           "properties": {
@@ -565,7 +572,8 @@
             "status": {"type":"string","enum": ["new","existing"],"description":"(Only needed to add new orderer). Possible values are 'new' or 'existing'"},
             "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Name of the Orderer service"},
             "consensus": {"type":"string","enum": ["kafka","raft"]},
-            "grpc":{ "$ref":"#/definitions/shared_port"}
+            "grpc":{ "$ref":"#/definitions/shared_port"},
+            "metrics": { "$ref": "#/definitions/shared_metrics"}
             },
           "required": [ "type","name","consensus","grpc"],
           "additionalProperties": false
@@ -587,7 +595,8 @@
             "restserver":{ "$ref":"#/definitions/corda_service_port","description":"Restserver target port"},
             "expressapi":{ "$ref":"#/definitions/corda_service_port","description":"Express server port"},
             "frontend":{ "$ref":"#/definitions/corda_service_port","description":"Frontend port"},
-            "chaincodes":{"type":"array","items":{ "$ref":"#/definitions/fabric_chaincode","description":"chaincode data"}}
+            "chaincodes":{"type":"array","items":{ "$ref":"#/definitions/fabric_chaincode","description":"chaincode data"}},
+            "metrics" :  {"$ref":"#/definitions/shared_metrics"}
             },
           "required": [ "type","name","gossippeeraddress","grpc","events"],
           "additionalProperties": false
