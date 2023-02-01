@@ -149,7 +149,7 @@ spec:
               fi
             fi
           }
-          if [ -e /certcheck/present.txt ]
+          if [ -e ${MOUNT_PATH}/present.txt ]
               then
                 echo "Certificates already present in the vault. Skipping.."
                 exit 0
@@ -164,6 +164,7 @@ spec:
             -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
             jq -r 'if .errors then . else .auth.client_token end')
           validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          
           VAULT_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum | jq -r 'if .errors then . else . end')
           validateVaultResponse " secret (${CERTS_SECRET_PREFIX}/crypto/${PEER_NAME}/quorum)" "${VAULT_RESPONSE}" "LOOKUPSECRETRESPONSE"
           nodekey=$(echo ${VAULT_RESPONSE} | jq -r '.data.data["nodekey"]')

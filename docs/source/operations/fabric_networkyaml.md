@@ -435,6 +435,9 @@ Each organization with type as peer will have a peers service. The snapshot of p
                 path: "chaincode_src"   #The path to the chaincode 
               arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
               endorsements: "" #Endorsements (if any) provided along with the chaincode
+          metrics:
+            enabled: true     # Enable/disable metrics collector for prometheus
+            port: 9443        # metrics port - internal to the cluster 
 ```
 The fields under `peer` service are
 
@@ -452,6 +455,8 @@ The fields under `peer` service are
 | restserver.port               | Restserver port                                                                                                  |
 | expressapi.targetPort         | Express server target port                                                                                       |
 | expressapi.port               | Express server port                                                                                              |
+| metrics.enabled               | Enable metrics (ensure serviceMonitor CRD is present before enabling metrics)                                    |
+| metrics.port                  | Metrics Port                                                                                                     |
 
 The chaincodes section contains the list of chaincode for the peer, the fields under each chaincode are below
 
@@ -510,6 +515,9 @@ The organization with orderer type will have orderers service. The snapshot of o
           consensus: raft
           grpc:
             port: 7050 
+          metrics:
+            enabled: true     # Enable/disable metrics collector for prometheus
+            port: 9443        # metrics port - internal to the cluster 
 ```
 The fields under `orderer` service are
 
@@ -520,7 +528,8 @@ The fields under `orderer` service are
 | consensus                   | Consensus type, for example: `kafka`, `raft`                                                                               |
 | status                   | (Only needed to add new orderer). Possible values are `new` or `existing`                                                                                             |
 | grpc.port                   | Grpc port of orderer                                                                                             |
-
+| metrics.enabled               | Enable metrics (ensure serviceMonitor CRD is present before enabling metrics)                                    |
+| metrics.port                  | Metrics Port                                                                                                     |
 
 \ 
 ** feature is in future scope

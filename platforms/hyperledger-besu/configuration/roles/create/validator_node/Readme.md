@@ -247,12 +247,18 @@ peer_publicIP
 ### nested_validator_vote.yaml
 ### Tasks
 
-#### 1. Voting by the validator nodes that were already in the network
+#### 1. Voting by the validator nodes that were already in the network - IBFT consensus
  This task does the voting part by the existing validator nodes
 
-#### 2. Voting by the new validator nodes that have been previously accepted in the same deployment
+#### 2. Voting by the new validator nodes that have been previously accepted in the same deployment - IBFT consensus
  This task does the voting part by the new validator nodes that have been already accepted
 
-#### 3. Adding the new validator address to the new_validator_nodes array for future voting participation
+#### 3. Voting by the validator nodes that were already in the network - QBFT consensus
+ This task does the voting part by the existing validator nodes
+
+#### 4. Voting by the new validator nodes that have been previously accepted in the same deployment - QBFT consensus
+ This task does the voting part by the new validator nodes that have been already accepted
+
+#### 5. Adding the new validator address to the new_validator_nodes array for future voting participation
  This task adds the url of the new added validator node to be used in Task 2 if new validator nodes are pending to be accepted
-    
+   

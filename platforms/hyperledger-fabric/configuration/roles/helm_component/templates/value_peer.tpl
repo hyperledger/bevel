@@ -98,7 +98,9 @@ spec:
 {% if peer.couchdb.nodePort is defined %}
           nodeport: {{ peer.couchdb.nodePort }}
 {% endif %}
-          
+        metrics: 
+          enabled: {{ peer.metrics.enabled | default(false) }}
+          clusteripport: {{ peer.metrics.port | default(9443) }}     
     proxy:
       provider: "{{ network.env.proxy }}"
       external_url_suffix: {{ item.external_url_suffix }}
