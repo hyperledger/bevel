@@ -1,0 +1,41 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# Creates the ACL json file and update application channel with acls
+#############################################################################################
+
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "{{ build_path }}"
+    state: absent
+
+# Create build directory
+- name: Create build directory
+  file:
+    path: "{{ build_path }}/channel-artifacts/"
+    state: directory
+
+# Check if acl file exists
+- name: Check that acl json exists
+  stat:
+    path: "{{ channel.acls }}"
+  register: acls_file
+
+# Copy file if acls json exists
+- name: Copy file if acls json exists
+  ansible.builtin.copy:
+    src: "{{ channel.acls }}"
+    dest: "{{ build_path }}/channel-artifacts/add_app_channel_acls.json"
+  when: acls_file.stat.exists
+
+# This task add default acls in app channels application group
+- name: Add add default acls in app channels application group
+  include_tasks: nested_main_add_app_channel_acls.yaml
+  vars:
+    channel_name: "{{ channel.channel_name | lower }}"
+  when: acls_file.stat.exists

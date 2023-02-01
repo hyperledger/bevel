@@ -17,6 +17,9 @@ spec:
         namespace: flux-{{ network.env.type }}
       chart: {{ charts_dir }}/peernode    
   values:
+{% if network.upgrade is defined %}
+    upgrade: "{{ network.upgrade }}"
+{% endif %}
     metadata:
       namespace: {{ peer_ns }}
       images:
