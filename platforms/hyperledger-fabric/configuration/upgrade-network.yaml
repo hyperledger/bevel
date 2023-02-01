@@ -1,0 +1,186 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+# This playbook upgrades the binaries for orderers, peers, CA server and CLI's of an existing 
+# DLT network which was set up using Bevel on Kubernetes clusters. 
+# After binaries upgraded successfully, this process updates the system and application channel
+# configurations required to upgrade the network to version 2.2.x 
+# Please refer the prequesites mentioned in upgrade documentation, for required settings in the 
+# network.yaml before execution of this playbook 
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook upgrade-network.yaml -e "@./network.yaml"
+############################################################################################
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+    # Show message to operator, that continue this task will start binaries upgrade for peer and orderer
+    - name: Message for the operator
+      pause:
+        prompt: "PLEASE NOTE!, You are going to start peer and orderer nodes binaries upgrade.
+          Once a node is upgraded the workflow stops and ask operator to check the logs on
+          recent upgraded node and version of the nodes.
+          Please note it would not be possible to revert back the hyperledger fabric network to
+          previous version once we start this step.
+          You can continue, if you are doing a re-run of this upgrade and ignore this message.
+          (ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)"
+
+    # This role upgrade the orderer binary to version provide in network.yaml payload
+    - name: Upgrade orderers binary
+      include_role:
+        name: "upgrade/orderer-binary"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'orderer' and network.upgrade == 'yes'
+
+    # This role upgrade the value file for peers of organisations and write couch db credentials
+    # to the vault.
+    - name: Upgrade peers binaries
+      include_role:
+        name: "upgrade/peer-binary"
+      vars:
+        build_path: "./build"
+        namespace: "{{ item.name | lower}}-net"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        vault: "{{ item.vault }}"
+        git_url: "{{ item.gitops.git_url }}"
+        git_branch: "{{ item.gitops.branch }}"
+        docker_url: "{{ network.docker.url }}"
+        charts_dir: "{{ item.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'peer' and network.upgrade == 'yes'
+
+    # This role updates the CA Server helm-value files and check-in
+    - name: Upgrade CA server for each organization
+      include_role:
+        name: "create/ca-server"
+      vars:
+        component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
+        component_type: "{{ item.type | lower}}"
+        component_services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+        vault: "{{ item.vault }}"
+        ca: "{{ item.services.ca }}"
+        docker_url: "{{ network.docker.url }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.services.ca is defined and network.upgrade == 'yes'
+
+    # This role updates the CLI pod for the upgraded version
+    - name: Upgrade CLI pod for each peer with it enabled
+      include_role:
+        name: "create/cli_pod"
+      vars:
+        peers: "{{ org.services.peers }}"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == "peer" and network.upgrade == 'yes'
+
+    # Show message to operator, that after this upgrade tasks the network
+    # cant get reverted back to previous version
+    - name: Message for the operator
+      pause:
+        prompt: "PLEASE NOTE!, Binaries upgrade of the nodes is completed, Please WAIT AND ENSURE that
+          CA servers and CLI are also upgraded. This can be verified by the logs of CA servers and CLI
+          of respective organizations. Once these are verified we can move to next steps.
+          Next steps will start capabilities, endorsement, lifecycle upgrade etc.          
+          You can continue, if you are doing a re-run of this upgrade and ignore this message.
+          (ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)"
+
+    # This role upgrades capabilities of system channel
+    - name: Upgrade the capabilities of orderer channels
+      include_role:
+        name: "upgrade/orderer-capabilities"
+      vars:
+        build_path: "./build"
+        channel_name: "syschannel"
+        docker_url: "{{ network.docker.url }}"
+
+    # This role upgrades capabilities of application channels
+    - name: Upgrade the capabilities of application channels
+      include_role:
+        name: "upgrade/application-capabilities"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network.channels }}"
+      loop_control:
+        loop_var: channel
+
+    # This role adds orderer end points
+    - name: Add ordererEndpoints to Orderer Orgs in syschannel and other channels
+      include_role:
+        name: "upgrade/orderer-addresses"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+        organizations: "{{ network.organizations }}"
+
+    # This role enable endorsement in system channel consortium
+    - name: Enable endorsement in system channel consortium
+      include_role:
+        name: "upgrade/enable-endorsement-consortium"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+        organizations: "{{ network.organizations }}"
+      loop: "{{ network.channels }}"
+      loop_control:
+        loop_var: channel
+
+    # This role enable endorsement in organizations of app channels
+    - name: Enable endorsement in organizations of app channels
+      include_role:
+        name: "upgrade/enable-endorsement-app-channels"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+        organizations: "{{ network.organizations }}"
+      loop: "{{ network.channels }}"
+      loop_control:
+        loop_var: channel
+
+    # This role adds the endorsement and lifecycle policies to application channels application group
+    - name: Add endorsement and lifecycle in app channels application group
+      include_role:
+        name: "upgrade/add-app-channel-policies"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+        organizations: "{{ network.organizations }}"
+      loop: "{{ network.channels }}"
+      loop_control:
+        loop_var: channel
+
+    # This role add the default acls to the app channels
+    - name: Add default acls to the app channels
+      include_role:
+        name: "upgrade/add-app-channel-acls"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+        organizations: "{{ network.organizations }}"
+      loop: "{{ network.channels }}"
+      loop_control:
+        loop_var: channel

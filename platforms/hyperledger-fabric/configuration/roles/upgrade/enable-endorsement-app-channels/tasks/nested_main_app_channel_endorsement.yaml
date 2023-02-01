@@ -1,0 +1,54 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This creates endorsement policies json for application channel, fetch latest application
+# config modify using json and updates the channel
+#############################################################################################
+
+# Create yaml for adding endorsement policies in applicaiton channel
+- name: Create yaml for adding endorsement policies in applicaiton channel
+  template:
+    src: "enable-endorsement-app-channel.yaml"
+    dest: "{{ values_file }}"
+  vars:
+    OrgName: "{{ participant.name }}"
+    values_file: "{{ build_path }}/channel-artifacts/enable-endorsement-app-channel.yaml"
+
+# Save the yaml file to a variable
+- name: Save yaml to variable
+  ansible.builtin.include_vars:
+    file: "{{ build_path }}/channel-artifacts/enable-endorsement-app-channel.yaml"
+    name: endorsements
+
+# Convert the yaml file to json
+- name: Convert yaml to json
+  copy:
+    content: "{{ endorsements | to_nice_json }}"
+    dest: "{{ build_path }}/channel-artifacts/enable_endorsements_{{ participant.name }}MSP.json"
+
+# This task create script file to add enable lifecycle to syschannel consortium orgs
+- name: "Add enable lifecycle to syschannel consortium orgs"
+  template:
+    src: "add_app_channel_endorsement.tpl"
+    dest: "{{ build_path }}/add_app_channel_endorsement.sh"
+  vars:
+    channel_name: "{{ channel.channel_name | lower }}"
+    org_name: "{{ participant.name }}MSP"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# This task updates capability of channel group in application channel
+- name: Update channel group capabilities of application channel
+  include_tasks: update_app_channel_endorsement.yaml
+  vars:
+    peer: "{{ participant }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"
+    channel_name: "{{ channel.channel_name | lower }}"
+    org_name: "{{ participant.name }}MSP"
