@@ -24,8 +24,8 @@ Certificate Paths on Vault for Quorum Network
 
 | Path                                                                           | Key Name               | Description         |
 |--------------------------------------------------------------------------------|-------------------------------|--------------|
-| secretsv2/{{ `component_ns` }}/crypto/{{ `peer_name` }}/transaction               | tm.pub                        | Public key of Transaction manager |
-| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/transaction                 | tm.key                        | Private key of Transaction manager |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `peer_name` }}/tm               | publicKey                        | Public key of Transaction manager |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/tm                 | privateKey                        | Private key of Transaction manager |
 
 
 ### For Root Certificates
