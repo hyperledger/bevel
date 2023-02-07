@@ -1,0 +1,38 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: scravi-vaultk8s-job
+  namespace: scravi-bes
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: scravi-vaultk8s-job
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/shared/charts/vault-k8s-mgmt
+    sourceRef:
+      kind: GitRepository
+      name: flux-dev-ravi
+      namespace: flux-dev-ravi
+  values:
+    metadata:
+      name: scravi-vaultk8s-job
+      namespace: scravi-bes
+      images:
+        alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+        pullPolicy: IfNotPresent
+
+    vault:
+      reviewer_service: vault-reviewer
+      role: vault-role
+      address: http://a94f258ac51304b63a9bceb42a204cb6-2100507752.eu-west-1.elb.amazonaws.com:20002
+      authpath: besuscravi
+      policy: vault-crypto-scravi-bes-scravi-ro
+      policydata: "{\n  \"policy\": \"path \\\"secretsv2/data/scravi-bes/crypto/*\\\" {\n    capabilities = [\\\"read\\\", \\\"list\\\", \\\"create\\\", \\\"update\\\"]\n  }\n  path \\\"secretsv2/data/scravi-bes/smartContracts/*\\\" {\n    capabilities = [\\\"read\\\", \\\"list\\\"]\n  }\"\n}"
+      secret_path: secretsv2
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    k8s:
+      kubernetes_url: https://34D2F36E71F0880BE63D943D2E503A9B.gr7.eu-west-1.eks.amazonaws.com
