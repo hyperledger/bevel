@@ -1,0 +1,30 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This upgrades the peer binaries on peer node
+#############################################################################################
+
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "./build"
+    state: absent
+
+# Create build directory
+- name: Create build directory if it does not exist
+  file:
+    path: "./build/channel-artifacts/"
+    state: directory
+
+# This role creates value file for each orderer
+- name: Create value file for each orderer in org
+  include_tasks: create_peer_value.yaml
+  loop: "{{ component_services.peers }}"
+  loop_control:
+    loop_var: peer
+  when:
+    - component_services.peers is defined

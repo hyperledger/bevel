@@ -1,0 +1,66 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# This is a generic role to check-in files to git repository
+- name: "Check if directory: {{ GIT_DIR }} exists"
+  file:
+    path: "{{ GIT_DIR }}"
+    state: directory
+
+# Git status the new files, reset config files for local execution
+- name: "Execute git status for ssh"
+  shell: |
+    cd "{{ GIT_DIR }}"
+    echo "---------------GIT PUSH---------------"
+    export GIT_SSH_COMMAND='ssh -i {{ gitops.private_key }}'
+    git config user.email {{ gitops.email }}
+    git config user.name {{ gitops.username }}
+    git --git-dir={{ GIT_DIR }}/.git add -A .
+    
+    # To ignore a directory add it add reset path
+    reset_path={{ GIT_RESET_PATH if GIT_RESET_PATH is defined else '' | default('') }}
+    if [ -n "$reset_path" ]; then
+        git --git-dir={{ GIT_DIR }}/.git reset "{{ GIT_RESET_PATH }}"
+    fi  
+    
+    git --git-dir={{ GIT_DIR }}/.git status "{{files_dir}}"
+  register: GIT_OUTPUT_SSH
+  when: 
+  - gitops.git_protocol is defined 
+  - gitops.git_protocol == "ssh"
+  ignore_errors: yes
+  tags:
+    - notest
+
+# Git status the new files, reset config files
+- name: "Execute git status for https"
+  shell: |
+    cd "{{ GIT_DIR }}"
+    echo "---------------GIT PUSH---------------"
+    git config user.email {{ gitops.email }}
+    git config user.name {{ gitops.username }}
+    git --git-dir={{ GIT_DIR }}/.git add -A .
+    
+    # To ignore a directory add it add reset path
+    reset_path={{ GIT_RESET_PATH if GIT_RESET_PATH is defined else '' | default('') }}
+    if [ -n "$reset_path" ]; then
+        git --git-dir={{ GIT_DIR }}/.git reset "{{ GIT_RESET_PATH }}"
+    fi  
+    
+    git --git-dir={{ GIT_DIR }}/.git status "{{files_dir}}"
+  
+  register: GIT_OUTPUT
+  when: gitops.git_protocol is not defined or gitops.git_protocol == "https"
+  ignore_errors: yes
+  tags:
+    - notest
+
+# Verify if files are pushed to github
+- name: 'Set fact to be used to identify if new files added to git repo'
+  set_fact:
+    git_updated: true
+  when: GIT_OUTPUT.stdout is not search('nothing to commit, working tree clean')

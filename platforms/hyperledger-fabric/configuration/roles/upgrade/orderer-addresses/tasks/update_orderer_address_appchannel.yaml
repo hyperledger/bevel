@@ -1,0 +1,22 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# This task add orderer addresses to application channel configuration
+############################################################################################
+
+# This task add orderer addresses to application channel
+- name: Update orderer address in application channels
+  include_tasks: update_orderer_address.yaml
+  vars:
+    kubernetes: "{{ org.k8s }}"
+    component_ns: "{{ org.name | lower }}-net"
+    channelName: "{{ channel.channel_name | lower }}"
+    ordererOrg: "{{ org }}"
+  loop: "{{ organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer'
