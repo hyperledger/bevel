@@ -1,0 +1,75 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: scravival1validator-node
+  namespace: scravi-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: scravival1validator-node
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/node_validator
+    sourceRef:
+      kind: GitRepository
+      name: flux-dev-ravi
+      namespace: flux-dev-ravi
+  values:
+    replicaCount: 1
+
+    healthcheck:
+      readinessthreshold: 100
+      readinesscheckinterval: 5
+
+    staticnodes:
+      - "enode://aa8f022243d6f4c6ec80b1f3069256c05da5fe878e9b0ecba9a6770b58cc79fc6b2c13add5fcedd3c3fdfe4cf8d7a1e82a52b5122f9f44e191300f8030f4cc04@val1.id.demo.aws.blockchaincloudpoc.com:15011"
+      - "enode://09d04d511b6750a0d3ed739e35d92bd2b1b48985355b0650f3b8033ba502ffc763db7fa77d4fa7107048138cd476fc70f145069a941c856f228c0825b98b64e6@val2.id.demo.aws.blockchaincloudpoc.com:15013"
+      - "enode://6790bd7f20da5855a50914e1ef3f7a7297d23827ea755c199a73d701561b65eef7483a3b8b6a8af20e215692352f53480a7c1157d73c1b6339ac5759049495c7@mem1.id.demo.aws.blockchaincloudpoc.com:15011"
+
+    metadata:
+      namespace: scravi-bes
+      labels:
+
+    ambassador:
+      external_url_suffix: id.demo.aws.blockchaincloudpoc.com
+
+    liveliness_check:
+      enabled: false
+    proxy:
+      provider: ambassador
+      external_url: scravi.id.demo.aws.blockchaincloudpoc.com
+      p2p: 15011
+      rpc: 15012
+
+    images:
+      node: hyperledger/besu:21.10.6
+      alpineutils: index.docker.io/hyperledgerlabs/alpine-utils:1.0
+      pullPolicy: IfNotPresent
+
+    node:
+      name: val1
+      tls: True
+      consensus: ibft
+      mountPath: /opt/besu/data
+      servicetype: ClusterIP
+      imagePullSecret: regcred
+      ports:
+        p2p: 30303
+        rpc: 8545
+        ws: 8546
+
+    storage:
+      storageclassname: awsstorageclass
+      storagesize: 1Gi
+
+    vault:
+      address: http://a94f258ac51304b63a9bceb42a204cb6-2100507752.eu-west-1.elb.amazonaws.com:20002
+      secretprefix: secretsv2/data/scravi-bes/crypto/val1
+      serviceaccountname: vault-auth
+      keyname: data
+      tlsdir: tls
+      role: vault-role
+      authpath: besuscravi
+
+    genesis: ewogICJjb25maWciOiB7CiAgICAiY2hhaW5JZCI6IDIwMTgsCiAgICAiY29uc3RhbnRpbm9wbGVmaXhibG9jayI6IDAsCiAgICAiY29udHJhY3RTaXplTGltaXQiOiAyMTQ3NDgzNjQ3LAogICAgImliZnQyIjogewogICAgICAiYmxvY2twZXJpb2RzZWNvbmRzIjogMiwKICAgICAgImVwb2NobGVuZ3RoIjogMzAwMDAsCiAgICAgICJyZXF1ZXN0dGltZW91dHNlY29uZHMiOiAxMAogICAgfQogIH0sCiAgIm5vbmNlIjogIjB4MCIsCiAgInRpbWVzdGFtcCI6ICIweDU4ZWU0MGJhIiwKICAiZ2FzTGltaXQiOiAiMHgxZmZmZmZmZmZmZmZmZiIsCiAgImRpZmZpY3VsdHkiOiAiMHgxIiwKICAiZXh0cmFEYXRhIjogIjB4Zjg1M2EwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGVhOTRhODM1YmYwMzlkMGE3ZmRlNWNhNjY1Mzk0MzUwMjQ2MTNmMjBhYTZkOTRmMGM1NjY4ZTAxNmEwY2VmYmUxNjkyOWE4ODEwNjc3Y2VlMjdjNmRmODA4NDAwMDAwMDAwYzAiCn0=
