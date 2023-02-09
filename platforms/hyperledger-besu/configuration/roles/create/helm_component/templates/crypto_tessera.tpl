@@ -28,7 +28,7 @@ spec:
       # alpineutils image has the binaries like jq,curl, wget and openssl in it. 
       # having this image with binaries helps in removing the dependencies of utility binaries in the besu and tessera containers
       # dockerfile can be found at shared/images/apline-utils.Dockerfile
-      alpineutils: {{ network.docker.url }}/alpine-utils:1.1
+      alpineutils: "{{ network.docker.url }}/alpine-utils:{{ network.bevel_version | default('latest') }}"
     vault:
       address: {{ vault.url }}
       secretengine: {{ vault.secret_path | default('secretsv2') }}
