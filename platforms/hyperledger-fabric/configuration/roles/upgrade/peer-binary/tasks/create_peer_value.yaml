@@ -1,0 +1,96 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# Creates peer value file, adds it to git repo and wait for peer to come up
+#############################################################################################
+
+# This task creates the value file for the peer as per requirements mentioned in
+# network.yaml
+- name: Upgrade Value files for Organization peer
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ item.name | lower }}"
+    type: "value_peer"
+    component_name: values-{{ peer.name }}
+    couchdb_image: "{{ couchdb_image_version[network.version] }}"
+    peer_image: "hyperledger/fabric-peer:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    peer_name: "{{ peer.name }}"
+    peer_ns: "{{ namespace }}"
+    provider: "{{ network.env.proxy }}"
+
+#Git Status : check if there is any files modified in the directory
+- name: Git Status
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_status"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Checking git status"
+    files_dir: "{{ values_dir }}"
+  tags:
+    - notest
+
+#Git Push : Pushes the above generated files to git directory
+- name: Git Push
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing Peer files"
+  when: git_updated is defined
+  tags:
+    - notest
+
+# wait until the pod is not in running state as there is a time lag between when pod is recreated
+- name: 'Wait for {{ peer.name }} in {{ item.name | lower }}-net to terminate'
+  k8s_info:
+    kind: "Pod"
+    namespace: "{{ item.name | lower }}-net"
+    kubeconfig: "{{ item.k8s.config_file }}"
+    context: "{{ item.k8s.context }}"
+    label_selectors:
+      - app = {{ peer.name }}
+    field_selectors:
+      - status.phase!=Running
+  register: component_data
+  retries: "{{ 4*network.env.retry_count }}"
+  delay: "{{ delay | default(2) }}"
+  until: component_data.resources|length > 0
+  when: git_updated is defined
+  tags:
+    - notest
+
+# Wait for peer pod to be in the state of running
+- name: 'Wait for {{ peer.name }} in {{ item.name | lower }}-net'
+  k8s_info:
+    kind: "Pod"
+    namespace: "{{ item.name | lower }}-net"
+    kubeconfig: "{{ item.k8s.config_file }}"
+    context: "{{ item.k8s.context }}"
+    label_selectors:
+      - app = {{ peer.name }}
+    field_selectors:
+      - status.phase=Running
+  register: component_data
+  retries: "{{ network.env.retry_count }}"
+  delay: "{{ delay | default(5) }}"
+  until: component_data.resources|length > 0
+  when: git_updated is defined
+  tags:
+    - notest
+
+# Ask the operator to verify the logs
+- name: 'Verify logs for pod {{ peer.name }}-0 in {{ item.name | lower }}-net'
+  pause:
+    prompt: "Please verify logs of container {{ peer.name }} in Pod {{ peer.name }}-0 within namespace {{ item.name | lower}}-net to ensure it is upgraded and ready
+            (ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)"
+  when: git_updated is defined

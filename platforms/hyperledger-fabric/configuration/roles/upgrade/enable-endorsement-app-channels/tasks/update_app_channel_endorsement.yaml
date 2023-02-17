@@ -1,0 +1,75 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# Updates the channel configuration with modified configuration block
+############################################################################################
+
+# Checking for fabric cli
+- name: "Check if fabric cli is already present"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: existing_cli
+
+# Create the value file for creater org first peer
+- name: "Create valuefile for cli {{ peer.name }}-{{ org.name }}"
+  include_role:
+    name: k8_component
+  vars:
+    component_type_name: "{{ participant.name }}"
+    component_type: "existing_peer_cli_job"
+    component_name: "cli-{{ channel_name }}-{{ org.name }}-{{ peer.name }}"
+    peer_name: "{{ peer.name }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    channel_name: "{{ channel_name }}"
+    storage_class: "{{ org.name }}sc"
+    release_dir: "{{ build_path }}"
+  when: existing_cli.resources|length == 0
+
+# Start the cli using the value file created in the previous step
+- name: "Start cli"
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+  when: existing_cli.resources|length == 0
+
+# Waiting for fabric cli to be up
+- name: "Waiting for fabric cli to be up"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: get_cli
+  until: ("Running" in get_cli|json_query('resources[*].status.phase'))
+  retries: "{{ network.env.retry_count }}"
+  delay: 40
+
+# This task updates configuration block
+- name: Fetch, modify, sign and copy the configuration block from the blockchain
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/add_app_channel_endorsement.sh {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/add_app_channel_endorsement.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/enable_endorsements_{{ org_name }}.json {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/enable_endorsements_{{ org_name }}.json
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- chmod 777 ./add_app_channel_endorsement.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- sh ./add_app_channel_endorsement.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_update_in_envelope.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_update_in_envelope.pb {{ build_path }}/{{ channel_name }}_config_update.pb
+  environment:
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  vars:
+    kubernetes: "{{ org.k8s }}"
+    orderer: "{{ network.orderers | first }}"
+    ordererAddress: "{{ orderer.uri }}"

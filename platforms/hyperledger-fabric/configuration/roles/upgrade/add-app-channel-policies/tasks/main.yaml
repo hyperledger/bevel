@@ -1,0 +1,33 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# Creates the application channel policies json and update application channel with policies
+#############################################################################################
+
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "{{ build_path }}"
+    state: absent
+
+# Create the build directory
+- name: Create build directory if it does not exist
+  file:
+    path: "{{ build_path }}/channel-artifacts/"
+    state: directory
+
+# Create app-channel policies json
+- name: Create app-channel policies json
+  copy:
+    src: "add_app_channel_policies.json"
+    dest: "{{ build_path }}/channel-artifacts/add_app_channel_policies.json"
+
+# This task add endorsement and lifecycle in app channels application group
+- name: Add endorsement and lifecycle in app channels application group
+  include_tasks: nested_main_add_app_channel_policies.yaml
+  vars:
+    channel_name: "{{ channel.channel_name | lower }}"
