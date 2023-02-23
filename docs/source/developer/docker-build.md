@@ -9,7 +9,7 @@ Hyperledger Bevel is targeted for Production systems, but for quick developer de
 
 ## Prerequisites
 
-Follow instructions to [install](./prerequisites.md) and [configure](./operations/configure_prerequisites.md) common prerequisites. In summary, you should have details of the following:
+Follow instructions to [install](https://hyperledger-bevel.readthedocs.io/en/latest/developer/docker-build.html#prerequisites) and [configure](https://hyperledger-bevel.readthedocs.io/en/latest/operations/configure_prerequisites.html) common prerequisites. In summary, you should have details of the following:
 
 1. A machine (aka host machine) on which you can run docker commands i.e. which has docker command line installed and is connected to a docker daemon.
 2. At least one Kubernetes cluster (with connectivity to the host machine).
