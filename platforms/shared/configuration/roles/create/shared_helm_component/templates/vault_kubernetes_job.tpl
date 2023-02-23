@@ -28,7 +28,7 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ component_auth }}
-      policy: vault-crypto-{{ component_type }}-{{ name }}-ro
+      policy: vault-crypto-{{ component_ns }}-{{ name }}-ro
       policydata: {{ policydata | to_nice_json }}
       secret_path: {{ vault.secret_path | default(name)}}
       serviceaccountname: vault-auth

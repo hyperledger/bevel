@@ -1,14 +1,16 @@
-**Changelog**
-- Add
-- Fix
-- Update
+commit_title
+   - Add
+   - Fix
+   - Update 
 
- 
+Fixes #issue_number
 
-**Reviewed by**
-@developer_github_id
+---
+**Example (for reference only)**:   
 
- 
+feat(fabric): support for v2.2.3
+  - Add platforms/hyperledger-fabric/charts/commit_chaincode chart
+  - Add platforms/hyperledger-fabric/charts/approve_chaincode
+  - Update platforms/hyperledger-fabric/configuration/deploy-network.yaml  
 
-**Linked issue**
-#issue_number
+Fixes #000

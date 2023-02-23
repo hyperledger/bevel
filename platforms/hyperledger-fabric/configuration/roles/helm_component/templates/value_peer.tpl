@@ -17,6 +17,9 @@ spec:
         namespace: flux-{{ network.env.type }}
       chart: {{ charts_dir }}/peernode    
   values:
+{% if network.upgrade is defined %}
+    upgrade: "{{ network.upgrade }}"
+{% endif %}
     metadata:
       namespace: {{ peer_ns }}
       images:
@@ -95,7 +98,9 @@ spec:
 {% if peer.couchdb.nodePort is defined %}
           nodeport: {{ peer.couchdb.nodePort }}
 {% endif %}
-          
+        metrics: 
+          enabled: {{ peer.metrics.enabled | default(false) }}
+          clusteripport: {{ peer.metrics.port | default(9443) }}     
     proxy:
       provider: "{{ network.env.proxy }}"
       external_url_suffix: {{ item.external_url_suffix }}

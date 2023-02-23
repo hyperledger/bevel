@@ -1,0 +1,110 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This creates endorsement policies json for system channel, fetch latest system channel
+# config modify using json and updates the channel
+#############################################################################################
+
+# Create yaml for adding endorsement policies in system channel
+- name: Create yaml for adding endorsement policies in system channel
+  template:
+    src: "enable-endorsement-consortium.yaml"
+    dest: "{{ build_path }}/channel-artifacts/enable-endorsement-consortium.yaml"
+  vars:
+    OrgName: "{{ participant.name }}"
+
+# Save the yaml file to a variable
+- name: Save yaml to variable
+  ansible.builtin.include_vars:
+    file: "{{ build_path }}/channel-artifacts/enable-endorsement-consortium.yaml"
+    name: endorsements
+
+# Convert the yaml file to json
+- name: Convert yaml to json
+  copy:
+    content: "{{ endorsements | to_nice_json }}"
+    dest: "{{ build_path }}/channel-artifacts/enable_endorsements_{{ participant.name }}MSP.json"
+
+# This task create script file to add enable endorsement to syschannel consortium orgs
+- name: "Add enable endorsement to syschannel consortium orgs"
+  template:
+    src: "add_orderer_enable_endorsement.tpl"
+    dest: "{{ build_path }}/add_orderer_enable_endorsement.sh"
+  vars:
+    channel_name: "syschannel"
+    org_name: "{{ participant.name }}MSP"
+    consortium_name: "{{ channel.consortium }}"
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# This task create enable endorsement capability block
+- name: Create enable endorsement capability block
+  include_tasks: orderer/add_orderer_enable_endorsement.yaml
+  vars:
+    orderer: "{{ network.orderers | first }}"
+    org_query: "organizations[?name=='{{orderer.org_name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"
+    channel_name: "syschannel"
+
+# check if original channel config and modified config is same
+# if that is the case we dont have to proceed doing the channel update
+- name: Intialize the variable
+  set_fact:
+    is_config_same: false
+
+- name: Check if required channel config already exists
+  set_fact:
+    is_config_same: true
+  vars:
+    original_config: "{{ lookup('file', '{{ build_path }}/config_orig.json' ) }}"
+    modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
+  when: original_config == modified_config
+
+# This task calls sign_orderer.yaml for the signing of the block by all orderers
+- name: Call sign_orderer.yaml to sign from new update block
+  include_tasks: orderer/sign_orderer.yaml
+  vars:
+    org_query: "orderers[?org_name=='{{org.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"
+    channel_name: "syschannel"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org.name != creator_orderer and is_config_same  == false
+
+# This task calls sign_block.yaml to sign from specific org
+- name: Call sign_block.yaml to sign from specific org
+  include_tasks: orderer/sign_block.yaml
+  vars:
+    org_query: "organizations[?name=='{{peer.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"
+    channel_name: "{{ channel.channel_name | lower }}"
+    sys_channel_name: "syschannel"
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: peer
+  when: peer.name == participant.name and is_config_same == false
+
+# This task add enable lifecycle capability to syschannel
+- name: Add enable lifecycle capability block to syschannel
+  include_tasks: orderer/update_block_orderer.yaml
+  vars:
+    channel_name: "syschannel"
+    org_query: "orderers[?org_name=='{{org.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org.name == creator_orderer and is_config_same  == false

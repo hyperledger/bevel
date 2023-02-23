@@ -94,6 +94,7 @@
     dest: "{{ build_path }}/ibftConfigFile.json"
   vars:
     total_peer_count: "{{ node_list | length }}"
+    chain_id: "{{ network.config.chain_id | default(2018) | int }}"
   when: 
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
@@ -165,54 +166,7 @@
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is defined and add_new_org|bool == True
 
-# This file stores the address of the validator nodes
-- name: Touch file to store information for validators
-  file:
-    path: "{{ build_path }}/validatorinfo"
-    state: touch
-  when:  
-    - generate_crypto is defined and generate_crypto == True
-    - add_new_org is not defined or add_new_org|bool == False
-
-# This file used by besu binary to generate the extra data information
-- name: Touch toEncode.json file
-  file:
-    path: "{{ build_path }}/toEncode.json"
-    state: touch
-  when:  
-    - generate_crypto is defined and generate_crypto == True
-    - add_new_org is not defined or add_new_org|bool == False
-
-# new genesis file with updated extradata
-- name: Touch modified genesis file
-  file:
-    path: "{{ build_path }}/crypto/newGenesis.json"
-    state: touch
-  when:  
-    - generate_crypto is defined and generate_crypto == True
-    - add_new_org is not defined or add_new_org|bool == False
-
-# Create the validator address array
-- name: Get node data
-  shell: |
-    echo "\"$(cat {{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data/nodeAddress)\"" >> {{ build_path }}/validatorinfo
-  with_indexed_items: "{{ node_list }}"
-  when:  
-    - item[1].type == "validator"
-    - generate_crypto is defined and generate_crypto == True
-    - add_new_org is not defined or add_new_org|bool == False
-
-# This task creates the rlp encoded string and add it to extraData field in newGenesis.json
-- name: Create the new genesis file with information for validator nodes
-  shell: |
-    cat {{ build_path }}/validatorinfo | paste -sd "," -| awk '{print "["$0"]"}'> {{ build_path }}/toEncode.json
-    echo "$( {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu rlp encode --from={{ build_path }}/toEncode.json )" > {{ build_path }}/extraData
-    jq '.extraData = $newVal' --arg newVal $(cat {{ build_path }}/extraData) << cat {{ build_path }}/crypto/genesis.json > {{ build_path }}/crypto/newGenesis.json
-  when: 
-    - generate_crypto is defined and generate_crypto == True
-    - add_new_org is not defined or add_new_org|bool == False
-    
-## Delete the keys directory
+# Delete the keys directory
 - name: Delete the keys directory
   file:
     path: "{{ build_path }}/crypto/keys"
@@ -221,17 +175,6 @@
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
 
-# This task writes the genesis base64 data to the file
-- name: write the genesis file
-  copy:
-    content: "{{ genesis }}"
-    dest: "{{ network.config.genesis }}"
-  vars:
-    genesis: "{{ lookup('file', '{{ build_path }}/crypto/newGenesis.json') | b64encode }}"
-  when: 
-    - generate_crypto is defined and generate_crypto == True
-    - add_new_org is not defined or add_new_org|bool == False
- 
 # This tasks copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   include_tasks: add_to_vault.yaml
@@ -240,7 +183,6 @@
     component_ns: "{{ org.name | lower }}-bes"
     vault: "{{ org.vault }}"
     peers: "{{ org.services.peers }}"
-    genesis: "{{ lookup('file', '{{ build_path }}/crypto/newGenesis.json') | b64encode }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org

@@ -1,0 +1,47 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This upgrades the orderer binaries on orderer node
+#############################################################################################
+
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "./build"
+    state: absent
+
+# Create build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build/channel-artifacts/"
+    state: directory
+
+# Get genesis block from Vault
+- name: Get genesis block from Vault
+  shell: |
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name }}-net
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_orderer_genesis_block
+
+# Get the genesis block and store in variable
+- set_fact:
+    genesis_block: "{{ vault_orderer_genesis_block.stdout }}"
+
+# Store the genesis block
+- name: Save genesis block
+  local_action: copy content="{{ genesis_block }}" dest=./build/channel-artifacts/genesis.block.base64
+
+# This role creates value file for each orderer
+- name: Create value file for each orderer in org
+  include_tasks: create_orderer_value.yaml
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when:
+    - component_services.orderers is defined and component_services.consensus is defined

@@ -13,16 +13,15 @@ Certificate Paths on Vault for Hyperledger Besu Network
 | Path                                                                              | Key Name               | Description         |
 |-----------------------------------------------------------------------------------|-------------------------------|--------------|
 | secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | key                       | Private Key Data for a node   |
-| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | key.pub                      | Public Key (Identity for a node)  |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | key_pub                      | Public Key (Identity for a node)  |
 | secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | nodeAddress                       | Besu Node Address     |
 
 ### For Orion
 
 | Path                                                                           | Key Name               | Description         |
 |--------------------------------------------------------------------------------|-------------------------------|--------------|
-| secretsv2/{{ `component_ns` }}/crypto/{{ `peer_name` }}/orion               | key.pub                        | Public key of Transaction manager |
-| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/orion                 | key                        | Private key of Transaction manager |
-| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/orion | password  | Password for the Key |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `peer_name` }}/tm               | publicKey                        | Public key of Transaction manager |
+| secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/tm                 | privateKey                        | Private key of Transaction manager |
 
 
 ### For Root Certificates
