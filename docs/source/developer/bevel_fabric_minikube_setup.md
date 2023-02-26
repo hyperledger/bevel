@@ -7,17 +7,17 @@
 
 ## Pre-requisites
 
-Before proceeding, first make sure that you've completed [Developer Pre-requisites](./dev_prereq.md).
+Before proceeding, first make sure that you've completed [developer pre-requisites](./dev_prereq.md).
 
 ## Setup minikube
 
-1. Install minikube using instruction [here](https://minikube.sigs.k8s.io/docs/start/) on VM
+1. Please setup a Ubuntu 20.04 VM with atleast 16 GB RAM, 8 vcpu and having a public ip address, on any cloud provider like Azure, GCP etc. How to set and get a public ip address of VM, one needs to check associated cloud provider documentation. For example: [azure](https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/configure-public-ip-vm)
 
-2. Start minikube. The setup has been tested on a Ubuntu 20.04 VM with atleast 16 GB RAM, 8 vcpu and requires a public ip  
+2. Install minikube using instruction [here](https://minikube.sigs.k8s.io/docs/start/) and start minikube.
    ```bash
    minikube start --memory 12000 --cpus 4 --kubernetes-version=1.19.1 --apiserver-ips=<specify public ip of VM>
    ```
-3. Start a proxy which is required for ansible controller(to be created later in following steps) to access the minikube k8s 
+3. Start a proxy which is required for ansible controller(to be created later in following steps) to access the minikube k8s
    ```bash
    docker run -d --network minikube -p 18443:18443 chevdor/nginx-minikube-proxy
    ```
@@ -25,7 +25,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 
 1. If you have not already done so, fork [bevel](https://github.com/hyperledger/bevel) and clone the forked repo to your machine.
    ```bash
-   git clone git@github.com:<githubuser>/bevel.git   
+   git clone git@github.com:<githubuser>/bevel.git
    ```
 
 ## Update kubeconfig file
@@ -44,7 +44,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 3. Copy `~/.kube/config` file to build:
    ```bash
    cp ~/.kube/config build/
-   ```   
+   ```
 4. Open the above config file in build directory and update file path for certificate-authority, client-certificate and client-key  to point to the respective files copied in build directory.
 
    ![](./../_static/minikube-config.jpg)
@@ -54,24 +54,19 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
    server: https://<specify public ip of VM>:18443
    ```
 
-   ***   
+   ***
    **NOTE**: If you ever delete and recreate minikube, the above steps have to be repeated.
    ***
 
 ## Setup Hashicorp vault
+   There are two options to setup vault:
+   1. Install the vault using Hashicorp Vault [official documenation](https://developer.hashicorp.com/vault/docs/install)
 
-   1. There are two options to setup vault:
-   Setup hashicorp vault and run in dev mode. Install the vault following instructions at following [url]( 
-   https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install)
-   
-      ```bash
-      vault server -dev -dev-root-token-id root -dev-listen-address 0.0.0.0:8200
-      ```
    OR
 
-   2. One can also use helm charts for vault and do the operations as mentioned in the Workshop series [here](    
+   2. Install vault using helm charts, please watch this video from 17:17 minutes from this Bevel workshop series [here](
    https://www.youtube.com/watch?v=eKMDgKshjQ8&list=PL0MZ85B_96CFJUzic2ZF9rposfx2hr2rm&index=2)
-   
+
 ## Edit the network configuration file
 
 1. Copy the sample network yaml file to create the fabric network
@@ -106,7 +101,7 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 
 <details>
   <summary>How To Generate GitHub Token</summary>
-  
+
    1. On GitHub page, click your profile icon and then click **Settings**.
    2. On the sidebar, click **Developer settings**.
    3. On the sidebar, click **Personal access tokens**.
