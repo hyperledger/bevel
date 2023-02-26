@@ -179,7 +179,7 @@ Three new sections are added to the network.yaml
 The [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml) playbook is used to add a new organization to the existing network. This can be done using the following command
 
 ```
-ansible-playbook platforms/shared/configuration/site.yaml --extra-vars "@path-to-network.yaml" --extra-vars "add_new_org=True"
+ansible-playbook platforms/shared/configuration/add-new-organization.yaml --extra-vars "@path-to-network.yaml"
 ```
 
 ## Verify network deployment

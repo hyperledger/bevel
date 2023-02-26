@@ -1,0 +1,70 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# Create script to update capabilities in application channel's orderer grou, modify channel 
+# config, sign channel config by other orderers and update the modified channel configuration
+############################################################################################
+
+# This task creates the capabilities upgrade script for orderer
+- name: "Create script file to upgrade application channel orderer group"
+  template:
+    src: "orderer_group_capability.tpl"
+    dest: "{{ build_path }}/appchannel-orderer-group-capabilities.sh"
+  vars:
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# This task create the config update for application capability
+- name: Update orderer group capabilities of application channel
+  include_tasks: orderer-group/orderer_group_capability.yaml
+  vars:
+    orderer: "{{ network.orderers | first }}"
+    org_query: "organizations[?name=='{{orderer.org_name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"    
+
+# check if original channel config and modified config is same
+# if that is the case we dont have to proceed doing the channel update
+- name: Intialize the variable
+  set_fact:
+    is_config_same: false
+
+- name: Check if required channel config already exists
+  set_fact:
+    is_config_same: true
+  vars:
+    original_config: "{{ lookup('file', '{{ build_path }}/config_orig.json' ) }}"
+    modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
+  when: original_config == modified_config
+
+# This task calls sign_orderer.yaml for the signing of the block by all orderers
+- name: Call sign_orderer.yaml to sign from new update block
+  include_tasks: orderer-group/sign_block_orderer.yaml
+  vars:
+    org_query: "orderers[?org_name=='{{org.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org.name != creator_orderer and is_config_same  == false
+
+# This task updates the block by the existing orderer
+- name: Call update_orderer.yaml to add the new orderer to the existing network
+  include_tasks: orderer-group/update_block_orderer.yaml
+  vars:
+    org_query: "orderers[?org_name=='{{org.name}}']"
+    orderer: "{{ network | json_query(org_query) | first }}"
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-net"
+  loop: "{{ network.organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org.name == creator_orderer and is_config_same  == false

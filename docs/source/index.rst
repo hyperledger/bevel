@@ -34,7 +34,7 @@ An accelerator for delivering production-ready blockchain solutions
    developerguide
    samples
    roadmap
-   compatibilitymatrix
+   compatibilitytable
    architectureref
    commandsref
    faq

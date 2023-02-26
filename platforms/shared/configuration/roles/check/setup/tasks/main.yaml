@@ -65,8 +65,8 @@
   register: get_gitcred
   when: check == "git_credentials"
 
-# This task check if certs exists in vault.
-- name: check if certs exists in vault.
+# This task waits until certs are stored in vault.
+- name: Wait for certs to be created.
   shell: |
     vault kv get -field={{ vault_field }} {{ vault_path }}
   environment:
@@ -77,3 +77,13 @@
   delay: 30
   until: vault_result.failed == False
   when: check == "crypto_materials"
+
+# This task check if certs exists in vault.
+- name: check if certs exists in vault.
+  shell: |
+    vault kv get -field={{ vault_field }} {{ vault_path }}
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: certs_created
+  when: check == "certs_created"

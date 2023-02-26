@@ -22,8 +22,10 @@
 # This task checks if the new validator has any entry in the vault
 - name: Check for the crypto material in the vault
   include_tasks: check_vault.yaml
-  vars:    
+  vars:
+    component_ns: "{{ org.name | lower }}-bes"    
     vault: "{{ org.vault }}"
+    component_ns: "{{ org.name | lower }}-bes"
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org
@@ -35,7 +37,7 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: org
-  when: generate_crypto is defined and generate_crypto == True and org.type == 'validator'
+  when: org.type == 'validator'
 
 # This task creates the build directory
 - name: Create build directory if it does not exist
@@ -44,42 +46,45 @@
   vars:
     path: "{{ playbook_dir }}/build"
     check: "ensure_dir"
-  when: generate_crypto is defined and generate_crypto == True
+  when: (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # This task creates the bin directory, if it doesn't exist, for storing the geth binary
 - name: Create bin directory
   file:
     path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
     state: directory
-  when: generate_crypto is defined and generate_crypto == True
+  when: (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # Check if besu binary already exists
 - name: check besu binary
   stat:
     path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}/besu"
   register: besu_stat_result
-  when: generate_crypto is defined and generate_crypto == True
 
 # Create a temporary directory to download and extract besu tar
 - name: register temporary directory
   tempfile:
     state: directory
   register: tmp_directory
-  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+  when: besu_stat_result is defined and besu_stat_result.stat.exists == False
 
 # This task fetches the besu tar file from the mentioned URL
 - name: "Geting the besu binary tar"
   get_url:
     url: https://hyperledger.jfrog.io/artifactory/besu-binaries/besu/{{ network.version }}/besu-{{ network.version }}.zip
     dest: "{{ tmp_directory.path }}"
-  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+  when:
+    - besu_stat_result.stat.exists == False
+    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # This task unzips the above downloaded tar file
 - name: "Unziping the downloaded file"
   unarchive:
     src: "{{ tmp_directory.path }}/besu-{{ network.version }}.zip"
     dest: "{{ tmp_directory.path }}"
-  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+  when:
+    - besu_stat_result.stat.exists == False
+    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # This task extracts the besu binary and place it at appropriate path
 - name: "Moving the besu from the extracted folder and place in it path"
@@ -87,7 +92,9 @@
     src: "{{ tmp_directory.path }}/besu-{{ network.version }}/bin/besu"
     dest: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
     mode: 0755
-  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+  when:
+    - besu_stat_result.stat.exists == False
+    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # This task extracts the supporting besu.bat and place it at appropriate path
 - name: "Moving the besu dependencies from the extracted folder and place in it path"
@@ -95,7 +102,9 @@
     src: "{{ tmp_directory.path }}/besu-{{ network.version }}/lib"
     dest: "{{ bin_install_dir }}/besu"
     mode: 0755
-  when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
+  when:
+    - besu_stat_result.stat.exists == False
+    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # This task creates the organization directories for crypto material if not exists
 - name: Create organization directory if it does not exist
@@ -106,12 +115,13 @@
     check: "ensure_dir"
   with_indexed_items: "{{ enode_validator_list }}"
   when:  
-    - generate_crypto is defined and generate_crypto == True
+    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # This task generates the enode for the new validator
 - name: "Creating the enode and pub key for the new validator"
   include_tasks: create_enode.yaml
-  when: generate_crypto is defined and generate_crypto == True
+  when:
+    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # This file stores the address of the validator nodes
 - name: Touch file to store information for validators
@@ -119,7 +129,7 @@
     path: "{{ build_path }}/validatorinfo"
     state: touch
   when:  
-    - generate_crypto is defined and generate_crypto == True
+    - (network.crypto_only is defined and network.crypto_only == false) or (network.crypto_only is undefined)
 
 # This file used by besu binary to generate the extra data information
 - name: Touch toEncode.json file
@@ -127,7 +137,7 @@
     path: "{{ build_path }}/toEncode.json"
     state: touch
   when:  
-    - generate_crypto is defined and generate_crypto == True
+    - (network.crypto_only is defined and network.crypto_only == false) or (network.crypto_only is undefined)
 
 # Create the validator address array
 - name: Get node data
@@ -136,7 +146,7 @@
   with_indexed_items: "{{ enode_validator_list }}"
   when:  
     - item[1].type == "validator"
-    - generate_crypto is defined and generate_crypto == True
+    - (network.crypto_only is defined and network.crypto_only == false) or (network.crypto_only is undefined)
     
 # This task converts the validator info to json format
 - name: Convert validatorInfo to json format
@@ -152,7 +162,7 @@
 # This task saves the JSON data to a variable for future use
 - name: Save the data to a Variable as a Fact
   set_fact:
-    validator_address: "{{ result.stdout }}"    
+    validator_address: "{{ result.stdout }}"
 
 # This task contains the voting from the existing validators for the new validator to be added
 - name: Voting for the addition of newest validator
@@ -164,4 +174,3 @@
   with_together:
     - "{{ validator_address }}"
     - "{{ enode_validator_list }}"
-  when: generate_crypto is defined and generate_crypto == True

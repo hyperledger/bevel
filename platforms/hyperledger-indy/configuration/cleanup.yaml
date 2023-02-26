@@ -31,7 +31,73 @@
       loop_var: organizationItem
   # Uninstalling Flux is needed so that everything is clean
   # remove this if not needed
-  - name: Uninstall flux
+  ##Deletes Deployments related to flux
+  - name: Delete flux deployments
+    k8s:
+      state: absent
+      api_version: v1
+      kind: Deployment
+      namespace: flux-{{ network.env.type }}
+      name: "{{ item[0] }}"
+      force: yes
+      kubeconfig: "{{ kubernetes.config_file }}"
+    vars:
+      kubernetes: "{{ item[1].k8s }}"
+    with_nested:
+      - ["helm-controller", "kustomize-controller", "notification-controller", "source-controller"]
+      - "{{ network['organizations'] }}"
+    ignore_errors: yes
+
+  ##Deletes Services related to flux
+  - name: Delete flux services
+    k8s:
+      state: absent
+      api_version: v1
+      kind: Service
+      namespace: flux-{{ network.env.type }}
+      name: "{{ item[0] }}"
+      kubeconfig: "{{ kubernetes.config_file }}"
+    vars:
+      kubernetes: "{{ item[1].k8s }}"
+    with_nested:
+      - ["webhook-receiver", "notification-controller", "source-controller"]
+      - "{{ network['organizations'] }}"
+    ignore_errors: yes
+
+  ##Deletes Network Policies related to flux
+  - name: Delete flux Network Policies
+    k8s:
+      state: absent
+      api_version: v1
+      kind: NetworkPolicy
+      namespace: flux-{{ network.env.type }}
+      name: "{{ item[0] }}"
+      kubeconfig: "{{ kubernetes.config_file }}"
+    vars:
+      kubernetes: "{{ item[1].k8s }}"
+    with_nested:
+      - ["allow-egress", "allow-scraping", "allow-webhooks"]
+      - "{{ network['organizations'] }}"
+    ignore_errors: yes
+
+  ##Deletes ServiceAccount related to flux
+  - name: Delete flux ServiceAccount
+    k8s:
+      state: absent
+      api_version: v1
+      kind: ServiceAccount
+      namespace: flux-{{ network.env.type }}
+      name: "{{ item[0] }}"
+      kubeconfig: "{{ kubernetes.config_file }}"
+    vars:
+      kubernetes: "{{ item[1].k8s }}"
+    with_nested:
+      - ["helm-controller", "kustomize-controller", "notification-controller", "source-controller"]
+      - "{{ network['organizations'] }}"
+    ignore_errors: yes
+
+  ##Deletes flux namespace
+  - name: delete flux namespace
     k8s:
       name: flux-{{ network.env.type }}
       api_version: v1
@@ -39,12 +105,10 @@
       state: absent
       kubeconfig: "{{ kubernetes.config_file }}"
     vars:
-      kubernetes: "{{ organizationItem.k8s }}"
-      bin_install_dir: "~/bin" # Default to /bin install directory for binaries
+      kubernetes: "{{ item.k8s }}"
     loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: organizationItem
     ignore_errors: yes
+
 
   # Delete the Flux Helm release from all organizations's K8S clusters (including the Git secret)
   - name: Delete Flux
