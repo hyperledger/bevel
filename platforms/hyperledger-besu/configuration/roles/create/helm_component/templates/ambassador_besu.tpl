@@ -20,7 +20,7 @@ spec:
       name: {{ component_name }}
       namespace: {{ component_ns }}
     image:
-      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
+      alpineutils: {{ network.docker.url }}/bevel-alpine:{{ bevel_alpine_version }}
       pullSecret: regcred
       pullPolicy: IfNotPresent
     network:
