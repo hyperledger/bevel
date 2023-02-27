@@ -4,12 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Build apline-utils docker image triggered by :
+# Build and push bevel-alpine docker image triggered by :
 #  - push on develop branch for latest tags 
 #  - create tag vx.y.z for release tags
 #  - Can be triggered manually
 
-name: Build alpine Docker image and push to ghcr
+name: Build bevel-alpine docker image and push to ghcr
 
 on:
   workflow_dispatch:
@@ -20,8 +20,9 @@ on:
     branches:
       - develop
     paths:
-      - '.github/workflows/alpine_image.yml'
-      - 'platforms/shared/images/alpine-utils.Dockerfile'
+      - '.github/workflows/img_bevel_alpine.yml'
+      - 'platforms/shared/images/bevel-alpine.Dockerfile'
+      - 'platforms/shared/images/bevel-alpine-ext.Dockerfile'
 
 env:
   REGISTRY: ghcr.io
@@ -59,14 +60,23 @@ jobs:
       with:
         string: ${{ env.IMAGE_PATH }}
 
-    - name: Build and push release tag latest
-      id: alpine_build_latest
+    - name: Build and push img with latest tag
+      id: bevel_alpine_latest
       uses: docker/build-push-action@v2
       with:
         context: .
-        file: ./platforms/shared/images/alpine-utils.Dockerfile
+        file: ./platforms/shared/images/bevel-alpine.Dockerfile
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/alpine-utils:latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-alpine:latest
+    
+    - name: Build and push img with latest tag
+      id: bevel_alpine_ext_latest
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./platforms/shared/images/bevel-alpine-ext.Dockerfile
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-alpine-ext:latest
   
   # on tag vx.y.z created, create docker tag x.y.z
   alpine-build-release:
@@ -103,10 +113,19 @@ jobs:
         string: ${{ env.IMAGE_PATH }}
 
     - name: Build and push release tag based on release ${{ steps.var.outputs.tag }}
-      id: alpine_build_release
+      id: bevel_alpine_release
       uses: docker/build-push-action@v2
       with:
         context: .
-        file: ./platforms/shared/images/alpine-utils.Dockerfile
+        file: ./platforms/shared/images/bevel-alpine.Dockerfile
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/alpine-utils:${{ steps.vars.outputs.tag }}
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-alpine-ext:${{ steps.vars.outputs.tag }}
+    
+    - name: Build and push release tag based on release ${{ steps.var.outputs.tag }}
+      id: bevel_alpine_ext_release
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./platforms/shared/images/bevel-alpine-ext.Dockerfile
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-alpine-ext:${{ steps.vars.outputs.tag }}

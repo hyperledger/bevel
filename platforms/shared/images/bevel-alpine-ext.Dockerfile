@@ -1,3 +1,4 @@
+# Docker image for Bevel alpine utilities 
 FROM alpine
 
 WORKDIR /usr/src
