@@ -60,6 +60,12 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Lowercase IMAGE_PATH
+      id: image_path_format
+      uses: ASzc/change-string-case-action@v2
+      with:
+        string: ${{ env.IMAGE_PATH }}
        
     - name: Build and push bevel-indy-ledger-txn:latest
       if: github.event.inputs.indy-node-version == ''
@@ -68,7 +74,7 @@ jobs:
       with:
         context: platforms/hyperledger-indy/images/indy-cli
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-ledger-txn:latest
    
     - name: Build and push bevel-indy-ledger-txn:latest
       if: github.event.inputs.indy-node-version != ''
@@ -77,7 +83,7 @@ jobs:
       with:
         context: platforms/hyperledger-indy/images/indy-cli
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:latest,${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:${{ github.event.inputs.indy-node-version }}
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-ledger-txn:latest,${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-ledger-txn:${{ github.event.inputs.indy-node-version }}
         
     - name: Build and push indyOS indy-key-mgmt latest
       if: github.event.inputs.indy-node-version == ''
@@ -86,7 +92,7 @@ jobs:
       with:
         context: platforms/hyperledger-indy/images/indy-key-mgmt
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-key-mgmt:latest                    
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-key-mgmt:latest                    
     
     - name: Build and push bevel-indy-node:latest
       if: github.event.inputs.indy-node-version == ''
@@ -95,7 +101,7 @@ jobs:
       with:
         context: platforms/hyperledger-indy/images/indy-node
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-node:latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-node:latest
     
     - name: Build and push indy-key-mgmt provided version
       if: github.event.inputs.indy-node-version != ''
@@ -106,7 +112,7 @@ jobs:
         push: true
         build-args: |
           INDY_NODE_VERSION=${{ github.event.inputs.indy-node-version }}
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-key-mgmt:latest,${{ env.IMAGE_PATH }}/bevel-indy-key-mgmt:${{ github.event.inputs.indy-node-version }}       
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-key-mgmt:latest,${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-key-mgmt:${{ github.event.inputs.indy-node-version }}       
 
     - name: Build and push bevel-indy-node:provided version
       if: github.event.inputs.indy-node-version != ''
@@ -118,7 +124,7 @@ jobs:
         # TODO: Add correct build arguments
         #build-args: |
         #  BUILDTIME-INDY-NODE-VERSION=${{ github.event.inputs.indy-node-version }}
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-node:latest,${{ env.IMAGE_PATH }}/bevel-indy-node:${{ github.event.inputs.indy-node-version }}    
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-node:latest,${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-node:${{ github.event.inputs.indy-node-version }}    
                       
   indy-release: 
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
@@ -147,13 +153,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Lowercase IMAGE_PATH
+      id: image_path_format
+      uses: ASzc/change-string-case-action@v2
+      with:
+        string: ${{ env.IMAGE_PATH }}
+
     - name: Build and push bevel-indy-ledger-txn release tag ${{ steps.vars.outputs.tag }}  
       id: indy-cli-release
       uses: docker/build-push-action@v2
       with:
         context: platforms/hyperledger-indy/images/indy-cli
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:${{ steps.vars.outputs.tag }},${{ env.IMAGE_PATH }}/bevel-indy-ledger-txn:stable 
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-ledger-txn:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-ledger-txn:stable 
     
     - name: Build and push bevel-indy-key-mgmt release tag ${{ steps.vars.outputs.tag }}  
       id: indy-key-mgmt-release
@@ -161,7 +173,7 @@ jobs:
       with:
         context: platforms/hyperledger-indy/images/indy-key-mgmt
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-key-mgmt:${{ steps.vars.outputs.tag }},${{ env.IMAGE_PATH }}/bevel-indy-key-mgmt:stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-key-mgmt:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-key-mgmt:stable
     
     - name: Build and push bevel-indy-node release and stable tag ${{ steps.vars.outputs.tag }}  
       id: indy-node-release
@@ -169,4 +181,4 @@ jobs:
       with:
         context: platforms/hyperledger-indy/images/indy-node
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-indy-node:${{ steps.vars.outputs.tag }},${{ env.IMAGE_PATH }}/bevel-indy-node:stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-node:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-indy-node:stable
