@@ -13,16 +13,23 @@
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kubecontext }}"
     label_selectors:
-      - run = haproxy-ingress
+      - app.kubernetes.io/name=haproxy-ingress
     field_selectors:
       - status.phase=Running
   register: haproxy_status
 
+# Set haproxy installed fact
+- name: Set haproxy installed fact
+  set_fact:
+    haproxy_installed: "{{ haproxy_status.resources | length > 0 }}"
+
 # Install HAProxy ingress via helmchart
 - name: Install HAProxy Ingress controller
   shell: |
-    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --namespace default --set metadata.namespace="ingress-controller" --set service.ports.https=8443 --set image.version="{{ haproxy.version | default(default.version) }}" haproxy {{ playbook_dir }}/../../../platforms/shared/charts/haproxy
-  when: haproxy_status.resources|length == 0
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install --create-namespace --namespace "ingress-controller" \
+    haproxy {{ playbook_dir }}/../../../platforms/shared/charts/haproxy-ingress/haproxy-ingress-{{ default.version  }}.tgz \
+    --set controller.kind=DaemonSet -f {{ playbook_dir }}/../../../platforms/shared/charts/haproxy-ingress/values.yaml
+  when: (not haproxy_installed)
   tags:
     - haproxy
     - molecule-idempotence-notest
@@ -37,14 +44,14 @@
   when: network.env.external_dns is defined and network.env.external_dns == 'enabled'
 
 # Wait for HAProxy pods to start running
-- name: wait for pods to come up
+- name: Wait for pods to come up
   include_role:
     name: "check/helm_component"
   vars:
     namespace: ingress-controller
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kubecontext }}"
-    component_name: flux
+    component_name: haproxy
     component_type: "Pod"
     label_selectors:
-      - run = haproxy-ingress
+      - app.kubernetes.io/name=haproxy-ingress

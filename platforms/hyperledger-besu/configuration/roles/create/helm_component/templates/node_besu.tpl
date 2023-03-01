@@ -46,7 +46,7 @@ spec:
 
     images:
       node: hyperledger/besu:{{ network.version }}
-      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
+      alpineutils: {{ network.docker.url }}/bevel-alpine:{{ bevel_alpine_version }}
       pullPolicy: IfNotPresent
 
     node:
