@@ -72,6 +72,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Lowercase IMAGE_PATH
+      id: image_path_format
+      uses: ASzc/change-string-case-action@v2
+      with:
+        string: ${{ env.IMAGE_PATH }}
+
     - name: corda builds
       run: |
         WDIR=`pwd`
@@ -98,7 +104,7 @@ jobs:
       with:
         context: platforms/r3-corda/images/doorman
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-doorman-linuxkit:latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-doorman-linuxkit:latest
 
     - name: Build and push cordaOS networkmap latest
       id: corda_networkmap_latest
@@ -106,7 +112,7 @@ jobs:
       with:
         context: platforms/r3-corda/images/networkmap
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-networkmap-linuxkit:latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-networkmap-linuxkit:latest
 
     - name: Build and push cordaOS node latest
       if: github.event.inputs.corda_version == ''
@@ -115,7 +121,7 @@ jobs:
       with:
         file: platforms/r3-corda/images/Dockerfile-corda-tls
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-corda:latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-corda:latest
 
     - name: Build and push cordaOS node with provided version
       if: github.event.inputs.corda_version != ''
@@ -126,7 +132,7 @@ jobs:
         push: true
         build-args: |
           BUILDTIME_CORDA_VERSION=${{ github.event.inputs.corda_version }}
-        tags: ${{ env.IMAGE_PATH }}/bevel-corda:latest,${{ env.IMAGE_PATH }}/bevel-corda:${{ github.event.inputs.corda_version }}
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-corda:latest,${{ steps.image_path_format.outputs.lowercase }}/bevel-corda:${{ github.event.inputs.corda_version }}
 
   cordaOS-release:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
@@ -160,6 +166,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Lowercase IMAGE_PATH
+      id: image_path_format
+      uses: ASzc/change-string-case-action@v2
+      with:
+        string: ${{ env.IMAGE_PATH }}
+
     - name: corda builds
       run: |
         WDIR=`pwd`
@@ -181,7 +193,7 @@ jobs:
       with:
         context: platforms/r3-corda/images/doorman
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-doorman-linuxkit:${{ steps.vars.outputs.tag }},${{ env.IMAGE_PATH }}/bevel-doorman-linuxkit:stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-doorman-linuxkit:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-doorman-linuxkit:stable
 
     - name: Build and push cordaOS networkmap release tag ${{ steps.vars.outputs.tag }}
       id: corda_networkmap_release
@@ -189,7 +201,7 @@ jobs:
       with:
         context: platforms/r3-corda/images/networkmap
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-networkmap-linuxkit:${{ steps.vars.outputs.tag }},${{ env.IMAGE_PATH }}/bevel-networkmap-linuxkit:stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-networkmap-linuxkit:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-networkmap-linuxkit:stable
 
     - name: Build and push cordaOS node release and stable tag ${{ steps.vars.outputs.tag }}
       id: corda_node_release
@@ -197,4 +209,4 @@ jobs:
       with:
         file: platforms/r3-corda/images/Dockerfile-corda-tls
         push: true
-        tags: ${{ env.IMAGE_PATH }}/bevel-corda:${{ steps.vars.outputs.tag }},${{ env.IMAGE_PATH }}/bevel-corda:stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-corda:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-corda:stable

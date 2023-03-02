@@ -7,13 +7,11 @@ Bevel current roadmap
     title Bevel current roadmap
     dateFormat  YY-MM-DD
     section Platform
-    Platforms and components upgrade : active, 22-06-25, 180d
-    Fabric OFE*: active, 22-06-25, 75d
-    Ansible Decoupling: active, 22-06-25, 30d 
+    Platforms and components upgrade : active, 22-09-01, 180d
     section Application
-    Besu Ref App: active, 22-09-15, 90d
-    section GitOps
-    Upgrade to Flux v2: active, 22-06-25, 35d
+    Besu Ref App: active, 22-10-15, 90d
+    section Bevel Operator
+    To Be Discussed: active, 22-11-15, 120d
 
 .. |pin| image:: https://github.githubassets.com/images/icons/emoji/unicode/1f4cc.png?v8
     :width: 15pt
@@ -53,29 +51,33 @@ General
 -------
 -  |run| Improve the existing ``readthedocs`` documentations
     - |run| Update guide for deployment on Local k8s
+    - |pin| Update troubleshooting guide and role readme
 -  |run| Platforms and components upgrade:
-    - |tick| Flux version 2 upgrade
-    - |tick| Test and update platforms code to run on EKS v1.2x 
+    - |run| Ambassador chart upgrade
+    - |run| HAProxy chart upgrade
     - |pin| Setup AWS cloudwatch exporter
     - |pin| Grafana and Promethus integration 
-    - |pin| Improve logging/error messaging in playbooks
+    - |pin| Improve logging/error messaging in playbooks
 
 Platforms
 ---------
 - |run| Reduce/decouple ansible dependecy in DLT platforms automation
+- |run| Option to enable cert-manager for tls certificate creation
 - |run| Corda Enterprise operational feature enhancements
     - |pin| HA Notary options
     - |pin| Enable PostGreSQL support for Corda Enterprise
     - |pin| Removal of node
 - |run| HL Fabric operational feature enhancements
-    - |run| Feature for user identities
     - |run| External chaincode for Fabric 2.2.x
     - |pin| CI/CD piplelines for chaincode deployment
+    - |hand| Feature mixed organizations (orderer and peer in same organizations)
 - |run| HL Besu operational feature enhancements
     - |run| Implement private transactions
+    - |pin| Add QBFT consensus
+    - |hand| Enable node discovery
     - |hand| Enable bootnodes
 - |run| Quorum operational feature enhancements
-    - |tick| Vault secret engine integration with tessera
+    - |pin| Enable TLS for Quorum Tessera communication 
     - |pin| Implement private transactions
 - |run| HL Indy operational feature enhancements
     - |hand| Removal of organizations from a running Indy Network
@@ -87,4 +89,4 @@ Application
 
 Histroic DLT/Blockchain support releases
 -----------------------------------------
-This section has been moved to the :doc:`compatibilitymatrix`
+This section has been moved to the :doc:`compatibilitytable`

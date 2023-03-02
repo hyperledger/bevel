@@ -1,0 +1,73 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+# Create script to update capabilities in application channel, modify channel config, sign
+# channel config by other peers and update the modified channel configuration
+############################################################################################
+
+# This task creates the capabilities upgrade script for channel group
+- name: Create script file to update application channel's application group
+  template:
+    src: "application_group_capability.tpl"
+    dest: "{{ build_path }}/appchannel-application-group-capabilities.sh"
+  vars:
+    os: "{{ fabric.os }}"
+    arch: "{{ fabric.arch }}"
+    version: "{{ network.version }}"
+
+# This task create config update for application channel
+- name: Update application group capabilities of application channel
+  include_tasks: application-group/application_group_capability.yaml
+  vars:
+    peer: "{{ participant.peers | first }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.type == "creator"
+
+# check if original channel config and modified config is same
+# if that is the case we dont have to proceed doing the channel update
+- name: Intialize the variable
+  set_fact:
+    is_config_same: false
+
+- name: Check if required channel config already exists
+  set_fact:
+    is_config_same: true
+  vars:
+    original_config: "{{ lookup('file', '{{ build_path }}/config_orig.json' ) }}"
+    modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
+  when: original_config == modified_config
+
+# # This task calls sign_block.yaml to sign config update by peers
+- name: Call sign_block.yaml to sign from all other peers
+  include_tasks: channel-group/sign_block.yaml
+  vars:
+    peer: "{{ participant.peers | first }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.type != "creator" and is_config_same == false
+
+# This task updates the block to the channel
+- name: Call update_block.yaml to update the config update
+  include_tasks: channel-group/update_block.yaml
+  vars:
+    peer: "{{ participant.peers | first }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+    component_ns: "{{ org.name | lower }}-net"
+  loop: "{{ channel.participants }}"
+  loop_control:
+    loop_var: participant
+  when: participant.type == "creator" and is_config_same == false

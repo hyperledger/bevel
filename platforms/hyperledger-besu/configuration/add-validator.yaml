@@ -55,15 +55,18 @@
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
   - name: "Setup vault"   
     include_role: 
-      name: "setup/vault_kubernetes"
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
     vars:
+      policy_type: "besu"
+      name: "{{ organizationItem.name | lower }}"
       component_ns: "{{ organizationItem.name | lower }}-bes"
+      component_name: "{{ organizationItem.name | lower }}-vaultk8s-job"
+      component_auth: "besu{{ organizationItem.name | lower }}"
+      component_type: "organization"
       kubernetes: "{{ organizationItem.k8s }}"
       vault: "{{ organizationItem.vault }}"
-      component_name: "{{ organizationItem.name | lower}}"
-      component_path: "{{ organizationItem.name | lower }}/"
-      component_auth: "besu{{ organizationItem.name | lower }}"
-      component_type: "besu"
+      gitops: "{{ organizationItem.gitops }}"
+      reset_path: "platforms/hyperledger-besu/configuration"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem
@@ -82,6 +85,9 @@
       component_name: "{{ organizationItem.name | lower }}"
       kubernetes: "{{ organizationItem.k8s }}"
       vault: "{{ organizationItem.vault }}"
+      gitops: "{{ organizationItem.gitops }}"
+      charts_dir: "{{ organizationItem.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
     loop: "{{ network['organizations']}}"
     loop_control:
       loop_var: organizationItem
@@ -92,7 +98,7 @@
       name: create/validator_node  
     vars:
       build_path: "./build"
-    when: network.config.consensus == 'ibft'
+    when: network.config.consensus == 'ibft' or network.config.consensus == 'qbft'
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS

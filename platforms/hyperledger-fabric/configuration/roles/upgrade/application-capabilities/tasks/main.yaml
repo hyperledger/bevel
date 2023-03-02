@@ -1,0 +1,45 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# Generates capabilities json and update application capabilities of application channel
+#############################################################################################
+
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "{{ build_path }}"
+    state: absent
+
+# Create the build directory
+- name: Create build directory if it does not exist
+  file:
+    path: "{{ build_path }}/channel-artifacts/"
+    state: directory
+
+# Copy capabilities json to channel artifacts
+- name: Copy capabilities json to channel artifacts
+  copy:
+    src: "capabilities.json"
+    dest: "{{ build_path }}/channel-artifacts/capabilities.json"
+
+# Upgrade the orderer group for application channel
+- name: Upgrade orderer group capability for application channel
+  include_tasks: nested_main_orderer_group.yaml
+  vars:
+     channel_name: "{{ channel.channel_name | lower }}"
+
+# Upgrade the channel group for application channel
+- name: Upgrade the channel group for application channel
+  include_tasks: nested_main_channel_group.yaml
+  vars:
+     channel_name: "{{ channel.channel_name | lower }}"
+
+# Upgrade the application group for application channel
+- name: Upgrade the application group for application channel
+  include_tasks: nested_main_application_group.yaml
+  vars:
+     channel_name: "{{ channel.channel_name | lower }}"

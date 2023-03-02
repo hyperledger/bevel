@@ -21,6 +21,7 @@ ENV NODE_SUBJECT="node subject"
 ENV NODE_ORGANIZATION="node organization"
 ENV NODE_ORGANIZATION_UNIT="node organization unit"
 ENV PROTOCOL="Consensus mechanism used"
+ENV PRIVATE_KEY="node private Key"
 
 EXPOSE ${PORT}
 CMD [ "node", "app.js" ]

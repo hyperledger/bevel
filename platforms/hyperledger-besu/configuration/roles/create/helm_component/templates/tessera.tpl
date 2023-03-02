@@ -21,7 +21,7 @@ spec:
       namespace: {{ component_ns }}
       labels:
     images:
-      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
+      alpineutils: {{ network.docker.url }}/bevel-alpine-ext:{{ bevel_alpine_version }}
       tessera: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       busybox: busybox
       mysql: mysql/mysql-server:5.7
@@ -96,3 +96,25 @@ spec:
       storageclassname: {{ storageclass_name }}
       storagesize: 1Gi
       dbstorage: 1Gi
+
+{% if network.env.labels is defined %}
+    labels:
+      service:
+{% if network.env.labels.service is defined %}
+{% for key in network.env.labels.service.keys() %}
+        - {{ key }}: {{ network.env.labels.service[key] | quote }}
+{% endfor %}
+{% endif %}
+      pvc:
+{% if network.env.labels.pvc is defined %}
+{% for key in network.env.labels.pvc.keys() %}
+        - {{ key }}: {{ network.env.labels.pvc[key] | quote }}
+{% endfor %}
+{% endif %}
+      deployment:
+{% if network.env.labels.deployment is defined %}
+{% for key in network.env.labels.deployment.keys() %}
+        - {{ key }}: {{ network.env.labels.deployment[key] | quote }}
+{% endfor %}
+{% endif %}
+{% endif %}

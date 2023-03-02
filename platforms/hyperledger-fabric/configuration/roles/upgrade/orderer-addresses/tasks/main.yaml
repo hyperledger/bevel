@@ -1,0 +1,51 @@
+##############################################################################################
+#  Copyright Mohit Vaish. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This creates the orderer address list and updates the system and application channel 
+# for orderer endpoints
+#############################################################################################
+
+# Remove the build directory
+- name: Remove build directory
+  file:
+    path: "{{ build_path }}"
+    state: absent
+
+# Create directory
+- name: Create build directory if it does not exist
+  file:
+    path: "./build/channel-artifacts/"
+    state: directory
+
+# Construct the orderer addresses list
+- name: Construct the orderer addresses list
+  set_fact:
+    endpoints:
+    |-
+      {% for orderer in network.orderers %}
+        "{{ orderer.uri }}",
+      {% endfor %}
+
+# Update orderer address in syschannel
+- name: Update orderer address in syschannel
+  include_tasks: update_orderer_address.yaml
+  vars:
+    kubernetes: "{{ org.k8s }}"
+    component_ns: "{{ org.name | lower }}-net"
+    channelName: "syschannel"
+    ordererOrg: "{{ org }}"
+  loop: "{{ organizations }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer'
+
+# Update orderer address in application channel(s)
+- name: Update orderer address application channel(s)
+  include_tasks: update_orderer_address_appchannel.yaml
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
