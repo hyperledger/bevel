@@ -15,6 +15,13 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }} 
     {{- include "labels.custom" . | nindent 2 }}
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.deployment }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
   name: {{ .Values.tessera.name }}
 spec:
   serviceName: {{ .Values.tessera.name }}
@@ -27,6 +34,13 @@ spec:
       app.kubernetes.io/managed-by: {{ .Release.Service }}
       app.kubernetes.io/instance: {{ .Release.Name }} 
       {{- include "labels.custom" . | nindent 2 }}
+      {{- if $.Values.labels }}
+      {{- range $key, $value := $.Values.labels.deployment }}
+      {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
   template:
     metadata:
       creationTimestamp: null
@@ -38,6 +52,13 @@ spec:
         app.kubernetes.io/managed-by: {{ .Release.Service }}
         app.kubernetes.io/instance: {{ .Release.Name }} 
         {{- include "labels.custom" . | nindent 2 }}
+        {{- if $.Values.labels }}
+        {{- range $key, $value := $.Values.labels.deployment }}
+        {{- range $k, $v := $value }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
       hostname: {{ .Values.tessera.name }}
@@ -272,6 +293,14 @@ spec:
   volumeClaimTemplates: 
     - metadata:
         name: {{ .Values.tessera.name }}-pv
+        labels:
+           {{- if $.Values.labels }}
+           {{- range $key, $value := $.Values.labels.pvc }}
+           {{- range $k, $v := $value }}
+           {{ $k }}: {{ $v | quote }}
+           {{- end }}
+           {{- end }}
+           {{- end }}
       spec:
         storageClassName: {{ .Values.storage.storageclassname }}
         accessModes: [ "ReadWriteOnce" ]
@@ -279,7 +308,15 @@ spec:
           requests:
             storage: {{ .Values.storage.storagesize }}
     - metadata:
-        name: {{ .Values.tessera.name }}-mysql     
+        name: {{ .Values.tessera.name }}-mysql
+        labels:
+           {{- if $.Values.labels }}
+           {{- range $key, $value := $.Values.labels.pvc }}
+           {{- range $k, $v := $value }}
+           {{ $k }}: {{ $v | quote }}
+           {{- end }}
+           {{- end }}
+           {{- end }}
       spec:
         storageClassName: {{ .Values.storage.storageclassname }}    
         accessModes: [ "ReadWriteOnce" ]
