@@ -21,7 +21,7 @@ spec:
       namespace: {{ component_ns }}
       labels:
     images:
-      alpineutils: {{ network.docker.url }}/bevel-alpine:{{ bevel_alpine_version }}
+      alpineutils: {{ network.docker.url }}/bevel-alpine-ext:{{ bevel_alpine_version }}
       tessera: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       busybox: busybox
       mysql: mysql/mysql-server:5.7

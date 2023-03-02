@@ -25,7 +25,7 @@ spec:
       repository: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       pullSecret: regcred
       pullPolicy: IfNotPresent
-      alpineutils: "{{ network.docker.url }}/bevel-alpine-ext:{{ bevel_alpine_version }}
+      alpineutils: {{ network.docker.url }}/bevel-alpine-ext:{{ bevel_alpine_version }}
     vault:
       address: {{ vault.url }}
       secretengine: {{ vault.secret_path | default('secretsv2') }}
