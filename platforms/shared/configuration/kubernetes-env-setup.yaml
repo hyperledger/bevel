@@ -46,8 +46,21 @@
       kubeconfig_path: "{{ item.k8s.config_file }}"
       kubecontext: "{{ item.k8s.context }}"
       aws: "{{ item.aws }}"
+      organization: "{{ item }}"
     with_items: "{{ network.organizations }}"
     when: network.env.proxy == 'ambassador'
+  #installs cert-manager
+  - include_role:
+      name: setup/certmanager
+    vars:
+      kubeconfig_path: "{{ item.k8s.config_file }}"
+      kubecontext: "{{ item.k8s.context }}"
+      aws: "{{ item.aws }}"
+      organization: "{{ item }}"
+    with_items: "{{ network.organizations }}"
+    when: 
+      - network.env.proxy == 'ambassador'
+      - network.type == 'besu'
   - include_role:
       name: setup/haproxy-ingress
     vars:

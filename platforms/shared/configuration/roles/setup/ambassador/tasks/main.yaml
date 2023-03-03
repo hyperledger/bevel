@@ -124,8 +124,38 @@
   when: 
     - network.env.external_dns is defined
     - network.env.external_dns == 'enabled'
+    - (organization.issuer|lower == default) or (organization.issuer is undefined)
   tags:
     - molecule-idempotence-notest  
+
+#checks Ingress class for Ambassador
+- name: checks IngressClass for ambassador
+  k8s_info:
+    kind: IngressClass
+    name: ambassador
+    namespace: default
+    kubeconfig: "{{  kubeconfig_path }}"
+  register: ingressclass 
+  tags:
+    - molecule-idempotence-notest
+
+#create Ingress class for Ambassador
+- name: creates IngressClass for ambassador
+  k8s:
+    state: present
+    kubeconfig: "{{  kubeconfig_path }}"
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: IngressClass
+      metadata:
+        name: ambassador
+        annotations:
+          ingressclass.kubernetes.io/is-default-class: "true"
+      spec:
+        controller: getambassador.io/ingress-controller
+  when: ingressclass.resources[0] is undefined
+  tags:
+    - molecule-idempotence-notest
 
 - name: Install Ambassador with EIP for Indy
   shell: |
