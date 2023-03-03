@@ -7,7 +7,8 @@
 var express = require('express')
   , router = express.Router();
 
-const { productContract, fromAddress, fromNodeSubject,protocol } = require('../web3services');
+const {productContract, fromAddress, fromNodeSubject, protocol, web3} = require('../web3services');
+const {productContractAddress, privateKey} = require("../config");
 var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require('body-parser');
@@ -177,34 +178,33 @@ router.post('/', upload.array(), function (req, res) {
     misc.push(x);
   }
   console.log(misc);
-  productContract.methods
-    .addProduct(
-      newProduct.trackingID,
-      newProduct.productName,
-      "health",
-      misc,
-      newProduct.lastScannedAt,
-      newProduct.counterparties,
-    )
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
-    .on("receipt", function (receipt) {
-      // receipt example
-      if (receipt.status === true) {
-        res.send({ generatedID: newProduct.trackingID });
-        console.log(receipt.events.productHistoryEvent.returnValues)
+  const myData = productContract.methods.addProduct(newProduct.trackingID, newProduct.productName, "health", misc, newProduct.lastScannedAt,newProduct.counterparties).encodeABI();
+  web3.eth.getTransactionCount(fromAddress).then(txCount => {
+    const txObject = {
+      nonce: web3.utils.toHex(txCount),
+      to: productContractAddress,
+      value: '0x00',
+      gasLimit: web3.utils.toHex(2100000),
+      gasPrice: web3.utils.toHex(web3.utils.toWei('0', 'gwei')),
+      data: myData  
+    }
 
-      }
-      if (receipt.status === false) {
-        console.log("Request error");
-        res.send("Transaction not successful");
-      }
+    web3.eth.accounts.signTransaction(
+      txObject,
+      privateKey
+    ).then(signedTx => {
+      web3.eth.sendSignedTransaction(
+        signedTx.rawTransaction
+      ).then( receipt => {
+        res.send({generatedID: newProduct.trackingID});
+      })
+      .catch(e => {
+        res.send("Error while creating product")
+        console.error('Error while creating product: ', e);
+      });
     })
-    .on("error", function (error) {
-      res.end("Error! " + error);
-      console.log("error" + JSON.stringify(error, null, 4));
-      console.log(error);
-    });
-})
+  })
+});
 
 //PUT for updating custodian
 router.put('/:trackingID/custodian', function (req, res) {
@@ -215,16 +215,33 @@ router.put('/:trackingID/custodian', function (req, res) {
   var lastScannedAt = fromNodeSubject;
   console.log(trackingID);
   console.log(longLatCoordinates);
-  productContract.methods
-    .updateCustodian(trackingID, lastScannedAt)
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
-    .then(response => {
-      res.send(response)
+
+  const myData = productContract.methods.updateCustodian(trackingID, lastScannedAt).encodeABI();
+  web3.eth.getTransactionCount(fromAddress).then(txCount => {
+    const txObject = {
+      nonce: web3.utils.toHex(txCount),
+      to: productContractAddress,
+      value: '0x00',
+      gasLimit: web3.utils.toHex(2100000),
+      gasPrice: web3.utils.toHex(web3.utils.toWei('0', 'gwei')),
+      data: myData  
+    }
+
+    web3.eth.accounts.signTransaction(
+      txObject,
+      privateKey
+    ).then(signedTx => {
+      web3.eth.sendSignedTransaction(
+        signedTx.rawTransaction
+      ).then( receipt => {
+        res.send(trackingID);
+      })
+      .catch(e => {
+        res.send("Error while reclaiming the product")
+        console.error('Error while reclaiming the product: ', e);
+      });
     })
-    .catch(error => {
-      console.log(error)
-      res.send(error.message)
-    })
+  });
 });
 
 module.exports = router
