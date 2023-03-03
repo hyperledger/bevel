@@ -8,7 +8,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: {{ .Values.nodeName }}
-  {{- if .Values.deployment.annotations }}
+  {{- if .Values.deployment }}
     annotations:
 {{ toYaml .Values.deployment.annotations | indent 8 }}
   {{- end }}
@@ -26,7 +26,6 @@ spec:
       app: {{ .Values.nodeName }}
       app.kubernetes.io/name: {{ .Values.nodeName }}
       helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-      app.kubernetes.io/name: {{ .Values.nodeName }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   strategy:
     type: Recreate
@@ -37,7 +36,6 @@ spec:
         app: {{ .Values.nodeName }}
         app.kubernetes.io/name: {{ .Values.nodeName }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-        app.kubernetes.io/name: {{ .Values.nodeName }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
@@ -115,7 +113,7 @@ spec:
               validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
               product_contract_address=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["address"]')
 
-              # echo "Contract address: ${product_contract_address}"
+              echo "Contract address: ${product_contract_address}"
               
               echo "Getting the node address from vault: ${NODE_ADDRESS_SECRET}"
               LOOKUP_SECRET_RESPONSE=$(curl -sS \
@@ -124,14 +122,17 @@ spec:
                 jq -r 'if .errors then . else . end')
               validateVaultResponse "secret (${NODE_ADDRESS_SECRET})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
               node_address=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodeAddress"]')
+              node_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]')
 
-              # echo "node address: ${node_address}"
+              echo "node address: ${node_address}"
+              echo "node key: ${node_key}"
   
               OUTPUT_PATH="${MOUNT_PATH}/keys"
               mkdir -p ${OUTPUT_PATH}
 
               echo -n "${product_contract_address}" > ${OUTPUT_PATH}/product_contract_address
               echo -n "${node_address}" > ${OUTPUT_PATH}/node_address
+              echo -n "${node_key}" > ${OUTPUT_PATH}/node_key
       containers:     
         - name: express-app
           image: {{ .Values.expressapp.image }}
@@ -156,6 +157,7 @@ spec:
             echo $PRODUCT_CONTRACT_ADDRESS
 
             export NODE_IDENTITY=$(cat /secret/keys/node_address);
+            export PRIVATE_KEY=$(cat /secret/keys/node_key);
 
             node app.js;
           ports:

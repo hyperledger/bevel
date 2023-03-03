@@ -1,0 +1,38 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+############################################################################################
+
+# Run deploy.js or public_tx to install smart contract
+- name: Run {{ js_file }} for "{{ organization_data.name | lower }}"
+  shell: |
+    cd "{{ playbook_dir }}/../../../{{ smart_contract.deployjs_path }}"
+    node "{{ js_file }}" -v --url "{{ URL }}" --path "{{ contract_path }}" --entryPoint "{{ entrypoint }}" --contractName "{{ contract }}" --chainId 2018 --tmKey "{{ tm_key.stdout }}" --privateKey "{{ nodekey.stdout | regex_replace('0x', '') }}" --nodeAddress "{{ node_address.stdout | regex_replace('0x', '') }}" --privateFor '{{ privateFor }}' --numberOfIteration "{{ numberOfIteration }}"
+  vars:
+    URL: "{{ peer.geth_url }}"
+    contract_path: "{{ smart_contract.contract_path }}"
+    entrypoint: "{{ smart_contract.entrypoint }}"
+    contract: "{{ smart_contract.name }}"
+    privateFor: "{{ local_private_for }}"
+    numberOfIteration: "{{ smart_contract.iterations }}"
+  register: address
+  retries: "{{ network.env.retry_count}}"
+  delay: 5
+  until: address['stdout_lines'][address_line] is defined and address['stdout_lines'][0] != "Error"
+
+- debug:
+    msg: 
+      - "{{ address }}"
+      - "{{ address['cmd'] }}"
+      - "{{ address['stdout_lines'] }}"
+    verbosity: 2
+
+# Set the variables
+- set_fact:
+    contract_address: "{{ address['stdout_lines'][address_line] | regex_replace('contractAddress: ') | regex_replace(',') | replace(\"'\",'') | trim }}"
+    contract_name: "{{ smart_contract.name }}"
+    check: "{{ address['stdout_lines'][0] }}"
+  when: address['stdout_lines'][address_line] is defined and address['stdout_lines'][0] != "Error"

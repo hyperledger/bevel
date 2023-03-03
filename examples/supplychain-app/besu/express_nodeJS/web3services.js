@@ -35,6 +35,6 @@ module.exports = {
     fromNodeOrganization,
     fromNodeOrganizationUnit,
     fromNodeSubject,
-    protocol
+    protocol,
+    web3
 }
-
