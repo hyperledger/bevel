@@ -11,7 +11,13 @@ Before proceeding, first make sure that you've completed [developer pre-requisit
 
 ## Setup minikube
 
-1. Please setup a Ubuntu 20.04 VM with atleast 16 GB RAM, 8 vcpu and having a public ip address, on any cloud provider like Azure, GCP etc. How to set and get a public ip address of VM, one needs to check associated cloud provider documentation. For example: [azure](https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/configure-public-ip-vm)
+1. Setup a Ubuntu 20.04 VM with atleast 16 GB RAM, 8 vcpu and having a public ip address, either on any cloud provider or local machine
+
+   1.1 How to set and get a public ip address of VM, one needs to check associated cloud provider documentation. For example: [azure](https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/configure-public-ip-vm)
+
+   OR
+
+   1.2 Use local machine of similar configuration and get the instance public ip
 
 2. Install minikube using instruction [here](https://minikube.sigs.k8s.io/docs/start/) and start minikube.
    ```bash
@@ -53,7 +59,7 @@ Before proceeding, first make sure that you've completed [developer pre-requisit
    ```bash
    server: https://<specify public ip of VM>:18443
    ```
-
+If a VM is created on any cloud provider please ensure that required ports are open for traffic. 
    ***
    **NOTE**: If you ever delete and recreate minikube, the above steps have to be repeated.
    ***
