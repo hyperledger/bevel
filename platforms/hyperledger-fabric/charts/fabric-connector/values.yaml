@@ -1,0 +1,86 @@
+
+metadata:
+  # Namespace where this deployment will be created
+  namespace: manufacturer-net
+
+# Number of replicas
+replicaCount: 1
+
+image:
+  # Docker image of the API server
+  repository: ghcr.io/hyperledger/cactus-cmd-api-server:1.1.3
+  # Docker image of the alpine utils
+  alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+  # Pull policy of the docker image
+  pullPolicy: IfNotPresent
+
+service:
+  # Service type for the Cactus API server
+  type: ClusterIP
+  # Port for the above service
+  port: 4000
+
+# Cactus connector plugin details for Fabric
+plugins:
+  # Package name, type and action for the besu connector
+  packageName: "@hyperledger/cactus-plugin-ledger-connector-fabric"
+  type: org.hyperledger.cactus.plugin_import_type.LOCAL
+  action: org.hyperledger.cactus.plugin_import_action.INSTALL
+  # Unique instance id in case multiple connectors are deployed
+  instanceId: "12345678"
+  # plugin parameters for cactus-plugin-ledger-connector-fabric
+  dockerBinary: "usr/local/bin/docker"
+  caName: ca.manufacturer-net
+  caAddress: ca.manufacturer-net:7054
+  corePeerMSPconfigpath: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp"
+  corePeerAdmincertFile: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/cacerts/ca.crt"
+  corePeerTlsRootcertFile: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt"
+  ordererTlsRootcertFile: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  discoveryEnabled: "true"
+  asLocalhost: "true"
+
+# Additional env details for Cactus connector
+envs:
+  authorizationProtocol: "NONE"
+  authorizationConfigJson: "{}"
+  grpcTlsEnabled: "false"
+
+# Proxy details to expose Connector service over Internet
+proxy:
+  # Only haproxy is supported
+  provider: "haproxy"
+  # Complete external url will be https://<besuNode>.<external_url>
+  external_url: manufacturer-net.hf.demo.aws.blockchaincloudpoc.com
+
+vault:
+  #Provide the vaultrole for an organization
+  role: vault-role
+  #Provide the vault server address
+  address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9001
+  #Provide the kubernetes auth backed configured in vault for an organization
+  authpath: demo-fabricmanufacturer-net-auth
+  #Provide the value for vault secretprefix
+  adminsecretprefix: secretsv2/data/crypto/peerOrganizations/manufacturer-net/users/admin
+  #Provide the value for vault secretprefix
+  orderersecretprefix: secretsv2/data/crypto/peerOrganizations/manufacturer-net/orderer
+  #Provide the serviceaccountname for vault
+  serviceaccountname: vault-auth
+  #Kuberenetes secret for vault ca.cert
+  #Enable or disable TLS for vault communication if value present or not
+  tls: false
+
+peer:
+  #Provide the name of the peer as per deployment yaml.
+  name: peer0
+  peerID: peer0.manufacturer-net
+  #Provide the localmspid for organization
+  localmspid: manufacturerMSP
+  #Provide the value for tlsstatus to be true or false for organization's peer
+  #Eg. tlsstatus: true
+  tlsstatus: true
+  #Provide the address for the peer
+  address: peer0.manufacturer-net:7051
+
+orderer:
+  #Provide the address for orderer
+  address: orderer1.supplychain-net:7050
