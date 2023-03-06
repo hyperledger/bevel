@@ -30,10 +30,9 @@
 # This task creates the build directory
 - name: Create the build directory if it does not exist
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ playbook_dir }}/build"
-    check: "ensure_dir"
   when: generate_crypto is defined and generate_crypto == True
 
 # This task creates the bin directory if it doesn't exist, for storing the geth binary
@@ -87,15 +86,24 @@
     mode: 0755
   when: generate_crypto is defined and generate_crypto == True and besu_stat_result.stat.exists == False
 
-# This task creates the ethashConfigFile.json file from the template
-- name: Create ethashConfigFile.json
+# This task creates the ethashConfigFile.yaml file from the template
+- name: Create ethashConfigFile.yaml
   template:
     src: "ethashConfigFile.tpl"
-    dest: "{{ build_path }}/ethashConfigFile.json"
+    dest: "{{ build_path }}/ethashConfigFile.yaml"
   vars:
     total_peer_count: "{{ node_list | length }}"
     chain_id: "{{ network.config.chain_id | default(2018) | int }}"
   when:
+    - generate_crypto is defined and generate_crypto == True
+    - add_new_org is not defined or add_new_org|bool == False
+
+# This task converts the above yaml into json format and writes it in the json file
+- name: Create ethashConfigFile.json file
+  copy:
+    content: "{{ lookup('file', '{{ build_path }}/ethashConfigFile.yaml') | from_yaml | to_nice_json }}"
+    dest: "{{ build_path }}/ethashConfigFile.json"
+  when: 
     - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
 
@@ -113,7 +121,7 @@
   shell: |
     {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu operator generate-blockchain-config --config-file={{ build_path }}/ethashConfigFile.json --to={{ build_path }}/crypto --private-key-file-name=key
   when:
-    - network.config.consensus == "ethash" and generate_crypto is defined and generate_crypto == True
+    - generate_crypto is defined and generate_crypto == True
     - add_new_org is not defined or add_new_org|bool == False
 
 # This task gets the list of folders
@@ -141,10 +149,9 @@
 # This task creates the organization directory for crypto material if it does not exist
 - name: Create organization directory if it does not exist
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ playbook_dir }}/{{ build_path }}/crypto/{{ item[1].org }}/{{ item[1].node }}/data"
-    check: "ensure_dir"
   with_indexed_items: "{{ node_list }}"
   when:
     - generate_crypto is defined and generate_crypto == True
