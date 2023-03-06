@@ -1,0 +1,55 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-plugins
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}-plugins
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  PLUGINS: |
+    {
+      "packageName": {{ .Values.plugins.packageName | quote }},
+      "type": {{ .Values.plugins.type | quote }},
+      "action": {{ .Values.plugins.action | quote }},
+      "options": {
+        "instanceId": {{ .Values.plugins.instanceId | quote }},
+        "dockerBinary": {{ .Values.plugins.dockerBinary | quote }},
+        "peerBinary": "not-required",
+        "connectionProfile": "{\"name\":\"test-network-org1\",\"version\":\"1.0.0\",\"client\":{\"organization\":\"{{ .Values.peer.localmspid }}\",\"connection\":{\"timeout\":{\"peer\":{\"endorser\":\"300\"}}}},\"organizations\":{\"{{ .Values.peer.localmspid }}\":{\"mspid\":\"{{ .Values.peer.localmspid }}\",\"peers\":[\"{{ .Values.peer.peerID }}\"],\"certificateAuthorities\":[\"{{ .Values.plugins.caName }}\"]}},\"peers\":{\"{{ .Values.peer.peerID }}\":{\"url\":\"grpcs://{ .Values.peer.address }}\",\"tlsCACerts\":{\"path\":\"{{ .Values.plugins.corePeerAdmincertFile }}\"},\"grpcOptions\":{\"ssl-target-name-override\":\"{{ .Values.peer.peerID }}\",\"hostnameOverride\":\"{{ .Values.peer.peerID }}\"}}},\"certificateAuthorities\":{\"{{ .Values.plugins.caName }}\":{\"url\":\"https://{ .Values.plugins.caAddress }}\",\"caName\":\"{{ .Values.plugins.caName }}\",\"tlsCACerts\":{\"path\":\"{{ .Values.plugins.corePeerTlsRootcertFile }}\"},\"httpOptions\":{\"verify\":false}}}}",
+        "logLevel": "DEBUG",
+        "sshConfig": {},
+        "cliContainerEnv": {},
+        "discoveryOptions": {
+          "enabled": {{ .Values.plugins.discoveryEnabled  | quote }},
+          "asLocalhost": {{ .Values.plugins.asLocalhost  | quote  }} 
+        },
+        "eventHandlerOptions": {
+          "strategy": "NETWORK_SCOPE_ALLFORTX",
+          "commitTimeout": "300"
+        }
+      }
+    },{
+      "packageName": "@hyperledger/cactus-plugin-keychain-vault",
+      "type": "org.hyperledger.cactus.plugin_import_type.LOCAL",
+      "action": "org.hyperledger.cactus.plugin_import_action.INSTALL",
+      "options": {
+        "instanceId": "12345678",
+        "keychainId": "345891",
+        "logLevel": "DEBUG",
+        "endpoint": "{{ .Values.vault.address}}",
+        "apiVersion": "v1",
+        "kvSecretsMountPath": "secretsv2/data/",
+        "token": "VAULT_TOKEN"
+      }
+    }

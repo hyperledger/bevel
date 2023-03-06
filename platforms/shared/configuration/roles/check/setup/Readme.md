@@ -7,16 +7,6 @@
 This roles check if Namespace, Clusterrolebinding or StorageClass is created or not.
 
 ### Tasks
-(Variables with * are fetched from the playbook which is calling this role)
-#### 1. Ensures dir exists
-Task to ensure that a directory exists.
-##### Input Variables
-
-    *path: name and path of the directory
-
-**when**:  It runs when check == "ensure_dir" .
-
-
 #### 2. Check if Kubernetes-auth already created for Organization
 Task to check if kubernetes-auth is created and return the results back
 ##### Input Variables

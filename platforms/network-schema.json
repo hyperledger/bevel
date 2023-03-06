@@ -602,6 +602,7 @@
             "peerstatus":{"type":"string","enum": ["new","existing"],"description":"Needed to add new peer organization to existing network."},
             "certificate": { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+\\.crt$","description":"Certificate path for peer."},
             "cli":  { "type": "string","enum": ["enabled","disabled"],"description":"Optional field. If enabled will deploy the CLI pod for this Peer. Default is disabled."},
+            "cactus_connector":  { "type": "string","enum": ["enabled","disabled"],"description":"Optional field. If enabled will deploy the Cactus Connector for this Peer. Default is disabled."},
             "grpc":{ "$ref":"#/definitions/shared_port","description":"Grpc port"},
             "events":{ "$ref":"#/definitions/shared_port","description":"Events port"},
             "couchdb":{ "$ref":"#/definitions/shared_port","description":"Couchdb port"},
@@ -650,11 +651,12 @@
             "tm_tls": { "type": "boolean","description":"Options are True and False. This enables TLS for the transaction manager and Besu node. False is not recommended for production."},
             "tm_trust": { "type": "string","enum": ["ca-or-tofu","ca","tofu"],"description":"This is the trust relationships for the transaction managers."},
             "genesis":  { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+$","description":"This is the path where genesis.json will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file."},
-            "tm_nodes": { "type":"array",
+            "tm_nodes": { "type":"array", "description":"Array of the transaction manager node addresses that are available for the network",
                 "items":{"type":"string","pattern":"^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" },"minItems": 1},
-            "besu_nodes": { "type":"array",
+            "besu_nodes": { "type":"array", "description":"Array of other Besu node addresses which will be used as bootnode",
                 "items":{"type":"string","pattern":"^(http|https):\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" },"minItems": 1},
-             "chain_id": {"type":"number", "description":"chainId for besu network, default value 2018"} 
+             "chain_id": {"type":"number", "description":"chainId for besu network, default value 2018"},
+             "accounts": { "type":"array", "minItems": 0, "description": "Array of accounts which start with default ETH"}
             },
           "required": [ "consensus","subject","transaction_manager","tm_version","tm_tls","tm_trust","genesis","tm_nodes"],
           "additionalProperties": false
@@ -698,6 +700,7 @@
             "name": { "type": "string","pattern": "^[a-z0-9-_]{1,30}$","description":"Name of the validator"},
             "bootnode": { "type": "boolean","description":"if the validator node is used also as bootnode for the network"},
             "status":{"type":"string","enum":["existing","new"],"description":"Used to add validator. needed to know which  validator node exists"},
+            "cactus_connector":  { "type": "string","enum": ["enabled","disabled"],"description":"Optional field. If enabled will deploy the Cactus Connector for this Validator. Default is disabled."},
             "p2p":  { "$ref":"#/definitions/shared_port_ambassador"},
             "rpc":  { "$ref":"#/definitions/shared_port_ambassador"},
             "ws": { "$ref":"#/definitions/shared_port"}
@@ -713,6 +716,7 @@
             "subject": { "type": "string", "description": "This is the alternative identity of the peer node"},
             "geth_passphrase": { "type": "string", "description": "This is the passphrase used to generate the geth account."},
             "lock":{"type":"boolean","description":"Sets Besu node to lock or unlock mode. Can be true or false"},
+            "cactus_connector":  { "type": "string","enum": ["enabled","disabled"],"description":"Optional field. If enabled will deploy the Cactus Connector for this member. Default is disabled."},
             "p2p":  { "$ref":"#/definitions/shared_port_ambassador"},
             "rpc":  { "$ref":"#/definitions/shared_port_ambassador"},
             "ws": { "$ref":"#/definitions/shared_port"},
