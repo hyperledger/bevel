@@ -5,23 +5,6 @@
 ##############################################################################################
 
 ---
-# This tasks ensures the directory existance and registers the result essential for idempotence test
-- name: "check if dir exists or not"
-  stat:
-    path: "{{ path }}"
-  register: dir_check
-  when: check == "ensure_dir"
-
-# Check if directory is created
-# This task creates the directory
-- name: Ensures dir exists
-  file:
-    path: "{{ path }}"
-    recurse: yes
-    mode: '0755'
-    state: directory
-  when: check == "ensure_dir" and (not dir_check.stat.exists)
-  
 # This task checks if the vault path already exists
 - name: Check if Kubernetes-auth already created for Organization
   shell: |
@@ -85,5 +68,6 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
+  ignore_errors: yes
   register: certs_created
   when: check == "certs_created"
