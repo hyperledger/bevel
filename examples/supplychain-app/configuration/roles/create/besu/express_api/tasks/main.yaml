@@ -24,14 +24,15 @@
   include_role:
     name: helm_component
   vars:
-    type: "express_app_besu"
+    type: "expressapi-besu"
     component_name: express-app
     name: "{{ peer_data.name }}"
     charts_dir: "{{ organization_data.gitops.chart_source }}"
-    express_app_image: "bevel-supplychain-quorum:express-app-latest"
+    express_app_image: "bevel-supplychain-besu:express-app-latest"
     geth_address: "{{ peer_data.geth_url }}"
     peer_express_api_port: "{{ peer_data.expressapi.port }}"
     peer_express_api_targetport: "{{ peer_data.expressapi.targetPort }}"
+    contract_name_value: "{{ contract_name }}"
   loop: "{{ organization_data.services.peers }}"
   loop_control:
     loop_var: peer_data
@@ -54,7 +55,7 @@
   vars:
     component_type: "Pod"
     namespace: "{{ component_ns }}"
-    component_name: "{{ peer.name }}-express-api"
+    component_name: "{{ peer.name }}-expressapi"
     kubernetes: "{{ organization_data.k8s }}"
     label_selectors:
       - app = {{ component_name }}
@@ -77,7 +78,7 @@
 # Replace accountid in postman env file
 - name: Replace accountid in postman env file
   replace:
-    path: "{{ playbook_dir }}/../../../tests/SupplychainDemo_besu.postman_environment.json"
+    path: "{{ playbook_dir }}/../tests/SupplychainDemo_besu.postman_environment.json"
     regexp: "{{ organization_data.name | lower }}_account"
     replace: "{{ node_info.node_address }}"
   loop: "{{ node_address_list }}"
