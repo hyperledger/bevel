@@ -7,7 +7,8 @@
 var express = require('express')
   , router = express.Router();
 
-const {productContract, fromAddress, fromNodeSubject,protocol} = require('../web3services');
+const {productContract, fromAddress, fromNodeSubject, protocol, web3} = require('../web3services');
+const {productContractAddress, privateKey} = require("../config");
 var multer = require('multer'); // v1.0.5
 var upload = multer(); // for parsing multipart/form-data
 var bodyParser = require('body-parser');
@@ -132,27 +133,33 @@ router.post("/", upload.array(), function(req, res) {
     var x = "{ \""+keys[i] + '\": ' + JSON.stringify(newContainer.misc[keys[i]]) + "}";
     misc.push(x)
   }
+  const myData = productContract.methods.addContainer("health",misc,newContainer.trackingID,newContainer.lastScannedAt,newContainer.counterparties).encodeABI();
+  web3.eth.getTransactionCount(fromAddress).then(txCount => {
 
-  productContract.methods
-    .addContainer(
-      "health",
-      misc,
-      newContainer.trackingID,
-      newContainer.lastScannedAt,
-      newContainer.counterparties,
-    )
-    .send({ from: fromAddress, gas: 6721900, gasPrice: "0" })
-    .on("receipt", function(receipt) {
+    const txObject = {
+      nonce: web3.utils.toHex(txCount),
+      to: productContractAddress,
+      value: '0x00',
+      gasLimit: web3.utils.toHex(2100000),
+      gasPrice: web3.utils.toHex(web3.utils.toWei('0', 'gwei')),
+      data: myData  
+    }
 
-      if (receipt.status === true) {
+    web3.eth.accounts.signTransaction(
+      txObject,
+      privateKey
+    ).then(signedTx => {
+      web3.eth.sendSignedTransaction(
+        signedTx.rawTransaction
+      ).then( receipt => {
         res.send({generatedID: newContainer.trackingID});
-      }
+      })
+      .catch(e => {
+        res.send("Error while creating container")
+        console.error('Error while creating container: ', e);
+      });
     })
-    .catch(error => {
-      res.send(error.message);
-      console.log(error);
-    });
-  
+  })
 });
 
 //PUT for updating custodian
@@ -161,16 +168,33 @@ router.put("/:trackingID/custodian", function(req, res) {
   var trackingID = req.params.trackingID;
   var lastScannedAt = fromNodeSubject;
   console.log(trackingID);
-    productContract.methods
-      .updateContainerCustodian(trackingID, lastScannedAt)
-      .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
-      .then( response => {
-        res.send(trackingID)
+
+  const myData = productContract.methods.updateContainerCustodian(trackingID, lastScannedAt).encodeABI();
+  web3.eth.getTransactionCount(fromAddress).then(txCount => {
+    const txObject = {
+      nonce: web3.utils.toHex(txCount),
+      to: productContractAddress,
+      value: '0x00',
+      gasLimit: web3.utils.toHex(2100000),
+      gasPrice: web3.utils.toHex(web3.utils.toWei('0', 'gwei')),
+      data: myData  
+    }
+
+    web3.eth.accounts.signTransaction(
+      txObject,
+      privateKey
+    ).then(signedTx => {
+      web3.eth.sendSignedTransaction(
+        signedTx.rawTransaction
+      ).then( receipt => {
+        res.send(trackingID);
       })
-      .catch(error => {
-        console.log(error)
-        res.send(error.message)
-      })
+      .catch(e => {
+        res.send("Error while reclaiming the container")
+        console.error('Error while reclaiming the container: ', e);
+      });
+    })
+  });
 });
 
 //PUT for removing contents
@@ -178,15 +202,33 @@ router.put("/:containerTrackingID/unpackage", upload.array(), function(req, res)
   // TODO: Implement remove content from container
   var containerTrackingID = req.params.containerTrackingID;
   var trackableID = req.body.contents;
-  productContract.methods
-    .unpackageTrackable(containerTrackingID, trackableID)
-    .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
-      .then( response => {
-        res.send(containerTrackingID)
+
+  const myData = productContract.methods.unpackageTrackable(containerTrackingID, trackableID).encodeABI();
+  web3.eth.getTransactionCount(fromAddress).then(txCount => {
+    const txObject = {
+      nonce: web3.utils.toHex(txCount),
+      to: productContractAddress,
+      value: '0x00',
+      gasLimit: web3.utils.toHex(2100000),
+      gasPrice: web3.utils.toHex(web3.utils.toWei('0', 'gwei')),
+      data: myData  
+    }
+
+    web3.eth.accounts.signTransaction(
+      txObject,
+      privateKey
+    ).then(signedTx => {
+      web3.eth.sendSignedTransaction(
+        signedTx.rawTransaction
+      ).then( receipt => {
+        res.send(containerTrackingID);
       })
-      .catch(error => {
-        res.send(error.message)
-      })
+      .catch(e => {
+        res.send("Error while unpacking item from a container")
+        console.error('Error while packing item from a container: ', e);
+      });
+    })
+  });
 });
 
 // PUT for package trackable
@@ -194,24 +236,35 @@ router.put("/:containerID/package", function(req, res){
 	let trackable = {
 		containerID: req.params.containerID,
     trackingID: req.body.contents
-  };    console.log(trackable.containerID);
+  };
+  console.log(trackable.containerID);
   console.log(trackable.trackingID);
 
-	productContract.methods
-	.packageTrackable(
-		trackable.trackingID,
-    trackable.containerID,
-	)
-  .send({ from: fromAddress, gas: 6721975, gasPrice: "0" })
-    .on("receipt", function(receipt) {
-      if (receipt.status === true) {
+  const myData = productContract.methods.packageTrackable(trackable.trackingID, trackable.containerID).encodeABI();
+  web3.eth.getTransactionCount(fromAddress).then(txCount => {
+    const txObject = {
+      nonce: web3.utils.toHex(txCount),
+      to: productContractAddress,
+      value: '0x00',
+      gasLimit: web3.utils.toHex(2100000),
+      gasPrice: web3.utils.toHex(web3.utils.toWei('0', 'gwei')),
+      data: myData  
+    }
+
+    web3.eth.accounts.signTransaction(
+      txObject,
+      privateKey
+    ).then(signedTx => {
+      web3.eth.sendSignedTransaction(
+        signedTx.rawTransaction
+      ).then( receipt => {
         res.send(trackable.containerID);
-        console.log(res.send(trackable.containerID));
-      }
+      })
+      .catch(e => {
+        res.send("Error while packing item into a container")
+        console.error('Error while packing item into a container: ', e);
+      });
     })
-    .on("error", function(error, receipt) {
-      res.send("Error! "+ JSON.stringify(error, null, 4));
-      console.log(error);
-    });
+  });
 });
 module.exports = router;
