@@ -4,12 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Build Supplychain-App Fabric docker images triggered by :
+# Build bevel-build docker image triggered by :
 #  - push on develop branch for latest tags 
 #  - create tag vx.y.z for release tags
 #  - Can be triggered manually
 
-name: Build Supplychain App Fabric Images
+name: Build Bevel Docker container
 
 on:
   workflow_dispatch:
@@ -20,25 +20,27 @@ on:
     branches:
       - develop
     paths:
-      - 'examples/supplychain-app/fabric/**'
-      - '.github/workflows/fabric_images_build.yml'
+      - 'Dockerfile'
+      - 'Dockerfile.jkd8'
+      - '.github/workflows/img_bevel.yml'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_PATH: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  # on push to develop branch, create docker tags latest
-  fabric-latest:
+  # on push to develop branch, create docker tags latest and jdk8-latest
+  bevel-build-latest:
     if: ${{ startsWith(github.ref, 'refs/heads/develop') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
 
@@ -51,33 +53,33 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+  
     - name: Lowercase IMAGE_PATH
       id: image_path_format
       uses: ASzc/change-string-case-action@v2
       with:
         string: ${{ env.IMAGE_PATH }}
+
+    - name: Build and push release tag latest
+      id: docker_build_latest
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-build:latest
     
-    - name: Check node version
-      run: node -v
-         
-    - name: Build and push supplychain app latest
-      id: express_supplychain_latest
+    - name: Build and push tag jdk8-latest
+      id: docker_build_jdk8_latest
       uses: docker/build-push-action@v2
       with:
-        context: examples/supplychain-app/fabric/express_nodeJs
+        context: .
+        file: ./Dockerfile.jdk8
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:express-app-latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-build:jdk8-latest
 
-    - name: Build and push supplychain rest-server latest
-      id: restserver_supplychain_latest
-      uses: docker/build-push-action@v2
-      with:
-        context: examples/supplychain-app/fabric/chaincode_rest_server/rest-server
-        push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:rest-server-latest
-
-  fabric-release: 
+  # on tag vx.y.z created, create docker tag stable, x.y.z and jdk8
+  bevel-build-release: 
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     permissions:
@@ -103,25 +105,25 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-    
+
     - name: Lowercase IMAGE_PATH
       id: image_path_format
       uses: ASzc/change-string-case-action@v2
       with:
         string: ${{ env.IMAGE_PATH }}
 
-    - name: Build and push supplychain app release
-      id: express_supplychain_release
+    - name: Build and push release and stable tag ${{ steps.vars.outputs.tag }}  
+      id: docker_build_release
       uses: docker/build-push-action@v2
       with:
-        context: examples/supplychain-app/fabric/express_nodeJs
+        file: ./Dockerfile
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:express-app-${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:express-app-stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-build:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-build:stable
     
-    - name: Build and push supplychain rest-server realease
-      id: restserver_supplychain_release
+    - name: Build and push tag jdk8-latest
+      id: docker_build_jdk8
       uses: docker/build-push-action@v2
       with:
-        context: examples/supplychain-app/fabric/chaincode_rest_server/rest-server
+        file: ./Dockerfile.jdk8
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:rest-server-${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:rest-server-stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-build:jdk8-stable,${{ steps.image_path_format.outputs.lowercase }}/bevel-build:jdk8-${{ steps.vars.outputs.tag }}
