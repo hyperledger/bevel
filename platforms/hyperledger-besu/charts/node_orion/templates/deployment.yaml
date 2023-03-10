@@ -15,6 +15,13 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }} 
     {{- include "labels.custom" . | nindent 2 }}
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.deployment }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
   name: {{ .Values.node.name }}
 spec:
   serviceName: {{ .Values.node.name }}
@@ -27,7 +34,14 @@ spec:
       app.kubernetes.io/name: {{ .Values.node.name }}
       helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
       app.kubernetes.io/managed-by: {{ .Release.Service }}
-      app.kubernetes.io/instance: {{ .Release.Name }} 
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- if $.Values.labels }}
+      {{- range $key, $value := $.Values.labels.deployment }}
+      {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
   updateStrategy:
     type: RollingUpdate
   template:
@@ -41,6 +55,13 @@ spec:
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
         app.kubernetes.io/instance: {{ .Release.Name }} 
+        {{- if $.Values.labels }}
+        {{- range $key, $value := $.Values.labels.deployment }}
+        {{- range $k, $v := $value }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
     spec:
       serviceAccountName: {{ .Values.vault.serviceaccountname }}
       hostname: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}
@@ -306,6 +327,14 @@ spec:
   volumeClaimTemplates: 
     - metadata:
         name: {{ .Values.node.name }}-pv
+        labels:
+           {{- if $.Values.labels }}
+           {{- range $key, $value := $.Values.labels.pvc }}
+           {{- range $k, $v := $value }}
+           {{ $k }}: {{ $v | quote }}
+           {{- end }}
+           {{- end }}
+           {{- end }}
       spec:
         storageClassName: {{ .Values.storage.storageclassname }}
         accessModes: [ "ReadWriteOnce" ]

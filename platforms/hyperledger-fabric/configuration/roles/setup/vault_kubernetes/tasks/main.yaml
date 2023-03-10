@@ -46,6 +46,15 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
   register: kubernetes_server_url
 
+- name: Check if vault policies already exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    component_type: "{{ item.type | lower }}"
+    component_name: "{{ item.name | lower }}-net"
+    vault: "{{ item.vault }}"
+    check: "vault_policies"
+
 #####################################################################################################################
 # This tasks generate vault_kubernetes helmrelease file
 - name: "Create value file for vault_kubernetes "
@@ -66,6 +75,7 @@
     kubernetes_url: "{{ kubernetes_server_url.stdout }}"
     alpine_image: "{{ network.docker.url }}/alpine-utils:1.0"
     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+  when: vault_policy_result.failed == True
   
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -76,6 +86,7 @@
     gitops: "{{ item.gitops }}"    
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing vault_kubernetes files"
+  when: vault_policy_result.failed == True
    
 # Check if vault_kubernetes is completed
 - name: Check if vault_kubernetes job is completed
@@ -86,6 +97,7 @@
     namespace: "{{ item.name | lower}}-net"
     component_name: "{{ item.name | lower}}-vaultkubenertes-job"
     kubernetes: "{{ item.k8s }}"
+  when: vault_policy_result.failed == True
 
 #############################################################################################
 # This task deletes the root token

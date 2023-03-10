@@ -15,5 +15,6 @@ module.exports = {
   nodeOrganization : process.env.NODE_ORGANIZATION,
   nodeOrganizationUnit : process.env.NODE_ORGANIZATION_UNIT,
   nodeSubject : process.env.NODE_SUBJECT,
-  protocol: process.env.PROTOCOL
+  protocol: process.env.PROTOCOL,
+  privateKey: process.env.PRIVATE_KEY
 };

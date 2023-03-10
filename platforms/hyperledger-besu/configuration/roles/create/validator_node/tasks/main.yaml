@@ -42,10 +42,9 @@
 # This task creates the build directory
 - name: Create build directory if it does not exist
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ playbook_dir }}/build"
-    check: "ensure_dir"
   when: (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
 
 # This task creates the bin directory, if it doesn't exist, for storing the geth binary
@@ -109,10 +108,9 @@
 # This task creates the organization directories for crypto material if not exists
 - name: Create organization directory if it does not exist
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data"
-    check: "ensure_dir"
   with_indexed_items: "{{ enode_validator_list }}"
   when:  
     - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)

@@ -57,6 +57,10 @@ The snapshot of the `env` section with example value is below
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 50                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+    labels:
+      service: {}
+      pvc: {}
+      deployment: {}
 ```
 The fields under `env` section are 
 
@@ -68,6 +72,10 @@ The fields under `env` section are
 | loadBalancerSourceRanges | (Optional) Restrict inbound access to a single or list of IP adresses for the public Ambassador ports to enhance Bevel network security. This is only valid if `proxy: ambassador`.  |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
+| namespace         | (Optional) K8s Namespace on which proxy will be installed. Default value is `default`|
+| labels.service    | (Optional) Labels to be added to kubernetes services |
+| labels.pvc    | (Optional) Labels to be added to kubernetes pvc |
+| labels.deployment    | (Optional) Labels to be added to kubernetes deployment/statefulset/pod |
 
 `docker` section contains the credentials of the repository where all the required images are built and stored.
 

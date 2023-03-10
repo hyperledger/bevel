@@ -16,7 +16,7 @@
     npm install 
 ```
 
-2. In terminal, run the javaScript program deploy.js using the command below.<br>
+2. In terminal, run the javaScript program deploy.js or public_tx.js using the command below.<br>
 
 ```
 node deploy.js -v --url "< address of besu node with RPC port >" --path "< path to the contracts folder>" --entryPoint "< main entrypoint contract filename >" --contractName "< Name of the contract >" --chainId <chainId> --tmKey "< transaction manager key of the node, privateFrom >" --privateKey "< private key of the sender node without 0x>" --privateFor '< csv value of the privateFor tm public keys >' --numberOfIterations < optimizes for number of iteration > --output <"path to output folder default is ./build">

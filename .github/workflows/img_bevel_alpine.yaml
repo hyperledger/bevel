@@ -1,0 +1,131 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Build and push bevel-alpine docker image triggered by :
+#  - push on develop branch for latest tags 
+#  - create tag vx.y.z for release tags
+#  - Can be triggered manually
+
+name: Build bevel-alpine docker image and push to ghcr
+
+on:
+  workflow_dispatch:
+  create:
+    tags:
+      - v*
+  push:
+    branches:
+      - develop
+    paths:
+      - '.github/workflows/img_bevel_alpine.yml'
+      - 'platforms/shared/images/bevel-alpine.Dockerfile'
+      - 'platforms/shared/images/bevel-alpine-ext.Dockerfile'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PATH: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  # on push to develop branch, create docker tags latest 
+  alpine-build-latest:
+    if: ${{ startsWith(github.ref, 'refs/heads/develop') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+
+    - name: Login to the container registry
+      uses: docker/login-action@v1
+      with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Lowercase IMAGE_PATH
+      id: image_path_format
+      uses: ASzc/change-string-case-action@v2
+      with:
+        string: ${{ env.IMAGE_PATH }}
+
+    - name: Build and push img with latest tag
+      id: bevel_alpine_latest
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./platforms/shared/images/bevel-alpine.Dockerfile
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-alpine:latest
+    
+    - name: Build and push img with latest tag
+      id: bevel_alpine_ext_latest
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./platforms/shared/images/bevel-alpine-ext.Dockerfile
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-alpine-ext:latest
+  
+  # on tag vx.y.z created, create docker tag x.y.z
+  alpine-build-release:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set output
+      id: vars
+      run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/v}
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to the container registry
+      uses: docker/login-action@v1
+      with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Lowercase IMAGE_PATH
+      id: image_path_format
+      uses: ASzc/change-string-case-action@v2
+      with:
+        string: ${{ env.IMAGE_PATH }}
+
+    - name: Build and push release tag based on release ${{ steps.var.outputs.tag }}
+      id: bevel_alpine_release
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./platforms/shared/images/bevel-alpine.Dockerfile
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-alpine-ext:${{ steps.vars.outputs.tag }}
+    
+    - name: Build and push release tag based on release ${{ steps.var.outputs.tag }}
+      id: bevel_alpine_ext_release
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./platforms/shared/images/bevel-alpine-ext.Dockerfile
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-alpine-ext:${{ steps.vars.outputs.tag }}

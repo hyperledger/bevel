@@ -13,10 +13,17 @@
 # This task creates the folder to store crypto material
 - name: "creating the directory ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
-    check: "ensure_dir"
+
+- name: Check if CA key already exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "{{ component_name }}-CA.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca"
+    check: "certs_created"
 
 #####################################################################################################################
 # This tasks generates cacerts helmrelease file.
@@ -37,6 +44,7 @@
     fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}/{{ component }}"
+  when: certs_created.failed == True
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -47,6 +55,7 @@
     gitops: "{{ item.gitops }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing CA server files"
+  when: certs_created.failed == True
   tags:
     - notest
 
@@ -59,6 +68,7 @@
     namespace: "{{ component }}-net"
     component_name: "{{ component }}-cacerts-job"
     kubernetes: "{{ item.k8s }}"
+  when: certs_created.failed == True
   tags:
     - notest
 
