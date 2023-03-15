@@ -46,7 +46,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'orderer' and network.upgrade == 'yes'
+      when: item.type == 'orderer' and network.upgrade == true
 
     # This role upgrade the value file for peers of organisations and write couch db credentials
     # to the vault.
@@ -65,7 +65,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer' and network.upgrade == 'yes'
+      when: item.type == 'peer' and network.upgrade == true
 
     # This role updates the CA Server helm-value files and check-in
     - name: Upgrade CA server for each organization
@@ -83,7 +83,7 @@
         gitops: "{{ item.gitops }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.services.ca is defined and network.upgrade == 'yes'
+      when: item.services.ca is defined and network.upgrade == true
 
     # This role updates the CLI pod for the upgraded version
     - name: Upgrade CLI pod for each peer with it enabled
@@ -95,7 +95,7 @@
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
-      when: org.type == "peer" and network.upgrade == 'yes'
+      when: org.type == "peer" and network.upgrade == true
 
     # Show message to operator, that after this upgrade tasks the network
     # cant get reverted back to previous version
@@ -184,3 +184,16 @@
       loop: "{{ network.channels }}"
       loop_control:
         loop_var: channel
+      when: channel.acls is defined
+
+    # Delete the orderer cli   
+    - name: "Delete all temp {{ orderer.name }}-{{ org.name }}-cli"
+      shell: |
+        KUBECONFIG={{ org.k8s.config_file }} helm uninstall {{ orderer.name }}-{{ org.name }}-cli
+      vars:
+        orderer: "{{ org.services.orderers | first }}"
+      loop: "{{ network.organizations }}"
+      loop_control:
+        loop_var: org
+      when: org.type == 'orderer'
+      ignore_errors: yes
