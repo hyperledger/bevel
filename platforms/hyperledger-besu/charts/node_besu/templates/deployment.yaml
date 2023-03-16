@@ -223,6 +223,11 @@ spec:
             else
               tls_args="--privacy-url={{ .Values.tm.url }}"
             fi
+
+            if {{ $.Values.metrics.enabled }} == "true"
+            then
+              metrics_args="--metrics-enabled --metrics-port={{ $.Values.metrics.port }} --metrics-host=0.0.0.0"
+            fi
             
             exec /opt/besu/bin/besu \
             --identity={{ .Values.node.name }} \
@@ -247,7 +252,8 @@ spec:
             --Xdns-enabled=true \
             --Xdns-update-enabled=true \
             $args \
-            $tls_args            
+            $tls_args \
+            $metrics_args            
         ports:
           - name: json-rpc
             containerPort: {{ .Values.node.ports.rpc}}

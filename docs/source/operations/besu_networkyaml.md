@@ -344,5 +344,7 @@ The fields under `validator` service are
 | rpc.port   | RPC port for Besu|
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
 | ws.port   | Webservice port for Besu|
+| metrics.enabled | Enable metrics for Besu node |
+| metrics.port | Metrics port for Besu |
 
 *** feature is in future scope

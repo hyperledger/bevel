@@ -105,3 +105,7 @@ spec:
 {% endfor %}
 {% endif %}
 {% endif %}
+
+    metrics:
+      enabled: {{ peer.metrics.enabled | default(false)}}
+      port: {{ peer.metrics.port | default(9545) }}    
