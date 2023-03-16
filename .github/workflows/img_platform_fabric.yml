@@ -4,12 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Build express app docker image triggered by :
-#  - push on develop branch for latest tags
+# Build Supplychain-App Fabric docker images triggered by :
+#  - push on develop branch for latest tags 
 #  - create tag vx.y.z for release tags
 #  - Can be triggered manually
 
-name: Build Supplychain App Besu Images
+name: Build Supplychain App Fabric Images
 
 on:
   workflow_dispatch:
@@ -20,8 +20,8 @@ on:
     branches:
       - develop
     paths:
-      - '.github/workflows/besu_expressapi.yaml'
-      - 'examples/supplychain-app/besu/express_nodeJS/Dockerfile'
+      - 'examples/supplychain-app/fabric/**'
+      - '.github/workflows/img_platform_fabric.yml'
 
 env:
   REGISTRY: ghcr.io
@@ -29,16 +29,18 @@ env:
 
 jobs:
   # on push to develop branch, create docker tags latest
-  besu-latest:
+  fabric-latest:
     if: ${{ startsWith(github.ref, 'refs/heads/develop') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
@@ -58,16 +60,24 @@ jobs:
     
     - name: Check node version
       run: node -v
-
+         
     - name: Build and push supplychain app latest
-      id: besu_supplychain_latest
+      id: express_supplychain_latest
       uses: docker/build-push-action@v2
       with:
-        context: ./examples/supplychain-app/besu/express_nodeJS
+        context: examples/supplychain-app/fabric/express_nodeJs
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-besu:express-app-latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:express-app-latest
 
-  besu-release: 
+    - name: Build and push supplychain rest-server latest
+      id: restserver_supplychain_latest
+      uses: docker/build-push-action@v2
+      with:
+        context: examples/supplychain-app/fabric/chaincode_rest_server/rest-server
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:rest-server-latest
+
+  fabric-release: 
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     permissions:
@@ -101,9 +111,17 @@ jobs:
         string: ${{ env.IMAGE_PATH }}
 
     - name: Build and push supplychain app release
-      id: besu_supplychain_release
+      id: express_supplychain_release
       uses: docker/build-push-action@v2
       with:
-        context: examples/supplychain-app/besu/express_nodeJS
+        context: examples/supplychain-app/fabric/express_nodeJs
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-besu:express-app-${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-quorum:express-app-stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:express-app-${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:express-app-stable
+    
+    - name: Build and push supplychain rest-server realease
+      id: restserver_supplychain_release
+      uses: docker/build-push-action@v2
+      with:
+        context: examples/supplychain-app/fabric/chaincode_rest_server/rest-server
+        push: true
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:rest-server-${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-fabric:rest-server-stable

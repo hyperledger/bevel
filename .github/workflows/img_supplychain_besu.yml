@@ -4,12 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Build Supplychain-App quorum docker images triggered by :
-#  - push on develop branch for latest tags 
+# Build express app docker image triggered by :
+#  - push on develop branch for latest tags
 #  - create tag vx.y.z for release tags
 #  - Can be triggered manually
 
-name: Build Supplychain App Quorum Images
+name: Build Supplychain App Besu Images
 
 on:
   workflow_dispatch:
@@ -20,8 +20,8 @@ on:
     branches:
       - develop
     paths:
-      - 'examples/supplychain-app/quorum/**'
-      - '.github/workflows/quorum_images_build.yml'
+      - '.github/workflows/img_supplychain_besu.yml'
+      - 'examples/supplychain-app/besu/express_nodeJS/Dockerfile'
 
 env:
   REGISTRY: ghcr.io
@@ -29,18 +29,16 @@ env:
 
 jobs:
   # on push to develop branch, create docker tags latest
-  quorum-latest:
+  besu-latest:
     if: ${{ startsWith(github.ref, 'refs/heads/develop') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
@@ -57,16 +55,19 @@ jobs:
       uses: ASzc/change-string-case-action@v2
       with:
         string: ${{ env.IMAGE_PATH }}
+    
+    - name: Check node version
+      run: node -v
 
     - name: Build and push supplychain app latest
-      id: quorum_supplychain_latest
+      id: besu_supplychain_latest
       uses: docker/build-push-action@v2
       with:
-        context: examples/supplychain-app/quorum/express_nodeJS
+        context: ./examples/supplychain-app/besu/express_nodeJS
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-quorum:express-app-latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-besu:express-app-latest
 
-  quorum-release: 
+  besu-release: 
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     permissions:
@@ -92,7 +93,7 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+    
     - name: Lowercase IMAGE_PATH
       id: image_path_format
       uses: ASzc/change-string-case-action@v2
@@ -100,9 +101,9 @@ jobs:
         string: ${{ env.IMAGE_PATH }}
 
     - name: Build and push supplychain app release
-      id: quorum_supplychain_release
+      id: besu_supplychain_release
       uses: docker/build-push-action@v2
       with:
-        context: examples/supplychain-app/quorum/express_nodeJS
+        context: examples/supplychain-app/besu/express_nodeJS
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-quorum:express-app-${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-quorum:express-app-stable
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-besu:express-app-${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-quorum:express-app-stable

@@ -4,12 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Build bevel-build docker image triggered by :
+# Build Supplychain-App quorum docker images triggered by :
 #  - push on develop branch for latest tags 
 #  - create tag vx.y.z for release tags
 #  - Can be triggered manually
 
-name: Build Bevel Docker container
+name: Build Supplychain App Quorum Images
 
 on:
   workflow_dispatch:
@@ -20,23 +20,21 @@ on:
     branches:
       - develop
     paths:
-      - 'Dockerfile'
-      - 'Dockerfile.jkd8'
-      - '.github/workflows/docker_build.yml'
+      - 'examples/supplychain-app/quorum/**'
+      - '.github/workflows/img_platform_quorum.yml'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_PATH: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  # on push to develop branch, create docker tags latest and jdk8-latest
-  bevel-build-latest:
+  # on push to develop branch, create docker tags latest
+  quorum-latest:
     if: ${{ startsWith(github.ref, 'refs/heads/develop') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -53,33 +51,22 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-  
+
     - name: Lowercase IMAGE_PATH
       id: image_path_format
       uses: ASzc/change-string-case-action@v2
       with:
         string: ${{ env.IMAGE_PATH }}
 
-    - name: Build and push release tag latest
-      id: docker_build_latest
+    - name: Build and push supplychain app latest
+      id: quorum_supplychain_latest
       uses: docker/build-push-action@v2
       with:
-        context: .
-        file: ./Dockerfile
+        context: examples/supplychain-app/quorum/express_nodeJS
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-build:latest
-    
-    - name: Build and push tag jdk8-latest
-      id: docker_build_jdk8_latest
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        file: ./Dockerfile.jdk8
-        push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-build:jdk8-latest
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-quorum:express-app-latest
 
-  # on tag vx.y.z created, create docker tag stable, x.y.z and jdk8
-  bevel-build-release: 
+  quorum-release: 
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     permissions:
@@ -112,18 +99,10 @@ jobs:
       with:
         string: ${{ env.IMAGE_PATH }}
 
-    - name: Build and push release and stable tag ${{ steps.vars.outputs.tag }}  
-      id: docker_build_release
+    - name: Build and push supplychain app release
+      id: quorum_supplychain_release
       uses: docker/build-push-action@v2
       with:
-        file: ./Dockerfile
+        context: examples/supplychain-app/quorum/express_nodeJS
         push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-build:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-build:stable
-    
-    - name: Build and push tag jdk8-latest
-      id: docker_build_jdk8
-      uses: docker/build-push-action@v2
-      with:
-        file: ./Dockerfile.jdk8
-        push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-build:jdk8-stable,${{ steps.image_path_format.outputs.lowercase }}/bevel-build:jdk8-${{ steps.vars.outputs.tag }}
+        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-quorum:express-app-${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-supplychain-quorum:express-app-stable
