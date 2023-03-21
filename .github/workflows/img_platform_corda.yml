@@ -23,10 +23,6 @@ on:
         - '4.4'
         - '4.7'
         - '4.9'
-      gmaps_key:
-        description: 'Enter Google Maps API key'
-        required: false
-        default: 'Google API key for Network Map'
   create:
     tags:
       - v*
@@ -36,7 +32,6 @@ on:
     paths:
       - 'platforms/r3-corda/images/**'
       - '.github/workflows/img_platform_corda.yml'
-      - 'examples/supplychain-app/corda/cordApps_springBoot/**'
 
 env:
   REGISTRY: ghcr.io
@@ -77,42 +72,6 @@ jobs:
       uses: ASzc/change-string-case-action@v2
       with:
         string: ${{ env.IMAGE_PATH }}
-
-    - name: corda builds
-      run: |
-        WDIR=`pwd`
-
-        java -version
-        update-alternatives --list java
-
-        echo "---- building networkmap ----"
-        cd ${WDIR}/platforms/r3-corda/images/networkmap
-
-        # Replace the Google Maps API key in two files
-        sed -i -e 's*REPLACE_ME_GMAPS_KEY*${{ github.event.inputs.gmaps_key }}*g' website/app/scripts/geoCode.js
-        sed -i -e 's*REPLACE_ME_GMAPS_KEY*${{ github.event.inputs.gmaps_key }}*g' website/app/components/Map/MyMap.js
-
-        mvn clean install -DskipTests
-
-        echo "---- building doorman ----"
-        cd ${WDIR}/platforms/r3-corda/images/doorman
-        mvn clean install -DskipTests
-
-    - name: Build and push cordaOS doorman latest
-      id: corda_doorman_latest
-      uses: docker/build-push-action@v2
-      with:
-        context: platforms/r3-corda/images/doorman
-        push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-doorman-linuxkit:latest
-
-    - name: Build and push cordaOS networkmap latest
-      id: corda_networkmap_latest
-      uses: docker/build-push-action@v2
-      with:
-        context: platforms/r3-corda/images/networkmap
-        push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-networkmap-linuxkit:latest
 
     - name: Build and push cordaOS node latest
       if: github.event.inputs.corda_version == ''
@@ -171,37 +130,6 @@ jobs:
       uses: ASzc/change-string-case-action@v2
       with:
         string: ${{ env.IMAGE_PATH }}
-
-    - name: corda builds
-      run: |
-        WDIR=`pwd`
-
-        java -version
-        update-alternatives --list java
-
-        echo "---- building networkmap ----"
-        cd ${WDIR}/platforms/r3-corda/images/networkmap
-        mvn clean install -DskipTests
-
-        echo "---- building doorman ----"
-        cd ${WDIR}/platforms/r3-corda/images/doorman
-        mvn clean install -DskipTests
-
-    - name: Build and push cordaOS doorman release tag ${{ steps.vars.outputs.tag }}
-      id: corda_doorman_release
-      uses: docker/build-push-action@v2
-      with:
-        context: platforms/r3-corda/images/doorman
-        push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-doorman-linuxkit:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-doorman-linuxkit:stable
-
-    - name: Build and push cordaOS networkmap release tag ${{ steps.vars.outputs.tag }}
-      id: corda_networkmap_release
-      uses: docker/build-push-action@v2
-      with:
-        context: platforms/r3-corda/images/networkmap
-        push: true
-        tags: ${{ steps.image_path_format.outputs.lowercase }}/bevel-networkmap-linuxkit:${{ steps.vars.outputs.tag }},${{ steps.image_path_format.outputs.lowercase }}/bevel-networkmap-linuxkit:stable
 
     - name: Build and push cordaOS node release and stable tag ${{ steps.vars.outputs.tag }}
       id: corda_node_release

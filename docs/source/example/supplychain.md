@@ -88,9 +88,9 @@ This is the relative location of the Helm charts for the supplychain app.
     - For Quorum, no smart contracts need to be deployed beforehand.
 
 ## Deploying the supplychain-app
-When having completed the Prerequisites and setup guide, deploy the supplychain app by executing the following command:
+When having completed the Prerequisites and setup guide, deploy the supplychain app by executing the following command from [bevel-samples repository](https://github.com/hyperledger/bevel-samples):
 
 `ansible-playbook examples/supplychain-app/configuration/deploy-supplychain-app.yaml -e "@/path/to/application/network.yaml"`
 
 ## Testing/validating the supplychain-app
-For testing the application, there are API tests included. For instructions on how to set this up, follow the `README.md` [here](https://github.com/hyperledger/bevel/tree/main/examples/supplychain-app/tests).
+For testing the application, there are API tests included. For instructions on how to set this up, follow the `README.md` [here](https://github.com/hyperledger/bevel-samples/tree/main/examples/supplychain-app/tests).
