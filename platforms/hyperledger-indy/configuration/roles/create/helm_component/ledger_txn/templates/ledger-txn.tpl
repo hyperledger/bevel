@@ -24,7 +24,7 @@ spec:
     image:
       cli:
         name: {{ component_name }}
-        repository: {{ network.docker.url }}/indy-ledger-txn:latest
+        repository: {{ network.docker.url }}/bevel-indy-ledger-txn:latest
         pullSecret: regcred
         pullPolicy: IfNotPresent
     vault:
