@@ -110,6 +110,54 @@
         - "{{ network['organizations'] }}"
       ignore_errors: yes
 
+    # Delete ClusterRoleList related to flux
+    - name: Delete flux ClusterRole
+      k8s:
+        state: absent
+        api_version: v1
+        kind: ClusterRole
+        namespace: flux-{{ network.env.type }}
+        name: "{{ item[0] }}"
+        kubeconfig: "{{ kubernetes.config_file }}"
+      vars:
+        kubernetes: "{{ item[1].k8s }}"
+      with_nested:
+        - ["crd-controller-flux-sau"]
+        - "{{ network['organizations'] }}"
+      ignore_errors: yes
+
+    # Delete ClusterRoleBinding related to flux
+    - name: Delete flux ClusterRoleBindingList
+      k8s:
+        state: absent
+        api_version: v1
+        kind: ClusterRoleBindingList
+        namespace: flux-{{ network.env.type }}
+        name: "{{ item[0] }}"
+        kubeconfig: "{{ kubernetes.config_file }}"
+      vars:
+        kubernetes: "{{ item[1].k8s }}"
+      with_nested:
+        - ["helm-controller", "kustomize-controller", "notification-controller", "source-controller"]
+        - "{{ network['organizations'] }}"
+      ignore_errors: yes
+
+    # Patching and Deleting GitRepository resources
+    - include_role:
+        name: "delete/gitrepositories"
+
+    # Patching and Deleting Kustomization resources
+    - include_role:
+        name: "delete/kustomization"
+
+    # Patching and Deleting HelmChart resources
+    - include_role:
+        name: "delete/helm_charts"
+    
+    # Patching and Deleting HelmRelease resources
+    - include_role:
+        name: "delete/helm_releases"
+
     ##Delete Flux namespace 
     - name: delete flux namespace
       k8s:

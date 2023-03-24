@@ -1,0 +1,31 @@
+# Get all helm charts resources in the namespace
+- name: Get all Helm Charts in the namespace
+  k8s_info:
+    api_version: source.toolkit.fluxcd.io/v1beta2
+    kind: HelmChart
+    namespace: flux-{{ network.env.type }}
+  register: helm_charts
+
+# Patch all helm charts resources in the namespace
+- name: Patching all Helm Charts
+  k8s:
+    api_version: source.toolkit.fluxcd.io/v1beta2
+    kind: HelmChart
+    namespace: flux-{{ network.env.type }}
+    name: "{{ item.metadata.name }}"
+    state: present
+    definition:
+      metadata:
+        finalizers: []
+  loop: "{{ helm_charts.resources }}"
+  register: patch_result
+  
+# Delete all Helm Charts resources in the namespace
+- name: Delete all Helm charts in the namespace
+  k8s:
+    api_version: source.toolkit.fluxcd.io/v1beta2
+    kind: HelmChart
+    namespace: flux-{{ network.env.type }}
+    name: "{{ item.metadata.name }}"
+    state: absent
+  loop: "{{ helm_charts.resources }}"
