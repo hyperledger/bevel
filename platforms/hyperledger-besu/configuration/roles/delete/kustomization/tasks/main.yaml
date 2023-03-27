@@ -1,0 +1,24 @@
+# Patching Kustomization resources
+- name: Patching Kustomization
+  k8s:
+    api_version: kustomize.toolkit.fluxcd.io/v1beta2
+    kind: Kustomization
+    namespace: flux-{{ network.env.type }}
+    name: flux-{{ network.env.type }}
+    state: present
+    definition:
+      metadata:
+        finalizers: []
+  register: patch_result
+  loop: "{{ network['organizations'] }}"
+  
+# Deleting Kustomization resources
+- name: Delete Kustomization resource
+  k8s:
+    api_version: kustomize.toolkit.fluxcd.io/v1beta2
+    kind: Kustomization
+    namespace: flux-{{ network.env.type }}
+    name: flux-{{ network.env.type }}
+    state: absent
+  loop: "{{ network['organizations'] }}"
+  when: patch_result is succeeded
