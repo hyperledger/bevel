@@ -32,11 +32,11 @@ spec:
         repository: alpine:3.9.4
       cli:
         name: {{ component_name }}-ledger-txn
-        repository: {{ network.docker.url }}/indy-ledger-txn:latest
+        repository: {{ network.docker.url }}/bevel-indy-ledger-txn:latest
         pullSecret: regcred
       indyNode:
         name: {{ component_name }}
-        repository: {{ network.docker.url }}/indy-node:{{ network.version }}
+        repository: {{ network.docker.url }}/bevel-indy-node:{{ network.version }}
     node:
       name: {{ stewardItem.name }}
       ip: 0.0.0.0

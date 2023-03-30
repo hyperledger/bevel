@@ -1,0 +1,21 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+- name: delete Ambassador certificates 
+  include_tasks: nested_main.yaml
+  vars:
+    node_name: "{{ node.name | lower }}"
+  loop: "{{ services.peers is defined | ternary(services.peers, services.validators) }}"
+  loop_control:
+    loop_var: node
+
+# Delete clusterissuer helm chart
+- name: Delete ClusterIssuer  
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: letsencrypt-clusterissuer
+    state: absent
+    release_namespace: "default"

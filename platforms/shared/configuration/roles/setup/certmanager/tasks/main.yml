@@ -1,0 +1,24 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+# Checks if cert-manager is installed 
+- name: check cert-manager deployment status
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    kind: Deployment
+    name: cert-manager
+    namespace: cert-manager
+  register: certmanager
+  tags:
+    - molecule-idempotence-notest
+
+# Installs cert-manager helm chart
+- name: Install cert-manager 
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install cert-manager --namespace cert-manager --create-namespace --set installCRDs=true "{{ playbook_dir }}/../../shared/charts/cert-manager-v1.10.0.tgz" 
+  when: 
+    - (organization.issuer is defined) and (organization.issuer|lower == "letsencrypt")
+    - certmanager.resources[0] is undefined
