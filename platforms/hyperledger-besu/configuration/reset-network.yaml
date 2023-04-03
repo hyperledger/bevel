@@ -26,6 +26,23 @@
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"
 
+    # Delete ambassador tls certificates
+    - name: "delete ambassador tls certificates for Organizations"
+      include_role:
+        name: delete/certificates/ambassador
+      vars:
+        services: "{{ organizationItem.services }}"
+        kubernetes: "{{ organizationItem.k8s }}"
+        component_ns: "{{ organizationItem.name | lower }}-bes"
+        component_name: "{{ organizationItem.name | lower }}"
+        organization: "{{ organizationItem.name | lower }}"
+      loop: "{{ network['organizations']}}"
+      loop_control:
+        loop_var: organizationItem
+      when:
+        - network.type == "besu"
+        - (organizationItem.issuer is defined) and (organizationItem.issuer|lower == "letsencrypt")
+
     # Uninstalling Flux is needed so that everything is clean
     # remove this if not needed
     ##Delete the Flux deployments
