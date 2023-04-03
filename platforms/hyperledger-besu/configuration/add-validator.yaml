@@ -105,6 +105,21 @@
     loop_control:
       loop_var: organizationItem
 
+  # This role generates the admin PPK for permissioning
+  - name: Generate admin key for permissioning
+    include_role:
+      name: create/crypto/key_generation
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name | lower }}-bes"
+      vault: "{{ org.vault }}"
+      user: "admin"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+        loop_var: org
+    when: network.permissioning.enabled is defined and network.permissioning.enabled == true
+
+
   # This role generates the enode for the new validators and its acceptance for the network
   - name: "Generates new validator materials and voting for its acceptance"
     include_role:
