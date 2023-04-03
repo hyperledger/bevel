@@ -1,0 +1,36 @@
+# Checking if namespce is present or not
+- include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: flux-{{ network.env.type }}
+    component_name: Namespace
+    kubernetes: "{{ item.k8s }}"
+    type: "no_retry"
+  register: namespace_check
+  loop: "{{ network['organizations'] }}"
+
+# Patching flux namespace only if namespace is present
+- name: Patching flux namespace
+  k8s:
+    api_version: v1
+    kind: Namespace
+    name: flux-{{ network.env.type }}
+    state: present
+    definition:
+      metadata:
+        finalizers: []
+  loop: "{{ network['organizations'] }}"
+  when: namespace_check.results | length > 0
+
+# Delete flux namespace only if namespace is present
+- name: Delete flux namespace
+  k8s:
+    name: flux-{{ network.env.type }}
+    api_version: v1
+    kind: Namespace
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+  vars:
+    kubernetes: "{{ item.k8s }}"
+  loop: "{{ network['organizations'] }}"
+  when: namespace_check.results | length > 0
