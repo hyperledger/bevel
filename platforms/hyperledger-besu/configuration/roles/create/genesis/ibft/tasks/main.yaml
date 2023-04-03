@@ -32,6 +32,28 @@
   loop_control:
     loop_var: org
 
+# This task creates the genesis.json file from the template
+- name: Create genesis.json
+  template:
+    src: "ibftGenesisFile.tpl"
+    dest: "{{ build_path }}/crypto/genesis.json"
+  vars:
+    chain_id: "{{ network.config.chain_id | default(2018) | int }}"
+  when: 
+   - add_new_org is not defined or add_new_org|bool == False
+   - network.permissioning.enabled is not defined or network.permissioning.enabled == false
+
+# This task creates the genesis.json file with permissioning details from the template
+- name: Create genesis.json
+  template:
+    src: "ibftPermissionGenesisFile.tpl"
+    dest: "{{ build_path }}/crypto/genesis.json"
+  vars:
+    chain_id: "{{ network.config.chain_id | default(2018) | int }}"
+  when:
+    - add_new_org is not defined or add_new_org|bool == False
+    - network.permissioning.enabled is defined and network.permissioning.enabled == true
+
 # This task displays the genesis file content
 - name: Display genesis file contents
   debug:

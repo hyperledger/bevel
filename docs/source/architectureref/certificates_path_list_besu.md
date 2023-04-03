@@ -40,6 +40,12 @@ for Ambassador proxy and Orion TLS |
 
 ------------------------------------------------------------------------------------------------
 
+### For Admin Keys
+
+| Path                                                                         | Key Name               | Description         |
+|-----------------------------------------------------------------------------------|-------------------------------|--------------|
+| secretsv2/{{`component_ns`}}/crypto/admin                         | key                       | Private Key for admin account   |
+| secretsv2/{{`component_ns`}}/crypto/admin                         | key_pub                      | Public Key (Identity for a admin account)  |
 
 Details of Variables
 

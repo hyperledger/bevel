@@ -223,7 +223,13 @@ spec:
             else
               tls_args="--privacy-url={{ .Values.tm.url }}"
             fi
-            
+
+            if {{ $.Values.node.permissioning.enabled }} == "true"
+            then
+              permissioning_args="--permissions-accounts-contract-enabled --permissions-accounts-contract-address=0x0000000000000000000000000000000000008888 --permissions-nodes-contract-enabled  --permissions-nodes-contract-address=0x0000000000000000000000000000000000009999 --permissions-nodes-contract-version=2"
+              args="--rpc-http-enabled --rpc-http-api=ETH,NET,IBFT,DEBUG,ADMIN,WEB3,EEA,PRIV,PERM --rpc-ws-enabled --rpc-ws-api=ETH,NET,WEB3 --p2p-port {{ .Values.node.ports.p2p }} --rpc-http-port {{ .Values.node.ports.rpc }} --rpc-ws-port={{ .Values.node.ports.ws }}"
+            fi
+
             exec /opt/besu/bin/besu \
             --identity={{ .Values.node.name }} \
             --discovery-enabled=false \
@@ -247,7 +253,8 @@ spec:
             --Xdns-enabled=true \
             --Xdns-update-enabled=true \
             $args \
-            $tls_args            
+            $tls_args \
+            $permissioning_args
         ports:
           - name: json-rpc
             containerPort: {{ .Values.node.ports.rpc}}

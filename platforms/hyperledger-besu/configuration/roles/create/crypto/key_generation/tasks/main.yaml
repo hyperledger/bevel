@@ -1,0 +1,43 @@
+##############################################################################################
+#  Copyright Walmart Inc. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+- name: Ensure directory exists
+  file:
+    path: "{{ build_path }}/crypto/{{ user }}//{{ org.name }}"
+    state: directory
+    recurse: yes
+
+# check if  key present in vault
+- name: Check the {{ user }} key of {{ org.name }} in Vault
+  shell: |
+    vault kv get -field=key_pub {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ user }} > "{{ build_path }}/crypto/{{ user }}/{{ org.name }}/key_pub"
+    vault kv get -field=key {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ user }} > "{{ build_path }}/crypto/{{ user }}/{{ org.name }}/key"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_result
+  ignore_errors: yes
+
+- set_fact:
+    generate_key: True
+  when: vault_result.failed is defined and vault_result.failed == True
+
+# generate ppk
+- name: Generate {{ user }} key for {{ org.name }}
+  shell: |
+    {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu public-key export-address --to={{ build_path }}/crypto/{{ user }}/{{ org.name }}/key_pub
+    mv {{ bin_install_dir }}/besu/key {{ build_path }}/crypto/{{ user }}/{{ org.name }}/key
+  register: output
+  when: generate_key is defined and generate_key == True
+
+# Store the keys in vault at {{org}}/crypto/{{user}}.
+- name: Copy the {{ user }} key to Vault
+  shell: |
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ user }} key="$(cat {{ build_path }}/crypto/{{ user }}/{{ org.name }}/key)" key_pub="$(cat {{ build_path }}/crypto/{{ user }}/{{ org.name }}/key_pub)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: generate_key is defined and generate_key == True
