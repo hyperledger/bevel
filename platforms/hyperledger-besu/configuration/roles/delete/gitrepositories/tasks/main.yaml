@@ -1,4 +1,13 @@
-# Patching GitRepository resources
+# List GitRepositories in namespace
+- name: List GitRepositories in namespace
+  k8s_info:
+    api_version: source.toolkit.fluxcd.io/v1beta2
+    kind: GitRepository
+    namespace: flux-{{ network.env.type }}
+  loop: "{{ network['organizations'] }}"
+  register: gitrepo_list
+
+# Patching GitRepository resources only if it exists
 - name: Patching GitRepository resources
   k8s:
     api_version: source.toolkit.fluxcd.io/v1beta2
@@ -11,8 +20,9 @@
         finalizers: []
   register: patch_result
   loop: "{{ network['organizations'] }}"
-  
-# Deleting the same patched GitRepository resources
+  when: ( gitrepo_list.results | json_query('[].resources') | flatten | length ) > 0
+
+# Deleting GitRepository resources only if it exists
 - name: Delete GitRepository resource
   k8s:
     api_version: source.toolkit.fluxcd.io/v1beta2
@@ -21,4 +31,6 @@
     name: flux-{{ network.env.type }}
     state: absent
   loop: "{{ network['organizations'] }}"
-  when: patch_result is succeeded
+  when:
+    - patch_result is succeeded
+    - ( gitrepo_list.results | json_query('[].resources') | flatten | length ) > 0
