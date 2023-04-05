@@ -188,6 +188,20 @@
       - org.type == 'member'
       - network.config.transaction_manager == 'tessera'
 
+  # This role generates the admin ppk for permissioning
+  - name: Generate admin key for permissioning
+    include_role:
+      name: create/crypto/key_generation
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name | lower }}-bes"
+      vault: "{{ org.vault }}"
+      user: "admin"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+        loop_var: org
+    when: network.permissioning.enabled is defined and network.permissioning.enabled == true
+
   # This role deploys  Tessera nodes
   - name: "Deploy Tessera nodes"
     include_role:
