@@ -1,0 +1,47 @@
+# Get all Helm Releases resources in the namespace
+- name: Get all Helm Releases in the namespace
+  k8s_info:
+    api_version: helm.toolkit.fluxcd.io/v2beta1
+    kind: HelmRelease
+    namespace: "{{ item.name | lower }}-ns"
+  register: helm_releases_raw
+  loop: "{{ network['organizations'] }}"
+
+# Using array to store helm release name and its namespace
+- name: Set fact
+  set_fact: 
+    helm_result: []
+
+# Helm Releases resources
+- name: Get all the Helm Releases resources
+  include_tasks: nested.yaml
+  loop: "{{ helm_releases_raw.results | list }}"
+  loop_control:
+    loop_var: resources
+
+# Patching all Helm Releases resources
+- name: Patching Helm Releases resources
+  k8s:
+    api_version: helm.toolkit.fluxcd.io/v2beta1
+    kind: HelmRelease
+    namespace: "{{ item.ns }}"
+    name: "{{ item.release_name }}"
+    state: present
+    definition:
+      metadata:
+        finalizers: []
+  with_items: "{{ helm_result }}"
+  register: patch_result
+
+# Deleting all Helm Releases resources
+- name: Delete all Helm Releases in the namespace
+  k8s:
+    api_version: helm.toolkit.fluxcd.io/v2beta1
+    kind: HelmRelease
+    namespace: "{{ item.ns }}"
+    name: "{{ item.release_name }}"
+    state: absent
+  with_items: "{{ helm_result }}"
+  when: patch_result is succeeded
+  register: delete_result
+
