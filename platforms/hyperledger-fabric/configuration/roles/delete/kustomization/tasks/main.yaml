@@ -1,0 +1,41 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+# List Kustomizations in namespace
+- name: List Kustomizations in namespace
+  k8s_info:
+    api_version: kustomize.toolkit.fluxcd.io/v1beta2
+    kind: Kustomization
+    namespace: flux-{{ network.env.type }}
+  loop: "{{ network['organizations'] }}"
+  register: kustomization_list
+
+# Patching Kustomization resources
+- name: Patching Kustomization resources
+  k8s:
+    api_version: kustomize.toolkit.fluxcd.io/v1beta2
+    kind: Kustomization
+    namespace: flux-{{ network.env.type }}
+    name: flux-{{ network.env.type }}
+    state: present
+    definition:
+      metadata:
+        finalizers: []
+  register: patch_result
+  loop: "{{ network['organizations'] }}"
+  when: ( kustomization_list.results | json_query('[].resources') | flatten | length ) > 0
+
+# Delete Kustomization resources
+- name: Delete Kustomization resources
+  k8s:
+    api_version: kustomize.toolkit.fluxcd.io/v1beta2
+    kind: Kustomization
+    namespace: flux-{{ network.env.type }}
+    name: flux-{{ network.env.type }}
+    state: absent
+  loop: "{{ network['organizations'] }}"
+  when:
+    - patch_result is succeeded
+    - ( kustomization_list.results | json_query('[].resources') | flatten | length ) > 0
