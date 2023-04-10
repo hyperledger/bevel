@@ -224,6 +224,11 @@ spec:
               tls_args="--privacy-url={{ .Values.tm.url }}"
             fi
 
+            if {{ $.Values.metrics.enabled }} == "true"
+            then
+              metrics_args="--metrics-enabled --metrics-port={{ template "metrics_port" . }} --metrics-host=0.0.0.0"
+            fi
+            
             if {{ $.Values.node.permissioning.enabled }} == "true"
             then
               permissioning_args="--permissions-accounts-contract-enabled --permissions-accounts-contract-address=0x0000000000000000000000000000000000008888 --permissions-nodes-contract-enabled  --permissions-nodes-contract-address=0x0000000000000000000000000000000000009999 --permissions-nodes-contract-version=2"
@@ -254,6 +259,7 @@ spec:
             --Xdns-update-enabled=true \
             $args \
             $tls_args \
+            $metrics_args            
             $permissioning_args
         ports:
           - name: json-rpc
