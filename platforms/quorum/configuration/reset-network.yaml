@@ -93,18 +93,39 @@
         - "{{ network['organizations'] }}"
       ignore_errors: yes
 
-    ##Deletes flux namespace
-    - name: delete flux namespace
-      k8s:
-        name: flux-{{ network.env.type }}
-        api_version: v1
-        kind: Namespace
-        state: absent
-        kubeconfig: "{{ kubernetes.config_file }}"
-      vars:
-        kubernetes: "{{ item.k8s }}"
-      loop: "{{ network['organizations'] }}"
-      ignore_errors: yes
+    # Delete ClusterRole related to flux
+    - include_role:
+        name: "delete/clusterrole"
+
+    # Delete ClusterRoleBinding related to flux
+    - include_role:
+        name: "delete/clusterrolebindings"
+
+    # Patching and Deleting GitRepository resources
+    - include_role:
+        name: "delete/gitrepositories"
+
+    # Patching and Deleting Kustomization resources
+    - include_role:
+        name: "delete/kustomization"
+
+    # Patching and Deleting HelmChart resources
+    - include_role:
+        name: "delete/helm_charts"
+    
+    # Patching and Deleting HelmRelease resources
+    - include_role:
+        name: "delete/helm_releases"
+
+    # Patching and Deleting organization namespaces
+    - include_role:
+        name: "delete/organizations_namespaces"
+
+    # Checking if namespce is present or not
+    # If namespace is present only then patching and deletion will happen for the namespace
+    # If namespace is absent then there is no need to patch and delete the namespace
+    - include_role:
+        name: "delete/flux_namespaces"
 
     # Delete Helmreleases.
     # Change this role if you have new Helmreleases to delete

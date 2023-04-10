@@ -1,0 +1,29 @@
+# Delete flux related ClusterRoleBinding resources
+- name: Delete flux related ClusterRoleBinding resources
+  k8s:
+    state: absent
+    api_version: v1
+    kind: ClusterRoleBinding
+    namespace: flux-{{ network.env.type }}
+    name: "{{ item[0] }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  vars:
+    kubernetes: "{{ item[1].k8s }}"
+  with_nested:
+    - ["crd-controller-flux-{{ network.env.type }}",
+       "cluster-reconciler-flux-{{ network.env.type }}"]
+    - "{{ network['organizations'] }}"
+  ignore_errors: false
+
+# Delete organizations related ClusterRoleBinding resources
+- name: Delete organizations related ClusterRoleBinding resources
+  k8s:
+    state: absent
+    api_version: v1
+    kind: ClusterRoleBinding
+    namespace: flux-{{ network.env.type }}
+    name: "{{ item.name | lower }}-quo-role-tokenreview-binding"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  vars:
+    kubernetes: "{{ item.k8s }}"
+  loop: "{{ network['organizations'] }}"
