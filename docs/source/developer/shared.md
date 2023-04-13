@@ -17,8 +17,8 @@ Playbook enviornment-setup.yaml executes the roles which has tasks to install th
     * vault client
     * aws-authenticator
 
-2. **kubernetes-env-setup.yaml**
-Playbook kubernetes-env-setup.yaml executes the roles which has tasks to configure the following on each Kubernetes cluster:
+2. **setup-k8s-enviorment.yaml**
+Playbook setup-k8s-enviorment.yaml executes the roles which has tasks to configure the following on each Kubernetes cluster:
 
     * flux
     * ambassador    (if chosen)
