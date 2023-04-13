@@ -84,7 +84,7 @@
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} helm upgrade --install letsencrypt-clusterissuer --set namespace="{{ component_ns }}" --set email="{{ gitops.email }}" {{ playbook_dir }}/../../../platforms/shared/charts/letsencrypt-issuer
   when: 
-    - organizationItem.issuer|lower == "letsencrypt"
+    - (organizationItem.issuer is defined) and (organizationItem.issuer|lower == "letsencrypt")
 
 # Checks if ClusterIssuer is up and ready
 - name: check for an existing ClusterIssuer and wait for it to be ready
@@ -97,7 +97,7 @@
   delay: 20
   until: cissuer.resources[0].status.conditions[0].status|lower == "true"
   when: 
-    - organizationItem.issuer|lower == "letsencrypt"
+    - (organizationItem.issuer is defined) and (organizationItem.issuer|lower == "letsencrypt")
     
 - name: Create Ambassador certificates
   include_tasks: nested_main.yaml

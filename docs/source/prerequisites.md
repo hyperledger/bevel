@@ -26,7 +26,7 @@ Also, a user needs to make sure that the Kubernetes clusters can support the num
 ---
 **NOTE:** For the current release Bevel has been tested on Amazon EKS with Kubernetes version **1.19**.
 
-Bevel has been tested on Kubernetes >= 1.14 and <= 1.21
+Bevel has been tested on Kubernetes >= 1.19 and <= 1.22
 
 Also, install kubectl Client version **v1.19.8**
 

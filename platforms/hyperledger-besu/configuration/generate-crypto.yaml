@@ -149,6 +149,19 @@
       - org.type == 'member'
       - network.config.transaction_manager == 'tessera'
 
+  - name: Generate admin key for permissioning
+    include_role:
+      name: create/crypto/key_generation
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name | lower }}-bes"
+      vault: "{{ org.vault }}"
+      user: "admin"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+        loop_var: org
+    when: network.permissioning.enabled is defined and network.permissioning.enabled == true
+
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture

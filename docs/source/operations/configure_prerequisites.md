@@ -95,7 +95,7 @@ Hyperledger Bevel uses [Ambassador](https://www.getambassador.io/about/why-ambas
 Bevel automation deploys both as per the configuration provided in `network.env.proxy` section of the Bevel configuration file, but if you are not using [External DNS](#externaldns), you will have to manually add DNS entries.
 
 
-* After Ambassador/HAProxy is deployed on the cluster (manually or using `platforms/shared/configuration/kubernetes-env-setup.yaml` playbook), get the external IP address of the Ambassador/HAProxy service.
+* After Ambassador/HAProxy is deployed on the cluster (manually or using `platforms/shared/configuration/setup-k8s-enviorment.yaml` playbook), get the external IP address of the Ambassador/HAProxy service.
 
     ```
     kubectl get services -o wide

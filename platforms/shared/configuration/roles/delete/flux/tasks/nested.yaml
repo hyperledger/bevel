@@ -1,0 +1,49 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# Listing all resources
+- name: List existing {{ resource_type }} object
+  kubernetes.core.k8s_info:
+    api_version: "{{ api_version }}"
+    kind: "{{ resource_type }}"
+    namespace: "{{ namespace }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    label_selectors: "{{ label_selectors | default() }}"
+  register: resource_list
+
+# Patching resources only if it exists and remove_finalizers is defined
+- name: Patching {{ resource_type }} resources
+  k8s:
+    api_version: "{{ api_version }}"
+    kind: "{{ resource_type }}"
+    namespace: "{{ namespace }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ resource_name.metadata.name }}"
+    state: present
+    definition:
+      metadata:
+        finalizers: []
+  loop: "{{ resource_list.resources }}"
+  loop_control:
+      loop_var: resource_name
+  when: 
+    - resource_list is defined
+    - remove_finalizers is defined
+
+# Deleting resources only if it exists
+- name: Delete {{ resource_type }} resource
+  k8s:
+    api_version: "{{ api_version }}"
+    kind: "{{ resource_type }}"
+    namespace: "{{ namespace }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ resource_name.metadata.name }}"
+    state: absent
+  loop: "{{ resource_list.resources }}"
+  loop_control:
+      loop_var: resource_name
+  when: resource_list is defined

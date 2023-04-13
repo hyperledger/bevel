@@ -69,6 +69,9 @@ spec:
         rpc: {{ peer.rpc.port }}
         ws: {{ peer.ws.port }}
 
+      permissioning:
+        enabled: {{ network.permissioning.enabled | default(false)}}
+      
     storage:
       storageclassname: {{ storageclass_name }}
       storagesize: 1Gi
@@ -105,3 +108,7 @@ spec:
 {% endfor %}
 {% endif %}
 {% endif %}
+
+    metrics:
+      enabled: {{ peer.metrics.enabled | default(false)}}
+      port: {{ peer.metrics.port | default(9545) }}    

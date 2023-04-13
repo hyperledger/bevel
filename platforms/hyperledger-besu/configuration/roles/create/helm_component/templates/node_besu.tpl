@@ -61,6 +61,9 @@ spec:
         rpc: {{ peer.rpc.port }}
         ws: {{ peer.ws.port }}
 
+      permissioning:
+        enabled: {{ network.permissioning.enabled | default(false)}}
+
     tm:
       type: {{ network.config.transaction_manager }}
       tls: {{ network.config.tm_tls }}
@@ -107,3 +110,7 @@ spec:
 {% endfor %}
 {% endif %}
 {% endif %} 
+
+    metrics:
+      enabled: {{ peer.metrics.enabled | default(false)}}
+      port: {{ peer.metrics.port | default(9545) }}
