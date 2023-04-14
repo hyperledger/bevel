@@ -51,6 +51,95 @@ For source code integrity , Hyperledger Bevel GitHub pull requests are accepted 
 8. Work on the feedbacks to revise the PR if there are any comments
 9. If not, the PR gets approved , delete feature branch post the merge
 
+## Create local branch
+
+> Whenever you begin work on a new feature or bugfix, it's important that you create a new branch.
+1. Clone your fork to your local machine
+
+2. Setup your local fork to keep up-to-date (optional)
+   ```
+   # Add 'upstream' repo to list of remotes
+   git remote add upstream https://github.com/hyperledger/bevel.git
+   # Verify the new remote named 'upstream'
+   git remote -v
+   # Checkout your main branch and rebase to upstream.
+   # Run those commands whenever you want to synchronize with main branch
+   git fetch upstream
+   git checkout main
+   git rebase upstream/main
+   ```
+3. Create your branch.
+   ```
+   # Checkout the main branch - you want your new branch to come from main
+   git checkout main
+   # Create a new branch named `<feat-issue_number>` (give simple informative name)
+   git branch <feat-issue_number>
+   ```
+4. Checkout your branch and add/modify files.
+   ```
+   git checkout <feat-issue_number>
+   git rebase main
+   # Happy coding !
+   ```
+5. Commit changes to your branch.
+   ```
+   # Commit and push your changes to your fork
+   git add -A
+   git commit -s
+   ```
+   
+   In this way, we can create PR and commit titles accordingly in the future. For example:
+   If the issue is a feature for fabric,
+   The branch can be feat-000
+   And then the PR title can be [fabric] feat: added support for sample_feature
+   And then the commit description can be wrriten as following:
+   
+   ```
+   feat(fabric): added support for sample_feature  
+   Updated ....  
+   Fixed .....  
+   Fixes #000
+   ```
+
+   ```
+   git push origin <feat-issue_number>
+   ```
+6. Once you've committed and pushed all of your changes to GitHub, go to the page for your fork on GitHub, select your development branch, and click the pull request button.
+
+7. Repeat step 3 to 6 when you need to prepare posting new pull request.
+
+NOTE: Once you submitted pull request to Bevel repository, step 6 is not necessary when you made further changes with `git commit --amend` since your amends will be sent automatically.
+
+NOTE: You can refer original tutorial ['GitHub Standard Fork & Pull Request Workflow'](https://gist.github.com/Chaser324/ce0505fbed06b947d962)
+
+### Directory structure
+
+Whenever you begin to use your codes on Hyperledger Bevel, you should follow the directory strecture on Hyperledger Bevel.
+The current directory structure is described as the following:
+
+
+> - automation/ : This folder contains the Jenkinsfile to deploy DLT Platforms supported by Hyperledger Bevel on a demo environment.
+>   - hyperledger-fabric/ : ontains network.yaml file and fabric Jenkinsfile
+>   - r3-corda/ : Contains network.yaml file and Jenkinsfile for doorman,networkmap and entire network deployment file.
+>   - initcontainer.Jenkinsfile : This file is used to initialize a container with basic configuration. This will be used on both hyperledger and r3-corda platforms.
+> - docs/
+>    - source/
+>         - index.rst : This is the main document. Main function of this document is to serve as a welcome page, and to contain the root of the “table of contents tree” (or toctree).This is one of the main things that Sphinx adds to reStructuredText, a way to connect multiple files to a single hierarchy of documents
+>         - conf.py : The configuration directory must contain a file named conf.py. This file (containing Python code) is called the “build configuration file” and contains (almost) all configuration needed to customize Sphinx input and output behavior.
+>         - *.md : Create all the markdown file which are referenced in the document tree with the appropriate content.
+>    - Makefile
+>    - pip-requirements.txt
+>    - README.md     
+> - platforms/
+>     - hyperledger-besu/
+>     - hyperledger-fabric/ 
+>     - hyperledger-indy/ 
+>     - quorum/ 
+>     - r3-corda-ent/
+>     - r3-corda/ 
+>     - shared/ : This folder contains the main playbook (site.yaml), along with some pre-requisite roles, playbooks and other shared roles which are commonly used by all the platforms
+
+
 ---
 **NOTE:** If you are a regular contributor , please make sure to take the latest pull from the develop branch everytime before making any pull request , main branch in case of a critical defect / bug .
 
