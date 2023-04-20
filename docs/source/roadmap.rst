@@ -87,6 +87,6 @@ Application
 -  |run| Hyperledger Besu reference application
 
 
-Histroic DLT/Blockchain support releases
+Historic DLT/Blockchain support releases
 -----------------------------------------
 This section has been moved to the :doc:`compatibilitytable`
