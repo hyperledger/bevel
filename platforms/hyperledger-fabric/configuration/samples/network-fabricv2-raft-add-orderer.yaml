@@ -37,10 +37,10 @@ network:
   # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "ghcr.io/hyperledger"
     username: "docker_username"
     password: "docker_password"
-  
+
   # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
   # For RAFT consensus, have odd number (2n+1) of orderers for consensus agreement to have a majority.
   consensus:
@@ -70,7 +70,7 @@ network:
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer4.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer4.crt           # Ensure that the directory exists
-  
+
   # The channels defined for a network with participating peers in each channel
   channels:
   - channel:
@@ -84,17 +84,17 @@ network:
     - organization:
       name: carrier
       type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
-      org_status: new
+      org_status: existing
       peers:
       - peer:
         name: peer0
         gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
         peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
-    - organization:      
+    - organization:
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
-      org_status: new
+      org_status: existing
       peers:
       - peer:
         name: peer0
@@ -104,7 +104,7 @@ network:
     - organization:
       name: warehouse
       type: joiner
-      org_status: new
+      org_status: existing
       peers:
       - peer:
         name: peer0
@@ -114,7 +114,7 @@ network:
     - organization:
       name: manufacturer
       type: joiner
-      org_status: new
+      org_status: existing
       peers:
       - peer:
         name: peer0
@@ -122,7 +122,7 @@ network:
         peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     genesis:
-      name: OrdererGenesis  
+      name: OrdererGenesis
 
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
@@ -138,16 +138,16 @@ network:
       subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
       type: orderer
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
-      org_status: new
+      org_status: existing
       ca_data:
         url: ca.supplychain-net.org1ambassador.blockchaincloudpoc.com:8443
-        certificate: file/server.crt        # This has not been implemented in 0.2.0.0
-  
+        certificate: /path/supplychain/server.crt        # This has not been implemented in 0.2.0.0
+
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-  
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -184,10 +184,10 @@ network:
           type: ca
           grpc:
             port: 7054
-        
+
         consensus:
           name: raft
-                
+        
         orderers:
         # This sample has multiple orderers as an example.
         # You can use a single orderer for most production implementations.
@@ -219,4 +219,4 @@ network:
           type: orderer
           consensus: raft
           grpc:
-            port: 7050    
+            port: 7050
