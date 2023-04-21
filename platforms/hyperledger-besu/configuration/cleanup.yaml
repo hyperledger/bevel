@@ -1,0 +1,56 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook deletes the DLT network on existing Kubernetes clusters which has been created
+# using Hyperledger Bevel.
+# Please use the same network.yaml to run this playbook as used for deploy-network.yaml
+
+##################################################
+# Playbook to cleanup platform specific resources
+##################################################
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+    # Delete Vault and Kubernetes secrets.
+    - include_role:
+        name: "delete/vault_secrets"
+      vars:
+        org_namespace: "{{ item.name | lower }}-bes"
+        org_name: "{{ item.name | lower}}"
+        services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+
+    # Delete ambassador tls certificates
+    - name: "delete ambassador tls certificates for Organizations"
+      include_role:
+        name: delete/certificates/ambassador
+      vars:
+        services: "{{ organizationItem.services }}"
+        kubernetes: "{{ organizationItem.k8s }}"
+        component_ns: "{{ organizationItem.name | lower }}-bes"
+        component_name: "{{ organizationItem.name | lower }}"
+        organization: "{{ organizationItem.name | lower }}"
+      loop: "{{ network['organizations']}}"
+      loop_control:
+        loop_var: organizationItem
+      when:
+        - network.type == "besu"
+        - (organizationItem.issuer is defined) and (organizationItem.issuer | lower == "letsencrypt")
+
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries

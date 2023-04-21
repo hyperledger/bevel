@@ -59,4 +59,4 @@ Perform the following steps to upgrade the deployments
 ## Re-deployment of flux
 With the lastest Bevel repo clone and the network.yaml, you can redeploy flux using
 
-    ansible-playbook platforms/shared/configuration/kubernetes-env-setup.yaml -e @<PATH_TO_NETWORK_YAML>
+    ansible-playbook platforms/shared/configuration/setup-k8s-enviorment.yaml -e @<PATH_TO_NETWORK_YAML>

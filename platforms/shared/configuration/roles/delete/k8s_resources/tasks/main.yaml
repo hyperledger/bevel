@@ -1,0 +1,38 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Remove all Helm components of organization
+- name: Remove all Helm components of {{ organization }}
+  args:
+    executable: /bin/bash
+  shell: |
+    helm_components=($(KUBECONFIG={{ kubernetes.config_file }} helm ls -n {{ organization_ns }} | awk 'NR>1 {print $1}'))
+    for helm_component in "${helm_components[@]}"
+    do
+      KUBECONFIG={{ kubernetes.config_file }} helm uninstall ${helm_component} -n {{ organization_ns }}
+    done
+
+# Remove an existing Namespace
+- name: Remove an existing Namespace {{ organization_ns }}
+  k8s:
+    state: absent
+    kind: Namespace
+    kubeconfig: "{{ kubernetes.config_file }}"
+    namespace: "{{ organization_ns }}"
+    name: "{{ organization_ns }}"
+
+# Remove an existing Storage Class
+- name: Remove an existing Storage Class of {{ organization }}
+  vars:
+    provider: "{{ organizationItem.cloud_provider }}"
+    storageclass_name: "{{ provider }}-storageclass"
+    component_name: "{{ organization }}-{{ storageclass_name }}"
+  k8s:
+    state: absent
+    kind: StorageClass
+    kubeconfig: "{{ kubernetes.config_file }}"
+    namespace: "default"
+    name: "{{ component_name }}"
