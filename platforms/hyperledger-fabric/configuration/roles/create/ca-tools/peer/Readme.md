@@ -179,17 +179,6 @@ This task gets msp config.yaml file from vault
     *VAULT_TOKEN: Contains Vault Token, Fetched using 'vault.' from network.yaml
 **shell** : The specified commands copies the msp folder from the respective CA Tools CLI.
 
-#### 18. Create user crypto
-This task create user crypto 
-##### Input Variables
-    *org_name: "Name of the organization"
-    *subject: "Subject of the organization"
-    *ca_url: "Ca url of the organization"
-    *users: "Provides users"
-    *proxy: "The proxy/ingress provider"
-**include_role**: It includes the name of intermediatory role which is required for creating user crypto, here `create/users`.
-**when**: It runs Only when *item.users* is defined.
-
 ### delete_old_certs.yaml
 ### Tasks
 #### 1. Delete Crypto for peers

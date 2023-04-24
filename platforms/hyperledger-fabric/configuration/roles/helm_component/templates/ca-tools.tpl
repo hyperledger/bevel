@@ -60,16 +60,15 @@ spec:
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ network.env.type }}{{ component_name }}-auth
-      secretmsp: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/msp
-      secrettls: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/tls
-      secretorderer: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderers
+      secretusers: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users
+      secretorderer: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderers
       secretpeer: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/peers
-      secretpeerorderertls: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderer/tls
-      secretambassador: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador
-      secretcert: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
+      secretpeerorderertls: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderer/tls
+      secretambassador: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
       secretcouchdb: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name }}/couchdb/{{ org_name }}
-      secretconfigfile: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/msp/config
+      secretconfigfile: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/msp/config
       serviceaccountname: vault-auth
       imagesecretname: regcred
     
@@ -105,6 +104,12 @@ spec:
       name: {% for peer in peers_list %}{% for key, value in peer.items() %}{% if key == 'name' %}{{ value }},{% endif %}{% if key == 'peerstatus' %}{{ value }}{% endif %}{% endfor %}-{% endfor %}
       
     peer_count: "{{ peer_count }}"
+{% if item.users is defined %}
+    users: 
+      users_list: "{{ user_list | b64encode }}"
+      users_identities: {% for user in user_list %}{% for key, value in user.items() %}{% if key == 'identity' %}{{ value }}{% endif %}{% endfor %}-{% endfor %}
+{% endif %}
+
 {% if add_peer_value  == 'true' %}
     new_peer_count: "{{ new_peer_count }}"
 {% endif %}
