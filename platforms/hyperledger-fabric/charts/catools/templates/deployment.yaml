@@ -75,6 +75,13 @@ spec:
           items:
             - key: generate-crypto-add-peer.sh
               path: generate-crypto-add-peer.sh
+      - name: generate-user-crypto
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-user-crypto.sh
+              path: generate-user-crypto.sh
       - name: store-vault-orderer
         configMap:
           name: orderer-script-store-vault
@@ -89,6 +96,14 @@ spec:
           items:
             - key: store-vault-peer.sh
               path: store-vault-peer.sh
+      - name: store-vault-users
+        configMap:
+          name: users-script-store-vault
+          defaultMode: 0775
+          items:
+            - key: store-vault-users.sh
+              path: store-vault-users.sh
+              
       - name: none-config
         configMap:
           name: msp-config-file
@@ -125,10 +140,8 @@ spec:
             value: {{ $.Values.vault.role }}
           - name: KUBERNETES_AUTH_PATH
             value: {{ $.Values.vault.authpath }}
-          - name: VAULT_SECRET_MSP
-            value: {{ $.Values.vault.secretmsp }}
-          - name: VAULT_SECRET_TLS
-            value: {{ $.Values.vault.secrettls }}
+          - name: VAULT_SECRET_USERS
+            value: {{ $.Values.vault.secretusers }}
           - name: VAULT_SECRET_ORDERER
             value: {{ $.Values.vault.secretorderer }}
           - name: VAULT_SECRET_PEER
@@ -151,6 +164,8 @@ spec:
             value: "{{ $.Values.orderers.name }}"
           - name: PEERS_NAMES
             value: "{{ $.Values.peers.name }}"
+          - name: USERS_IDENTITIES
+            value: {{ $.Values.users.users_identities }}
           - name: MOUNT_PATH
             value: "/certcheck"
           command: ["sh", "-c"]
@@ -217,7 +232,7 @@ spec:
                 echo "${VALUE_OF_SECRET}" > ${OUTPUT_PATH}/ca/${COMPONENT_NAME}-CA.key
 
                 # Check if admin msp already created
-                LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_MSP} | jq -r 'if .errors then . else . end')
+                LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/msp | jq -r 'if .errors then . else . end')
 
                 if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                 then
@@ -228,13 +243,13 @@ spec:
                   echo "Certficates absent in vault2. Ignore error warning"
                   touch ${MOUNT_PATH}/absent_msp.txt
                 else
-                  validateVaultResponse "${VAULT_SECRET_MSP}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                  validateVaultResponse "${VAULT_SECRET_USERS}/admin/msp" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                   echo "Certificates present in vault"
                   touch ${MOUNT_PATH}/present_msp.txt
                 fi
 
                 # Check if admin tls already created
-                LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_TLS} | jq -r 'if .errors then . else . end')
+                LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/tls | jq -r 'if .errors then . else . end')
                 if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
                 then
                   echo "Certficates absent in vault. Ignore error warning"
@@ -244,7 +259,7 @@ spec:
                   echo "Certficates absent in vault2. Ignore error warning"
                   touch ${MOUNT_PATH}/absent_tls.txt
                 else
-                  validateVaultResponse "${VAULT_SECRET_MSP}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                  validateVaultResponse "${VAULT_SECRET_USERS}/admin/tls" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                   echo "Certificates present in vault"
                   touch ${MOUNT_PATH}/present_tls.txt
                 fi
@@ -389,6 +404,45 @@ spec:
                   fi          
               fi;
 
+              if [ "$USERS_IDENTITIES" ]
+              then
+                identities_list=$(echo "$USERS_IDENTITIES" | tr "-" "\n")
+                for user_identity in $identities_list
+                do
+
+                  # Check if users msp already created
+                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/${user_identity}/msp | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    echo "Certficates absent in vault. Ignore error warning"
+                    touch ${MOUNT_PATH}/absent_msp_${user_identity}.txt
+                  elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
+                  then
+                    echo "Certficates absent in vault2. Ignore error warning"
+                    touch ${MOUNT_PATH}/absent_msp_${user_identity}.txt
+                  else
+                    validateVaultResponse "${VAULT_SECRET_USERS}/${user_identity}/msp" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                    echo "Certificates present in vault"
+                    touch ${MOUNT_PATH}/present_msp_${user_identity}.txt
+                  fi
+
+                  # Check if users tls already created
+                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/${user_identity}/tls | jq -r 'if .errors then . else . end')
+                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  then
+                    echo "Certficates absent in vault. Ignore error warning"
+                    touch ${MOUNT_PATH}/absent_tls_${user_identity}.txt
+                  elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
+                  then
+                    echo "Certficates absent in vault2. Ignore error warning"
+                    touch ${MOUNT_PATH}/absent_tls_${user_identity}.txt
+                  else
+                    validateVaultResponse "${VAULT_SECRET_USERS}/${user_identity}/tls" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+                    echo "Certificates present in vault"
+                    touch ${MOUNT_PATH}/present_tls_${user_identity}.txt
+                  fi
+                done
+              fi
           volumeMounts:
           - name: ca-tools-pv
             mountPath: /root/ca-tools
@@ -415,6 +469,10 @@ spec:
             value: "{{ $.Values.orderers.name }}"
           - name: PEERS_NAMES
             value: "{{ $.Values.peers.name }}"
+          - name: USERS
+            value: {{ $.Values.users.users_list }}
+          - name: USERS_IDENTITIES
+            value: {{ $.Values.users.users_identities }}
           - name: SUBJECT
             value: {{ .Values.org_data.component_subject }}
           - name: CERT_SUBJECT
@@ -497,6 +555,18 @@ spec:
                     fi;
                   fi;
                 done 
+
+                # Generate crypto material for users
+                list=$(echo "$USERS_IDENTITIES" | tr "-" "\n")         
+                for USER in $list
+                do
+                  if ([ "$USERS" ] && [ -e  ${MOUNT_PATH}/absent_msp_${USER}.txt ]) || [ "$REFRESH_CERTS" = "true" ]
+                  then
+                    cd /root/ca-tools/${NAME}
+                    ./generate-user-crypto.sh peer ${USERS}
+                    break
+                  fi;
+                done
               fi;
 
               if [ "$PROXY" = "ambassador" ] ; then
@@ -606,6 +676,9 @@ spec:
           - name: generate-crypto-add-peer
             mountPath: /root/ca-tools/{{ $.Values.metadata.org_name }}/generate-crypto-add-peer.sh
             subPath: generate-crypto-add-peer.sh
+          - name: generate-user-crypto
+            mountPath: /root/ca-tools/{{ $.Values.metadata.org_name }}/generate-user-crypto.sh
+            subPath: generate-user-crypto.sh
         - name: store-vault
           image: {{ $.Values.image.alpineutils }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -616,10 +689,8 @@ spec:
             value: {{ $.Values.vault.role }}
           - name: KUBERNETES_AUTH_PATH
             value: {{ $.Values.vault.authpath }}
-          - name: VAULT_SECRET_MSP
-            value: {{ $.Values.vault.secretmsp }}
-          - name: VAULT_SECRET_TLS
-            value: {{ $.Values.vault.secrettls }}
+          - name: VAULT_SECRET_USERS
+            value: {{ $.Values.vault.secretusers }}
           - name: VAULT_SECRET_ORDERER
             value: {{ $.Values.vault.secretorderer }}
           - name: VAULT_SECRET_PEER
@@ -648,6 +719,8 @@ spec:
             value: "{{ $.Values.orderers.name }}"
           - name: PEERS_NAMES
             value: "{{ $.Values.peers.name }}"
+          - name: USERS_IDENTITIES
+            value: {{ $.Values.users.users_identities }}
           - name: MOUNT_PATH
             value: "/certcheck" 
           command: ["sh", "-c"]
@@ -674,6 +747,11 @@ spec:
                   # Generate crypto material for organization peers
                   cd /scripts/peer
                   ./store-vault-peer.sh
+                  if [ "$USERS_IDENTITIES" ]
+                  then
+                    cd /scripts/peer
+                    ./store-vault-users.sh
+                  fi;    
                 fi;
               fi;
 
@@ -696,6 +774,9 @@ spec:
           - name: store-vault-peer
             mountPath: /scripts/peer/store-vault-peer.sh
             subPath: store-vault-peer.sh
+          - name: store-vault-users
+            mountPath: /scripts/peer/store-vault-users.sh
+            subPath: store-vault-users.sh
           {{ if and (eq $.Values.metadata.component_type "peer") (ne $.Values.metadata.proxy "none") }}
           - name: no-none-config
             mountPath: /crypto-config/peerOrganizations/{{ $.Values.metadata.namespace }}/msp/config.yaml
