@@ -62,6 +62,7 @@ This tasks creates deployment file for nms mongodb node by calling create/k8_com
 
     component_name: name of the component
     component_type: type of the component. In this case value is "mongodb".
+    org_name: organization name's.
     helm_lint:  flag value to check/uncheck syntax for helm value files
     *nodename: organization name for nms
     *charts_dir: path to nms charts
@@ -76,6 +77,7 @@ This tasks creates deployment file for nms mongodb node by calling create/k8_com
 
     component_name: name of the component
     component_type: type of the component. In this case value is "mongodb".
+    org_name: organization name's.
     helm_lint:  flag value to check/uncheck syntax for helm value files
     *nodename: organization name for nms
     *charts_dir: path to nms charts
@@ -91,6 +93,7 @@ This tasks creates deployment file for nms node by calling create/k8_component r
 
     component_name: name of the component
     component_type: type of the component. In this case value is "nms".
+    org_name: organization name's.
     helm_lint:  flag value to check/uncheck syntax for helm value files
     *nodename: organization name for nms
     *charts_dir: path to nms charts
@@ -105,6 +108,7 @@ This tasks creates deployment file for nms node by calling create/k8_component r
 
     component_name: name of the component
     component_type: type of the component. In this case value is "nms".
+    org_name: organization name's.
     helm_lint:  flag value to check/uncheck syntax for helm value files
     *nodename: organization name for nms
     *charts_dir: path to nms charts

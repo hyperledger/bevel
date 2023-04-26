@@ -63,6 +63,7 @@ This tasks creates deployment files for h2 database for notary by calling create
 
     node_type: specifies the type of node
     component_type: specifies the type of resource
+    org_name: organization name's
     *component_name:  specifies the name of resource
     *release_dir: path to the folder where generated value are getting pushed
 
@@ -85,6 +86,7 @@ This tasks creates deployment files for job for notary by calling create/node_co
 
     node_type: specifies the type of node
     component_type: specifies the type of resource
+    org_name: organization name's
     *component_name:  specifies the name of resource
     *nms_url: url of nms, fetched from network.yaml
     *doorman_url: url of doorman, fetched from network.yaml
@@ -100,43 +102,22 @@ This tasks push the created value files into repository by calling git_push role
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 
-#### 12. "Wait for notary db pod creation"
-This tasks checks and creates pod for notary db by calling check/node_component role.
-##### Input Variables
-
-    component_type: Contains hardcoded value 'POD' for resource type
-    *component_name: Contains component name fetched network.yaml
-
-#### 13. "Wait for notary job completion"
-This tasks checks and creates job for notary by calling check/node_component role.
-##### Input Variables
-
-    component_type: Contains hardcoded value 'Job' for resource type
-    *component_name: Contains component name fetched network.yaml
-
-This task is called only when nodekeystore_result is failed i.e. only when first time set-up of network.
-
-#### 14. 'Create notary node deployment file'
+#### 12. 'Create notary node deployment file'
 This tasks create deployment file for notary by calling create/node_component role.
 ##### Input Variables
 
     node_type: specifies the type of node
     component_type: specifies the type of resource
+    org_name: organization name's
     *component_name:  specifies the name of resource
     *nms_url: url of nms, fetched from network.yaml
     *doorman_url: url of doorman, fetched from network.yaml
     *release_dir: path to the folder where generated value are getting pushed
 
-#### 15. 'Push notary deployment files'
+#### 13. 'Push notary deployment files'
 This tasks push the deployment files for h2, job and notary to repository by calling git_push role from shared.
 ##### Input Variables
     GIT_DIR: "The path of directory which needs to be pushed"    
     GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
-
-#### 16. "Wait for notary pod creation"
-This tasks wait for db, job and notary pod to deploy completely by calling check/node_component role.
-#### Input Variables
-    component_type: Contains hardcoded value 'POD' for resource type
-    *component_name: Contains name of resource, fetched from network.yaml
