@@ -63,6 +63,7 @@ This tasks creates deployment file for doorman mongodb node by calling create/k8
 
     component_name: name of the component
     component_type: type of the component. In this case value is "mongodb".
+    org_name: organization name's.
     helm_lint:  flag value to check/uncheck syntax for helm value files
     *nodename: organization name for doorman, fetched from network.yaml
     *charts_dir: path to doorman charts, fetched from network.yaml
@@ -78,6 +79,7 @@ This tasks creates deployment file for doorman mongodb node by calling create/k8
 
     component_name: name of the component
     component_type: type of the component. In this case value is "mongodb".
+    org_name: organization name's.
     helm_lint:  flag value to check/uncheck syntax for helm value files
     *nodename: organization name for doorman, fetched from network.yaml
     *charts_dir: path to doorman charts, fetched from network.yaml
@@ -93,6 +95,7 @@ This tasks creates deployment file for doorman node by calling create/k8_compone
 
     *component_name: name of the component, fetched from network.yaml
     component_type: type of the component. In this case value is "doorman".
+    org_name: organization name's.
     helm_lint:  flag value to check/uncheck syntax for helm value files
     *nodename: organization name for doorman
     *charts_dir: path to doorman charts, fetched from network.yaml
@@ -108,6 +111,7 @@ This tasks creates deployment file for doorman node by calling create/k8_compone
 
     *component_name: name of the component, fetched from network.yaml
     component_type: type of the component. In this case value is "doorman".
+    org_name: organization name's.
     helm_lint:  flag value to check/uncheck syntax for helm value files
     *nodename: organization name for doorman
     *charts_dir: path to doorman charts, fetched from network.yaml
