@@ -187,3 +187,16 @@ jobs:
         cd ./platforms/quorum/configuration
         molecule test -s tessera
       if: contains(github.event.pull_request.title, 'quorum')
+#######################################################################################
+  #Application molecule test
+  application-tests:
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, '[application]')"
+    strategy:
+      matrix:
+        app: [supplychain, identity]
+    steps:
+      - name: Run Molecule tests
+        run: |
+          cd ${{ matrix.app }}
+          molecule test
