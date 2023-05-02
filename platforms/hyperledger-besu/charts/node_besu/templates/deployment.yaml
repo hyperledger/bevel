@@ -140,15 +140,18 @@ spec:
           node_private_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]') 
           echo "${node_private_key}" > ${MOUNT_PATH}/node_private_key
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
-          echo "Getting transaction manager public key from $vault_secret_key" 
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          tm_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')    
-          echo "${tm_key_pub}" > ${MOUNT_PATH}/tm_key_pub
+          if [ {{ $.Values.privacy.tm_flag }} == "true" ]
+          then
+            vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
+            echo "Getting transaction manager public key from $vault_secret_key"
+            LOOKUP_SECRET_RESPONSE=$(curl -sS \
+              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | \
+              jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
+            tm_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')    
+            echo "${tm_key_pub}" > ${MOUNT_PATH}/tm_key_pub
+          fi
         
           if [ {{ $.Values.tm.tls }} == "true" ]
           then
@@ -253,14 +256,14 @@ spec:
             --rpc-http-cors-origins="all" \
             --rpc-ws-host=0.0.0.0 \
             --min-gas-price=0 \
-            --privacy-enabled=true \
-            --privacy-public-key-file=/secrets/tm_key.pub \
+            --privacy-enabled={{ .Values.privacy.enabled }} \
+            --privacy-public-key-file={{ .Values.privacy.public_key_file }} \
             --Xdns-enabled=true \
             --Xdns-update-enabled=true \
             $args \
             $tls_args \
-            $metrics_args            
-            $permissioning_args
+            $metrics_args \
+            $permissioning_args \
         ports:
           - name: json-rpc
             containerPort: {{ .Values.node.ports.rpc}}
