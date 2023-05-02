@@ -73,6 +73,18 @@ spec:
       url: "http://{{ peer.name }}-tessera.{{ component_ns }}:{{ peer.tm_clientport.port }}"
 {% endif %}
 
+{% if network.config.transaction_manager == "none" %}
+    privacy:
+      enabled: false
+      public_key_file: ""
+      tm_flag: false
+{% else %}
+    privacy:
+      enabled: true
+      public_key_file: /secrets/tm_key.pub
+      tm_flag: true
+{% endif %}
+
     storage:
       storageclassname: {{ storageclass_name }}
       storagesize: 1Gi
