@@ -1,0 +1,13 @@
+##############################################################################################
+#  Copyright Walmart Inc. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Get information about each validator node present in network.yaml and store it as a list of org,node
+- name: Get node data
+  set_fact:
+    node_list={{ node_list| default([]) + [ {'org':org.name, 'node':peer.name, 'type':org.type } ] }}
+  loop: "{{ org.services.peers is defined | ternary(org.services.peers, org.services.validators) }}"
+  loop_control:
+    loop_var: peer
