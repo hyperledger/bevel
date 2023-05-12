@@ -79,6 +79,11 @@ spec:
             items:
               - key: genesis.json.base64
                 path: genesis.json.base64
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
+  
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
@@ -86,69 +91,45 @@ spec:
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
+        - name: VAULT_SECRET_ENGINE
+          value: {{ $.Values.vault.secretengine }}
         - name: VAULT_SECRET_PREFIX
           value: {{ .Values.vault.secretprefix }}
         - name: KUBERNETES_AUTH_PATH
           value: {{ .Values.vault.authpath }}
         - name: VAULT_APP_ROLE
           value: {{ .Values.vault.role }}
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         - name: MOUNT_PATH
           value: "/secret"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-
-          validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          source /scripts/bevel-vault.sh
           #Login to Vault and to get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          vaultBevelFunc 'init'
+          validateVaultResponseHashicorp 'vault login token' "${VAULT_TOKEN}"
+          
 
           mkdir -p ${MOUNT_PATH}
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]') 
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
+          vaultBevelFunc 'readJson' ${vault_secret_key}
+
+          validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
+          nodekey=$(echo ${VAULT_SECRET} | jq -r '.data["key"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
           if [ {{ $.Values.node.tls }} == "true" ]
           then
-            vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}"
-            LOOKUP_SECRET_RESPONSE=$(curl -sS \
-              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key} | \
-              jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
-            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' | base64 -d)
+            vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}"
+            vaultBevelFunc 'readJson' ${vault_secret_key}
+
+            validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
+            keystore=$(echo ${VAULT_SECRET} | jq -r '.data["keystore"]')  
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data["password"]' | base64 -d)
             echo "${keystore}" > ${MOUNT_PATH}/keystore
             base64 -d ${MOUNT_PATH}/keystore > ${MOUNT_PATH}/keystore.pkcs12
             echo "${keystore_password}" > ${MOUNT_PATH}/keystore_password
@@ -157,6 +138,9 @@ spec:
         volumeMounts:
         - name: certificates
           mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       - name: liveliness-check
         image: "{{ .Values.images.alpineutils }}"
         imagePullPolicy: IfNotPresent

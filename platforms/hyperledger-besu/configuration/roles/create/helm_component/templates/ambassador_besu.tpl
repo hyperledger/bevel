@@ -32,10 +32,11 @@ spec:
       address: {{ vault.url }}
       secretengine: {{ vault.secret_path | default('secretsv2') }}
       authpath: besu{{ organisation }}
-      rootcasecret: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/ambassadorcerts/rootca
-      ambassadortlssecret: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ node_name }}/tls
+      rootcasecret: data/{{ component_ns }}/crypto/ambassadorcerts/rootca
+      ambassadortlssecret: data/{{ component_ns }}/crypto/{{ node_name }}/tls
       role: vault-role
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
     subject:
       ambassadortls: {{ cert_subject }}
     opensslVars:
