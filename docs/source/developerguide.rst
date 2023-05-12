@@ -10,6 +10,7 @@ Quickstart Guides
    developer/dev_prereq
    developer/bevel_minikube_setup
    developer/docker-build
+   developer/bevel_fabric_minikube_setup
 
 Additional Developer prerequisites
 ----------------------------------
@@ -81,6 +82,7 @@ Ansible Roles and Playbooks
    developer/indy-ansible
    developer/quorum-ansible
    developer/besu-ansible
+   developer/substrate-ansible
 
 Helm Charts 
 ---------------------------
@@ -95,6 +97,7 @@ Helm Charts
    developer/indy-helmcharts
    developer/quorum-helmcharts
    developer/besu-helmcharts
+   developer/substrate-helmcharts
 
 Jenkins Automation
 ---------------------------

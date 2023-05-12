@@ -1,0 +1,51 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This task checks if the keys already exist
+- name: Check if keys exist
+  shell: |
+    vault kv get -field=node_id {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_keys_result
+  ignore_errors: yes
+
+# generate substrate keys helmrelease file
+- name: "Create substrate key management file"
+  include_role:
+    name: create/helm_component
+  vars:    
+    component_type: "key_mgmt"    
+    type: "substrate_keys_job"
+    name: "{{ org.name | lower }}"
+    component_name: "{{ peer.name }}-keys-job"
+  when: vault_keys_result.failed
+  tags: 
+    - molecule-idempotence-notest
+
+# ---------------------------------------------------------------------
+# push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/substrate/configuration"
+    msg: "[ci skip] Pushing key management job files for {{ component_ns }}"
+  when: vault_keys_result.failed
+  tags: notest
+
+# Check if key job is completed
+- name: Check if key generation job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ peer.name }}-keys-job"
+    component_type: Job
+    namespace: "{{ component_ns }}"
+  when: vault_keys_result.failed
+  tags: notest

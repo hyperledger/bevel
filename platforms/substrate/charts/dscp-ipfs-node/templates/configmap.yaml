@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dscp-ipfs.fullname" . }}-config
+  labels:
+    {{- include "dscp-ipfs.labels" . | nindent 4 }}
+data:
+  healthCheckPollPeriod: {{ .Values.config.healthCheckPollPeriod | quote }}
+  healthCheckTimeout: {{ .Values.config.healthCheckTimeout | quote }}
+  healthCheckPort: {{ .Values.config.healthCheckPort | quote }}
+  logLevel: {{ .Values.config.logLevel }}
+  {{- if .Values.config.nodeHost }}
+  nodeHost: {{ .Values.config.nodeHost }}
+  {{- else if .Values.dscpNode.enabled }}
+  nodeHost: {{ include "dscp-ipfs-node.fullname" . }}
+  {{- end }}
+  ipfsCommand: {{ .Values.config.ipfsCommand }}
+  ipfsLogLevel: {{ .Values.config.ipfsLogLevel }}
+  ipfsArgs: {{ .Values.config.ipfsArgs | toJson | quote }}
+  ipfsSwarmAddrFilters: {{ .Values.config.ipfsSwarmAddrFilters | toJson | quote }}
+  {{- if .Values.config.ipfsBootNodeAddress }}
+  ipfsBootNodeAddress: {{ .Values.config.ipfsBootNodeAddress }}
+  {{- end }}
+  ipfsApiPort: {{ include "dscp-ipfs.ipfsApiPort" . }}
+  ipfsSwarmPort: {{ .Values.config.ipfsSwarmPort | quote }}
+  dataVolumeSize: {{ .Values.storage.dataVolumeSize | quote }}

@@ -1,0 +1,44 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role deletes the helm releases and uninstalls Flux
+#############################################################################################
+
+#############################################################################################
+# Uninstalling Flux is needed so that everything is clean
+# remove this if not needed
+- name: Uninstall flux
+  shell: flux uninstall -s --namespace=flux-{{ network.env.type }} --kubeconfig={{ kubernetes.config_file }}
+  ignore_errors: yes
+
+# Remove CRD Helmrelease
+- name: "Deletes all the helmreleases in {{ org_namespace }}"
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl delete --all helmrelease -n "{{ org_namespace }}"
+  ignore_errors: yes
+
+# Remove all Helm releases of organization
+- name: Remove all Helm releases of namespace {{ org_namespace }}
+  args:
+    executable: /bin/bash
+  shell: |
+    helm_releases=($(KUBECONFIG={{ kubernetes.config_file }} helm ls | grep {{ org_namespace }} | awk '{print $1}'))
+    for helm_release in "${helm_releases[@]}"
+    do
+      KUBECONFIG={{ kubernetes.config_file }} helm uninstall ${helm_release}
+    done
+  ignore_errors: yes
+
+# This task deletes the namespaces
+- name: Deletes namespaces
+  k8s:
+    kind: Namespace
+    name: "{{ org_namespace }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  ignore_errors: yes
