@@ -1,0 +1,24 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This task fetches the node id
+- name: Get node id
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  shell: |
+    vault kv get -field=node_id {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
+  register: node_id
+
+- name: Convert node_id to base58
+  shell: |
+    printf "{{ node_id.stdout }}" | base58 -d | xxd -p | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]'    
+  register: node_id_b58  
+
+# Set the node_id into the node_list
+- name: Set node list
+  set_fact:    
+    node_list={{ node_list | default([]) + [ node_id_b58.stdout ] }}

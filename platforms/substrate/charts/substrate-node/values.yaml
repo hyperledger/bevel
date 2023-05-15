@@ -1,0 +1,243 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# substrate node runtime image
+# Eg. repository: parity/substrate
+image:
+  repository: substrate
+  tag: 3.0.0
+  pullPolicy: IfNotPresent
+
+# image for downloading chain snapshot - 7-Zip Docker image based on Alpine Linux.
+# Eg. repository: crazymax/7zip
+initContainer:
+  image:
+    repository: crazymax/7zip
+    tag: latest
+
+# Image for Kubernetes command line interface
+# Eg. bitnami/kubectl
+kubectl:
+  image:
+    repository: bitnami/kubectl
+    tag: latest
+
+googleCloudSdk:
+  image:
+    repository: google/cloud-sdk
+    tag: slim # more lightweight than the full image and still contains gsutil
+  #serviceAccountKey: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  # Provide the service account name authenticated to vault.
+  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
+  # Eg. name: vault-auth
+  name: ""
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+ingress:
+  enabled: false
+  annotations: {}
+  #  kubernetes.io/ingress.class: nginx
+  #  kubernetes.io/tls-acme: "true"
+  rules: []
+  #  - host: chart-example.local
+  #    paths:
+  #      - serviceName: node
+  #        servicePort: 9944
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+#extraLabels:
+#  type: rpc
+
+# This section contains the Substrate node details.
+node:
+  # Provide the name of the node.
+  # Eg. name: example
+  name:
+  # Specifies the chain specification. It can be one of the predefined ones (dev, local, or staging) 
+  # or it can be a path to a file with the chainspec (such as one exported by the `build-spec` subcommand). 
+  # Eg. chain: local or chain: <path to chain spec file>
+  chain: 
+  # Substrate CLI executable
+  # Eg. command: substrate
+  command: 
+  # Provide the size of the volume
+  # Eg. dataVolumeSize: 1Gi
+  dataVolumeSize: 100Gi
+  # Provide the number of replicas for your pods.
+  # replicas: 1
+  replicas: 1
+  # role of the node
+  # Eg. role: full
+  role:
+  #customChainspecUrl:
+  ## Node may require custom name for chainspec file. Example: moonbeam https://github.com/PureStake/moonbeam/issues/1104#issuecomment-996787548
+  ## Note: path should start with /data/ since this folder mount in init container download-chainspec.
+  #Eg. customChainspecPath: "/data/chainspec.json"
+  customChainspecPath: ""
+  #chainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
+  #chainDataSnapshotFormat: 7z
+  # Specifies the directory for storing all of the data related to this chain.
+  # Eg. chainPath: /tmp/alice
+  chainPath: ""
+  #chainDataKubernetesVolumeSnapshot: ""
+  #chainDataGcsBucketUrl: ""
+  collator:
+    isParachain: false
+    relayChain: polkadot
+  #  relayChainCustomChainspecUrl: ""
+  #  relayChainCustomChainspecPath: "/data/relay_chain_chainspec.json"
+  #  relayChainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
+  #  relayChainDataSnapshotFormat: 7z
+  #  relayChainPath: ""
+  #  relayChainDataKubernetesVolumeSnapshot: ""
+  #  relayChainDataGcsBucketUrl: ""
+  #  relayChainFlags:
+  enableStartupProbe:
+  enableReadinessProbe:
+  flags:
+    # - "--rpc-external"
+    # - "--ws-external"
+    # - "--rpc-methods=safe"
+    # - "--rpc-cors=all"
+    # - "--prometheus-external"
+  keys: {}
+  #  - type: "gran"
+  #    scheme: "ed25519"
+  #    seed: "//Alice//gran"
+  #  - type: "babe"
+  #    scheme: "sr25519"
+  #    seed: "//Alice//babe"
+  persistGeneratedNodeKey: false
+  #customNodeKey: ""
+  resources: {}
+  serviceMonitor:
+    enabled: false
+    #namespace: monitoring
+    #interval: 10s
+    # scrapeTimeout: 10s
+  perNodeServices:
+    createApiService: true
+    createP2pService: true
+    p2pServiceType: ClusterIP  # Must be type ClusterIP, NodePort or LoadBalancer, If using type NodePort or LoadBalancer then you must set NodeSelecter accordingly.
+    relayServiceAnnotations: {}
+    paraServiceAnnotations: {}
+    setPublicAddressToExternal:
+      enabled: false
+      ipRetrievalServiceUrl: https://ifconfig.io/ip
+  #podManagementPolicy: Parallel
+  ports:
+  # Specifies the port to listen on for peer-to-peer (p2p) traffic
+  # Eg. p2p: 30333
+    p2p:
+  # Specifies the port to listen on for incoming WebSocket traffic
+  # Eg. ws: 9944
+    ws:
+  # Specifies the port to listen on for incoming RPC traffic
+  # Eg. 9933
+    rpc:
+
+  # Enables Jaeger Agent as a sidecar
+  tracing:
+    enabled: false
+
+  # Enables Sustrate API as a sidecar
+  substrateApiSidecar:
+    enabled: false
+
+# Proxy section contains the proxy provider and ports
+proxy:
+  # Mention the proxy provider. Currently ambassador is supported
+  # eg. provider: ambassador
+  provider: ambassador
+  # url that will be added in DNS recordset
+  # eg. external_url: test.substrate.example.com
+  external_url:
+  # Mention the p2p port configured on proxy.
+  # NOTE: Make sure that the port is enabled and not binded on the proxy.
+  # Eg. p2p: 15010
+  p2p:
+  # Provide the secret name which contains the certificate
+  certSecret: 
+
+# https://github.com/paritytech/substrate-api-sidecar
+substrateApiSidecar:
+  image:
+    repository: parity/substrate-api-sidecar
+    tag: latest
+  env: {}
+  resources: {}
+
+# https://github.com/jaegertracing/jaeger
+jaegerAgent:
+  image:
+    repository: jaegertracing/jaeger-agent
+    tag: latest
+  ports:
+    # accept jaeger.thrift over compact thrift protocol
+    compactPort: 6831
+    # accept jaeger.thrift over binary thrift protocol
+    binaryPort: 6832
+    # (HTTP) serve configs, sampling strategies
+    samplingPort: 5778
+  collector:
+    url: null
+    # Jaeger Default GRPC port is 14250
+    port: 14250
+  env: {}
+  resources: {}
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+terminationGracePeriodSeconds: 60
+
+tolerations: []
+
+affinity: {}
+
+# Provide the name of the storageclass.
+# NOTE: Make sure that the storageclass exist prior to this deployment as
+# this chart doesn't create the storageclass.
+# Eg. storageClass: gcpstorageclass
+storageClass:
+
+extraContainers: []
+
+# This section contains the vault related information.
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to
+# use the Kubernetes service account token based authentication.
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address:  
+  # Provide the vault path where the secrets are stored
+  # Eg. secretPrefix: secretsv2/sub-org-name
+  secretPrefix:
+  # Provide the auth path configured to be used. Default is /kubernetes
+  authPath: 
+  # Provide the vault role used.
+  # Eg. appRole: vault-role
+  appRole:
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. image: hyperledgerlabs/alpine-utils:1.0
+  image:

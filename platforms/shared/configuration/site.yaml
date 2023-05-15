@@ -119,6 +119,15 @@
     - network.type == 'corda-enterprise' 
     - (reset is undefined or reset == 'false')
 
+#############################################
+# Playbook for Substrate Operations
+#############################################
+
+- import_playbook: "{{ playbook_dir }}/../../substrate/configuration/deploy-network.yaml"
+  when:
+    - network.type == 'substrate' 
+    - (reset is undefined or reset == 'false')
+
 # Cleanup platform specific resources
 - import_playbook: "{{ playbook_dir }}/../../hyperledger-indy/configuration/cleanup.yaml"
   when: network.type == 'indy' and reset is defined and reset == 'true'
@@ -132,3 +141,5 @@
   when: network.type == 'besu' and reset is defined and reset == 'true'
 - import_playbook: "{{ playbook_dir }}/../../r3-corda-ent/configuration/cleanup.yaml"
   when: network.type == 'corda-enterprise' and reset is defined and reset == 'true'
+- import_playbook: "{{ playbook_dir }}/../../substrate/configuration/cleanup.yaml"
+  when: network.type == 'substrate' and reset is defined and reset == 'true'

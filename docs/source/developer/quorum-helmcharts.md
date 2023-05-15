@@ -49,7 +49,7 @@ This chart is used to deploy Quorum nodes with constellation transaction manager
 	  
   - deployment.yaml   
 
-      This file is used as a basic manifest for creating a Kubernetes deployment. For the node_constellation, this file creates a constellation node deployment deployment. The file defines 3 containers, init container which gets all the secrets from the vault, constellation node container and a quorum container.
+      This file is used as a basic manifest for creating a Kubernetes deployment. For the node_constellation, this file creates a constellation node deployment. The file defines 3 containers, init container which gets all the secrets from the vault, constellation node container and a quorum container.
 	  
   - service.yaml   
 
@@ -78,7 +78,7 @@ This chart is used to deploy Quorum nodes with tessera transaction manager.
 
 ### Folder Structure
 ```
-/node_constellation
+/node_tessera
 |-- templates
 |   |-- _helpers.tpl
 |   |-- configmap.yaml
@@ -93,12 +93,12 @@ This chart is used to deploy Quorum nodes with tessera transaction manager.
 
 #### templates
 - This folder contains template structures which, when combined with values, will generate valid Kubernetes manifest files for tessera implementation.
-- This folder contains following template files for node_constellation implementation
+- This folder contains following template files for node_tessera implementation
 	  
   - _helpers.tpl   
 
       This file doesnt output a Kubernetes manifest file as it begins with underscore (_). And it's a place to put template helpers that we can re-use throughout the chart.
-	  That file is the default location for template partials, as we have defined a template to encapsulate a Kubernetes block of labels for node_constellation.
+	  That file is the default location for template partials, as we have defined a template to encapsulate a Kubernetes block of labels for node_tessera.
 	  
   - deployment.yaml   
 

@@ -66,5 +66,3 @@ The [add-cli.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hype
 ```
 ansible-playbook platforms/shared/configuration/add-cli.yaml --extra-vars "@path-to-network.yaml"
 ```
-
----

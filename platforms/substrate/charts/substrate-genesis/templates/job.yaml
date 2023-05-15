@@ -1,0 +1,184 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
+  labels:
+    app: "{{ $.Values.metadata.name }}"
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "labels.custom" . | nindent 2 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: generate-genesis
+        image: {{ $.Values.node.image }}:{{ $.Values.node.imageTag }}
+        imagePullPolicy: {{ $.Values.node.pullPolicy }}
+        volumeMounts:
+          - name: certcheck
+            mountPath: certcheck
+        env:    
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: MOUNT_PATH
+          value: "certcheck"
+        - name: CERTS_SECRET_PREFIX
+          value: {{ .Values.vault.certsecretprefix }}
+        command: ["bash", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env bash
+
+          {{- if ne $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template" }}
+          apt-get update && apt-get install -y jq bc curl unzip;
+          if [[ $? > 0 ]]
+          then
+            # download jq
+            cd ~;
+            curl -k -L -o jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64;
+            chmod +x jq;
+            export PATH=$PATH:.;
+          else
+            echo "jq and curl was installed using apt-get."
+          fi;     
+          {{- end }}     
+
+          validateVaultResponse () {
+            if echo ${2} | grep "errors"; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+            fi
+            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+            then
+              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key})
+              curl_response=$?
+              if test "$http_code" != "200" ; then
+                  echo "Http response code from Vault - $http_code"
+                  if test "$curl_response" != "0"; then
+                     echo "Error: curl command failed with error code - $curl_response"
+                     exit 1
+                  fi
+              fi
+            fi
+          }
+
+          mkdir certcheck
+          command={{ $.Values.node.command }}
+          echo "Generate genesis"
+          GENESIS=$($command build-spec --disable-default-bootnode --chain local)
+          GENESIS=$(echo $GENESIS | jq '.name |= {{ .Values.chain | quote }}')
+          GENESIS=$(echo $GENESIS | jq '.id |= {{ .Values.chain | replace "-" "_" | quote }}')
+          GENESIS=$(echo $GENESIS | jq '.chainType |= "Live"')
+
+          echo "Editing genesis config"
+          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.aura.authorities |= []')
+          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.grandpa.authorities |= []')
+          GENESIS=$(echo $GENESIS | jq '.genesis.runtime.balances.balances |= []')
+          {{- if eq $.Values.node.image "ghcr.io/inteli-poc/dscp-node" }}
+           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.nodeAuthorization.nodes |= []')
+           GENESIS=$(echo $GENESIS | jq '.genesis.runtime.membership.members |= []')
+          {{- end }}
+
+          echo "Generating sudo key with scheme Sr25519..."          
+          $command key generate --scheme Sr25519 --output-type json >> certcheck/sudoKeygenOutput.json
+          SUDO_SEED=$(jq -r '.secretPhrase' certcheck/sudoKeygenOutput.json)
+          SUDO_ADDR=$(jq -r '.ss58Address' certcheck/sudoKeygenOutput.json)
+          
+          echo "Adding sudo account key and balance into genesis"
+          GENESIS=$(echo $GENESIS | jq --arg sudo $SUDO_ADDR --arg balance 1152921504606846976 '.genesis.runtime.balances.balances += [[$sudo, ($balance | tonumber)]]')
+          GENESIS=$(echo $GENESIS | jq --arg sudo $SUDO_ADDR '.genesis.runtime.sudo.key |= $sudo')
+          
+          echo "Inserting keys into genesis"
+
+          echo "Inserting aura keys into genesis"
+          {{- range .Values.aura_keys }}
+          echo {{.}}
+          GENESIS=$(echo "$GENESIS" | jq --arg aura {{.}} '.genesis.runtime.aura.authorities += [$aura]')
+          {{- end }} 
+
+          echo "Inserting grandpa keys into genesis"
+          {{- range .Values.grandpa_keys }}
+          echo {{.}}
+          GENESIS=$(echo "$GENESIS" | jq --arg grandpa {{.}} '.genesis.runtime.grandpa.authorities += [[$grandpa, 1]]')
+          {{- end }}
+          
+          {{- if eq $.Values.node.image "ghcr.io/inteli-poc/dscp-node" }}
+          echo "Adding member accounts and their balances to genesis"
+          {{- range $idx, $member := .Values.members }}
+          GENESIS=$(echo $GENESIS | jq --arg account_id {{ $member.account_id }} --arg balance {{ $member.balance }} '.genesis.runtime.balances.balances += [[$account_id, ($balance | tonumber)]]')
+          GENESIS=$(echo $GENESIS | jq --arg account_id {{ $member.account_id }} '.genesis.runtime.membership.members += [$account_id]')
+
+          {{- range $member.nodes }}
+          this_node_id={{ . }}
+          arr_node_id=($(echo $this_node_id | fold -w2))
+          GENESIS=$(echo $GENESIS | jq --arg owner {{ $member.account_id }} '.genesis.runtime.nodeAuthorization.nodes += [[[], $owner]]')
+          for byte in "${arr_node_id[@]}"
+          do
+            GENESIS=$(echo $GENESIS | jq --arg byte $(echo "obase=10; ibase=16; $byte" | bc) '.genesis.runtime.nodeAuthorization.nodes[-1][0] += [($byte | tonumber)]')
+          done
+          {{- end }}
+          {{- end }}          
+          {{- end }}
+          
+          echo "$GENESIS" > certcheck/genesis.json
+          echo "********* check genesis *********"
+          cat certcheck/genesis.json
+          echo "Converting genesis to raw format"
+          GENESIS=$($command build-spec --disable-default-bootnode --raw --chain certcheck/genesis.json)
+          echo "$GENESIS" > certcheck/genesis_raw.json
+          cat certcheck/genesis_raw.json | base64 -w0 > certcheck/genesis_base64
+      
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+
+          # Login to Vault and so I can get an approle token
+          export VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+            -H "Content-Type: application/json" \
+            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+            jq -r 'if .errors then . else .auth.client_token end')
+          
+          # the vault cli is required for this job as the genesis file is too large to be passed in via a vault api call
+          echo "installing vault cli"
+          curl -O -L https://releases.hashicorp.com/vault/1.7.1/vault_1.7.1_linux_amd64.zip
+          unzip vault_1.7.1_linux_amd64.zip
+          {{- if eq $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template" }}
+          export PATH=$PATH:~/workspace
+          {{- else }}
+          mv vault /bin
+          {{- end }}
+          vault --version
+
+          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          vault_secret_key="${CERTS_SECRET_PREFIX}/genesis"
+          # Save the generated keys to VAULT
+          vault kv put $vault_secret_key genesis="@${MOUNT_PATH}/genesis_base64" sudo_details="@${MOUNT_PATH}/sudoKeygenOutput.json"
+      volumes:
+        - name: certcheck
+          emptyDir:
+            medium: Memory

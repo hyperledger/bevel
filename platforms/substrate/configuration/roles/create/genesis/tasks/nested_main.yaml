@@ -1,0 +1,33 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Gets the required keys list
+- name: Get validator keys
+  include_tasks: nested_keys.yaml
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.type == 'validator'
+
+# Initialize node list
+- name: Set node_list to []
+  set_fact:
+    node_list: []
+
+# Get the node list
+- name: Get node list
+  include_tasks: get_node_list.yaml
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+
+# Get the member list
+- name: Get member keys
+  include_tasks: member_keys.yaml
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.type == 'member'

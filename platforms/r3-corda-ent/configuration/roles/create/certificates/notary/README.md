@@ -22,10 +22,9 @@ This task checks if the Ambassador tls directory exists or not.
 ---
 
 #### 2. Create the Ambassador directory if it doesn't exist
-This tasks creates the Ambassador directory if it doesn't exist. Calls common role in `shared/configuration/roles/check/setup`.
+This tasks creates the Ambassador directory if it doesn't exist. Calls common role in `shared/configuration/roles/check/directory`.
 ##### Input Variables
 - `path` - The path to the directory is specified here.
-- `check` - Set to `ensure_dir`; this will ensure that the correct task is called in `shared/configuration/roles/check/setup`
 
 **when**: It runs when **ambassadordir_check** variable is false.
 
