@@ -1,0 +1,89 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role deletes the Vault configurations
+#############################################################################################
+
+#############################################################################################
+# This task deletes the Docker credentials
+- name: Delete docker creds
+  k8s:
+    kind: Secret
+    namespace: "{{ org_namespace }}"
+    name: "regcred"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  ignore_errors: yes
+
+- name: Delete Ambassador creds
+  k8s:
+    kind: Secret
+    namespace: "{{ org_namespace }}"
+    name: "{{ peer.name }}-ambassador-certs"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    state: absent
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
+
+# This task deletes vault auth
+- name: Delete vault-auth path
+  shell: |
+    vault kv delete sys/auth/substrate{{ org_name }}
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+
+# This task deletes crypto material
+- name: Delete Peer Crypto material 
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/{{ peer.name }}/substrate  
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/{{ peer.name }}/ipfs
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
+
+# This task deletes org level secrets
+- name: Delete Org Crypto material 
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/genesis
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/tlscerts
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  ignore_errors: yes
+
+  # This task deletes application crypto material
+- name: Delete Application Crypto material 
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/application
+  loop: "{{ services.peers }}"
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
+
+# This task deletes vault policies
+- name: Delete Access policies 
+  shell: |
+    vault policy delete vault-crypto-organization-{{ item.name }}-ro
+  loop: "{{ services.peers }}"
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
