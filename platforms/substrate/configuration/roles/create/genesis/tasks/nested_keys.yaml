@@ -1,0 +1,33 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This task fetches the grandpa key and registers it into grandpa_key
+- name: Get grandpa key
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  shell: |
+    vault kv get -field=grandpa_addr {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
+  register: grandpa_key
+
+# Set the grandpa key into a list
+- name: Set grandpa key list
+  set_fact:
+    grandpa_key_list={{ grandpa_key_list|default([]) + [ grandpa_key.stdout ] }}
+
+# This task fetches the aura key and registers it into aura_key
+- name: Get aura key
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  shell: |
+    vault kv get -field=aura_addr {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
+  register: aura_key
+
+# Set the aura_key into a list
+- name: Set aura key
+  set_fact:
+    aura_key_list={{ aura_key_list|default([]) + [ aura_key.stdout ] }}

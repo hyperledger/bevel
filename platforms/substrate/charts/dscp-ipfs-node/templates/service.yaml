@@ -1,0 +1,57 @@
+{{ $fullname :=  include "dscp-ipfs.fullname" . }}
+{{- if .Values.service.swarm.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dscp-ipfs.fullname" . }}-swarm
+  annotations:
+  {{- if eq $.Values.proxy.provider "ambassador" }}
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v2
+      kind: TCPMapping
+      name: {{ $fullname }}-swarm
+      port: {{ $.Values.proxy.port }}
+      service: {{ $fullname }}-swarm:{{ $.Values.config.ipfsSwarmPort }}
+      ---
+      apiVersion: ambassador/v2
+      kind: TLSContext
+      name: {{ $fullname }}_mapping_tlscontext
+      hosts:
+      - {{ $.Values.proxy.external_url }}
+      secret: {{ $.Values.proxy.certSecret }}
+      min_tls_version: v1.2
+  {{- end }}
+  {{- with .Values.service.swarm.annotations }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "dscp-ipfs.labels" . | nindent 4 }}
+spec:
+  selector:
+    name: {{ include "dscp-ipfs.fullname" . }}
+  ports:
+    - protocol: 'TCP'
+      port: {{ .Values.service.swarm.port }}
+      targetPort: {{ .Values.config.ipfsSwarmPort }}
+{{- end }}
+---
+{{- if .Values.service.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dscp-ipfs.fullname" . }}-api
+  {{- with .Values.service.api.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "dscp-ipfs.labels" . | nindent 4 }}
+spec:
+  selector:
+    name: {{ include "dscp-ipfs.fullname" . }}
+  ports:
+    - protocol: 'TCP'
+      port: {{ .Values.service.api.port }}
+      targetPort: {{ .Values.config.ipfsApiPort }}
+{{- end }}

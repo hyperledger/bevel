@@ -1,0 +1,118 @@
+{{ $fullname :=  include "node.fullname" . }}
+{{ $selectorLabels :=  include "node.selectorLabels" .  }}
+{{ $serviceLabels :=  include "node.serviceLabels" .  }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}  
+  labels:
+    {{- include "node.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- $selectorLabels | nindent 4 }}
+  ports:
+    {{- if $.Values.node.substrateApiSidecar.enabled }}
+    - port: 8080
+      name: api-sidecar
+    {{- end }}
+    - port: {{ $.Values.node.ports.rpc }}
+      name: http-rpc
+      protocol: TCP
+      targetPort: http-rpc
+    - port: {{ $.Values.node.ports.ws }}
+      name: websocket-rpc
+      protocol: TCP
+      targetPort: websocket-rpc
+---
+{{range $i := until ($.Values.node.replicas | int) }}
+{{- if $.Values.node.perNodeServices.createApiService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}  
+  labels:
+    {{- $serviceLabels | nindent 4 }}
+    instance: {{ $fullname }}-{{ $i }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- $selectorLabels | nindent 4 }}
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
+  ports:
+    - port: {{ $.Values.node.ports.rpc }}
+      name: http-rpc
+      protocol: TCP
+      targetPort: http-rpc
+    - port: {{ $.Values.node.ports.ws }}
+      name: websocket-rpc
+      protocol: TCP
+      targetPort:  websocket-rpc
+    - port: 9615
+      name: prometheus
+{{- end }}
+---
+{{- if $.Values.node.perNodeServices.createP2pService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}-rc-p2p
+  annotations:
+  {{- if eq $.Values.proxy.provider "ambassador" }}
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v2
+      kind: TCPMapping
+      name: {{ $fullname }}-p2p
+      port: {{ $.Values.proxy.p2p }}
+      service: {{ $fullname }}-{{ $i }}-rc-p2p:{{ $.Values.node.ports.p2p }}
+      ---
+      apiVersion: ambassador/v2
+      kind: TLSContext
+      name: {{ $fullname }}_mapping_tlscontext
+      hosts:
+      - {{ $.Values.proxy.external_url }}
+      secret: {{ $.Values.proxy.certSecret }}      
+      min_tls_version: v1.2
+  {{- end }}
+{{- with $.Values.node.perNodeServices.relayServiceAnnotations }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  {{ include "node.serviceType" $ | nindent 2 }}
+  selector:
+    {{- $selectorLabels | nindent 4 }}
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
+  ports:
+    - name: p2p
+      port: {{ $.Values.node.ports.p2p }}
+      targetPort: 30333
+  {{- if and $.Values.node.collator.isParachain (or (eq $.Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq $.Values.node.perNodeServices.p2pServiceType "ClusterIP")) }}
+    - name: pc-p2p
+      port: 30334
+      targetPort: 30334
+  {{- end }}
+{{- end }}
+---
+{{- if and $.Values.node.collator.isParachain $.Values.node.perNodeServices.createP2pService (eq $.Values.node.perNodeServices.p2pServiceType "NodePort") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}-pc-p2p
+{{- with $.Values.node.perNodeServices.paraServiceAnnotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  {{ include "node.serviceType" $ | nindent 2 }}
+  selector:
+    {{- $selectorLabels | nindent 4 }}
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
+  ports:
+    - name: pc-p2p
+      port: 30334
+      targetPort: 30334
+{{- end }}
+---
+{{ end }}

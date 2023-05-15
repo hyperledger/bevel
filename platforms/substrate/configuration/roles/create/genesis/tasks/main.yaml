@@ -1,0 +1,65 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This tasks creates an empty list named 
+- name: Set aura_key_list to []
+  set_fact:
+    aura_key_list: []
+
+- name: Set grandpa_key_list to []
+  set_fact:
+    grandpa_key_list: []
+
+- name: Set member_list to []
+  set_fact:
+    member_list: []
+
+# This task checks if the genesis already exists
+- name: Check if genesis file exists
+  shell: |
+    vault kv get -field=genesis {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}-subs/genesis
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  register: vault_genesis_result
+  ignore_errors: yes
+
+- name: Get keys for each peer
+  include_tasks: nested_main.yaml
+  vars:
+    peers: "{{ item.services.peers }}"
+    vault: "{{ item.vault }}"
+    component_ns: "{{ item.name | lower }}-subs"
+  loop: "{{ network['organizations'] }}"
+  when: vault_genesis_result.failed
+
+- name: Generate genesis helm release
+  include_tasks: create_genesis_job.yaml
+  vars:
+    peers: "{{ org.services.peers }}"
+    vault: "{{ org.vault }}"
+    name: "{{ org.name | lower }}"        
+    component_name: "{{ org.name | lower }}"
+    component_ns: "{{ org.name | lower }}-subs"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    gitops: "{{ org.gitops }}"
+    kubernetes: "{{ org.k8s }}"
+  when: vault_genesis_result.failed
+
+# This tasks copies the genesis to each orgs vault
+- name: Put genesis into org vault
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  vars:
+    component_ns: "{{ item.name | lower }}-subs"
+  shell: |
+    vault kv put {{ item.vault.secret_path | default('secretsv2') }}/{{ component_ns }}/genesis genesis=@{{ network.config.genesis }}
+  loop: "{{ network.organizations }}"
+  when: 
+    - item.name != org.name
+    - vault_genesis_result.failed

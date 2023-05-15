@@ -190,6 +190,8 @@ Platform-Specific Reference Guides
    architectureref/certificates_path_list_quorum
    architectureref/hyperledger-besu
    architectureref/certificates_path_list_besu
+   architectureref/substrate
+   architectureref/certificates_path_list_substrate
 
 .. _Corda: https://docs.corda.net/
 .. _Hyperledger Fabric: https://hyperledger-fabric.readthedocs.io
@@ -197,3 +199,4 @@ Platform-Specific Reference Guides
 .. _Hyperledger Indy: https://hyperledger-indy.readthedocs.io/en/latest/
 .. _Quorum: https://www.goquorum.com/
 .. _Hyperledger Besu: https://besu.hyperledger.org/en/stable/
+.. _Substrate: https://www.parity.io/technologies/substrate/

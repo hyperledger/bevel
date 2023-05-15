@@ -1,0 +1,25 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role saves the crypto from Vault into ansible_provisioner
+#############################################################################################
+
+# Ensure admincerts directory is present in build
+- name: Ensure directory exists
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "{{ cert_path }}"
+
+# Save the cert file
+- name: Save cert
+  local_action: copy content="{{ vault_output['data'].data.tlscacerts | b64decode }}" dest="{{ cert_path }}/{{ type }}.crt"
+  when: type == 'ambassador'
+# Save the key file
+- name: Save key
+  local_action: copy content="{{ vault_output['data'].data.tlskey | b64decode }}" dest="{{ cert_path }}/{{ type }}.key"
+  when: type == 'ambassador'

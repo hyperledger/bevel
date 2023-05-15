@@ -1,0 +1,26 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Set node_list to empty
+- name: Set node_list to []
+  set_fact:
+    node_list: []
+
+# This populates the bootnode details
+- name: Get bootnode details from Vault
+  include_tasks: nested_main.yaml
+  vars:
+    component_ns: "{{ org.name | lower }}-subs"
+    vault: "{{ org.vault }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+
+# This task creates a file, if it doesn't exist, to store bootnode information
+- name: Create bootnode file
+  template:
+    src: "bootnode.tpl"
+    dest: "{{ network.config.bootnodes }}"
