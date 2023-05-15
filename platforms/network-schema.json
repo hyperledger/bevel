@@ -672,7 +672,7 @@
           "properties": {
             "consensus": { "type": "string","enum": ["ibft","qbft","clique","ethash"],"description":"Currently supports ibft and qbft."},
             "subject":  { "type": "string","description":"This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates."},
-            "transaction_manager": { "type": "string","enum": ["tessera","orion"],"description":"Supports orion or tessera. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera"},
+            "transaction_manager": { "type": "string","enum": ["tessera","orion","none"],"description":"Supports orion or tessera. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera"},
             "tm_version": { "type": "string","enum": ["1.6.0","21.1.0","21.1.1","21.7.3"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
             "tm_tls": { "type": "boolean","description":"Options are True and False. This enables TLS for the transaction manager and Besu node. False is not recommended for production."},
             "tm_trust": { "type": "string","enum": ["ca-or-tofu","ca","tofu"],"description":"This is the trust relationships for the transaction managers."},
@@ -838,7 +838,7 @@
           "properties": {
             "consensus": { "type": "string","enum": ["ibft","raft"],"description":"Currently supports raft or ibft. Please update the remaining items according to the consensus chosen as not all values are valid for both the consensus."},
             "subject":  { "type": "string","description":"This is the subject of the root CA which will be created for the Quorum network. The root CA is for development purposes only, production networks should already have the root certificates."},
-            "transaction_manager": { "type": "string","enum": ["tessera","constellation"],"description":"Options are tessera and constellation. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager."},
+            "transaction_manager": { "type": "string","enum": ["tessera","constellation","none"],"description":"Options are tessera and constellation. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager."},
             "tm_version":{},
             "tm_tls": { "type": "string","enum":["strict","off"],"description":"Options are strict and off. This enables TLS for the transaction managers, and is not related to the actual Quorum network. off is not recommended for production."},
             "tm_trust": { "type": "string","enum": ["ca-or-tofu","ca","tofu"],"description":"This is the trust relationships for the transaction managers."},
@@ -855,7 +855,8 @@
               }},"else":{
               "properties": {
                 "tm_version": { "type": "string","enum": ["0.3.2"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
-                "tm_nodes": { "type":"string","pattern":"^http:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?\/$" }
+                "tm_nodes": { "type":"array","minItems": 1,
+                    "items":{"type":"string","pattern":"^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" }}
 
             }},
           "required": [ "consensus","subject","transaction_manager","tm_version","tm_tls","tm_trust","tm_nodes","genesis"],

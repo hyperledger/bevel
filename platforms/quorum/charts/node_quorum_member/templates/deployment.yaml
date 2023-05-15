@@ -129,18 +129,20 @@ spec:
           echo "${username}" > ${OUTPUT_PATH}/username
           echo "${password}" > ${OUTPUT_PATH}/password
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tm_keyname }}"
-          echo "Getting 2 keys from $vault_secret_key"          
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-
-          tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')
-          tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]')
-          echo -n "${tmpub}" > ${OUTPUT_PATH}/tm.pub
-          echo -n "${tmkey}" > ${OUTPUT_PATH}/tm.key
+          if [ {{ $.Values.tm.type }} != "none" ]
+          then
+            vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tm_keyname }}"
+            echo "Getting 2 keys from $vault_secret_key"          
+            LOOKUP_SECRET_RESPONSE=$(curl -sS \
+              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${vault_secret_key} | \
+              jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+            tmpub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')
+            tmkey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]')
+            echo -n "${tmpub}" > ${OUTPUT_PATH}/tm.pub
+            echo -n "${tmkey}" > ${OUTPUT_PATH}/tm.key
+          fi
          
         volumeMounts:
         - name: certificates
@@ -191,8 +193,11 @@ spec:
           rm -f $QUORUM_HOME/crypto/keys/nodekey
           rm -f $QUORUM_HOME/crypto/keys/passwords.txt
 
-          until $(curl -k --output /dev/null --silent --head --fail {{ .Values.tessera.url }}/upcheck); do echo 'waiting for transaction manager to start...'; sleep 5; done;
-          echo transaction manager is up;
+          if [ {{ $.Values.tm.type }} != "none" ]
+          then
+            until $(curl -k --output /dev/null --silent --head --fail {{ .Values.tessera.url }}/upcheck); do echo 'waiting for transaction manager to start...'; sleep 5; done;
+            echo transaction manager is up;
+          fi
 
           args=""
           NODE_STATUS=""
@@ -215,6 +220,14 @@ spec:
             args=" ${args} --unlock 0 "
           fi
 
+          ptm_url="{{ .Values.tessera.clienturl | quote }}"
+          if [ -n "$ptm_url" ] && [ "{{ $.Values.tm.type }}" != "none" ]
+          then
+            ptm_url="--ptm.url $ptm_url"
+          else
+            ptm_url=""
+          fi
+
           /usr/local/bin/geth \
            --datadir $QUORUM_DATA_DIR \
            $args \
@@ -231,8 +244,9 @@ spec:
            --rpcvhosts=* \
            --allow-insecure-unlock \
            --port {{ .Values.node.ports.quorum }} \
-           --ptm.url {{ .Values.tessera.clienturl | quote }} \
+           $ptm_url \
            --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
+
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
           - containerPort: {{ .Values.node.ports.quorum }}
