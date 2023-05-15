@@ -1,0 +1,28 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+################################################################################################
+# This role creates deployment files for nodes, namespace,
+# storageclass, service accounts and clusterrolebinding
+# Deployment file for a node is created in a directory with name=nodeName
+# nodeName is stored in component_name
+# component_type specifies the type of deployment to be created
+################################################################################################
+
+---
+# Task to create and/or check if the target directory exists
+- name: "Ensures {{ release_dir }}/{{ component_name }} dir exists"
+  file:
+    path: "{{ release_dir }}/{{ component_name }}"
+    state: directory
+
+# Task to create deployment file from a template
+- name: "create {{ component_type }} file for {{ component_name }}"
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"

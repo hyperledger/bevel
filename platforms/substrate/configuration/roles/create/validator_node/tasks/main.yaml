@@ -1,0 +1,39 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#This task creates the value files for each validator node of organization
+- name: Create value file for validator for each node
+  include_role:
+    name: create/helm_component
+  vars:
+    component_name: "{{ name }}{{ peer.name }}validatornode"
+    type: "node_substrate"
+    storageclass_name: "{{ item.cloud_provider }}storageclass"
+    external_url: "{{ item.external_url_suffix }}"
+    vault: "{{ item.vault }}"
+    git_url: "{{ item.gitops.git_url }}"
+    git_branch: "{{ item.gitops.branch }}"
+    org: "{{ item }}"
+    docker_url: "{{ network.docker.url }}"
+    charts_dir: "{{ item.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"    
+    bootnode_data: "{{ lookup('file', '{{ network.config.bootnodes }}').splitlines() }}"
+    command: "{{ network.config.command }}"
+    role: "validator"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.type == "validator"
+
+  # Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/substrate/configuration"
+    msg: "[ci skip] Pushing Peer files"
