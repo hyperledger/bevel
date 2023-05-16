@@ -96,45 +96,32 @@
     loop: "{{ network['organizations']}}"
     loop_control:
       loop_var: organizationItem
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the IBFT network"
-    include_role:
-      name: create/crypto/ibft
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'ibft'
   
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the QBFT network"
+  # This role generates key pair and nodeaddress for all orgs of the network
+  - name: "Generate crypto for the network nodes"
     include_role:
-      name: create/crypto/qbft
+      name: create/crypto/node
     vars:
       build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'qbft'
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the CLIQUE network"
-    include_role:
-      name: create/crypto/clique
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'clique'
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the ETHASH network"
-    include_role:
-      name: create/crypto/ethash
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'ethash'
+      organisation: "{{ organizationItem.name | lower }}"
+      organisation_ns: "{{ organizationItem.name | lower }}-bes"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      charts_dir: "{{ organizationItem.gitops.chart_source }}"
+      gitops: "{{ organizationItem.gitops }}"
+      values_dir: "{{ playbook_dir }}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
 
   # This role generates the genesis.json
   - name: "Generate genesis file"
     include_role:
-       name: create/genesis/{{network.config.consensus}}    
+       name: create/genesis  
     vars:
       build_path: "./build"
+    when: 
+      - not (add_new_org | bool)
 
   # This role deploy validator nodes. Validator nodes do not use Orion crypto.
   - name: "Deploy validator nodes"

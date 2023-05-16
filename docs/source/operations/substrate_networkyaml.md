@@ -136,6 +136,7 @@ The snapshot of an organization field with sample values is below
     - organization:
       name: oem
       type: superuser
+      persona: buyer
       external_url_suffix: subs.inteli-poc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
       cloud_provider: gcp   # Options: aws, azure, gcp
 ```
@@ -145,6 +146,7 @@ Each `organization` under the `organizations` section has the following fields.
 |------------------------------------------|-----------------------------------------------------|
 | name                                        | Name of the organization     |
 | type                                        | Specifies the organization as the superuser/owner.    |
+| persona                         | This is used for DSCP app and can be buyer, supplier or thirdparty.    |
 | external_url_suffix                         | Public url suffix of the cluster.         |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | When the organization cluster is on AWS |
@@ -273,7 +275,6 @@ Each organization will have a services section which includes details of all the
           subject: "O=OEMIPFS,OU=OEMIPFS,London,C=GB" # This is the node subject.
           type: member         # value can be validator or bootnode ( or ipfs, for vitalAM)
           nodeHost: oem        # peer name of substrate node for IPFS API-WS connection
-          persona: buyer
           p2p:
             port: 30333
             ambassador: 15015       #Port exposed on ambassador service (use one port per org if using single cluster)
