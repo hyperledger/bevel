@@ -55,6 +55,11 @@ spec:
         db: {{ peer.db.port }}
       dbname: demodb
       mysqluser: demouser
+
+    tm:
+      type: {{ network.config.transaction_manager }}
+      tls: {{ network.config.tm_tls }}
+
     vault:
       address: {{ vault.url }}
       secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
@@ -63,6 +68,7 @@ spec:
       tm_keyname: tm
       role: vault-role
       authpath: quorum{{ name }}
+{% if network.config.transaction_manager != "none" %}
     tessera:
       dburl: "jdbc:mysql://{{ peer.name }}-tessera:3306/demodb"
       dbusername: demouser
@@ -78,6 +84,7 @@ spec:
 {% endfor %}
       tls: "{{ network.config.tm_tls | upper }}"
       trust: "{{ network.config.tm_trust | upper }}"
+{% endif %}
     genesis: {{ genesis }}
     staticnodes:
       {{ staticnodes }}

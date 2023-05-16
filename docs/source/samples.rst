@@ -8,3 +8,4 @@ This section shows the sample applications that are provisioned by Hyperledger B
 
    example/supplychain.md
    example/indy-refapp.md
+   example/dscp-app.md

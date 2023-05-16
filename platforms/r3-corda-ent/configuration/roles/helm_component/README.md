@@ -16,11 +16,10 @@ To add a new template, add the `.tpl`-file to the `templates` folder and add its
 ---
 
 #### 1. "Ensures {{ values_dir }}/{{ name }} dir exists"
-This task ensures that the directory to the `values_dir` exists. Calls the `shared/configuration/roles/check/setup` role.
+This task ensures that the directory to the `values_dir` exists. Calls the `shared/configuration/roles/check/directory` role.
 ##### Input Variables
 - *`name` - Type of the Helm Release file 
 - *`path` - The path where the generated files are stored
-- `check` - `ensure_dir`, this ensures that the directory exists
 
 ---
 

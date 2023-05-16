@@ -12,10 +12,9 @@ This role sets up the communication between the Vault and Kubernetes cluster and
 ---
 
 #### 1. Creating the build directory
-This task creates the `./build` directory by calling the shared `check/setup` role.
+This task creates the `./build` directory by calling the shared `check/directory` role.
 ##### Input variables
 - `path` - The path to create, i.e. `./build`
-- `check` - What exactly to setup/check, i.e. `ensure_dir` - ensure that a directory exists   
 
 ---
 
