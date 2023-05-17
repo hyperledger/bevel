@@ -4,18 +4,41 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Create helm release files for validator nodes
-- name: Create helm release files for validator nodes
-  include_tasks: validator_main.yaml
+# Set node status
+- name: Set node status
+  set_fact:
+    node_status: default
+  when: not add_new_org
+
+# Set node status
+- name: Set node status
+  set_fact:
+    node_status: additional
+  when: add_new_org
+
+# Create value file for Tessera TM nodes
+- name: Create value file for Tessera TM nodes
+  include_role:
+    name: helm_component
   vars:
-    peer_query: "peers[?type=='validator']"
-    validator_node: "{{ org.services | json_query(peer_query) | first | default() }}"
-  when: validator_node | length > 0
-    
-# Create helm release files for member nodes
-- name: Create helm release files for member nodes
-  include_tasks: member_main.yaml
+    component_name: "{{ name }}{{ peer.name }}tessera"
+    type: "tessera"
+    genesis: "{{ lookup('file', '{{ network.config.genesis }}') | b64encode }}"
+    staticnodes: "{{ lookup('file', '{{ network.config.staticnodes }}') | from_yaml | to_nice_json }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.type == 'member'
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
-    peer_query: "peers[?type=='member']"
-    member_node: "{{ org.services | json_query(peer_query) | first | default() }}"
-  when: member_node | length > 0
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    GIT_RESET_PATH: "platforms/quorum/configuration"
+    msg: "[ci skip] Pushing Peer files"
+  tags:
+    - notest
