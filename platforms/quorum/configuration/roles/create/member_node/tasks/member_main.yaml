@@ -36,7 +36,7 @@
   when: not add_new_org
 
 # This task adds a new node to the existing network
-- name: Adds a new validator node to the existing network
+- name: Adds a new node to the existing network
   uri:
     url: "http://{{ geth_data.url }}:{{ geth_data.rpcport }}"
     method: POST
@@ -58,7 +58,7 @@
     - notest
 
 # This task fetches the new peer_id 
-- name: Get validator peer_id
+- name: Get peer_id
   set_fact:
     peer_id: "{{ peer_id.results[0].json.result }}"
   when: add_new_org and network.config.consensus == 'raft'
@@ -71,13 +71,13 @@
     name: helm_component
   vars:
     component_name: "{{ name }}{{ peer.name }}quorum"
-    type: "validatorquorum"
+    type: "memberquorum"
     genesis: "{{ lookup('file', '{{ network.config.genesis }}') | b64encode }}"
     staticnodes: "{{ lookup('file', '{{ network.config.staticnodes }}') | from_yaml | to_nice_json }}"
   loop: "{{ peers }}"
   loop_control:
     loop_var: peer
-  when: peer.type == 'validator'    
+  when: peer.type == 'member'      
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
