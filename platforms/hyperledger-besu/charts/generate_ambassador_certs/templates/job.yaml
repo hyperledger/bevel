@@ -48,6 +48,10 @@ spec:
       - name: certificates
         emptyDir:
           medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
       initContainers:
       - name: init-check-certificates
         image: "{{ $.Values.image.alpineutils }}"
@@ -67,57 +71,35 @@ spec:
           value: {{ $.Values.vault.role }}
         - name: NODE_NAME
           value: {{ $.Values.node.name }}
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         - name: MOUNT_PATH
           value: "/certificates"
         command: ["sh", "-c"]
         args:
         - |-
-
-          validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
-
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          source /scripts/bevel-vault.sh
+          echo "Getting the vault Token.."
+          vaultBevelFunc "init"
           echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
           #Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          validateVaultResponseHashicorp 'vault login token' "${VAULT_TOKEN}"
 
           OUTPUT_PATH=${MOUNT_PATH}/check_certs;
           mkdir -p ${OUTPUT_PATH}
 
-          vault_secret_key=${VAULT_SECRET_ROOTCA}
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_ROOTCA}"
           echo "Checking certs in ${vault_secret_key}"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-          CA_PEM=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
-          CA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_key"]' 2>&1)
+          vaultBevelFunc "readJson" ${vault_secret_key} 
+          CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_pem"]' 2>&1)
+          CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_key"]' 2>&1)
 
           if [ "$CA_PEM" == "null" ] || [[ "$CA_PEM" = "parse error"* ]] || [ "$CA_PEM" = "" ]
           then
             echo "Certficates absent in vault. Ignore error warning"
             touch ${OUTPUT_PATH}/rootca_absent.txt
           else
-            validateVaultResponse "${vault_secret_key}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+            validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
             echo "Certificates present in vault"
             touch ${OUTPUT_PATH}/rootca_present.txt
 
@@ -127,17 +109,17 @@ spec:
             echo  $CA_KEY | base64 -d >> ${ROOTCA_PATH}/rootca.key
           fi
 
-          vault_secret_key=${VAULT_SECRET_AMBASSADORTLS}
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_AMBASSADORTLS}"
           echo "Checking certs in ${vault_secret_key}"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-          data_info=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
+          vaultBevelFunc "readJson" ${vault_secret_key} 
+          data_info=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_pem"]' 2>&1)
 
           if [ "$data_info" == "null" ] || [[ "$data_info" = "parse error"* ]] || [ "$data_info" = "" ]
           then
             echo "Certficates absent in vault. Ignore error warning"
             touch ${OUTPUT_PATH}/ambassadortls_absent.txt
           else
-            validateVaultResponse "${vault_secret_key}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+            validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
             echo "Certificates present in vault"
             touch ${OUTPUT_PATH}/ambassadortls_present.txt
           fi
@@ -146,6 +128,9 @@ spec:
         volumeMounts:
           - name: certificates
             mountPath: /certificates
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
       containers:
       - name:  "generate-certs"
         image: "{{ $.Values.image.alpineutils }}"
@@ -269,6 +254,8 @@ spec:
           value: {{ $.Values.node.name }}
         - name: TM_TLS_ENABLED
           value: "{{ $.Values.network.tmtls }}"
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         - name: MOUNT_PATH
           value: "/certificates"
         command: ["sh", "-c"]
@@ -283,35 +270,16 @@ spec:
               done < ${1} > ${2}/${NAME}.txt
             }
 
-            validateVaultResponse () {
-              if echo ${2} | grep "errors"; then
-                echo "ERROR: unable to retrieve ${1}: ${2}"
-                exit 1
-              fi
-              if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-              then
-                http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-                --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                ${VAULT_ADDR}/v1/${vault_secret_key})
-                curl_response=$?
-                if test "$http_code" != "200" ; then
-                    echo "Http response code from Vault - $http_code"
-                    if test "$curl_response" != "0"; then
-                      echo "Error: curl command failed with error code - $curl_response"
-                      exit 1
-                    fi
-                fi
-              fi
-            }
-
-            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+            source /scripts/bevel-vault.sh
+            echo "Getting the vault Token.."
             # Login to Vault and so I can get an approle token
-            VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-              -H "Content-Type: application/json" \
-              -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-              jq -r 'if .errors then . else .auth.client_token end')
-            validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+            vaultBevelFunc 'init'
+
+
+            
+            echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+            
+            validateVaultResponseHashicorp 'vault login token' "${VAULT_TOKEN}"
 
             while ! [ -f ${MOUNT_PATH}/flag_finish.txt ]
             do
@@ -397,24 +365,19 @@ spec:
                 fi;
 
                 # This command copy the tls certificates to the Vault
-                  curl \
-                    -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                    -H "Content-Type: application/json" \
-                    -X POST \
-                    -d @payload.json \
-                    ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADORTLS}
+                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_AMBASSADORTLS}" 'payload.json'
 
                 if [ "$TM_TLS_ENABLED" == "true" ]
                 then
                   # Check tls certificates when tm_tls is true
-                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADORTLS} | jq -r 'if .errors then . else . end')
-                  CA_PEM=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
-                  CA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_key"]' 2>&1)
-                  AMBASSADORCRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorcrt"]' 2>&1)
-                  AMBASSADORKEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorkey"]' 2>&1)
-                  KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
-                  PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' 2>&1)
-                  KNOWNSERVER=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["knownServer"]' 2>&1)
+                  vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_AMBASSADORTLS}"
+                  CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_pem"]' 2>&1)
+                  CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_key"]' 2>&1)
+                  AMBASSADORCRT=$(echo ${VAULT_SECRET} | jq -r '.data["ambassadorcrt"]' 2>&1)
+                  AMBASSADORKEY=$(echo ${VAULT_SECRET} | jq -r '.data["ambassadorkey"]' 2>&1)
+                  KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.data["keystore"]' 2>&1)
+                  PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.data["password"]' 2>&1)
+                  KNOWNSERVER=$(echo ${VAULT_SECRET} | jq -r '.data["knownServer"]' 2>&1)
 
                   for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY" "$KEYSTORE" "$PASSWORD" "$KNOWNSERVER"
                   do
@@ -429,11 +392,11 @@ spec:
                 else
 
                   # Check tls certificates when tm_tls is false
-                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADORTLS} | jq -r 'if .errors then . else . end')
-                  CA_PEM=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
-                  CA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_key"]' 2>&1)
-                  AMBASSADORCRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorcrt"]' 2>&1)
-                  AMBASSADORKEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorkey"]' 2>&1)
+                  vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_AMBASSADORTLS}"
+                  CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_pem"]' 2>&1)
+                  CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_key"]' 2>&1)
+                  AMBASSADORCRT=$(echo ${VAULT_SECRET} | jq -r '.data["ambassadorcrt"]' 2>&1)
+                  AMBASSADORKEY=$(echo ${VAULT_SECRET} | jq -r '.data["ambassadorkey"]' 2>&1)
 
                   for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY"
                   do
@@ -462,17 +425,12 @@ spec:
                   }" > payload.json
 
                 # This command copy the rootca certificates to the Vault
-                  curl \
-                    -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                    -H "Content-Type: application/json" \
-                    -X POST \
-                    -d @payload.json \
-                    ${VAULT_ADDR}/v1/${VAULT_SECRET_ROOTCA}
+                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_ROOTCA}" 'payload.json'
 
                 # Check rootca certificates
-                LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ROOTCA} | jq -r 'if .errors then . else . end')
-                CA_PEM=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' 2>&1)
-                CA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_key"]' 2>&1)
+                vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_ROOTCA}"
+                CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_pem"]' 2>&1)
+                CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_key"]' 2>&1)
 
                 for field in "$CA_PEM" "$CA_KEY"
                 do
@@ -506,3 +464,6 @@ spec:
         volumeMounts:
           - name: certificates
             mountPath: /certificates
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh

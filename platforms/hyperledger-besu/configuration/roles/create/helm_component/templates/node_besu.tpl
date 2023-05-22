@@ -91,12 +91,14 @@ spec:
 
     vault:
       address: {{ vault.url }}
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
+      secretengine: {{ vault.secret_path | default('secretsv2') }}
+      secretprefix: data/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: data
       tmdir: tm
       tlsdir: tls
       role: vault-role
+      type: {{ vault.type | default("hashicorp") }}
       authpath: besu{{ name }}
 
     genesis: {{ genesis }}
