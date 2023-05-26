@@ -18,7 +18,7 @@ spec:
       chart: {{ charts_dir }}/peernode    
   values:
 {% if network.upgrade is defined %}
-    upgrade: "{{ network.upgrade }}"
+    upgrade: {{ network.upgrade }}
 {% endif %}
     metadata:
       namespace: {{ peer_ns }}

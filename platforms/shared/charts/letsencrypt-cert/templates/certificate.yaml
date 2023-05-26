@@ -1,0 +1,25 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  annotations:
+    cert-manager.io/issue-temporary-certificate: "true"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+  name: "{{ .Values.nodename }}-ambassador-certs"
+  namespace: "{{ .Values.namespace }}"
+spec:
+  secretName: "{{ .Values.nodename }}-ambassador-certs"
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  duration: 8760h #365 days
+  renewBefore: 168h #7 days
+  isCA: false
+  dnsNames:  
+    - "{{ .Values.nodename }}.{{ .Values.externalurlsuffix }}"
+    - "{{ .Values.nodename }}-tessera.{{ .Values.externalurlsuffix }}"

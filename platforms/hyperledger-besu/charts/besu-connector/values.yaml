@@ -1,0 +1,47 @@
+
+metadata:
+  # Namespace where this deployment will be created
+  namespace: supplychain-bes
+
+# Number of replicas
+replicaCount: 1
+
+image:
+  # Docker image of the API server
+  repository: ghcr.io/hyperledger/cactus-cmd-api-server:1.1.3
+  # Pull policy of the docker image
+  pullPolicy: IfNotPresent
+
+service:
+  # Service type for the Cactus API server
+  type: ClusterIP
+  # Port for the above service
+  port: 4000
+
+# Cactus connector plugin details for Besu
+plugins:
+  # Existing Besu node name where the plugin will connect
+  besuNode: validator1
+  # Package name, type and action for the besu connector
+  packageName: "@hyperledger/cactus-plugin-ledger-connector-besu"
+  type: org.hyperledger.cactus.plugin_import_type.LOCAL
+  action: org.hyperledger.cactus.plugin_import_action.INSTALL
+  # Unique instance id in case multiple connectors are deployed
+  instanceId: "12345678"
+  # Existing Besu node RPC addess. can be local or public url
+  rpcApiHttpHost: http://validator1.supplychain-bes:8545
+  # Existing Besu node WS addess. can be local or public url
+  rpcApiWsHost: ws://validator1.supplychain-bes:8546
+
+# Additional env details for Cactus connector
+envs:
+  authorizationProtocol: "NONE"
+  authorizationConfigJson: "{}"
+  grpcTlsEnabled: "false"
+
+# Proxy details to expose Connector service over Internet
+proxy:
+  # Only ambassador is supported
+  provider: "ambassador"
+  # Complete external url will be https://<besuNode>.<external_url>
+  external_url: bes.demo.aws.blockchaincloudpoc.com

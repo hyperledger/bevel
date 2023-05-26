@@ -23,7 +23,7 @@ spec:
       name: {{ network.name }}
     image:
       name: {{ component_name }}
-      repository: {{ network.docker.url }}/indy-key-mgmt:{{ network.version }}
+      repository: {{ network.docker.url }}/bevel-indy-key-mgmt:{{ network.version }}
       pullSecret: regcred
       pullPolicy: IfNotPresent
     vault:
