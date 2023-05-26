@@ -106,19 +106,16 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
-          
           source /scripts/bevel-vault.sh
-          #Login to Vault and to get an approle token
+          echo "Getting the vault Token..."
           vaultBevelFunc 'init'
-          validateVaultResponseHashicorp 'vault login token' "${VAULT_TOKEN}"
-          echo "logged in"
+          
           mkdir -p ${MOUNT_PATH}
 
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
-          echo "Getting node private key from $vault_secret_key" 
           vaultBevelFunc 'readJson' ${vault_secret_key}
           validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
-          node_private_key=$(echo ${VAULT_SECRET} | jq -r '.data["key"]') 
+          node_private_key=$(echo ${VAULT_SECRET} | jq -r '.data.key')
           echo "${node_private_key}" > ${MOUNT_PATH}/node_private_key
 
           if [ {{ $.Values.privacy.tm_flag }} == "true" ]
@@ -127,10 +124,10 @@ spec:
             echo "Getting transaction manager public key from $vault_secret_key"
             vaultBevelFunc 'readJson' ${vault_secret_key}
             validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
-            tm_key_pub=$(echo ${VAULT_SECRET} | jq -r '.data["publicKey"]')    
+            tm_key_pub=$(echo ${VAULT_SECRET} | jq -r '.data.publicKey')
             echo "${tm_key_pub}" > ${MOUNT_PATH}/tm_key_pub
           fi
-        
+
           if [ {{ $.Values.tm.tls }} == "true" ]
           then
             vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
@@ -138,17 +135,16 @@ spec:
             vaultBevelFunc 'readJson' ${vault_secret_key}
             validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
             
-            tm_known_server=$(echo ${VAULT_SECRET} | jq -r '.data["knownServer"]'| base64 -d) 
-            keystore_b64=$(echo ${VAULT_SECRET} | jq -r '.data["keystore"]')  
-            keystore=$(echo ${keystore_b64} | sed 's/ //g' )       # removing white spaces from keystore because sometimes while fetching b64 string, '+' is replaced with white spaces.
-
-            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data["password"]' | base64 -d)
+            tm_known_server=$(echo ${VAULT_SECRET} | jq -r '.data.knownServer'| base64 -d)
+            keystore_b64=$(echo ${VAULT_SECRET} | jq -r '.data.keystore')
+            keystore=$(echo ${keystore_b64} | sed 's/ //g' )  # removing white spaces from keystore because sometimes while fetching b64 string, '+' is replaced with white spaces.
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data.password' | base64 -d)
 
             echo "${tm_known_server}" > ${MOUNT_PATH}/known_server
             echo "${keystore}" > ${MOUNT_PATH}/keystore
             base64 -d ${MOUNT_PATH}/keystore > ${MOUNT_PATH}/keystore.pkcs12
             echo "${keystore_password}" > ${MOUNT_PATH}/keystore_password
-          fi 
+          fi
         volumeMounts:
         - name: certificates
           mountPath: /secrets
@@ -162,21 +158,21 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
-{{- if .Values.liveliness_check.enabled }}
-          COUNTER=1
-          while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-          do
-              # get truststore from vault to see if registration is done or not
-              LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
-              if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
-              then
-                sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-              else
-                break
-              fi 
-              COUNTER=`expr "$COUNTER" + 1`
-          done
-{{- end }}
+          {{- if .Values.liveliness_check.enabled }}
+            COUNTER=1
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                # get truststore from vault to see if registration is done or not
+                LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
+                if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
+                then
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                else
+                  break
+                fi 
+                COUNTER=`expr "$COUNTER" + 1`
+            done
+          {{- end }}
         volumeMounts:
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}

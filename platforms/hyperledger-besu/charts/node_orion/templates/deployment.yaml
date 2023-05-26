@@ -113,25 +113,23 @@ spec:
         - |-
           #!/usr/bin/env sh
           source /scripts/bevel-vault.sh
-
-          #Login to Vault and to get an approle token
+          echo "Getting the vault Token..."
           vaultBevelFunc 'init'
-          validateVaultResponseHashicorp 'vault login token' "${VAULT_TOKEN}"
 
           mkdir -p ${MOUNT_PATH}
 
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           vaultBevelFunc 'readJson' ${vault_secret_key}
           validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${VAULT_SECRET} | jq -r '.data["privateKey"]') 
+          nodekey=$(echo ${VAULT_SECRET} | jq -r '.data.privateKey') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
           vaultBevelFunc 'readJson' ${vault_secret_key}
           validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
-          orion_key=$(echo ${VAULT_SECRET} | jq -r '.data["privateKey"]' | base64 -d)  
-          orion_key_pub=$(echo ${VAULT_SECRET} | jq -r '.data["publicKey"]')    
-          orion_password=$(echo ${VAULT_SECRET} | jq -r '.data["password"]') 
+          orion_key=$(echo ${VAULT_SECRET} | jq -r '.data.privateKey' | base64 -d)  
+          orion_key_pub=$(echo ${VAULT_SECRET} | jq -r '.data.publicKey')    
+          orion_password=$(echo ${VAULT_SECRET} | jq -r '.data.password') 
           echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key
           echo "${orion_key_pub}" > ${MOUNT_PATH}/orion_key.pub
           echo "${orion_password}" > ${MOUNT_PATH}/passwordFile 
@@ -141,12 +139,12 @@ spec:
             vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
             vaultBevelFunc 'readJson' ${vault_secret_key}
             validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
-            orion_ca=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_pem"]' | base64 -d)  
-            orion_cer_pem=$(echo ${VAULT_SECRET} | jq -r '.data["ambassadorcrt"]' | base64 -d)    
-            orion_cer_key=$(echo ${VAULT_SECRET} | jq -r '.data["ambassadorkey"]' | base64 -d) 
-            orion_known_server=$(echo ${VAULT_SECRET} | jq -r '.data["knownServer"]'| base64 -d) 
-            keystore=$(echo ${VAULT_SECRET} | jq -r '.data["keystore"]')  
-            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data["password"]' | base64 -d)
+            orion_ca=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_pem' | base64 -d)  
+            orion_cer_pem=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorcrt' | base64 -d)    
+            orion_cer_key=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorkey' | base64 -d) 
+            orion_known_server=$(echo ${VAULT_SECRET} | jq -r '.data.knownServer'| base64 -d) 
+            keystore=$(echo ${VAULT_SECRET} | jq -r '.data.keystore')  
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data.password' | base64 -d)
             echo "${orion_ca}" > ${MOUNT_PATH}/orion_ca.pem
             echo "${orion_cer_pem}" > ${MOUNT_PATH}/orion_cer.pem
             echo "${orion_cer_key}" > ${MOUNT_PATH}/orion_cer.key
@@ -168,21 +166,21 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
-{{- if .Values.liveliness_check.enabled }}
-          COUNTER=1
-          while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-          do
-              # get truststore from vault to see if registration is done or not
-              LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
-              if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
-              then
-                sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-              else
-                break
-              fi 
-              COUNTER=`expr "$COUNTER" + 1`
-          done
-{{- end }}
+          {{- if .Values.liveliness_check.enabled }}
+            COUNTER=1
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                # get truststore from vault to see if registration is done or not
+                LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
+                if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
+                then
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                else
+                  break
+                fi 
+                COUNTER=`expr "$COUNTER" + 1`
+            done
+          {{- end }}
         volumeMounts:
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}

@@ -71,23 +71,22 @@ spec:
             - |-
               curl -L -o /opt/orion/bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
               chmod +x /opt/orion/bin/jq
+
               source /scripts/bevel-vault.sh
-              # Login to Vault and so I can get an approle token
+              echo "Getting the vault Token..."
               vaultBevelFunc 'init'
-              validateVaultResponseHashicorp 'vault login token' "${VAULT_TOKEN}"
 
               vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_ORION_SECRET_PREFIX}"
               echo "Getting Orion password using key $vault_secret_key"
-              vaultBevelFunc 'readJson' ${vault_secret_key}
-              
+              vaultBevelFunc 'readJson' "${vault_secret_key}"
 
               validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
 
-              GETH_PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.data["password"]')
+              GETH_PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.data.password')
               echo ${GETH_PASSWORD} > password_file
               orion -g nodeKey < password_file
 
-              #encode to base64 to update to vault otherwise json format is creating problems with vault api
+              # encode to base64 to update to vault otherwise json format is creating problems with vault api
               nodekey_base64=$(cat nodeKey.key | base64 -w 0)
 
               # Save the generated keys to VAULT
@@ -101,15 +100,15 @@ spec:
                   }
 
               }" > payload.json
-              vaultBevelFunc 'write' ${vault_secret_key} 'payload.json'
+              vaultBevelFunc 'write' "${vault_secret_key}" 'payload.json'
               
               validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
+              vaultBevelFunc 'readJson' "${vault_secret_key}"
               # get privateKey from vault
-              vaultBevelFunc 'readJson' ${vault_secret_key}
-              privateKey=$(echo ${VAULT_SECRET} | jq -r '.data["privateKey"]' 2>&1)
+              privateKey=$(echo ${VAULT_SECRET} | jq -r '.data.privateKey')
               # get publicKey from vault
-              publicKey=$(echo ${VAULT_SECRET} | jq -r '.data["publicKey"]' 2>&1)
+              publicKey=$(echo ${VAULT_SECRET} | jq -r '.data.publicKey')
 
               if [ "$privateKey" == "null" ] || [ "$publicKey" == "null" ] || [ "$privateKey" == "parse error"* ]|| [ ""$publicKey"" == "parse error"* ]
               then
