@@ -7,7 +7,7 @@
           "description": "Network description",
           "type": "object",
           "properties": {
-              "type": { "type": "string", "enum": ["fabric","corda", "corda-enterprise", "indy", "quorum", "besu"],"description": "Network type"},
+              "type": { "type": "string", "enum": ["fabric","corda", "corda-enterprise", "indy", "quorum", "besu","substrate"],"description": "Network type"},
               "env": { "$ref":"#/definitions/shared_environment"},
               "docker": { "$ref":"#/definitions/shared_docker"}
           },
@@ -32,7 +32,13 @@
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "config": {"$ref":"#/definitions/besu_config"},
                 "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/besu_organization"}},
-                "crypto_only": { "type":"boolean","description":"generate crypto only" }
+                "crypto_only": { "type":"boolean","description":"generate crypto only" },
+                "permissioning": {
+                  "type":"object",
+                  "properties":{
+                    "enabled" : {"type":"boolean", "description":"enable permissioning" }
+                  }
+                }
                }
              }
             },
@@ -75,6 +81,16 @@
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "config": {"$ref":"#/definitions/quorum_config"},
                 "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/quorum_organization"}}
+               }
+             }
+            },
+            {"if": {"properties": { "type": { "const": "substrate" } } },
+             "then": {
+              "properties":{
+                "version":{ "type": "string","enum":["latest","v4.2.2","v4.3.1"]},
+                "env": { "$ref":"#/definitions/shared_env_ambassador"},
+                "config": {"$ref":"#/definitions/substrate_config"},
+                "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/substrate_organization"}}
                }
              }
             }
@@ -128,7 +144,7 @@
             "type": "object",
             "properties": {
               "url": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?(?:\\/[a-z0-9-]{1,61})*$", "description": "Docker registry url. Must be private registry for Corda Enterprise"},
-              "username": { "type": "string","pattern":"^[a-zA-Z0-9._]+$","description": "Username credential required for login."},
+              "username": { "type": "string","pattern":"^[a-zA-Z0-9._-]+$","description": "Username credential required for login."},
               "password": {"type": "string","description": "Password credential required for login."}
              },
             "required": [ "url"]
@@ -424,13 +440,23 @@
           "required": [ "port","ambassador"],
           "additionalProperties": false
         },
+        "shared_ipfs_ambassador":{
+          "type": "object",
+          "properties": {
+            "swarmPort": { "type": "number"},
+            "ambassador": { "type": "number"},
+            "apiPort": {"type": "number"}
+            },
+          "required": [ "swarmPort","ambassador"],
+          "additionalProperties": false
+        },
         "shared_port":{
           "type": "object",
           "properties": {
             "port": { "type": "number"}
             },
           "required": [ "port"],
-          "additionalProperties": false
+          "additionalProperties": true
         },
         "fabric_orderer":{
           "type": "object",
@@ -451,7 +477,7 @@
             "channel": {},
             "chaincodes": {},
             "consortium": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description":"Name of the consortium, the channel belongs to"},
-            "channel_name": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description":"Name of the channel"},
+            "channel_name": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","minLength":1,"maxLength":11,"description":"Name of the channel"},
             "channel_status":{ "type": "string","enum": ["new","existing"],"description":" (only needed to add channel to existing org. Possible values are `new` or `existing`"},
             "genesis": { "type": "object", "properties": {
                 "name": { "type": "string","pattern": "^[A-Za-z0-9-]{1,30}$","description": "Name of the genesis block"}},
@@ -469,7 +495,7 @@
           "type": "object",
           "properties": {
             "organization": { },
-            "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","description":"Organization name of the peer participating in the channel"},
+            "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","minLength":1,"maxLength":12,"description":"Organization name of the peer participating in the channel"},
             "type": { "type": "string","enum": ["creator","joiner"],"description":"This field can be creator/joiner of channel"},
             "org_status": { "type": "string","enum": ["new","existing","delete"],"description":"new (for inital setup) or existing (for add new org)"},
             "ordererAddress": { "type": "string","pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$","description":"URL of the orderer this peer connects to"},
@@ -505,6 +531,7 @@
           "type": "object",
           "allOf":[{ "$ref":"#/definitions/shared_organization"}],
           "properties": {
+            "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$","minLength":1,"maxLength":12,"description":"Name of the organization"},
             "type": { "type": "string","enum": ["orderer","peer"]},
             "country": { "type": "string","description":"Country of the organization"},
             "state": { "type": "string","description":"State of the organization"},
@@ -646,7 +673,7 @@
           "properties": {
             "consensus": { "type": "string","enum": ["ibft","qbft","clique","ethash"],"description":"Currently supports ibft and qbft."},
             "subject":  { "type": "string","description":"This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates."},
-            "transaction_manager": { "type": "string","enum": ["tessera","orion"],"description":"Supports orion or tessera. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera"},
+            "transaction_manager": { "type": "string","enum": ["tessera","orion","none"],"description":"Supports orion or tessera. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera"},
             "tm_version": { "type": "string","enum": ["1.6.0","21.1.0","21.1.1","21.7.3"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
             "tm_tls": { "type": "boolean","description":"Options are True and False. This enables TLS for the transaction manager and Besu node. False is not recommended for production."},
             "tm_trust": { "type": "string","enum": ["ca-or-tofu","ca","tofu"],"description":"This is the trust relationships for the transaction managers."},
@@ -703,7 +730,8 @@
             "cactus_connector":  { "type": "string","enum": ["enabled","disabled"],"description":"Optional field. If enabled will deploy the Cactus Connector for this Validator. Default is disabled."},
             "p2p":  { "$ref":"#/definitions/shared_port_ambassador"},
             "rpc":  { "$ref":"#/definitions/shared_port_ambassador"},
-            "ws": { "$ref":"#/definitions/shared_port"}
+            "ws": { "$ref":"#/definitions/shared_port"},
+            "metrics": { "$ref": "#/definitions/shared_metrics"}
             },
           "required": [ "name","bootnode","p2p","rpc","ws"],
           "additionalProperties": false
@@ -811,7 +839,7 @@
           "properties": {
             "consensus": { "type": "string","enum": ["ibft","raft"],"description":"Currently supports raft or ibft. Please update the remaining items according to the consensus chosen as not all values are valid for both the consensus."},
             "subject":  { "type": "string","description":"This is the subject of the root CA which will be created for the Quorum network. The root CA is for development purposes only, production networks should already have the root certificates."},
-            "transaction_manager": { "type": "string","enum": ["tessera","constellation"],"description":"Options are tessera and constellation. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager."},
+            "transaction_manager": { "type": "string","enum": ["tessera","constellation","none"],"description":"Options are tessera and constellation. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager."},
             "tm_version":{},
             "tm_tls": { "type": "string","enum":["strict","off"],"description":"Options are strict and off. This enables TLS for the transaction managers, and is not related to the actual Quorum network. off is not recommended for production."},
             "tm_trust": { "type": "string","enum": ["ca-or-tofu","ca","tofu"],"description":"This is the trust relationships for the transaction managers."},
@@ -828,7 +856,8 @@
               }},"else":{
               "properties": {
                 "tm_version": { "type": "string","enum": ["0.3.2"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
-                "tm_nodes": { "type":"string","pattern":"^http:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?\/$" }
+                "tm_nodes": { "type":"array","minItems": 1,
+                    "items":{"type":"string","pattern":"^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" }}
 
             }},
           "required": [ "consensus","subject","transaction_manager","tm_version","tm_tls","tm_trust","tm_nodes","genesis"],
@@ -878,6 +907,43 @@
           },
           "required": [ "port","ambassador"],
           "additionalProperties": false
+        },
+        "substrate_config":{
+          "type": "object",
+          "properties": {
+            "node_image": { "type": "string","description":"Provide the docker image which will be used for the Substrate Nodes in this network. (will be downloaded from docker.url)"},
+            "command": { "type": "string", "enum":["polkadot","substrate","./dscp-node"],"description": "The command to be run in the Substrate docker image" },
+            "chain": { "type": "string", "description": "The custom chain name" },
+            "subject":  { "type": "string","description":"This is the subject of the root CA which will be created for the Substrate network. The root CA is for development purposes only, production networks should already have the root certificates."},            
+            "bootnodes":{"type":"string","pattern":"^(\/[^\/ ]*)+[^\/ ]+$","description":"This is the path where bootnodes will be stored for a new network; for adding new node, the existing network's bootnodes should be available in yaml format in this file."},
+            "genesis":  { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+$","description":"This is the path where genesis.json will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file."},
+            "ipfsbootnodes":{"type":"string","pattern":"^(\/[^\/ ]*)+[^\/ ]+$","description":"This is the path where IPFS bootnodes will be stored for a new network; for adding new node, the existing network's bootnodes should be available in yaml format in this file."}
+            },
+          "required": [ "node_image","bootnodes","genesis","chain"],
+          "additionalProperties": false
+        },
+        "substrate_organization":{
+          "type": "object",
+          "allOf":[{ "$ref":"#/definitions/shared_organization"}],
+          "properties": {
+            "external_url_suffix":  { "type": "string","description":"Public url suffix of the cluster. This is the configured path for the Ambassador Service on the DNS provider."},
+            "services":{"type":"object","properties":{
+               "peers":{ "type":"array","items":{ "$ref":"#/definitions/substrate_service_peer"}}
+            }}}
+        },
+        "substrate_service_peer":{
+          "type": "object",
+          "properties": {
+            "peer": {},
+            "name": { "type": "string","pattern": "^[a-z0-9-_]{1,30}$","description":"Name of the peer"},
+            "subject": { "type": "string", "description": "This is the alternative identity of the peer node"},
+            "type":{"type":"string","enum":["validator","bootnode","member","ipfs","ipfs-bootnode"],"description":"value can be validator, bootnode or member; ipfs type is for vitalAM only"},
+            "p2p":  { "$ref":"#/definitions/shared_port_ambassador", "description":"P2P port with external access"},
+            "ipfs":  { "$ref":"#/definitions/shared_ipfs_ambassador","description":"IPFS Swarm port with external access"},
+            "api":  { "$ref":"#/definitions/shared_port","description":"API port"},
+            "ws": { "$ref":"#/definitions/shared_port","description":"WebSockets port"},
+            "rpc": { "$ref":"#/definitions/shared_port","description":"RPC port"}
+            }
         }
       }
   }

@@ -1,0 +1,338 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
+# This is a sample configuration file for Substrate based Inteli network which has 3 organizations.
+# All text values are case-sensitive
+network:
+  # Network level configuration specifies the attributes required for each organization
+  # to join an existing network.
+  type: substrate
+  version: v4.3.1  #this is the version of Substrate docker image that will be deployed.
+
+  #Environment section for Kubernetes setup
+  env:
+    type: "dscpdev"              # tag for the environment. Important to run multiple flux on single cluster
+    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Substrate
+    #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
+    #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports 
+        from: 15010
+        to: 15043
+    # ports: 15020,15021      # For specific ports
+    retry_count: 20                 # Retry count for the checks on Kubernetes cluster
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+  
+  # Docker registry details where images are stored. This will be used to create k8s secrets
+  # Please ensure all required images are built and stored in this registry. 
+  # Do not check-in docker_password.
+  docker:
+    url: "ghcr.io"
+    #username: "docker_username"
+    #password: "docker_password"
+  
+  # Following are the configurations for the common Substrate network
+  config:
+    ## Certificate subject for the root CA of the network. 
+    #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
+    #  Production systems should generate proper certificates and configure truststores accordingly.
+    subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+    # Provide the docker image which will be used for the Substrate Nodes in this network. (will be downloaded from docker.url)
+    node_image: "inteli-poc/dscp-node"
+    # Provide the command which is used to start the node
+    command: "./dscp-node"     # Please ensure the command corresponds to the node_image above
+    # provide a chain name for Substrate nodes
+    chain: "inteli"
+    # NOTE for the below paths, the directories should exist
+    genesis: "/BUILD_DIR/substrate_genesis"   # Location where information is read or saved if empty
+    bootnodes: "/BUILD_DIR/substrate_bootnodes" # Location where bootnodes information is read or saved if empty
+    ipfsbootnodes: "/BUILD_DIR/ipfs_bootnodes" # Location where IPFS bootnodes information is read or saved if empty    
+  
+  # Allows specification of one or many organizations that will be connecting to a network.
+  organizations:
+    # Specification for the 1st organization. Each organization should map to a VPC and a separate k8s cluster for production deployments
+    - organization:
+      name: oem
+      type: superuser
+      persona: buyer
+      external_url_suffix: test.subs.blockchaincloudpoc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "AWS_ACCESS_KEY"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "AWS_SECRET_KEY"        # AWS Secret key, only used when cloud_provider=aws
+
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        context: "CLUSTER_CONTEXT"
+        config_file: "/BUILD_DIR/config"
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "http://VAULT_URL:VAULT_PORT"
+        root_token: "VAULT_TOKEN"
+        secret_path: "secretsv2"
+      # these are the Auth0 API values that will be used for authentication to substrate api endpoints. Eg. tokenUrl: https://example.eu.auth0.com/oauth/token
+      auth:
+        type: NONE
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        branch: "substrate"           # Git branch where release is being made
+        release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
+        username: "GIT_USERNAME"          # Git Service user who has rights to check-in in all branches
+        password: "GIT_TOKEN"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "/BUILD_DIR/gitops"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+      # The participating nodes are named as peers
+      services:
+        peers:
+        - peer:
+          name: oem-bn
+          subject: "O=OEM,OU=OEM,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
+          type: bootnode         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          p2p:
+            port: 30333
+            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+        - peer:
+          name: validator1
+          subject: "O=Validator1,OU=Validator1,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
+          type: validator         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          p2p:
+            port: 30333
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+        - peer:
+          name: validator2
+          subject: "O=Validator1,OU=Validator1,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
+          type: validator         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          p2p:
+            port: 30333
+            ambassador: 15012       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+        - peer:
+          name: oem-ipfs-bn
+          subject: "O=OEMIPFSBoot,OU=OEMIPFSBoot,London,C=GB" # This is the node subject.
+          type: ipfs-bootnode         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          nodeHost: oem-bn            # peer name of substrate node for IPFS API-WS connection
+          p2p:
+            port: 30333
+            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+          ipfs:
+            swarmPort: 4001
+            ambassador: 15014       #Port exposed on ambassador service (use one port per org if using single cluster)
+            apiPort: 5001
+        - peer:
+          name: oem
+          subject: "O=OEMIPFS,OU=OEMIPFS,London,C=GB" # This is the node subject.
+          type: member         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          nodeHost: oem        # peer name of substrate node for IPFS API-WS connection
+          p2p:
+            port: 30333
+            ambassador: 15015       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+          ipfs:
+            swarmPort: 4001
+            ambassador: 15016       #Port exposed on ambassador service (use one port per org if using single cluster)
+            apiPort: 5001
+          api:
+            port: 80
+          postgresql:
+            port: 5432
+            user: postgres
+            password: "postgres123"
+          id_service:
+            db_name: "id-service"
+            port: 3001
+          inteli_api:
+            db_name: "inteli-api"
+            port: 3000
+            ambassador: 443
+
+    # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: tierone
+      persona: supplier
+      external_url_suffix: test.subs.blockchaincloudpoc.com
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "AWS_ACCESS_KEY"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "AWS_SECRET_KEY"        # AWS Secret key, only used when cloud_provider=aws
+      
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        context: "CLUSTER_CONTEXT"
+        config_file: "/BUILD_DIR/config"
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "http://VAULT_URL:VAULT_PORT"
+        root_token: "VAULT_TOKEN"
+        secret_path: "secretsv2"
+      # these are the Auth0 API values that will be used for authentication to substrate api endpoints. Eg. tokenUrl: https://example.eu.auth0.com/oauth/token
+      auth:
+        type: NONE
+      # Git Repo details which will be used by GitOps/Flux.
+      # IMPORTANT: Do not check-in your password, the git_access_token!
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        branch: "substrate"           # Git branch where release is being made
+        release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
+        username: "GIT_USERNAME"          # Git Service user who has rights to check-in in all branches
+        password: "GIT_TOKEN"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "/BUILD_DIR/gitops"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      # The participating nodes are named as peers 
+      services:
+        peers:
+        - peer:
+          name: tierone
+          subject: "O=Tier1,OU=Tier1,L=47.38/8.54/Zurich,C=CH"  # This is the node identity. L=lat/long is mandatory for supplychain sample app
+          type: member         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          nodeHost: tierone    # peer name of substrate node for IPFS API-WS connection
+          p2p:
+            port: 30333
+            ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+          ipfs:
+            swarmPort: 4001
+            ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
+            apiPort: 5001
+          api:
+            port: 80
+          postgresql:
+            port: 5432
+            user: postgres
+            password: "postgres123"
+          id_service:
+            db_name: "id-service"
+            port: 3001
+          inteli_api:
+            db_name: "inteli-api"
+            port: 3000
+            ambassador: 443
+        - peer:
+          name: validator3
+          subject: "O=Validator3,OU=Validator3,L=47.38/8.54/Zurich,C=CH" # This is the node subject. L=lat/long is mandatory for supplychain sample app
+          type: validator         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          p2p:
+            port: 30333
+            ambassador: 15022       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+        - peer:
+          name: validator4
+          subject: "O=Validator4,OU=Validator4,L=47.38/8.54/Zurich,C=CH" # This is the node subject. L=lat/long is mandatory for supplychain sample app
+          type: validator         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          p2p:
+            port: 30333
+            ambassador: 15023       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+
+    - organization:
+      name: tiertwo
+      persona: thirdparty
+      external_url_suffix: test.subs.blockchaincloudpoc.com
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "AWS_ACCESS_KEY"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "AWS_SECRET_KEY"        # AWS Secret key, only used when cloud_provider=aws
+      
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        context: "CLUSTER_CONTEXT"
+        config_file: "/BUILD_DIR/config"
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "http://VAULT_URL:VAULT_PORT"
+        root_token: "VAULT_TOKEN"
+        secret_path: "secretsv2"
+      # these are the Auth0 API values that will be used for authentication to substrate api endpoints. Eg. tokenUrl: https://example.eu.auth0.com/oauth/token
+      auth:
+        type: NONE
+      # Git Repo details which will be used by GitOps/Flux.
+      # IMPORTANT: Do not check-in your password, the git_access_token!
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files 
+        branch: "substrate"           # Git branch where release is being made
+        release_dir: "platforms/substrate/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/substrate/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push 
+        username: "GIT_USERNAME"          # Git Service user who has rights to check-in in all branches
+        password: "GIT_TOKEN"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "/BUILD_DIR/gitops"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      services:
+        peers:
+        - peer:
+          name: tiertwo
+          subject: "O=Tier2,OU=Tier2,L=40.73/-74/New York,C=US" # This is the node identity. L=lat/long is mandatory for supplychain sample app
+          type: member         # value can be validator or bootnode ( or ipfs, for vitalAM)
+          nodeHost: tiertwo    # peer name of substrate node for IPFS API-WS connection
+          p2p:
+            port: 30333
+            ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 9933
+          ws:
+            port: 9944
+          ipfs:
+            swarmPort: 4001
+            ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
+            apiPort: 5001
+          api:
+            port: 80
+          postgresql:
+            port: 5432
+            user: postgres
+            password: "postgres123"
+          id_service:
+            db_name: "id-service"
+            port: 3001
+          inteli_api:
+            db_name: "inteli-api"
+            port: 3000
+            ambassador: 443

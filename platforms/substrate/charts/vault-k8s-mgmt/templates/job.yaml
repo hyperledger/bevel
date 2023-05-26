@@ -1,0 +1,196 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}-vaultk8s-job"
+  namespace: "{{ $.Values.metadata.namespace }}"
+  labels:
+    app: "{{ $.Values.metadata.name }}-vaultk8s-job"
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}-vaultk8s-job"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}-vaultk8s-job"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}-vaultk8s-job"
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:
+      restartPolicy: OnFailure
+      {{ if .Values.vault.imagesecretname  }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{ end }}
+      serviceAccountName: {{ $.Values.vault.reviewer_service }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end }}
+      - name: policies
+        emptyDir:
+          medium: Memory
+      - name: policies-config
+        configMap:
+          name: policies-config-{{ .Values.metadata.name }}
+          items:
+            - key: policies-config.json
+              path: policies-config.json
+      containers:
+        - name: "vault-kubernetes"
+          image: {{ $.Values.metadata.images.alpineutils }}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_SECRET_PATH
+            value: {{ $.Values.vault.secret_path }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: VAULT_SA
+            value: {{ $.Values.vault.serviceaccountname }}
+          - name: KUBERNETES_URL
+            value: {{ $.Values.k8s.kubernetes_url }}
+          - name: POLICY_NAME
+            value: {{ $.Values.vault.policy }}          
+          - name: NAMESPACE
+            value: {{ $.Values.metadata.namespace }}
+          - name: POLICIES_PATH
+            value: "/policies"
+          - name: ROOT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: roottoken
+                key: token
+          command: ["sh", "-c"]
+          args:
+            - |-
+              apk update && apk add jq curl;
+
+              validateVaultResponse () {
+                if [ ${1} != 200 -a ${1} != 204 ]; then
+                  echo "ERROR: Unable to retrieve. Http status: ${1}"
+                  exit 1
+                fi
+              };
+
+              # Check if authpath already created
+              vault_auth_check=$(curl --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/sys/auth | jq '."{{ $.Values.vault.authpath }}/"');
+              
+              if [ "$vault_auth_check" == 'null' ]; then
+                echo "authpath does not exist. Creating ..."
+                # This command enables the path for the organizations on vault
+                curl \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data '{"type": "kubernetes"}' \
+                ${VAULT_ADDR}/v1/sys/auth/${KUBERNETES_AUTH_PATH}
+
+                while IFS= read -r line
+                do
+                  echo "$line\n"
+                done < /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > ca_formatted.txt
+
+                KUBE_SA_CRT_ONELINE=$(cat ca_formatted.txt)
+                export REVIEWER_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
+
+                # This echo get the certificate for the cluster
+                # disable_iss_validation: true is the new recommended value for all versions of vault (see https://www.vaultproject.io/docs/auth/kubernetes#discovering-the-service-account-issuer)
+                echo "
+                  {
+                    \"kubernetes_host\": \"${KUBERNETES_URL}\",
+                    \"kubernetes_ca_cert\": \"${KUBE_SA_CRT_ONELINE}\",
+                    \"disable_iss_validation\": \"true\"
+                  }" > payload.json
+
+                # This command writes the Service Account token to the vault for Organisations
+                curl \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data @payload.json \
+                ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/config
+
+                # Check auth
+                response_status=$(curl -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/config);
+
+                rm payload.json
+
+                validateVaultResponse ${response_status};
+              fi;
+
+              # Check if policy already created
+              vault_policy_check=$(curl --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME} | jq -r '.name');
+              
+              if [ "$vault_policy_check" == 'null' ]; then
+                echo "vaultpolicy does not exist. Creating ..."
+                #mkdir -p ${POLICIES_PATH}
+
+                # This command writes the policies to the vault
+                curl \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data @${POLICIES_PATH}/policies-config.json \
+                ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME}
+
+
+                # Check policy
+                response_status=$(curl -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME});
+
+                validateVaultResponse ${response_status};
+              fi;
+
+              if [ "$vault_auth_check" == 'null' ]; then
+                echo "Need vault auth role"
+
+                echo " {\"bound_service_account_names\": \"${VAULT_SA}\", \
+                \"bound_service_account_namespaces\": \"${NAMESPACE}\", \
+                \"policies\": [\"${POLICY_NAME}\"], \"ttl\": \"1200s\"}" > payload.json
+
+                curl \
+                -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request POST \
+                --data @payload.json \
+                ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/role/${VAULT_ROLE}
+
+                # Check role
+                response_status=$(curl -s -o /dev/null -w "%{http_code}" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/role/${VAULT_ROLE});
+
+                rm payload.json
+            
+                validateVaultResponse ${response_status};
+              fi;
+          volumeMounts:
+          {{ if .Values.vault.tls  }}
+            - name: vaultca
+              mountPath: "/etc/ssl/certs/"
+              readOnly: true
+          {{ end }}
+            - name: policies-config
+              mountPath: /policies/policies-config.json
+              subPath: policies-config.json

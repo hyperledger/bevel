@@ -9,8 +9,9 @@ Hyperledger Bevel follows a [Gitops](https://www.weave.works/technologies/gitops
 ```
 └── releases
     ├── dev
-    │   └── Doorman
-    │        └── doorman.yaml
+    │    └── org1
+    │        └── Doorman
+    │            └── doorman.yaml
     │            
     └── stg
         └── Doorman

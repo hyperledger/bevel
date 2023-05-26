@@ -8,7 +8,7 @@ This role creates the job value file for notaries and nodes
 
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)
-#### 1. Ensures {{ release_dir }}/{{ component_name }} dir exists
+#### 1. Ensures {{ release_dir_path }} dir exists
 This task  create and/or check if the target directory exists.
 ##### Input Variables
 

@@ -1,0 +1,38 @@
+{{- if $.Values.metrics.enabled }}
+{{- if $.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ $.Values.node.name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.service }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}  
+  name: {{ $.Values.node.name }}
+  namespace:  {{ $.Values.metadata.namespace }}
+spec:
+  jobLabel: {{ .Release.Name }}
+  endpoints:
+    - honorLabels: true
+      port: metrics
+  namespaceSelector:
+    matchNames:
+      -  {{ $.Values.metadata.namespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name:  {{ .Values.node.name }}
+      {{- if $.Values.labels }}
+      {{- range $key, $value := $.Values.labels.service }}
+      {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+{{- end }} 
+{{- end }} 

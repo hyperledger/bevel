@@ -11,11 +11,20 @@
 ##############################################################################################
 # This tasks ensures the directory existance, if not exits it creates a new one
 ---
-- name: Ensures {{ release_dir }}/{{ component_name }} dir exists
+- set_fact:
+    release_dir_path: "{{ release_dir }}/{{ component_name }}"
+  when: node_type == "node"
+ 
+# This sets a fact values_dir_path
+- set_fact:
+    release_dir_path: "{{ release_dir }}/{{ org_name }}/{{ component_name }}"
+  when: node_type != "node"
+
+- name: Ensures {{ release_dir_path }} dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
-    path: "{{ release_dir  }}/{{ component_name }}"
+    path: "{{ release_dir_path }}"
 
 ##############################################################################################
 # This task creates deployment file for notaries. It is executed only if is_notary is true
@@ -24,7 +33,7 @@
     src: "{{ dlt_templates[component_type] }}"
     dest: "{{ values_file }}"
   vars:
-    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    values_file: "{{ release_dir_path }}/{{ component_type }}.yaml"
     chart: "notary"
     docker_image: "{{ corda_image[corda_version] }}"
   when: node_type == "notary"
@@ -36,7 +45,7 @@
     src: "{{ dlt_templates[component_type] }}"
     dest: "{{ values_file }}"
   vars:
-    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    values_file: "{{ release_dir_path }}/{{ component_type }}.yaml"
     chart: "node"
     docker_image: "{{ corda_image[corda_version] }}"
   when: node_type == "node"
@@ -51,4 +60,4 @@
   vars:
     helmtemplate_type: "{{ node_type }}{{ component_type }}"
     chart_path: "{{ gitops.chart_source }}"
-    value_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    value_file: "{{ release_dir_path }}/{{ component_type }}.yaml"

@@ -1,0 +1,60 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+metadata:
+  #Provide organization's name
+  #Eg. namespace: org1
+  name: substrate
+  #Provide the namespace for organization's peer
+  #Eg. namespace: org1-net
+  namespace: default
+  images:
+    #Provide the valid image name and version to read certificates from vault server
+    #Eg.alpineutils: ghcr.io/hyperledger/alpine-utils:1.0
+    alpineutils: ghcr.io/hyperledger/alpine-utils:1.0
+  #Provide the custom labels
+  #NOTE: Provide labels other than name, release name , release service, chart version , chart name , app.
+  #Eg. labels:
+  #      role: anchorpeer
+  labels:
+
+vault:
+  #Provide the admin service account name
+  #Eg. reviewer_service: vault-reviewer
+  reviewer_service: vault-reviewer
+  #Provide the vaultrole for an organization
+  #Eg. vaultrole: org1-vault-role
+  role: vault-role
+  #Provide the vault server address
+  #Eg. address: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+  address: ""
+  #Provide the kubernetes auth backed configured in vault for an organization
+  #Eg. authpath: fra-demo-hlkube-cluster-org1
+  authpath: substrate
+  #Provide the vault policy name
+  #Eg. policy: vault-crypto-orderer-net-org1-ro
+  policy: vault-crypto-substrate-ro
+  #Provide the vault policy file contents in json format
+  #Eg. policy: {"policy":"path \" ... }
+  policydata: "{\n  \"policy\": \"path \\\"secretsv2/data/substrate/*\\\" {\n    capabilities = [\\\"read\\\", \\\"list\\\", \\\"create\\\", \\\"update\\\"]\n  }\n  path \\\"secretsv2/data/substrate/smartContracts/*\\\" {\n    capabilities = [\\\"read\\\", \\\"list\\\"]\n  }\"\n}"
+  #Provide the value for vault secretprefix
+  #Eg. adminsecretprefix: secret/...
+  secret_path: secretsv2
+  #Provide the serviceaccountname for vault
+  #Eg. serviceaccountname: vault-auth
+  serviceaccountname: vault-auth
+  #Provide the imagesecretname for vault
+  #Eg. imagesecretname: regcred
+  imagesecretname: ""
+  #Kuberenetes secret for vault ca.cert
+  #Enable or disable TLS for vault communication if value present or not
+  #Eg. tls: vaultca
+  tls: ""
+
+k8s:
+  #Provide the kubernetes host url
+  #Eg. kubernetes_url: https://10.3.8.5:6443
+  kubernetes_url: ""

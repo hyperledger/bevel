@@ -126,6 +126,7 @@
     peer_count: "{{ item.services.peers | length }}"
     add_peer_value: "{{ add_peer | default(false) | quote }}"
     new_peer_count: "{{ new_peer_list | length }}"
+    user_list: "{{ item.users }}"
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -167,6 +168,19 @@
   loop: "{{ item.services.peers }}"
   loop_control:
     loop_var: peer
+
+# This task wait for users tls exists in vault.
+- name: Wait for users tls exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "client.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls"
+    check: "crypto_materials"
+  loop: "{{ item.users }}"
+  loop_control:
+    loop_var: user
+  when: item.users is defined
 
 # This task wait for ambassador key exists in vault.
 - name: Wait for ambassador key exists in vault.
@@ -275,29 +289,3 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-
-############################################################################################
-# Create user crypto
-- name: "Create user crypto"
-  include_role:
-    name: "create/users"
-  vars:
-    org_name: "{{ item.name }}"
-    subject: "{{ item.subject }}"
-    ca_url: "{{ item.ca_data.url }}"
-    users: "{{ item.users }}"
-    proxy: "{{network.env.proxy}}"
-  when: item.users is defined
-
-# This task wait for users tls exists in vault.
-- name: Wait for users tls exists in vault.
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
-  vars:
-    vault_field: "client.key"
-    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls"
-    check: "crypto_materials"
-  loop: "{{ item.users }}"
-  loop_control:
-    loop_var: user
-  when: item.users is defined

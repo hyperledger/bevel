@@ -39,6 +39,11 @@ The sections in the sample configuration file are
 
 `version` defines the version of platform being used. The current Hyperledger Besu version support is for **21.10.6** and **22.10.2**.
 
+`permissioning` section contains the flag to enable permissioning in the network
+```yaml
+   permissioning:
+     enabled: false
+```
 
 `env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
 
@@ -344,5 +349,7 @@ The fields under `validator` service are
 | rpc.port   | RPC port for Besu|
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
 | ws.port   | Webservice port for Besu|
+| metrics.enabled | Enable metrics for Besu node |
+| metrics.port | Metrics port for Besu |
 
 *** feature is in future scope

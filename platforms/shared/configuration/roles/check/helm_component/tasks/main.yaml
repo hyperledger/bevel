@@ -10,18 +10,16 @@
 # 60 seconds between each try
 - name: 'Wait for {{ component_type }} {{ component_name }} in {{ namespace }}'
   k8s_info:
-    kind: "Pod"
+    kind: "Job"
     namespace: "{{ namespace }}"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
     label_selectors:
       - "app = {{ component_name }}"
-    field_selectors:
-      - status.phase=Succeeded
   register: component_data
   retries: "{{ network.env.retry_count}}"
   delay: 30
-  until: component_data.resources|length > 0
+  until: component_data.resources|length > 0 and ((component_data.resources[0].status.phase is defined and component_data.resources[0].status.phase == "Succeeded") or (component_data.resources[0].status.succeeded is defined and component_data.resources[0].status.succeeded == 1))
   when: component_type == "Job"
 
 # one time job check and registers the result variable

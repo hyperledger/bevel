@@ -69,18 +69,23 @@ spec:
         rpc: {{ peer.rpc.port }}
         ws: {{ peer.ws.port }}
 
+      permissioning:
+        enabled: {{ network.permissioning.enabled | default(false)}}
+      
     storage:
       storageclassname: {{ storageclass_name }}
       storagesize: 1Gi
 
     vault:
       address: {{ vault.url }}
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
+      secretengine: {{ vault.secret_path | default('secretsv2') }}
+      secretprefix: data/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: data
       tlsdir: tls
       role: vault-role
       authpath: besu{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
 
     genesis: {{ genesis }}
 
@@ -105,3 +110,7 @@ spec:
 {% endfor %}
 {% endif %}
 {% endif %}
+
+    metrics:
+      enabled: {{ peer.metrics.enabled | default(false)}}
+      port: {{ peer.metrics.port | default(9545) }}    

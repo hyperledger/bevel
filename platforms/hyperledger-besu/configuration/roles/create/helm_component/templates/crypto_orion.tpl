@@ -28,7 +28,9 @@ spec:
       authpath: besu{{ org.name | lower }}
       role: vault-role
       serviceaccountname: vault-auth
-      tmprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}/tm
+      secretengine: {{ vault.secret_path | default('secretsv2') }}
+      tmprefix: data/{{ component_ns }}/crypto/{{ peer.name }}/tm
+      type: {{ vault.type | default("hashicorp") }}
       retries: 30
     sleepTimeAfterError: 60
     sleepTime: 10

@@ -5,10 +5,8 @@
 
 # Additional Prerequisites for own Ansible Controller
 
----
-**NOTE:** These are not needed when using **bevel-build** as these comes pre-packaged.
 
----
+**NOTE:** These are not needed when using **bevel-build** as these comes pre-packaged.
 
 ## Ansible
 
@@ -18,6 +16,8 @@ Please note that this machine (also called **Ansible Controller**) should have c
 
 ---
 **NOTE:** Minimum **Ansible** version should be **2.12.6** with **Python3** 
+
+---
 
 Also, Ansible's k8s module requires the **openshift python package (>= 0.12.0)** and some collections and jq.
 

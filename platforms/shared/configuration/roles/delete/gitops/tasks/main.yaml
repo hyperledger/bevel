@@ -1,0 +1,39 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role deletes all the gitops release files
+#############################################################################################
+
+############################################################################################
+# This task deletes all the files from the release directory with org name
+- name: Delete release files
+  file:
+    path: "{{ release_dir }}"
+    state: absent
+
+# This task deletes all the files from the release directory with org-namespace name
+- name: Delete release files
+  file:
+    path: "{{ release_ns_dir }}/"
+    state: absent
+
+# This task deletes all flux mainfest 
+- name: Delete flux mainfest files
+  file:
+    path: "{{ flux_mainfest_dir }}/"
+    state: absent
+  when:
+  - remove_org is undefined or not remove_org
+
+# Git Push : Pushes the above generated files to git directory
+- name: Git Push
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    GIT_RESET_PATH: "platforms/shared/configuration"
+    msg: "[ci skip] Deleting gitops release files"

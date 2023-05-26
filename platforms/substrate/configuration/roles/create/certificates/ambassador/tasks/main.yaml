@@ -1,0 +1,131 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This role generates certificates for ambassador
+# and places them in vault. Certificates are created using openssl
+# This also creates the Kubernetes secrets
+---
+# check if ambassadortls dir is there
+- name: "check if dir exists or not"
+  stat:
+    path: "{{ ambassadortls }}"
+  register: ambassadortlsdir_check
+
+- name: Ensure ambassador tls dir exists
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "{{ ambassadortls }}"
+  when: not ambassadortlsdir_check.stat.exists
+
+# Check ambassador tls certs already created
+- name: Check if ambassador tls already created
+  shell: |
+    vault kv get -field=tlscacerts {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/tlscerts
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: ambassador_tls_certs
+  ignore_errors: yes
+  tags:
+  - notest
+
+# Gets the existing ambassador tls certs
+
+- name: Get ambassador and tls certs from Vault
+  shell: |
+    vault kv get -format=yaml {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/tlscerts
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: ambassador_tls_certs_yaml
+  when: not ambassador_tls_certs.failed
+  tags:
+    molecule-idempotence-notest
+
+- name: Get ambassador tls certs
+  include_role: 
+    name: "setup/get_crypto"
+  vars:
+    vault_output: "{{ ambassador_tls_certs_yaml.stdout | from_yaml }}"
+    type: "ambassador"
+    cert_path: "{{ ambassadortls }}"
+  when: ambassador_tls_certs.failed == False
+
+
+# check if ambassadortls dir is there
+- name: "check if openssl conf file exists or not"
+  stat:
+    path: "./build/openssl{{ component_name }}.conf"
+  register: openssl_conf_check
+
+# Generates the openssl file for domain
+- name: Generate openssl conf file
+  shell: |
+    cd ./build
+    cat <<EOF >openssl{{ component_name }}.conf
+    [dn]
+    CN={{ domain_name }}
+    [req]
+    distinguished_name = dn
+    [EXT]
+    keyUsage=digitalSignature
+    extendedKeyUsage=serverAuth
+    subjectAltName = @alt_names
+
+    [alt_names]
+    DNS.1 = {{ domain_name }}
+    DNS.2 = {{ domain_name_api }}
+    DNS.3 = {{ domain_name_web }}
+    EOF
+  vars:
+    domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
+    domain_name_api: "{{ component_name }}api.{{ item.external_url_suffix }}"
+    domain_name_web: "{{ component_name }}web.{{ item.external_url_suffix }}"   
+  when: ambassador_tls_certs.failed == True  and (not openssl_conf_check.stat.exists)
+
+# Generates the ambassador tls certificates if already not generated
+- name: Generate ambassador tls certs
+  shell: |
+    openssl req -x509 -out {{ ambassadortls }}/ambassador.crt -keyout {{ ambassadortls }}/ambassador.key -newkey rsa:2048 -nodes -sha256 -subj "/CN={{ domain_name }}" -extensions EXT -config "{{playbook_dir}}/build/openssl{{ component_name }}.conf" 
+  vars:
+    domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
+  when: ambassador_tls_certs.failed == True and (not openssl_conf_check.stat.exists)
+
+# Stores the genreated ambassador tls certificates to vault
+- name: Putting tls certs to vault
+  shell: |
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/tlscerts tlscacerts="$(cat {{ ambassadortls }}/ambassador.crt | base64)" tlskey="$(cat {{ ambassadortls }}/ambassador.key | base64)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: ambassador_tls_certs.failed == True
+  tags:
+  - notest  
+
+# Check if Ambassador credentials exist already
+- name: Check Ambassador cred exists
+  k8s_info:
+    kind: Secret
+    namespace: "{{ component_ns }}"
+    name: "{{ component_name }}-ambassador-certs"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: get_ambassador_secret
+
+# This task creates the Ambassador TLS credentials for ambassador
+- name: Create the Ambassador credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ component_name }}-ambassador-certs --cert={{ ambassadortls }}/ambassador.crt --key={{ ambassadortls }}/ambassador.key -n {{ component_ns }}
+  when: get_ambassador_secret.resources|length == 0
+
+# Copy generated crt to build location for doorman and networkmap
+- name: Copy generated ambassador tls certs to given build location
+  copy:
+    src: "{{ ambassadortls }}/ambassador.crt"
+    dest: "{{ cert_file }}"
+    follow: yes
+  when: cert_file is defined

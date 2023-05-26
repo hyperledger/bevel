@@ -13,17 +13,27 @@
 ################################################################################################
 
 ---
+# This sets a fact values_dir_path
+- set_fact:
+    release_dir_path: "{{ release_dir }}/{{ component_name }}"
+  when: component_type in component_list
+ 
+# This sets a fact values_dir_path
+- set_fact:
+    release_dir_path: "{{ release_dir }}/{{ org_name }}/{{ component_name }}"
+  when: component_type not in component_list
+
 # Task to check if values file are already created or not
 - stat: 
-    path: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    path: "{{ release_dir_path }}/{{ component_type }}.yaml"
   register: value_file_exist
 
 # Task to create and/or check if the target directory exists
-- name: "Ensures {{ release_dir }}/{{ component_name }} dir exists"
+- name: "Ensures {{ release_dir_path }} dir exists"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
-    path: "{{ release_dir }}/{{ component_name }}"
+    path: "{{ release_dir_path }}"
   when: not value_file_exist.stat.exists
   
 
@@ -33,7 +43,7 @@
     src: "{{ dlt_templates[component_type] }}"
     dest: "{{ values_file }}"
   vars:
-    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
+    values_file: "{{ release_dir_path }}/{{ component_type }}.yaml"
   when: not value_file_exist.stat.exists
 
 ################################################################################################
@@ -46,5 +56,5 @@
   vars:
     helmtemplate_type: "{{ component_type }}"
     chart_path: "{{ charts_dir }}"
-    value_file: "{{ release_dir }}/{{ component_name }}/{{ helmtemplate_type }}.yaml"
+    value_file: "{{ release_dir_path }}/{{ helmtemplate_type }}.yaml"
   when: helm_lint=="true" and (not value_file_exist.stat.exists)

@@ -1,0 +1,24 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: policies-config-{{ .Values.metadata.name }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: policies-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  policies-config.json: {{ .Values.vault.policydata | quote }}
+  policies-config-orderer.json.tmpl: |-
+    {"policy":"path \"{{ .Values.vault.secret_path }}/data/crypto/ordererOrganizations/{{ .Values.metadata.namespace }}/*\" {\n capabilities = [\"list\", \"read\", \"create\", \"update\"]\n} \npath \"{{ .Values.vault.secret_path }}/*\" {\n capabilities = [\"list\"]\n}     \npath \"{{ .Values.vault.secret_path }}/data/crypto/peerOrganizations/*\" {\n capabilities = [\"deny\"]\n} \npath \"{{ .Values.vault.secret_path }}/data/credentials/{{ .Values.metadata.namespace }}/*\" {\n capabilities = [\"list\", \"read\", \"create\", \"update\"]\n}"}
+  policies-config-peer.json.tmpl: |-
+    {"policy":"path \"{{ .Values.vault.secret_path }}/*\" {\n capabilities = [\"list\"]\n} \npath \"{{ .Values.vault.secret_path }}/data/crypto/ordererOrganizations/*\" {\n capabilities = [\"deny\"]\n} \npath \"{{ .Values.vault.secret_path }}/data/credentials/{{ .Values.metadata.namespace }}/*\" {\n capabilities = [\"list\", \"read\", \"create\", \"update\"]\n} \npath \"{{ .Values.vault.secret_path }}/data/crypto/peerOrganizations\" {\n capabilities = [\"deny\"]\n} \npath \"{{ .Values.vault.secret_path }}/data/crypto/peerOrganizations/{{ .Values.metadata.namespace }}/*\" {\n capabilities = [\"list\", \"read\", \"create\", \"update\"]\n}"}

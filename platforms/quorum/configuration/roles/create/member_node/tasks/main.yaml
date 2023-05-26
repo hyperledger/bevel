@@ -1,0 +1,12 @@
+# Create helm release files for member nodes
+- name: Create helm release files for member nodes
+  include_tasks: member_main.yaml
+  vars:
+    peer_query: "peers[?type=='member']"
+    member_node: "{{ org.services | json_query(peer_query) | first | default() }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when:
+    - member_node | length > 0
+    - peer.type == 'member'
