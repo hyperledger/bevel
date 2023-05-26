@@ -9,21 +9,38 @@ This role creates the new enode data for the new validator nodes for an existing
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)    
 
-#### 1. Set enode_validator_list, new_validator_nodes and node_list to an empty list
-This task initializes the enode_validator_list, new_validator_nodes and node_list variables to an empty array of string
+#### 1. Set enode_validator_list and new_validator_nodes to an empty list
+This task initializes the enode_validator_list and new_validator_nodes variables to an empty array of string
 
 **set_fact**: This module sets the variable assignment as globally accessible variable
 
-#### 2. Check if the validator node is already in the network
-This task tries to get enode from the vault for the new validator just to check if it already exists in the network 
+#### 2. Create build directory if it does not exist
+This task creates the build directory if it does not exist.
+**file** : This module will create the directory if it does not exist with 755 permissions.
+**when**: vault_check count is greater than zero.
 
-**include_task**: check_vault.yaml
-**loop**: loop over the validator organization
-**loop_control**: validator new needs to have the variable status as new.
-                
-    loop_var: loop variable used for iterating the loop.
+#### 3. Create build directory if it does not exist
+This task creates the build directory if it does not exist.
+**file** : This module will create the directory if it does not exist with 755 permissions.
 
-#### 3. Get validator nodes data
+#### 4. Create node key mgmt value file for new validator nodes 
+This task creates node key mgmt value file for new validator nodes 
+##### Input Variables
+
+    *organisation: "Organization name's"
+    *organisation_ns: "Organization namespace"
+    *kubernetes: "Kubernetes cluster information of the organization"
+    *vault: "Vault uri and token read from network.yaml"
+    *charts_dir: "Chart to be executed"
+    *values_dir: "Directory where release files are stored"
+    *gitops: *item.gitops* from network.yaml
+
+**include_role**: create/crypto/node.yaml
+**loop**: loop over the organizations
+**loop_control**: Specify conditions for controlling the loop.
+**when**: the organization is type validator
+
+#### 5. Get validator nodes data
 This task gets the enode data in the format of
 org_name
 peer_name
@@ -35,91 +52,33 @@ org_type
                 
     loop_var: loop variable used for iterating the loop.
 
-#### 4. Create build directory if it does not exist
-This task creates the build directory if it does not exist.
-**file** : This module will create the directory if it does not exist with 755 permissions.
-**when**: vault_check count is greater than zero.
-
-#### 5. Create bin directory if it does not exist
-This task creates the bin directory if it does not exist.
-**file** : This module will create the directory if it does not exist with 755 permissions.
-**when**: vault_check count is greater than zero.
-
-#### 6. Check besu binary
-This task check if besu is already present or not
-
-**stat**: This module checks if besu is present or not with path variable.
-
-#### 7. Getting the besu binary tar
-This task creates a register temporary directory
+#### 6. Get crypto from vault
+This tasks checks the crypto material in the vault
 ##### Input Variables
-    *network.version: Network version
-    *tmp_directory.path: Temp Directory Path
-**url**: The Url of the binary to download
-**dest**: The destination path.
-**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
+    *component_ns: "Organization namespace"
+    *vault: "Vault uri and token read from network.yaml"
 
-#### 8. Unzipping the downloaded file
-This task unzips the downloaded file.
-##### Input Variables
-    *network.version: Network version
-    *tmp_directory.path: Temp Directory Path
-**src**: The source of the downloaded binary
-**dest**: The destination path for unzip.
-**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
+**include_task**: check_vault.yaml
+**loop**: loop over the organizations
+**loop_control**: Specify conditions for controlling the loop.
 
-#### 9. Moving the besu from the extracted folder and place in it path
-This task extracts the besu binary and place it at appropriate path.
-##### Input Variables
-    *bin_install_dir: The path of bin directory.
-    *network.version: Network version
-    *tmp_directory.path: Temp Directory Path
-**src**: The source of the extracted binary
-**dest**: The destination for the extracted binary.
-**mode**: The permission for file is specified here.
-**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
 
-#### 10. Moving the lib folder from the extracted folder and place in it path
-This task extracts the besu binary dependencies and place it at appropriate path.
-##### Input Variables
-    *bin_install_dir: The path of bin directory.
-    *tmp_directory.path: Temp Directory Path
-**src**: The source of the extracted binary
-**dest**: The destination for the extracted binary.
-**mode**: The permission for file is specified here.
-**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
-
-#### 11. Create organization directory if it does not exist
- This task creates the organization directories for crypto material if not exists.
-**file** : This module will create the directory if it does not exist with 755 permissions.
-**when**: *add_new_org* is true.
-
-#### 12. Generate the nodeAddress for and key.pub for new validator
- This task creates the node address and pub key for each new peer 
-
-**include_task**: enode_data.yaml
-**shell**: This task generates the nodeAddress and public key for the new validator node placed in node directories
-**loop**: loop over the new peers of validator organizations
-**loop_control**: validator new needs to have the variable status as new.
-                
-    loop_var: loop variable used for iterating the loop.
-
-#### 13. Touch file to store information for validators
+#### 7. Touch file to store information for validators
  This file stores the address of the validator nodes
 **file** : This module will create the file if it does not exist
 **when**: *generate_crypto* count is *True*.
 
-#### 14. Touch toEncode.json file
+#### 8. Touch toEncode.json file
  This file used by besu binary to generate the extra data information
 **file** : This module will create the flie if it does not exist.
 **when**: *generate_crypto* count is *True*.
 
-#### 15. Get node data
+#### 9. Get node data
  Create the validator address array 
 **shell**: This task generates the validator address array 
 **when**: *generate_crypto* count is *True*.
 
-#### 16. Voting for the new validator node to be added
+#### 10. Voting for the new validator node to be added
 This task does the voting from every existing validator node for adding the new one (or new ones).
 **include_tasks**: validator_vote.yaml
 **loop**: loops over all the new nodes that will be added
@@ -188,22 +147,10 @@ This task creates the build directory if it does not exist
 ### validator_vote.yaml
 ### Tasks
 
-#### 1. Copy the crypto material to Vault
-This task adds the crypto material to Vault
-**include_tasks**: add_to_vault
-**loop**: loops over all the node in an organisation
-**loop_control**: Specifies the condition for controlling the loop.
-    loop_var: loop variable used for iterating over the loop.
-##### Input Variables
-     *component_ns: Organization namespace   
-     *vault: Vault uri and token read from network.yaml
-     *peers: Peers in the organization
-**when**: Condition specified here, It runs only when, besu binary is not found or crypto material are not found in vault.
-
-#### 2. Set enode_data_list to an empty list
+#### 1. Set enode_data_list to an empty list
 This task initializes the enode_data_list to an empty array of string
 
-#### 3. Get enode data
+#### 2. Get enode data
 This task gets the enode data in the format of
 peer_name
 enodeval
@@ -218,7 +165,7 @@ peer_publicIP
                 
     loop_var: loop variable used for iterating the loop.
 
-#### 4. creates nodelist data
+#### 3. creates nodelist data
 **include_task**: nested_nodelist.yaml
 **loop**: loop over peers in the organization
 **loop_control**: Specify the conditions for controlling the loop.
@@ -261,4 +208,3 @@ peer_publicIP
 
 #### 5. Adding the new validator address to the new_validator_nodes array for future voting participation
  This task adds the url of the new added validator node to be used in Task 2 if new validator nodes are pending to be accepted
-   

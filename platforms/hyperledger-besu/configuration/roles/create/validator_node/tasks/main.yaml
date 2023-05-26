@@ -14,22 +14,30 @@
   set_fact:
     new_validator_nodes: [] 
 
-# Set node_list to empty
-- name: Set node_list to []
-  set_fact:
-    node_list: []
-
-# This task checks if the new validator has any entry in the vault
-- name: Check for the crypto material in the vault
-  include_tasks: check_vault.yaml
+# This task creates the build directory
+- name: Create build directory if it does not exist
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
-    component_ns: "{{ org.name | lower }}-bes"    
-    vault: "{{ org.vault }}"
-    component_ns: "{{ org.name | lower }}-bes"
+    path: "{{ playbook_dir }}/build"
+
+# This role generates key pair and nodeaddress for all orgs of the network
+- name: "Generate crypto for the network nodes"
+  include_role:
+    name: create/crypto/node
+  vars:
+    build_path: "{{ playbook_dir }}/build"
+    organisation: "{{ organizationItem.name | lower }}"
+    organisation_ns: "{{ organizationItem.name | lower }}-bes"
+    kubernetes: "{{ organizationItem.k8s }}"
+    vault: "{{ organizationItem.vault }}"
+    charts_dir: "{{ organizationItem.gitops.chart_source }}"
+    gitops: "{{ organizationItem.gitops }}"
+    values_dir: "{{ playbook_dir }}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
-    loop_var: org
-  when: org.type == 'validator'
+      loop_var: organizationItem
+  when: organizationItem.type == 'validator'
 
 # This task fetch (org,node) pairs for the newest validators in the network
 - name: Fetching data of validator nodes in the network from network.yaml
@@ -39,87 +47,15 @@
     loop_var: org
   when: org.type == 'validator'
 
-# This task creates the build directory
-- name: Create build directory if it does not exist
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+# This tasks checks the crypto material in the vault
+- name: Get crypto from vault
+  include_tasks: check_vault.yaml
   vars:
-    path: "{{ playbook_dir }}/build"
-  when: (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
-
-# This task creates the bin directory, if it doesn't exist, for storing the geth binary
-- name: Create bin directory
-  file:
-    path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
-    state: directory
-  when: (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
-
-# Check if besu binary already exists
-- name: check besu binary
-  stat:
-    path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}/besu"
-  register: besu_stat_result
-
-# Create a temporary directory to download and extract besu tar
-- name: register temporary directory
-  tempfile:
-    state: directory
-  register: tmp_directory
-  when: besu_stat_result is defined and besu_stat_result.stat.exists == False
-
-# This task fetches the besu tar file from the mentioned URL
-- name: "Geting the besu binary tar"
-  get_url:
-    url: https://hyperledger.jfrog.io/artifactory/besu-binaries/besu/{{ network.version }}/besu-{{ network.version }}.zip
-    dest: "{{ tmp_directory.path }}"
-  when:
-    - besu_stat_result.stat.exists == False
-    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
-
-# This task unzips the above downloaded tar file
-- name: "Unziping the downloaded file"
-  unarchive:
-    src: "{{ tmp_directory.path }}/besu-{{ network.version }}.zip"
-    dest: "{{ tmp_directory.path }}"
-  when:
-    - besu_stat_result.stat.exists == False
-    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
-
-# This task extracts the besu binary and place it at appropriate path
-- name: "Moving the besu from the extracted folder and place in it path"
-  copy:
-    src: "{{ tmp_directory.path }}/besu-{{ network.version }}/bin/besu"
-    dest: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
-    mode: 0755
-  when:
-    - besu_stat_result.stat.exists == False
-    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
-
-# This task extracts the supporting besu.bat and place it at appropriate path
-- name: "Moving the besu dependencies from the extracted folder and place in it path"
-  copy:
-    src: "{{ tmp_directory.path }}/besu-{{ network.version }}/lib"
-    dest: "{{ bin_install_dir }}/besu"
-    mode: 0755
-  when:
-    - besu_stat_result.stat.exists == False
-    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
-
-# This task creates the organization directories for crypto material if not exists
-- name: Create organization directory if it does not exist
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
-  vars:
-    path: "{{ build_path }}/crypto/{{item[1].org}}/{{item[1].node}}/data"
-  with_indexed_items: "{{ enode_validator_list }}"
-  when:  
-    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
-
-# This task generates the enode for the new validator
-- name: "Creating the enode and pub key for the new validator"
-  include_tasks: create_enode.yaml
-  when:
-    - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
+    component_ns: "{{ org.name | lower }}-bes"
+    vault: "{{ org.vault }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
 
 # This file stores the address of the validator nodes
 - name: Touch file to store information for validators
