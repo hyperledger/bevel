@@ -37,7 +37,7 @@ For source code integrity , Hyperledger Bevel GitHub pull requests are accepted 
 3. Complete the desired changes and where possible test locally (more detail to come here)
 4. Commit your changes         
      i) Make sure you sign your commit using git commit -s for more information see [here](https://gist.github.com/tkuhrt/10211ae0a26a91a8c030d00344f7d11b)             
-     ii)  Make sure your commit message follows [Conventional Commits syntax](https://www.conventionalcommits.org/en/v1.0.0-beta.4/#specification); this aids in release notes generation
+     ii) Make sure your commit message follows [Conventional Commits syntax](https://www.conventionalcommits.org/en/v1.0.0-beta.4/#specification); this aids in release notes generation.
 5. Push your changes to your feature branch
 6. Initiate a pull request from your fork to the base repository ( develop branch , unless it is a critical bug, in that case initiate to the main branch)
 7. Await DCO & linting quality checks ( CI to come soon ), as well as any feedback from reviewers.
