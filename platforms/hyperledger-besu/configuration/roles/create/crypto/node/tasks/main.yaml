@@ -9,6 +9,33 @@
   set_fact:
     node_list: []
 
+# This task delete the previously created release file
+- name: Delete release file {{ organisation }}-node-key-mgmt
+  file:
+    path: "{{ values_dir }}/{{ organisation }}/{{ organisation }}-node-key-mgmt.yaml"
+    state: absent
+
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ organizationItem.gitops }}"
+    GIT_RESET_PATH: "platforms/hyperledger-besu/configuration"
+    msg: "[ci skip] Delete previous node key mgmt files"
+
+# This task delete the previously created HelmRelease
+- name: Delete the previous {{ organisation }}-node-key-mgmt HelmRelease
+  k8s:
+    api_version: "helm.toolkit.fluxcd.io/v2beta1"
+    kind: HelmRelease
+    name: "{{ organisation }}-node-key-mgmt"
+    namespace: "{{ organisation }}-bes"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+
 # This task fetch all node (peers and validators) present in all organizations of the network
 - name: Fetching all nodes of the organisation
   set_fact:
