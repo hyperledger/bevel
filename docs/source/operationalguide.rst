@@ -31,6 +31,7 @@ Fabric operations
     operations/deploy_fabric_operations_console
     operations/refresh_certs_fabric
     operations/upgrade_fabricnetwork_1.4.x_2.2.x
+    operations/setup_cactus_connector_fabric
     
 Corda operations
 -----------------------
