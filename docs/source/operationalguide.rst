@@ -53,6 +53,7 @@ Besu operations
     operations/adding_new_validator_node_besu
     operations/adding_new_validator_org_besu
     operations/besu_permissioning
+    operations/setup_cactus_connector_besu
     
 Indy operations
 ------------------------
