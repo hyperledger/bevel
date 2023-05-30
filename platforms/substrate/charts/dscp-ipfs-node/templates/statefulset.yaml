@@ -78,6 +78,7 @@ spec:
             - mountPath: {{ .Values.config.ipfsDataPath }}
               name: ipfs-data
         {{- end }}
+        {{- if eq .Values.vault.provider "hashicorp" }}
         - name: ipfs-init
           image: {{ .Values.initContainer.image }}
           imagePullPolicy: {{ .Values.initContainer.pullPolicy | quote }}
@@ -156,7 +157,7 @@ spec:
                 jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse " secret $vault_secret_key" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
               echo "Done saving keys in vault"
-            
+        {{- end }}    
       containers:
         - name: {{ include "dscp-ipfs.fullname" . }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}

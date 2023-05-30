@@ -54,7 +54,7 @@ spec:
     image:
       repository: {{ docker_url }}/inteli-poc/dscp-ipfs
       pullPolicy: IfNotPresent
-      tag: 'v2.6.1'
+      tag: 'v2.6.2'
     storage:
       storageClass: "{{ storageclass_name }}"
       dataVolumeSize: 20  # in Gigabytes
