@@ -3,24 +3,6 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
-# This task copy the crypto material to the vault
-- name: Copy the crypto material to Vault
-  include_tasks: add_to_vault.yaml
-  vars:
-    component_ns: "{{ org.name }}-bes"
-    component_name: "{{ org.name }}"
-    vault: "{{ org.vault }}"
-    peers: "{{ org.services.validators }}"
-    new_org_query: "validators[?name=='{{ validator_name.node }}']"
-    peer: "{{ org.services | json_query(new_org_query) }}"
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-  when: 
-  - org.type == 'validator' and peer | length>0
-  - (network.crypto_only is defined and network.crypto_only == true) or (network.crypto_only is undefined)
-
 # Set enode_data_list to empty
 - name: Set enode_data_list to []
   set_fact:
