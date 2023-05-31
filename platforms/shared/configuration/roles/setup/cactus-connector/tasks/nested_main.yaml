@@ -6,7 +6,7 @@
 # This task ensures that the directory exists, and creates it, if it does not exist
 - name: "Ensures {{ values_dir }}/{{ name }} dir exists"
   file:
-    path: "{{ values_dir }}/{{ name }}"
+    path: "{{ values_dir }}/{{ item.name }}/{{ name }}"
     state: directory
 
 ###########################################################################################
@@ -17,7 +17,7 @@
 - name: "create value file for cactus-connector in {{ component_ns }}"
   template:
     src: "{{ helm_templates[network.type] | default('helm_component.tpl') }}"
-    dest: "{{ values_dir }}/{{ name }}/cactus-connector.yaml"
+    dest: "{{ values_dir }}/{{ item.name }}/{{ name }}/{{ name }}-cactus-connector.yaml"
 
 ###########################################################################################
 # This task tests the value file for syntax errors/ missing values
@@ -29,7 +29,7 @@
   vars:
     helmtemplate_type: "{{ network.type }}-connector"
     chart_path: "{{ charts_dir }}"
-    value_file: "{{ values_dir }}/{{ name }}/cactus-connector.yaml"
+    value_file: "{{ values_dir }}/{{ item.name }}/{{ name }}/{{ name }}-cactus-connector.yaml"
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push

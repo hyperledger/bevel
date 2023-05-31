@@ -108,10 +108,8 @@ spec:
         - |-
           #!/bin/bash
           source /scripts/bevel-vault.sh
-          
-          #Login to Vault and so I can get an approle token
+          echo "Getting the vault Token..."
           vaultBevelFunc 'init'
-          validateVaultResponseHashicorp 'vault login token' "${VAULT_TOKEN}"
           
           echo $VAULT_TOKEN > /secret/VAULT_CLIENT_TOKEN
 
@@ -119,17 +117,17 @@ spec:
           echo "Getting 2 keys from $vault_secret_key"          
           vaultBevelFunc 'readJson' ${vault_secret_key}
           validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${VAULT_SECRET} | jq -r '.data["nodekey"]')
-          keystore=$(echo ${VAULT_SECRET} | jq -r '.data["keystore"]')
+          nodekey=$(echo ${VAULT_SECRET} | jq -r '.data.nodekey')
+          keystore=$(echo ${VAULT_SECRET} | jq -r '.data.keystore')
 
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           echo "Getting 3 keys from $vault_secret_key"  
           vaultBevelFunc 'readJson' ${vault_secret_key}        
           validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"  
-          gethpassword=$(echo ${VAULT_SECRET} | jq -r '.data["gethpassword"]')
-          username=$(echo ${VAULT_SECRET} | jq -r '.data["db_user"]')
-          password=$(echo ${VAULT_SECRET} | jq -r '.data["db_password"]')
-          
+          gethpassword=$(echo ${VAULT_SECRET} | jq -r '.data.gethpassword')
+          username=$(echo ${VAULT_SECRET} | jq -r '.data.db_user')
+          password=$(echo ${VAULT_SECRET} | jq -r '.data.db_password')
+
           OUTPUT_PATH="${MOUNT_PATH}/keys"
           mkdir -p ${OUTPUT_PATH}
           
@@ -144,12 +142,12 @@ spec:
             vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
             vaultBevelFunc 'readJson' ${vault_secret_key}   
             validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
-            tessera_ca=$(echo ${VAULT_SECRET} | jq -r '.data["rootca_pem"]' | base64 -d)  
-            tessera_cer_pem=$(echo ${VAULT_SECRET} | jq -r '.data["ambassadorcrt"]' | base64 -d)    
-            tessera_cer_key=$(echo ${VAULT_SECRET} | jq -r '.data["ambassadorkey"]' | base64 -d) 
-            tessera_known_server=$(echo ${VAULT_SECRET} | jq -r '.data["knownServer"]'| base64 -d) 
-            keystore=$(echo ${VAULT_SECRET} | jq -r '.data["keystore"]')  
-            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data["password"]' | base64 -d)
+            tessera_ca=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_pem' | base64 -d)
+            tessera_cer_pem=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorcrt' | base64 -d)  
+            tessera_cer_key=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorkey' | base64 -d)
+            tessera_known_server=$(echo ${VAULT_SECRET} | jq -r '.data.knownServer'| base64 -d)
+            keystore=$(echo ${VAULT_SECRET} | jq -r '.data.keystore')
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data.password' | base64 -d)
             echo "${tessera_ca}" > ${MOUNT_PATH}/tessera_ca.pem
             echo "${tessera_cer_pem}" > ${MOUNT_PATH}/tessera_cer.pem
             echo "${tessera_cer_key}" > ${MOUNT_PATH}/tessera_cer.key
@@ -162,7 +160,6 @@ spec:
 
           #copy mysql jar
           cp /mysql/* /mysql-jar
-         
         volumeMounts:
         - name: certificates
           mountPath: /secret
