@@ -89,7 +89,7 @@ No, a user should be able to run the Ansible command on any machine as long as A
 Yes, you can find an example ansible_hosts file [here](https://github.com/hyperledger/bevel/tree/main/platforms/shared/inventory/ansible_provisioners). The configuration in this file means that all Ansible commands will be run in the same machine that works as both an Ansible client and server machine.
 
 ### Can I specify the tools versions such as kubectl, helm in this project?
-Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [setup-enviorment.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/setup-enviorment.yaml).
+Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [setup-environment.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/setup-environment.yaml).
 
 ### How would system react if we plan to update tools versions (e.g. kubectl, helm)?
 Honestly speaking, we don't know. The latest version Hyperledger Bevel has been tested on specific client versions of these tools, see below:
@@ -120,4 +120,4 @@ kubectl apply -f https://raw.githubusercontent.com/fluxcd/flux/helm-0.10.1/deplo
 TBD
 
 ### How can I engage in Hyperledger Bevel community for any events?
-Connect us on Bevel Discord Channel [Discord Chat](https://discord.gg/wRaD4R6Q)
+Connect us on Bevel Discord Channel [Discord Chat](https://discord.gg/hyperledger)
