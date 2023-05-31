@@ -78,6 +78,24 @@
   vars: 
     kubernetes: "{{ org.k8s }}"
     ordererAddress: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+  when: network.env.proxy != 'none'
+- name: fetch, modify, sign and copy the configuration block from the blockchain for proxy none
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/syschannel-update-script.sh {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/{{ channel_name }}.json {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config.json
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/config_consenters.json
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- chmod 777 ./update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- sh ./update_consenter.sh    
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_diff_config_envelope.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}   
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_diff_config_envelope.pb {{ build_path }}/{{ channel_name }}_config_block.pb
+  environment:
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"    
+  vars: 
+    kubernetes: "{{ org.k8s }}"
+    ordererAddress: "{{ orderer.name | lower }}.{{ component_ns }}:{{ orderer.grpc.port }}"
+  when: network.env.proxy == 'none'
 
 - name: Set creator_orderer
   set_fact:
