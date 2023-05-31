@@ -1,9 +1,9 @@
+
 ##############################################################################################
 #  Copyright Accenture. All Rights Reserved.
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -51,6 +51,10 @@ spec:
         - name: node-crypto
           emptyDir:
             medium: Memory
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
       initContainers:
       - name: init-check-crypto
         image: "{{ $.Values.image.alpineutils }}"
@@ -60,65 +64,48 @@ spec:
           value: {{ $.Values.vault.address }}
         - name: VAULT_SECRET_ENGINE
           value: {{ $.Values.vault.secretengine }}
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ .Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
         command: ["sh", "-c"]
         args:
         - |-
-          validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                    echo "Error: curl command failed with error code - $curl_response"
-                    exit 1
-                  fi
-              fi
-            fi
-          }
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting client token from Vault Server: ${VAULT_ADDR}"
-          # Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          #!/usr/bin/env sh
+          source /scripts/bevel-vault.sh
+          echo "Getting the vault Token..."
+          vaultBevelFunc 'init'
 
           CRYPTO_PATH=/crypto
-          
-          {{- range .Values.organisation.nodes }}
-            mkdir ${CRYPTO_PATH}/{{ .name }}
-
-            VAULT_PATH_NODE_CRYPTO=data/{{ $.Values.metadata.namespace }}/crypto/{{ .name }}/data
-
-            # Check for node crypto ..
-            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO} | jq -r 'if .errors then . else . end')
             
-            NODE_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' 2>&1)
-
-            for field in "$NODE_KEY"
-            do
-              if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
-              then
-                echo "data absent in ${VAULT_PATH_NODE_CRYPTO}"
-                touch ${CRYPTO_PATH}/{{ .name }}/node_crypto_absent
-              else
-                echo "data present in ${VAULT_PATH_NODE_CRYPTO}"
-              fi
-            done
+          {{- range .Values.organisation.nodes }}
+          mkdir ${CRYPTO_PATH}/{{ .name }}
+          VAULT_PATH_NODE_CRYPTO=data/{{ $.Values.metadata.namespace }}/crypto/{{ .name }}/data
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO}"
+          # Check for node crypto ..
+          vaultBevelFunc 'readJson' ${vault_secret_key}
+          NODE_KEY=$(echo ${VAULT_SECRET} | jq -r '.data.key')
+          
+          for field in "$NODE_KEY"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+            echo "data absent in ${VAULT_PATH_NODE_CRYPTO}"
+            touch ${CRYPTO_PATH}/{{ .name }}/node_crypto_absent
+            else
+            echo "data present in ${VAULT_PATH_NODE_CRYPTO}"
+            fi
+          done
           {{- end }}
           echo "Done checking for crypto in vault"
         volumeMounts:
           - name: node-crypto
-            mountPath: /crypto    
+            mountPath: /crypto
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh 
       containers:
         - name:  "generate-node-keys"
           image: "{{ $.Values.image.besucontainer }}"
@@ -160,50 +147,23 @@ spec:
             value: {{ $.Values.vault.role }}
           - name: MOUNT_PATH
             value: "/crypto"
+          - name: VAULT_TYPE
+            value: "{{ $.Values.vault.type }}"
           command: ["sh", "-c"]
           args:
             - |-
+              #!/usr/bin/env sh
+              source /scripts/bevel-vault.sh
               echo "Work on mount path.."
               cd ${MOUNT_PATH}
               
-              validateVaultResponse () {
-                if echo ${2} | grep "errors"; then
-                  echo "ERROR: unable to retrieve ${1}: ${2}"
-                  exit 1
-                fi
-                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-                then
-                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${vault_secret_key})
-                  curl_response=$?
-                  if test "$http_code" != "200" ; then
-                      echo "Http response code from Vault - $http_code"
-                      if test "$curl_response" != "0"; then
-                        echo "Error: curl command failed with error code - $curl_response"
-                        exit 1
-                      fi
-                  fi
-                fi
-              }
-              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              
-              echo "Getting client token from: ${VAULT_ADDR}"
-              Login to Vault and so I can get an approle token
-              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-                -H "Content-Type: application/json" \
-                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-                jq -r 'if .errors then . else .auth.client_token end')
-              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-
+              vaultBevelFunc 'init'
               while ! [ -f ${MOUNT_PATH}/generate_node_keys_complete ]
               do
                 echo 'Waiting for node keys..'
                 sleep 2s
               done
-
               CRYPTO_PATH=${MOUNT_PATH}
-
               {{- range .Values.organisation.nodes }}
               COUNTER=1
               while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
@@ -213,7 +173,6 @@ spec:
                   NODE_ADDRESS=$(cat ${CRYPTO_PATH}/{{ .name }}/data/nodeAddress)
                   NODE_KEY=$(cat ${CRYPTO_PATH}/{{ .name }}/data/key)
                   NODE_KEY_PUB=$(cat ${CRYPTO_PATH}/{{ .name }}/data/key.pub)
-
                   # create the payload for node crypto
                   echo "
                   {
@@ -224,23 +183,17 @@ spec:
                         \"key_pub\": \"${NODE_KEY_PUB}\"
                       }
                   }" > payload.json
-
                   # create the vault path for node cryto
                   VAULT_PATH_NODE_CRYPTO=data/{{ $.Values.metadata.namespace }}/crypto/{{ .name }}/data
                   
+                  vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO}"
                   # This command copy the tls certificates to the Vault
-                    curl \
-                      -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                      -H "Content-Type: application/json" \
-                      -X POST \
-                      -d @payload.json \
-                      ${VAULT_ADDR}/v1/${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO}
-                  
+                  vaultBevelFunc 'write' "${vault_secret_key}" 'payload.json'
+                    
                   # Check for node crypto ..
-                  LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO} | jq -r 'if .errors then . else . end')
+                  vaultBevelFunc 'readJson' ${vault_secret_key}
+                  NODE_KEY=$(echo ${VAULT_SECRET} | jq -r '.data.key')
                   
-                  NODE_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' 2>&1)
-
                   for field in "$NODE_KEY"
                   do
                     if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
@@ -275,3 +228,6 @@ spec:
           volumeMounts:
             - name: node-crypto
               mountPath: /crypto
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh 
