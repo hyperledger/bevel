@@ -86,14 +86,14 @@ spec:
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_ROOTCA}"
           echo "Checking certs in ${vault_secret_key}"
           vaultBevelFunc "readJson" ${vault_secret_key} 
-          CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_pem')
-          CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_key')
+          CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]')
+          CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootca_key"]')
+          
           if [ "$CA_PEM" == "null" ] || [[ "$CA_PEM" = "parse error"* ]] || [ "$CA_PEM" = "" ]
           then
             echo "Certficates absent in vault. Ignore error warning"
             touch ${OUTPUT_PATH}/rootca_absent.txt
           else
-            validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
             echo "Certificates present in vault"
             touch ${OUTPUT_PATH}/rootca_present.txt
             ROOTCA_PATH=${MOUNT_PATH}/rootca
@@ -104,13 +104,12 @@ spec:
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_AMBASSADORTLS}"
           echo "Checking certs in ${vault_secret_key}"
           vaultBevelFunc "readJson" ${vault_secret_key} 
-          data_info=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_pem')
+          data_info=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]')
           if [ "$data_info" == "null" ] || [[ "$data_info" = "parse error"* ]] || [ "$data_info" = "" ]
           then
             echo "Certficates absent in vault. Ignore error warning"
             touch ${OUTPUT_PATH}/ambassadortls_absent.txt
           else
-            validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
             echo "Certificates present in vault"
             touch ${OUTPUT_PATH}/ambassadortls_present.txt
           fi
@@ -331,14 +330,14 @@ spec:
                 then
                   # Check tls certificates when tm_tls is true
                   vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_AMBASSADORTLS}"
-                  CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_pem')
-                  CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_key')
-                  AMBASSADORCRT=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorcrt')
-                  AMBASSADORKEY=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorkey')
-                  KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.data.keystore')
-                  PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.data.password')
-                  KNOWNSERVER=$(echo ${VAULT_SECRET} | jq -r '.data.knownServer')
-                                    
+                  CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]')
+                  CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootca_key"]')
+                  AMBASSADORCRT=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]')
+                  AMBASSADORKEY=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]')
+                  KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+                  PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.["password"]')
+                  KNOWNSERVER=$(echo ${VAULT_SECRET} | jq -r '.["knownServer"]')
+                  
                   for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY" "$KEYSTORE" "$PASSWORD" "$KNOWNSERVER"
                   do
                     if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
@@ -353,10 +352,10 @@ spec:
                 else
                   # Check tls certificates when tm_tls is false
                   vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_AMBASSADORTLS}"
-                  CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_pem')
-                  CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_key')
-                  AMBASSADORCRT=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorcrt')
-                  AMBASSADORKEY=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorkey')
+                  CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]')
+                  CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootca_key"]')
+                  AMBASSADORCRT=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]')
+                  AMBASSADORKEY=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]')
                   
                   for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY"
                   do
@@ -386,8 +385,8 @@ spec:
                 vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_ROOTCA}" 'payload.json'
                 # Check rootca certificates
                 vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_ROOTCA}"
-                CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_pem')
-                CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_key')
+                CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]')
+                CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootca_key"]')
                 
                 for field in "$CA_PEM" "$CA_KEY"
                 do

@@ -114,8 +114,7 @@ spec:
 
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           vaultBevelFunc 'readJson' ${vault_secret_key}
-          validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
-          node_private_key=$(echo ${VAULT_SECRET} | jq -r '.data.key')
+          node_private_key=$(echo ${VAULT_SECRET} | jq -r '.["key"]')
           echo "${node_private_key}" > ${MOUNT_PATH}/node_private_key
 
           if [ {{ $.Values.privacy.tm_flag }} == "true" ]
@@ -123,8 +122,7 @@ spec:
             vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
             echo "Getting transaction manager public key from $vault_secret_key"
             vaultBevelFunc 'readJson' ${vault_secret_key}
-            validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
-            tm_key_pub=$(echo ${VAULT_SECRET} | jq -r '.data.publicKey')
+            tm_key_pub=$(echo ${VAULT_SECRET} | jq -r '.["publicKey"]')
             echo "${tm_key_pub}" > ${MOUNT_PATH}/tm_key_pub
           fi
 
@@ -133,12 +131,11 @@ spec:
             vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
             echo "Getting tls knownServer, keystore and keystore password from $vault_secret_key"
             vaultBevelFunc 'readJson' ${vault_secret_key}
-            validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
             
-            tm_known_server=$(echo ${VAULT_SECRET} | jq -r '.data.knownServer'| base64 -d)
-            keystore_b64=$(echo ${VAULT_SECRET} | jq -r '.data.keystore')
+            tm_known_server=$(echo ${VAULT_SECRET} | jq -r '.["knownServer"]'| base64 -d)
+            keystore_b64=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
             keystore=$(echo ${keystore_b64} | sed 's/ //g' )  # removing white spaces from keystore because sometimes while fetching b64 string, '+' is replaced with white spaces.
-            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data.password' | base64 -d)
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.["password"]' | base64 -d)
 
             echo "${tm_known_server}" > ${MOUNT_PATH}/known_server
             echo "${keystore}" > ${MOUNT_PATH}/keystore

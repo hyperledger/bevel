@@ -80,9 +80,7 @@ spec:
               echo "Getting Orion password using key $vault_secret_key"
               vaultBevelFunc 'readJson' "${vault_secret_key}"
 
-              validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
-
-              GETH_PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.data.password')
+              GETH_PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.["password"]')
               echo ${GETH_PASSWORD} > password_file
               orion -g nodeKey < password_file
 
@@ -101,14 +99,12 @@ spec:
 
               }" > payload.json
               vaultBevelFunc 'write' "${vault_secret_key}" 'payload.json'
-              
-              validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_RESPONSE}" "LOOKUPSECRETRESPONSE"
 
               vaultBevelFunc 'readJson' "${vault_secret_key}"
               # get privateKey from vault
-              privateKey=$(echo ${VAULT_SECRET} | jq -r '.data.privateKey')
+              privateKey=$(echo ${VAULT_SECRET} | jq -r '.["privateKey"]')
               # get publicKey from vault
-              publicKey=$(echo ${VAULT_SECRET} | jq -r '.data.publicKey')
+              publicKey=$(echo ${VAULT_SECRET} | jq -r '.["publicKey"]')
 
               if [ "$privateKey" == "null" ] || [ "$publicKey" == "null" ] || [ "$privateKey" == "parse error"* ]|| [ ""$publicKey"" == "parse error"* ]
               then

@@ -25,6 +25,8 @@ spec:
       address: {{ vault.url }}
       secretengine: {{ vault.secret_path | default('secretsv2') }}
       authpath: besu{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
+      role: vault-role
     organisation:
       namespace: {{ component_ns }}
       nodes:

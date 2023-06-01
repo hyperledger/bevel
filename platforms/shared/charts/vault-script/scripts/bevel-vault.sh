@@ -1,16 +1,25 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This function validates HashiCorp Vault responses
 function validateVaultResponseHashicorp {
-    if [[ $3 == "LOOKUPSECRETRESPONSE" ]]; then
+    if [[ $2 == "LOOKUPSECRETRESPONSE" ]]; then
         http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
             --header "X-Vault-Token: ${VAULT_TOKEN}" \
             "${VAULT_ADDR}/v1/${1}")
         curl_response=$?
-        if [[ $http_code != "200" ]]; then
-            echo "Http response code from Vault - $http_code and curl_response - $curl_response"
-            if [[ $curl_response != "0" ]]; then
-                echo "Error: curl command failed with error code - $curl_response"
-                exit 1
-            fi
+
+        echo "HTTP response code from Vault: $http_code"
+        echo "Curl response code from Vault: $curl_response"
+
+        if [[ $http_code == "200" && $curl_response == "0" ]]; then
+            echo "Validation successful for: $3"
+        else
+            echo "Validation failed for: $3"
+            exit 1
         fi
     fi
 }
@@ -37,7 +46,6 @@ function initHashicorpVaultToken {
         exit 1
     else
         echo "Vault token successfully obtained."
-        validateVaultResponseHashicorp 'vault login token' "$VAULT_TOKEN"
     fi
 }
 
@@ -51,13 +59,23 @@ function readHashicorpVaultSecret {
     # Extract error message (if any) from the response using jq
     ERROR=$(echo "$RESPONSE" | jq -r '.errors[0]')
     # Extract the Vault secret data from the response using jq
-    VAULT_SECRET=$(echo "$RESPONSE" | jq -r '.data')
+    VAULT_SECRET=$(echo "$RESPONSE" | jq -r '.data.data')
 
-    # Check if the Vault Secret is empty, null, or contains errors
-    if [[ $VAULT_SECRET == "" || $VAULT_SECRET == "null" || $VAULT_SECRET == *"errors"* ]]; then
+    # Stop further execution of code if an error is found
+    if [[ $ERROR != "" && $ERROR != "null" ]]; then
         echo "Error: Failed to read Vault secret."
         echo "Error Details: $ERROR"
         exit 1
+    else
+        # Check if the Vault API response indicates a failure
+        if [[ "$VAULT_SECRET" != "" && "$VAULT_SECRET" != "null" && "$VAULT_SECRET" != *"errors"* ]]; then
+            echo "Successfully obtained Vault Secret from the path ${VAULT_ADDR}/v1/${1}"
+            echo "Vault Secret: $VAULT_SECRET"
+            validateVaultResponseHashicorp "${1}" "LOOKUPSECRETRESPONSE" "read api call"
+        else
+            echo "The secret is absent in the vault at path ${VAULT_ADDR}/v1/${1}"
+            echo "NOTE: This is not an error; it indicates that the secret will be created in later code."
+        fi
     fi
 }
 
@@ -74,10 +92,14 @@ function writeHashicorpVaultSecret {
     # Print the Vault API response
     echo "Vault write API call response: ${VAULT_RESPONSE}"
 
+    # Stop further execution of code if an error is found
     # Check if the Vault API response indicates a failure
     if [[ $VAULT_RESPONSE == "" || $VAULT_RESPONSE == "null" || $VAULT_RESPONSE == *"errors"* ]]; then
-        echo "Error: Failed to write to Vault"
+        echo "Error: Failed to write to Vault at path ${VAULT_ADDR}/v1/${1}"
         exit 1
+    else
+        echo "Successfully wrote to Vault at path ${VAULT_ADDR}/v1/${1}"
+        validateVaultResponseHashicorp "${1}" "LOOKUPSECRETRESPONSE" "write api call"
     fi
 }
 
