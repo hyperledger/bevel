@@ -111,6 +111,7 @@
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
+        orderer_org: "{{ item.orderer_org | lower }}"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
@@ -149,6 +150,7 @@
         docker_url: "{{ network.docker.url }}"
         channel_name: "syschannel"
         update_type: "tls"
+        component_ns: "{{ org.name | lower}}-net"
       loop: "{{ network.organizations }}"
       loop_control:
         loop_var: org
@@ -214,8 +216,9 @@
         loop_var: org
       when: org.type == 'peer' and org.org_status == 'new'
 
-  vars: #These variables can be overriden from the command line
-    privilege_escalate: false           #Default to NOT escalate to root privledges
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+  vars: # These variables can be overriden from the command line
+    privilege_escalate: false           # Default to NOT escalate to root privledges
+    install_os: "linux"                 # Default to linux OS
+    install_arch:  "amd64"              # Default to amd64 architecture
+    bin_install_dir:  "~/bin"           # Default to /bin install directory for binaries
+    add_new_org: "true"                 # Default to true

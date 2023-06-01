@@ -1,0 +1,111 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##################################################
+# Playbook to cleanup platform from the cluster
+# Playbook arguments: complete network.yaml
+##################################################
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+  # ----------------------------------------------------------------------
+
+  # Uninstalling Flux for organisation
+  - name: Delete Flux
+    include_role:
+      name: delete/flux
+    vars:
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+  
+  # Cleanup Flux release folder in Git for all organizations
+  - name: Delete release folder
+    include_role:
+      name: delete/gitops
+    vars:
+      gitops: "{{ organizationItem.gitops }}"
+      organization: "{{ organizationItem.name | lower }}"
+      organization_ns: "{{ organization }}-{{ namespace_suffix | map(attribute=network.type) | first }}"
+      release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+      release_ns_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization_ns }}"
+      flux_mainfest_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/flux-{{ network.env.type }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
+  # Delete all organizations' namespaces with all K8S resources
+  - name: Delete all K8S resources
+    include_role:
+      name: delete/k8s_resources
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      organization_ns: "{{ organization }}-{{ namespace_suffix | map(attribute=network.type) | first }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+  
+  # Uninstalling Flux for R3 Corda Ent organisation when float enabled
+  - name: Delete Flux
+    include_role:
+      name: delete/flux
+    vars:
+      kubernetes: "{{ organizationItem.services.float.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: 
+      - network.type == "corda-enterprise"
+      - organizationItem.firewall is defined and organizationItem.firewall.enabled
+
+  # Cleanup Flux release folder in Git for R3 Corda Ent organisation when float enabled
+  - name: Delete release folder
+    include_role:
+      name: delete/gitops
+    vars:
+      gitops: "{{ organizationItem.services.float.gitops }}"
+      organization: "{{ organizationItem.name | lower }}"
+      organization_ns: "{{ organization }}-{{ namespace_suffix | map(attribute=network.type) | first }}"
+      release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+      release_ns_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization_ns }}"
+      flux_mainfest_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/flux-{{ network.env.type }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: 
+      - network.type == "corda-enterprise"
+      - organizationItem.firewall is defined and organizationItem.firewall.enabled
+
+  # Delete all K8S resources R3 Corda Ent organisation when float enabled 
+  - name: Delete all K8S resources
+    include_role:
+      name: delete/k8s_resources
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      organization_ns: "{{ organization }}-{{ namespace_suffix | map(attribute=network.type) | first }}"
+      kubernetes: "{{ organizationItem.services.float.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: 
+      - network.type == "corda-enterprise"
+      - organizationItem.firewall is defined and organizationItem.firewall.enabled
+  
+  # Playbook variables
+  vars:
+    # Map object to hold namespace suffix used for each platform 
+    namespace_suffix: [{
+      "indy": "ns",
+      "fabric": "net",
+      "quorum": "quo",
+      "corda-enterprise": "ent",
+      "corda": "ns",
+      "besu": "bes",
+      "substrate": "subs"
+    }]

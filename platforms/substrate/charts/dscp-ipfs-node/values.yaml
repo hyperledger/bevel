@@ -1,0 +1,121 @@
+
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+## Provide a name to substitute for the full names of resources
+fullnameOverride: ""
+# This section contains the ipfs node config values
+config:
+  healthCheckPort: 80
+  healthCheckPollPeriod: 30000
+  healthCheckTimeout: 2000
+  # External DSCP-Node hostname to query, this overrides dscpNode.enabled
+  nodeHost: ""
+  # External DSCP-Node port to query
+  nodePort: ""
+  # Public key for the IPFS subsystem
+  publicKey: ""
+  # Private key for the IPFS subsystem
+  privateKey: ""
+  # logLevel for nodeJS service Allowed values: error, warn, info, debug
+  logLevel: "info"
+  # Sets the ipfs api port - default 5001
+  ipfsApiPort: 5001
+  # Sets the ipfs swarm port - default 4001
+  ipfsSwarmPort: 4001
+  # Path to mount the volume at.
+  ipfsDataPath: "/ipfs"
+  # Location of the ipfs binary in the container for the IPFS subsystem
+  ipfsCommand: "/usr/local/bin/ipfs"
+  # Arguments to pass to the wasp-ipfs service to spawn the IPFS subsystem
+  ipfsArgs:
+    - daemon
+    - "--migrate"
+  # List of IPFS swarm address filters to apply to the IPFS subsystem
+  ipfsSwarmAddrFilters: null
+  # logLevel for IPFS subsystem, Allowed values: error, warn, info, debug
+  ipfsLogLevel: info
+  # IPFS boot node addresses in MultiAddress format for the IPFS subsystem
+  ## ref: https://multiformats.io/multiaddr/
+  ipfsBootNodeAddress: ""
+
+service:
+  # dscp-ipfs swarm service configuration
+  swarm:
+    annotations: {}
+    enabled: true
+    port: 4001
+  # dscp-ipfs api service configuration
+  api:
+    annotations: {}
+    enabled: true
+    port: 5001
+
+statefulSet:
+  annotations: {}
+  livenessProbe:
+    enabled: true
+
+# This section contains the values relating to the ipfs image
+image:
+  # Image repository in which the ipfs node image will be pulled from - default pull from ghcr.io/inteli-poc/dscp-ipfs
+  repository: ghcr.io/inteli-poc/dscp-ipfs
+  # If the image is not present in the kubernetes docker daemon it will attempt to pull the image from the aforementioned repository - default IfNotPresent
+  pullPolicy: IfNotPresent
+  # Specifying the version of the image to pull - default 'v2.6.2'
+  tag: 'v2.6.2'
+
+initContainer:
+  # Provide the alpine utils image, which is used for all init-containers of deployments/jobs.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. image: hyperledgerlabs/alpine-utils:1.0
+  image: ghcr.io/hyperledger/alpine-utils:1.0
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: IfNotPresent
+  pullPolicy: IfNotPresent
+
+# This section contains the values relating to the ipfs storage and data volume size
+storage:
+  # Storage class of backing PVC
+  storageClass: ""
+  # Size of data volume
+  dataVolumeSize: 1  # in Gigabytes
+
+# Determines whether this ipfs node is a DSCP node or not
+dscpNode:
+  # Enable DSCP-Node subchart
+  enabled: false
+
+# Proxy section contains the proxy provider and ports
+proxy:
+  # Mention the proxy provider. Currently ambassador is supported
+  # eg. provider: ambassador
+  provider: ambassador
+  # url that will be added in DNS recordset
+  # eg. external_url: test.substrate.example.com
+  external_url: ""
+  # Mention the swarm port configured on proxy.
+  # NOTE: Make sure that the port is enabled and not binded on the proxy.
+  # Eg. port: 15010
+  port: 15010
+  # Provide the secret name which contains the certificate
+  certSecret: ""
+
+# Vault section contains the vault provider configuration 
+vault:
+  # Mention the vault provider. Currently hashicorp is supported
+  provider: hashicorp
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address: ""
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role: vault-role
+  # Provide the authpath configured to be used.
+  authpath: ""
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceAccountName: vault-auth
+  # Provide the vault path where the certificates are stored
+  # Eg. certsecretprefix: secret/cenm-org-name
+  certSecretPrefix: ""

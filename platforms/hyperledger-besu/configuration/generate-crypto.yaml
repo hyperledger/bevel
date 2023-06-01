@@ -79,37 +79,22 @@
     loop_control:
       loop_var: organizationItem
 
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the IBFT network"
+  # This role generates key pair and nodeaddress for all orgs of the network
+  - name: "Generate crypto for the network nodes"
     include_role:
-      name: create/crypto/ibft
+      name: create/crypto/node
     vars:
       build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'ibft'
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the CLIQUE network"
-    include_role:
-      name: create/crypto/clique
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'clique'
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the ETHASH network"
-    include_role:
-      name: create/crypto/ethash
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'ethash'
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the QBFT network"
-    include_role:
-      name: create/crypto/qbft
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'qbft'
+      organisation: "{{ organizationItem.name | lower }}"
+      organisation_ns: "{{ organizationItem.name | lower }}-bes"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      charts_dir: "{{ organizationItem.gitops.chart_source }}"
+      gitops: "{{ organizationItem.gitops }}"
+      values_dir: "{{ playbook_dir }}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+    loop: "{{ network['organizations']}}"
+    loop_control:
+      loop_var: organizationItem
 
   # This role generates the crypto materials for orion tm
   - name: "Generate crypto for the Orion transaction manager"
@@ -148,6 +133,19 @@
     when:
       - org.type == 'member'
       - network.config.transaction_manager == 'tessera'
+
+  - name: Generate admin key for permissioning
+    include_role:
+      name: create/crypto/key_generation
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name | lower }}-bes"
+      vault: "{{ org.vault }}"
+      user: "admin"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+        loop_var: org
+    when: network.permissioning.enabled is defined and network.permissioning.enabled == true
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS

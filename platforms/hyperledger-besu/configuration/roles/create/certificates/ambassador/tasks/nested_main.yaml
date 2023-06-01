@@ -17,11 +17,10 @@
 
 # Creates TLS certificate  
 - name: Create TLS certificate  
-  kubernetes.core.helm:
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} helm upgrade --install "letsencrypt-cert-{{node_name}}" --set nodename="{{ node_name }}" --set namespace="{{ component_ns }}" --set externalurlsuffix="{{ organizationItem.external_url_suffix }}" {{ playbook_dir }}/../../../platforms/shared/charts/letsencrypt-cert
   when: 
-    - organizationItem.issuer|lower == "letsencrypt"
+    - (organizationItem.issuer is defined) and (organizationItem.issuer|lower == "letsencrypt")
 
 # Create ambassador certs helmrelease file
 - name: "Create ambassador certs helmrelease file"
@@ -35,7 +34,7 @@
     tm_clientport: "{{ node.tm_clientport.port | default('8888') }}"
     tls_enabled: "{{ network.config.tm_tls }}"
   when:
-    - (organizationItem.issuer|lower == "default") or (organizationItem.issuer is undefined)
+    - (organizationItem.issuer is undefined) or (organizationItem.issuer|lower == "default")
         
 # push the created deployment files to repository
 - name: "Push the created deployment files to repository"
@@ -55,7 +54,7 @@
     component_type: Job
     namespace: "{{ component_ns }}"
   when:
-    - (organizationItem.issuer|lower == "default") or (organizationItem.issuer is undefined)
+    - (organizationItem.issuer is undefined) or (organizationItem.issuer|lower == "default")
 
 # This task creates the Ambassador TLS credentials
 - name: "Create the Ambassador credentials"
@@ -67,4 +66,4 @@
     kubernetes: "{{ organizationItem.k8s }}"
     check: "ambassador_creds"
   when:
-    - (organizationItem.issuer|lower == "default") or (organizationItem.issuer is undefined)
+    - (organizationItem.issuer is undefined) or (organizationItem.issuer|lower == "default")

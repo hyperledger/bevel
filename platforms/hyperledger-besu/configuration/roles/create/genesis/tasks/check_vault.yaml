@@ -1,0 +1,26 @@
+##############################################################################################
+#  Copyright Walmart Inc. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+- name: Ensure validator directory exist
+  file:
+    path: "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data"
+    state: directory
+  with_items: "{{ org.services.peers is defined | ternary(org.services.peers, org.services.validators) }}"
+
+# This tasks checks and keeps retrying for the crypto materials to be ready
+- name: Check for node key pair in vault
+  shell: |
+    vault kv get -field=key_pub {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/data > "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data/key.pub"
+    vault kv get -field=nodeAddress {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/data > "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data/nodeAddress"
+    vault kv get -field=key {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/data > "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data/key"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  with_items: "{{ org.services.peers is defined | ternary(org.services.peers, org.services.validators) }}"
+  register: vault_result
+  until:  vault_result.stderr is not defined or vault_result.stderr == ""
+  retries: "{{ network.env.retry_count }}"
+  delay: 10

@@ -48,6 +48,17 @@
     loop_control:
       loop_var: organizationItem
 
+  #Create Vault scrit as configmap for Vault CURD operations
+  - name: setup vault script
+    include_role:
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-bes"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
   - name: "Setup vault"
     include_role:
@@ -86,45 +97,32 @@
     loop: "{{ network['organizations']}}"
     loop_control:
       loop_var: organizationItem
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the IBFT network"
-    include_role:
-      name: create/crypto/ibft
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'ibft'
   
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the QBFT network"
+  # This role generates key pair and nodeaddress for all orgs of the network
+  - name: "Generate crypto for the network nodes"
     include_role:
-      name: create/crypto/qbft
+      name: create/crypto/node
     vars:
       build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'qbft'
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the CLIQUE network"
-    include_role:
-      name: create/crypto/clique
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'clique'
-
-  # This role generates the genesis.json and nodekey/enode for all orgs of the network
-  - name: "Generate crypto for the ETHASH network"
-    include_role:
-      name: create/crypto/ethash
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-    when: network.config.consensus == 'ethash'
+      organisation: "{{ organizationItem.name | lower }}"
+      organisation_ns: "{{ organizationItem.name | lower }}-bes"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      charts_dir: "{{ organizationItem.gitops.chart_source }}"
+      gitops: "{{ organizationItem.gitops }}"
+      values_dir: "{{ playbook_dir }}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
 
   # This role generates the genesis.json
   - name: "Generate genesis file"
     include_role:
-       name: create/genesis/{{network.config.consensus}}    
+       name: create/genesis  
     vars:
       build_path: "./build"
+    when: 
+      - not (add_new_org | bool)
 
   # This role deploy validator nodes. Validator nodes do not use Orion crypto.
   - name: "Deploy validator nodes"
@@ -187,6 +185,20 @@
     when:
       - org.type == 'member'
       - network.config.transaction_manager == 'tessera'
+
+  # This role generates the admin ppk for permissioning
+  - name: Generate admin key for permissioning
+    include_role:
+      name: create/crypto/key_generation
+    vars:
+      build_path: "{{ playbook_dir }}/build"
+      component_ns: "{{ org.name | lower }}-bes"
+      vault: "{{ org.vault }}"
+      user: "admin"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+        loop_var: org
+    when: network.permissioning.enabled is defined and network.permissioning.enabled == true
 
   # This role deploys  Tessera nodes
   - name: "Deploy Tessera nodes"

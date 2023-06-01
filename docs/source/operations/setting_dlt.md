@@ -84,7 +84,7 @@ Below are some commands to check the pod's status:
 
 For a successful setup of DLT Network all the pods should be in running state.
 
-For detailed instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](./operations/bevel_verify.md)
+For detailed instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](../operations/bevel_verify.md)
 
 ## Deleting an existing DLT/Blockchain network
 The above mentioned playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/)) can be run to reset the network using the network configuration file having the specifications which was used to setup the network using the following command:

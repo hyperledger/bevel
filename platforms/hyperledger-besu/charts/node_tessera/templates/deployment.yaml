@@ -80,6 +80,10 @@ spec:
             items:
               - key: tessera-config.json.tmpl
                 path: tessera-config.json.tmpl
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
@@ -87,71 +91,43 @@ spec:
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
+        - name: VAULT_SECRET_ENGINE
+          value: {{ $.Values.vault.secretengine }}
         - name: VAULT_SECRET_PREFIX
           value: {{ .Values.vault.secretprefix }}
         - name: KUBERNETES_AUTH_PATH
           value: {{ .Values.vault.authpath }}
         - name: VAULT_APP_ROLE
           value: {{ .Values.vault.role }}
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         - name: MOUNT_PATH
           value: "/secret"
         command: ["sh", "-c"]
         args:
         - |-
           #!/bin/bash
+          source /scripts/bevel-vault.sh
+          echo "Getting the vault Token..."
+          vaultBevelFunc 'init'
           
-          validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          #Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-          
-          echo $VAULT_CLIENT_TOKEN > /secret/VAULT_CLIENT_TOKEN
+          echo $VAULT_TOKEN > /secret/VAULT_CLIENT_TOKEN
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           echo "Getting 2 keys from $vault_secret_key"          
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["nodekey"]')
-          keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
-
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
-          echo "Getting 3 keys from $vault_secret_key"          
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"  
-          gethpassword=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["gethpassword"]')
-          username=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["db_user"]')
-          password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["db_password"]')
+          vaultBevelFunc 'readJson' ${vault_secret_key}
           
+          nodekey=$(echo ${VAULT_SECRET} | jq -r '.["nodekey"]')
+          keystore=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
+          echo "Getting 3 keys from $vault_secret_key"  
+          vaultBevelFunc 'readJson' ${vault_secret_key}        
+          
+          gethpassword=$(echo ${VAULT_SECRET} | jq -r '.["gethpassword"]')
+          username=$(echo ${VAULT_SECRET} | jq -r '.["db_user"]')
+          password=$(echo ${VAULT_SECRET} | jq -r '.["db_password"]')
+
           OUTPUT_PATH="${MOUNT_PATH}/keys"
           mkdir -p ${OUTPUT_PATH}
           
@@ -163,18 +139,15 @@ spec:
 
           if [ {{ $.Values.tessera.tls }} == "STRICT" ]
           then
-            vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
-            LOOKUP_SECRET_RESPONSE=$(curl -sS \
-              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key} | \
-              jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-            tessera_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' | base64 -d)  
-            tessera_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorcrt"]' | base64 -d)    
-            tessera_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorkey"]' | base64 -d) 
-            tessera_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["knownServer"]'| base64 -d) 
-            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
-            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' | base64 -d)
+            vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
+            vaultBevelFunc 'readJson' ${vault_secret_key}   
+            
+            tessera_ca=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]' | base64 -d)
+            tessera_cer_pem=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]' | base64 -d)  
+            tessera_cer_key=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]' | base64 -d)
+            tessera_known_server=$(echo ${VAULT_SECRET} | jq -r '.["knownServer"]'| base64 -d)
+            keystore=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.["password"]' | base64 -d)
             echo "${tessera_ca}" > ${MOUNT_PATH}/tessera_ca.pem
             echo "${tessera_cer_pem}" > ${MOUNT_PATH}/tessera_cer.pem
             echo "${tessera_cer_key}" > ${MOUNT_PATH}/tessera_cer.key
@@ -187,12 +160,14 @@ spec:
 
           #copy mysql jar
           cp /mysql/* /mysql-jar
-         
         volumeMounts:
         - name: certificates
           mountPath: /secret
         - name: mysql-jar
           mountPath: /mysql-jar
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       - name: mysql-init
         image: {{ .Values.images.busybox }}
         imagePullPolicy: IfNotPresent

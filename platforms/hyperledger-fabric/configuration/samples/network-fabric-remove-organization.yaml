@@ -37,7 +37,7 @@ network:
   # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "ghcr.io/hyperledger"
     username: "docker_username"
     password: "docker_password"
   
@@ -63,7 +63,7 @@ network:
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
       uri: orderer3.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
-  
+
   # The channels defined for a network with participating peers in each channel
   channels:
   - channel:
@@ -71,7 +71,7 @@ network:
     channel_name: AllChannel
     chaincodes:
       - "chaincode_name"
-    orderers: 
+    orderers:
       - supplychain
     participants:
     - organization:
@@ -84,7 +84,7 @@ network:
         gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
         peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
-    - organization:      
+    - organization:
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
       org_status: delete # Status of the organization for the existing network, can be delete / existing
@@ -115,7 +115,7 @@ network:
         peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
       ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
     genesis:
-      name: OrdererGenesis  
+      name: OrdererGenesis
 
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
@@ -128,19 +128,19 @@ network:
       country: UK
       state: London
       location: London
-      subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
+      subject: "O=Orderer,OU=Orderer,L=51.50/-0.13/London,C=GB"
       type: orderer
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
       org_status: existing # Status of the organization for the existing network, can be delete / existing
       ca_data:
         url: ca.supplychain-net.org1ambassador.blockchaincloudpoc.com:8443
-        certificate: file/server.crt        # This has not been implemented in 0.2.0.0
-  
+        certificate: /path/supplychain/server.crt        # This has not been implemented in 0.2.0.0
+
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-  
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -167,9 +167,9 @@ network:
         password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
         email: "git@email.com"                # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
-     
+
       # Services maps to the pods that will be deployed on the k8s cluster
-      # This sample is an orderer service and includes a zk-kafka consensus
+      # This sample is an orderer service and includes a raft consensus
       services:
         ca:
           name: ca
@@ -177,10 +177,10 @@ network:
           type: ca
           grpc:
             port: 7054
-        
+
         consensus:
           name: raft
-                
+        
         orderers:
         # This sample has multiple orderers as an example.
         # You can use a single orderer for most production implementations.
@@ -202,8 +202,7 @@ network:
           type: orderer
           consensus: raft
           grpc:
-            port: 7050      
-        
+            port: 7050
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -218,13 +217,13 @@ network:
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
         url: ca.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
-        certificate: file/server.crt
+        certificate: /path/manufacturer/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-  
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -263,20 +262,21 @@ network:
             port: 7054
         peers:
         - peer:
-          name: peer0          
+          name: peer0
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          certificate: /path/manufacturer/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
-            port: 7051         
+            port: 7051
           events:
             port: 7053
           couchdb:
             port: 5984
           restserver:           # This is for the rest-api server
             targetPort: 20001
-            port: 20001 
+            port: 20001
           expressapi:           # This is for the express api server
             targetPort: 3000
             port: 3000
@@ -289,11 +289,11 @@ network:
                 username: "git_username"          # Git Service user who has rights to check-in in all branches
                 password: "git_access_token"
                 url: "github.com/<username>/bevel-samples.git"
-                branch: develop
+                branch: main
                 path: "chaincode_src"   #The path to the chaincode 
               arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
               endorsements: "" #Endorsements (if any) provided along with the chaincode
-    
+
     - organization:
       name: carrier
       country: GB
@@ -306,13 +306,13 @@ network:
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
         url: ca.carrier-net.org3ambassador.blockchaincloudpoc.com:8443
-        certificate: file/server.crt
-      
+        certificate: /path/carrier/server.crt
+
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-  
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -353,16 +353,17 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
           gossippeeraddress: peer0.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          certificate: /path/carrier/peer0.crt       # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
-            port: 7051         
+            port: 7051
           events:
             port: 7053
           couchdb:
             port: 5984
           restserver:
             targetPort: 20001
-            port: 20001 
+            port: 20001
           expressapi:
             targetPort: 3000
             port: 3000
@@ -375,7 +376,7 @@ network:
                 username: "git_username"          # Git Service user who has rights to check-in in all branches
                 password: "git_access_token"
                 url: "github.com/<username>/bevel-samples.git"
-                branch: develop 
+                branch: main
                 path: "chaincode_src"    #The path to the chaincode 
               arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
               endorsements: ""          #Endorsements (if any) provided along with the chaincode
@@ -392,7 +393,7 @@ network:
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
         url: ca.store-net.org4ambassador.blockchaincloudpoc.com:8443
-        certificate: file/server.crt
+        certificate: /path/store/server.crt
       
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
@@ -439,6 +440,7 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer. 
           gossippeeraddress: peer0.store-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
           peerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          certificate: /path/store/peer0.crt # Path to peer Certificate
           cli: disabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag. 
           grpc:
             port: 7051
@@ -461,7 +463,7 @@ network:
                 username: "git_username"          # Git Service user who has rights to check-in in all branches
                 password: "git_access_token"
                 url: "github.com/<username>/bevel-samples.git"
-                branch: develop
+                branch: main
                 path: "chaincode_src"   #The path to the chaincode 
               arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
               endorsements: "" #Endorsements (if any) provided along with the chaincode
@@ -478,13 +480,13 @@ network:
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
         url: ca.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443
-        certificate: file/server.crt
-      
+        certificate: /path/warehouse/server.crt
+
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-  
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -521,20 +523,21 @@ network:
             port: 7054
         peers:
         - peer:
-          name: peer0          
+          name: peer0
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.   
           gossippeeraddress: peer0.warehouse-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          certificate: /path/warehouse/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
-            port: 7051       
+            port: 7051
           events:
             port: 7053
           couchdb:
             port: 5984
           restserver:
             targetPort: 20001
-            port: 20001 
+            port: 20001
           expressapi:
             targetPort: 3000
             port: 3000
@@ -547,7 +550,7 @@ network:
                 username: "git_username"          # Git Service user who has rights to check-in in all branches
                 password: "git_access_token"
                 url: "github.com/<username>/bevel-samples.git"
-                branch: develop
+                branch: main
                 path: "chaincode_src"   #The path to the chaincode 
               arguments: 'chaincode_args'     #Arguments to be passed along with the chaincode parameters
               endorsements: ""        #Endorsements (if any) provided along with the chaincode

@@ -1,0 +1,26 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+- name: Cleanup
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Delete the test directory
+      file:
+        path: "{{ playbook_dir }}/../../../test/"
+        state: absent
+
+    #This task deletes the temporarily created shared directory
+    - name: Delete the temp roles folder
+      file:
+        path: "{{ playbook_dir }}/../../shared"
+        state: absent
+
+    #This task prunes the empty docker volumes
+    - name: "Prunes the empty docker volumes"
+      shell: |
+        docker volume prune -f

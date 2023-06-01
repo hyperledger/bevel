@@ -2,9 +2,7 @@
 [//]: # (Copyright Accenture. All Rights Reserved.)
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
-
-Getting Started
-===============
+# Getting Started
 
 ## Install and Configure Prerequisites
 Follow instructions to [install](./prerequisites.md) and [configure](./operations/configure_prerequisites.md) common prerequisites first. Once you have the prerequisites installed and configured, you are ready to fork the GitHub repository and start using Hyperledger Bevel.

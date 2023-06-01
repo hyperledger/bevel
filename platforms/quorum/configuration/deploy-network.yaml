@@ -168,6 +168,23 @@
     include_role:
       name: create/tessera
     vars:
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-quo"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    when: network.config.transaction_manager == 'tessera'
+
+  # This role deploy member nodes
+  - name: "Deploy member nodes"
+    include_role:
+      name: create/member_node
+    vars:
       build_path: "./build"
       kubernetes: "{{ item.k8s }}"
       consensus: "{{ network.config.consensus }}"
@@ -185,7 +202,29 @@
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       geth_data: "{{ network.config.bootnode | default('null') }}"
     loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'tessera'
+
+  # This role deploy validator nodes
+  - name: "Deploy validator nodes"
+    include_role:
+      name: create/validator_node
+    vars:
+      build_path: "./build"
+      kubernetes: "{{ item.k8s }}"
+      consensus: "{{ network.config.consensus }}"
+      component_ns: "{{ item.name | lower }}-quo"
+      name: "{{ item.name | lower }}"
+      peers: "{{ item.services.peers }}"
+      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      external_url: "{{ item.external_url_suffix }}"
+      vault: "{{ item.vault }}"
+      git_url: "{{ item.gitops.git_url }}"
+      git_branch: "{{ item.gitops.branch }}"
+      org: "{{ item }}"
+      docker_url: "{{ network.docker.url }}"
+      charts_dir: "{{ item.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      geth_data: "{{ network.config.bootnode | default('null') }}"
+    loop: "{{ network['organizations'] }}"
 
   # This role deployes nodes with constellation transaction mananger
   - name: "Deploy nodes with Constellation Transaction Manager"

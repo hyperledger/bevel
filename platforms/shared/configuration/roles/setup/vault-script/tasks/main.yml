@@ -1,0 +1,26 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+# tasks file for ./vault-script
+- name: "check for the configmap vault-script to be created"
+  k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    namespace: "{{ component_ns }}"
+    name: bevel-vault-script
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: bevel_vault_script
+
+- name: "Create configmap for bevel-vault-script"
+  kubernetes.core.helm:
+    name: bevel-vault-script
+    chart_ref: "{{ playbook_dir }}/../../shared/charts/vault-script"
+    release_namespace: "{{ component_ns }}"
+    create_namespace: true
+    kubeconfig: "{{ kubernetes.config_file }}"
+    values: 
+      namespace: "{{ component_ns }}"
+  when: bevel_vault_script.resources | length <= 0

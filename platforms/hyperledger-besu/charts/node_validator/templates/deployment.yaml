@@ -79,6 +79,11 @@ spec:
             items:
               - key: genesis.json.base64
                 path: genesis.json.base64
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
+  
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
@@ -86,77 +91,52 @@ spec:
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
+        - name: VAULT_SECRET_ENGINE
+          value: {{ $.Values.vault.secretengine }}
         - name: VAULT_SECRET_PREFIX
           value: {{ .Values.vault.secretprefix }}
         - name: KUBERNETES_AUTH_PATH
           value: {{ .Values.vault.authpath }}
         - name: VAULT_APP_ROLE
           value: {{ .Values.vault.role }}
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         - name: MOUNT_PATH
           value: "/secret"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-
-          validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          #Login to Vault and to get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          source /scripts/bevel-vault.sh
+          echo "Getting the vault Token..."
+          vaultBevelFunc 'init'
 
           mkdir -p ${MOUNT_PATH}
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]') 
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
+          vaultBevelFunc 'readJson' ${vault_secret_key}
+
+          nodekey=$(echo ${VAULT_SECRET} | jq -r '.["key"]')
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
           if [ {{ $.Values.node.tls }} == "true" ]
           then
-            vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}"
-            LOOKUP_SECRET_RESPONSE=$(curl -sS \
-              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key} | \
-              jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
-            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' | base64 -d)
+            vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}"
+            vaultBevelFunc 'readJson' ${vault_secret_key}
+
+            keystore=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.["password"]' | base64 -d)
+
             echo "${keystore}" > ${MOUNT_PATH}/keystore
             base64 -d ${MOUNT_PATH}/keystore > ${MOUNT_PATH}/keystore.pkcs12
             echo "${keystore_password}" > ${MOUNT_PATH}/keystore_password
           fi
-
         volumeMounts:
         - name: certificates
           mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       - name: liveliness-check
         image: "{{ .Values.images.alpineutils }}"
         imagePullPolicy: IfNotPresent
@@ -164,21 +144,21 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
-{{- if .Values.liveliness_check.enabled }}
-          COUNTER=1
-          while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-          do
-              # get truststore from vault to see if registration is done or not
-              LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
-              if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
-              then
-                sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-              else
-                break
-              fi 
-              COUNTER=`expr "$COUNTER" + 1`
-          done
-{{- end }}
+          {{- if .Values.liveliness_check.enabled }}
+              COUNTER=1
+              while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+              do
+                  # get truststore from vault to see if registration is done or not
+                  LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
+                  if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
+                  then
+                    sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                  else
+                    break
+                  fi 
+                  COUNTER=`expr "$COUNTER" + 1`
+              done
+          {{- end }}
         volumeMounts:
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
@@ -204,6 +184,17 @@ spec:
               tls_args="--privacy-tls-enabled --privacy-tls-keystore-file=/secrets/keystore.pkcs12 --privacy-tls-keystore-password-file=/secrets/keystore_password"
             fi
 
+            if {{ $.Values.metrics.enabled }} == "true"
+            then
+              metrics_args="--metrics-enabled --metrics-port={{ template "metrics_port" . }} --metrics-host=0.0.0.0"
+            fi
+
+            if {{ $.Values.node.permissioning.enabled }} == "true"
+            then
+              permissioning_args="--permissions-accounts-contract-enabled --permissions-accounts-contract-address=0x0000000000000000000000000000000000008888 --permissions-nodes-contract-enabled  --permissions-nodes-contract-address=0x0000000000000000000000000000000000009999 --permissions-nodes-contract-version=2"
+              args="--rpc-http-enabled --rpc-http-api=ETH,NET,IBFT,DEBUG,ADMIN,WEB3,PERM --rpc-ws-enabled --rpc-ws-api=ETH,NET,WEB3 --p2p-port {{ .Values.node.ports.p2p }} --rpc-http-port {{ .Values.node.ports.rpc }} --rpc-ws-port={{ .Values.node.ports.ws }}"
+            fi
+
             exec /opt/besu/bin/besu \
             --identity={{ .Values.node.name }} \
             --discovery-enabled=false \
@@ -225,7 +216,9 @@ spec:
             --Xdns-enabled=true \
             --Xdns-update-enabled=true \
             $args \
-            $tls_args            
+            $tls_args \
+            $metrics_args            
+            $permissioning_args
         ports:
           - name: json-rpc
             containerPort: {{ .Values.node.ports.rpc}}

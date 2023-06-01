@@ -4,17 +4,16 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#########################
-# Playbook to cleanup platform from the cluster
-# Playbook arguments: complete network.yaml
-#########################
+##################################################
+# Playbook to cleanup platform specific resources
+##################################################
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
   # ----------------------------------------------------------------------
 
-  # Cleanup all organizations' Vault indy crypto
+  # Cleanup all organizations' vault indy crypto
   - name: Cleanup Vault indy crypto
     include_role:
       name: clean/vault
@@ -26,121 +25,6 @@
       vault: "{{ organizationItem.vault }}"
       role: "rw"
       auth_path: "kubernetes-{{ organization }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: organizationItem
-  # Uninstalling Flux is needed so that everything is clean
-  # remove this if not needed
-  ##Deletes Deployments related to flux
-  - name: Delete flux deployments
-    k8s:
-      state: absent
-      api_version: v1
-      kind: Deployment
-      namespace: flux-{{ network.env.type }}
-      name: "{{ item[0] }}"
-      force: yes
-      kubeconfig: "{{ kubernetes.config_file }}"
-    vars:
-      kubernetes: "{{ item[1].k8s }}"
-    with_nested:
-      - ["helm-controller", "kustomize-controller", "notification-controller", "source-controller"]
-      - "{{ network['organizations'] }}"
-    ignore_errors: yes
-
-  ##Deletes Services related to flux
-  - name: Delete flux services
-    k8s:
-      state: absent
-      api_version: v1
-      kind: Service
-      namespace: flux-{{ network.env.type }}
-      name: "{{ item[0] }}"
-      kubeconfig: "{{ kubernetes.config_file }}"
-    vars:
-      kubernetes: "{{ item[1].k8s }}"
-    with_nested:
-      - ["webhook-receiver", "notification-controller", "source-controller"]
-      - "{{ network['organizations'] }}"
-    ignore_errors: yes
-
-  ##Deletes Network Policies related to flux
-  - name: Delete flux Network Policies
-    k8s:
-      state: absent
-      api_version: v1
-      kind: NetworkPolicy
-      namespace: flux-{{ network.env.type }}
-      name: "{{ item[0] }}"
-      kubeconfig: "{{ kubernetes.config_file }}"
-    vars:
-      kubernetes: "{{ item[1].k8s }}"
-    with_nested:
-      - ["allow-egress", "allow-scraping", "allow-webhooks"]
-      - "{{ network['organizations'] }}"
-    ignore_errors: yes
-
-  ##Deletes ServiceAccount related to flux
-  - name: Delete flux ServiceAccount
-    k8s:
-      state: absent
-      api_version: v1
-      kind: ServiceAccount
-      namespace: flux-{{ network.env.type }}
-      name: "{{ item[0] }}"
-      kubeconfig: "{{ kubernetes.config_file }}"
-    vars:
-      kubernetes: "{{ item[1].k8s }}"
-    with_nested:
-      - ["helm-controller", "kustomize-controller", "notification-controller", "source-controller"]
-      - "{{ network['organizations'] }}"
-    ignore_errors: yes
-
-  ##Deletes flux namespace
-  - name: delete flux namespace
-    k8s:
-      name: flux-{{ network.env.type }}
-      api_version: v1
-      kind: Namespace
-      state: absent
-      kubeconfig: "{{ kubernetes.config_file }}"
-    vars:
-      kubernetes: "{{ item.k8s }}"
-    loop: "{{ network['organizations'] }}"
-    ignore_errors: yes
-
-
-  # Delete the Flux Helm release from all organizations's K8S clusters (including the Git secret)
-  - name: Delete Flux
-    include_role:
-      name: clean/flux
-    vars:
-      kubernetes: "{{ organizationItem.k8s }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: organizationItem
-
-  # Cleanup Flux release folder in Git for all organizations
-  - name: Delete release folder
-    include_role:
-      name: clean/gitops
-    vars:
-      gitops: "{{ organizationItem.gitops }}"
-      release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organizationItem.name|lower }}"
-      flux_mainfest_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/flux-{{ network.env.type }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: organizationItem
-
-  # Delete all organizations' namespaces with all K8S resources (including PVCs and PVs)
-  - name: Delete all K8S resources
-    include_role:
-      name: clean/k8s_resources
-    vars:
-      organization: "{{ organizationItem.name | lower }}"
-      organization_ns: "{{ organization }}-ns"
-      services: "{{ organizationItem.services }}"
-      kubernetes: "{{ organizationItem.k8s }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: organizationItem

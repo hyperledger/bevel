@@ -43,6 +43,9 @@ RUN apt-get update && apt-get install -y \
     ln -s /usr/bin/python3 /usr/bin/python && \
     rm -rf /var/lib/apt/lists/*
 
+# base58 is needed in Substrate to encode nodeids
+RUN snap install base58
+
 RUN npm install -g ajv-cli
 RUN apt-get update && apt-get install -y python3-venv
 

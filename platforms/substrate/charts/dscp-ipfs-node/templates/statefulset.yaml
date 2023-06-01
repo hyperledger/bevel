@@ -1,0 +1,248 @@
+{{ $fullname :=  include "dscp-ipfs.fullname" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "dscp-ipfs.fullname" . }}
+  labels:
+    {{- include "dscp-ipfs.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "dscp-ipfs.fullname" . }}
+  selector:
+    matchLabels:
+      name: {{ include "dscp-ipfs.fullname" . }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.statefulSet.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        name: {{ include "dscp-ipfs.fullname" . }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- include "dscp-ipfs.imagePullSecrets" . | indent 6 }}
+      initContainers:
+        - name: {{ include "dscp-ipfs.initIpfsConfig.name" . }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          env:
+            - name: IPFS_PATH
+              value: {{ .Values.config.ipfsDataPath }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dscp-ipfs.fullname" . }}-config
+          command: ['/bin/sh', '-c', '-e', '-x']
+          args:
+            - |
+              [ ! -f "$IPFS_PATH/config" ] && $ipfsCommand init --profile server;
+              $ipfsCommand config Addresses.API /ip4/0.0.0.0/tcp/$ipfsApiPort;
+              $ipfsCommand config --json Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/$ipfsSwarmPort\"]";
+              $ipfsCommand config --json Addresses.Announce "[\"/dns4/{{ $fullname }}-swarm.{{ .Release.Namespace }}.svc.cluster.local/tcp/$ipfsSwarmPort/\"]";
+              $ipfsCommand config --json Addresses.NoAnnounce "[]";              
+              $ipfsCommand config Datastore.StorageMax $(echo "$dataVolumeSize""Gb");
+              $ipfsCommand config --json Swarm.AddrFilters $ipfsSwarmAddrFilters;
+              $ipfsCommand config --json API.HTTPHeaders.Access-Control-Allow-Origin "[\"http://0.0.0.0:$ipfsApiPort\", \"http://127.0.0.1:$ipfsApiPort\"]";
+              $ipfsCommand bootstrap rm --all;
+              if [ ! -z "$ipfsBootNodeAddress" ]; then $ipfsCommand bootstrap add $ipfsBootNodeAddress; fi;
+          volumeMounts:
+            - mountPath: {{ .Values.config.ipfsDataPath }}
+              name: ipfs-data
+        {{- if and .Values.config.publicKey .Values.config.privateKey }}              
+        - name: {{ include "dscp-ipfs.initIpfsConfig.name" . }}-keys
+          image: jetbrainsinfra/jq:latest
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          env:
+            - name: IPFS_PATH
+              value: {{ .Values.config.ipfsDataPath }}
+            - name: IPFS_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-secret
+                  key: publicKey
+            - name: IPFS_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-secret
+                  key: privateKey
+          envFrom:
+            - configMapRef:
+                name: {{ include "dscp-ipfs.fullname" . }}-config
+          command: ['/bin/sh', '-c', '-e', '-x']
+          args:
+            - |
+              echo "$(jq --arg publickey $IPFS_PUBLIC_KEY '.Identity.PeerID = $publickey' /ipfs/config)" > /ipfs/config ;
+              echo "$(jq --arg privatekey $IPFS_PRIVATE_KEY '.Identity.PrivKey = $privatekey' /ipfs/config)" > /ipfs/config ;
+          volumeMounts:
+            - mountPath: {{ .Values.config.ipfsDataPath }}
+              name: ipfs-data
+        {{- end }}
+        {{- if eq .Values.vault.provider "hashicorp" }}
+        - name: ipfs-init
+          image: {{ .Values.initContainer.image }}
+          imagePullPolicy: {{ .Values.initContainer.pullPolicy | quote }}
+          env:
+            - name: MOUNT_PATH
+              value: {{ .Values.config.ipfsDataPath }}
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: VAULT_APP_ROLE
+              value: {{ $.Values.vault.role }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ .Values.vault.certsecretprefix }}   
+          volumeMounts:
+            - mountPath: {{ .Values.config.ipfsDataPath }}
+              name: ipfs-data
+          command: ["sh", "-c"]
+          args:
+            - |-
+              #!/usr/bin/env bash
+
+              echo "validating vault response"
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${vault_secret_key})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+              echo "done validating vault response"
+
+              apk update && apk add jq 
+              cd $MOUNT_PATH
+
+              peer_id=$(cat config | jq -r .Identity.PeerID)
+              private_key=$(cat config | jq -r .Identity.PrivKey)
+
+              echo "
+                {
+                  \"data\": {
+                  \"peer_id\": \"$peer_id\",
+                  \"private_key\": \"$private_key\"
+                }}" > ipfsKeys.json
+
+              echo "Saving keys into vault"
+              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+              # Login to Vault and so I can get an approle token
+              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+                -H "Content-Type: application/json" \
+                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+                jq -r 'if .errors then . else .auth.client_token end')
+
+              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+              vault_secret_key="${CERTS_SECRET_PREFIX}/ipfs"
+              # Save the generated keys to VAULT
+              LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -X POST \
+                -d @ipfsKeys.json \
+                ${VAULT_ADDR}/v1/${vault_secret_key} | \
+                jq -r 'if .errors then . else .auth.client_token end')
+              validateVaultResponse " secret $vault_secret_key" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              echo "Done saving keys in vault"
+        {{- end }}    
+      containers:
+        - name: {{ include "dscp-ipfs.fullname" . }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          command: [ './app/index.js' ]
+          env:
+            - name: HEALTHCHECK_POLL_PERIOD_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-config
+                  key: healthCheckPollPeriod
+            - name: HEALTHCHECK_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-config
+                  key: healthCheckTimeout
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-config
+                  key: healthCheckPort
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-config
+                  key: logLevel
+            - name: NODE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-config
+                  key: nodeHost
+            - name: NODE_PORT
+              value: "{{ .Values.config.nodePort }}"
+            {{- if .Values.config.ipfsCommand }}
+            - name: IPFS_EXECUTABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-config
+                  key: ipfsCommand
+            {{- end }}
+            - name: IPFS_ARGS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-config
+                  key: ipfsArgs
+            - name: IPFS_LOGGING
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "dscp-ipfs.fullname" . }}-config
+                  key: ipfsLogLevel
+            - name: IPFS_PATH
+              value: {{ .Values.config.ipfsDataPath }}
+          volumeMounts:
+            - mountPath: {{ .Values.config.ipfsDataPath }}
+              name: ipfs-data
+          ports:
+            - containerPort: {{ .Values.config.healthCheckPort }}
+              name: http-health
+              protocol: TCP
+            - containerPort: {{ .Values.config.ipfsSwarmPort }}
+              name: ipfs-swarm
+              protocol: TCP
+            - containerPort: {{ .Values.config.ipfsApiPort }}
+              name: ipfs-http-api
+              protocol: TCP
+          {{- if .Values.statefulSet.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http-health
+            initialDelaySeconds: 120
+            failureThreshold: 10
+            timeoutSeconds: 20
+            periodSeconds: 30
+          {{- end }}
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: ipfs-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        {{- if .Values.storage.storageClass }}
+        storageClassName: {{ .Values.storage.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ printf "%vGi" .Values.storage.dataVolumeSize | quote }}

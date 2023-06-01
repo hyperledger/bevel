@@ -5,11 +5,17 @@
 ##############################################################################################
 
 ---
+- name: check flux cli
+  stat:
+    path: "{{ bin_install_dir }}/flux"
+  register: flux_cli_stat_result
+
 - name: Install flux cli
   shell: |
     curl -s https://fluxcd.io/install.sh | bash -s {{ bin_install_dir }}
   environment:
     FLUX_VERSION: "{{ flux_version }}"
+  when: not flux_cli_stat_result.stat.exists
 
 - name: Update the ssh host to known hosts
   shell: |
@@ -24,11 +30,13 @@
   shell: |
     {{ bin_install_dir }}/flux bootstrap git \
     --url={{ git_url }} \
+    --components-extra=image-reflector-controller,image-automation-controller \
     --branch={{ git_branch }} \
     --username={{ git_username }} \
     --password={{ git_password }} \
     --token-auth=true \
     --path={{ git_path }} \
+    --version=v{{ flux_version }} \
     --namespace=flux-{{ network.env.type }}
   when: git_protocol == "https"
   environment:
@@ -41,9 +49,11 @@
   shell: |
     yes | {{ bin_install_dir }}/flux bootstrap git \
     --url={{ git_url }} \
+    --components-extra=image-reflector-controller,image-automation-controller \
     --branch={{ git_branch }} \
     --path={{ git_path }} \
     --private-key-file={{ git_key }} \
+    --version=v{{ flux_version }} \
     --namespace=flux-{{ network.env.type }}
   when: git_protocol == "ssh"
   environment:

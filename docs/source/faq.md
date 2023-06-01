@@ -89,14 +89,15 @@ No, a user should be able to run the Ansible command on any machine as long as A
 Yes, you can find an example ansible_hosts file [here](https://github.com/hyperledger/bevel/tree/main/platforms/shared/inventory/ansible_provisioners). The configuration in this file means that all Ansible commands will be run in the same machine that works as both an Ansible client and server machine.
 
 ### Can I specify the tools versions such as kubectl, helm in this project?
-Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [environment-setup.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/environment-setup.yaml).
+Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-authenticator in the playbook [setup-environment.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/setup-environment.yaml).
 
 ### How would system react if we plan to update tools versions (e.g. kubectl, helm)?
 Honestly speaking, we don't know. The latest version Hyperledger Bevel has been tested on specific client versions of these tools, see below:
-(1) Kubectl: v1.14.2 for Kubernetes 1.14, v1.16.13 for Kubernetes 1.16, v1.19.8 for Kubernetes 1.19
+(1) Kubectl: v1.19.8 for Kubernetes v1.19+ (tested upto v1.22)
 (2) Helm: v3.6.2
 (3) HashiCorp Vault: v1.7.1
 (4) AWS-Authenticator: v1.10.3
+(5) Ansible 5.9.0, Ansible [core 2.12.6]
 
 It is assumed that newer versions of these tools would be backward compatible, which is beyond our control. One can raise a new ticket to Hyperledger Bevel GitHub repository, if any major updates would break the system down.
 

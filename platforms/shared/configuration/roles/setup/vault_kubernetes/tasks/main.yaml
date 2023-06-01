@@ -45,8 +45,8 @@
   vars:
     path: "{{ playbook_dir }}/build"
 
-#####################################################################################################################
-# This task creates the access policy for various Substrate entity
+#############################################################################################
+# This task creates the access policy for various entity
 - name: Create policy for Access Control
   vars:  
     name: "{{ component_name }}"
@@ -64,6 +64,16 @@
   tags:
   - molecule-idempotence-notest
 
+# This sets a fact values_dir_path
+- set_fact:
+    values_dir_path: "{{ playbook_dir }}/../../../{{gitops.release_dir}}/{{ name }}"
+  when: network.type != "corda" or (network.type == "corda" and item.type == "node")
+  
+# This sets a fact values_dir_path
+- set_fact:
+    values_dir_path: "{{ playbook_dir }}/../../../{{gitops.release_dir}}/{{org_name}}/{{ name }}"
+  when: network.type == "corda" and item.type != "node"
+
 #####################################################################################################################
 # This tasks generate vault_kubernetes helmrelease file
 - name: "Create value file for vault_kubernetes"
@@ -77,8 +87,8 @@
     kubernetes_url: "{{ kubernetes_server_url.stdout }}"
     alpine_image: "hyperledgerlabs/alpine-utils:1.0"
     policydata: "{{ lookup('file', '{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl') }}"
-    values_dir: "{{ playbook_dir }}/../../../{{gitops.release_dir}}/{{ name }}"
-  
+    values_dir: "{{ values_dir_path }}"
+
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
@@ -102,7 +112,7 @@
 # This task deletes the root token
 - name: "Delete vault token secret"
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/delete/shared_k8s_secrets"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/delete/k8s_secrets"
   vars: 
     namespace: "{{ component_ns }}"    
     check: "token_secret"

@@ -10,6 +10,7 @@ metadata:
   name: "{{ $.Values.metadata.name }}"
   namespace: "{{ $.Values.metadata.namespace }}"
   labels:
+    app: "{{ $.Values.metadata.name }}"
     app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
@@ -47,6 +48,10 @@ spec:
         - name: vault-token
           emptyDir:
             medium: Memory
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
       initContainers:
        - name: "fetch-vault-token"
          image: "{{ $.Values.image.alpineutils }}"
@@ -65,44 +70,22 @@ spec:
             value: {{ $.Values.vault.role }}
           - name: VAULT_SECRET_PREFIX
             value: "{{ $.Values.vault.tmprefix }}"
+          - name: VAULT_TYPE
+            value: "{{ $.Values.vault.type }}"
          command: ["sh", "-c"]
          args:
             - |-
+              source /scripts/bevel-vault.sh
+              echo "Getting the vault Token..."
+              vaultBevelFunc 'init'
 
-              validateVaultResponse () {
-                if echo ${2} | grep "errors"; then
-                  echo "ERROR: unable to retrieve ${1}: ${2}"
-                  exit 1
-                fi
-                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-                then
-                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${vault_secret_key})
-                  curl_response=$?
-                  if test "$http_code" != "200" ; then
-                      echo "Http response code from Vault - $http_code"
-                      if test "$curl_response" != "0"; then
-                        echo "Error: curl command failed with error code - $curl_response"
-                        exit 1
-                      fi
-                  fi
-                fi
-              }
-
-              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-              # Login to Vault and so I can get an approle token
-              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-                -H "Content-Type: application/json" \
-                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-                jq -r 'if .errors then . else .auth.client_token end')
-              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-
-              echo $VAULT_CLIENT_TOKEN > /secret/VAULT_CLIENT_TOKEN
+              echo $VAULT_TOKEN > /secret/VAULT_CLIENT_TOKEN
          volumeMounts:
          - name: vault-token
            mountPath: /secret
+         - name: scripts-volume
+           mountPath: /scripts/bevel-vault.sh
+           subPath: bevel-vault.sh
       containers:
         - name:  "tessera-crypto"
           image: "{{ $.Values.image.repository }}"
@@ -125,7 +108,6 @@ spec:
           command: ["sh", "-c"]
           args:
             - |-
-              
               # Get the vault client token
               export HASHICORP_TOKEN=$(cat /secret/VAULT_CLIENT_TOKEN)
 

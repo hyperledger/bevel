@@ -13,7 +13,28 @@
   vars: 
     kubernetes: "{{ org.k8s }}"
     ordererAddress: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
-  when: check == "fetch_block"
+  when: 
+    - check == "fetch_block"
+    - network.env.proxy != 'none'
+  retries: 7
+  delay: 5
+  register: result
+  until: result is search("Received block")
+- name: Fetch {{ channel_name }} configuration block from the blockchain for proxy none
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ orderer_main.name }}_{{ channel_name }}_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/{{ script }} {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/old-cert {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/
+  environment:
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  vars: 
+    kubernetes: "{{ org.k8s }}"
+    ordererAddress: "{{ orderer.name | lower }}.{{ component_ns }}:{{ orderer.grpc.port }}"
+  when: 
+    - check == "fetch_block"
+    - network.env.proxy == 'none'
   retries: 7
   delay: 5
   register: result
@@ -34,7 +55,24 @@
   vars: 
     kubernetes: "{{ org.k8s }}"
     ordererAddress: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
-  when: check == "update_block"
+  when: 
+    - check == "update_block"
+    - network.env.proxy != 'none'
+- name: Modify, update and copy {{ channel_name }} configuration block from the blockchain for proxy none
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- chmod 777 ./{{ channel_name }}_update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} --  sh ./{{ channel_name }}_update_consenter.sh
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ orderer_main.name }}_{{ channel_name }}_update_in_envelope.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ orderer_main.name }}_{{ channel_name }}_modified_config.json {{ build_path }}/{{ orderer_main.name }}_{{ channel_name }}_config_block_with_modified_content.json
+  environment:
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  vars: 
+    kubernetes: "{{ org.k8s }}"
+    ordererAddress: "{{ orderer.name | lower }}.{{ component_ns }}:{{ orderer.grpc.port }}"
+  when: 
+    - check == "update_block"
+    - network.env.proxy == 'none'
 
 ############################################################################################
 # fetch the latest block from the blockchain
@@ -49,4 +87,19 @@
   vars: 
     kubernetes: "{{ org.k8s }}"
     ordererAddress: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
-  when: check == "latest_block"
+  when: 
+    - check == "latest_block"
+    - network.env.proxy != 'none'
+- name: Fetch the latest block from the blockchain for proxy none
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_latest_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_latest_config_block.pb {{ build_path }}/{{ channel_name }}_config_block.pb
+  environment:
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+  vars: 
+    kubernetes: "{{ org.k8s }}"
+    ordererAddress: "{{ orderer.name | lower }}.{{ component_ns }}:{{ orderer.grpc.port }}"
+  when: 
+    - check == "latest_block"
+    - network.env.proxy == 'none'

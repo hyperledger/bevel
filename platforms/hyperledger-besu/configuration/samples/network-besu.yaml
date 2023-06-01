@@ -13,6 +13,9 @@ network:
   # to join an existing network.
   type: besu
   version: 21.10.6  #this is the version of Besu docker image that will be deployed.
+  # onchain permissioning - ref https://besu.hyperledger.org/en/stable/private-networks/tutorials/permissioning/onchain
+  permissioning:
+    enabled: false
 
   #Environment section for Kubernetes setup
   env:
@@ -52,7 +55,7 @@ network:
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Transaction manager can be "tessera" or "orion"; 21.x.x features are same for both
+    transaction_manager: "tessera"    # Transaction manager can be "tessera", "orion" or "none"; 21.x.x features are same for both
     # This is the version of transaction_manager docker image that will be deployed
     tm_version: "21.7.3"
     # TLS can be True or False for the transaction manager
@@ -128,6 +131,9 @@ network:
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          metrics:
+            enabled: true
+            port: 9545
         - validator:
           name: validator2
           bootnode: true          # true if the validator node is used also a bootnode for the network
@@ -139,6 +145,9 @@ network:
             ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
           ws:
             port: 8546
+          metrics:
+            enabled: true
+            port: 9545
         - validator:
           name: validator3
           bootnode: false          # true if the validator node is used also a bootnode for the network

@@ -61,6 +61,9 @@ spec:
         rpc: {{ peer.rpc.port }}
         ws: {{ peer.ws.port }}
 
+      permissioning:
+        enabled: {{ network.permissioning.enabled | default(false)}}
+
     tm:
       type: {{ network.config.transaction_manager }}
       tls: {{ network.config.tm_tls }}
@@ -70,18 +73,32 @@ spec:
       url: "http://{{ peer.name }}-tessera.{{ component_ns }}:{{ peer.tm_clientport.port }}"
 {% endif %}
 
+{% if network.config.transaction_manager == "none" %}
+    privacy:
+      enabled: false
+      public_key_file: ""
+      tm_flag: false
+{% else %}
+    privacy:
+      enabled: true
+      public_key_file: /secrets/tm_key.pub
+      tm_flag: true
+{% endif %}
+
     storage:
       storageclassname: {{ storageclass_name }}
       storagesize: 1Gi
 
     vault:
       address: {{ vault.url }}
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
+      secretengine: {{ vault.secret_path | default('secretsv2') }}
+      secretprefix: data/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: data
       tmdir: tm
       tlsdir: tls
       role: vault-role
+      type: {{ vault.type | default("hashicorp") }}
       authpath: besu{{ name }}
 
     genesis: {{ genesis }}
@@ -107,3 +124,7 @@ spec:
 {% endfor %}
 {% endif %}
 {% endif %} 
+
+    metrics:
+      enabled: {{ peer.metrics.enabled | default(false)}}
+      port: {{ peer.metrics.port | default(9545) }}

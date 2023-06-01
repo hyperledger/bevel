@@ -1,0 +1,19 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This task fetches the account key
+- name: Get account key
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  shell: |
+    vault kv get -field=account_addr {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
+  register: account_id
+
+# Set the account_id into member list
+- name: Set account key list
+  set_fact:    
+    member_list={{ member_list | default([]) + [ {'account_id':account_id.stdout, 'balance':1152921504606846976, 'nodes':node_list }] }}

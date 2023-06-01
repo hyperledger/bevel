@@ -74,9 +74,10 @@ spec:
       address: {{ vault.url }}
       secretengine: {{ vault.secret_path | default('secretsv2') }}
       tmsecretpath: {{ component_ns }}/crypto/{{ peer.name }}/tm
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
+      secretprefix: data/{{ component_ns }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: credentials
+      type: {{ vault.type | default("hashicorp") }}
       tm_keyname: tm
       tlsdir: tls
       role: vault-role
@@ -118,3 +119,7 @@ spec:
 {% endfor %}
 {% endif %}
 {% endif %}
+
+    metrics:
+      enabled: {{ peer.metrics.enabled | default(false)}}
+      port: {{ peer.metrics.port | default(9545) }}

@@ -85,6 +85,10 @@ spec:
             items:
               - key: orion.conf
                 path: orion.conf
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
@@ -92,86 +96,55 @@ spec:
         env:
         - name: VAULT_ADDR
           value: {{ .Values.vault.address }}
+        - name: VAULT_SECRET_ENGINE
+          value: {{ $.Values.vault.secretengine }}
         - name: VAULT_SECRET_PREFIX
           value: {{ .Values.vault.secretprefix }}
         - name: KUBERNETES_AUTH_PATH
           value: {{ .Values.vault.authpath }}
         - name: VAULT_APP_ROLE
           value: {{ .Values.vault.role }}
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         - name: MOUNT_PATH
           value: "/secret"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-          
-          validateVaultResponse () {
-            if echo ${2} | grep "errors"; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          #Login to Vault and to get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          source /scripts/bevel-vault.sh
+          echo "Getting the vault Token..."
+          vaultBevelFunc 'init'
 
           mkdir -p ${MOUNT_PATH}
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]') 
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
+          vaultBevelFunc 'readJson' ${vault_secret_key}
+          
+          nodekey=$(echo ${VAULT_SECRET} | jq -r '.["privateKey"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | \
-            jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          orion_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["privateKey"]' | base64 -d)  
-          orion_key_pub=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["publicKey"]')    
-          orion_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]') 
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
+          vaultBevelFunc 'readJson' ${vault_secret_key}
+          
+          orion_key=$(echo ${VAULT_SECRET} | jq -r '.["privateKey"]' | base64 -d)  
+          orion_key_pub=$(echo ${VAULT_SECRET} | jq -r '.["publicKey"]')    
+          orion_password=$(echo ${VAULT_SECRET} | jq -r '.["password"]') 
           echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key
           echo "${orion_key_pub}" > ${MOUNT_PATH}/orion_key.pub
           echo "${orion_password}" > ${MOUNT_PATH}/passwordFile 
         
           if [ {{ $.Values.orion.tls }} == "true" ]
           then
-            vault_secret_key="${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
-            LOOKUP_SECRET_RESPONSE=$(curl -sS \
-              --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key} | \
-              jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-            orion_ca=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootca_pem"]' | base64 -d)  
-            orion_cer_pem=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorcrt"]' | base64 -d)    
-            orion_cer_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ambassadorkey"]' | base64 -d) 
-            orion_known_server=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["knownServer"]'| base64 -d) 
-            keystore=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')  
-            keystore_password=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["password"]' | base64 -d)
+            vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
+            vaultBevelFunc 'readJson' ${vault_secret_key}
+            
+            orion_ca=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]' | base64 -d)
+            orion_cer_pem=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]' | base64 -d)
+            orion_cer_key=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]' | base64 -d)
+            orion_known_server=$(echo ${VAULT_SECRET} | jq -r '.["knownServer"]'| base64 -d)
+            keystore=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.["password"]' | base64 -d)
             echo "${orion_ca}" > ${MOUNT_PATH}/orion_ca.pem
             echo "${orion_cer_pem}" > ${MOUNT_PATH}/orion_cer.pem
             echo "${orion_cer_key}" > ${MOUNT_PATH}/orion_cer.key
@@ -183,6 +156,9 @@ spec:
         volumeMounts:
         - name: certificates
           mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       - name: liveliness-check
         image: "{{ .Values.images.alpineutils }}"
         imagePullPolicy: IfNotPresent
@@ -190,21 +166,21 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
-{{- if .Values.liveliness_check.enabled }}
-          COUNTER=1
-          while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
-          do
-              # get truststore from vault to see if registration is done or not
-              LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
-              if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
-              then
-                sleep {{ $.Values.healthcheck.readinesscheckinterval }}
-              else
-                break
-              fi 
-              COUNTER=`expr "$COUNTER" + 1`
-          done
-{{- end }}
+          {{- if .Values.liveliness_check.enabled }}
+            COUNTER=1
+            while [ "$COUNTER" -lt {{ $.Values.healthcheck.readinessthreshold }} ]
+            do
+                # get truststore from vault to see if registration is done or not
+                LOOKUP_SECRET_RESPONSE=$(curl -X GET {{ .Values.liveliness_check.url }}:{{ .Values.liveliness_check.port }}/liveness | jq -r 'if .errors then . else . end')
+                if ! echo ${LOOKUP_SECRET_RESPONSE} | grep -E "UP"
+                then
+                  sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+                else
+                  break
+                fi 
+                COUNTER=`expr "$COUNTER" + 1`
+            done
+          {{- end }}
         volumeMounts:
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
