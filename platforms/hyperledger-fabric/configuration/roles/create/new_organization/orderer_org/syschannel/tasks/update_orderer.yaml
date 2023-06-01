@@ -75,7 +75,22 @@
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
     ORDERER_URL: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
   vars: 
-    kubernetes: "{{ org.k8s }}"    
+    kubernetes: "{{ org.k8s }}"
+  when: network.env.proxy != 'none'
+- name: update and copy the configuration block from the blockchain for proxy none
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ build_path }}/{{ channel_name }}_config_block.pb {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_config_block.pb
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_config_block.pb -o ${ORDERER_URL} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block_latest.pb -o ${ORDERER_URL} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_config_block_latest.pb {{ build_path }}/{{ channel_name }}_config_block.pb
+    cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/genesis.block.base64
+  environment:
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+    ORDERER_URL: "{{ orderer.name | lower }}.{{ component_ns }}:{{ orderer.grpc.port }}"
+  vars: 
+    kubernetes: "{{ org.k8s }}"
+  when: network.env.proxy == 'none'
 
 # This task saves the new genesis block to the vault
 - name: Save the genesis block to vault 
