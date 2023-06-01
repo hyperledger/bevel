@@ -120,16 +120,16 @@ spec:
 
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.keyname }}"
           vaultBevelFunc 'readJson' ${vault_secret_key}
-          validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE" 
-          nodekey=$(echo ${VAULT_SECRET} | jq -r '.data.privateKey') 
+          
+          nodekey=$(echo ${VAULT_SECRET} | jq -r '.["privateKey"]') 
           echo "${nodekey}" > ${MOUNT_PATH}/nodekey
 
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tmdir }}" 
           vaultBevelFunc 'readJson' ${vault_secret_key}
-          validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
-          orion_key=$(echo ${VAULT_SECRET} | jq -r '.data.privateKey' | base64 -d)  
-          orion_key_pub=$(echo ${VAULT_SECRET} | jq -r '.data.publicKey')    
-          orion_password=$(echo ${VAULT_SECRET} | jq -r '.data.password') 
+          
+          orion_key=$(echo ${VAULT_SECRET} | jq -r '.["privateKey"]' | base64 -d)  
+          orion_key_pub=$(echo ${VAULT_SECRET} | jq -r '.["publicKey"]')    
+          orion_password=$(echo ${VAULT_SECRET} | jq -r '.["password"]') 
           echo "${orion_key}" > ${MOUNT_PATH}/orion_key.key
           echo "${orion_key_pub}" > ${MOUNT_PATH}/orion_key.pub
           echo "${orion_password}" > ${MOUNT_PATH}/passwordFile 
@@ -138,13 +138,13 @@ spec:
           then
             vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Values.vault.tlsdir }}" 
             vaultBevelFunc 'readJson' ${vault_secret_key}
-            validateVaultResponseHashicorp "${vault_secret_key}" "${VAULT_SECRET}" "LOOKUPSECRETRESPONSE"
-            orion_ca=$(echo ${VAULT_SECRET} | jq -r '.data.rootca_pem' | base64 -d)  
-            orion_cer_pem=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorcrt' | base64 -d)    
-            orion_cer_key=$(echo ${VAULT_SECRET} | jq -r '.data.ambassadorkey' | base64 -d) 
-            orion_known_server=$(echo ${VAULT_SECRET} | jq -r '.data.knownServer'| base64 -d) 
-            keystore=$(echo ${VAULT_SECRET} | jq -r '.data.keystore')  
-            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.data.password' | base64 -d)
+            
+            orion_ca=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]' | base64 -d)
+            orion_cer_pem=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]' | base64 -d)
+            orion_cer_key=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]' | base64 -d)
+            orion_known_server=$(echo ${VAULT_SECRET} | jq -r '.["knownServer"]'| base64 -d)
+            keystore=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+            keystore_password=$(echo ${VAULT_SECRET} | jq -r '.["password"]' | base64 -d)
             echo "${orion_ca}" > ${MOUNT_PATH}/orion_ca.pem
             echo "${orion_cer_pem}" > ${MOUNT_PATH}/orion_cer.pem
             echo "${orion_cer_key}" > ${MOUNT_PATH}/orion_cer.key
