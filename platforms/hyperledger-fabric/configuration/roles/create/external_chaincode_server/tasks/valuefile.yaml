@@ -1,0 +1,157 @@
+############################################################################################
+# Check if external-chaincode-server is already running
+- name: Check external-chaincode-server exists
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org_ns }}"
+    name: "chaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ org_name }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: ext_chaincode_server
+
+############################################################################################
+# checking for fabric cli
+- name: "Check if fabric cli is already present"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org.name }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: existing_cli
+
+# This task calls nested_create_cli to generate the cli value files for the creator organization
+- name: "create valuefile for cli {{ peer.name }}-{{ org.name }}-{{ chaincode.name }}"
+  include_role:
+    name: k8_component
+  vars:
+    component_type_name: "{{ org.name | lower }}"
+    component_type: "existing_peer_cli_job"    
+    component_name: "cli-{{ chaincode.name }}-{{ org.name }}-{{ peer.name }}"
+    peer_name: "{{ peer.name }}"
+    component_ns: "{{ org.name | lower }}-net"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    channel_name: "{{ chaincode.name }}"
+    storage_class: "{{ org.name }}sc"
+    release_dir: "./build"
+    orderer: "{{ network.orderers | first }}"
+    participant:
+      ordererAddress: "{{ orderer.uri }}"
+  when:
+    - org.type == "peer"
+    - existing_cli.resources|length == 0
+
+# Create the value file for creater org first peer
+- name: "start cli for {{ peer.name }}-{{ org.name }} for updating the chaincode"
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ org.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+  when: existing_cli.resources|length == 0
+
+# waiting for fabric cli
+- name: "Wait if fabric cli is to start"
+  k8s_info:
+    kind: Pod
+    namespace: "{{ org.name }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cli
+  register: get_cli
+  until: ("Running" in get_cli|json_query('resources[*].status.phase'))
+  retries: "{{ network.env.retry_count }}"
+  delay: 20
+  when:
+    - org.type == "peer"
+    - existing_cli.resources|length == 0
+
+############################################################################################
+# This task packages and installs external chaincode 
+- name: Fetch the ccid from the Peer CLI
+  shell: |
+    export PEER_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ org_ns }} | grep "{{ peer.name }}-cli" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -it -n {{ org_ns }} ${PEER_CLI} -- peer lifecycle chaincode queryinstalled | grep {{ chaincode_name }}_{{ chaincode_version }} | awk '{print $3}' | sed 's/, / /g'  > ./build/ccid.txt
+  when: ext_chaincode_server.resources|length == 0
+
+############################################################################################
+# This task fetches the chaincode ID
+- name: Fetch the ccid to var
+  command: cat ./build/ccid.txt
+  register: ccid
+  when: ext_chaincode_server.resources|length == 0
+  failed_when: ccid == ''
+
+############################################################################################
+# Check if private credentials exist already
+- name: "Checking if the docker credentials already exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    check: "chaincode_private_registry_credentials"
+    component_name: "{{ item.name | lower }}-net"
+  register: get_chaincode_private_regcred
+  when: chaincode.private_registry is defined and chaincode.private_registry == true
+
+# This task creates the docker pull credentials for private image registry
+- name: Create the private registry pull credentials
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_name }} docker-registry chaincode-private-regcred --docker-server={{ chaincode.registry.server }} --docker-username={{ chaincode.registry.username }} --docker-password={{ chaincode.registry.password }} --docker-email="test@abc.mail"
+  vars:
+    component_name: "{{ item.name | lower }}-net"
+  when: 
+    - chaincode.private_registry is defined and chaincode.private_registry == true
+    - get_chaincode_private_regcred.resources|length == 0
+
+############################################################################################
+# This task creates value files for chaincode server
+- name: Create Value files for chaincode server
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ item.name | lower }}"
+    type: "external_chaincode"
+    component_name: "chaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ org_name }}"
+    chaincode_image: "{{ chaincode.image }}"
+    peer_name: "{{ peer.name }}"
+    chaincode_ns: "{{ org_ns }}"
+    provider: "{{ item.cloud_provider }}" 
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+  when: ext_chaincode_server.resources|length == 0
+
+############################################################################################
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"    
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing external chaincode server files"
+  when: ext_chaincode_server.resources|length == 0
+
+############################################################################################
+# Wait for chaincode server pod to be in the state of running
+- name: "Waiting for chaincode server pod chaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ org_name }} in {{ item.name | lower }}-net"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ item.name | lower }}-net"
+    component_name: "chaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ org_name }}"
+    kubernetes: "{{ item.k8s }}"
+    label_selectors:
+      - app = {{ component_name }}
+  when: ext_chaincode_server.resources|length == 0
+
+############################################################################################
+# Delete the cli   
+- name: "delete cli {{ peer.name }}-{{ org.name }}-cli"
+  shell: |
+    KUBECONFIG={{ org.k8s.config_file }} helm uninstall {{ peer.name }}-{{ org.name }}-cli
+  when: existing_cli.resources|length == 0

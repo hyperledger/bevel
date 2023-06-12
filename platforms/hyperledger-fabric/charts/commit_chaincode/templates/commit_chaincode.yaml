@@ -42,6 +42,12 @@ spec:
       - name: certificates
         emptyDir:
           medium: Memory
+      {{ if .Values.chaincode.pdc.enabled }}
+      - name: pdcconfig
+        configMap:
+          defaultMode: 420
+          name: {{ .Release.Name }}-collections-config
+      {{ end }}
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -238,6 +244,7 @@ spec:
           echo $COMMIT_ARGUMENTS>COMMIT_ARGUMENTS.txt
           COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
           
+          COMMITREADINESS_CMD="peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_SEQUENCE} --init-required --output json"
           COMMIT_CMD="peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_SEQUENCE} --init-required"
           
           for item in $ENDORSERS_CORE_PEER_ADDR
@@ -255,24 +262,50 @@ spec:
 
           echo ${COMMIT_CMD}
 
+          if [ "${PDC_ENABLED}" = "true" ]
+          then
+            pdc_config=" --collections-config /opt/pdc/collections_config.json"
+            COMMIT_CMD=${COMMIT_CMD}${pdc_config}
+            COMMITREADINESS_CMD=${COMMITREADINESS_CMD}${pdc_config}
+          elif [ -n "${COLLECTIONS_CONFIG}" ]
+          then
+            echo  "chaincode collection config path: ${COLLECTIONS_CONFIG}"
+            ## Git repository clone for private data collection config
+            mkdir -p /root/.ssh/
+            ssh-keyscan {{ $.Values.chaincode.repository.hostname }} > /root/.ssh/known_hosts
+            git_password=$(cat /opt/gopath/src/github.com/hyperledger/fabric/crypto/user_cred)
+            cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode
+            ls
+            echo $GOPATH
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+            #Config file path
+            CONFIG_SRC_PATH="$GOPATH/src/github.com/chaincode/${CHAINCODE_NAME}/${COLLECTIONS_CONFIG}"
+            ## approve for myorg with private data collection config
+            echo "peer query approve with collection config"
+            collection_config=" --collections-config  ${CONFIG_SRC_PATH}"
+            COMMIT_CMD=${COMMIT_CMD}${collection_config} 
+            COMMITREADINESS_CMD=${COMMITREADINESS_CMD}${collection_config}
+          fi
+          echo "Commit Readiness command post collection config " ${COMMITREADINESS_CMD}
+          echo "Commit command post collection config " ${COMMIT_CMD}
+
           if [ -z ${ENDORSEMENT_POLICIES} ]
           then
             ## check commit readiness
             echo "peer query commitreadiness"
-            peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} \
-              --sequence ${CHAINCODE_SEQUENCE} --init-required --output json
+            eval ${COMMITREADINESS_CMD}
             ## commit chaincode
             echo "peer query commit : Endorsement Policy null "
             eval ${COMMIT_CMD}
           else
             ## check commit readiness
+            endorsement_policy=" --signature-policy ${ENDORSEMENT_POLICIES}"
             echo "peer query commit readiness"
-            peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} \
-              --sequence ${CHAINCODE_SEQUENCE} --init-required --output json --signature-policy {{ $.Values.chaincode.endorsementpolicies | quote }} > log.txt
-            cat log.txt
+            COMMITREADINESS_CMD= ${COMMITREADINESS_CMD}${endorsement_policy}
+            eval ${COMMITREADINESS_CMD}
             ## commit chaincode
             echo "peer query commit"
-            endorsement_policy=" --signature-policy ${ENDORSEMENT_POLICIES}"
             COMMIT_CMD=${COMMIT_CMD}${endorsement_policy}
             eval ${COMMIT_CMD}
           fi
@@ -317,7 +350,15 @@ spec:
           value: "{{ $.Values.endorsers.corepeeraddress }}"
         - name: ENDORSING_ORG_NAMES
           value: "{{ $.Values.endorsers.name }}"
+        - name: COLLECTIONS_CONFIG
+          value: "{{ $.Values.chaincode.pdc.collectionsconfig }}" 
+        - name: PDC_ENABLED
+          value: "{{ $.Values.chaincode.pdc.enabled }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
+        {{ if .Values.chaincode.pdc.enabled }}
+        - name: pdcconfig
+          mountPath: /opt/pdc
+        {{ end }}

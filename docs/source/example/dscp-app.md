@@ -13,8 +13,6 @@ This demo application has been developed to demonstrate the benefits of distribu
 
 ### Pre-requisites
 
-***
-
 - Substrate network of one or more organizations. A complete supplychain network will have the following organizations:
   - OEM - Original Equipment Manufacturer (admin organization and buyer persona)
   - Tier 1 - supplier persona

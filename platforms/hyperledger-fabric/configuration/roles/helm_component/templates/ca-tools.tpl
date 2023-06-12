@@ -92,12 +92,8 @@ spec:
 {% if item.type  == 'peer' %}
     orderers_info:
 {% for orderer in orderers_list %}
-{% for key, value in orderer.items() %}
-{% if key == 'name' %}
-      - {{ key }}: {{ value }}
-        path: "certs/{{ value }}-ca.crt"
-{% endif %}
-{% endfor %}
+      - name: {{ orderer.name }}
+        path: "{{ lookup('file', orderer.certificate) | b64encode }}"
 {% endfor %}
 
     peers:

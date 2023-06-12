@@ -1,0 +1,155 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+    app.kubernetes.io/name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+      app.kubernetes.io/name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+        app.kubernetes.io/name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:   
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+    {{ if .Values.chaincode.tls }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end  }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_CHAINCODE_SECRET_PREFIX
+          value: "{{ $.Values.vault.chaincodesecretprefix }}"
+        - name: MOUNT_PATH
+          value: /secret
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
+        - name: CHAINCODE_TLS_ENABLED
+          value: "{{ $.Values.chaincode.tls }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+          
+          # Setting up the environment to get secrets/certificates from Vault
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          # Login to Vault and so I can get an approle token
+          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
+            -H "Content-Type: application/json" \
+            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
+            jq -r 'if .errors then . else .auth.client_token end')
+          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          echo "Logged into Vault"
+
+          if [ "${CHAINCODE_TLS_ENABLED}" == "true" ]; then
+            vault_secret_key="${VAULT_CHAINCODE_SECRET_PREFIX}"
+            echo "Getting chaincode certificates from Vault using key $vault_secret_key"
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+            CACERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
+            CLIENT_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]')
+            CLIENT_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]')
+            mkdir -p ${MOUNT_PATH}
+            echo "${CACERT}" > ${MOUNT_PATH}/ca.crt
+            echo "${CLIENT_CERT}" > ${MOUNT_PATH}/client.crt
+            echo "${CLIENT_KEY}" > ${MOUNT_PATH}/client.key
+          fi
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+    {{ end  }}
+      containers:
+        - image: {{ $.Values.metadata.images.external_chaincode }}
+          name: "{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CHAINCODE_ID
+              value: "{{ $.Values.chaincode.ccid }}"
+            - name: CHAINCODE_SERVER_ADDRESS
+              value: "0.0.0.0:9999"
+            - name: CHAINCODE_TLS_DISABLED
+              value: "{{ not $.Values.chaincode.tls }}"
+            {{ if .Values.chaincode.tls }}
+            - name: CHAINCODE_TLS_KEY
+              value: "{{ $.Values.chaincode.crypto_mount_path }}/client.key"
+            - name: CHAINCODE_TLS_CERT
+              value: "{{ $.Values.chaincode.crypto_mount_path }}/client.crt"
+            - name: CHAINCODE_CLIENT_CA_CERT
+              value: "{{ $.Values.chaincode.crypto_mount_path }}/ca.crt"
+            {{ end }}
+          ports:
+            - containerPort: 9999
+          {{ if .Values.chaincode.tls }}
+          volumeMounts:
+          - name: certificates
+            mountPath: {{ $.Values.chaincode.crypto_mount_path }}
+            readOnly: true
+          {{ end }}

@@ -102,6 +102,25 @@
   when: component_type == 'orderer'
 
 ############################################################################################
+# This task deletes crypto materials from extternalchaincode
+- name: Delete Crypto for peers
+  shell: |
+    {% for chaincode in chaincodes %}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/chaincodes/{{ chaincode.name }}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/chaincodes/{{ chaincode.name }}/certificate/v{{ chaincode.version }}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/chaincodes/{{ chaincode.name }}/package/v{{ chaincode.version }}
+    {% endfor %}
+  vars:
+    chaincodes: "{{ peer.chaincodes }}"
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  when: component_type == 'peer'
+
+############################################################################################
 # This task deletes crypto materials from vault
 - name: Delete Crypto for peers
   shell: |

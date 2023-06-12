@@ -25,5 +25,5 @@ To refresh certificates a fully configured Fabric network must be present alread
 The same configuration files can be used to refresh the certificates. This can be done using the following command
 
 ```
-ansible-playbook platforms/hyperledger-fabric/configuration/refresh_certificates.yaml --extra-vars "@path-to-network.yaml"
+ansible-playbook platforms/hyperledger-fabric/configuration/refresh-certificates.yaml --extra-vars "@path-to-network.yaml"
 ```
