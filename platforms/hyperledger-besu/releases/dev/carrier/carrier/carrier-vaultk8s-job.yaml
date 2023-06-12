@@ -1,0 +1,38 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: carrier-vaultk8s-job
+  namespace: carrier-bes
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: carrier-vaultk8s-job
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/shared/charts/vault-k8s-mgmt
+    sourceRef:
+      kind: GitRepository
+      name: flux-dev-bes
+      namespace: flux-dev-bes
+  values:
+    metadata:
+      name: carrier-vaultk8s-job
+      namespace: carrier-bes
+      images:
+        alpineutils: ghcr.io/hyperledger/alpine-utils:1.0
+        pullPolicy: IfNotPresent
+
+    vault:
+      reviewer_service: vault-reviewer
+      role: vault-role
+      address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9001
+      authpath: besucarrier
+      policy: vault-crypto-carrier-bes-carrier-ro
+      policydata: "{\n  \"policy\": \"path \\\"secretsv2/data/carrier-bes/crypto/*\\\" {\n    capabilities = [\\\"read\\\", \\\"list\\\", \\\"create\\\", \\\"update\\\"]\n  }\n  path \\\"secretsv2/data/carrier-bes/smartContracts/*\\\" {\n    capabilities = [\\\"read\\\", \\\"list\\\"]\n  }\"\n}"
+      secret_path: secretsv2
+      serviceaccountname: vault-auth
+      imagesecretname: regcred
+
+    k8s:
+      kubernetes_url: https://34D2F36E71F0880BE63D943D2E503A9B.gr7.eu-west-1.eks.amazonaws.com
