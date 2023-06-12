@@ -1,0 +1,49 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: carrier-ambassador-job
+  namespace: carrier-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: carrier-ambassador-job
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/generate_ambassador_certs
+    sourceRef:
+      kind: GitRepository
+      name: flux-dev-bes
+      namespace: flux-dev-bes
+  values:
+    metadata:
+      name: carrier-ambassador-job
+      namespace: carrier-bes
+    image:
+      alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+      pullSecret: regcred
+      pullPolicy: IfNotPresent
+    network:
+      tmtls: True
+    node:
+      name: carrier
+      clientport: 8888
+    vault:
+      address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9001
+      secretengine: secretsv2
+      authpath: besucarrier
+      rootcasecret: data/carrier-bes/crypto/ambassadorcerts/rootca
+      ambassadortlssecret: data/carrier-bes/crypto/carrier/tls
+      role: vault-role
+      serviceaccountname: vault-auth
+      type: hashicorp
+    subject:
+      ambassadortls: CN=DLT Root CA/OU=DLT/O=DLT/L=London/C=GB
+    opensslVars:
+      domain_name_pub: carrier.id.demo.aws.blockchaincloudpoc.com
+      domain_name_priv: carrier.carrier-bes
+      domain_name_tessera: carrier-tessera.carrier-bes
+    healthcheck:
+      retries: 10
+      sleepTimeAfterError: 2
+
