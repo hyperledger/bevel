@@ -1,6 +1,6 @@
 {
    "config": {
-     "chainId":  {{ chain_id }},
+     "chainId":  "{{ chain_id }}",
      "constantinoplefixblock": 0,
      "contractSizeLimit": 2147483647,
      "ibft2": {
