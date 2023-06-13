@@ -1,0 +1,402 @@
+---
+# yaml-language-server: $schema=../../network-schema.json
+# This is a sample configuration file for SupplyChain App on Single K8s Cluster.
+# For multiple K8s clusters, there should be multiple configuration files.
+network:
+  # Network level configuration specifies the attributes required for each organization
+  # to join an existing network.
+  type: corda
+  version: 4.9
+
+  frontend: enabled #Flag for frontend to enabled for nodes/peers
+
+  #Environment section for Kubernetes setup
+  env:
+    type: demo-corda               # tag for the environment. Important to run multiple flux on single cluster
+    proxy: PROXY               # value has to be 'ambassador' as 'haproxy' has not been implemented for Quorum
+    #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
+    #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange: 
+        from: 15010 
+        to: 15043
+    loadBalancerSourceRanges: "0.0.0.0/0" # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
+    retry_count: 40                 # Retry count for the checks on Kubernetes cluster
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+  
+  # Docker registry details where images are stored. This will be used to create k8s secrets
+  # Please ensure all required images are built and stored in this registry. 
+  # Do not check-in docker_password.
+  docker:
+    url: "DOCKERURL"
+    username: "DOCKERUSER"
+    password: "DOCKERPASSWORD"
+  
+  # Remote connection information for doorman and networkmap (will be blank or removed for hosting organization)
+  network_services:
+    - service:
+      type: doorman
+      uri: https://doorman.EXTERNAL_URL_SUFFIX
+      certificate: bevel/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
+    - service:
+      type: networkmap
+      uri: https://networkmap.EXTERNAL_URL_SUFFIX
+      certificate: bevel/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
+  
+  # Allows specification of one or many organizations that will be connecting to a network.
+  # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
+  # then these services should be listed in this section as well.
+  organizations:
+    # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: supplychain
+      country: UK
+      state: London
+      location: London
+      subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+      type: doorman-nms-notary
+      external_url_suffix: "EXTERNAL_URL_SUFFIX"
+  
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "AWS_ACCESS_KEY"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "AWS_SECRET_KEY"        # AWS Secret key, only used when cloud_provider=aws
+  
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "AWS_REGION"
+        context: "K8SCONTEXT"
+        config_file: "/home/jenkins/.kube/config"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "http://VAULTURL:VAULTPORT"
+        root_token: "VAULTROOTTOKEN"
+
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_password
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "GITURL"         # Gitops https or ssh url for flux value files like "ssh://git@github.com/sownak/fulcrum.git"
+        branch: "GITBRANCH"           # Git branch where release is being made
+        release_dir: "platforms/r3-corda/releases/org1" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "GITREPO"   # Gitops git repository URL for git push like "github.com/sownak/fulcrum.git"
+        username: "GITUSER"          # Git Service user who has rights to check-in in all branches
+        password: "GITPASSWORD"          # Git Server user password
+        email: "EMAIL"
+        private_key: "/home/jenkins/build/ssh"
+      cordapps:
+        jars: 
+        - jar:
+            # e.g 
+            url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+        - jar:
+            # e.g 
+            url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+        username: "NEXUS_USER"
+        password: "NEXUS_PASSWORD"
+
+      # Services maps to the pods that will be deployed on the k8s cluster
+      # This sample is an orderer service and includes a zk-kafka consensus
+      services:
+        doorman:
+          name: doorman
+          subject: "CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE"
+          db_subject: "/C=US/ST=California/L=San Francisco/O=DB/OU=DBA/CN=mongoDB"
+          type: doorman
+          tls: "on"
+          ports:
+            servicePort: 8080
+            targetPort: 8080        
+        nms:
+          name: networkmap
+          subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
+          db_subject: "/C=US/ST=California/L=San Francisco/O=DB/OU=DBA/CN=mongoDB"
+          type: networkmap
+          tls: "on"
+          ports:
+            servicePort: 8080
+            targetPort: 8080
+        # Currently only supporting a single notary cluster, but may want to expand in the future
+        notary:
+          name: notary
+          subject: "O=Notary,OU=Notary,L=London,C=GB"
+          serviceName: "O=Notary Service,OU=Notary,L=London,C=GB"
+          type: notary
+          validating: true
+          p2p:
+            port: 10002
+            targetPort: 10002
+            ambassador: 15010
+          rpc:
+            port: 10003
+            targetPort: 10003
+          rpcadmin:
+            port: 10005
+            targetPort: 10005
+          dbtcp:
+            port: 9101
+            targetPort: 1521
+          dbweb:             
+            port: 8080
+            targetPort: 81        
+
+    # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: manufacturer
+      country: CH
+      state: Zurich
+      location: Zurich
+      subject: "O=Manufacturer,OU=Manufacturer,L=Zurich,C=CH"
+      type: node
+      external_url_suffix: "EXTERNAL_URL_SUFFIX"
+      
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "AWS_ACCESS_KEY"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "AWS_SECRET_KEY"        # AWS Secret key, only used when cloud_provider=aws
+  
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "AWS_REGION"
+        context: "K8SCONTEXT"
+        config_file: "/home/jenkins/.kube/config"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "http://VAULTURL:VAULTPORT"
+        root_token: "VAULTROOTTOKEN"
+
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_password
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "GITURL"         # Gitops https or ssh url for flux value files like "ssh://git@github.com/sownak/fulcrum.git"
+        branch: "GITBRANCH"           # Git branch where release is being made
+        release_dir: "platforms/r3-corda/releases/org1" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "GITREPO"   # Gitops git repository URL for git push like "github.com/sownak/fulcrum.git"
+        username: "GITUSER"          # Git Service user who has rights to check-in in all branches
+        password: "GITPASSWORD"          # Git Server user password
+        email: "EMAIL"
+        private_key: "/home/jenkins/build/ssh"
+      cordapps:
+        jars: 
+        - jar:
+            # e.g 
+            url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+        - jar:
+            # e.g 
+            url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+        username: "NEXUS_USER"
+        password: "NEXUS_PASSWORD"
+      # The participating nodes are named as peers 
+      services:
+        peers:
+        - peer:
+          name: manufacturer
+          subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
+          type: node
+          p2p:
+            port: 10002
+            targetPort: 10002
+            ambassador: 15010
+          rpc:
+            port: 10003
+            targetPort: 10003
+          rpcadmin:
+            port: 10005
+            targetPort: 10005
+          dbtcp:
+            port: 9101
+            targetPort: 1521
+          dbweb:             
+            port: 8080
+            targetPort: 81
+          springboot:             # This is for the springboot server
+            targetPort: 20001
+            port: 20001 
+          expressapi:             # This is for the express api server
+            targetPort: 3000
+            port: 3000
+          frontend:
+            targetPort: 80
+            port: 8080
+      #variables for frontend application
+      app:
+        google_maps_api: "GMAPS_TOKEN"
+    
+    - organization:
+      name: carrier
+      country: GB
+      state: London
+      location: London
+      subject: "O=Carrier,OU=Carrier,L=London,C=GB"
+      type: node
+      external_url_suffix: "EXTERNAL_URL_SUFFIX"
+      
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "AWS_ACCESS_KEY"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "AWS_SECRET_KEY"        # AWS Secret key, only used when cloud_provider=aws
+  
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "AWS_REGION"
+        context: "K8SCONTEXT"
+        config_file: "/home/jenkins/.kube/config"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "http://VAULTURL:VAULTPORT"
+        root_token: "VAULTROOTTOKEN"
+
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_password
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "GITURL"         # Gitops https or ssh url for flux value files like "ssh://git@github.com/sownak/fulcrum.git"
+        branch: "GITBRANCH"           # Git branch where release is being made
+        release_dir: "platforms/r3-corda/releases/org1" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "GITREPO"   # Gitops git repository URL for git push like "github.com/sownak/fulcrum.git"
+        username: "GITUSER"          # Git Service user who has rights to check-in in all branches
+        password: "GITPASSWORD"          # Git Server user password
+        email: "EMAIL"
+        private_key: "/home/jenkins/build/ssh"
+      cordapps:
+        jars: 
+        - jar:
+            # e.g 
+            url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+        - jar:
+            # e.g 
+            url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+        username: "NEXUS_USER"
+        password: "NEXUS_PASSWORD"
+      services:
+        peers:
+        - peer:
+          name: carrier
+          subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
+          type: node
+          p2p:
+            port: 10002
+            targetPort: 10002
+            ambassador: 15010
+          rpc:
+            port: 10003
+            targetPort: 10003
+          rpcadmin:
+            port: 10005
+            targetPort: 10005
+          dbtcp:
+            port: 9101
+            targetPort: 1521
+          dbweb:             
+            port: 8080
+            targetPort: 81
+          springboot:
+            targetPort: 20001
+            port: 20001 
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          frontend:
+            targetPort: 80
+            port: 8080
+      #variables for frontend application
+      app:
+        google_maps_api: "GMAPS_TOKEN"
+
+    - organization:
+      name: store
+      country: US
+      state: New York
+      location: New York
+      subject: "O=Store,OU=Store,L=New York,C=US"
+      type: node
+      external_url_suffix: "EXTERNAL_URL_SUFFIX"
+      
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "AWS_ACCESS_KEY"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "AWS_SECRET_KEY"        # AWS Secret key, only used when cloud_provider=aws
+  
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "AWS_REGION"
+        context: "K8SCONTEXT"
+        config_file: "/home/jenkins/.kube/config"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "http://VAULTURL:VAULTPORT"
+        root_token: "VAULTROOTTOKEN"
+
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_password
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "GITURL"         # Gitops https or ssh url for flux value files like "ssh://git@github.com/sownak/fulcrum.git"
+        branch: "GITBRANCH"           # Git branch where release is being made
+        release_dir: "platforms/r3-corda/releases/org1" # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/r3-corda/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "GITREPO"   # Gitops git repository URL for git push like "github.com/sownak/fulcrum.git"
+        username: "GITUSER"          # Git Service user who has rights to check-in in all branches
+        password: "GITPASSWORD"          # Git Server user password
+        email: "EMAIL"
+        private_key: "PRIVATEKEY"
+      cordapps:
+        jars: 
+        - jar:
+            # e.g 
+            url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+        - jar:
+            # e.g 
+            url: https://alm.accenture.com/nexus/repository/AccentureBlockchainFulcrum_Release/com/supplychain/bcc/cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+        username: "NEXUS_USER"
+        password: "NEXUS_PASSWORD"
+      services:
+        peers:
+        - peer:
+          name: store
+          subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
+          type: node
+          p2p:
+            port: 10002
+            targetPort: 10002
+            ambassador: 15010
+          rpc:
+            port: 10003
+            targetPort: 10003
+          rpcadmin:
+            port: 10005
+            targetPort: 10005
+          dbtcp:
+            port: 9101
+            targetPort: 1521
+          dbweb:             
+            port: 8080
+            targetPort: 81
+          springboot:
+            targetPort: 20001
+            port: 20001 
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          frontend:
+            targetPort: 80
+            port: 8080
+      #variables for frontend application
+      app:
+        google_maps_api: "GMAPS_TOKEN"
