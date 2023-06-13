@@ -1,0 +1,73 @@
+apiVersion:  helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: carriersaikumartessera
+  namespace: carriersaikumar-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: carriersaikumartessera
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/node_tessera
+    sourceRef:
+      kind: GitRepository
+      name: flux-saikumar
+      namespace: flux-saikumar
+  values:
+    replicaCount: 1
+    metadata:
+      namespace: carriersaikumar-bes
+      labels:
+    images:
+      alpineutils: ghcr.io/hyperledger/bevel-alpine-ext:latest
+      tessera: quorumengineering/tessera:hashicorp-21.7.3
+      busybox: busybox
+      mysql: mysql/mysql-server:5.7
+      imagePullSecret: regcred
+      pullPolicy: IfNotPresent
+    tessera:
+      name: carriersaikumar-tessera
+      dbname: demodb
+      dburl: "jdbc:mysql://carriersaikumar-tessera:3306/demodb"
+      dbusername: demouser
+      tls: "STRICT"
+      url: "https://carriersaikumar.saikb.dev.aws.blockchaincloudpoc-develop.com:443"
+      clienturl: "https://carriersaikumar-tessera:8888"
+      othernodes:
+        - url: https://carrier.test.besu.blockchaincloudpoc-develop.com
+      trust: "TOFU"
+
+      servicetype: ClusterIP
+      ports:
+        tm: 443
+        db: 3306
+        client: 8888
+      mountPath: /etc/tessera/data
+      ambassadorSecret: carriersaikumar-ambassador-certs
+    vault:
+      address: http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:20002
+      secretengine: secretsv2
+      tmsecretpath: carriersaikumar-bes/crypto/carriersaikumar/tm
+      secretprefix: data/carriersaikumar-bes/crypto/carriersaikumar
+      serviceaccountname: vault-auth
+      keyname: credentials
+      type: hashicorp
+      tm_keyname: tm
+      tlsdir: tls
+      role: vault-role
+      authpath: besucarriersaikumar
+    proxy:
+      provider: "ambassador"
+      external_url: carriersaikumar.saikb.dev.aws.blockchaincloudpoc-develop.com
+      portTM: 443
+    storage:
+      storageclassname: awsstorageclass
+      storagesize: 1Gi
+      dbstorage: 1Gi
+
+
+    metrics:
+      enabled: False
+      port: 9545
