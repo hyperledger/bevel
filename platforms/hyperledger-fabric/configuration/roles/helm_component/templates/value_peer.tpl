@@ -61,6 +61,11 @@ spec:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       couchdb:
         username: {{ name }}-user
+{% if peer.configpath is defined %}
+      configpath: conf/{{ peer_name }}_{{ name }}_core.yaml
+      core: |-
+{{ core_file | indent(width=8, first=True) }}
+{% endif %}
 
     storage:
       peer:

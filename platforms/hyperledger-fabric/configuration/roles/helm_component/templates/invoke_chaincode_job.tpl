@@ -47,8 +47,8 @@ spec:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
-      invokearguments: {{ component_chaincode.arguments | quote}}
-      endorsementpolicies:  {{ component_chaincode.endorsements | quote }}
+      invokearguments: {{ component_chaincode.arguments | default('') | quote }}
+      endorsementpolicies:  {{ component_chaincode.endorsements | default('') | quote }}
     channel:
       name: {{ item.channel_name | lower }}
 {% if '2.' in network.version %}

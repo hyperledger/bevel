@@ -1,0 +1,27 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+  namespace: {{ $.Values.metadata.namespace }} 
+  labels:
+    run: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+    app.kubernetes.io/name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  type: {{ $.Values.service.servicetype }}
+  selector:
+    app: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+  ports:
+  - name: grpc
+    port: 7052
+    targetPort: 9999

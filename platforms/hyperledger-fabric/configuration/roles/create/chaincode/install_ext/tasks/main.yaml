@@ -1,0 +1,41 @@
+###########################################################################################
+# This task installs the external chaincode details
+- name: Create package file
+  include_tasks: create_package.yaml
+  vars:
+    first_peer: "{{ peers[0] }}"
+    chaincode_name: "{{ chaincode.name | lower }}"
+    package_dir: "./build/tmp/package/{{ org_ns }}"
+    package_name: "{{ chaincode.name | lower }}_{{ chaincode.version }}"
+  loop: "{{ peers[0].chaincodes }}"
+  loop_control:
+    loop_var: chaincode
+  when: 
+    - peers is defined
+    - peers | length > 0 
+    - peers[0].chaincodes is defined
+
+# This task installs the external chaincode details
+- name: Installs the external chaincode details
+  include_tasks: nested_main.yaml
+  vars:
+    chaincode_name: "{{ peer.chaincode.name | lower }}"
+    chaincode_version: "{{ peer.chaincode.version }}"
+    envspace: "{{ envspace }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.chaincodes is defined
+
+# # Check or Wait if install-chaincode is already run
+# - name: "Waiting for chaincode to be installed on {{ peer.name }}"
+#   include_role:
+#     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+#   vars:
+#     component_type: "Job"
+#     component_name: "{{ 'installchaincode' if peer.chaincode is defined and ( peer.chaincode.external_chaincode is undefined or peer.chaincode.external_chaincode == false ) else 'instextcc' }}-{{ peer.name }}-{{ peer.chaincode.name }}-{{ peer.chaincode.version }}"
+#   loop: "{{ peers }}"
+#   loop_control:
+#     loop_var: peer
+#   when: peer.chaincode is defined

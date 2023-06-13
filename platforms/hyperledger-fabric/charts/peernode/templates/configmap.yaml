@@ -74,3 +74,20 @@ data:
         OrdererOUIdentifier:
           Certificate: cacerts/ca.crt
           OrganizationalUnitIdentifier: {{ $.Values.peer.mspconfig.nodeOUs.ordererOUidentifier.organizationalunitidentifier }}
+
+{{ if $.Values.peer.configpath }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: builders-config
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: builders-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  core.yaml.base64: {{ .Values.peer.core | quote }}
+{{ end }}
