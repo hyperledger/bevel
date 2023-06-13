@@ -1,0 +1,85 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: supplychainsaivalidator2-saikumarvalidator-node
+  namespace: supplychainsai-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: supplychainsaivalidator2-saikumarvalidator-node
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/node_validator
+    sourceRef:
+      kind: GitRepository
+      name: flux-saikumar
+      namespace: flux-saikumar
+  values:
+    replicaCount: 1
+
+    healthcheck:
+      readinessthreshold: 100
+      readinesscheckinterval: 5
+
+    staticnodes:
+      - "enode://2aa236e1ad3a0a1052259827f7a951c3c1a8f5faa7e08a7ff96b9424794c6eaa997784d9606244ac529e893ec8d74977d841ccbea2b3697f09b52c94646fd7ad@validator1-saikumar.saikb.dev.aws.blockchaincloudpoc-develop.com:15010"
+      - "enode://d1c4ad98e0d9d39961f5bcc68bc9adddff25610a8fd5d0b6f09eb9026ebebb1aba329b311898eef09ed9f28ee7890f714d023ace65d09b6705d6db2e81df7c88@validator2-saikumar.saikb.dev.aws.blockchaincloudpoc-develop.com:15012"
+      - "enode://ef74c3e885304affd0d8ab13ab7fe5859ac1e6049ee89325b80392dec2cbb44e59fdfc4eee0d32acb437bfc7b7bb2188ada499c08cb25b28ecb0c980fcf48087@carriersaikumar.saikb.dev.aws.blockchaincloudpoc-develop.com:15020"
+
+    metadata:
+      namespace: supplychainsai-bes
+      labels:
+
+    ambassador:
+      external_url_suffix: saikb.dev.aws.blockchaincloudpoc-develop.com
+
+    liveliness_check:
+      enabled: false
+    proxy:
+      provider: ambassador
+      external_url: supplychainsai.saikb.dev.aws.blockchaincloudpoc-develop.com
+      p2p: 15012
+      rpc: 15013
+
+    images:
+      node: hyperledger/besu:21.10.6
+      alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+      pullPolicy: IfNotPresent
+
+    node:
+      name: validator2-saikumar
+      tls: True
+      consensus: ibft
+      mountPath: /opt/besu/data
+      servicetype: ClusterIP
+      imagePullSecret: regcred
+      ports:
+        p2p: 30303
+        rpc: 8545
+        ws: 8546
+
+      permissioning:
+        enabled: False
+      
+    storage:
+      storageclassname: awsstorageclass
+      storagesize: 1Gi
+
+    vault:
+      address: http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:20002
+      secretengine: secretsv2
+      secretprefix: data/supplychainsai-bes/crypto/validator2-saikumar
+      serviceaccountname: vault-auth
+      keyname: data
+      tlsdir: tls
+      role: vault-role
+      authpath: besusupplychainsai
+      type: hashicorp
+
+    genesis: 
+
+
+    metrics:
+      enabled: False
+      port: 9545    
