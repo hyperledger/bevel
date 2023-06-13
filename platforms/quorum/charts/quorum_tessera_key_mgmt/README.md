@@ -21,7 +21,7 @@
 <a name = "tessera-key-management-deployment-helm-chart"></a>
 ## Tessera Key Management Deployment Helm Chart
 ---
-This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/tessera_key_mgmt) helps in generating Tessera crypto.
+This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum_tessera_key_mgmt) helps in generating Tessera crypto.
 
 
 <a name = "prerequisites"></a>
@@ -42,7 +42,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 The structure of the Helm chart is as follows:
 
 ```
-tessera_key_mgmt/
+quorum_tessera_key_mgmt/
     |- templates/
             |- helpers.tpl
             |- job.yaml
@@ -105,11 +105,11 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 
 To deploy the crypto_ibft Helm chart, follow these steps:
 
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/tessera_key_mgmt/values.yaml) file to set the desired configuration values.
+1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum_tessera_key_mgmt/values.yaml) file to set the desired configuration values.
 2. Run the following Helm command to install the chart:
     ```
     $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./tessera_key_mgmt
+    $ helm install <release-name> ./quorum_tessera_key_mgmt
     ```
 Replace `<release-name>` with the desired name for the release.
 
@@ -132,9 +132,9 @@ replicas and their current status.
 ## Updating the Deployment
 ---
 
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/tessera_key_mgmt/values.yaml) file with the desired changes and run the following Helm command:
+If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum_tessera_key_mgmt/values.yaml) file with the desired changes and run the following Helm command:
 ```
-$ helm upgrade <release-name> ./tessera_key_mgmt
+$ helm upgrade <release-name> ./quorum_tessera_key_mgmt
 ```
 Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the tessera-key-management node is up to date.
 
@@ -153,7 +153,7 @@ Replace `<release-name>` with the name of the release. This command will remove 
 <a name = "contributing"></a>
 ## Contributing
 ---
-If you encounter any bugs, have suggestions, or would like to contribute to the [Tessera Key Management Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/tessera_key_mgmt), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
+If you encounter any bugs, have suggestions, or would like to contribute to the [Tessera Key Management Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum_tessera_key_mgmt), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
 
 
 <a name = "license"></a>
