@@ -24,15 +24,20 @@ spec:
         pullPolicy: IfNotPresent
 
     vault:
-      reviewer_service: vault-reviewer
       role: vault-role
       address: {{ vault.url }}
       authpath: {{ component_auth }}
       policy: vault-crypto-{{ component_ns }}-{{ name }}-ro
       policydata: {{ policydata | to_nice_json }}
       secret_path: {{ vault.secret_path | default(name)}}
-      serviceaccountname: vault-auth
       imagesecretname: regcred
 
     k8s:
       kubernetes_url: {{ kubernetes_url }}
+    
+    rbac:
+      create: {{ create_clusterRoleBinding }}
+
+    serviceAccount:
+      create: {{ create_serviceAccount }}
+      name: vault-auth
