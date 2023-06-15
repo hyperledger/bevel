@@ -74,6 +74,49 @@
     values_dir_path: "{{ playbook_dir }}/../../../{{gitops.release_dir}}/{{org_name}}/{{ name }}"
   when: network.type == "corda" and item.type != "node"
 
+- name: Unset variables
+  set_fact:
+    check_clusterRoleBinding:
+    check_serviceAccount:
+
+# Check if ClusterRoleBinding created
+- name: "Checking for the {{ component_ns }}-role-tokenreview-binding"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  tags:
+    - notest
+  vars:
+    component_type: "ClusterRoleBinding"
+    component_name: "{{ component_ns }}-role-tokenreview-binding"
+    type: "no_retry"
+
+- set_fact:
+    check_clusterRoleBinding: true
+  when: result.resources|length == 0 
+
+- set_fact:
+    check_clusterRoleBinding: false
+  when: result.resources|length > 0 
+
+# Check if ServiceAccount is created for vault-auth
+- name: "Including the check for ServiceAccount vault-auth in {{ component_ns }} "
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  tags:
+    - notest
+  vars:
+    component_type: "ServiceAccount"
+    component_name: "vault-auth"
+    type: "no_retry"
+
+- set_fact:
+    check_serviceAccount: true
+  when: serviceAccount_data.resources|length == 0 
+
+- set_fact:
+    check_serviceAccount: false
+  when: serviceAccount_data.resources|length > 0 
+
 #####################################################################################################################
 # This tasks generate vault_kubernetes helmrelease file
 - name: "Create value file for vault_kubernetes"
@@ -88,6 +131,8 @@
     alpine_image: "hyperledgerlabs/alpine-utils:1.0"
     policydata: "{{ lookup('file', '{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl') }}"
     values_dir: "{{ values_dir_path }}"
+    create_serviceAccount: "{{ check_serviceAccount }}"
+    create_clusterRoleBinding: "{{ check_clusterRoleBinding }}"
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push
