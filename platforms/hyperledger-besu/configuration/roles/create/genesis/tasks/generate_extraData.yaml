@@ -10,7 +10,7 @@
     argument: "{{ '--type=QBFT_EXTRA_DATA' if network.config.consensus=='qbft' else '' }}"
   shell: |
     cat {{ build_path }}/validatorinfo | paste -sd "," -| awk '{print "["$0"]"}'> {{ build_path }}/toEncode.json
-    echo "$( {{ bin_install_dir }}/besu/besu-{{ network.version }}/bin/besu rlp encode --from={{ build_path }}/toEncode.json {{ argument }} )" > {{ build_path }}/extraData
+    echo "$( {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu rlp encode --from={{ build_path }}/toEncode.json {{ argument }} )" > {{ build_path }}/extraData
     awk 'NR == 1' {{ build_path }}/extraData > {{ build_path }}/extraData_format
     jq '.extraData = $newVal' --arg newVal $(cat {{ build_path }}/extraData_format) << cat {{ build_path }}/crypto/genesis.json > {{ build_path }}/crypto/newGenesis.json
   when:
