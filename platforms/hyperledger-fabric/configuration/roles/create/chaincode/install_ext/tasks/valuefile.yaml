@@ -1,0 +1,44 @@
+###########################################################################################
+# Copy buildpack for external chaincode
+- name: Copy buildpack for external chaincode
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -i -n {{ org_ns }} {{ peer.name }}-0 -c {{ peer.name }} -- mkdir -p /var/hyperledger/production/buildpacks/sampleBuilder/bin
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ chaincode.buildpack_path }}/. {{ org_ns }}/{{ peer.name }}-0:/var/hyperledger/production/buildpacks/sampleBuilder/bin -c {{ peer.name }}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -i -n {{ org_ns }} {{ peer.name }}-0 -c {{ peer.name }} -- sh -c  "cd /var/hyperledger/production/buildpacks/sampleBuilder/bin && mv */* ./"
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -i -n {{ org_ns }} {{ peer.name }}-0 -c {{ peer.name }} -- chmod -R 777 /var/hyperledger/production/buildpacks/sampleBuilder/bin/
+  when: 
+    - chaincode.buildpack_path is defined
+
+###########################################################################################
+# Task for chanincode installation
+- name: "Create value file for chaincode installation"
+  include_role:
+    name: helm_component
+  vars:
+    envspace: "{{ envspace }}"
+    type: "install_external_chaincode_job"
+    peer_name: "{{ peer.name }}"
+    peer_address: "{{ peer.name }}.{{ namespace }}:{{ peer.grpc.port }}"
+    component_name: "instextcc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version | replace('.','-')}}"
+    component_chaincode: "{{ chaincode }}"
+    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
+    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+
+###########################################################################################
+# Git Push : Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"    
+    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
+    msg: "[ci skip] Pushing install external files"
+
+# Check or Wait if install-chaincode is already run
+- name: "Waiting for chaincode to be installed on {{ peer.name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    component_name: "{{ 'installchaincode' if chaincode is defined and ( chaincode.external_chaincode is undefined or chaincode.external_chaincode == false ) else 'instextcc' }}-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"

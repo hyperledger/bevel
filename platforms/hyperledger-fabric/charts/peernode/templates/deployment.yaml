@@ -209,6 +209,9 @@ spec:
         command: ["sh", "-c"]
         args:
         - |-
+          if [ -e /builders/external/core.yaml.base64 ]; then
+            cat /builders/external/core.yaml.base64 | base64 -d > /etc/hyperledger/fabric/core.yaml
+          fi
           cp /etc/hyperledger/fabric/NodeOUconfig/mspconfig  /etc/hyperledger/fabric/crypto/msp/config.yaml
           export CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
           version=$( echo ${PEER_IMAGE} | sed 's/.*://' | cut -d '.' -f -2 )
@@ -242,6 +245,10 @@ spec:
         - name: {{ $.Values.peer.name }}-msp-config-volume
           mountPath: /etc/hyperledger/fabric/NodeOUconfig
           readOnly: true
+      {{ if $.Values.peer.configpath }}
+        - name: builders-config
+          mountPath: /builders/external
+      {{ end }}
         resources:
           requests:
             memory: {{ .Values.config.pod.resources.requests.memory }}
@@ -289,6 +296,11 @@ spec:
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt
+      {{ end }}
+      {{ if $.Values.peer.configpath }}
+      - name: builders-config
+        configMap:
+          name: builders-config
       {{ end }}
       - name: certificates
         emptyDir:

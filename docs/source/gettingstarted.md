@@ -18,13 +18,13 @@ Follow [these instructions](./developer/docker-build.md) for how to use docker c
 
 ## Using Own machine
 
+### Install additional Prerequisites
+Install [additional prerequisites](./prerequisites_machine.md).
+
 ---
 **NOTE** All the instructions are for an **Ubuntu** machine, but configurations can be changed for other machines. Although it is best to use the Docker container if you do not have an Ubuntu machine.
 
 ---
-
-### Install additional Prerequisites
-Install [additional prerequisites](./prerequisites_machine.md).
 
 ## Update Configuration File
 Once all the prerequisites have been configured, it is time to update Hyperledger Bevel configuration file. Depending on your platform of choice, there can be some differences in the configuration file. Please follow platform specific links below to learn more on updating the configuration file.

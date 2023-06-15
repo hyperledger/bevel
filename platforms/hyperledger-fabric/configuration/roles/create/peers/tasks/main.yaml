@@ -27,25 +27,12 @@
     loop_var: peer 
   when: refresh_cert is defined and refresh_cert == 'true'
 
-############################################################################################
-# This task is the nested task for main.yaml which helps to iterate over all peers
-- name: Create Value files for Organization Peers
-  include_role:
-    name: helm_component
-  vars:
-    name: "{{ item.name | lower }}"
-    type: "value_peer"
-    component_name: values-{{ peer.name }}
-    couchdb_image: "{{ couchdb_image_version[network.version] }}"
-    peer_image: "hyperledger/fabric-peer:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
-    peer_name: "{{ peer.name }}"
-    peer_ns: "{{ namespace }}"
-    provider: "{{ network.env.proxy }}"
+# Create the value file for peers of organisations 
+- name: This role creates the value file for peers of organisations 
+  include_tasks: nested_main.yaml
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer 
-  when: peer.peerstatus is not defined or peer.peerstatus == 'new'
 
 #Git Push : Pushes the above generated files to git directory 
 - name: Git Push

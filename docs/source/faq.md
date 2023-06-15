@@ -95,7 +95,7 @@ Yes, you can specify tools versions like kubectl, helm, HashiCorp Vault, AWS-aut
 Honestly speaking, we don't know. The latest version Hyperledger Bevel has been tested on specific client versions of these tools, see below:
 (1) Kubectl: v1.19.8 for Kubernetes v1.19+ (tested upto v1.22)
 (2) Helm: v3.6.2
-(3) HashiCorp Vault: v1.7.1
+(3) HashiCorp Vault: v1.13.1
 (4) AWS-Authenticator: v1.10.3
 (5) Ansible 5.9.0, Ansible [core 2.12.6]
 

@@ -1518,12 +1518,18 @@ data:
       while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
       do
         if [ -e /certcheck/absent_orderer_tls_cert.txt ] && [ "$ORDERER_TLS_WRITTEN" =  "false" ]; then
-          ORDERER_TLS=$(cat /tlscerts/${ORDERER}.crt)
+          cat /tlscerts/${ORDERER}.crt | base64 -d > ${ORDERER}.formatted
+          # formatting is needed because bas64 encoding removed the newlines, so they need to be added again
+          while read line || [ -n "$line" ];
+          do 
+            echo "$line\n"; 
+          done < ${ORDERER}.formatted > ${ORDERER}.final
+          ORDERER_TLS=$(cat ${ORDERER}.final)
           echo "
             {
               \"data\": 
                 {
-                  \"ca.crt\": ${ORDERER_TLS}
+                  \"ca.crt\": \"${ORDERER_TLS}\"
                 }  
             }" > payload.json
 
@@ -1843,6 +1849,5 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
 data:
   {{- range $orderers := $.Values.orderers_info }}
-  {{ $orderers.name }}.crt: |-
-    {{ $.Files.Get $orderers.path | quote }}
+  {{ $orderers.name }}.crt: {{ $orderers.path | quote }}
   {{- end }}

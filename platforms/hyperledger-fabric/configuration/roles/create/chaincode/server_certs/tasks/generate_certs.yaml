@@ -1,0 +1,102 @@
+#############################################################################################
+# This role generates crypto material for external chaincode server.
+#############################################################################################
+
+############################################################################################
+# Copy generate-crypto-chaincode-server.sh script from scrips directory
+- name: Copy generate-crypto-chaincode-server.sh to destination directory
+  copy:
+    src: "{{ playbook_dir }}/../scripts/{{ files }}"
+    dest: "./build/{{ files }}"
+    mode: 0755
+    remote_src: yes
+  with_items:
+    - generate-crypto-chaincode-server.sh
+  loop_control:
+    loop_var: files
+  when: 
+    - setup_user_env is not defined or setup_user_env == true
+    - peer.name == first_peer_name
+
+
+############################################################################################
+# This task checks if the ca certificate exists in the CA Tools pod
+# /crypto-config/peerOrganizations/{{component_name}}/ca/ca.{{component_name}}-cert.pem
+- name: Check if the ca certificate exists in the CA Tools Pod
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -c ca-tools -- ls /crypto-config/peerOrganizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem
+  register: ca_file_exists
+  ignore_errors: yes
+
+- name: Download ca certificate from Vault and copy to CA Tools Pod
+  shell: |
+    mkdir -p {{ temp_peer_cert_folder }}
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca > {{ temp_peer_cert_folder }}/ca.{{ component_name }}-cert.pem
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -c ca-tools -- mkdir -p /crypto-config/peerOrganizations/{{ component_name }}/ca/
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ temp_peer_cert_folder }}/ca.{{ component_name }}-cert.pem {{ component_name }}/${CA_TOOL_CLI}:/crypto-config/peerOrganizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: ca_file_exists.failed == true
+
+############################################################################################
+# This task copies generate-crypto-chaincode-server.sh file using the CA Tools Pod 
+- name: Copy generate-crypto-chaincode-server.sh file using the CA Tools 
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/generate-crypto-chaincode-server.sh {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}/generate-crypto-chaincode-server.sh  
+  when: 
+    - setup_user_env is not defined or setup_user_env == true
+    - peer.name == first_peer_name
+
+############################################################################################
+# This task executes generate-crypto-chaincode-server.sh file using the CA Tools to generate user certificate
+- name: Execute generate-crypto-chaincode-server.sh file using the CA Tools 
+  shell: |
+    export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -c ca-tools -- /root/ca-tools/{{org_name|lower}}/./generate-crypto-chaincode-server.sh {{component_name}} {{org_name|lower}} {{chaincode.name}} chaincode {{org_name}} "{{subject}}" "chaincode-{{chaincode.name}}-{{chaincode.version}}-{{ org_name }}.{{ component_name }}.svc.cluster.local" {{chaincode.version}} {{ ca_server_url }}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
+  when: 
+    - peer.name == first_peer_name
+
+############################################################################################
+# This task valdiates the user certificate
+- name: ensure chaincode certificate files exist
+  stat:
+    path: "./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/{{ file }}"
+  with_items:
+    - ca.crt
+    - client.crt
+    - client.key
+  register: check_files
+  loop_control:
+    loop_var: file
+
+- name: check file exists status
+  set_fact:
+    cert_missing: true
+  loop: "{{ check_files.results }}"
+  loop_control:
+    loop_var: chaincode_cert_file
+  when:
+    - chaincode_cert_file.stat.exists == false
+
+- name: missing chaincode certificates
+  fail:
+    msg: "Missing certificates in directory for chaincode installation"
+  when:
+    - cert_missing | default(None) != None
+
+############################################################################################
+# Copy certificates to vault
+- name: Copy certificates to vault
+  shell: |
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/chaincodes/{{ chaincode.name | lower }}/certificate/v{{ chaincode.version }} ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/client.key)"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when:
+    - peer.name == first_peer_name
+    - cert_missing | default(None) == None

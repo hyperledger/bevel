@@ -43,7 +43,7 @@ Follow [official instructions](https://www.vaultproject.io/docs/install/) to dep
 ---
 **NOTE:** Recommended approach is to create one Vault deployment on one VM and configure the backend as a cloud storage.
 
-Vault version should be **1.7.1**
+Vault version should be **1.13.1**
 
 ---
 
