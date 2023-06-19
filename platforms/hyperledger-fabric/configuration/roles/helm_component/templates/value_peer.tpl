@@ -53,7 +53,7 @@ spec:
 {% if provider == 'none' %}
       gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}:7051
 {% else %}
-      gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:8443
+      gossipexternalendpoint: {{ peer.peerAddress }}
 {% endif %}
       localmspid: {{ name }}MSP
       loglevel: info
