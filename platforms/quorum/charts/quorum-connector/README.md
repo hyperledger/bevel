@@ -132,8 +132,7 @@ To verify the deployment, we can use the following command:
 ```
 $ kubectl get deployments -n <namespace>
 ```
-Replace `<namespace>` with the actual namespace where the deployment was created. The command will display information about the deployment, including the number of 
-replicas and their current status.
+Replace `<namespace>` with the actual namespace where the deployment was created. The command will display information about the deployment, including the number of replicas and their current status.
 
 <a name = "updating-the-deployment"></a>
 ## Updating the Deployment
