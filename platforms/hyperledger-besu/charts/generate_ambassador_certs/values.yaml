@@ -11,60 +11,70 @@
 metadata:
   #Provide the namespace for organization's peer
   #Eg. namespace: supplychain-bes
-  namespace:
+  namespace: default
 
-  #Provide the name for indy-key-mgmt release
-  #Eg. name: indy-key-mgmt
-  name:
+  #Provide the name for besu-ambassador-certs release
+  #Eg. name: besu-ambassador-certs    
+  name: besu-ambassador-certs    
 
 image:
-  #Provide the image repository for the indy-key-mgmt container
-  #Eg. repository: indy-key-mgmt:latest
-  alpineutils:
-
+  #Provide the image repository for all containers
+  #Eg. repository: ghcr.io/hyperledger/bevel-alpine:latest
+  alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
   #Provide the image pull secret of image
   #Eg. pullSecret: regcred
-  pullSecret:
+  imagePullSecret: regcred
+  #Pull policy to be used for the Docker image
+  #Eg. pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 #Provide the value from tm_tls
 #Eg. tm_tls: True
 network:
-    tmtls:
+    tmtls: True
 
 node:
   #Provide the name of the node
-  name:
+  name: node1
   #Provide tm client ports
-  clientport:
+  clientport: 8888
 
 vault:
   #Provide the vault server address
   #Eg. address: http://54.226.163.39:8200
   address:
 
-  #Provide the key path for vault
-  #Eg. authpath: provider.stewards
-  authpath:
+  #Provide the secret engine.
+  #Eg. secretengine: secretsv2
+  secretengine: secretsv2
+
+  #Provide the authpath configured to be used.
+  #Eg. authpath: besunode1
+  authpath: besunode1
 
   #Provide the vault path where the rootca certificates
   #Eg. secretprefix: secretv2/warehouse-bes/crypto/ambassadorcerts/rootca
-  rootcasecret:
+  rootcasecret: 
 
   #Provide the vault path where the tls and ambassador certificates
   #Eg. secretprefix: secretv2/warehouse-bes/crypto/warehouse/tls
-  ambassadortlssecret:
+  ambassadortlssecret: 
 
-  #Provide the identity for vault
-  #Eg. role: my-identity
-  role:
+  #Provide the vault role used.
+  #Eg. role: vault-role
+  role: vault-role
 
-  # Provide the service account name autheticated to vault.
-  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
-  # Eg. serviceAccountName: vault-auth
-serviceaccountname:
+  #Provide the service account name autheticated to vault.
+  #NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  #Eg. serviceAccountName: vault-auth
+  serviceaccountname: vault-auth
+
+  #Provide the type of vault
+  #Eg. type: hashicorp
+  type: hashicorp
 
 #Provide the node subject. 
-#Eg. serviceAccountName: L=lat/long is mandatory for supplychain sample app
+#Eg. ambassadortls: L=lat/long is mandatory for supplychain sample app
 subject:
   ambassadortls: 
 
@@ -77,10 +87,10 @@ opensslVars:
 healthcheck:
   #The amount of times to retry fetching from/writing to Vault before giving up.
   #Eg. retries: 10
-  retries:
+  retries: 10
   #The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
   #Eg. sleepTimeAfterError: 2 
-  sleepTimeAfterError:
+  sleepTimeAfterError: 2
 
 labels:
   service: []
