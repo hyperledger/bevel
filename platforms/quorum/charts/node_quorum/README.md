@@ -195,10 +195,9 @@ This will deploy the quorum node to the Kubernetes cluster based on the provided
 
 To verify the deployment, we can use the following command:
 ```
-$ kubectl get deployments -n <namespace>
+$ kubectl get statefulsets -n <namespace>
 ```
-Replace `<namespace>` with the actual namespace where the deployment was created. The command will display information about the deployment, including the number of 
-replicas and their current status.
+Replace `<namespace>` with the actual namespace where the StatefulSet was created. This command will display information about the StatefulSet, including the number of replicas and their current status.
 
 
 <a name = "updating-the-deployment"></a>
