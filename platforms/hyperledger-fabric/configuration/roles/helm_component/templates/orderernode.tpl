@@ -102,4 +102,4 @@ spec:
             cpu: 1
           requests:
             memory: 512M
-            cpu: 0.5
+            cpu: 0.25

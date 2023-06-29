@@ -34,7 +34,7 @@ fabric-ca-client enroll -d -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --
 fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
 
 if [ "{{ proxy }}" != "none" ]; then
-	mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
+	mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
 fi
 mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
 cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
@@ -53,7 +53,7 @@ mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
 cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
 
 if [ "{{ proxy }}" != "none" ]; then
-	mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
+	mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
 fi
 
 # Get TLS cert for admin and copy to appropriate location
@@ -99,7 +99,7 @@ while [  ${COUNTER} -lt ${NO_OF_PEERS} ]; do
 	# Copy the peer org's admin cert into target MSP directory
 	mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
 	if [ "{{ proxy }}" != "none" ]; then
-		mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
+		mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
 	fi
 	cp ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts
 	cp ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts

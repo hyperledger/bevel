@@ -135,10 +135,9 @@ This will deploy the ibft node to the Kubernetes cluster based on the provided c
 
 To verify the deployment, we can use the following command:
 ```
-$ kubectl get deployments -n <namespace>
+$ kubectl get jobs -n <namespace>
 ```
-Replace `<namespace>` with the actual namespace where the deployment was created. The command will display information about the deployment, including the number of 
-replicas and their current status.
+Replace `<namespace>` with the actual namespace where the Job was created. This command will display information about the Job, including the number of completions and the current status of the Job's pods.
 
 
 <a name = "updating-the-deployment"></a>
