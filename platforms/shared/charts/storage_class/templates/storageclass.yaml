@@ -1,0 +1,36 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ .Values.metadata.name }}"
+reclaimPolicy: "{{ .Values.reclaimPolicy }}"
+volumeBindingMode: "{{ .Values.volumeBindingMode }}"
+{{- if .Values.provisioner }}
+provisioner: "{{ .Values.provisioner }}"
+{{- else }}
+{{ include "provisioner" . }}
+{{- end }}
+{{- with index .Values.parameters (index .Values.cloud_provider) }}
+parameters:
+  {{- range $key, $value := . }}
+  {{ $key }}: "{{ $value }}"
+  {{- end }}
+{{- end }}
+{{- if .Values.allowedTopologies }}
+allowedTopologies:
+{{- range .Values.allowedTopologies }}
+  - matchLabelExpressions:
+{{- range .matchLabelExpressions }}
+      - key: {{ .key }}
+        values:
+{{- range .values }}
+          - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
