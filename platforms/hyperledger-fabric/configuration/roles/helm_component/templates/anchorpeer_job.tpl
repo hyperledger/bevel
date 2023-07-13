@@ -41,7 +41,11 @@ spec:
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}/users/admin
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}/orderer
       serviceaccountname: vault-auth
+{% if network.docker.username is defined and network.docker.password is defined %}      
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}      
 
     channel:
       name: {{channel_name}}      

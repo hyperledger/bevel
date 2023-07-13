@@ -32,7 +32,11 @@ spec:
       policy: vault-crypto-{{ component_type }}-{{ name }}-net-ro
       secret_path: {{ vault.secret_path }}
       serviceaccountname: vault-auth
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
     
     k8s:
       kubernetes_url: {{ kubernetes_url }}
