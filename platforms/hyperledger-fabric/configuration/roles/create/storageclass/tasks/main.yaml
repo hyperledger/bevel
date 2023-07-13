@@ -52,8 +52,7 @@
     values_file: "{{ release_dir }}/{{ component_type }}/{{ sc_name }}.yaml"
   when: component_type == 'peer' and get_sc.resources|length == 0
 
-#Git Push : Pushes the above generated files to git directory 
-- name: Git Push
+- name: Git Push when not using operator
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
@@ -61,7 +60,21 @@
     gitops: "{{ item.gitops }}"
     GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing Storageclass files"
-  when: get_sc.resources|length == 0
+  when: 
+  - get_sc.resources|length == 0
+  - network.env.type != 'operator'
+  tags:
+    - notest
+
+- name: Create the storagelass when using operator
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ release_dir }}/{{ component_type }}/{{ sc_name }}.yaml"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: 
+  - get_sc.resources|length == 0
+  - network.env.type == 'operator'
   tags:
     - notest
 

@@ -27,6 +27,7 @@
         services: "{{ item.services }}"
         kubernetes: "{{ item.k8s }}"
       loop: "{{ network['organizations'] }}"
+      when: network.env.type != 'operator'
 
     # Delete genesis
     - include_role:
@@ -34,13 +35,20 @@
       vars:
         component_name: "{{ item.name | lower }}-net"
       loop: "{{ network['organizations'] }}"
-      when: item.type == "orderer"
+      when: 
+      - item.type == "orderer"
+      - network.env.type != 'operator'
 
-    # delete orderer certs directory
-    - name: Remove orderers certs directory
-      file:
-        path:  "{{ playbook_dir }}/../charts/catools/certs"
-        state: absent
+    - include_role: 
+        name: "delete/operator"
+      vars:
+        component_name: "{{ item.name | lower }}-net"
+        org_name: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower }}"
+        services: "{{ item.services }}"
+        kubernetes: "{{ item.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      when: network.env.type == 'operator'
 
     # delete build directory
     - name: Remove build directory

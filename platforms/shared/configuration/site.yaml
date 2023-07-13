@@ -23,7 +23,8 @@
 # Delete the generic network resources from kuberentes 
 - import_playbook: delete-network.yaml
   when:
-    - reset is defined and reset == 'true'
+  - reset is defined and reset == 'true'
+  - network.env.type != 'operator'
 
 ############################################
 # Playbook for Hypelerger Fabric Operations
@@ -34,17 +35,28 @@
   vars:
     add_new_org: 'false'
   when:
-    - network.type == 'fabric' 
-    - (reset is undefined or reset == 'false') 
+    - network.type == 'fabric'
+    - network.env.type != 'operator'
+    - (reset is undefined or reset == 'false')
     - (network.upgrade is not defined)
 
-# Chaincode operatations
+- import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/deploy-operator-network.yaml"
+  vars:
+    add_new_org: 'false'
+  when:
+    - network.type == 'fabric'
+    - network.env.type == 'operator'
+    - (reset is undefined or reset == 'false')
+    - (network.upgrade is not defined)
+
+# Chaincode operations
 - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/chaincode-ops.yaml"
   vars:
     add_new_org: 'false'
   when:
-    - network.type == 'fabric' 
-    - (reset is undefined or reset == 'false') 
+    - network.type == 'fabric'
+    - network.env.type != 'operator'
+    - (reset is undefined or reset == 'false')
     - (network.upgrade is not defined)
 
 # Upgrade network
@@ -52,8 +64,9 @@
   vars:
     add_new_org: 'false'
   when:
-    - network.type == 'fabric' 
-    - (reset is undefined or reset == 'false') 
+    - network.type == 'fabric'
+    - network.env.type != 'operator'
+    - (reset is undefined or reset == 'false')
     - (network.upgrade is defined)
 
 ############################################
@@ -63,7 +76,8 @@
 # Deploy network
 - import_playbook: "{{ playbook_dir }}/../../r3-corda/configuration/deploy-network.yaml"
   when:
-    - network.type == 'corda' 
+    - network.type == 'corda'
+    - network.env.type != 'operator'
     - (reset is undefined or reset == 'false')
 
 ############################################
@@ -73,7 +87,8 @@
 # Deploy network
 - import_playbook: "{{ playbook_dir }}/../../hyperledger-indy/configuration/deploy-network.yaml"
   when:
-    - network.type == 'indy' 
+    - network.type == 'indy'
+    - network.env.type != 'operator'
     - (reset is undefined or reset == 'false')
 
 ############################################
@@ -85,7 +100,8 @@
   vars:
     add_new_org: false
   when:
-    - network.type == 'quorum' 
+    - network.type == 'quorum'
+    - network.env.type != 'operator'
     - (reset is undefined or reset == 'false')
 
 ############################################
@@ -97,7 +113,8 @@
   vars:
     add_new_org: false
   when:
-    - network.type == 'besu'  
+    - network.type == 'besu'
+    - network.env.type != 'operator'
     - (reset is undefined or reset == 'false')
     - (network.crypto_only is defined and network.crypto_only == true)
 
@@ -106,7 +123,8 @@
   vars:
     add_new_org: false
   when:
-    - network.type == 'besu' 
+    - network.type == 'besu'
+    - network.env.type != 'operator'
     - (reset is undefined or reset == 'false')
     - (network.crypto_only is undefined or network.crypto_only == false)
 
@@ -116,7 +134,8 @@
 
 - import_playbook: "{{ playbook_dir }}/../../r3-corda-ent/configuration/deploy-network.yaml"
   when:
-    - network.type == 'corda-enterprise' 
+    - network.type == 'corda-enterprise'
+    - network.env.type != 'operator'
     - (reset is undefined or reset == 'false')
 
 #############################################
@@ -125,21 +144,43 @@
 
 - import_playbook: "{{ playbook_dir }}/../../substrate/configuration/deploy-network.yaml"
   when:
-    - network.type == 'substrate' 
+    - network.type == 'substrate'
+    - network.env.type != 'operator'
     - (reset is undefined or reset == 'false')
 
 # Cleanup platform specific resources
 - import_playbook: "{{ playbook_dir }}/../../hyperledger-indy/configuration/cleanup.yaml"
-  when: network.type == 'indy' and reset is defined and reset == 'true'
+  when: 
+  - network.type == 'indy'
+  - network.env.type != 'operator'
+  - reset is defined and reset == 'true'
 - import_playbook: "{{ playbook_dir }}/../../r3-corda/configuration/cleanup.yaml"
-  when: network.type == 'corda' and reset is defined and reset == 'true'
+  when: 
+  - network.type == 'corda'
+  - network.env.type != 'operator'
+  - reset is defined and reset == 'true'
 - import_playbook: "{{ playbook_dir }}/../../hyperledger-fabric/configuration/cleanup.yaml"
-  when: network.type == 'fabric' and reset is defined and reset == 'true'
+  when: 
+  - network.type == 'fabric'
+  - network.env.type != 'operator'
+  - reset is defined and reset == 'true'
 - import_playbook: "{{ playbook_dir }}/../../quorum/configuration/cleanup.yaml"
-  when: network.type == 'quorum' and reset is defined and reset == 'true'
+  when: 
+  - network.type == 'quorum'
+  - network.env.type != 'operator'
+  - reset is defined and reset == 'true'
 - import_playbook: "{{ playbook_dir }}/../../hyperledger-besu/configuration/cleanup.yaml"
-  when: network.type == 'besu' and reset is defined and reset == 'true'
+  when: 
+  - network.type == 'besu'
+  - network.env.type != 'operator'
+  - reset is defined and reset == 'true'
 - import_playbook: "{{ playbook_dir }}/../../r3-corda-ent/configuration/cleanup.yaml"
-  when: network.type == 'corda-enterprise' and reset is defined and reset == 'true'
+  when: 
+  - network.type == 'corda-enterprise'
+  - network.env.type != 'operator'
+  - reset is defined and reset == 'true'
 - import_playbook: "{{ playbook_dir }}/../../substrate/configuration/cleanup.yaml"
-  when: network.type == 'substrate' and reset is defined and reset == 'true'
+  when: 
+  - network.type == 'substrate'
+  - network.env.type != 'operator'
+  - reset is defined and reset == 'true'

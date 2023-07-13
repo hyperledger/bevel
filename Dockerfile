@@ -3,13 +3,11 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
 # USAGE: 
 # docker build . -t bevel-build
 # docker run -v $(pwd):/home/bevel/ bevel-build
 
 FROM ubuntu:20.04
-
 # Create working directory
 WORKDIR /home/
 ENV OPENSHIFT_VERSION='0.13.1'
@@ -32,7 +30,6 @@ RUN wget https://download.java.net/java/GA/jdk14/076bab302c7b4508975440c56f6cc26
     && tar xvf openjdk-14_linux-x64_bin.tar.gz \
     && rm openjdk-14_linux-x64_bin.tar.gz
 
-
 RUN apt-get update && apt-get install -y \
     python3-pip && \
     pip3 install --no-cache --upgrade pip setuptools wheel && \
@@ -44,7 +41,7 @@ RUN apt-get update && apt-get install -y \
     rm -rf /var/lib/apt/lists/*
 
 # base58 is needed in Substrate to encode nodeids
-RUN snap install base58
+RUN pip3 install base58
 
 RUN npm install -g ajv-cli
 RUN apt-get update && apt-get install -y python3-venv
@@ -53,14 +50,23 @@ RUN rm /etc/apt/apt.conf.d/docker-clean
 RUN mkdir /etc/ansible/
 RUN /bin/echo -e "[ansible_provisioners:children]\nlocal\n[local]\nlocalhost ansible_connection=local" > /etc/ansible/hosts
 
+# Install krew for bevel-operator-fabric
+RUN (set -x; cd "$(mktemp -d)" && \
+    OS="$(uname | tr '[:upper:]' '[:lower:]')" && \
+    ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" && \
+    KREW="krew-${OS}_${ARCH}" && \
+    curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" && \
+    tar zxvf "${KREW}.tar.gz" && \
+    ./"${KREW}" install krew)
+
 # Copy the provisional script to build container
 COPY ./run.sh /home
 COPY ./reset.sh /home
 RUN chmod 755 /home/run.sh
 RUN chmod 755 /home/reset.sh
-ENV PATH=/root/bin:/root/.local/bin/:$PATH
+
 ENV JAVA_HOME=/home/jdk-14
-ENV PATH=/home/jdk-14/bin:$PATH
+ENV PATH=~/.krew/bin:/home/jdk-14/bin:/root/bin:/root/.local/bin/:$PATH
 
 # The mounted repo should contain a build folder with the following files
 # 1) K8s config file as config
@@ -69,6 +75,4 @@ ENV PATH=/home/jdk-14/bin:$PATH
 
 #path to mount the repo
 VOLUME /home/bevel/
-
-
 CMD ["/home/run.sh"]
