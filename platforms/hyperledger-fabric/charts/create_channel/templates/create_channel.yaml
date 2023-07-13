@@ -32,8 +32,10 @@ spec:
     spec:
       restartPolicy: "OnFailure"
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
       imagePullSecrets:
         - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
       volumes:
       {{ if .Values.vault.tls  }}
       - name: vaultca
@@ -147,8 +149,8 @@ spec:
           mountPath: /secret
       containers:
       - name: createchannel
-        image: {{ $.Values.metadata.images.fabrictools }}
-        imagePullPolicy: IfNotPresent
+        image: {{ $.Values.metadata.images.fabrictools }}  
+        imagePullPolicy: IfNotPresent 
         stdin: true
         tty: true
         command: ["sh", "-c"]
