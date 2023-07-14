@@ -114,3 +114,8 @@ spec:
     metrics:
       enabled: {{ peer.metrics.enabled | default(false)}}
       port: {{ peer.metrics.port | default(9545) }}    
+
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 3000
