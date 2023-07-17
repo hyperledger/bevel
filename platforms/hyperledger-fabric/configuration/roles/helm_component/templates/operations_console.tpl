@@ -31,7 +31,11 @@ spec:
       name: {{ name }}console
       default_consortium: {{ default_consortium }}
       serviceaccountname: default
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       servicetype: ClusterIP
       ports:
         console:
