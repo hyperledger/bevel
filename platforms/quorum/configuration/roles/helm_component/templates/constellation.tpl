@@ -74,5 +74,5 @@ spec:
       portConst: {{ peer.transaction_manager.ambassador }}
       portRaft: {{ peer.raft.ambassador }}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi

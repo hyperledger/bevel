@@ -29,7 +29,7 @@ spec:
       imagePullSecrets:
         - name: "regcred"
     storage:
-      name: "cordaentsc"
+      name: {{ sc_name }}
       memory: 700Mi
     acceptLicense: YES
     vault:

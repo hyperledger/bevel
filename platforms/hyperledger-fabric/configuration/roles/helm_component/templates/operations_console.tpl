@@ -25,7 +25,7 @@ spec:
         configtxlator: hyperledger/fabric-tools:{{ network.version }}
     storage:
       couchdb:
-        storageclassname: {{ name }}sc
+        storageclassname: {{ sc_name }}
         storagesize: 512Mi
     service:
       name: {{ name }}console

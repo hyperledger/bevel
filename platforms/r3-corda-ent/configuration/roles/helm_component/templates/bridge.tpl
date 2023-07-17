@@ -39,7 +39,7 @@ spec:
     volume:
       baseDir: /opt/corda/base
     storage:
-      name: cordaentsc
+      name: {{ sc_name }}
     pvc:
       annotations: {}
     cordaJarMx: 1024

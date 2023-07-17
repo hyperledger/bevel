@@ -87,6 +87,6 @@ spec:
       quorumport: {{ peer.p2p.ambassador }}
       clientport: {{ peer.transaction_manager.clientport }}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi
       dbstorage: 1Gi

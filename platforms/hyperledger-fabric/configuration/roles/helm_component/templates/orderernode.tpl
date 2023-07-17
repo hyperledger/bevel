@@ -55,7 +55,7 @@ spec:
       name: {{ orderer.consensus }}
 
     storage:
-      storageclassname: {{ org_name }}sc
+      storageclassname: {{ sc_name }}
       storagesize: 512Mi  
 
     service:

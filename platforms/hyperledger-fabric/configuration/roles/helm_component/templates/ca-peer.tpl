@@ -52,7 +52,7 @@ spec:
       configpath: conf/fabric-ca-server-config-{{ component }}.yaml
 {% endif %}  
     storage:
-      storageclassname: {{ component | lower }}sc
+      storageclassname: {{ sc_name }}
       storagesize: 512Mi
     vault:
       role: vault-role

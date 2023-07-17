@@ -28,7 +28,7 @@ spec:
       limits: 512Mi
       requests: 512Mi
     storage:
-      name: "cordaentsc"
+      name: {{ sc_name }}
       memory: 512Mi
     service:
       type: NodePort

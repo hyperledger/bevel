@@ -40,18 +40,19 @@
     include_role:
       name: create/storageclass
     vars:
-      storageclass_name: "{{ organizationItem.cloud_provider }}storageclass"
-      git_dir: "{{ organizationItem.gitops.release_dir }}"
-      org: "{{ organizationItem }}"
-      kubernetes: "{{ organizationItem.k8s }}"
-      cloudProvider: "{{ organizationItem.cloud_provider }}"
-      cloudProvider_info: "{{ organizationItem[cloudProvider] }}"
+      org: "{{ org }}"
+      org_name: "{{ org.name | lower }}"
+      cloudProvider: "{{ org.cloud_provider | lower }}"
+      sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+      kubernetes: "{{ org.k8s }}"
+      region: "{{ org.k8s.region | default('eu-west-1') }}"
+      git_dir: "{{ org.gitops.release_dir }}"
       charts_dir: "platforms/shared/charts"
-      org_name: "{{ organizationItem.name | lower }}"
+      platform_suffix: "bes"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organizationItem
-    
+      loop_var: org
+
   #Create Vault scrit as configmap for Vault CURD operations
   - name: setup vault script
     include_role:
@@ -71,9 +72,9 @@
       policy_type: "besu"
       name: "{{ organizationItem.name | lower }}"
       component_ns: "{{ organizationItem.name | lower }}-bes"
-      component_name: "{{ organizationItem.name | lower }}-vaultk8s-job"
+      component_name: "{{ organizationItem.name | lower }}-bes"
       component_auth: "besu{{ organizationItem.name | lower }}"
-      component_type: "organization"
+      component_type: "{{ organizationItem.type | lower }}"
       kubernetes: "{{ organizationItem.k8s }}"
       vault: "{{ organizationItem.vault }}"
       gitops: "{{ organizationItem.gitops }}"
@@ -139,7 +140,7 @@
       component_ns: "{{ item.name | lower }}-bes"
       name: "{{ item.name | lower }}"
       peers: "{{ item.services.validators}}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
       external_url: "{{ item.external_url_suffix }}"
       vault: "{{ item.vault }}"
       git_url: "{{ item.gitops.git_url }}"
@@ -211,7 +212,7 @@
     vars:
       build_path: "{{ playbook_dir }}/build"
       component_ns: "{{ org.name }}-bes"
-      storageclass_name: "{{ org.cloud_provider }}storageclass"
+      sc_name: "{{ org.name | lower }}-{{ org.cloud_provider | lower }}-storageclass"
       external_url: "{{ org.external_url_suffix }}"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
@@ -236,7 +237,7 @@
       component_ns: "{{ item.name | lower }}-bes"
       name: "{{ item.name | lower }}"
       peers: "{{ item.services.peers }}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
       external_url: "{{ item.external_url_suffix }}"
       vault: "{{ item.vault }}"
       git_url: "{{ item.gitops.git_url }}"
