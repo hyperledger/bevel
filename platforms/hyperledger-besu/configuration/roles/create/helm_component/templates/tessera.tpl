@@ -94,7 +94,7 @@ spec:
       portTM: {{ peer.tm_nodeport.port }}
 {% endif %}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi
       dbstorage: 1Gi
 

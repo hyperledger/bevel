@@ -50,10 +50,15 @@
   - include_role:
       name: "create/storageclass"
     vars:
-      sc_name: "{{ item.name | lower}}sc"
+      org_name: "{{ item.name | lower }}"
+      cloudProvider: "{{ item.cloud_provider | lower }}"
+      sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
       component_type: "{{ item.type | lower}}"
+      region: "{{ item.k8s.region | default('eu-west-1') }}"
       kubernetes: "{{ item.k8s }}"
-      release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      platform_suffix: "net"
+      charts_dir: "platforms/shared/charts"
+      release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ org_name }}"
     loop: "{{ network['organizations'] }}"
     
   # Create Organization crypto materials for new organization

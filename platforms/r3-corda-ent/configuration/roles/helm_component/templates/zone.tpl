@@ -58,7 +58,7 @@ spec:
     listenerPort:
       enm: {{ org.services.zone.ports.enm }}
       admin: {{ org.services.zone.ports.admin }}
-    storageClass: cordaentsc
+    storageClass: {{ sc_name }}
     vault:
       address: {{ vault.url }}
       role: vault-role

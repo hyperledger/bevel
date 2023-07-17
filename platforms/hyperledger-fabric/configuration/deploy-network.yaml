@@ -60,10 +60,15 @@
       include_role:
         name: "create/storageclass"
       vars:
-        sc_name: "{{ item.name | lower}}sc"
-        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name | lower }}"
+        cloudProvider: "{{ item.cloud_provider | lower }}"
+        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+        component_type: "{{ item.type | lower }}"
+        region: "{{ item.k8s.region | default('eu-west-1') }}"
         kubernetes: "{{ item.k8s }}"
-        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        charts_dir: "platforms/shared/charts"
+        platform_suffix: "net"
+        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ org_name }}"
       loop: "{{ network['organizations'] }}"
         
     # Create CA Server helm-value files and check-in
@@ -75,6 +80,7 @@
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
+        sc_name: "{{ component }}-{{ item.cloud_provider }}-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
@@ -108,6 +114,7 @@
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
+        sc_name: "{{ component }}-{{ item.cloud_provider | lower }}-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
@@ -126,6 +133,7 @@
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
         orderer_org: "{{ item.orderer_org | lower }}"
+        sc_name: "{{ component }}-{{ item.cloud_provider | lower }}-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"

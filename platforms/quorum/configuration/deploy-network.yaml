@@ -32,16 +32,21 @@
       kubernetes: "{{ item.k8s }}"
       gitops: "{{ item.gitops }}"
     loop: "{{ network['organizations'] }}"
-
+  
   # Create Storageclass
   - name: Create Storage Class
     include_role:
       name: create/storageclass
     vars:
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      org_name: "{{ item.name | lower }}"
+      cloudProvider: "{{ item.cloud_provider | lower }}"
+      sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+      region: "{{ item.k8s.region | default('eu-west-1') }}"
       git_dir: "{{ item.gitops.release_dir }}"
       org: "{{ item }}"
       kubernetes: "{{ item.k8s }}"
+      charts_dir: "platforms/shared/charts"
+      platform_suffix: "quo"
     loop: "{{ network['organizations'] }}"
 
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
@@ -172,7 +177,7 @@
       component_ns: "{{ item.name | lower }}-quo"
       name: "{{ item.name | lower }}"
       peers: "{{ item.services.peers }}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
       external_url: "{{ item.external_url_suffix }}"
       vault: "{{ item.vault }}"
       charts_dir: "{{ item.gitops.chart_source }}"
@@ -191,7 +196,7 @@
       component_ns: "{{ item.name | lower }}-quo"
       name: "{{ item.name | lower }}"
       peers: "{{ item.services.peers }}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
       external_url: "{{ item.external_url_suffix }}"
       vault: "{{ item.vault }}"
       git_url: "{{ item.gitops.git_url }}"
@@ -214,7 +219,7 @@
       component_ns: "{{ item.name | lower }}-quo"
       name: "{{ item.name | lower }}"
       peers: "{{ item.services.peers }}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
       external_url: "{{ item.external_url_suffix }}"
       vault: "{{ item.vault }}"
       git_url: "{{ item.gitops.git_url }}"
@@ -236,7 +241,7 @@
       component_ns: "{{ item.name | lower }}-quo"
       name: "{{ item.name | lower }}"
       peers: "{{ item.services.peers }}"
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
+      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
       external_url: "{{ item.external_url_suffix }}"
       vault: "{{ item.vault }}"
       git_url: "{{ item.gitops.git_url }}"

@@ -23,7 +23,7 @@ spec:
         fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
     storage:
-      class: {{ storage_class }}
+      class: {{ sc_name }}
       size: 256Mi
     vault:
       role: vault-role

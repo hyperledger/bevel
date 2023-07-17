@@ -35,7 +35,7 @@ spec:
       authName: {{ org.services.auth.name }}
       authPort: {{ org.services.auth.port }}
     storage:
-      name: cordaentsc
+      name: {{ sc_name }}
     acceptLicense: YES
     vault:
       address: {{ vault.url }}

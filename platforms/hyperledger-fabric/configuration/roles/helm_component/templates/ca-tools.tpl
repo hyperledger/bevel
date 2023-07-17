@@ -53,7 +53,7 @@ spec:
       alpineutils: {{ alpine_image }}
       
     storage:
-      storageclassname: {{ component | lower }}sc
+      storageclassname: {{ sc_name }}
       storagesize: 512Mi
     
     vault:

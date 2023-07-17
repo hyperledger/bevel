@@ -8,12 +8,12 @@
 # This role creates value files for storage class
 #############################################################################################
 # Check storageclass exists already
-- name: "Checking if the storage class {{ storageclass_name }} already exists"
+- name: "Checking if the storage class {{ sc_name }} already exists"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
     component_type: "StorageClass"
-    component_name: "{{ storageclass_name }}"
+    component_name: "{{ sc_name }}"
     type: "no_retry"
 
 #set variable storageclass_state
@@ -25,8 +25,8 @@
   include_role:
     name: create/k8_component
   vars:
-    component_type: "{{ org.cloud_provider}}-storageclass"
-    component_name: "{{ storageclass_name }}"
+    component_type: "{{ cloudProvider }}-storageclass"
+    component_name: "{{ org_name }}"
     helm_lint: "false"
     release_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
   when: storageclass_state.resources|length == 0
@@ -52,6 +52,6 @@
     - notest
   vars:
     component_type: "StorageClass"
-    component_name: "{{ storageclass_name }}"
+    component_name: "{{ sc_name }}"
     type: "retry"
   when: storageclass_state.resources|length == 0

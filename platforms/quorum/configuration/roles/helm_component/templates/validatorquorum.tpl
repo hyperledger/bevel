@@ -71,6 +71,6 @@ spec:
       portRaft: {{ peer.raft.ambassador }}
 {% endif %}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi
       dbstorage: 1Gi
