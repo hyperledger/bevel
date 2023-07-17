@@ -31,6 +31,7 @@
       git_key: "{{ item.gitops.private_key | default() }}"
       flux_version: "0.35.0"
     with_items: "{{ network.organizations }}"
+    when: network.env.type != 'operator'
   - name: Prepare nodes and clients ports for ambassador
     vars:
       name: "{{ organizationItem.name }}"
@@ -69,6 +70,26 @@
       aws: "{{ item.aws }}"
     with_items: "{{ network.organizations }}"
     when: network.env.proxy == 'haproxy'
+  - include_role:
+      name: setup/istio
+    vars:
+      kubeconfig_path: "{{ item.k8s.config_file }}"
+      kubecontext: "{{ item.k8s.context }}"
+      aws: "{{ item.aws }}"
+    with_items: "{{ network.organizations }}"
+    when: network.env.proxy == 'istio'
+
+  - name: Setup bevel-operator-fabric for each organization
+    include_role:
+      name: "setup/operator"
+    vars:
+      operator_version: "1.9.0"
+      kubeconfig_path: "{{ item.k8s.config_file }}"
+      kubecontext: "{{ item.k8s.context }}"
+    with_items: "{{ network.organizations }}"
+    when: 
+    - network.type == 'fabric'
+    - network.env.type == 'operator'
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS

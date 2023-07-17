@@ -1,0 +1,32 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+###########################################################################################
+# This task calls valuefile to generate the create-channel files
+############################################################################################
+- name: Call nested_channel_join for each peer
+  include_tasks: nested_channel_join.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: 
+  - participant.org_status == 'new' or (participant.peerstatus is not defined or participant.peerstatus == 'new')
+
+- name: Call check for each peer
+  include_tasks: check.yaml
+  vars:
+    channel_name: "{{ item.channel_name | lower }}"
+    org_query: "organizations[?name=='{{participant.name}}']"
+    org: "{{ network | json_query(org_query) | first }}"
+  loop: "{{ participants }}"
+  loop_control:
+    loop_var: participant
+  when: 
+  - participant.org_status == 'new' or (participant.peerstatus is not defined or participant.peerstatus == 'new')

@@ -15,7 +15,7 @@
             {"if": {"properties": { "type": { "const": "fabric" } } },
              "then": {
               "properties":{
-                "version":{ "type": "string","enum":["1.4.8","2.2.0","2.2.2"]},
+                "version":{ "type": "string","enum":["1.4.8","2.2.0","2.2.2","2.5.3"]},
                 "env": { "$ref":"#/definitions/shared_environment"},
                 "frontend": { "type": "string", "enum": ["enabled","disabled"]},
                 "consensus":{ "$ref":"#/definitions/fabric_service_consensus"},
@@ -93,19 +93,45 @@
                 "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/substrate_organization"}}
                }
              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "env": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string", "not": { "const": "operator" } }
+                    }
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "organizations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "vault":{ "$ref":"#/definitions/shared_vault"},
+                        "gitops":{ "$ref":"#/definitions/shared_gitops"}
+                      },
+                      "required": ["vault", "gitops"]
+                    }
+                  }
+                }
+              }
             }
           ],
           "required": [ "type","version","env","docker","organizations" ]
         }
     },
-    "required": [ "network" ] ,
-
+    "required": [ "network" ],
     "definitions": {
         "shared_environment":{
             "type": "object",
             "properties": {
               "type": { "type": "string","pattern": "^[a-z0-9-]{1,15}$", "description": "Environment type. Can be like dev/test/prod."},
-              "proxy": { "type": "string", "enum": ["haproxy", "ambassador","none"], "description": "Choice of the Cluster Ingress controller. 'none' only minikube does not use a proxy"},
+              "proxy": { "type": "string", "enum": ["haproxy","ambassador","none","istio"], "description": "Choice of the Cluster Ingress controller. 'none' only minikube does not use a proxy"},
               "retry_count": {"type": "integer", "minimum":5,"maximum":100,"description": "Retry count for the checks. Use a large number if your kubernetes cluster is slow."},
               "external_dns": { "type": "string", "enum": ["enabled", "disabled"], "description": "If the cluster has the external DNS service, this has to be set enabled so that the hosted zone is automatically updated."},
               "namespace": { "type": "string", "description": "Proxy namespace"}
@@ -202,25 +228,22 @@
         "shared_organization":{
           "type": "object",
           "properties": {
-            "organization":{  "description": "deprecated."},
             "k8s":{ "$ref":"#/definitions/shared_k8s"},
-            "vault":{ "$ref":"#/definitions/shared_vault"},
-            "gitops":{ "$ref":"#/definitions/shared_gitops"},
             "cloud_provider":{ "type": "string","enum": ["aws","aws-baremetal", "azure","gcp","minikube"]},
             "gcp":{},
             "azure":{},
             "minikube":{},
             "name": { "type": "string","pattern": "^[a-z0-9-]{1,30}$"}
-            },
+          },
           "allOf":[{
             "if": {"properties": { "cloud_provider": { "enum": ["aws","aws-baremetal"] } } },"then":{
               "properties": {
                 "aws":{ "$ref":"#/definitions/shared_aws"}
               },
-              "required": [ "aws"]
+              "required": ["aws"]
             }}
           ],
-          "required": [ "name","cloud_provider","k8s","vault","gitops"]
+          "required": [ "name","cloud_provider","k8s"]
         },
         "shared_metrics":{
           "type": "object",
