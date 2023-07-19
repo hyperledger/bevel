@@ -21,7 +21,7 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ organizationItem.gitops }}"
+    gitops: "{{ org.gitops }}"
     GIT_RESET_PATH: "platforms/hyperledger-besu/configuration"
     msg: "[ci skip] Delete previous node key mgmt files"
 
@@ -40,7 +40,7 @@
 - name: Fetching all nodes of the organisation
   set_fact:
     node_list={{ node_list | default([]) + [ {'name':peer.name} ] }}
-  loop: "{{ organizationItem.services.peers is defined | ternary(organizationItem.services.peers, organizationItem.services.validators) }}"
+  loop: "{{ org.services.peers is defined | ternary(org.services.peers, org.services.validators) }}"
   loop_control:
     loop_var: peer
 
@@ -49,7 +49,7 @@
   include_role:
     name: create/helm_component
   vars:
-    name: "{{ organizationItem.name | lower }}"
+    name: "{{ org.name | lower }}"
     component_name: "{{ name }}-node-key-mgmt"
     component_ns: "{{ name }}-bes"
     type: "node_key_mgmt"
@@ -60,6 +60,6 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ organizationItem.gitops }}"
+    gitops: "{{ org.gitops }}"
     GIT_RESET_PATH: "platforms/hyperledger-besu/configuration"
     msg: "[ci skip] Pushing node key mgmt files"
