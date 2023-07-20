@@ -14,7 +14,7 @@ replicaCount: 1
 metadata:
   #Provide the namespace for the Quorum node
   #Eg. namespace: example-quo
-  namespace: 
+  namespace: default
   #Provide the custom labels  
   #NOTE: Provide labels other than name, release name , release service, chart version , chart name, run
   #These lables will not be applied to VolumeClaimTemplate of StatefulSet as labels are automatically picked up by Kubernetes
@@ -37,20 +37,23 @@ images:
   #Provide the docker secret name in the namespace
   #Eg. imagePullSecret: regcred
   imagePullSecret: regcred
+  #Pull policy to be used for the Docker image
+  #Eg. pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 tessera:
   #Provide the name for tessera node
-  #Eg. name: node-1
-  name: 
+  #Eg. name: node1
+  name: node1
   #Provide the mysql DB name
   #Eg. dbname: demodb
-  dbname: 
+  dbname: demodb
   #Provide the Database URL
   #Eg. dburl: jdbc:mysql://localhost:3306/demodb
   dburl: 
   #Provide the Database username
   #Eg. dbusername: $username
-  dbusername:
+  dbusername: demouser
   #Provide the Database password
   #Eg. dbpassword: $password
   dbpassword:   
@@ -61,7 +64,10 @@ tessera:
   #Eg. othernodes: 
   #     - url: "https://node1.quo.demo.aws.blockchaincloudpoc.com"
   #     - url: "https://node2.quo.demo.aws.blockchaincloudpoc.com"
-  othernodes: 
+  othernodes:
+  #Provide the client url for tessera node
+  #Eg. clienturl: "https://node1-tessera:8888"
+  clienturl: 
   #Provide if tessera will use tls. 
   # Options:
   ##   - STRICT: All connections to and from this node must use TLS with mutual
@@ -71,11 +77,11 @@ tessera:
   ##     still possible. This should only be used if another transport security
   ##     mechanism like WireGuard is in place.
   #Eg. tls: 'STRICT'
-  tls: 
+  tls: STRICT
   #Provide the server/client  trust configuration for constellation nodes. 
   # options are: "WHITELIST", "CA_OR_TOFU", "CA", "TOFU"
   # Eg: trust: "TOFU"
-  trust: 
+  trust: CA_OR_TOFU
   #Provide the k8s service type
   servicetype: ClusterIP
   #Provide the container and service ports
@@ -83,37 +89,46 @@ tessera:
     tm: 443    
     db: 3306
     client: 15023
-  #Provide the mountpath for Quorum pod
+  #Provide the mountpath for Tessera pod
   #Eg. mountPath: /etc/tessera/data
-  mountPath: 
+  mountPath: /etc/tessera/data
   #Provide the secret name to be used with TLScontext
   ambassadorSecret:
 
 vault:
   #Provide the Vault Address from where secrets will be read
   #Eg. address: http://vault.internal.demo.aws.blockchaincloudpoc.com:9000
-  address: 
+  address:
+  #Provide the secret engine.
+  #Eg. secretengine: secretsv2
+  secretengine: secretsv2 
   #Provide the Vault secret path from where secrets will be read
-  #Eg. secretprefix: secret/org1/crypto/node_1
+  #Eg. secretprefix: secret/org1/crypto/node1
   secretprefix: 
+  #Provide the Vault secret path from where transaction manager secrets will be read
+  #Eg. secretprefix: secret/org1/crypto/node1/tm
+  tmsecretpath: 
   #Provide the serviceaccount which is verified with Vault
   #Eg. serviceaccountname: vault-auth
-  serviceaccountname: 
+  serviceaccountname: vault-auth
   #Provide the key name from where besu secrets will be read
   #Eg. keyname: data
-  keyname: 
+  keyname: data 
   #Provide the key name from where transaction-manager secrets will be read
   #Eg. tm_keyname: transaction
-  tm_keyname: 
-  # Provide the name of the folder containing the tls crypto for orion
+  tm_keyname: transaction
+  # Provide the name of the folder containing the tls crypto for besu
   # Eg. tlsdir: tls
-  tlsdir: 
+  tlsdir: tls
   #Provide the service role which is verified with Vault
   #Eg. role: vault-role
-  role: 
+  role: vault-role
   #Provide the Vault auth-path which is created for the namespace
-  #Eg. authpath: quorumorg1
-  authpath:
+  #Eg. authpath: besunode1
+  authpath: besunode1
+  #Provide the type of vault
+  #Eg. type: hashicorp
+  type: hashicorp
 
 proxy:
   #This will be the proxy/ingress provider. Can have values "ambassador" or "none"
@@ -128,13 +143,13 @@ proxy:
 storage:
   #Provide the kubernetes storageclass for node
   #Eg. storageclassname: awsstorageclass
-  storageclassname: 
+  storageclassname: awsstorageclass
   #Provide the memory for node
   #Eg. storagesize: 1Gi
-  storagesize: 
+  storagesize: 1Gi
   #Provide the memory for database
   #Eg. dbstorage: 1Gi
-  dbstorage: 
+  dbstorage: 1Gi
 
 labels:
   service: []
@@ -142,5 +157,5 @@ labels:
   deployment: []
 
 metrics:
-  enabled:
-  port: 
+  enabled: false
+  port: 9545
