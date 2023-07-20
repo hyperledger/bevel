@@ -3,13 +3,34 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# NODE INITIAL REGISTRATION
+<a name = "deploy node-initial-registration"></a>
+# Node Deployment
 
-Following chart contains Kubernetes job which is used for performing initial-registration for the node from doorman.
+- [Node-initial-registration Deployment Helm Chart](#Node-initial-registration-deployment-helm-chart)
+- [Prerequisites](#prerequisites)
+- [Chart Structure](#chart-structure)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
-For more information read [corda node](https://docs.corda.net/releases/release-V3.3/key-concepts-node.html)
 
-To find more details on initial registration [here](https://docs.corda.net/releases/release-V3.3/permissioning.html)
+<a name = "node-initial-registration-deployment-helm-chart"></a>
+## node-initial-registration Deployment Helm Chart
+---
+This [Helm chart](https://github.com/hyperledger/bevel/tree/develop/platforms/r3-corda/charts/node-initial-registration) helps to delpoy the job for registering the r3corda node.
+
+<a name = "prerequisites"></a>
+## Prerequisites
+---
+Before deploying the chart please ensure you have the following prerequisites:
+
+- Node's database up and running.
+- Kubernetes cluster up and running.
+- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
+- The Vault is unsealed and initialized.
+- Helm is installed.
+
 
 This chart has following structue:
 ```
@@ -24,87 +45,187 @@ This chart has following structue:
 
 Type of files used:
 
+- `templates`      : This directory contains the Kubernetes manifest templates that define the resources to be deployed.
+- `job.yaml`       : This file is a configuration file for deployement in Kubernetes.It creates a deployment file with a specified number of replicas and defines various settings for the deployment. Including volume mounts, environment variables, and ports for the container.
+- `chart.yaml`     : Provides metadata about the chart, such as its name, version, and description.
+- `values.yaml`    : Contains the default configuration values for the chart. It includes configuration for the image, nodeconfig, credenatials, storage, service , vault, etc.
+- `_helpers.tpl`   : A template file used for defining custom labels and ports for the metrics in the Helm chart.
+
+<a name = "configuration"></a>
+## Configuration
+---
+The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/r3-corda/charts/node-initial-registration/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+
+## Parameters
+---
+
+### Name
+
+| Name       | Description                                        | Default Value |
+| -----------| -------------------------------------------------- | ------------- |
+| name       | Provide the name of the node                       | bank1         |
+
+### Metadata
+
+| Name            | Description                                                                  | Default Value |
+| ----------------| ---------------------------------------------------------------------------- | ------------- |
+| namespace       | Provide the namespace for the Node-initial-registration Generator            | default       |
+| labels          | Provide any additional labels for the Node-initial-registration Generator    | ""            |
+
+### Image
+
+| Name                     | Description                                                                                | Default Value   |
+| ------------------------ | ---------------------------------------------------------------------------------------    | --------------- |
+| initContainerName        | Provide the alpine utils image, which is used for all init-containers of deployments/jobs  | ""              |
+| containerName            | Provide the containerName of image                                                         | ""              |
+| imagePullSecret          | Provide the image pull secret of image                                                     | regcred         |
+| privateCertificate       | Provide true or false if private certificate to be added                                   | "true"          |
+| doormanCertAlias         | Provide true or false if private certificate to be added                                   | ""              |
+| networkmapCertAlias      | Provide true or false if private certificate to be added                                   | ""              |
+
+### NodeConf
+
+| Name                     | Description                                                                                | Default Value   |
+| ------------------------ | --------------------------------------------------------------------------------------     | --------------- |
+| p2p                      | The host and port on which the node is available for protocol operations over ArtemisMQ    | ""              |
+| ambassadorAddress        | Specify ambassador host:port which will be advertised in addition to p2paddress            | ""              |
+| legalName                | Provide the legalName for node                                                             | ""              |
+| dbUrl                    | Provide the h2Url for node                                                                 | "bank1h2"       |
+| dbPort                   | Provide the h2Port for node                                                                | "9101"          |
+| networkMapURL            | Provide the nms for node                                                                   | ""              |
+| doormanURL               | Provide the doorman for node                                                               | ""              |
+| jarVersion               | Provide the jar Version for corda jar and finanace jar                                     | "3.3-corda"     |  
+| devMode                  | Provide the devMode for corda node                                                         | "true"          |
+| env                      | Provide the enviroment variables to be set                                                 | ""              |
+
+### credentials
+
+| Name            | Description                                   | Default Value  |
+| ----------------| ----------------------------------------------| -------------  |
+| dataSourceUser  | Provide the dataSourceUser for corda node     | ""             |
+| rpcUser         | Provide the rpcUser for corda node            | bank1operations|
+
+### Volume
+
+| Name             | Description            | Default Value |
+| -----------------| -----------------------| ------------- |
+| baseDir          | Base directory         | /home/bevel   |
+
+### Resources
+
+| Name                     | Description                                             | Default Value   |
+| ------------------------ | ------------------------------------------------------- | --------------- |
+| limits                   | Provide the limit memory for node                       | "1Gi"           |
+| requests                 | Provide the requests memory for node                    | "1Gi"           |
+
+### storage
+
+| Name                  | Description                                               | Default Value   |
+| --------------------- | --------------------------------------------------------  | -------------   |
+| provisioner           | Provide the provisioner for node                          | ""              |
+| name                  | Provide the name for node                                 | bank1nodesc     |
+| memory                | Provide the memory for node                               | "4Gi"           |
+| type                  | Provide the type for node                                 | "gp2"           |
+| encrypted             | Provide whether the EBS volume should be encrypted or not | "true"          |
+| annotations           | Provide the annotation of the node                        | ""              |
+
+### Service
+
+| Name                  | Description                               | Default Value   |
+| --------------------- | ------------------------------------------| -------------   |
+| type                  | Provide the type of service               | NodePort        |
+| p2p port              | Provide the tcp port for node             | 10007           |
+| p2p nodePort          | Provide the p2p nodeport for node         | 30007           |
+| p2p targetPort        | Provide the p2p targetPort for node       | 30007           |
+| rpc port              | Provide the tpc port for node             | 10008           |
+| rpc targetPort        | Provide the rpc targetport for node       | 10003           |
+| rpc nodePort          | Provide the rpc nodePort for node         | 30007           |
+| rpcadmin port         | Provide the rpcadmin port for node        | 10108           |
+| rpcadmin targetPort   | Provide the rpcadmin targetport for node  | 10005           |
+| rpcadmin nodePort     | Provide the rpcadmin nodePort for node    | 30007           |
+
+### Vault
+
+| Name                      | Description                                                               | Default Value              |
+| ------------------------- | --------------------------------------------------------------------------| -------------------------  |
+| address                   | Address/URL of the Vault server.                                          | ""                         |
+| role                      | Role used for authentication with Vault                                   | vault-role                 |
+| authpath                  | Authentication path for Vault                                             | cordabank1                 |
+| serviceAccountName        | Provide the already created service account name autheticated to vault    | vault-auth-issuer          |
+| certSecretPrefix          | Provide the vault path where the certificates are stored                  | bank1/certs                |
+| dbsecretprefix            | Provide the secretprefix                                                  | bank1/credentials/database |
+| rpcusersecretprefix       | Provide the secretprefix                                                  | bank1/credentials/rpcusers |
+| keystoresecretprefix      | Provide the secretprefix                                                  | bank1/credentials/keystore |
+| retires                   | Provide the no of retires                                                 | ""                         |
+
+### Healthcheck
+
+| Name                        | Description                                                                   | Default Value |
+| ----------------------------| ------------------------------------------------------------------------------| ------------- |
+| readinesscheckinterval      | Provide the interval in seconds you want to iterate till db to be ready       | 5             |
+| readinessthreshold          | Provide the threshold till you want to check if specified db up and running   | 2             |
+
+
+<a name = "deployment"></a>
+## Deployment
+---
+
+To deploy the node-initial-registration Helm chart, follow these steps:
+
+1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/r3-corda/charts/node-initial-registration/values.yaml) file to set the desired configuration values.
+2. Run the following Helm command to install, upgrade,verify, delete the chart:
+
+To install the chart:
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel/
+helm install <release-name> ./node-initial-registration
 ```
-charts.yaml       : A YAML file containing information about the chart
-_helpers.tpl      : A place to put template helpers that you can re-use throughout the chart
-values.yaml       : This file contains the default values for a chart
-job.yaml          : A Job creates one or more Pods and ensures that a specified number of them successfully terminate. 
+
+To upgrade the chart:
+```bash
+helm upgrade <release-name> ./node-initial-registration
 ```
 
+To verify the deployment:
+```bash
+kubectl get jobs -n <namespace>
+```
+Note : Replace `<namespace>` with the actual namespace where the Job was created. This command will display information about the Job, including the number of completions and the current status of the Job's pods.
 
-## Running the chart
+To delete the chart: 
+```bash
+helm uninstall <release-name>
+```
+Note : Replace `<release-name>` with the desired name for the release.
 
-Pre-Requisite: Before deploying the chart please ensure you have Doorman and Node's database up and running. 
 
-- Deploy Doorman & Node's Database by following steps from documentation 
-- Create secrets for the node by following steps from documentation 
-- Create a values-node.yaml for the chart with a minimum set of keys, for template references use values.yaml present in the respective chart
-- Create aws cli script to transfer artmis folder (which gets created by corda node) to and from AWS s3  
+<a name = "contributing"></a>
+## Contributing
+---
+If you encounter any bugs, have suggestions, or would like to contribute to the [node-initial-registration Deployment Helm Chart](https://github.com/hyperledger/bevel/tree/develop/platforms/r3-corda/charts/node-initial-registration), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
 
-Install the chart with:
+
+<a name = "license"></a>
+## License
+
+This chart is licensed under the Apache v2.0 license.
+
+Copyright &copy; 2023 Accenture
+
+### Attribution
+
+This chart is adapted from the [charts](https://hyperledger.github.io/bevel/) which is licensed under the Apache v2.0 License which is reproduced here:
 
 ```
-helm install --values=${PATH_TO_VALUES}/<node name>/values-node.yaml ${PATH_TO_HELMCHARTS}/node-initial-registration --name <helm name> --kube-context=<kube context> --namespace=<node namespace>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 ```
-
-If you need to delete the chart use:
-
-```
-helm uninstall <helm name> -n <namespace> --kube-context=<kube context>
-```
-
-# Chart Functionalities
-
-## job.yaml 
-
-Contains following containers:
-
-### Main Containers: 
-
-1. corda-node: 	This container is used for running corda jar.  
-  Tasks performed in this container:
-- Setting up enviroment variables required for corda jar
-- Import self signed tls certificate (if used) of doorman and networkmap, since java only trusts certificate signed by well known CA  
-- Import self signed tls certificate of H2, since java only trusts certificate signed by well known CA 
-- Change password of nodekeystore.jks,sslkeystore.jks ,truststore.jks
-- Command to run corda jar with --initial-registration to perform initial registration with doorman, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl
-
-2. store-certs:  This container is is used for putting certificate into the vault  
-  Tasks performed in this container
-- Loop to check if certificate and check file is generated 
-- Put certificates obtained after perfoming initial-registration is added in vault
-
-### Init-containers:
-
-1. init-nodeconf: This container is used for creating node.conf which is used by corda node.  
-   For more details on how to make node.conf read [node configuration](https://docs.corda.net/releases/release-V3.3/corda-configuration-file.html)
-   Tasks performed in this container
-
-- Delete previously created node.conf, and create a new node.conf
-- Set env to get secrets from vault
-- Save keyStorePassword & trustStorePassword from vault
-- Save dataSourceUserPassword from vault
-- Create node.conf according to values specified by users using values.yaml
-
-2. init-certificates:  This container is used for downloading certficate from vault  
-   For more details on read [Network permissioning](https://docs.corda.net/releases/release-V3.3/permissioning.html)
-   Tasks performed in this container
-
-- Setting up env to get secrets from vault
-- To perform check if certificate are already present in vault, if yes then exit
-- Get custom nodekeystore.jks from vault, if provided
-- Get network-map-truststore.jks from vault
-- When using h2-ssl with private certificate, download the certificate  (To import in ca cert in main corda container)
-- When using doorman and networkmap in TLS: true, and using private certificate then download certificate(To import in ca cert in main corda container)
-- When using custom sslKeystore while setting in node.conf
-- To download jars from git repo, download private key (corresponding public key to be added in git repo)
-- Get aws access key id and secret access key, it is used for accessing AWS s3 for artmis folder 
-
-3. init-credential: This container is used for getting passwords of keystore from vault  
-  Tasks performed in this container
-- Setting up env to get secrets from vault
-- Get keystore passwords from vault
-
-4. db-healthcheck: This container is used for performing health check  
-  Tasks performed in this container
-- perform health check if db is up and running before starting corda node
