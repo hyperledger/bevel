@@ -29,13 +29,13 @@
     include_role: 
       name: create/namespace
     vars:
-      component_ns: "{{ organizationItem.name | lower }}-bes"
-      organisation: "{{ organizationItem.name | lower }}"
-      kubernetes: "{{ organizationItem.k8s }}"
-      gitops: "{{ organizationItem.gitops }}"
+      component_ns: "{{ org.name | lower }}-bes"
+      organisation: "{{ org.name | lower }}"
+      kubernetes: "{{ org.k8s }}"
+      gitops: "{{ org.gitops }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organizationItem
+      loop_var: org
     when: add_new_org == 'true'
 
   # Create Storageclass
@@ -43,13 +43,13 @@
     include_role:
       name: create/storageclass
     vars:
-      storageclass_name: "{{ organizationItem.cloud_provider }}storageclass"
-      git_dir: "{{ organizationItem.gitops.release_dir }}"
-      org: "{{ organizationItem }}"
-      kubernetes: "{{ organizationItem.k8s }}"
+      storageclass_name: "{{ org.cloud_provider }}storageclass"
+      git_dir: "{{ org.gitops.release_dir }}"
+      org: "{{ org }}"
+      kubernetes: "{{ org.k8s }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organizationItem
+      loop_var: org
     when: add_new_org == 'true'
   
   # Create Vault scrit as configmap for Vault CURD operations
@@ -57,10 +57,10 @@
     include_role:
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
     vars:
-      component_ns: "{{ organizationItem.name | lower }}-bes"
+      component_ns: "{{ org.name | lower }}-bes"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organizationItem
+      loop_var: org
     when: add_new_org == 'true'
 
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
@@ -69,18 +69,18 @@
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
     vars:
       policy_type: "besu"
-      name: "{{ organizationItem.name | lower }}"
-      component_ns: "{{ organizationItem.name | lower }}-bes"
-      component_name: "{{ organizationItem.name | lower }}-vaultk8s-job"
-      component_auth: "besu{{ organizationItem.name | lower }}"
+      name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-bes"
+      component_name: "{{ org.name | lower }}-vaultk8s-job"
+      component_auth: "besu{{ org.name | lower }}"
       component_type: "organization"
-      kubernetes: "{{ organizationItem.k8s }}"
-      vault: "{{ organizationItem.vault }}"
-      gitops: "{{ organizationItem.gitops }}"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
       reset_path: "platforms/hyperledger-besu/configuration"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organizationItem
+      loop_var: org
     when: add_new_org == 'true'
     
   # Installs cert-manager
@@ -103,18 +103,18 @@
     vars:
       root_subject: "{{ network.config.subject }}"
       cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
-      services: "{{ organizationItem.services }}"
-      organisation: "{{ organizationItem.name | lower }}"
-      component_ns: "{{ organizationItem.name | lower }}-bes"
-      component_name: "{{ organizationItem.name | lower }}"
-      kubernetes: "{{ organizationItem.k8s }}"
-      vault: "{{ organizationItem.vault }}"
-      gitops: "{{ organizationItem.gitops }}"
-      charts_dir: "{{ organizationItem.gitops.chart_source }}"
-      values_dir: "{{ playbook_dir }}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+      services: "{{ org.services }}"
+      organisation: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-bes"
+      component_name: "{{ org.name | lower }}"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
     loop: "{{ network['organizations']}}"
     loop_control:
-      loop_var: organizationItem
+      loop_var: org
 
   # This role generates the admin PPK for permissioning
   - name: Generate admin key for permissioning

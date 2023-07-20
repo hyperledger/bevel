@@ -54,9 +54,9 @@ This task pushes the above generated value files to git repo.
 #### 4. Create the Ambassador credentials
 This task creates the Ambassador TLS credentials
 ##### Input Variables
-    *namespace: "Namespace of org , Format: {{ organizationItem.name | lower }}-bes"
+    *namespace: "Namespace of org , Format: {{ org.name | lower }}-bes"
     *vault: "Vault Details"
-    *kubernetes: "{{ organizationItem.k8s }}"
+    *kubernetes: "{{ org.k8s }}"
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
 
 #### Note: 
