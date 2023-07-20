@@ -440,7 +440,7 @@ Each organization with type as peer will have a peers service. The snapshot of p
               maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
               repository:
                 username: "git_username"          # Git Service user who has rights to check-in in all branches
-                password: "git_password"
+                password: "git_access_token"
                 url: "github.com/hyperledger/bevel.git"
                 branch: develop
                 path: "chaincode_src"   #The path to the chaincode 
