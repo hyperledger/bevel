@@ -47,7 +47,7 @@ network:
               lang: "java" # The chaincode language, optional field with default vaule of 'go'.
               repository:
                 username: "git_username"          # Git Service user who has rights to check-in in all branches
-                password: "git_password"
+                password: "git_access_token"
                 url: "github.com/hyperledger/bevel.git"
                 branch: develop
                 path: "chaincode_src"   #The path to the chaincode 

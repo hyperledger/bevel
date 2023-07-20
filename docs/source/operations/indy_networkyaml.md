@@ -206,7 +206,7 @@ The `vault` field under each organisation contains:
 For gitops fields the snapshot from the sample configuration file with the example values is below
 ```yaml
       # Git Repo details which will be used by GitOps/Flux.
-      # Do not check-in git_password
+      # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
         git_url: "gitops_ssh_url"                   # Gitops https or ssh url for flux value files like "https://github.com/hyperledger/bevel.git"
@@ -215,7 +215,7 @@ For gitops fields the snapshot from the sample configuration file with the examp
         chart_source: "gitops_charts"               # Relative Path where the Helm charts are stored in Git repo
         git_repo: "gitops_repo_url"             # Gitops git repository URL for git push like "github.com/hyperledger/bevel.git"
         username: "git_username"                    # Git Service user who has rights to check-in in all branches
-        password: "git_password"                    # Git Server user password/ user token (Optional for ssh; Required for https)
+        password: "git_access_token"                    # Git Server user password/ user token (Optional for ssh; Required for https)
         email: "git_email"                          # Email to use in git config
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
