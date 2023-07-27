@@ -21,7 +21,7 @@ spec:
       namespace: {{ component_ns }}
       images:
         couchdb: couchdb:3.1.1
-        console: "{{ network.docker.url }}/fabric-console:latest"
+        console: ghcr.io/hyperledger-labs/fabric-console:latest
         configtxlator: hyperledger/fabric-tools:{{ network.version }}
     storage:
       couchdb:
