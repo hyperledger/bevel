@@ -49,11 +49,9 @@
 
 # This task creates the access policy for various entity
 - name: Create policy for Access Control
-  vars:  
-    name: "{{ component_name }}"
   template:
     src: "{{ policy_templates[policy_type] | default('helm_component.tpl') }}"
-    dest: "{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl"
+    dest: "{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl"
   changed_when: false
   
 #############################################################################################
@@ -113,20 +111,19 @@
     charts_dir: "platforms/shared/charts"
     kubernetes_url: "{{ kubernetes_server_url.stdout }}"
     alpine_image: "hyperledgerlabs/alpine-utils:1.0"
-    policydata: "{{ lookup('file', '{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ component_name }}-ro.hcl') }}"
+    policydata: "{{ lookup('file', '{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl') }}"
     create_serviceAccount: "{{ check_serviceAccount }}"
     create_clusterRoleBinding: "{{ check_clusterRoleBinding }}"
-    values_dir: "{{playbook_dir}}/../../../{{gitops.release_dir}}/{{ name }}"
+    values_dir: "{{ playbook_dir }}/../../../{{gitops.release_dir}}/{{ name }}"
   when:
   - check_serviceAccount or check_clusterRoleBinding
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ org.gitops }}"
     GIT_RESET_PATH: "{{ reset_path }}"
     msg: "[ci skip] Pushing vault_kubernetes files"
    
