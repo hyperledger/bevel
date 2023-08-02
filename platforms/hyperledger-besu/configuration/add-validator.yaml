@@ -43,21 +43,26 @@
     include_role:
       name: create/storageclass
     vars:
-      storageclass_name: "{{ org.cloud_provider }}storageclass"
-      git_dir: "{{ org.gitops.release_dir }}"
-      org: "{{ org }}"
+      org_name: "{{ org.name | lower }}"
+      cloudProvider: "{{ org.cloud_provider | lower }}"
+      sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
       kubernetes: "{{ org.k8s }}"
+      region: "{{ org.k8s.region | default('eu-west-1') }}"
+      git_dir: "{{ org.gitops.release_dir }}"
+      charts_dir: "platforms/shared/charts"
+      platform_suffix: "bes"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
     when: add_new_org == 'true'
   
-  # Create Vault scrit as configmap for Vault CURD operations
+  # Create Vault scrit as configmap for Vault CRUD operations
   - name: setup vault script
     include_role:
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
     vars:
       component_ns: "{{ org.name | lower }}-bes"
+      kubernetes: "{{ org.k8s }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
@@ -73,7 +78,7 @@
       component_ns: "{{ org.name | lower }}-bes"
       component_name: "{{ org.name | lower }}-vaultk8s-job"
       component_auth: "besu{{ org.name | lower }}"
-      component_type: "organization"
+      component_type: "{{ org.type | lower }}"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"

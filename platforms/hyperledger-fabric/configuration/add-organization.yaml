@@ -33,20 +33,27 @@
         component_name: "{{ item.name | lower }}-net"
         component_type_name: "{{ item.type | lower }}"
         kubernetes: "{{ item.k8s }}"
-        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        release_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.org_status == 'new'
     
-    #Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
+    # Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
     - include_role: 
-        name: "{{playbook_dir}}/../../shared/configuration/roles/setup/vault_kubernetes"
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
       vars:
-        component_name: "{{ item.name | lower }}-net"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        component_type: "{{ item.type | lower }}"
-        auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
+        name: "{{ org.name | lower }}"
+        component_name: "{{ org.name | lower }}-vaultk8s-job"
+        component_type: "{{ org.type | lower }}"
+        component_ns: "{{ org.name | lower }}-net"
+        component_auth: "{{ network.env.type }}{{ org.name | lower }}-net-auth"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        policy_type: "fabric"
+        gitops: "{{ org.gitops }}"
+        reset_path: "platforms/hyperledger-fabric/configuration"
       loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
       when: item.org_status == 'new'
 
     # Create Storageclass for new organization
@@ -61,7 +68,7 @@
         kubernetes: "{{ item.k8s }}"
         platform_suffix: "net"
         charts_dir: "platforms/shared/charts"
-        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ org_name }}"
+        release_dir: "{{ playbook_dir}}/../../../{{ item.gitops.release_dir }}/{{ org_name }}"
       loop: "{{ network['organizations'] }}"
       when: item.org_status == 'new'
         
@@ -78,7 +85,7 @@
         ca: "{{ item.services.ca }}"
         docker_url: "{{ network.docker.url }}"
         gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.services.ca is defined and item.org_status == 'new'
 
@@ -121,7 +128,7 @@
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
         gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer' and item.org_status == 'new'
 
@@ -176,7 +183,7 @@
         git_branch: "{{ item.gitops.branch }}"
         docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer' and item.org_status == 'new'
 
