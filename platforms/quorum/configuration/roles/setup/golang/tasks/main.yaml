@@ -17,8 +17,6 @@
     path: "{{ go_root_dir }}/go"
   register: go_stat_result
   changed_when: false
-  tags:
-    molecule-idempotence-notest
  
 - name: Download golang tar 
   get_url:
@@ -26,16 +24,12 @@
     dest: "{{ tmp_directory.path }}"
     mode: 0440
   when: not go_stat_result.stat.exists
-  tags:
-    molecule-idempotence-notest
  
 - name: create bin directory
   file:
     path: "{{ bin_install_dir }}"
     state: directory
   when: not go_stat_result.stat.exists
-  tags:
-    molecule-idempotence-notest
  
 - name: Extract the Go tarball
   unarchive:
@@ -44,8 +38,6 @@
     copy: no
   become: yes  
   when: not go_stat_result.stat.exists
-  tags:
-    molecule-idempotence-notest
  
 - name: Copy go binary to destination directory
   copy:
@@ -54,13 +46,9 @@
     mode: 0755
     remote_src: yes
   when: not go_stat_result.stat.exists
-  tags:
-    molecule-idempotence-notest
  
 - name: Test go installation
   command: "{{ bin_install_dir }}/go version"
   changed_when: false
   environment:
     GOROOT: "{{ go_root_dir }}/go"
-  tags:
-    molecule-idempotence-notest

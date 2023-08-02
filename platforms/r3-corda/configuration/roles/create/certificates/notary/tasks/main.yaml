@@ -25,8 +25,6 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: truststore_result
   ignore_errors: yes
-  tags:
-    - molecule-idempotence-notest
 
 ########################################################################################
 # This task downloads the certificates from NMS
@@ -38,7 +36,6 @@
   when: truststore_result.failed == True and network.env.proxy != 'none'
   tags:
     - notest
-    - molecule-idempotence-notest
 
 # Wait till the nms is running
 - name: Waiting for nms pod to come up
@@ -60,8 +57,6 @@
     export NMS_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ item.services.nms.name | lower }} | grep {{ item.services.nms.name | lower }}  | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${NMS_POD}:../../opt/networkmap/network-map-truststore.jks -c logs {{ notary_certs }}/network-map-truststore.jks
   when: truststore_result.failed == True and network.env.proxy == 'none'
-  tags:
-    - molecule-idempotence-notest
 
 ########################################################################################
 # This task loads the certificates to vault
@@ -72,8 +67,6 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: truststore_result.failed == True
-  tags:
-    - molecule-idempotence-notest
 
 - name: Check if certificates already created
   shell: |
@@ -83,8 +76,6 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: certs_result
   ignore_errors: yes
-  tags:
-    - molecule-idempotence-notest
 
 - name: Generate node certs
   shell: |
@@ -95,8 +86,6 @@
     openssl pkcs12 -export -in Notary.cer -inkey Notary.key -out testkeystore.p12 -passin pass:'cordacadevpass' -passout pass:'cordacadevpass'
     keytool -importkeystore -srckeystore testkeystore.p12 -srcstoretype pkcs12 -srcstorepass cordacadevpass -destkeystore nodekeystore.jks -deststorepass cordacadevpass -deststoretype JKS
   when: certs_result.failed == True
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Write certificates to vault"
   shell: |
@@ -106,8 +95,6 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: certs_result.failed == True
-  tags:
-    - molecule-idempotence-notest
 
 - name: Check if doorman certs already created
   shell: |
@@ -117,8 +104,6 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: doorman_result
   ignore_errors: yes
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Write certificates to vault"
   shell: |
@@ -127,8 +112,6 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: doorman_result.failed == True
-  tags:
-    - molecule-idempotence-notest
 
 - name: Check if networkmap certs already created
   shell: |
@@ -138,8 +121,6 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: networkmap_result
   ignore_errors: yes
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Write certificates to vault"
   shell: |
@@ -148,8 +129,6 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: networkmap_result.failed == True
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Write credentials to vault"
   shell: |
@@ -160,8 +139,6 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Write cordapps credentials to vault"
   shell: |
@@ -170,8 +147,6 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: cordapps_details != ""
-  tags:
-    - molecule-idempotence-notest
 
 - name: Create Ambassador certificates
   include_role: 
