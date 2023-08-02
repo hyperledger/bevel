@@ -23,7 +23,6 @@ This task deletes all the files from the release directory
 #### 2. Git Push
 This task pushes the current state to git repo after deleting value files from *release_dir* calling git_push role from shared.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"    
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    GIT_DIR: "The path of directory which needs to be pushed"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"

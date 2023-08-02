@@ -22,12 +22,6 @@
     git --git-dir={{ GIT_DIR }}/.git pull
     git --git-dir={{ GIT_DIR }}/.git add -A .
     
-    # To ignore a directory add it add reset path
-    reset_path={{ GIT_RESET_PATH if GIT_RESET_PATH is defined else '' | default('') }}
-    if [ -n "$reset_path" ]; then
-        git --git-dir={{ GIT_DIR }}/.git reset "{{ GIT_RESET_PATH }}"
-    fi  
-    
     git --git-dir={{ GIT_DIR }}/.git commit -s -m "{{ msg }}" || true
     git --git-dir={{ GIT_DIR }}/.git push {{ gitops.git_url }} HEAD:{{ gitops.branch }}  
   register: GIT_OUTPUT_SSH
@@ -47,12 +41,6 @@
     git config user.name {{ gitops.username }}
     git --git-dir={{ GIT_DIR }}/.git pull
     git --git-dir={{ GIT_DIR }}/.git add -A .
-    
-    # To ignore a directory add it add reset path
-    reset_path={{ GIT_RESET_PATH if GIT_RESET_PATH is defined else '' | default('') }}
-    if [ -n "$reset_path" ]; then
-        git --git-dir={{ GIT_DIR }}/.git reset "{{ GIT_RESET_PATH }}"
-    fi  
     
     git --git-dir={{ GIT_DIR }}/.git commit -s -m "{{ msg }}" || true
     git --git-dir={{ GIT_DIR }}/.git push https://{{ gitops.username }}:{{ gitops.password }}@{{ gitops.git_repo }} HEAD:{{ gitops.branch }}

@@ -120,7 +120,6 @@ This tasks creates deployment file for nms node by calling create/k8_component r
 #### 12. "Push the created deployment files to repository"
 This tasks push the created value files into repository by calling git_push from shared.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"    
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    GIT_DIR: "The path of directory which needs to be pushed"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"

@@ -43,8 +43,7 @@ This task creates the value file by calling the helm_component role
 #### 4. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"    
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    GIT_DIR: "The path of directory which needs to be pushed"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 **include_role**: It includes the name of intermediatory role which is required for pushing  the value file to git repository.

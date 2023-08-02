@@ -69,6 +69,5 @@ This task pushes all the value files created to the git repo by calling git_push
 ##### Input Variables
     
     GIT_DIR: root directory of the git cloned repository
-    GIT_RESET_PATH: Any path that needs to be ignored.
     gitops: *item.gitops* from network.yaml
     msg: Git commit message

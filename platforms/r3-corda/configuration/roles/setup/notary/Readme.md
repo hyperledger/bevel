@@ -97,8 +97,7 @@ This task is called only when nodekeystore_result is failed i.e. only when first
 #### 11. "Push the created deployment files to repository"
 This tasks push the created value files into repository by calling git_push role from shared.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"    
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    GIT_DIR: "The path of directory which needs to be pushed"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 
@@ -117,7 +116,6 @@ This tasks create deployment file for notary by calling create/node_component ro
 #### 13. 'Push notary deployment files'
 This tasks push the deployment files for h2, job and notary to repository by calling git_push role from shared.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"    
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    GIT_DIR: "The path of directory which needs to be pushed"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
