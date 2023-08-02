@@ -50,7 +50,6 @@ General/Shared
 - |hand| Setup AWS cloudwatch exporter
 - |pin| Grafana and Promethus integration
 - |hand| Support of Emissary Ingress 
-- |pin| Molecule test support to be removed
 - |pin| Upgrade vault and support for additional vault options
 - |run| Add git actions to automate creation of helm repo chart artifacts
 - |muscle| Devcontainer for vscode containers/codespaces

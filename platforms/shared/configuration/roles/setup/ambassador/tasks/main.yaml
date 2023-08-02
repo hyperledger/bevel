@@ -57,8 +57,6 @@
   register: terminal
   when:
     - network['type'] == 'indy' and item.services.stewards is defined
-  tags:
-    - molecule-idempotence-notest
 
 - name: Get Elastic IP
   environment:
@@ -90,8 +88,6 @@
       echo "--set ambassador.otherPorts.portRange.from=${from} --set ambassador.otherPorts.portRange.to=${to}"
     fi
   register: ambassadorRange
-  tags:
-    - molecule-idempotence-notest
 
 - name: Format ambassador ports for Corda/Besu/Quorum
   args:
@@ -107,8 +103,6 @@
   register: ambassadorPorts
   when:
     - network.type != 'indy'
-  tags:
-    - molecule-idempotence-notest
 
 - name: Format ambassador ports for Indy
   args:
@@ -125,8 +119,6 @@
   register: ambassadorPortsIndy
   when:
     - network.type == 'indy'
-  tags:
-    - molecule-idempotence-notest
 
 # return true when the ambassador is with required set of ports else return false
 - name: check required ports available for Corda/Besu/Quorum
@@ -196,8 +188,6 @@
     name: "ambassador-default-tls"
     kubeconfig: "{{ kubeconfig_path }}"
     context: "{{ kubecontext }}"
-  tags:
-    - molecule-idempotence-notest
 
 # Create and store selfsigned ambassador default certificate
 - name: Create Ambassador default certificate
@@ -209,8 +199,6 @@
     - network.env.external_dns is defined
     - network.env.external_dns == 'enabled'
     - (organization.issuer is undefined) or (organization.issuer | lower == default)
-  tags:
-    - molecule-idempotence-notest
 
 # Checks Ingress class for Ambassador
 - name: checks IngressClass for ambassador
@@ -219,9 +207,7 @@
     name: ambassador
     namespace: default
     kubeconfig: "{{  kubeconfig_path }}"
-  register: ingressclass 
-  tags:
-    - molecule-idempotence-notest
+  register: ingressclass
 
 # Create Ingress class for Ambassador
 - name: creates IngressClass for ambassador
@@ -238,8 +224,6 @@
       spec:
         controller: getambassador.io/ingress-controller
   when: ingressclass.resources[0] is undefined
-  tags:
-    - molecule-idempotence-notest
 
 - name: Install Ambassador with EIP for Indy
   shell: |
@@ -250,7 +234,6 @@
     - not ambassador_installed or not ports_found
   tags:
     - ambassador
-    - molecule-idempotence-notest
     
 - name: Install Ambassador for Corda/Quorum/Besu/Fabric/Substrate
   shell: |
@@ -260,7 +243,6 @@
     - not ambassador_installed or not ports_found
   tags:
     - ambassador
-    - molecule-idempotence-notest
 
 - name: Enable external DNS
   shell: |
@@ -271,7 +253,6 @@
     - network.env.external_dns == 'enabled'
   tags:
     - ambassador
-    - molecule-idempotence-notest
 
 # Wait for Ambassador pods to start running
 - name: wait for pods to come up

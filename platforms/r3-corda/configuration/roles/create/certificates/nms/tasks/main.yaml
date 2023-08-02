@@ -42,8 +42,6 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: nms_root_certs
   ignore_errors: yes
-  tags:
-    - molecule-idempotence-notest
 
 - name: Get all root certs data from Vault
   shell: |
@@ -53,8 +51,6 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: nms_root_certs_yaml
   ignore_errors: yes
-  tags:
-    - molecule-idempotence-notest
 
 - name: Get root certs
   include_role: 
@@ -84,8 +80,6 @@
     eval "yes | keytool -importkeystore -srckeystore cordarootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
     eval "yes | keytool -importkeystore -srckeystore cordarootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: nms_root_certs.failed == True and rootca_stat_result.stat.exists == False
-  tags:
-  - molecule-idempotence-notest
 
 - name: Check if networkmap certs already created
   shell: |
@@ -95,8 +89,6 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: networkmap_certs
   ignore_errors: yes
-  tags:
-    - molecule-idempotence-notest
 
 - name: Decode base64
   shell: |    
@@ -119,8 +111,6 @@
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: networkmap_certs.failed == True
-  tags:
-    - molecule-idempotence-notest
 
 # checking root certificates for mongodb
 - name: Check if mongoroot certs already created
@@ -132,8 +122,6 @@
   register: mongoCA_certs
   ignore_errors: yes
   when: services.nms.tls == 'on'
-  tags:
-    - molecule-idempotence-notest
 
 - name: Decode base64
   shell: |    
@@ -155,8 +143,6 @@
     openssl genrsa -out mongoCA.key 3072
     openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '{{ mongoroot_cert_subj }}'
   when: services.nms.tls == 'on' and mongoCA_stat_result.stat.exists == False and mongoCA_certs.failed == True
-  tags:
-  - molecule-idempotence-notest
 
 # checking if mongodb certificate already created
 - name: Check if mongodb certs already created
@@ -168,8 +154,6 @@
   register: mongodb_certs
   ignore_errors: yes
   when: services.nms.tls == 'on'
-  tags:
-    - molecule-idempotence-notest
 
 - name: Decode base64
   shell: |    
@@ -186,8 +170,6 @@
     openssl x509 -CA {{ mongorootca }}/mongoCA.crt -CAkey {{ mongorootca }}/mongoCA.key -CAcreateserial -CAserial serial -req -days 365 -in mongodb-{{component_name}}.csr -out mongodb-{{component_name}}.crt
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
   when: services.nms.tls == 'on' and mongodb_certs.failed == True
-  tags:
-    - molecule-idempotence-notest
 
 - name: Putting certs to vault for root
   shell: |
@@ -196,8 +178,6 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: nms_root_certs.failed == True
-  tags:
-    - molecule-idempotence-notest
 
 - name: Putting certs and credential to vault for networkmap
   shell: |
@@ -208,9 +188,6 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: networkmap_certs.failed == True
-  tags:  
-    - molecule-idempotence-notest
-
 
 - name: Create Ambassador certificates
   include_role: 
