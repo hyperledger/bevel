@@ -54,6 +54,5 @@ This task creates deployment file for signer node by calling the `helm_component
 This tasks pushes the created value files into repository by calling the shared `git_push` role.
 ##### Input Variables
 - `GIT_DIR` - The base path of the GIT repository, default `{{ playbook_dir }}/../../../`
-- `GIT_RESET_PATH` - The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
 - `gitops` - *item.gitops* from `network.yaml`
 - `msg` - The commit message to use when pushing deployment files.

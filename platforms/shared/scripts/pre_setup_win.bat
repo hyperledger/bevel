@@ -90,16 +90,16 @@ if "%DOCKER_VERSION%" NEQ "Docker version 19.03.1, build 74b1e89e8a" (
 	echo "Docker is already installed with Docker version 19.03.1, build 74b1e89e8a"
 )
 :CHECK_VAULT
-if "%VAULT_VERSION%" NEQ "Vault v1.3.4" (
+if "%VAULT_VERSION%" NEQ "Vault v1.13.1" (
 	goto VAULT_CHECK
 ) else (
-	echo "Vault cli already installed with version 1.3.4"
+	echo "Vault cli already installed with version 1.13.1"
 )
 :CHECK_MINIKUBE
-if "%MINIKUBE_VERSION%" NEQ "minikube version: v1.8.2" (
+if "%MINIKUBE_VERSION%" NEQ "minikube version: v1.27.1" (
 	goto MINIKUBE_CHECK
 ) else (
-	echo "Minikube already installed with minikube version: v1.8.2"
+	echo "Minikube already installed with minikube version: v1.27.1"
 )
 :CONTINUE_WITH_SCRIPT
 echo.
@@ -182,14 +182,6 @@ echo.
 echo Please fork the bevel repository from browser and then continue ...
 PAUSE
 echo.
-echo Generating key file for Git
-"C:\Program Files\Git\bin\sh.exe" --login -i -c 'ssh-keygen -q -N "" -f ~/.ssh/gitops'
-"C:\Program Files\Git\bin\sh.exe" --login -i -c "eval $(ssh-agent)"
-
-echo.
-echo Add the following public key to your Git Account with "gist,repo" access then continue ...
-"C:\Program Files\Git\bin\sh.exe" --login -i -c "cat ~/.ssh/gitops.pub"
-PAUSE
 
 chdir project
 :REPO_URL_AGAIN
@@ -260,7 +252,7 @@ echo.
 vault --version
 set VAULTVAR=%errorlevel%
 if %VAULTVAR%==9009 (
-powershell -Command "Invoke-WebRequest https://releases.hashicorp.com/vault/1.3.4/vault_1.3.4_windows_amd64.zip -OutFile vault.zip"
+powershell -Command "Invoke-WebRequest https://releases.hashicorp.com/vault/1.13.1/vault_1.13.1_windows_amd64.zip -OutFile vault.zip"
 if %ERRORLEVEL%==1 (
 echo Bad internet/url. Exiting...
 PAUSE
@@ -315,7 +307,7 @@ minikube status
 set MINIKUBEVAR=%errorlevel%
 if %VIRTUALBOXVAR% NEQ 9009 if %VIRTUALBOXVAR% NEQ 3 (
   if %MINIKUBEVAR%==9009 (
-  powershell -Command "Invoke-WebRequest https://github.com/kubernetes/minikube/releases/download/v1.8.2/minikube-windows-amd64.exe -OutFile minikube.exe"
+  powershell -Command "Invoke-WebRequest https://github.com/kubernetes/minikube/releases/download/v1.27.1/minikube-windows-amd64.exe -OutFile minikube.exe"
 	if %ERRORLEVEL%==1 (
 	echo Bad internet/url. Exiting...
 	PAUSE
@@ -350,7 +342,7 @@ echo.
 minikube config set memory %RAMSIZE%
 minikube config set cpus %CPUCOUNT%
 minikube config set disk-size %DISKSIZE%
-minikube config set kubernetes-version v1.15.4
+minikube config set kubernetes-version v1.23.1
 :START_MINIKUBE_AGAIN
 minikube delete
 minikube start --vm-driver=virtualbox

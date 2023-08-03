@@ -1,6 +1,18 @@
 Developer Guide
 ===============
 
+Developing in Hyperledger Bevel involves the following:
+
+- Updating the Helm Charts to customize the deployments/jobs.
+- Updating the Ansible Roles to add new features to Bevel.
+- Testing the updated Ansible Roles and Charts.
+
+Following guides provide a quickstart development environment, although for improved developer experience, developers should use a Linux based system which has all the tools installed as per the Ansible controller Dockerfile.
+
+.. admonition:: Important
+   Bevel with minikube is not encouraged because it takes a lot more time than cloud deployments thereby resulting in poor developer experience.
+
+
 Quickstart Guides 
 ---------------------------
 
@@ -38,14 +50,6 @@ To build the documentation, execute the following command from `docs` directory:
     # or for Windows
     .\Make.bat html
 
-**Requirements**
-
-* Docker Engine
-* Python3 (and pip configured with python3)
-
-
-.. _Virtual environment: https://virtualenv.pypa.io/en/latest/
-.. _'--user' flag: https://packaging.python.org/tutorials/installing-packages/#installing-to-the-user-site
 
 Ansible Roles and Playbooks 
 ---------------------------

@@ -5,13 +5,26 @@
 
 # **Ansible**
 
-[Ansible](https://docs.ansible.com/ansible/latest/index.html) is an automation command line tool that helps IT technicians easily achieve system configuration, software deployment and other complex tasks in orchestration.
+[Ansible](https://docs.ansible.com/ansible/latest/index.html) is an open-source automation tool that simplifies the process of managing IT infrastructure and automating repetitive tasks. It is designed to make complex configuration and deployment processes easier, faster, and more consistent. Ansible is agentless, meaning it doesn't require any software to be installed on the managed hosts, making it lightweight and easy to set up.
 
-Ansible provisions several types of command line tools such as ansible, ansible-playbook and ansible-galaxy, etc. Each serves different scenarios so that a user can choose the most appropriate one or more to be adopted in the chosen scenario(s).
+With Ansible, you can define your infrastructure as code using simple, human-readable YAML files called "playbooks." Playbooks describe the desired state of your systems, specifying which tasks should be performed and in what order. These tasks can range from simple tasks like copying files or installing packages to more complex tasks like configuring services or managing cloud resources.
 
-Below gives a simple description of the three mentioned above, and a user can use the link to find more information for each of them.
-- [ansible](https://docs.ansible.com/ansible/latest/user_guide/intro_getting_started.html): it is the simplistic command line tool that enables a user to quickly achieve simple IT tasks, e.g. list one or more local/remote machines' information.
-- [ansible-playbook](https://docs.ansible.com/ansible/latest/user_guide/playbooks.html): it is an advanced command line that will run one or more Ansible playbooks (i.e. YAML files that have all the steps configured to achieve one or more complex tasks). Ansible [roles](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html) are defined to group relavant configurations together that can be resuable in multi playbooks.
-- [ansible-galaxy](https://docs.ansible.com/ansible/latest/reference_appendices/galaxy.html): it is an advanced command line that can run existing Ansible roles predefined by other users in the Ansible community.
+Here's how Ansible works in a nutshell:
 
-Hyperledger Bevel extensively uses Ansible playbooks along with roles to spin up a DLT/Blockchain network. For instance, to issue certificates for each node in the DLT/Blockchain network, and then put the certificates to HashiCorp [Vaults](./vault.md). In Hyperledger Bevel, there are different Ansible playbooks being designed, and the key player that makes the whole DLT/Blockchain network set-up to happen automatically is the roles defined in the playbooks following a specific order. 
+1. Inventory: In Ansible, you organize your hosts (servers, virtual machines, or network devices) into an inventory file. This file lists the IP addresses or hostnames of the managed machines, and you can group them based on their roles or attributes.
+
+1. Playbooks: Playbooks are written in YAML format and describe the tasks you want to perform on your hosts. Each playbook consists of one or more "plays," and each play includes a list of tasks.
+
+1. Tasks: Tasks are individual units of work in Ansible. They represent actions that Ansible will take on the managed hosts, such as installing packages, creating files, or starting services.
+
+1. Modules: Ansible uses "modules" to perform tasks on the managed hosts. Modules are small pieces of code that execute specific actions. Ansible has a vast library of built-in modules, covering a wide range of tasks.
+
+1. Execution: Once you have defined your playbook and inventory, you can run Ansible to execute the tasks on the targeted hosts. Ansible connects to the hosts through SSH (by default) and executes the tasks in the order specified.
+
+1. Idempotence: One of the key principles of Ansible is idempotence. This means that you can run an Ansible playbook multiple times, and the result will be the same as running it just once. If a task has already been performed and the system is in the desired state, Ansible will not repeat it.
+
+1. Reporting: Ansible provides detailed output during playbook execution, showing which tasks were successful and which ones failed. This helps you easily identify any issues that need to be addressed.
+
+Ansible is widely used for automating various IT tasks, including server provisioning, application deployment, configuration management, and continuous delivery. Its simplicity, ease of use, and versatility make it an excellent choice for both beginners and experienced IT professionals to manage and automate their infrastructure efficiently.
+
+Hyperledger Bevel extensively uses Ansible playbooks along with roles to spin up a DLT/Blockchain network. Ansible is mainly used as a templating engine to create the Helm Values files for [GitOps](./gitops.md).

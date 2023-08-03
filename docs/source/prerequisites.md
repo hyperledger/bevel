@@ -24,11 +24,11 @@ Bevel recommends one Kubernetes cluster per organization for production-ready pr
 Also, a user needs to make sure that the Kubernetes clusters can support the number of pods and persistent volumes that will be created by Bevel.
 
 ---
-**NOTE:** For the current release Bevel has been tested on Amazon EKS with Kubernetes version **1.19**.
+**NOTE:** For the current release Bevel has been tested on Amazon EKS with Kubernetes version **1.23**.
 
-Bevel has been tested on Kubernetes >= 1.19 and <= 1.22
+Bevel has been tested on Kubernetes >= 1.19 and <= 1.23
 
-Also, install kubectl Client version **v1.19.8**
+Also, install kubectl Client version **v1.23.0**
 
 ---
 
@@ -38,7 +38,7 @@ To connect to Kubernetes cluster(s), you will also need kubectl Command Line Int
 ## HashiCorp Vault
 In this current release, [Hashicorp Vault](https://www.vaultproject.io/) is mandatory for Hyperledger Bevel as the certificate and key storage solution; hence, at least one Vault server should be available. Bevel recommends one Vault per organization for production-ready projects. 
 
-Follow [official instructions](https://www.vaultproject.io/docs/install/) to deploy Vault in your environment. 
+Follow [official instructions](https://developer.hashicorp.com/vault/docs/install) to deploy Vault in your environment. 
 
 ---
 **NOTE:** Recommended approach is to create one Vault deployment on one VM and configure the backend as a cloud storage.
@@ -48,7 +48,7 @@ Vault version should be **1.13.1**
 ---
 
 ## Internet Domain
-Hyperledger Bevel uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) or [HAProxy Ingress Controller](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) for inter-cluster communication. So, for the Kubernetes services to be available outside the specific cluster, at least one DNS Domain is required. This domain name can then be sub-divided across multiple clusters and the domain-resolution configured for each.
+Hyperledger Bevel uses [Ambassador Edge Stack](https://www.getambassador.io/products/edge-stack/api-gateway) or [HAProxy Ingress Controller](https://haproxy-ingress.github.io/) for inter-cluster communication. So, for the Kubernetes services to be available outside the specific cluster, at least one DNS Domain is required. This domain name can then be sub-divided across multiple clusters and the domain-resolution configured for each.
 Although for production implementations, each organization (and thereby each cluster), must have one domain name.
 
 ---

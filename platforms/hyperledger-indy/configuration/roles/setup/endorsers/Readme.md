@@ -74,6 +74,5 @@ This task pushes generated Helm releases into remote branch.
 This task calls role from: *{{ playbook_dir }}/../../shared/configuration/roles/git_push*
 #### Input Variables:
  - GIT_DIR: A path of git directory. By default "{{ playbook_dir }}/../../../"
- - GIT_RESET_PATH: A path of git directory, which is reseted for committing. Default value is *platforms/hyperledger-indy/configuration*
  - gitops: *item.gitops* from network.yaml
  - msg: A message for git commit

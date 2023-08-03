@@ -20,4 +20,3 @@ Shared/Common role to create the Kubernetes Job for vault-kubernetes association
 | kubernetes | The org's k8s key |
 | gitops | The org's gitops key |
 | vault | The org's vault key |
-| reset_path | The Git reset path which is generally 'platforms/*dlt-platform*/configuration'

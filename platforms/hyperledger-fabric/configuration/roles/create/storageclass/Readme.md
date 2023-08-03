@@ -53,7 +53,6 @@ This task creates the storage class for orderers
 #### 5. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"    
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    GIT_DIR: "The path of directory which needs to be pushed"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"

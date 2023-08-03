@@ -5,7 +5,7 @@
 
 # DLT Blockchain Network deployment using Docker
 
-Hyperledger Bevel is targeted for Production systems, but for quick developer deployments, you can create the containerized Ansible controller to deploy the dev DLT/Blockchain network.  
+Hyperledger Bevel is targeted for Production systems, but for quick developer deployments, you can use the containerized Ansible controller to deploy the dev DLT/Blockchain network.  
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ Follow instructions to [install](https://hyperledger-bevel.readthedocs.io/en/lat
 1. A machine (aka host machine) on which you can run docker commands i.e. which has docker command line installed and is connected to a docker daemon.
 2. At least one Kubernetes cluster (with connectivity to the host machine).
 3. At least one Hashicorp Vault server (with connectivity to the host machine).
-4. Read-write access to the Git repo (either ssh private key or https token).
+4. Read-write access to the Git repo (either ssh private key or https access token).
 
 ## Steps to use the bevel-build container
 
@@ -31,11 +31,17 @@ Follow instructions to [install](https://hyperledger-bevel.readthedocs.io/en/lat
     * [Quorum Configuration File](../operations/quorum_networkyaml.md)
     * [Hyperledger Besu Configuration File](../operations/besu_networkyaml.md)
 
-1. Create a build folder in the project folder; this build folder should have the following files:
+1. Create a build folder in the project folder:
+    ```
+    cd bevel
+    mkdir build
+    ```
 
-    a) K8s config file as config  
-    b) Network specific configuration file as network.yaml  
-    c) If using SSH for Gitops, Private key file which has write-access to the git repo
+1. The `build` folder should have the following files:
+
+    - K8s config file as config  
+    - Network specific configuration file as network.yaml  
+    - If using SSH for Gitops, Private key file which has write-access to the git repo
 
     Screen shot of the folder structure is below:   
 
@@ -46,6 +52,8 @@ Follow instructions to [install](https://hyperledger-bevel.readthedocs.io/en/lat
 1. Run the following command to run the provisioning scripts, the command needs to be run from the project folder. The command also binds and mounts a volume, in this case it binds the repository 
 
     ```bash
+    cd bevel
+
     docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
 
     # For Corda use jdk8 version
@@ -62,4 +70,4 @@ Follow instructions to [install](https://hyperledger-bevel.readthedocs.io/en/lat
     ansible-playbook  platforms/shared/configuration/site.yaml -e "@./build/network.yaml" 
 
     ```
-1. For instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](../operations/bevel_verify.md)
+1. For instructions on how to verify or troubleshoot network, read [How to debug a Bevel deployment](../operations/bevel_verify.md).

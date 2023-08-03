@@ -71,6 +71,5 @@ This task pushes generated Helm releases into remote branch.
 This task calls role from: `{{ playbook_dir }}/../../shared/configuration/roles/git_push`
 #### Input Variables:
 - `GIT_DIR` - The base path of the GIT repository, default `{{ playbook_dir }}/../../../`
-- `GIT_RESET_PATH` - The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
 - `gitops` - *item.gitops* from `network.yaml`
 - `msg` - The commit message to use when pushing deployment files.
