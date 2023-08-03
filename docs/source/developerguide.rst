@@ -10,6 +10,7 @@ Developing in Hyperledger Bevel involves the following:
 Following guides provide a quickstart development environment, although for improved developer experience, developers should use a Linux based system which has all the tools installed as per the Ansible controller Dockerfile.
 
 .. admonition:: Important
+   
    Bevel with minikube is not encouraged because it takes a lot more time than cloud deployments thereby resulting in poor developer experience.
 
 

@@ -72,7 +72,7 @@ Platforms
     - |tick| External chaincode for Fabric 2.2.x
     - |run| Support for Fabric 2.5.x
     - |hand| CI/CD piplelines for chaincode deployment
-    - |pick| Chaincode operations via operator console  
+    - |pin| Chaincode operations via operator console  
 - Hyperledger Besu
     - |hand| Enable node discovery
     - |hand| Enable bootnodes
