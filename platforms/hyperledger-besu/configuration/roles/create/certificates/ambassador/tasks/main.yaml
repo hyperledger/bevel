@@ -13,8 +13,6 @@
     kind: ClusterIssuer
     name: letsencrypt-prod
   register: clusterissuer
-  tags:
-    - molecule-idempotence-notest
 
 # Checks if Mapping for acme is installed 
 - name: check Mapping for acme  
@@ -23,8 +21,6 @@
     kind: Mapping
     name: "acme-challenge-mapping-{{ component_ns }}"
   register: acmemapping
-  tags:
-    - molecule-idempotence-notest
 
 # Checks if challenge service for mapping is created
 - name: check challenge service for acme  
@@ -34,8 +30,6 @@
     name: "acme-challenge-service"
     namespace: "{{ component_ns }}"
   register: acmechallengeservice
-  tags:
-    - molecule-idempotence-notest
 
 # Delete challenge for acme
 - name: delete acme challenge service 
@@ -48,8 +42,6 @@
     name: "acme-challenge-service"
   when: 
     - acmechallengeservice.resources[0] is defined
-  tags:
-    - molecule-idempotence-notest
 
 # Delete mapping for acme
 - name: delete mapping for acme
@@ -62,8 +54,6 @@
     name: "acme-challenge-mapping-{{ component_ns }}"
   when: 
     - acmemapping.resources[0] is defined
-  tags:
-    - molecule-idempotence-notest
 
 # Delete clusterissuer
 - name: delete  clusterissuer
@@ -76,8 +66,6 @@
     name: letsencrypt-prod
   when: 
     - clusterissuer.resources[0] is defined
-  tags:
-    - molecule-idempotence-notest
 
 # Installs clusterissuer helm chart
 - name: Install ClusterIssuer  

@@ -24,16 +24,12 @@
   file:
     path: "{{ config_file }}"
     state: absent
-  tags:
-    - molecule-idempotence-notest
 
 # The tasks add the required data patch by patch to the configtx.yaml file to generate it.
 - name: "create configtx.yaml file"
   file:
     path: "{{ config_file }}"
     state: touch
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Copy custom files if present"
   copy:
@@ -57,8 +53,6 @@
     org_query: "organizations[?type=='orderer']"
     org: "{{ network | json_query(org_query) | first }}"
     filename: configtxinit_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfinit.stat.exists else 'default' }}.tpl
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Checking if custom init patch to configtx.yaml exists"
   stat:
@@ -78,8 +72,6 @@
     provider: "{{ network.env.proxy }}"
     filename: configtxOrg_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cforg.stat.exists else 'default' }}.tpl
   loop: "{{ network['organizations'] }}"
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Checking if custom init patch to configtx.yaml exists"
   stat:
@@ -97,8 +89,6 @@
     consensus: "{{ network.consensus }}"
     provider: "{{ network.env.proxy }}"
     filename: configtxOrderer_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cford.stat.exists else 'default' }}.tpl
-  tags:
-    - molecule-idempotence-notest
 
 - name: "Checking if custom init patch to configtx.yaml exists"
   stat:
@@ -117,8 +107,6 @@
     provider: "{{ network.env.proxy }}"
     filename: configtxProfile_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfprofile.stat.exists else 'default' }}.tpl
   when: network.channels is defined
-  tags:
-    - molecule-idempotence-notest
 
 - name: Display configtx file contents
   debug: 
