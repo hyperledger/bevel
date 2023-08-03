@@ -17,7 +17,6 @@ Ansible playbooks contains a series of roles and tasks which run in sequential o
 |   |-- substrate-node
 |   |-- vault-k8s-mgmt
 |-- configuration
-|-- |-- molecule/
 |   |-- roles/
 |   |-- samples/
 |   |-- .yamllint

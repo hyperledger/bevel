@@ -31,9 +31,7 @@ For source code integrity , Hyperledger Bevel GitHub pull requests are accepted 
 2. Clone the fork to your local machine.
 3. Complete the desired changes and where possible test locally:
      - Go to `platforms/shared/configuration` directory
-     - Execute `molecule test --all`
      - Go to your changed platform directory like `platforms/r3-corda/configuration` (use respective platform directories)
-     - Execute `molecule test --all`
 4. Commit your changes         
      - Make sure you sign your commit using git commit -s for more information see [here](https://gist.github.com/tkuhrt/10211ae0a26a91a8c030d00344f7d11b).
      - Squash all commits to a single commit.
