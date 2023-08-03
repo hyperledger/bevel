@@ -54,6 +54,7 @@ spec:
       tm_keyname: tm
       role: vault-role
       authpath: quorum{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
     genesis: {{ genesis }}
     staticnodes: {{ staticnodes }}
     constellation:

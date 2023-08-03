@@ -32,3 +32,4 @@ spec:
       role: vault-role
       serviceaccountname: vault-auth
       tmprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto
+      type: {{ vault.type | default("hashicorp") }}

@@ -68,6 +68,7 @@ spec:
       tm_keyname: tm
       role: vault-role
       authpath: quorum{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
 {% if network.config.transaction_manager != "none" %}
     tessera:
       dburl: "jdbc:mysql://{{ peer.name }}-tessera:3306/demodb"
