@@ -247,6 +247,33 @@
     when:
       - item.type == 'member'
 
+  # This role deploy prometheus along with targets
+  - name: Deploy prometheus server
+    include_role:
+      name: create/prometheus
+    vars:
+      component_ns: "{{ org.name }}-bes"
+      external_url: "{{ org.external_url_suffix }}"
+      kubeconfig_path: "{{ org.k8s.config_file }}"
+      kube_context: "{{ org.k8s.context }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "platforms/shared/charts"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+      release_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+      name: "{{ org.name | lower }}"
+      peers: "{{ org.services.peers }}"
+      org_url: "{{ org.external_url_suffix }}"
+      component_name: "{{ org.name | lower }}-bes"
+      component_type: "{{ org.type | lower }}"
+      prometheus_port: "{{ org.prometheus.port }}"
+      prometheus_enabled: "{{ org.prometheus.enabled }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when:
+      - org.prometheus.enabled == true
+
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
