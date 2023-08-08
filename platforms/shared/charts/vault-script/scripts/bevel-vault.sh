@@ -60,18 +60,22 @@ function readHashicorpVaultSecret {
     ERROR=$(echo "$RESPONSE" | jq -r '.errors[0]')
     # Extract the Vault secret data from the response using jq
     VAULT_SECRET=$(echo "$RESPONSE" | jq -r '.data.data')
+    
+    # Flag to indicate that secrets are present in the vault or not
+    SECRETS_AVAILABLE="no"
 
     # Stop further execution of code if an error is found
-    if [[ $ERROR != "" && $ERROR != "null" ]]; then
+    if [[ "$ERROR" != "" && "$ERROR" != "null" ]]; then
         echo "Error: Failed to read Vault secret."
         echo "Error Details: $ERROR"
         exit 1
     else
         # Check if the Vault API response indicates a failure
         if [[ "$VAULT_SECRET" != "" && "$VAULT_SECRET" != "null" && "$VAULT_SECRET" != *"errors"* ]]; then
+            validateVaultResponseHashicorp "${1}" "LOOKUPSECRETRESPONSE" "read api call"
             echo "Successfully obtained Vault Secret from the path ${VAULT_ADDR}/v1/${1}"
             echo "Vault Secret: $VAULT_SECRET"
-            validateVaultResponseHashicorp "${1}" "LOOKUPSECRETRESPONSE" "read api call"
+            SECRETS_AVAILABLE="yes"
         else
             echo "The secret is absent in the vault at path ${VAULT_ADDR}/v1/${1}"
             echo "NOTE: This is not an error; it indicates that the secret will be created in later code."
@@ -94,12 +98,12 @@ function writeHashicorpVaultSecret {
 
     # Stop further execution of code if an error is found
     # Check if the Vault API response indicates a failure
-    if [[ $VAULT_RESPONSE == "" || $VAULT_RESPONSE == "null" || $VAULT_RESPONSE == *"errors"* ]]; then
+    if [[ "$VAULT_RESPONSE" == "" || "$VAULT_RESPONSE" == "null" || "$VAULT_RESPONSE" == *"errors"* ]]; then
         echo "Error: Failed to write to Vault at path ${VAULT_ADDR}/v1/${1}"
         exit 1
     else
-        echo "Successfully wrote to Vault at path ${VAULT_ADDR}/v1/${1}"
         validateVaultResponseHashicorp "${1}" "LOOKUPSECRETRESPONSE" "write api call"
+        echo "Successfully wrote to Vault at path ${VAULT_ADDR}/v1/${1}"
     fi
 }
 
