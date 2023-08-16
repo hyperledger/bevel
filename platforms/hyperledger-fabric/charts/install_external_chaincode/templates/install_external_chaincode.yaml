@@ -42,6 +42,9 @@ spec:
       - name: chaincodepackage
         emptyDir:
           medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -67,70 +70,41 @@ spec:
           value: "{{ $.Values.metadata.network.version }}"
         - name: CHAINCODE_TLS_DISABLED
           value: "{{ $.Values.chaincode.tls_disabled }}"
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-          validateVaultResponse () {
-            if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
+          source /scripts/bevel-vault.sh
 
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          # Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
 
-          vault_secret_key="${VAULT_ORDERER_SECRET_PREFIX}/tls"
-          echo "Getting Orderer TLS certificates from Vault using key $vault_secret_key"
+          echo "Getting Orderer TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
           OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
-
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
-          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
-
           mkdir -p ${OUTPUT_PATH}
           echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
-          vault_secret_key="${VAULT_PEER_SECRET_PREFIX}/msp"
-          echo "Getting MSP certificates from Vault using key $vault_secret_key"
+
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_PEER_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
           OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
-
-          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
-
-          ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]')
-          CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]')
-          KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
-          SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]')
-          TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
-
           mkdir -p ${OUTPUT_PATH}/admincerts
           mkdir -p ${OUTPUT_PATH}/cacerts
           mkdir -p ${OUTPUT_PATH}/keystore
           mkdir -p ${OUTPUT_PATH}/signcerts
           mkdir -p ${OUTPUT_PATH}/tlscacerts
+
           echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
           echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
           echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
@@ -138,16 +112,14 @@ spec:
           echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
 
           if [ "${CHAINCODE_TLS_DISABLED}" == "false" ]; then
-            vault_secret_key="${VAULT_CHAINCODE_SECRET_PREFIX}/${CHAINCODE_NAME}"
-            echo "Getting chaincode certificates from Vault using key $vault_secret_key"
-            OUTPUT_PATH="${MOUNT_PATH}/chaincode"
-
-            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+            echo "Getting chaincode certificates from Vault."
+            vaultBevelFunc "readJson" "${VAULT_CHAINCODE_SECRET_PREFIX}/${CHAINCODE_NAME}"
     
-            CACERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
-            CLIENT_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]')
-            CLIENT_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]')
+            CACERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+            CLIENT_CERT=$(echo ${VAULT_SECRET} | jq -r '.["client.crt"]')
+            CLIENT_KEY=$(echo ${VAULT_SECRET} | jq -r '.["client.key"]')
+
+            OUTPUT_PATH="${MOUNT_PATH}/chaincode"
             mkdir -p ${OUTPUT_PATH}
             echo "${CACERT}" >> ${OUTPUT_PATH}/ca.crt
             echo "${CLIENT_CERT}" >> ${OUTPUT_PATH}/client.crt
@@ -161,7 +133,9 @@ spec:
         {{ end }}
         - name: certificates
           mountPath: /secret
-
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       - name: package-init
         image: {{ $.Values.metadata.images.alpineutils }}
         imagePullPolicy: Always
@@ -180,48 +154,22 @@ spec:
           value: "{{ $.Values.chaincode.version }}"
         - name: CHAINCODE_MOUNT_PATH
           value: /chaincodepackage
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-          ## load encoded package bytes from vault
-          validateVaultResponse () {
-            if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
+          source /scripts/bevel-vault.sh
 
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          # Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
 
           echo "Getting Package Base64 from Vault in ${VAULT_CHAINCODE_PACKAGE_PREFIX}"
-          LOOKUP_PACKAGE_BASE64_RESPONSE=$(curl -sS \
-            --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${VAULT_CHAINCODE_PACKAGE_PREFIX} | jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${VAULT_CHAINCODE_PACKAGE_PREFIX})" "${LOOKUP_PACKAGE_BASE64_RESPONSE}"
-          PACKAGE_HASH=$(echo ${LOOKUP_PACKAGE_BASE64_RESPONSE} | jq -r '.data.data["package-base64"]')
-          PACKAGE_BASE64=$(echo ${LOOKUP_PACKAGE_BASE64_RESPONSE} | jq -r '.data.data["package-base64"]')
+          vaultBevelFunc "readJson" "${VAULT_CHAINCODE_PACKAGE_PREFIX}"
+
+          PACKAGE_HASH=$(echo ${VAULT_SECRET} | jq -r '.["package-base64"]') # ASK, we are not using it anywhere and, PACKAGE_HASH & PACKAGE_BASE64 both are same.
+          PACKAGE_BASE64=$(echo ${VAULT_SECRET} | jq -r '.["package-base64"]')
           echo ${PACKAGE_BASE64} | base64 -d > ${CHAINCODE_MOUNT_PATH}/${CHAINCODE_NAME}_${CHAINCODE_VERSION}.tgz
         volumeMounts:
         {{ if .Values.vault.tls  }}
@@ -232,6 +180,9 @@ spec:
         - name: chaincodepackage
           mountPath: /chaincodepackage
           readOnly: false
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       containers:
       - name: instextcc
         image: {{ $.Values.metadata.images.fabrictools }}

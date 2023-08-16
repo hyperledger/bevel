@@ -65,71 +65,40 @@ spec:
           value: {{ $.Values.vault.role }}
         - name: MOUNT_PATH
           value: /secret
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-          validateVaultResponse () {
-            if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
+          source /scripts/bevel-vault.sh
 
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          # Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-     
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/tls"
-          echo "Getting TLS certificates from Vault using key $vault_secret_key"
+          echo "Getting TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+          TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server.crt"]')
+          TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server.key"]')
 
           OUTPUT_PATH="${MOUNT_PATH}/tls"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
-          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
-          TLS_SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.crt"]')
-          TLS_SERVER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.key"]')
-
           mkdir -p ${OUTPUT_PATH}
           echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
           echo "${TLS_SERVER_CERT}" >> ${OUTPUT_PATH}/server.crt
           echo "${TLS_SERVER_KEY}" >> ${OUTPUT_PATH}/server.key
 
-          vault_secret_key="${VAULT_SECRET_PREFIX}/msp"
-          echo "Getting MSP certificates from Vault using key $vault_secret_key"
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
 
           OUTPUT_PATH="${MOUNT_PATH}/msp"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
-          ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]')
-          CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]')
-          KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
-          SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]')
-          TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
-
           mkdir -p ${OUTPUT_PATH}/admincerts
           mkdir -p ${OUTPUT_PATH}/cacerts
           mkdir -p ${OUTPUT_PATH}/keystore
@@ -149,12 +118,12 @@ spec:
           then
             vault_secret_key=$(echo ${SECRET_COUCHDB_PASS} |awk -F "?" '{print $1}')
             vault_data_key=$(echo ${SECRET_COUCHDB_PASS} |awk -F "?" '{print $2}')
-            LOOKUP_SECRET_RESPONSE=$(curl -sS \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-            PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
-            echo "${PASSWORD}" >> ${MOUNT_PATH}/user_cred 
+
+            # Calling a function to retrieve secrets from Vault only if they exist.
+            vaultBevelFunc "readJson" "${vault_secret_key}"
+
+            PASSWORD=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
+            echo "${PASSWORD}" >> ${MOUNT_PATH}/user_cred
           fi            
         volumeMounts:
         {{ if .Values.vault.tls  }}
@@ -164,6 +133,9 @@ spec:
         {{ end }}
         - name: certificates
           mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       containers:
       - name: couchdb
         image: {{ $.Values.metadata.images.couchdb }}
@@ -194,7 +166,6 @@ spec:
             :
           fi
           tini -- /docker-entrypoint.sh /opt/couchdb/bin/couchdb
-
         ports:
         - containerPort: 5984
         env:
@@ -316,6 +287,9 @@ spec:
           items:
             - key: mspconfig
               path: mspconfig
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
   volumeClaimTemplates:
   #Lables are not being taken by Kubernetes as it dynamically creates PVC
   - metadata:

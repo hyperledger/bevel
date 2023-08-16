@@ -64,11 +64,14 @@ spec:
       {{ if .Values.vault.tls  }}
       - name: vaultca
         secret:
-          secretName: {{ $.Values.vault.tls }}
+          secretName: "{{ .Values.vault.tls }}"
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt
-      {{ end  }}
+      {{- end  }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
       initContainers:
       - name: ca-certs-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -82,73 +85,43 @@ spec:
           value: {{ $.Values.vault.role }}
         - name: MOUNT_PATH
           value: /secret
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-          validateVaultResponse () {
-            if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
-          
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          # Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
+          source /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
 
           SECRET_CERT={{ $.Values.vault.secretcert }}
           vault_secret_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $1}')
           vault_data_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $2}')
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key} | \
-              jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
+
+          # Calling a function to retrieve secrets from Vault only if they exist.
+          vaultBevelFunc "readJson" "${vault_secret_key}"
+          VALUE_OF_SECRET=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
           echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.crt
 
           SECRET_KEY={{ $.Values.vault.secretkey }}
           vault_secret_key=$(echo ${SECRET_KEY} |awk -F "?" '{print $1}')
           vault_data_key=$(echo ${SECRET_KEY} |awk -F "?" '{print $2}')
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key} | \
-              jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
-          echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.key
 
+          # Calling a function to retrieve secrets from Vault only if they exist.
+          vaultBevelFunc "readJson" "${vault_secret_key}"
+          VALUE_OF_SECRET=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
+          echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/server.key
 
           SECRET_ADMIN_PASS={{ $.Values.vault.secretadminpass }}
           vault_secret_key=$(echo ${SECRET_ADMIN_PASS} |awk -F "?" '{print $1}')
           vault_data_key=$(echo ${SECRET_ADMIN_PASS} |awk -F "?" '{print $2}')
-          LOOKUP_SECRET_RESPONSE=$(curl -sS \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-          ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-          VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
-          echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/user_cred
-          
+
+          # Calling a function to retrieve secrets from Vault only if they exist.
+          vaultBevelFunc "readJson" "${vault_secret_key}"
+          VALUE_OF_SECRET=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
+          echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/user_cred    
         volumeMounts:
         - name: certificates
           mountPath: /secret
@@ -157,6 +130,9 @@ spec:
           mountPath: "/etc/ssl/certs/"
           readOnly: true
         {{ end }}
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       containers:
       - name: ca
         image: {{ $.Values.metadata.images.ca }}

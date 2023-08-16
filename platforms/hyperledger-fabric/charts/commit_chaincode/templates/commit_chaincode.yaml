@@ -1,9 +1,9 @@
+
 ##############################################################################################
 #  Copyright Accenture. All Rights Reserved.
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -50,6 +50,9 @@ spec:
           defaultMode: 420
           name: {{ .Release.Name }}-collections-config
       {{ end }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -80,112 +83,72 @@ spec:
               name: {{ $org.name }}-endorser-cert
               key: certificate
         {{- end }}
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
+          source /scripts/bevel-vault.sh
 
           formatCertificate () {
             NAME="${1##*/}"
             while read line || [ -n "$line" ];
             do 
-              echo "$line\n"; 
+              echo "$line\n";
             done < ${1} > ${2}/${NAME}.txt
           }
 
-          validateVaultResponse () {
-            if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
-              echo "ERROR: unable to retrieve ${1}: ${2}"
-              exit 1
-            fi
-            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-            then
-              http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-              --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-              ${VAULT_ADDR}/v1/${vault_secret_key})
-              curl_response=$?
-              if test "$http_code" != "200" ; then
-                  echo "Http response code from Vault - $http_code"
-                  if test "$curl_response" != "0"; then
-                     echo "Error: curl command failed with error code - $curl_response"
-                     exit 1
-                  fi
-              fi
-            fi
-          }
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
           
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          # Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS  --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-          
-          #############################################
-          vault_secret_key="${VAULT_ORDERER_SECRET_PREFIX}/tls"
-          echo "Getting Orderer TLS certificates from Vault using key $vault_secret_key"
+          ###############################################################################
+          echo "Getting Orderer TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
 
           OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS  \
-            --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
-          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
-
           mkdir -p ${OUTPUT_PATH}
           echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
-
           ###############################################################################
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_PEER_SECRET_PREFIX}/msp"
 
-          vault_secret_key="${VAULT_PEER_SECRET_PREFIX}/msp"
-          echo "Getting MSP certificates from Vault using key $vault_secret_key"
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
 
           OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
-          LOOKUP_SECRET_RESPONSE=$(curl -sS  \
-            --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-            ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-          validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
-          ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]')
-          CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]')
-          KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]')
-          SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]')
-          TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
-
           mkdir -p ${OUTPUT_PATH}/admincerts
           mkdir -p ${OUTPUT_PATH}/cacerts
           mkdir -p ${OUTPUT_PATH}/keystore
           mkdir -p ${OUTPUT_PATH}/signcerts
           mkdir -p ${OUTPUT_PATH}/tlscacerts
-
+          
           echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
           echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
           echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
           echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
           echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
 
-          ######################################################################
+          ###############################################################################
           FORMAT_CERTIFICATE_PATH="/formatcertificate"
           mkdir -p ${FORMAT_CERTIFICATE_PATH}/endorsers
-
           for name in $ENDORSING_ORG_NAMES
             do
               OUTPUT_PATH="${MOUNT_PATH}/endorsers/$name/msp"
               echo $OUTPUT_PATH
               mkdir -p ${OUTPUT_PATH}/cacerts
-
               var_name=$(echo "${name}_endorser_secret" | tr '[:lower:]' '[:upper:]')
               endorser_certificate=$(eval echo "\$$var_name")
               echo $endorser_certificate | base64 -d >> ${OUTPUT_PATH}/cacerts/ca.crt
- 
+
               mkdir -p ${FORMAT_CERTIFICATE_PATH}/${name}
               formatCertificate "${OUTPUT_PATH}/cacerts/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${name}"
               CACERTS_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/${name}/ca.crt.txt)
-
               echo "
               {
                 \"data\": 
@@ -193,27 +156,16 @@ spec:
                     \"cacerts\": \"${CACERTS_FORMAT}\"
                   }  
               }" > payload.json
-
               SECRETPREFIX=${SECRET_PATH}/data/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${name}/users/admin
               vault_secret_key=${SECRETPREFIX}/msp
-
+              
               # This task write the CA server admin credentials to Vault
-              curl \
-                -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                -H "Content-Type: application/json" \
-                -X POST \
-                -d @payload.json \
-                ${VAULT_ADDR}/v1/${vault_secret_key}
-
+              vaultBevelFunc 'write' "${vault_secret_key}" 'payload.json'
               # Check CA certificates
-              LOOKUP_SECRET_RESPONSE=$(curl -sS  \
-                --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-
+              vaultBevelFunc "readJson" "${vault_secret_key}"
+              echo "loop# ${VAULT_SECRET}"
               rm payload.json
             done
-
         volumeMounts:
         {{ if .Values.vault.tls  }}
         - name: vaultca
@@ -222,6 +174,9 @@ spec:
         {{ end }}
         - name: certificates
           mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
       containers:
       - name: commitchaincode
         image: {{ $.Values.metadata.images.fabrictools }}
@@ -232,7 +187,6 @@ spec:
         args:
         - |-
           #!/bin/bash sh
-
           ## Checking committed chaincode
           COMMITTED=$(peer lifecycle chaincode querycommitted --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} -O json | \
             jq --arg SEQUENCE "$CHAINCODE_SEQUENCE" --arg VERSION "$CHAINCODE_VERSION" \
@@ -242,7 +196,6 @@ spec:
             echo "chaincode ${CHAINCODE_NAME} with version ${CHAINCODE_VERSION} and sequence ${CHAINCODE_SEQUENCE} is committed in channel ${CHANNEL_NAME}, skipping... "
             exit 0
           fi
-
           echo $COMMIT_ARGUMENTS>COMMIT_ARGUMENTS.txt
           COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
           
@@ -253,17 +206,13 @@ spec:
           do
             COMMIT_CMD=${COMMIT_CMD}" --peerAddresses "${item}
           done
-
           echo ${COMMIT_CMD}
-
           for item in $ENDORSING_ORG_NAMES
           do
             path="/opt/gopath/src/github.com/hyperledger/fabric/crypto/endorsers/${item}/msp/cacerts/ca.crt"
             COMMIT_CMD=${COMMIT_CMD}" --tlsRootCertFiles "${path}
           done
-
           echo ${COMMIT_CMD}
-
           if [ "${PDC_ENABLED}" = "true" ]
           then
             pdc_config=" --collections-config /opt/pdc/collections_config.json"
@@ -291,7 +240,6 @@ spec:
           fi
           echo "Commit Readiness command post collection config " ${COMMITREADINESS_CMD}
           echo "Commit command post collection config " ${COMMIT_CMD}
-
           if [ -z ${ENDORSEMENT_POLICIES} ]
           then
             ## check commit readiness

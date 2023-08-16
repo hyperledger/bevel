@@ -41,6 +41,7 @@ spec:
       authpath: {{ network.env.type }}{{ namespace }}-auth
       chaincodesecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/chaincodes/{{ chaincode.name }}/certificate/v{{ chaincode.version }}
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
 {% if chaincode.private_registry is not defined or chaincode.private_registry == false %}   
       imagesecretname: regcred
 {% endif %}

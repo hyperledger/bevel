@@ -32,6 +32,7 @@ spec:
       secretcryptoprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component }}-net/ca
       secretcredentialsprefix: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component }}-net/ca/{{ component }}
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
 {% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
 {% else %}

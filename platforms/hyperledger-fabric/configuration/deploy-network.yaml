@@ -35,6 +35,17 @@
         kubernetes: "{{ item.k8s }}"
         release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
+
+    #Create Vault scrit as configmap for Vault CURD operations
+    - name: Setup vault script
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
+      vars:
+        component_ns: "{{ org.name | lower }}-net"
+        kubernetes: "{{ org.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
     
     #Setup Vault-Kubernetes accesses and Regcred for docker registry
     - name: Setup Vault Kubernetes for each organization
@@ -104,7 +115,7 @@
         prompt: "Sleeping... so that the client certificates are valid"
         minutes: 6
     
-     # Create CA Tools helm-value files and check-in
+    # Create CA Tools helm-value files and check-in
     - name: Create CA tools for each organization
       include_role:
         name: "create/ca_tools/orderer"

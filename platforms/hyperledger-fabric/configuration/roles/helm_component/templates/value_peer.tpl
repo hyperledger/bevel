@@ -82,6 +82,7 @@ spec:
       secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
       secretambassador: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/ambassador
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
 {% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
 {% else %}
