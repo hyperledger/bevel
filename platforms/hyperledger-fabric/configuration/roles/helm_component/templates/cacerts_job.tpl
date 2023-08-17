@@ -22,7 +22,6 @@ spec:
       component_name: {{ component }}-net
       namespace: {{ component_ns }}    
       images:
-        fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
 
     vault:
