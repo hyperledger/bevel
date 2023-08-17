@@ -104,8 +104,7 @@ spec:
           defaultMode: 0775
           items:
             - key: store-vault-users.sh
-              path: store-vault-users.sh
-              
+              path: store-vault-users.sh     
       - name: none-config
         configMap:
           name: msp-config-file
@@ -131,6 +130,9 @@ spec:
               path: {{ $orderers.name }}.crt
       {{- end }}
       {{- end }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
       initContainers:
         - name: init-check-certificates
           image: {{ $.Values.image.alpineutils }}
@@ -170,37 +172,16 @@ spec:
             value: {{ $.Values.users.users_identities }}
           - name: MOUNT_PATH
             value: "/certcheck"
+          - name: VAULT_TYPE
+            value: "{{ $.Values.vault.type }}"
           command: ["sh", "-c"]
           args:
             - |-
               #!/usr/bin/env sh
-              validateVaultResponse () {
-                if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
-                  echo "ERROR: unable to retrieve ${1}: ${2}"
-                  exit 1
-                fi
-                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-                then
-                  http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${1})
-                  curl_response=$?
-                  if test "$http_code" != "200" ; then
-                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
-                      if test "$curl_response" != "0"; then
-                        echo "Error: curl command failed with error code - $curl_response"
-                        exit 1
-                      fi
-                  fi
-                fi
-              }
+              source /scripts/bevel-vault.sh
 
-              # Setting up the environment to get secrets/certificates from Vault
-              echo "Getting secrets/certificates from Vault server"
-              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-              validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
-              echo "Logged into Vault"
+              # Calling a function to retrieve the vault token.
+              vaultBevelFunc "init"
               
               mkdir -p ${MOUNT_PATH}
               OUTPUT_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
@@ -212,59 +193,40 @@ spec:
               vault_data_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $2}')
 
               # Get ca cert
-                LOOKUP_SECRET_RESPONSE=$(curl -sS \
-                    --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                    ${VAULT_ADDR}/v1/${vault_secret_key} | \
-                    jq -r 'if .errors then . else . end')
-                validateVaultResponse "${vault_secret_key}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
-                echo "${VALUE_OF_SECRET}" > ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem
-                
-                SECRET_KEY={{ $.Values.vault.secretkey }}
-                vault_secret_key=$(echo ${SECRET_KEY} |awk -F "?" '{print $1}')
-                vault_data_key=$(echo ${SECRET_KEY} |awk -F "?" '{print $2}')
+              vaultBevelFunc "readJson" "${vault_secret_key}"
+              VALUE_OF_SECRET=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
+              echo "${VALUE_OF_SECRET}" > ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem
 
-                # Get ca key
-                LOOKUP_SECRET_RESPONSE=$(curl -sS \
-                    --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                    ${VAULT_ADDR}/v1/${vault_secret_key} | \
-                    jq -r 'if .errors then . else . end')
-                validateVaultResponse "${vault_secret_key}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                VALUE_OF_SECRET=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data.data[\"${vault_data_key}\"]")
-                echo "${VALUE_OF_SECRET}" > ${OUTPUT_PATH}/ca/${COMPONENT_NAME}-CA.key
+              SECRET_KEY={{ $.Values.vault.secretkey }}
+              vault_secret_key=$(echo ${SECRET_KEY} |awk -F "?" '{print $1}')
+              vault_data_key=$(echo ${SECRET_KEY} |awk -F "?" '{print $2}')
 
-                # Check if admin msp already created
-                LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/msp | jq -r 'if .errors then . else . end')
+              # Get ca key
+              vaultBevelFunc "readJson" "${vault_secret_key}"
+              VALUE_OF_SECRET=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
+              echo "${VALUE_OF_SECRET}" > ${OUTPUT_PATH}/ca/${COMPONENT_NAME}-CA.key
 
-                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                then
-                  echo "Certficates absent in vault. Ignore error warning"
-                  touch ${MOUNT_PATH}/absent_msp.txt
-                elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                then
-                  echo "Certficates absent in vault2. Ignore error warning"
-                  touch ${MOUNT_PATH}/absent_msp.txt
-                else
-                  validateVaultResponse "${VAULT_SECRET_USERS}/admin/msp" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                  echo "Certificates present in vault"
-                  touch ${MOUNT_PATH}/present_msp.txt
-                fi
+              # Check if admin msp already created
+              vaultBevelFunc "readJson" "${VAULT_SECRET_USERS}/admin/msp"
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present_msp.txt
+              else
+                echo "Certficates absent in vault. Ignore error warning."
+                touch ${MOUNT_PATH}/absent_msp.txt
+              fi
 
-                # Check if admin tls already created
-                LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/tls | jq -r 'if .errors then . else . end')
-                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                then
-                  echo "Certficates absent in vault. Ignore error warning"
-                  touch ${MOUNT_PATH}/absent_tls.txt
-                elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                then
-                  echo "Certficates absent in vault2. Ignore error warning"
-                  touch ${MOUNT_PATH}/absent_tls.txt
-                else
-                  validateVaultResponse "${VAULT_SECRET_USERS}/admin/tls" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                  echo "Certificates present in vault"
-                  touch ${MOUNT_PATH}/present_tls.txt
-                fi
+              # Check if admin tls already created
+              vaultBevelFunc "readJson" "${VAULT_SECRET_USERS}/admin/tls"
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present_tls.txt
+              else
+                echo "Certficates absent in vault. Ignore error warning."
+                touch ${MOUNT_PATH}/absent_tls.txt
+              fi
 
               if [ "$COMPONENT_TYPE" = "orderer" ]; then
                 SERVICES_NAMES=$ORDERERS_NAMES;
@@ -275,135 +237,94 @@ spec:
               fi;
 
               list=$(echo "$SERVICES_NAMES" | tr "-" "\n")
-
               for SERVICE in $list
               do
-
                 # Check if orderer/peer msp already created
                 if [ "$COMPONENT_TYPE" = "peer" ]; then
                   SERVICE_NAME="${SERVICE%%,*}"
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/msp | jq -r 'if .errors then . else . end')
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/msp"
                 fi;
 
                 if [ "$COMPONENT_TYPE" = "orderer" ]; then
                   SERVICE_NAME="${SERVICE}"
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/msp | jq -r 'if .errors then . else . end')
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/msp"
                 fi;
-    
-                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
                 then
-                  echo "Certficates absent in vault. Ignore error warning"
-                  touch ${MOUNT_PATH}/absent_msp_${SERVICE_NAME}.txt
-                elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                then
-                  echo "Certficates absent in vault2. Ignore error warning"
-                  touch ${MOUNT_PATH}/absent_msp_${SERVICE_NAME}.txt
-                else
-                  validateVaultResponse "${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                   echo "Certificates present in vault"
                   touch ${MOUNT_PATH}/present_msp_${SERVICE_NAME}.txt
+                else
+                  echo "Certficates absent in vault. Ignore error warning."
+                  touch ${MOUNT_PATH}/absent_msp_${SERVICE_NAME}.txt
                 fi
 
                 # Check if orderer/peer msp already created
                 if [ "$COMPONENT_TYPE" = "peer" ]; then
                   SERVICE_NAME="${SERVICE%%,*}"
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls"
                 fi;
 
                 if [ "$COMPONENT_TYPE" = "orderer" ]; then
                   SERVICE_NAME="${SERVICE}"
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls"
                 fi;
-    
-                if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
                 then
-                  echo "Certficates absent in vault. Ignore error warning"
-                  touch ${MOUNT_PATH}/absent_tls_${SERVICE_NAME}.txt
-                elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                then
-                  echo "Certficates absent in vault2. Ignore error warning"
-                  touch ${MOUNT_PATH}/absent_tls_${SERVICE_NAME}.txt
-                else
-                  validateVaultResponse "${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                   echo "Certificates present in vault"
                   touch ${MOUNT_PATH}/present_tls_${SERVICE_NAME}.txt
+                else
+                  echo "Certficates absent in vault. Ignore error warning."
+                  touch ${MOUNT_PATH}/absent_tls_${SERVICE_NAME}.txt
                 fi
 
-                # Check if orderer/peer msp already created
-                if [ "$COMPONENT_TYPE" = "peer" ]; then
-                  SERVICE_NAME="${SERVICE%%,*}"
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
-                fi;
-
-                if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                  SERVICE_NAME="${SERVICE}"
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
-                fi;
-
                 if [ "$PROXY" = "ambassador" ] ; then
-                  
-                  #Check if orderer/peer ambassador secrets already created
+                  # Check if orderer/peer ambassador secrets already created
                   if [ "$COMPONENT_TYPE" = "peer" ]; then
                     SERVICE_NAME="${SERVICE%%,*}"
-                    LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR} | jq -r 'if .errors then . else . end')
+                    vaultBevelFunc "readJson" "${VAULT_SECRET_AMBASSADOR}"
                   fi;
 
                   if [ "$COMPONENT_TYPE" = "orderer" ]; then
                     SERVICE_NAME="${SERVICE}"
-                    LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${SERVICE_NAME} | jq -r 'if .errors then . else . end')
+                    vaultBevelFunc "readJson" "${VAULT_SECRET_AMBASSADOR}/${SERVICE_NAME}"
                   fi;
 
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  if [ "$SECRETS_AVAILABLE" == "yes" ]
                   then
-                    echo "Certficates absent in vault. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_ambassador_${SERVICE_NAME}.txt
-                  elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                  then
-                    echo "Certficates absent in vault2. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_ambassador_${SERVICE_NAME}.txt
-                  else
-                    validateVaultResponse "${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${SERVICE_NAME}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                    echo "Certificates present in vault"
+                    echo "Certificates present in vault."
                     touch ${MOUNT_PATH}/present_ambassador_${SERVICE_NAME}.txt
+                  else
+                    echo "Certficates absent in vault. Ignore error warning."
+                    touch ${MOUNT_PATH}/absent_ambassador_${SERVICE_NAME}.txt
                   fi
                 fi;
               done
 
-              if [ $COMPONENT_TYPE == 'peer' ]; then
+              if [ $COMPONENT_TYPE == 'peer' ];
+              then
+                # Check if msp config file already created
+                vaultBevelFunc "readJson" "${VAULT_SECRET_CONFIG_FILE}"
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  echo "Certificates present in vault."
+                  touch ${MOUNT_PATH}/present_config_file.txt
+                else
+                  echo "Certficates absent in vault. Ignore error warning."
+                  touch ${MOUNT_PATH}/absent_config_file.txt
+                fi
 
-                  # Check if msp config file already created
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_CONFIG_FILE} | jq -r 'if .errors then . else . end')
-
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                  then
-                    echo "Certficates absent in vault. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_config_file.txt
-                  elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                  then
-                    echo "Certficates absent in vault2. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_config_file.txt
-                  else
-                    validateVaultResponse "${VAULT_ADDR}/v1/${VAULT_SECRET_CONFIG_FILE}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                    echo "Certificates present in vault"
-                    touch ${MOUNT_PATH}/present_config_file.txt
-                  fi
-
-                  # Check if msp config file already created
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER_ORDERER_TLS} | jq -r 'if .errors then . else . end')
-
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
-                  then
-                    echo "Certficates absent in vault. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_orderer_tls_cert.txt
-                  elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                  then
-                    echo "Certficates absent in vault2. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_orderer_tls_cert.txt
-                  else
-                    validateVaultResponse "${VAULT_ADDR}/v1/${VAULT_SECRET_PEER_ORDERER_TLS}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                    echo "Certificates present in vault"
-                    touch ${MOUNT_PATH}/present_orderer_tls_cert.txt
-                  fi          
+                # Check if msp config file already created
+                vaultBevelFunc "readJson" "${VAULT_SECRET_PEER_ORDERER_TLS}"
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  echo "Certificates present in vault."
+                  touch ${MOUNT_PATH}/present_orderer_tls_cert.txt
+                else
+                  echo "Certficates absent in vault. Ignore error warning."
+                  touch ${MOUNT_PATH}/absent_orderer_tls_cert.txt
+                fi          
               fi;
 
               if [ "$USERS_IDENTITIES" ]
@@ -411,37 +332,26 @@ spec:
                 identities_list=$(echo "$USERS_IDENTITIES" | tr "-" "\n")
                 for user_identity in $identities_list
                 do
-
                   # Check if users msp already created
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/${user_identity}/msp | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_USERS}/${user_identity}/msp"
+                  if [ "$SECRETS_AVAILABLE" == "yes" ]
                   then
-                    echo "Certficates absent in vault. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_msp_${user_identity}.txt
-                  elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                  then
-                    echo "Certficates absent in vault2. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_msp_${user_identity}.txt
-                  else
-                    validateVaultResponse "${VAULT_SECRET_USERS}/${user_identity}/msp" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
-                    echo "Certificates present in vault"
+                    echo "Certificates present in vault."
                     touch ${MOUNT_PATH}/present_msp_${user_identity}.txt
+                  else
+                    echo "Certficates absent in vault. Ignore error warning."
+                    touch ${MOUNT_PATH}/absent_msp_${user_identity}.txt
                   fi
 
                   # Check if users tls already created
-                  LOOKUP_SECRET_RESPONSE=$(curl --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/${user_identity}/tls | jq -r 'if .errors then . else . end')
-                  if echo ${LOOKUP_SECRET_RESPONSE} | grep "errors"
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_USERS}/${user_identity}/tls"
+                  if [ "$SECRETS_AVAILABLE" == "yes" ]
                   then
-                    echo "Certficates absent in vault. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_tls_${user_identity}.txt
-                  elif echo ${LOOKUP_SECRET_RESPONSE} | grep "\"data\": null"
-                  then
-                    echo "Certficates absent in vault2. Ignore error warning"
-                    touch ${MOUNT_PATH}/absent_tls_${user_identity}.txt
-                  else
-                    validateVaultResponse "${VAULT_SECRET_USERS}/${user_identity}/tls" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
                     echo "Certificates present in vault"
                     touch ${MOUNT_PATH}/present_tls_${user_identity}.txt
+                  else
+                    echo "Certficates absent in vault. Ignore error warning."
+                    touch ${MOUNT_PATH}/absent_tls_${user_identity}.txt
                   fi
                 done
               fi
@@ -452,6 +362,9 @@ spec:
             mountPath: /crypto-config
           - name: certcheck
             mountPath: /certcheck
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
       containers:
         - name: {{ .Values.metadata.name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -490,9 +403,8 @@ spec:
           command: ["sh", "-c"]
           args:
             - |-
-            
+              
               if [ "$COMPONENT_TYPE" = "orderer" ]; then
-
                 if [ -e  ${MOUNT_PATH}/absent_msp.txt ]; then
                   ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
                   ORG_CYPTO_ORDERER_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/orderers"
@@ -579,37 +491,37 @@ spec:
                 if [ "$COMPONENT_TYPE" = "orderer" ]; then
                   # Create openssl.conf file
                   echo "[req]
-              req_extensions = v3_req
-              distinguished_name = dn
+                  req_extensions = v3_req
+                  distinguished_name = dn
 
-              [dn]
+                  [dn]
 
-              [v3_req]
-              basicConstraints = critical, CA:TRUE
-              keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
-              subjectKeyIdentifier = hash
-                " > openssl.conf
+                  [v3_req]
+                  basicConstraints = critical, CA:TRUE
+                  keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
+                  subjectKeyIdentifier = hash
+                    " > openssl.conf
                 fi;
 
                 if [ "$COMPONENT_TYPE" = "peer" ]; then
                   # Create openssl.conf file
                   echo "[req]
-              req_extensions = v3_req
-              distinguished_name = dn
+                  req_extensions = v3_req
+                  distinguished_name = dn
 
-              [dn]
+                  [dn]
 
-              [v3_req]
-              basicConstraints = critical, CA:TRUE
-              keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
-              subjectKeyIdentifier = hash
-              subjectAltName = @alt_names
+                  [v3_req]
+                  basicConstraints = critical, CA:TRUE
+                  keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
+                  subjectKeyIdentifier = hash
+                  subjectAltName = @alt_names
 
-              [alt_names]
-              DNS.1 = ${COMPONENT_NAME}.${EXTERNAL_URL_SUFFIX}
-              DNS.2 = ${COMPONENT_NAME}api.${EXTERNAL_URL_SUFFIX}
-              DNS.3 = ${COMPONENT_NAME}web.${EXTERNAL_URL_SUFFIX}
-                  " > openssl.conf
+                  [alt_names]
+                  DNS.1 = ${COMPONENT_NAME}.${EXTERNAL_URL_SUFFIX}
+                  DNS.2 = ${COMPONENT_NAME}api.${EXTERNAL_URL_SUFFIX}
+                  DNS.3 = ${COMPONENT_NAME}web.${EXTERNAL_URL_SUFFIX}
+                      " > openssl.conf
                 fi;
 
                 if [ "$COMPONENT_TYPE" = "orderer" ]; then
@@ -643,7 +555,7 @@ spec:
                     openssl ecparam -name prime256v1 -genkey -noout -out ${SERVICE_NAME}-${COMPONENT_NAME}.key
 
                     if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                       openssl req -config "openssl.conf" -new -nodes -key ${SERVICE_NAME}-${COMPONENT_NAME}.key -days 1000 -out ${SERVICE_NAME}-${COMPONENT_NAME}.csr -extensions v3_req -subj "/${CERT_SUBJECT}/CN=${SERVICE_NAME}.${EXTERNAL_URL_SUFFIX}"
+                      openssl req -config "openssl.conf" -new -nodes -key ${SERVICE_NAME}-${COMPONENT_NAME}.key -days 1000 -out ${SERVICE_NAME}-${COMPONENT_NAME}.csr -extensions v3_req -subj "/${CERT_SUBJECT}/CN=${SERVICE_NAME}.${EXTERNAL_URL_SUFFIX}"
                     fi;
 
                     if [ "$COMPONENT_TYPE" = "peer" ]; then
@@ -737,9 +649,7 @@ spec:
               done
 
               if [ -e /${MOUNT_PATH}/flag_finish.txt ]; then
-    
                 if [ "$COMPONENT_TYPE" = "orderer" ]; then
-
                   # Generate crypto material for organization orderers
                   cd /scripts/orderer
                   ./store-vault-orderer.sh

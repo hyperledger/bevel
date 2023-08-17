@@ -74,6 +74,7 @@ spec:
       address: {{ vault.url }}
       role: vault-role
       authpath: {{ network.env.type }}{{ namespace }}-auth
+      type: {{ vault.type | default("hashicorp") }}
       secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
 {% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred

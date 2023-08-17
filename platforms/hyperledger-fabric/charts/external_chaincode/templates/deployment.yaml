@@ -51,6 +51,9 @@ spec:
       - name: certificates
         emptyDir:
           medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -70,50 +73,25 @@ spec:
           value: "{{ $.Values.metadata.network.version }}"
         - name: CHAINCODE_TLS_ENABLED
           value: "{{ $.Values.chaincode.tls }}"
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-              validateVaultResponse () {
-                if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
-                  echo "ERROR: unable to retrieve ${1}: ${2}"
-                  exit 1
-                fi
-                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-                then
-                  http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${1})
-                  curl_response=$?
-                  if test "$http_code" != "200" ; then
-                      echo "Http response code from Vault - $http_code and curl_response - $curl_response"
-                      if test "$curl_response" != "0"; then
-                        echo "Error: curl command failed with error code - $curl_response"
-                        exit 1
-                      fi
-                  fi
-                fi
-              }
-          
-          # Setting up the environment to get secrets/certificates from Vault
-          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-          # Login to Vault and so I can get an approle token
-          VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-            -H "Content-Type: application/json" \
-            -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-            jq -r 'if .errors then . else .auth.client_token end')
-          validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-          echo "Logged into Vault"
+          source /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
 
           if [ "${CHAINCODE_TLS_ENABLED}" == "true" ]; then
-            vault_secret_key="${VAULT_CHAINCODE_SECRET_PREFIX}"
-            echo "Getting chaincode certificates from Vault using key $vault_secret_key"
-            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
-            validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
-            CACERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]')
-            CLIENT_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]')
-            CLIENT_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]')
+            echo "Getting chaincode certificates from Vault using key ${VAULT_CHAINCODE_SECRET_PREFIX}"
+            vaultBevelFunc "readJson" "${VAULT_CHAINCODE_SECRET_PREFIX}"
+            
+            CACERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+            CLIENT_CERT=$(echo ${VAULT_SECRET} | jq -r '.["client.crt"]')
+            CLIENT_KEY=$(echo ${VAULT_SECRET} | jq -r '.["client.key"]')
+
             mkdir -p ${MOUNT_PATH}
             echo "${CACERT}" > ${MOUNT_PATH}/ca.crt
             echo "${CLIENT_CERT}" > ${MOUNT_PATH}/client.crt
@@ -127,6 +105,9 @@ spec:
         {{ end }}
         - name: certificates
           mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
     {{ end  }}
       containers:
         - image: {{ $.Values.metadata.images.external_chaincode }}
