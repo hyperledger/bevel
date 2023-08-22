@@ -83,6 +83,16 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
 
 ############################################################################################
+# This task deletes vault auth
+- name: Delete vault-auth path
+  shell: |
+    vault kv delete sys/auth/{{ item.k8s.cluster_id }}{{ component_name }}-auth
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  when: item.k8s.cluster_id is defined
+
+############################################################################################
 # This task deletes crypto materials from vault
 - name: Delete Crypto for orderers
   shell: |

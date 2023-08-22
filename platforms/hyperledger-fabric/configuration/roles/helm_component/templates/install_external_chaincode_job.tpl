@@ -33,7 +33,11 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
+{% if item.k8s.cluster_id is defined %}
+      authpath: {{ item.k8s.cluster_id }}{{ namespace | e }}-auth
+{% else %}
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
+{% endif %}
       chaincodesecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}/chaincodes
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
