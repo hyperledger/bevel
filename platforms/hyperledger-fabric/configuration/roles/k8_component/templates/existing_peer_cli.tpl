@@ -9,7 +9,11 @@ storage:
 vault:
   role: vault-role
   address: {{ vault.url }}
+{% if org.k8s.cluster_id is defined %}
+  authpath: {{ org.k8s.cluster_id }}{{ component_ns }}-auth
+{% else %}
   authpath: {{ network.env.type }}{{ component_ns }}-auth
+{% endif %}
   adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}/users/admin
   orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}/orderer
   serviceaccountname: vault-auth
