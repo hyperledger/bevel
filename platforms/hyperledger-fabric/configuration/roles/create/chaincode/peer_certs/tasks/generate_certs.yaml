@@ -12,14 +12,14 @@
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_result
+  register: client_cert_result
   ignore_errors: yes
 
-# This task clean up variable for the next org
-- name: Clean up variable
-  set_fact:
-    cert_generated: !!null
-  when: vault_result.failed == True
+# # This task clean up variable for the next org
+# - name: Clean up variable
+#   set_fact:
+#     cert_generated: !!null
+#   when: client_cert_result.failed == True
 
 # Copy generate-crypto-peer-chaincode.sh script from scrips directory
 - name: Copy generate-crypto-peer-chaincode.sh to destination directory
@@ -74,14 +74,18 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -c ca-tools -- /root/ca-tools/{{org_name|lower}}/./generate-crypto-peer-chaincode.sh {{component_name}} {{org_name|lower}} {{peer.name}}-{{ chaincode.name }} app {{org_name}} "{{subject}}" {{ ca_server_url }}                                                                                                                                                                   
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools ./build/ca-tools
-  when: cert_generated|default(None) == None
+  when: 
+    - not peer0_cert_generated
+    - client_cert_result.failed
 
 # This task copies the first set of certificates to a temp folder, which will be copied to the new peers in the same orgs later
 - name: Copy peer certificates to temp folder
   shell: |
     mkdir -p {{temp_peer_cert_folder}} && cp -a ./build/crypto-config/peerOrganizations {{temp_peer_cert_folder}} &&
     cp -a ./build/ca-tools {{temp_peer_cert_folder}}
-  when: cert_generated|default(None) == None
+  when: 
+    - not peer0_cert_generated
+    - client_cert_result.failed
 
 # This task is to set variables to keep track of the certifcate for the first peer
 - name: Set varibles if crypto-config is copied
@@ -93,7 +97,8 @@
     ca_tool_admin_full_path: "{{temp_peer_cert_folder}}/ca-tools/{{org_name|lower}}/client{{peer.name}}-{{chaincode.name}}/msp/admincerts/{{peer.name}}-{{chaincode.name}}@{{component_name}}-cert.pem"
     src_peer_ca_tool_file_name: "{{peer.name}}-{{chaincode.name}}@{{component_name}}-cert.pem"
   when: 
-    - cert_generated|default(None) == None
+    - not peer0_cert_generated
+    - client_cert_result.failed
 
 # This task is to copy the files peer certifcate to target temp folder
 - name: Copy peer certificates to local
@@ -103,7 +108,8 @@
     mkdir -p {{temp_peer_cert_folder}}/ca-tools/{{org_name|lower}}/client{{peer.name}}-{{chaincode.name}} && 
     cp -a {{peer_ca_tool_folder}}/. {{temp_peer_cert_folder}}/ca-tools/{{org_name|lower}}/client{{peer.name}}-{{chaincode.name}}/
   when:
-    - cert_generated|default(None) == true
+    - peer0_cert_generated
+    - client_cert_result.failed
 
 # This task copies the certificate which needs to be renamed for particular peer in crypto-config
 - name: Copy crypto-config peer certificate file with correct peer name under crypto-config
@@ -112,7 +118,8 @@
     dest: "{{temp_peer_cert_folder}}/peerOrganizations/{{component_name}}/users/{{peer.name}}-{{chaincode.name}}@{{component_name}}/msp/admincerts/{{peer.name}}-{{chaincode.name}}@{{component_name}}-cert.pem"
     remote_src: true
   when:
-    - cert_generated|default(None) == true
+    - peer0_cert_generated
+    - client_cert_result.failed
 
 # This task copies the certificate which needs to be renamed for particular peer in ca-tool
 - name: Copy ca-tool peer certificate file with correct peer name under ca-tool
@@ -121,7 +128,8 @@
     dest: "{{temp_peer_cert_folder}}/ca-tools/{{org_name|lower}}/client{{peer.name}}-{{chaincode.name}}/msp/admincerts/{{peer.name}}-{{chaincode.name}}@{{component_name}}-cert.pem"
     remote_src: true
   when:
-    - cert_generated|default(None) == true
+    - peer0_cert_generated
+    - client_cert_result.failed
 
 # This task removes the certificate not below to the target peer under crypto-config
 - name: Remove useless certficiate file in the new peer folder under crypto-config
@@ -129,7 +137,8 @@
     path: "{{temp_peer_cert_folder}}/peerOrganizations/{{component_name}}/users/{{peer.name}}-{{chaincode.name}}@{{component_name}}/msp/admincerts/{{src_peer_cert_file_name}}"
     state: absent
   when:
-    - cert_generated|default(None) == true
+    - peer0_cert_generated
+    - client_cert_result.failed
 
 # This task removes the certificate not below to the target peer
 - name: Remove useless certficiate file in the new peer folder under ca-tool
@@ -137,7 +146,8 @@
     path: "{{temp_peer_cert_folder}}/ca-tools/{{org_name|lower}}/client{{peer.name}}-{{chaincode.name}}/msp/admincerts/{{src_peer_ca_tool_file_name}}"
     state: absent
   when:
-    - cert_generated|default(None) == true
+    - peer0_cert_generated
+    - client_cert_result.failed
 
 # This task copies all the certificate for the peer back to ca-tool pod
 - name: Copy certificate to peer pod
@@ -146,7 +156,8 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{temp_peer_cert_folder}}/peerOrganizations/{{component_name}}/users/{{peer.name}}-{{chaincode.name}}@{{component_name}} {{ component_name }}/${CA_TOOL_CLI}:crypto-config/peerOrganizations/{{component_name}}/users
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{temp_peer_cert_folder}}/ca-tools/{{org_name|lower}}/client{{peer.name}}-{{chaincode.name}} {{ component_name }}/${CA_TOOL_CLI}:/root/ca-tools/{{org_name|lower}}
   when:
-    - cert_generated|default(None) == true
+    - peer0_cert_generated
+    - client_cert_result.failed
 
 # Copy to ./build/crypto-config for vault saving 
 - name: Copy certificates to ./build/crypto-config for Vault
@@ -154,21 +165,23 @@
     mkdir -p ./build/crypto-config/peerOrganizations/{{component_name}}/users/{{peer.name}}-{{chaincode.name}}@{{component_name}} && 
     cp -a {{temp_peer_cert_folder}}/peerOrganizations/{{component_name}}/users/{{peer.name}}-{{chaincode.name}}@{{component_name}}/. ./build/crypto-config/peerOrganizations/{{component_name}}/users/{{peer.name}}-{{chaincode.name}}@{{component_name}}
   when:
-    - cert_generated|default(None) == true
+    - peer0_cert_generated
+    - client_cert_result.failed
 
 # This task is to check if the crypto-config file exists
 - name: Check if the crypto-config/peerOrganizations/ca-tools file are copied
   stat:
     path: "{{temp_peer_cert_folder}}/ca-tools"
   register: crypto_config_files
-  when: cert_generated|default(None) == None
+  when: 
+    - not peer0_cert_generated
 
 # This task is to set variables if the file exists
 - name: Set varibles if crypto-config is copied
   set_fact:
-    cert_generated: true
+    peer0_cert_generated: true
   when:
-    - cert_generated|default(None) == None
+    - not peer0_cert_generated
     - crypto_config_files.stat.exists
 
 - name: ensure chaincode certificate files exist
@@ -207,3 +220,4 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when:
     - cert_missing | default(None) == None
+    - client_cert_result.failed

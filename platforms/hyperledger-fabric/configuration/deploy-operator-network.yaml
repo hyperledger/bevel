@@ -39,9 +39,14 @@
       include_role:
         name: "create/storageclass"
       vars:
-        sc_name: "{{ item.name | lower}}sc"
-        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name | lower }}"
+        cloudProvider: "{{ item.cloud_provider | lower }}"
+        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+        component_type: "{{ item.type | lower }}"
+        region: "{{ item.k8s.region | default('eu-west-1') }}"
         kubernetes: "{{ item.k8s }}"
+        charts_dir: "platforms/shared/charts"
+        platform_suffix: "net"
         release_dir: "./build"
       loop: "{{ network['organizations'] }}"
         

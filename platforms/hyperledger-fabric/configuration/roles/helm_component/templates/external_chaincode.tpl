@@ -1,13 +1,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: {{ name }}-{{ chaincode_name }}-{{ chaincode.version }}
+  name: cc-{{ chaincode_name }}
   namespace: {{ chaincode_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
   interval: 1m
-  releaseName: {{ name }}-{{ chaincode_name }}-{{ chaincode.version }}
+  releaseName: cc-{{ chaincode_name }}
   chart:
     spec:
       interval: 1m
@@ -26,7 +26,6 @@ spec:
         alpineutils: {{ alpine_image }}
 
     chaincode:
-      org: {{ org_name }}
       name: {{ chaincode.name }}
       version: {{ chaincode.version }}
       ccid: {{ ccid.stdout | replace(',','') }} 

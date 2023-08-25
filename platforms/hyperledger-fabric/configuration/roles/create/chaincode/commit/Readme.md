@@ -33,7 +33,7 @@ This tasks checks/Wait for approve-chaincode job.
 ##### Input Variables
 
     component_type: The kind of task i.e. here `Job`
-    component_name: Name of join channel job. Format: "approvechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
+    component_name: Name of join channel job. Format: "approvecc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
     namespace: Namespace of component
     kubernetes: The kubernetes patch from network yaml
 
@@ -51,7 +51,7 @@ This tasks checks if commit-chaincode is already run.
 ##### Input Variables
 
     component_type: The kind of task i.e. here `OneTimeJob`
-    name: Name of commit chaincode job. Format: commitchaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
+    name: Name of commit chaincode job. Format: commitcc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
     namespace: Namespace of component
     kubernetes: The kubernetes patch from network yaml
 

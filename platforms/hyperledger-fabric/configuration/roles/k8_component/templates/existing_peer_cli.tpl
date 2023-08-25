@@ -17,7 +17,12 @@ vault:
   adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}/users/admin
   orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}/orderer
   serviceaccountname: vault-auth
+  type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
   imagesecretname: regcred
+{% else %}
+  imagesecretname: ""
+{% endif %}
   tls: false
 peer:
   name: {{ peer_name }}
@@ -29,4 +34,4 @@ peer:
   address: {{ peer.peerAddress }}
 {% endif %}
 orderer:
-  address: {{ participant.ordererAddress }}
+  address: {{ orderer.uri }}

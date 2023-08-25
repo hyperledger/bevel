@@ -7,11 +7,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+  name: approvecc-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
   namespace: {{ $.Values.metadata.namespace }}
   labels:
-    app: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
-    app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+    app: approvecc-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+    app.kubernetes.io/name: approvecc-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -21,8 +21,8 @@ spec:
   template:
     metadata:
       labels:
-        app: approvechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
-        app.kubernetes.io/name: approvechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+        app: approvecc-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+        app.kubernetes.io/name: approvecc-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
@@ -131,7 +131,7 @@ spec:
         args:
         - |-
           #!/bin/bash sh
-          
+ 
           ## Checking approved chaincode
           APPROVED=$(peer lifecycle chaincode queryapproved --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} -O json | \
             jq --arg SEQUENCE "${CHAINCODE_SEQUENCE}" --arg VERSION "$CHAINCODE_VERSION" \
@@ -189,7 +189,14 @@ spec:
             APPROVE_CMD=${APPROVE_CMD}${endorsement_policy}
             eval ${APPROVE_CMD}  
           fi
-          echo "Final Approve command: " ${APPROVE_CMD}
+          if [ $? -eq 0 ]; then
+            echo "Final Approve command: " ${APPROVE_CMD}
+            echo "Chaincode approve was successful."
+          else
+            echo "Final Approve command: " ${APPROVE_CMD}
+            echo "Chaincode approve failed."
+            exit 1
+          fi
         env:
         - name: CORE_VM_ENDPOINT
           value: unix:///host/var/run/docker.sock
