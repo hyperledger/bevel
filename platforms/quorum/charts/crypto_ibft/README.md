@@ -82,7 +82,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 
 | Name               | Description                                                                                  | Default Value                     |
 | -------------------| -------------------------------------------------------------------------------------------- | --------------------------------- |
-| initContainerName  | Provide the alpine utils image, which is used for all init-containers of deployments/jobs    | hyperledgerlabs/alpine-utils:1.0  |
+| initContainerName  | Provide the alpine utils image, which is used for all init-containers of deployments/jobs    | ghcr.io/hyperledger/bevel-alpine:latest  |
 | pullPolicy         | Pull policy to be used for the Docker image                                                  | IfNotPresent                      |
 | node               | Pull quorum Docker image                                                                     | ""                                |
 

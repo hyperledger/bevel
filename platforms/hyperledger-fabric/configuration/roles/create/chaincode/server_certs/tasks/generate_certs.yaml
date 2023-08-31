@@ -56,7 +56,7 @@
 - name: Execute generate-crypto-chaincode-server.sh file using the CA Tools 
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
-    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -c ca-tools -- /root/ca-tools/{{org_name|lower}}/./generate-crypto-chaincode-server.sh {{component_name}} {{org_name|lower}} {{chaincode.name}} chaincode {{org_name}} "{{subject}}" "chaincode-{{chaincode.name}}-{{chaincode.version}}-{{ org_name }}.{{ component_name }}.svc.cluster.local" {{chaincode.version}} {{ ca_server_url }}
+    KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -c ca-tools -- /root/ca-tools/{{org_name|lower}}/./generate-crypto-chaincode-server.sh {{component_name}} {{org_name|lower}} {{chaincode.name}} chaincode {{org_name}} "{{subject}}" "cc-{{chaincode.name}}.{{ component_name }}.svc.cluster.local" {{chaincode.version}} {{ ca_server_url }}
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_name }}/${CA_TOOL_CLI}:crypto-config ./build/crypto-config
   when: 
     - peer.name == first_peer_name

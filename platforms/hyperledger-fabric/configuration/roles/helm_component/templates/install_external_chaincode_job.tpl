@@ -55,4 +55,4 @@ spec:
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
       tls: {{ component_chaincode.tls }}
-      address: chaincode-{{ component_chaincode.name | lower | e }}-{{ component_chaincode.version }}-{{ name | lower | e }}.{{ namespace }}.svc.cluster.local:7052
+      address: cc-{{ component_chaincode.name | lower | e }}.{{ namespace }}.svc.cluster.local:7052

@@ -8,11 +8,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+  name: cc-{{ $.Values.chaincode.name }}
   namespace: {{ $.Values.metadata.namespace }}
   labels:
-    name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
-    app.kubernetes.io/name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+    name: cc-{{ $.Values.chaincode.name }}
+    app.kubernetes.io/name: cc-{{ $.Values.chaincode.name }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -21,15 +21,15 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
-      app.kubernetes.io/name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+      app: cc-{{ $.Values.chaincode.name }}
+      app.kubernetes.io/name: cc-{{ $.Values.chaincode.name }}
       helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
-        app.kubernetes.io/name: chaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}
+        app: cc-{{ $.Values.chaincode.name }}
+        app.kubernetes.io/name: cc-{{ $.Values.chaincode.name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:   
@@ -111,8 +111,8 @@ spec:
     {{ end  }}
       containers:
         - image: {{ $.Values.metadata.images.external_chaincode }}
-          name: "{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.org }}"
-          imagePullPolicy: IfNotPresent
+          name: "{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}"
+          imagePullPolicy: Always
           env:
             - name: CHAINCODE_ID
               value: "{{ $.Values.chaincode.ccid }}"

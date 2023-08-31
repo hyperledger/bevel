@@ -16,7 +16,7 @@
     component_type: "Job"
     namespace: "{{ org.name |lower }}-net"
     kubernetes: "{{ org.k8s }}"
-    component_name: "commitchaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ chaincode.sequence | default('1') }}"
+    component_name: "commitcc-{{ chaincode.name }}-{{ chaincode.version }}-{{ chaincode.sequence | default('1') }}"
   when: 
     - chaincode is defined and '2.' in network.version
     - add_new_org is not defined or add_new_org == 'false'
@@ -29,7 +29,7 @@
     component_type: "Job"
     namespace: "{{ org.name |lower }}-net"
     kubernetes: "{{ org.k8s }}"
-    component_name: "approvechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}-{{ chaincode.sequence | default('1') }}"
+    component_name: "approvecc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}-{{ chaincode.sequence | default('1') }}"
   when: 
     - chaincode is defined and '2.' in network.version 
     - add_new_org is defined and add_new_org == 'true'
@@ -53,7 +53,7 @@
     component_type: "OneTimeJob"
     namespace: "{{ org.name |lower }}-net"
     kubernetes: "{{ org.k8s }}"
-    component_name: "invokechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
+    component_name: "invokecc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
   register: invoke_chaincode
   when: chaincode is defined
 
@@ -94,7 +94,7 @@
   vars:    
     name: "{{ org.name | lower }}"
     type: "invoke_chaincode_job"
-    component_name: "invoke-{{ org.name | lower }}-{{item.channel_name|lower}}-{{chaincode.name}}{{chaincode.version}}"
+    component_name: "invoke-{{item.channel_name|lower}}-{{chaincode.name}}{{chaincode.version}}"
     namespace: "{{ org.name |lower }}-net"
     peer_name: "{{ peer.name }}"
     peer_address: "{{ peer.name }}.{{ org.name |lower }}-net:{{ peer.grpc.port }}"

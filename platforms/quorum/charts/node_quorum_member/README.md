@@ -91,7 +91,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 | Name           | Description                                                                          | Default Value                         |
 | ---------------| ------------------------------------------------------------------------------------ | ------------------------------------- |
 | node           | Provide the valid image name and version for quorum node                             | quorumengineering/quorum:2.1.1        |
-| alpineutils    | Provide the valid image name and version to read certificates from vault server      | hyperledgerlabs/alpine-utils:1.0      |
+| alpineutils    | Provide the valid image name and version to read certificates from vault server      | ghcr.io/hyperledger/bevel-alpine:latest      |
 | tessera        | Provide the valid image name and version for quorum tessera                          | quorumengineering/tessera:0.9.2       |
 | busybox        | Provide the valid image name and version for busybox                                 | busybox                               |
 | mysql          | Provide the valid image name and version for MySQL. This is used as the DB for TM    | mysql/mysql-server:5.7                |
