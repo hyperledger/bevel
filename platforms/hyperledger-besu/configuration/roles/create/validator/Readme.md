@@ -4,7 +4,7 @@
 [//]: # (##############################################################################################)
 
 ## ROLE: create/validator
-This role creates the helm value file of orion transaction manager for each node of all organizations.
+This role creates the helm value file of validator for each node of all organizations.
 ### main.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)    
@@ -29,20 +29,7 @@ peer_publicIP
                 
     loop_var: loop variable used for iterating the loop.
 
-#### 5. Create Value files for validator for each node
-This task creates the value file by calling the create/helm_component role
-##### Input Variables
-
-    *genesis: "The genesis file fetched from the url defined by the network.yaml" 
-    *component_name: "The name of the component"
-    type: "node_orion"
-**include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here create/helm_component
-**loop**: loops over peers list fetched using *{{ peers }}* from network yaml
-**loop_control**: Specify conditions for controlling the loop.
-                
-    loop_var: loop variable used for iterating the loop.
-
-#### 6. Git Push
+#### 5. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
     GIT_DIR: "The path of directory which needs to be pushed"

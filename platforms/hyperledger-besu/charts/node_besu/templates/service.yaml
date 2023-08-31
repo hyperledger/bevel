@@ -11,30 +11,6 @@ metadata:
   annotations:
     app: consortiumchain
     version: '1'
-    {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.node.name }}-json-rpc
-      port: {{ .Values.proxy.rpc }}
-      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.node.name }}-rlpx
-      port: {{ .Values.proxy.p2p }}
-      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.p2p }}
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Values.node.name }}_mapping_tlscontext
-      hosts:
-      - {{ .Values.proxy.external_url }}
-      secret: {{ .Values.node.name }}-ambassador-certs.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-    {{- end }}
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: {{ .Values.node.name }}
@@ -73,3 +49,40 @@ spec:
    {{- end }} 
   selector:
     service.rpc: {{ .Values.node.name }}
+{{- if eq $.Values.proxy.provider "ambassador" }}
+## Listeners for rlpx (p2p) ports
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: {{ .Values.node.name }}-rlpx
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.proxy.p2p }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+## Mapping for rpc
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.node.name }}-json-rpc
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hostname: '{{ .Values.node.name }}rpc.{{ .Values.proxy.external_url }}'
+  prefix: /
+  service: http://{{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
+## TCPMapping for rlpx
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ .Values.node.name }}-rlpx
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.proxy.p2p }}
+  service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.p2p }}
+{{- end }}

@@ -49,7 +49,17 @@
       aws: "{{ item.aws }}"
       organization: "{{ item }}"
     with_items: "{{ network.organizations }}"
-    when: network.env.proxy == 'ambassador'
+    when: network.env.proxy == 'ambassador' and network['type'] != 'besu'
+  # Setup ambassador edge stack (enabled for besu)
+  - include_role:
+      name: setup/edge-stack
+    vars:
+      kubeconfig_path: "{{ item.k8s.config_file }}"
+      kubecontext: "{{ item.k8s.context }}"
+      aws: "{{ item.aws }}"
+      organization: "{{ item }}"
+    with_items: "{{ network.organizations }}"
+    when: network.env.proxy == 'ambassador' and network['type'] == 'besu'
   # Installs cert-manager
   - include_role:
       name: setup/certmanager

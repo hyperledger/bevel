@@ -16,7 +16,7 @@ Certificate Paths on Vault for Hyperledger Besu Network
 | secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | key_pub                      | Public Key (Identity for a node)  |
 | secretsv2/{{`component_ns`}}/crypto/{{ `peer_name` }}/data                         | nodeAddress                       | Besu Node Address     |
 
-### For Orion
+### For transaction manager
 
 | Path                                                                           | Key Name               | Description         |
 |--------------------------------------------------------------------------------|-------------------------------|--------------|
@@ -30,9 +30,9 @@ Certificate Paths on Vault for Hyperledger Besu Network
 |------------------------------------------------------------------------------|-------------------------------|--------------|
 | secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | rootca_key                        | Initial Root CA Key  |
 | secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | rootca_pem                        | Initial Root CA Certificates  |
-| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | ambassadorcrt                 | Certificate chain for Ambassador proxy and Orion TLS |
+| secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | ambassadorcrt                 | Certificate chain for Ambassador proxy and transaction manager TLS |
 | secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | ambassadorkey                 | Ambassador key  |
-for Ambassador proxy and Orion TLS |
+for Ambassador proxy and transaction manager TLS |
 | secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | knownServer                 | Common name and SHA256 digest of authorized privacy enclave  |
 | secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | keystore                 | Keystore (PKCS #12 format) Besu TLS Certificate and key   |
 | secretsv2/{{ `component_ns` }}/crypto/{{ `node_name` }}/tls                       | password                 | Password to decrypt the Keystore  |
