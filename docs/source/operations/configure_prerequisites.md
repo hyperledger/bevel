@@ -15,7 +15,7 @@
 ## GitOps Authentication
 For synchronizing the Git repo with the cluster, Hyperledger Bevel configures Flux for each cluster. The authentication is via SSH or HTTPS which can be specified in the configuration file `gitops.protocol` section. 
 
-For **HTTPS**, just generate a git token and give that read-write access. Keep the token safe and use in the `gitops.password` section of the [configuration file](./corda_networkyaml.md). 
+For **HTTPS**, just generate a git access token and give that read-write access. Keep the token safe and use in the `gitops.password` section of the [configuration file](./corda_networkyaml.md). For GitHub, you can follow [these instrucitons](https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) on how to create a token.
 
 For **SSH**, run the following command to generate a private-public key pair named **gitops**.
 
@@ -32,14 +32,14 @@ Use the path to the private key (**gitops**) in the `gitops.private_key` section
 
 ---
 
-And add the public key contents (starts with **ssh-rsa**) as an Access Key (with read-write permissions) in your Github repository by following [this guide](https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account).
+And add the public key contents (starts with **ssh-rsa**) as an Access Key (with read-write permissions) in your Github repository by following [this guide](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
 
 <a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 
 
 The [Hashicorp Vault](https://www.vaultproject.io/) service should be accessible by the ansible controller as well as the kubernetes cluster (proper inbound/outbound rules should be configured). If not initialised and unsealed already, complete the following steps to unseal and access the Vault.
 
-* Install Vault client. Follow the instructions on [Install Vault](https://www.vaultproject.io/docs/install/).
+* Install Vault client. Follow the instructions on [Install Vault](https://developer.hashicorp.com/vault/docs/install).
 
 * Set the environment Variable **VAULT_ADDR** as the Vault service. 
 
@@ -91,7 +91,7 @@ For Corda Enterprise, the docker images should be built and put in a private doc
 <a name = "dns-update"></a>
 ## DNS Update
 
-Hyperledger Bevel uses [Ambassador](https://www.getambassador.io/about/why-ambassador/) or [HAProxy Ingress Controller](https://www.haproxy.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/) (for Fabric) for inter-cluster communication. 
+Hyperledger Bevel uses [Ambassador Edge Stack](https://www.getambassador.io/products/edge-stack/api-gateway) or [HAProxy Ingress Controller](https://haproxy-ingress.github.io/) (for Fabric) for inter-cluster communication. 
 Bevel automation deploys both as per the configuration provided in `network.env.proxy` section of the Bevel configuration file, but if you are not using [External DNS](#externaldns), you will have to manually add DNS entries.
 
 

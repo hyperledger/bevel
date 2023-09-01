@@ -41,23 +41,24 @@ Documentation
 -  |pin| Spell and grammar linting
 -  |pin| Update troubleshooting guide
 -  |pin| Replace ansible roles readme with high level information
--  |pin| Add helm chart readme for platform charts
+-  |tick| Add helm chart readme for platform charts
 
 General/Shared
 --------------
-- |muscle| Improve logging/error messaging in playbooks
+- |muscle| Improve logging/error messaging in playbooks and log storage
 - |pin| Adding proper log message on the helm charts
 - |hand| Setup AWS cloudwatch exporter
 - |pin| Grafana and Promethus integration
-- |hand| Support of Emissary Ingress 
+- |hand| Support of Emissary Ingress
 - |pin| Molecule test support to be removed
-- |pin| Upgrade vault and support for additional vault options
-- |run| Add git actions to automate creation of helm repo chart artifacts
-- |muscle| Devcontainer for vscode containers/codespaces
+- |tick| Upgrade hashicorp vault version 
+- |pin| Support for additional hashicorp vault alternatives
+- |tick| Add git actions to automate creation of helm repo chart artifacts
+- |pin| Devcontainer for vscode containers/codespaces
 - |pin| Git commit/yaml linting
-- |pin| Vault reviewer reference removal
-- |pin| Creation of vault auth role from the vault-k8s chart
-- |pin| Add default values to chart templates/values section
+- |tick| Vault reviewer reference removal
+- |tick| Creation of vault auth role from the vault-k8s chart
+- |run| Add default values to chart templates/values section
 
 Platforms
 ---------
@@ -66,16 +67,17 @@ Platforms
     - |hand| Enable PostGreSQL support for Corda Enterprise
     - |hand| Removal of node
     - |pin| Add Corda 5 support
-    - |run| Cacti connector for Corda opensource
+    - |hand| Cacti connector for Corda opensource
 - Hyperledger Fabric
-    - |run| External chaincode for Fabric 2.2.x
-    - |pin| Support for Fabric 2.5.x
+    - |tick| External chaincode for Fabric 2.2.x
+    - |run| Support for Fabric 2.5.x
     - |hand| CI/CD piplelines for chaincode deployment
+    - |pin| Chaincode operations via operator console  
 - Hyperledger Besu
     - |hand| Enable node discovery
     - |hand| Enable bootnodes
     - |pin| Add promethus/Grafana chart for node monitoring data
-    - |pin| Update charts documentation and add to helm repo
+    - |pin| Test permission for Besu platform
 - Quorum
     - |pin| Enable TLS for Quorum Tessera communication
 - Hyperledger Indy

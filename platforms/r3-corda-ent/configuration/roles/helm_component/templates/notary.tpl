@@ -101,7 +101,7 @@ spec:
           limits: 2056M
           requests: 2056M
       storage:
-        name: cordaentsc
+        name: {{ sc_name }}
         memory: 512Mi
       replicas: 1
     healthCheckNodePort: 0

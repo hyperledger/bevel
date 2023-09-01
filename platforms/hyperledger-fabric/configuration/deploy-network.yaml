@@ -28,35 +28,78 @@
     # Create Namespaces and Vault-rbac kubernetes-value files
     - name: Create namespace and Vault auth for each organization
       include_role:
-        name: "create/namespace_vaultauth"
+        name: "create/namespace"
       vars:
         component_name: "{{ item.name | lower }}-net"
         component_type_name: "{{ item.type | lower }}"
         kubernetes: "{{ item.k8s }}"
         release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
+
+    #Create Vault scrit as configmap for Vault CURD operations
+    - name: Setup vault script
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
+      vars:
+        component_ns: "{{ org.name | lower }}-net"
+        kubernetes: "{{ org.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
     
     #Setup Vault-Kubernetes accesses and Regcred for docker registry
     - name: Setup Vault Kubernetes for each organization
       include_role: 
-        name: "setup/vault_kubernetes"
+        name: "{{playbook_dir}}/../../shared/configuration/roles/setup/vault_kubernetes"
       vars:
-        component_name: "{{ item.name | lower }}-net"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        component_type: "{{ item.type | lower }}"
-        auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
+        name: "{{ org.name | lower }}"
+        component_name: "{{ org.name | lower }}-vaultk8s-job"
+        component_type: "{{ org.type | lower }}"
+        component_ns: "{{ org.name | lower }}-net"
+        component_auth: "{{ network.env.type }}{{ org.name | lower }}-net-auth"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        policy_type: "fabric"
+        gitops: "{{ org.gitops }}"
       loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: org.k8s.cluster_id is not defined
+  
+    #Setup Vault-Kubernetes accesses and Regcred for docker registry
+    - name: Setup Vault Kubernetes for each organization
+      include_role: 
+        name: "{{playbook_dir}}/../../shared/configuration/roles/setup/vault_kubernetes"
+      vars:
+        name: "{{ org.name | lower }}"
+        component_name: "{{ org.name | lower }}-vaultk8s-job"
+        component_type: "{{ org.type | lower }}"
+        component_ns: "{{ org.name | lower }}-net"
+        component_auth: "{{ org.k8s.cluster_id }}{{ component_ns }}-auth"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        policy_type: "fabric"
+        gitops: "{{ org.gitops }}"
+        reset_path: "platforms/hyperledger-fabric/configuration"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: org.k8s.cluster_id is defined
 
     # Create Storageclass 
     - name: Create storageclass for each organization
       include_role:
         name: "create/storageclass"
       vars:
-        sc_name: "{{ item.name | lower}}sc"
-        component_type: "{{ item.type | lower}}"
+        org_name: "{{ item.name | lower }}"
+        cloudProvider: "{{ item.cloud_provider | lower }}"
+        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+        component_type: "{{ item.type | lower }}"
+        region: "{{ item.k8s.region | default('eu-west-1') }}"
         kubernetes: "{{ item.k8s }}"
-        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        charts_dir: "platforms/shared/charts"
+        platform_suffix: "net"
+        release_dir: "./build"
       loop: "{{ network['organizations'] }}"
         
     # Create CA Server helm-value files and check-in
@@ -68,6 +111,7 @@
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
+        sc_name: "{{ component }}-{{ item.cloud_provider }}-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
@@ -92,7 +136,7 @@
         prompt: "Sleeping... so that the client certificates are valid"
         minutes: 6
     
-     # Create CA Tools helm-value files and check-in
+    # Create CA Tools helm-value files and check-in
     - name: Create CA tools for each organization
       include_role:
         name: "create/ca_tools/orderer"
@@ -101,6 +145,7 @@
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
+        sc_name: "{{ component }}-{{ item.cloud_provider | lower }}-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
@@ -119,6 +164,7 @@
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
         orderer_org: "{{ item.orderer_org | lower }}"
+        sc_name: "{{ component }}-{{ item.cloud_provider | lower }}-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"

@@ -82,7 +82,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| -----------------------------------------------------------------| --------------------------------------------------|
 | namespace             | Namespace for CA server                                          | default                                           |
 | images.ca             | image name and version for fabric ca                             | hyperledger/fabric-ca:1.4.8                       |
-| images.alpineutils    | image name and version to read certificates from vault server    | index.docker.io/hyperledgerlabs/alpine-utils:1.0  |
+| images.alpineutils    | image name and version to read certificates from vault server    | ghcr.io/hyperledger/bevel-alpine:latest  |
 | labels                | Provide the custom labels                                        | ca                                                |
 
 ### Server

@@ -27,7 +27,6 @@ An accelerator for delivering production-ready blockchain solutions
    :caption: Table of Contents:
 
    introduction
-   releasenotes
    keyconcepts
    gettingstarted
    operationalguide
@@ -41,3 +40,4 @@ An accelerator for delivering production-ready blockchain solutions
    glossary
    contributing
    maintainers
+   releasenotes

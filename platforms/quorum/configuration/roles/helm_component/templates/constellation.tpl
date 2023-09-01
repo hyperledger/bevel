@@ -54,6 +54,7 @@ spec:
       tm_keyname: tm
       role: vault-role
       authpath: quorum{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
     genesis: {{ genesis }}
     staticnodes: {{ staticnodes }}
     constellation:
@@ -74,5 +75,5 @@ spec:
       portConst: {{ peer.transaction_manager.ambassador }}
       portRaft: {{ peer.raft.ambassador }}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi

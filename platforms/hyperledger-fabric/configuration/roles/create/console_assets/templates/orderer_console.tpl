@@ -1,8 +1,8 @@
 {
     "display_name": "ordering node - {{ item.name | lower }}",
     "grpcwp_url": "https://{{ orderer.name }}-proxy.{{ item.external_url_suffix }}",
-    "api_url": "grpcs://{{ orderer.name }}.{{ item.external_url_suffix }}:8443",
-    "operations_url": "https://{{ orderer.name }}-ops.{{ item.external_url_suffix }}",
+    "api_url": "grpcs://{{ orderer.ordererAddress }}",
+    "operations_url": "http://{{ orderer.name }}-ops.{{ item.external_url_suffix }}",
     "type": "fabric-orderer",
     "msp_id": "{{ item.name | lower }}MSP",
     "system_channel_id": "syschannel",    

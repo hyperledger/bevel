@@ -33,6 +33,7 @@ Fabric operations
     operations/upgrade_fabricnetwork_1.4.x_2.2.x
     operations/setup_cactus_connector_fabric
     operations/external_chaincode
+    operations/deploy_operator_fabric
     
 Corda operations
 -----------------------

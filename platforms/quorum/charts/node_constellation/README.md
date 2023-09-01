@@ -89,7 +89,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 | Name           | Description                                                                      | Default Value                         |
 | ---------------| -------------------------------------------------------------------------------- | ------------------------------------- |
 | node           | Provide the valid image name and version for quorum node                         | quorumengineering/quorum:2.1.1        |
-| alpineutils    | Provide the valid image name and version to read certificates from vault server  | hyperledgerlabs/alpine-utils:1.0      |
+| alpineutils    | Provide the valid image name and version to read certificates from vault server  | ghcr.io/hyperledger/bevel-alpine:latest      |
 | constellation  | Provide the valid image name and version for quorum constellation                | quorumengineering/constellation:0.3.2 |
 
 ### node

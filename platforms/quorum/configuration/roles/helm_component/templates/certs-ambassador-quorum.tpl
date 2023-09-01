@@ -34,6 +34,7 @@ spec:
       serviceaccountname: vault-auth
       certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}-quo
       retries: 30
+      type: {{ vault.type | default("hashicorp") }}
     subjects:
       root_subject: "{{ network.config.subject }}"
       cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"

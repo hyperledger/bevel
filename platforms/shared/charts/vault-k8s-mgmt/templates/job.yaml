@@ -120,10 +120,12 @@ spec:
                 done < /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > ca_formatted.txt
 
                 KUBE_SA_CRT_ONELINE=$(cat ca_formatted.txt)
+                SA_JWT_TOKEN=$(cat cat /var/run/secrets/kubernetes.io/serviceaccount/token)
 
                 # This echo get the certificate for the cluster
                 echo "
                   {
+                    \"token_reviewer_jwt\": \"${SA_JWT_TOKEN}\",
                     \"kubernetes_host\": \"${KUBERNETES_URL}\",
                     \"kubernetes_ca_cert\": \"${KUBE_SA_CRT_ONELINE}\",
                     \"disable_iss_validation\": \"true\"

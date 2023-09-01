@@ -84,7 +84,7 @@ spec:
         clientport: {{ peer.tm_clientport.port }}
 
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi
 
     vault:

@@ -31,12 +31,21 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
+{% if org.k8s.cluster_id is defined %}
+      authpath: {{ org.k8s.cluster_id }}{{ namespace | e }}-auth
+{% else %}
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
+{% endif %}
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
       secretpath: {{ vault.secret_path | default('secretsv2') }}
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       tls: false
     orderer:
       address: {{ participant.ordererAddress }}
@@ -46,7 +55,7 @@ spec:
       version: {{ component_chaincode.version | default('1') }}
       sequence: {{ component_chaincode.sequence | default('1') }}
       commitarguments: {{ component_chaincode.arguments | default('') | quote }}
-      endorsementpolicies:  {{ component_chaincode.endorsements | default('') | quote }}
+      endorsementpolicies: {{ component_chaincode.endorsements | default('') | quote }}
 {% if component_chaincode.repository is defined %}
       repository:
         hostname: "{{ component_chaincode.repository.url.split('/')[0] | lower }}"

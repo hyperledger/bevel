@@ -20,19 +20,6 @@
       path: "./build"
       state: absent
 
-  # Create Storageclass that will be used for this deployment
-  - name: Create Storage Class
-    include_role:
-      name: create/storageclass
-    vars:
-      storageclass_name: "cordaentsc"
-      git_dir: "{{ org.gitops.release_dir }}"
-      kubernetes: "{{ org.k8s }}"
-      gitops: "{{ org.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-
   # create namespace, service account and clusterrolebinding
   - name: "Create namespace, service accounts and clusterrolebinding"
     include_role: 
@@ -46,6 +33,24 @@
     loop_control:
       loop_var: org
 
+  # Create Storageclass that will be used for this deployment
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      org_name: "{{ org.name | lower }}"
+      cloudProvider: "{{ org.cloud_provider | lower }}"
+      sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+      region: "{{ item.k8s.region | default('eu-west-1') }}"
+      git_dir: "{{ org.gitops.release_dir }}"
+      kubernetes: "{{ org.k8s }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "platforms/shared/charts"
+      platform_suffix: "ent"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+
   # ---------------------------------------------------------------------- 
   # Setup CENM services for the network
   - name: "Setup cenm"   
@@ -54,10 +59,13 @@
     vars:
       services: "{{ org.services }}"
       organisation: "{{ org.name | lower }}"
+      name: "{{ org.name | lower }}"
+      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
+      policy_type: "r3-corda-ent"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
@@ -83,10 +91,13 @@
     vars:
       services: "{{ org.services }}"
       organisation: "{{ org.name | lower }}"
+      name: "{{ org.name | lower }}"
+      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
+      policy_type: "r3-corda-ent"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
@@ -99,10 +110,13 @@
     vars:
       services: "{{ org.services }}"
       organisation: "{{ org.name | lower }}"
+      name: "{{ org.name | lower }}"
+      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
+      policy_type: "r3-corda-ent"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org

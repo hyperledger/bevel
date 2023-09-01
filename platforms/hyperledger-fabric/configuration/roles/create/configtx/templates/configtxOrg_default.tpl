@@ -15,7 +15,7 @@
       Endorsement:
         Type: Signature
         Rule: "OR('{{ component_name }}MSP.member')"
-    {% if component_type == 'peer' %}      
+{% if component_type == 'peer' %}      
     AnchorPeers:
       # AnchorPeers defines the location of peers which can be used
       # for cross org gossip communication.  Note, this value is only
@@ -26,9 +26,20 @@
       - Host: {{ peer.name }}.{{ component_ns }}
         Port: 7051
 {% else %}
-      - Host: {{ peer.name }}.{{ component_ns }}.{{ item.external_url_suffix }}
-        Port: 8443
+{% set path = peer.peerAddress.split(':') %}
+      - Host: {{ path[0] }}
+        Port: {{ path[1] }}
 {% endif %}
 {% endif %}
 {% endfor %}
 {% endif %}
+{% if component_type == 'orderer' %}
+    OrdererEndpoints:
+{% for orderer in orderers %}
+{% if provider == 'none' %}
+      - {{ orderer.name }}.{{ orderer.org_name | lower }}-net:7050
+{% else %}
+      - {{ orderer.uri }}
+{% endif %}
+{% endfor %}
+{% endif %} 

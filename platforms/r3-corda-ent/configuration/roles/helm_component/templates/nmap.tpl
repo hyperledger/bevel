@@ -22,7 +22,7 @@ spec:
     metadata:
       namespace: {{ component_ns }}
     storage:
-      name: "cordaentsc"
+      name: {{ sc_name }}
       memory: 512Mi
     image:
       initContainer: {{ network.docker.url }}/{{ init_container_image }}

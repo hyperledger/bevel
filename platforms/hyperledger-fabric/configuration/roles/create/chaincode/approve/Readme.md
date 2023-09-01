@@ -49,7 +49,7 @@ This tasks checks if approve-chaincode is already run.
 ##### Input Variables
 
     component_type: The kind of task i.e. here `OneTimeJob`
-    component_name: Name of approve chaincode job. Format: approvechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
+    component_name: Name of approve chaincode job. Format: approvecc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
     namespace: Namespace of component
 ##### Output Variables
 
@@ -77,7 +77,6 @@ This is the nested Task for chaincode approve.
 #### 4. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
-    GGIT_DIR: "The path of directory which needs to be pushed"    
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    GGIT_DIR: "The path of directory which needs to be pushed"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"

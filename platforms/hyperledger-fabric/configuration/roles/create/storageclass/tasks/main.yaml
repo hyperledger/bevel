@@ -33,37 +33,19 @@
 # This task creates the value file for creating the storage class for Orderer
 - name: Create Storage Class value file for orderers
   template:
-    src: "{{ sc_templates[type] }}"
+    src: "storageclass.tpl"
     dest: "{{ values_file }}"
   vars:
-    type: "{{item.cloud_provider}}-orderer"
     values_file: "{{ release_dir }}/{{ component_type }}/{{ sc_name }}.yaml"
-  when: component_type == 'orderer' and get_sc.resources|length == 0
-
-
-#############################################################################################
-# This task creates the value file for creating the storage class for Organizations
-- name: Create Storage Class value file for Organizations
-  template:
-    src: "{{ sc_templates[type] }}"
-    dest: "{{ values_file }}"
-  vars:
-    type: "{{item.cloud_provider}}-peer"
-    values_file: "{{ release_dir }}/{{ component_type }}/{{ sc_name }}.yaml"
-  when: component_type == 'peer' and get_sc.resources|length == 0
-
-#Git Push : Pushes the above generated files to git directory 
-- name: Git Push
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
-  vars:
-    GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ item.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
-    msg: "[ci skip] Pushing Storageclass files"
   when: get_sc.resources|length == 0
-  tags:
-    - notest
+
+# Create Storageclass via helmchart
+- name: Create Storageclass via helmchart
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} helm install {{ sc_name }} -f {{ release_dir }}/{{ component_type }}/{{ sc_name }}.yaml {{ playbook_dir }}/../../../{{ charts_dir }}/storage_class
+  vars:
+    kubeconfig_path: "{{ kubernetes.config_file }}"
+  when: get_sc.resources|length == 0
 
 # Check if StorageClass created
 - name: "Waiting for the creation of {{ sc_name }} storage class"

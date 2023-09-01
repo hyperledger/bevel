@@ -11,42 +11,38 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 
 ## Clone forked repo
 
-1. If you have not already done so, fork [bevel](https://github.com/hyperledger/bevel) and clone the forked repo to your machine.
-
-   ```bash
-   cd ~/project
-   git clone git@github.com:<githubuser>/bevel.git
-   ```
+1. If you have followed the pre-requisites, you should already have the [bevel](https://github.com/hyperledger/bevel) repo cloned; if not, follow the pre-requisite steps above.
 
 1. Add a “local” branch to your machine
-   ```bash
-   cd ~/project/bevel
-   git checkout -b local
-   git push --set-upstream origin local
-   ```
+    ```bash
+    cd ./project/bevel
+    git checkout develop # to get latest code
+    git pull
+    git checkout -b local
+    git push --set-upstream origin local
+    ```
 
 ## Update kubeconfig file
 
 1. Create a `build` folder inside your Bevel repository:
-   ```bash
-   cd ~/project/bevel
-   mkdir build
-   ```
+    ```bash
+    mkdir build
+    ```
 1. Copy ca.crt, client.key, client.crt from `~/.minikube` to build:
 
-   ```bash
-   cp ~/.minikube/ca.crt build/
-   cp ~/.minikube/client.key build/
-   cp ~/.minikube/client.crt build/
-   ```
+    ```bash
+    cp ~/.minikube/ca.crt build/
+    cp ~/.minikube/profiles/minikube/client.key build/
+    cp ~/.minikube/profiles/minikube/client.crt build/
+    ```
 
 1. Copy `~/.kube/config` file to build:
 
-   ```bash
-   cp ~/.kube/config build/
-   ```
+    ```bash
+    cp ~/.kube/config build/
+    ```
 
-1. Open the above config file and remove the paths for certificate-authority, client-certificate and client-key as in the figure below.
+1. Open the `config` file and remove the paths for `certificate-authority`, `client-certificate` and `client-key` as in the figure below.
 
    ![](./../_static/minikube-config.jpg)
 
@@ -56,68 +52,91 @@ Before proceeding, first make sure that you've completed [Developer Pre-requisit
 
    ***
 
-1. Copy gitops file from ~/.ssh to build. (This is the private key file which you used to authenticate to your GitHub in pre-requisites)
-   ```bash
-   cp ~/.ssh/gitops build/
-   ```
+1. Get your local IP Address for Vault. Follow [this guide](https://www.avast.com/c-how-to-find-ip-address) to get your machine's local IP Address.
 
-### Additional Windows configurations
+1. In a new terminal, execute the following (assuming `vault` is in your `PATH`):
+    ```bash
+    export VAULT_ADDR='http://<Your Vault local IP address>:8200' #e.g. http://192.168.0.1:8200
+    export VAULT_TOKEN="<Your Vault root token>"
 
-1. Ensure that you have set the following git config before cloning the repo.
+    # enable Secrets v2
+    vault secrets enable -version=2 -path=secretsv2 kv   
+    ```
 
-   ```bash
-   git config --global core.autocrlf false
-   ```
+### Additional configurations
 
-1. If not, update the EOL to LF for platforms/hyperledger-fabric/scripts/\*.sh files.
+1. For Windows, ensure that you have set the following git config before cloning the repo.
 
-1. Execute following to correctly set docker environment.
-   ```bash
-   eval $('docker-machine.exe' env)
-   ```
+    ```bash
+    git config --global core.autocrlf false
+    ```
+
+    - If not, update the EOL to LF for platforms/hyperledger-fabric/scripts/\*.sh files.
+
+1. For Windows, and if using Execute following to correctly set docker environment.
+    ```bash
+    eval $('docker-machine.exe' env)
+    ```
    <a name = "windows_mount"></a>
-1. Mount windows local folder (bevel folder) to VirtualBox docker VM ( the machine named “default” by default) from right-click menu, Settings -> Shared Folders. All paths in network.yaml should be the mounted path. Shut down and restart the "default" machine after this.
+1. For Windows, mount local folder (bevel folder) to VirtualBox docker VM ( the machine named “default” by default) from right-click menu, Settings -> Shared Folders. All paths in network.yaml should be the mounted path. Shut down and restart the "default" machine after this.
 
    ![](./../_static/virtualbox-mountfolder.png)
+
+<a name = "mac_mount"></a>
+1. For Mac, mount the local folder using minikube mount as we are using minikube as the docker runtime.
+    ```
+    eval $(minikube -p minikube docker-env)
+    cd ./project/bevel
+    minikube mount $(pwd):/mnt/bevel/ --gid=root --uid=root
+    ```
+    This terminal window should be kept open. If you close this terminal you have to minikube stop and start to overcome the error when re-mounting.
 
 ## Edit the configuration file
 
 1. Choose the DLT/Blockchain platform you want to run and copy the relevant sample network.yaml to build folder; rename it to network.yaml.
 
-   ```bash
-   cd ~/project/bevel
-   cp platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml build/network.yaml
-   ```
+    ```bash
+    cd ./project/bevel
+    cp platforms/hyperledger-fabric/configuration/samples/network-proxy-none.yaml build/network.yaml
+    ```
+1. Open the above `build/network.yaml` in your favourite editor and update the following.
 
 1. Update Docker configurations:
-   ```yaml
-   docker:
-     url: "ghcr.io/hyperledger"
-     # Comment username and password as it is public repo
-     #username: "<your docker username>"
-     #password: "<your docker password/token>"
-   ```
+    ```yaml
+    docker:
+      url: "ghcr.io/hyperledger"
+      # Comment username and password as it is public repo
+      #username: "<your docker username>"
+      #password: "<your docker password/token>"
+    ```
 1. For each `organization`, update ONLY the following and leave everything else as is:
 
-   ```yaml
-   vault:
-     url: "http://<Your Vault local IP address>:8200" # Use the local IP address rather than localhost e.g. http://192.168.0.1:8200
-     root_token: "<your vault_root_token>"
-   gitops:
-     git_url: "<https/ssh url of your forked repo>" #e.g. "https://github.com/hyperledger/bevel.git"
-     git_repo: "<https url of your forked repo without the https://>" #e.g. "github.com/hyperledger/bevel.git"
-     username: "<github_username>"
-     password: "<github token/password>"
-     email: "<github_email>"
-   ```
+    ```yaml
+    cloud_provider: minikube
+    k8s:
+        context: "minikube"
+        config_file: "/home/bevel/build/config"
+    vault:
+      url: "http://<Your Vault local IP address>:8200" # Use the local IP address rather than localhost e.g. http://192.168.0.1:8200
+      root_token: "<your vault_root_token>"
+    gitops:
+      git_protocol: "https" # Option for git over https or ssh
+      git_url: "https://github.com/<username>/bevel.git"  #e.g. "https://github.com/hyperledger/bevel.git"
+      git_repo: "github.com/<username>/bevel.git"       #e.g. "github.com/hyperledger/bevel.git"
+      username: "<github_username>"
+      password: "<git_access_token>"
+      email: "<github_email>"
+    ```
 
 If you need help, you can use each platform's sample network-minikube.yaml:
 
-- For Fabric, use `platforms/hyperledger-fabric/configuration/samples/network-minikube.yaml`
+- For Fabric, use `platforms/hyperledger-fabric/configuration/samples/network-proxy-none.yaml`
+- For Besu, use `platforms/hyperledger-besu/configuration/samples/network-proxy-none.yaml`
+- For Indy, use `platforms/hyperledger-indy/configuration/samples/network-minikube.yaml`
 - For Quorum, use `platforms/quorum/configuration/samples/network-minikube.yaml`
 - For Corda, use `platforms/r3-corda/configuration/samples/network-minikube.yaml`
 
-And simply replace the placeholder values.
+And simply replace the placeholder values as explained above.
 
 ---
 
@@ -139,13 +158,14 @@ For security reasons, after you leave the page, you can no longer see the token 
 
 ---
 
-1. Deploying the sample “supplychain” chaincode is optional, so you can delete the “chaincode” section. If deploying chaincode, update the following for the peers.
-   ```yaml
-   chaincode:
-     repository:
-       username: "<github_username>"
-       password: "<github_token>"
-   ```
+1. Deploying the sample “supplychain” chaincode for Fabric is optional, so you can delete the “chaincode” section. If deploying chaincode, update the following for the peers.
+    ```yaml
+    chaincodes:
+    - name: "supplychain"
+        repository:
+          username: "<github_username>"
+          password: "<github_token>"
+    ```
 
 ## Execute
 
@@ -156,10 +176,12 @@ minikube status
 vault status
 ```
 
-Now run the following to deploy Bevel Fabric on minikube:
+Now run the following to deploy your chosen DLT on minikube:
 
+
+Mac users should use following (make sure that the local volume was mounted as per [this step](#mac_mount)):
 ```bash
-docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
+docker run -it -v /mnt/bevel:/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
 ```
 
 Windows users should use following (make sure that the local volume was mounted as per [this step](#windows_mount)):

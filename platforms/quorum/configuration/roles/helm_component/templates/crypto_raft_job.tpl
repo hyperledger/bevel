@@ -34,6 +34,7 @@ spec:
       serviceaccountname: vault-auth
       certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}-quo
       retries: 30
+      type: {{ vault.type | default("hashicorp") }}
     healthCheckNodePort: 0
     sleepTimeAfterError: 60
     sleepTime: 10

@@ -1,13 +1,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: {{ name }}-{{ chaincode_name }}-{{ chaincode.version }}
+  name: cc-{{ chaincode_name }}
   namespace: {{ chaincode_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
   interval: 1m
-  releaseName: {{ name }}-{{ chaincode_name }}-{{ chaincode.version }}
+  releaseName: cc-{{ chaincode_name }}
   chart:
     spec:
       interval: 1m
@@ -26,7 +26,6 @@ spec:
         alpineutils: {{ alpine_image }}
 
     chaincode:
-      org: {{ org_name }}
       name: {{ chaincode.name }}
       version: {{ chaincode.version }}
       ccid: {{ ccid.stdout | replace(',','') }} 
@@ -41,6 +40,7 @@ spec:
       authpath: {{ network.env.type }}{{ namespace }}-auth
       chaincodesecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/chaincodes/{{ chaincode.name }}/certificate/v{{ chaincode.version }}
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
 {% if chaincode.private_registry is not defined or chaincode.private_registry == false %}   
       imagesecretname: regcred
 {% endif %}

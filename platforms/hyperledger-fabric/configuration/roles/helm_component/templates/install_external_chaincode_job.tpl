@@ -33,12 +33,21 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
+{% if item.k8s.cluster_id is defined %}
+      authpath: {{ item.k8s.cluster_id }}{{ namespace | e }}-auth
+{% else %}
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
+{% endif %}
       chaincodesecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}/chaincodes
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       secretgitprivatekey: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/git?git_password
       tls: false
       chaincodepackageprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/chaincodes/{{ component_chaincode.name | lower | e }}/package/v{{ component_chaincode.version }}
@@ -46,4 +55,4 @@ spec:
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
       tls: {{ component_chaincode.tls }}
-      address: chaincode-{{ component_chaincode.name | lower | e }}-{{ component_chaincode.version }}-{{ name | lower | e }}.{{ namespace }}.svc.cluster.local:7052
+      address: cc-{{ component_chaincode.name | lower | e }}.{{ namespace }}.svc.cluster.local:7052

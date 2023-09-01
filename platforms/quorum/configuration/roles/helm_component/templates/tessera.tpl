@@ -62,6 +62,7 @@ spec:
       keyname: quorum
       role: vault-role
       authpath: quorum{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
     tessera:
       dburl: "jdbc:mysql://{{ peer.name }}-tessera:3306/demodb"
       dbusername: demouser
@@ -87,6 +88,6 @@ spec:
       quorumport: {{ peer.p2p.ambassador }}
       clientport: {{ peer.transaction_manager.clientport }}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi
       dbstorage: 1Gi

@@ -72,7 +72,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | namespace                 | Provide the namespace for organization's peer         | default                                           |
 | network.version           | Version of the network                                | 2.2.2                                             |
 | images.external_chaincode | Valid image name and version for chaincode server     | ghcr.io/hyperledger/bevel-samples-example:1.0     |
-| images.alpineutils        | Valid image name and version for Alpine utilities     | index.docker.io/hyperledgerlabs/alpine-utils:1.0  |
+| images.alpineutils        | Valid image name and version for Alpine utilities     | ghcr.io/hyperledger/bevel-alpine:latest  |
 | labels                    | Custom labels                                         | ""                                                |
 
 

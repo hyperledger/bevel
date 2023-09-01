@@ -85,6 +85,55 @@
   when:
     - item[1].type == "validator"
 
+# This task creates the bin directory, if it doesn't exist, for storing the besu binary
+- name: Create bin directory
+  file:
+    path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
+    state: directory
+
+# Check if besu binary already exists
+- name: check besu binary
+  stat:
+    path: "{{ bin_install_dir }}/besu/besu-{{ network.version }}/besu"
+  register: besu_stat_result
+
+# Create a temporary directory to download and extract besu tar
+- name: register temporary directory
+  tempfile:
+    state: directory
+  register: tmp_directory
+  when: besu_stat_result.stat.exists == False
+
+# This task fetches the besu tar file from the mentioned URL
+- name: "Getting the besu binary tar"
+  get_url:
+    url: https://hyperledger.jfrog.io/artifactory/besu-binaries/besu/{{ network.version }}/besu-{{ network.version }}.zip
+    dest: "{{ tmp_directory.path }}"
+  when: besu_stat_result.stat.exists == False
+
+# This task unzips the above downloaded tar file
+- name: "Unziping the downloaded file"
+  unarchive:
+    src: "{{ tmp_directory.path }}/besu-{{ network.version }}.zip"
+    dest: "{{ tmp_directory.path }}"
+  when: besu_stat_result.stat.exists == False
+
+# This task extracts the besu binary and place it at appropriate path
+- name: "Moving the besu from the extracted folder and place in it path"
+  copy:
+    src: "{{ tmp_directory.path }}/besu-{{ network.version }}/bin/besu"
+    dest: "{{ bin_install_dir }}/besu/besu-{{ network.version }}"
+    mode: 0755
+  when: besu_stat_result.stat.exists == False
+
+# This task extracts the supporting besu.bat and place it at appropriate path
+- name: "Moving the besu dependencies from the extracted folder and place in it path"
+  copy:
+    src: "{{ tmp_directory.path }}/besu-{{ network.version }}/lib"
+    dest: "{{ bin_install_dir }}/besu"
+    mode: 0755
+  when: besu_stat_result.stat.exists == False
+
 # This task generates the extraData field for and adds to the genenis 
 - name: Generate extraData 
   include_tasks: generate_extraData.yaml

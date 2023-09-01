@@ -49,12 +49,13 @@ spec:
       localmspid: {{ org_name }}MSP
       tlsstatus: true
       keepaliveserverinterval: 10s
-    
+      ordererAddress: {{ orderer.ordererAddress }}
+      
     consensus:
       name: {{ orderer.consensus }}
 
     storage:
-      storageclassname: {{ org_name }}sc
+      storageclassname: {{ sc_name }}
       storagesize: 512Mi  
 
     service:
@@ -72,9 +73,18 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
+{% if item.k8s.cluster_id is defined %}
+      authpath: {{ item.k8s.cluster_id }}{{ namespace }}-auth
+{% else %}
       authpath: {{ network.env.type }}{{ namespace }}-auth
+{% endif %}
+      type: {{ vault.type | default("hashicorp") }}
       secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       serviceaccountname: vault-auth
 {% if orderer.consensus == 'kafka' %}
     kafka:
@@ -101,4 +111,4 @@ spec:
             cpu: 1
           requests:
             memory: 512M
-            cpu: 0.5
+            cpu: 0.25

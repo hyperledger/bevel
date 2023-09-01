@@ -33,7 +33,7 @@ This tasks checks/Wait for approve-chaincode job.
 ##### Input Variables
 
     component_type: The kind of task i.e. here `Job`
-    component_name: Name of join channel job. Format: "approvechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
+    component_name: Name of join channel job. Format: "approvecc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
     namespace: Namespace of component
     kubernetes: The kubernetes patch from network yaml
 
@@ -51,7 +51,7 @@ This tasks checks if commit-chaincode is already run.
 ##### Input Variables
 
     component_type: The kind of task i.e. here `OneTimeJob`
-    name: Name of commit chaincode job. Format: commitchaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
+    name: Name of commit chaincode job. Format: commitcc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
     namespace: Namespace of component
     kubernetes: The kubernetes patch from network yaml
 
@@ -94,7 +94,6 @@ This is the nested Task for chaincode commit.
 #### 7. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
-    GIT_DIR: "The path of directory which needs to be pushed"    
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
+    GIT_DIR: "The path of directory which needs to be pushed"
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"

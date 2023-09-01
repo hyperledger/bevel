@@ -80,7 +80,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | namespace             | Provide the namespace for organization's peer                         | org1-example-com                                  |
 | images.couchdb        | valid image name and version for fabric couchdb                       | couchdb:3.1                                       |
 | images.peer           | valid image name and version for fabric peer                          | hyperledger/fabric-peer::2.2.2                    |
-| images.alpineutils    | valid image name and version to read certificates from vault server   | index.docker.io/hyperledgerlabs/alpine-utils:1.0  |
+| images.alpineutils    | valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest  |
 | labels                | Provide custom labels                                                 | ""                                                |
 
 ### Annotations

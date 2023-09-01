@@ -9,8 +9,6 @@
     tempfile:
       state: directory
     register: tmp_directory
-    tags:
-      - molecule-idempotence-notest
 
   - name: check kubectl
     stat:
@@ -61,13 +59,9 @@
   - name: Test kubectl installation
     command: "kubectl version --client --short"
     changed_when: false
-    tags:
-      - molecule-idempotence-notest
 
   - name: Changing the current context namespace to default
     shell: |
       KUBECONFIG={{ item.k8s.config_file }} kubectl config use-context {{ item.k8s.context }}
       KUBECONFIG={{ item.k8s.config_file }} kubectl config set-context --current --namespace=default
     when: item is defined and item.k8s is defined
-    tags:
-      - molecule-idempotence-notest

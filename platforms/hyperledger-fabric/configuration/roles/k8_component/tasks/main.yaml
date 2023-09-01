@@ -25,3 +25,12 @@
   vars:
     values_file: "{{ release_dir }}/{{ component_type_name }}/{{ component_type }}.yaml"
     type: "{{ component_type }}"
+
+- name: Create the component in kubernetes cluster directly when using operator
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ release_dir }}/{{ component_type_name }}/{{ component_type }}.yaml"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when:
+  - network.env.type == 'operator'

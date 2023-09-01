@@ -53,7 +53,7 @@ spec:
 {% if provider == 'none' %}
       gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}:7051
 {% else %}
-      gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:8443
+      gossipexternalendpoint: {{ peer.peerAddress }}
 {% endif %}
       localmspid: {{ name }}MSP
       loglevel: info
@@ -69,20 +69,29 @@ spec:
 
     storage:
       peer:
-        storageclassname: {{ name }}sc
+        storageclassname: {{ sc_name }}
         storagesize: 512Mi
       couchdb:
-        storageclassname: {{ name }}sc
+        storageclassname: {{ sc_name }}
         storagesize: 1Gi
 
     vault:
       role: vault-role
       address: {{ vault.url }}
+{% if item.k8s.cluster_id is defined %}
+      authpath: {{ item.k8s.cluster_id }}{{ namespace }}-auth
+{% else %}
       authpath: {{ network.env.type }}{{ namespace }}-auth
+{% endif %}
       secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
       secretambassador: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/ambassador
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       secretcouchdbpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/couchdb/{{ name }}?user
 
     service:
@@ -118,4 +127,4 @@ spec:
             cpu: 1
           requests:
             memory: 512M
-            cpu: 0.5
+            cpu: 0.25

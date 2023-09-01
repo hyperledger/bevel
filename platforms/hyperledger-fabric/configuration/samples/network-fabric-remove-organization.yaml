@@ -18,13 +18,7 @@ network:
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: haproxy                  # values can be 'haproxy' or 'ambassador'
-    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange:              # For a range of ports 
-        from: 15010 
-        to: 15020
-    # ports: 15020,15021      # For specific ports
-    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
+    proxy: haproxy                  # values can be 'haproxy' or 'none'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
     annotations:              # Additional annotations that can be used for some pods (ca, ca-tools, orderer and peer nodes)
@@ -49,19 +43,19 @@ network:
       type: orderer
       name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer1.org1ambassador.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer1.crt           # Path of the orderer certificate which must exist
     - orderer:
       type: orderer
       name: orderer2
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer2.org1ambassador.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer2.crt           # Path of the orderer certificate which must exist
     - orderer:
       type: orderer
       name: orderer3
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer3.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer3.org1ambassador.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
 
   # The channels defined for a network with participating peers in each channel
@@ -81,9 +75,9 @@ network:
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
-        peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
+        gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:443  # Must include port, External or internal URI of the gossip peer
+        peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
     - organization:
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
@@ -91,9 +85,9 @@ network:
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+        gossipAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:443
+        peerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443
     - organization:
       name: warehouse
       type: joiner
@@ -101,9 +95,9 @@ network:
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+        gossipAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:443
+        peerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443
     - organization:
       name: manufacturer
       type: joiner
@@ -111,9 +105,9 @@ network:
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+        gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:443
+        peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443
     genesis:
       name: OrdererGenesis
 
@@ -133,8 +127,8 @@ network:
       external_url_suffix: org1ambassador.blockchaincloudpoc.com
       org_status: existing # Status of the organization for the existing network, can be delete / existing
       ca_data:
-        url: ca.supplychain-net.org1ambassador.blockchaincloudpoc.com:8443
-        certificate: /path/supplychain/server.crt        # This has not been implemented in 0.2.0.0
+        url: ca.supplychain-net.org1ambassador.blockchaincloudpoc.com
+        certificate: /path/supplychain/server.crt        # Path where ca public cert will be stored (if new) or read from (if existing ca)
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
@@ -191,18 +185,21 @@ network:
           consensus: raft
           grpc:
             port: 7050
+          ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443
         - orderer:
           name: orderer2
           type: orderer
           consensus: raft
           grpc:
             port: 7050
+          ordererAddress: orderer2.org1ambassador.blockchaincloudpoc.com:443
         - orderer:
           name: orderer3
           type: orderer
           consensus: raft
           grpc:
             port: 7050
+          ordererAddress: orderer3.org1ambassador.blockchaincloudpoc.com:443
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -216,7 +213,7 @@ network:
       org_status: existing # Status of the organization for the existing network, can be delete / existing
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
+        url: ca.manufacturer-net.org2ambassador.blockchaincloudpoc.com
         certificate: /path/manufacturer/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -265,7 +262,7 @@ network:
           name: peer0
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
-          peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
           certificate: /path/manufacturer/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
@@ -305,7 +302,7 @@ network:
       org_status: existing # Status of the organization for the existing network, can be delete / existing
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.carrier-net.org3ambassador.blockchaincloudpoc.com:8443
+        url: ca.carrier-net.org3ambassador.blockchaincloudpoc.com
         certificate: /path/carrier/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -352,7 +349,7 @@ network:
           name: peer0          
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
           gossippeeraddress: peer0.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
-          peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
           certificate: /path/carrier/peer0.crt       # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
@@ -392,7 +389,7 @@ network:
       org_status: delete # Status of the organization for the existing network, can be delete / existing
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.store-net.org4ambassador.blockchaincloudpoc.com:8443
+        url: ca.store-net.org4ambassador.blockchaincloudpoc.com
         certificate: /path/store/server.crt
       
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -439,7 +436,7 @@ network:
           name: peer0          
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer. 
           gossippeeraddress: peer0.store-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
-          peerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          peerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
           certificate: /path/store/peer0.crt # Path to peer Certificate
           cli: disabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag. 
           grpc:
@@ -479,7 +476,7 @@ network:
       org_status: existing # Status of the organization for the existing network, can be delete / existing
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443
+        url: ca.warehouse-net.org5ambassador.blockchaincloudpoc.com
         certificate: /path/warehouse/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -526,7 +523,7 @@ network:
           name: peer0
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.   
           gossippeeraddress: peer0.warehouse-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
-          peerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
+          peerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
           certificate: /path/warehouse/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:

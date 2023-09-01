@@ -66,7 +66,6 @@ This task pushes the above generated value files to git repo.
     GIT_PASSWORD: "Password for Repo"
     GIT_EMAIL: "Email for git config"
     GIT_BRANCH: "Branch Name"
-    GIT_RESET_PATH: "This variable contains the path which wont be synced with the git repo"
     msg: "Message for git commit"
 These variables are fetched through network.yaml using *item.gitops*
 **include_role**: It includes the name of intermediatory role which is required for pushing  the value file to git repository.

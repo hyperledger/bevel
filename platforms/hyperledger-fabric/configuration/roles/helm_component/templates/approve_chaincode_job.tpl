@@ -31,11 +31,20 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
+{% if org.k8s.cluster_id is defined %}
+      authpath: {{ org.k8s.cluster_id }}{{ namespace | e }}-auth
+{% else %}
       authpath: {{ network.env.type }}{{ namespace | e }}-auth
+{% endif %}
       adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       tls: false
     orderer:
       address: {{ participant.ordererAddress }}

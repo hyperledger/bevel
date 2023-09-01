@@ -60,6 +60,7 @@ spec:
       keyname: quorum
       role: vault-role
       authpath: quorum{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
     genesis: {{ genesis }}
     staticnodes: {{ staticnodes }}
     proxy:
@@ -71,6 +72,6 @@ spec:
       portRaft: {{ peer.raft.ambassador }}
 {% endif %}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi
       dbstorage: 1Gi

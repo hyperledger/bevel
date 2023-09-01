@@ -68,6 +68,7 @@ spec:
       tm_keyname: tm
       role: vault-role
       authpath: quorum{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
 {% if network.config.transaction_manager != "none" %}
     tessera:
       dburl: "jdbc:mysql://{{ peer.name }}-tessera:3306/demodb"
@@ -98,6 +99,6 @@ spec:
       portRaft: {{ peer.raft.ambassador }}
 {% endif %}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi
       dbstorage: 1Gi

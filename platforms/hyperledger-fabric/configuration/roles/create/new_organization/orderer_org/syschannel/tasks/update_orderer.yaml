@@ -34,10 +34,10 @@
     fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     channel_name: "{{ channel_name }}"
-    storage_class: "{{ org.name }}sc"
+    storage_class: "{{ org.name | lower }}-{{ org.cloud_provider | lower }}-storageclass"
     release_dir: "{{ build_path }}"
     orderer_component: "{{ orderer.name | lower }}.{{ component_ns }}"
-    orderer_address: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+    orderer_address: "{{ orderer.ordererAddress }}"
   when: existing_cli.resources|length == 0
 
 # Start the cli using the value file created in the previous step
@@ -73,7 +73,7 @@
     cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/genesis.block.base64
   environment:
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
-    ORDERER_URL: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+    ORDERER_URL: "{{ orderer.ordererAddress }}"
   vars: 
     kubernetes: "{{ org.k8s }}"
   when: network.env.proxy != 'none'
@@ -99,5 +99,3 @@
   environment:
     VAULT_ADDR: "{{ neworg.vault.url }}"
     VAULT_TOKEN: "{{ neworg.vault.root_token }}"
-  tags:
-    - molecule-idempotence-notest

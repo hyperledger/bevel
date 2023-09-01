@@ -45,7 +45,7 @@
     then
       echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name }}.{{ component_ns }}\",\"port\":{{ orderer.grpc.port }},\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter      
     else
-      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name }}.{{ neworg.external_url_suffix }}\",\"port\":8443,\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.ordererAddress.split(":")[0] | to_json }}\",\"port\":\"{{ orderer.ordererAddress.split(":")[1] | to_json }}\",\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
     fi
   when: update_type == "tls"
 
@@ -56,7 +56,7 @@
     then
       echo -n '"{{ orderer.name }}.{{ component_ns }}:{{ orderer.grpc.port }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter
     else
-      echo -n '"{{ orderer.name }}.{{ neworg.external_url_suffix }}:8443"' >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter 
+      echo -n '"{{ orderer.ordererAddress }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name }}-consenter 
     fi    
   when: update_type == "address"
 

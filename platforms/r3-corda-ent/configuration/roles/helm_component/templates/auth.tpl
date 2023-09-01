@@ -28,7 +28,7 @@ spec:
         - name: regcred
       pullPolicy: IfNotPresent
     storage:
-      name: cordaentsc
+      name: {{ sc_name }}
     vault:
       address: {{ vault.url }}
       role: vault-role
@@ -61,7 +61,7 @@ spec:
           limits: 514Mi
           requests: 514Mi
 
-    storageClass: cordaentsc
+    storageClass: {{ sc_name }}
     sleepTimeAfterError: 300
     logsContainerEnabled: true
 

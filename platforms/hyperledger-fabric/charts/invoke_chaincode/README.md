@@ -70,7 +70,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | namespace              | Namespace for organization's peer                                                | org1-example-com                                  |
 | network.version        | HyperLedger Fabric network version                                               | 2.2.2                                             |
 | images.fabrictools     | Valid image name and version for Fabric tools                                    | hyperledger/fabric-tools:1.4.0                    |
-| images.alpineutils     | Valid image name and version to read certificates from the Vault server          | index.docker.io/hyperledgerlabs/alpine-utils:1.0  |
+| images.alpineutils     | Valid image name and version to read certificates from the Vault server          | ghcr.io/hyperledger/bevel-alpine:latest  |
 | add_organization       | Flag for ivoking the chaincode for addition of an org or for the first network   | false                                             |
 | labels                 | Custom labels for the organization                                               | ""                                                |
 

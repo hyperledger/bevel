@@ -37,7 +37,6 @@ This task creates value file for storageclass by calling `create/k8_component` r
 This task pushes the generated deployment files to the GIT repository by calling `shared/configuration/roles/git_push` role.
 ##### Input Variables
 - `GIT_DIR` - The base path of the GIT repository, default `{{ playbook_dir }}/../../../`
-- `GIT_RESET_PATH` - The path of the GIT repository, which is reset before committing. Default value is `platforms/r3-corda-ent/configuration`
 - `gitops` - *item.gitops* from `network.yaml`
 - `msg` - The commit message to use when pushing deployment files.
 

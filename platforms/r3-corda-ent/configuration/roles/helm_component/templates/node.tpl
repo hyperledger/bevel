@@ -27,7 +27,7 @@ spec:
       pullPolicy: IfNotPresent
     acceptLicence: true
     storage:
-      name: cordaentsc
+      name: {{ sc_name }}
     replicas: 1
     networkServices:
       doormanURL: {{ doorman_url }}
