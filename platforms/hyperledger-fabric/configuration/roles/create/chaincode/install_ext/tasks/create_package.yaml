@@ -14,7 +14,7 @@
 - name: Generation chaincode connection details with mTLS
   shell: |
     cd {{ package_dir }}
-    echo '{}' | jq --arg cc_addr "chaincode-{{ chaincode_name }}-{{ chaincode.version }}-{{ org_name }}.{{ org_ns }}.svc.cluster.local:7052" \
+    echo '{}' | jq --arg cc_addr "cc-{{ chaincode_name }}.{{ org_ns }}.svc.cluster.local:7052" \
       --arg c_key "$(cat ./client.key)" \
       --arg c_crt "$(cat ./client.crt)" \
       --arg ca_crt "$(cat ./ca.crt)" \
@@ -25,7 +25,7 @@
 # This task packs the external chaincode details without tls
 - name: Generation chaincode connection details without TLS
   shell: |
-    CHAINCODE_ADDR=chaincode-{{ chaincode_name }}-{{ chaincode.version }}-{{ org_name }}.{{ org_ns }}.svc.cluster.local:7052
+    CHAINCODE_ADDR=cc-{{ chaincode_name }}.{{ org_ns }}.svc.cluster.local:7052
     cd {{ package_dir }}
     echo '{"address":"'${CHAINCODE_ADDR}'","dial_timeout":"10s","tls_required":false,"client_auth_required":false,"client_key":"","client_cert":"","root_cert":""}' > connection.json
     echo '{"path":"","type":"external","label":"'{{ package_name }}'"}' > metadata.json

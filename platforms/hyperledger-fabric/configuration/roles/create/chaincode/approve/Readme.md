@@ -49,7 +49,7 @@ This tasks checks if approve-chaincode is already run.
 ##### Input Variables
 
     component_type: The kind of task i.e. here `OneTimeJob`
-    component_name: Name of approve chaincode job. Format: approvechaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
+    component_name: Name of approve chaincode job. Format: approvecc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}
     namespace: Namespace of component
 ##### Output Variables
 

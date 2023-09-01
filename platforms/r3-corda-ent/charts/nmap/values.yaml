@@ -14,7 +14,7 @@
 
 # Provide the name of the node
 # e.g. `networkmap`
-nodeName:
+nodeName: networkmap
 bashDebug: true
 prefix: cenm
 
@@ -22,7 +22,7 @@ prefix: cenm
 metadata:
   # Provide the namespace for the Corda Enterprise nmap.
   # Eg. namespace: cenm
-  namespace:
+  namespace: cenm
   # Provide any additional labels for the Corda Enterprise nmap.
   labels:
 
@@ -31,23 +31,23 @@ storage:
   # NOTE: Make sure that the storageclass exist prior to this deployment as
   # this chart doesn't create the storageclass.
   # Eg. name: cenm
-  name:
+  name: cenm
   # Provide the memory size for the storage class.
   # Eg. memory: 64Mi
-  memory:
+  memory: 64Mi
 
 # Image for the init-containers
 image:
-  # Name of the Docker image to use for init-containers, e.g. `index.docker.io/hyperledgerlabs/alpine-utils:1.0`
-  initContainer:
+  # Name of the Docker image to use for init-containers, e.g. `ghcr.io/hyperledger/bevel-alpine:latest`
+  initContainer: ghcr.io/hyperledger/bevel-alpine:latest
   # Name of the Docker image to use for the main Networkmap Service, e.g. corda/enterprise-networkmap:1.2-zulu-openjdk8u24
-  nmapContainer:
+  nmapContainer: corda/enterprise-networkmap:1.2-zulu-openjdk8u24
   # Provide the image for the main Idman container.
   # Eg. enterpriseCli: corda/enterprise-cli:1.5.1-zulu-openjdk8u242
-  enterpriseCliContainer:
+  enterpriseCliContainer: corda/enterprise-cli:1.5.1-zulu-openjdk8u242
   # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
   # Eg. imagePullSecrets: regcred, can add multiple creds
-  imagePullSecrets: 
+  imagePullSecrets: ""
     - name:  
   # Pull policy to be used for the Docker image
   # Eg. pullPolicy: Always
@@ -67,19 +67,19 @@ vault:
   # Address of the vault, e.g. `http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200`
   address:
   # Which role to use when connecting to vault, e.g. `vault-role`
-  role:
+  role: vault-role
   # Authpath created for networkmap, e.g. cordaentcenm
-  authPath: 
+  authPath: cordaentcenm
   # Serviceaccount, eg. vault-auth
-  serviceAccountName: 
+  serviceAccountName:  vault-auth
   # Prefix to use for secret engine for certificates, e.g. `cenm/certs`
-  certSecretPrefix: 
+  certSecretPrefix: cenm/certs
   # The amount of times to retry fetching from/writing to Vault before giving up.
   # Eg. retries: 10
-  retries:
+  retries: 10
   # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
   # Eg. sleepTimeAfterError: 15  
-  sleepTimeAfterError:
+  sleepTimeAfterError: 15
  
 
 #############################################################
@@ -90,15 +90,15 @@ service:
   # Nmap 'main' service
   external:
     # E.g. port: 10000
-    port:
+    port: 10000
   # Internal service, inside the K8s cluster
   internal:
     # E.g. port: 5050
-    port:
+    port: 5050
   # Values for the Revocation check
   revocation:
     # On which port to check for Revocation, e.g. `5053`
-    port:
+    port: 5053
   # Provide the admin listener port
   adminListener:
     port:
@@ -108,16 +108,16 @@ serviceLocations:
   identityManager:
     # Name of idman service
     # E.g. name: idman
-    name: 
+    name: idman
     # External domain name of idman service
     # E.g. domain: 
     domain:
     # Host of idman 
     # E.g. host: idman.{namespace}
-    host:
+    host: 
     # Port of idman
     # E.g. port: 5052
-    port: 
+    port: 5052
   # Values for notary service
   notary:
     # List of the notary nodes
@@ -150,15 +150,15 @@ config:
   # Provide volume related specifications
   volume:
     # E.g. baseDir: /opt/corda
-    baseDir:
+    baseDir: /opt/corda
 
   # Provide the path where the CENM Idman .jar-file is stored
   # Eg. jarPath: bin
-  jarPath:
+  jarPath: bin
 
   # Provide the path where the CENM Service configuration files are stored
   # Eg. configPath: etc
-  configPath:
+  configPath: etc
   
   # Provide any extra annotations for the PVCs
   pvc:
@@ -191,14 +191,14 @@ config:
     resources:
       # Provide the limit memory for node
       # Eg. limits: 512M
-      limits:
+      limits: 512M
       # Provide the requests memory for node
       # Eg. requests: 550M
-      requests:
+      requests: 550M
          
   # Provide the number of replicas for your pods
   # Eg. replicas: 1
-  replicas:
+  replicas: 1
   
   # Whether the NMS will check the certificate revocation list, e.g. `true`
   checkRevocation: true
@@ -225,7 +225,7 @@ cenmServices:
 healthCheck:
   # Health Check node port set to get rid of logs pollution
   # Eg. nodePort: 0
-  nodePort:
+  nodePort: 
 #############################################################
 #                   Network Params Update                   #
 #############################################################

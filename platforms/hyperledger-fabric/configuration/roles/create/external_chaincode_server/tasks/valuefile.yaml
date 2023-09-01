@@ -4,9 +4,11 @@
   k8s_info:
     kind: Pod
     namespace: "{{ org_ns }}"
-    name: "chaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ org_name }}"
+    name: "cc-{{ chaincode.name }}"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
+    field_selectors:
+      - status.phase=Running
   register: ext_chaincode_server
 
 ############################################################################################
@@ -19,6 +21,8 @@
     context: "{{ org.k8s.context }}"
     label_selectors:
       - app = cli
+    field_selectors:
+      - status.phase=Running
   register: existing_cli
 
 # This task calls nested_create_cli to generate the cli value files for the creator organization
@@ -38,11 +42,9 @@
     fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
     alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     channel_name: "{{ chaincode.name }}"
-    storage_class: "{{ org.name }}sc"
+    storage_class: "{{ org.name | lower }}-{{ org.cloud_provider | lower }}-storageclass"
     release_dir: "./build"
     orderer: "{{ network.orderers | first }}"
-    participant:
-      ordererAddress: "{{ orderer.uri }}"
   when:
     - org.type == "peer"
     - existing_cli.resources|length == 0
@@ -84,7 +86,7 @@
   command: cat ./build/ccid.txt
   register: ccid
   when: ext_chaincode_server.resources|length == 0
-  failed_when: ccid == ''
+  failed_when: ccid.stdout == ''
 
 ############################################################################################
 # Check if private credentials exist already
@@ -115,7 +117,7 @@
   vars:
     name: "{{ item.name | lower }}"
     type: "external_chaincode"
-    component_name: "chaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ org_name }}"
+    component_name: "cc-{{ chaincode.name }}"
     chaincode_image: "{{ chaincode.image }}"
     peer_name: "{{ peer.name }}"
     chaincode_ns: "{{ org_ns }}"
@@ -136,13 +138,13 @@
 
 ############################################################################################
 # Wait for chaincode server pod to be in the state of running
-- name: "Waiting for chaincode server pod chaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ org_name }} in {{ item.name | lower }}-net"
+- name: "Waiting for chaincode server pod cc-{{ chaincode.name }} in {{ item.name | lower }}-net"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Pod"
     namespace: "{{ item.name | lower }}-net"
-    component_name: "chaincode-{{ chaincode.name }}-{{ chaincode.version }}-{{ org_name }}"
+    component_name: "cc-{{ chaincode.name }}"
     kubernetes: "{{ item.k8s }}"
     label_selectors:
       - app = {{ component_name }}
