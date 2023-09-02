@@ -12,7 +12,7 @@
 
 <a name = "prerequisites"></a>
 ## Prerequisites
-To add a new organization in Besu, an existing besu network should be running, enode information of all existing nodes present in the network should be available, genesis file should be available in base64 encoding and the information of orion nodes should be available. The new node account should be unlocked prior adding the new node to the existing besu network. 
+To add a new organization in Besu, an existing besu network should be running, enode information of all existing nodes present in the network should be available, genesis file should be available in base64 encoding and the information of besu nodes should be available. The new node account should be unlocked prior adding the new node to the existing besu network. 
 
 ---
 **NOTE**: Addition of a new organization has been tested on an existing network which is created by Bevel. Networks created using other methods may be suitable but this has not been tested by Bevel team.
@@ -28,7 +28,7 @@ To add a new organization in Besu, an existing besu network should be running, e
 
 Refer [this guide](./besu_networkyaml.md) for details on editing the configuration file.
 
-The `network.yaml` file should contain the specific `network.organization` details along with the enode information, genesis file in base64 encoding and orion transaction manager details
+The `network.yaml` file should contain the specific `network.organization` details along with the enode information, genesis file in base64 encoding and tessera transaction manager details
 
 ---
 **NOTE**: Make sure that the genesis flie is provided in base64 encoding. Also, if you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
@@ -44,7 +44,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: besu
-  version: 1.5.5  #this is the version of Besu docker image that will be deployed.
+  version: 22.10.2  #this is the version of Besu docker image that will be deployed.
 
   #Environment section for Kubernetes setup
   env:
@@ -76,31 +76,31 @@ network:
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "orion"    # Transaction manager is "orion"
-    # This is the version of "orion" docker image that will be deployed
-    tm_version: "1.6.0"               
-    # TLS can be True or False for the orion tm
+    transaction_manager: "tessera"    # Transaction manager is "tessera"
+    # This is the version of "tessera" docker image that will be deployed
+    tm_version: "21.7.3"               
+    # TLS can be True or False for the tessera tm
     tm_tls: True
     # Tls trust value
     tm_trust: "ca-or-tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
     ## File location where the base64 encoded genesis file is located.
     genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be fetched
     ## Transaction Manager nodes public addresses should be provided.
-    #  - "https://node.test.besu.blockchain-develop.com:15013"
-    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador orion node port)
+    #  - "https://node.test.besu.blockchain-develop.com"
+    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tessera node port)
     tm_nodes: 
-      - "https://carrier.test.besu.blockchaincloudpoc-develop.com:15013"
-      - "https://manufacturer.test.besu.blockchaincloudpoc-develop.com:15023"
-      - "https://store.test.besu.blockchaincloudpoc-develop.com:15033"
-      - "https://warehouse.test.besu.blockchaincloudpoc-develop.com:15043"
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com"
+      - "https://manufacturer.test.besu.blockchaincloudpoc-develop.com"
+      - "https://store.test.besu.blockchaincloudpoc-develop.com"
+      - "https://warehouse.test.besu.blockchaincloudpoc-develop.com"
     # Besu rpc public address list for existing validator and member nodes 
-    #  - "http://node.test.besu.blockchaincloudpoc-develop.com:15011"
-    # The above domain name is formed by the (http)://(peer.name).(org.external_url_suffix):(ambassador node rpc port)
+    #  - "http://noderpc.test.besu.blockchaincloudpoc-develop.com"
+    # The above domain name is formed by the (http)://(peer.name)rpc.(org.external_url_suffix):(ambassador node rpc port)
     besu_nodes:
-      - "http://validator.test.besu.blockchaincloudpoc-develop.com:15051"
-      - "http://carrier.test.besu.blockchaincloudpoc-develop.com:15011"
-      - "http://manufacturer.test.besu.blockchaincloudpoc-develop.com:15021"
-      - "http://store.test.besu.blockchaincloudpoc-develop.com:15031"
+      - "http://validatorrpc.test.besu.blockchaincloudpoc-develop.com"
+      - "http://carrierrpc.test.besu.blockchaincloudpoc-develop.com"
+      - "http://manufacturerrpc.test.besu.blockchaincloudpoc-develop.com"
+      - "http://storerpc.test.besu.blockchaincloudpoc-develop.com"
   
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:

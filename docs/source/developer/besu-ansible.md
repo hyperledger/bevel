@@ -11,7 +11,7 @@ Ansible playbooks contains a series of roles and tasks which run in sequential o
 ```
 /hyperledger-besu
 |-- charts
-|   |-- node_orion
+|   |-- node_besu
 |-- images
 |-- configurations
 |   |-- roles/

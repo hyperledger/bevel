@@ -4,7 +4,7 @@
 [//]: # (##############################################################################################)
 
 ## ROLE: create/member_node
-This role creates the helm value file of orion transaction manager for each node of all organizations.
+This role creates the helm value file of member node for each node of all organizations.
 ### main.yaml
 ### Tasks
 (Variables with * are fetched from the playbook which is calling this role)    
@@ -53,20 +53,7 @@ This task adds the enode of new organizations to each of the existing nodes usin
     loop_var: loop variable used for iterating the loop.
 **when**: It runs when *add_new_org* == True, i.e. to add new organization.
 
-#### 6. Create Value files for orion TM for each node
-This task creates the value file by calling the helm_component role
-##### Input Variables
-
-    *genesis: "The genesis file fetched from the url defined by the network.yaml" 
-    *component_name: "The name of the component"
-    type: "node_orion"
-**include_role**: It includes the name of intermediatory role which is required for creating the helm value file, here helm_component
-**loop**: loops over peers list fetched using *{{ peers }}* from network yaml
-**loop_control**: Specify conditions for controlling the loop.
-                
-    loop_var: loop variable used for iterating the loop.
-
-#### 7. Git Push
+#### 6. Git Push
 This task pushes the above generated value files to git repo.
 ##### Input Variables
     GIT_DIR: "The path of directory which needs to be pushed"
@@ -176,7 +163,7 @@ This task creates the build directory if it does not exist
 
 
 #### 4. nodelist loop when tls is true
- Add othernodes data to the file when tls is true for the orion transaction manager
+ Add othernodes data to the file when tls is true for the transaction manager
 
 **lineinfile**: This module add the line to the file
 
@@ -184,7 +171,7 @@ This task creates the build directory if it does not exist
 **when**: It runs when *enode_item.peer_name* != *peer.name* 
 
 #### 5. nodelist loop when tls is false
- Add othernodes data to the file when tls is false for the orion transaction manager
+ Add othernodes data to the file when tls is false for transaction manager
 
 **lineinfile**: This module add the line to the file
 

@@ -10,7 +10,7 @@ The structure below represents the Chart structure for Hyperledger Besu componen
 ```
 |hyperledger-besu
 |-- charts
-|   |-- node_orion
+|   |-- node_besu
 ```
 -------------
 
@@ -18,14 +18,14 @@ The structure below represents the Chart structure for Hyperledger Besu componen
 
 ``helm`` to be installed and configured on the cluster.
 
-## node_orion (besu node chart with orion transaction manager)
+## node_besu (besu node chart)
 
 ### About
 This folder consists of Hyperledger-Besu node charts which is used by the ansible playbook for the deployment of the node. This folder contains a template folder, a chart file and a value file.
 
 ### Folder Structure
 ```
-|node_orion
+|node_besu
 |-- templates
 |   |-- _helpers.tpl
 |   |-- configmap.yaml

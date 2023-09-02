@@ -58,7 +58,7 @@
     loop_control:
       loop_var: org
 
-  # Generate Ambassador certificate for nodes. These certificates are used for Orion TLS as well
+  # Generate Ambassador certificate for nodes. These certificates are used for tm tls as well
   - name: "Create ambassador certificates for Nodes"
     include_role:
       name: create/certificates/ambassador
@@ -94,25 +94,6 @@
     loop: "{{ network['organizations']}}"
     loop_control:
       loop_var: org
-
-  # This role generates the crypto materials for orion tm
-  - name: "Generate crypto for the Orion transaction manager"
-    include_role:
-      name: create/crypto/orion
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-      component_ns: "{{ org.name }}-bes"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-      charts_dir: "{{ org.gitops.chart_source }}"
-      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when:
-      - org.type == 'member'
-      - network.config.transaction_manager == 'orion'
 
   # This role generates the crypto materials for tessera tm
   - name: "Generate crypto for the Tessera transaction manager"

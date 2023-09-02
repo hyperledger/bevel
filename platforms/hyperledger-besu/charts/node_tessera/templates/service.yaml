@@ -10,26 +10,6 @@ metadata:
   namespace: {{ .Values.metadata.namespace }}
   annotations:
     version: '1'
-    {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      name: {{ .Values.tessera.name }}-tm
-      host: {{ .Values.proxy.external_url }}
-      prefix: /
-      service: {{ .Values.tessera.name }}.{{ .Values.metadata.namespace }}:{{ .Values.tessera.ports.tm }}
-      tls: {{ .Values.tessera.name }}_mapping_tlscontext
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Values.tessera.name }}_mapping_tlscontext
-      hosts:
-      - {{ .Values.proxy.external_url }}
-      secret: {{ .Values.tessera.ambassadorSecret }}.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-    {{- end }}
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: {{ .Values.tessera.name }}
@@ -71,3 +51,45 @@ spec:
     protocol: TCP
     port: {{ .Values.tessera.ports.db }}
     targetPort: {{ .Values.tessera.ports.db }}
+{{- if eq $.Values.proxy.provider "ambassador" }}
+## Host for tm connection
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Values.tessera.name }}-host
+spec:
+  hostname: {{ .Values.proxy.external_url }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: {{ .Values.tessera.ambassadorSecret }}
+    namespace: {{ .Values.metadata.namespace }}
+## Mapping for tm port
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.tessera.name }}-mapping
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  host: {{ .Values.proxy.external_url }}
+  prefix: /
+  service: {{ .Values.tessera.name }}.{{ .Values.metadata.namespace }}:{{ .Values.tessera.ports.tm }}
+  tls: {{ .Values.tessera.name }}-tlscontext
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Values.tessera.name }}-tlscontext
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hosts:
+  - {{ .Values.proxy.external_url }}
+  secret: {{ .Values.tessera.ambassadorSecret }}.{{ .Values.metadata.namespace }}
+  secret_namespacing: true
+  min_tls_version: v1.2
+{{- end }}

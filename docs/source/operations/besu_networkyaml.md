@@ -58,7 +58,7 @@ The snapshot of the `env` section with example value is below
       portRange:              # For a range of ports 
         from: 15010 
         to: 15043
-    # ports: 15020,15021      # For specific ports
+    # ports: [15020, 15021]      # For specific ports, needs to be an array or list
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 50                # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -114,11 +114,10 @@ The snapshot of the `config` section with example values is below
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Transaction manager can be "tessera" or "orion"; 21.x.x features are same for both
+    transaction_manager: "tessera"    # Transaction manager can be "tessera"
     # This is the version of transaction_manager docker image that will be deployed
     # Supported versions #
-    # orion: 1.6.0 (for besu 1.5.5)
-    # orion/tessra: 21.7.3(for besu 21.10.6)
+    # tessera: 21.7.3(for besu 21.10.6)
     tm_version: "21.7.3"
     # TLS can be True or False for the transaction manager
     tm_tls: True
@@ -127,7 +126,6 @@ The snapshot of the `config` section with example values is below
     ## File location for saving the genesis file should be provided.
     genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be saved
     ## At least one Transaction Manager nodes public addresses should be provided.
-    #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15022" for orion
     #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
     # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
     tm_nodes: 
@@ -141,12 +139,12 @@ The fields under `config` are
 | consensus   | Currently supports `ibft`,`qbft`, `ethash` and `clique`. Please update the remaining items according to the consensus chosen as not all values are valid for all the consensus.                                 |
 | chain_id    | Custom chain Id, default value is `2018` |
 | subject     | This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates.   |
-| transaction_manager    | Supports `orion` or `tessera`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera.  |
-| tm_version         | This is the version of transaction manager docker image that will be deployed. Supported versions: `1.6.0` for `orion` and `21.7.3` for `tessera` and `orion`. |
+| transaction_manager    | Supports `tessera`. |
+| tm_version         | This is the version of transaction manager docker image that will be deployed. Supported versions: `21.7.3` for `tessera`. |
 | tm_tls | Options are `True` and `False`. This enables TLS for the transaction manager and Besu node. `False` is not recommended for production. |
 | tm_trust | Options are: `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [on modes here]( https://docs.tessera.consensys.net/en/stable/HowTo/Configure/TLS/#trust-modes ).|
 | genesis | This is the path where `genesis.json` will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file. |
-| tm_nodes | This is an array. Provide at least one tessera/orion node details which will act as bootstrap for other tessera/orion nodes |
+| tm_nodes | This is an array. Provide at least one tessera node details which will act as bootstrap for other tessera nodes |
 
 
 The `organizations` section contains the specifications of each organization.  
@@ -170,7 +168,7 @@ Each `organization` under the `organizations` section has the following fields.
 |------------------------------------------|-----------------------------------------------------|
 | name                                        | Name of the organization     |
 | type | Can be `member` for peer/member organization and `validator` for Validator organization.|
-| external_url_suffix                         | Public url suffix for the cluster. This is used to discover Orion nodes between different clusters and to establish communication between nodes         |
+| external_url_suffix                         | Public url suffix for the cluster. This is used to discover nodes between different clusters and to establish communication between nodes         |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | Contains the AWS CLI credentials when the organization cluster is on AWS |
 | k8s                                         | Kubernetes cluster deployment variables.|
@@ -276,9 +274,9 @@ The fields under `peer` service are
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
 | ws.port   | Webservice port for Besu|
 | db.port   | Port for MySQL database which is only applicable for `tessera`|
-| tm_nodeport.port   | Port used by Transaction manager `orion` or `tessera`. |
+| tm_nodeport.port   | Port used by Transaction manager `tessera`. |
 | tm_nodeport.ambassador | The tm port when exposed on ambassador service. |
-| tm_clientport.port   | Client Port used by Transaction manager `orion` or `tessera`. This is the port where Besu nodes connect to their respective transaction manager. |
+| tm_clientport.port   | Client Port used by Transaction manager `tessera`. This is the port where Besu nodes connect to their respective transaction manager. |
 
 The peer in an organization with type as `member` can be used to deploy the smarcontracts with additional field `peer.smart_contract`. The snapshot of peers service with example values is below
 ```yaml
@@ -308,7 +306,7 @@ The peer in an organization with type as `member` can be used to deploy the smar
             contract_path: "../../besu/smartContracts/contracts"       # Path of the smart contract folder relative to deployjs_path
             iterations: 200           # Number of Iteration of execution to which the gas and the code is optimised
             entrypoint: "General.sol" # Main entrypoint solidity file of the contract 
-            private_for: "hPFajDXpdKzhgGdurWIrDxOimWFbcJOajaD3mJJVrxQ=,7aOvXjjkajr6gJm5mdHPhAuUANPXZhJmpYM5rDdS5nk=" # Orion Public keys for the privateFor         
+            private_for: "hPFajDXpdKzhgGdurWIrDxOimWFbcJOajaD3mJJVrxQ=,7aOvXjjkajr6gJm5mdHPhAuUANPXZhJmpYM5rDdS5nk=" # Node public keys for the privateFor         
 ```
 The additional fields under `peer` service are
 
@@ -320,7 +318,7 @@ The additional fields under `peer` service are
 | smart_contract.contract_path | Path of the smart contract folder relative to deployjs_path  |
 | smart_contract.iterations | Number of Iteration of executions for which the gas and the code is optimised  |
 | smart_contract.entrypoint | Main entrypoint solidity file of the smart contract   |
-| smart_contract.private_for | Comma seperated string of `orion` or `tessera` Public keys for the `privateFor`  |
+| smart_contract.private_for | Comma seperated string of `tessera` Public keys for the `privateFor`  |
 
 Each organization with type as `validator` will have a validator service. The snapshot of validator service with example values is below
 ```yaml

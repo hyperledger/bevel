@@ -192,7 +192,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                     | Description                                                                                | Default Value   |
 | ------------------------ | -------------------------------------------------------                                    | --------------- |
-| type        | Provide the type of the transaction manager 'tessera' or 'orion'                         | tessera           |
+| type        | Provide the type of the transaction manager 'tessera'                        | tessera           |
 | tls        | Provide the information for the tls support for transaction manager                         | True           |
 | url        | Provide the URL for transaction manager with port                         | ""           |
 
