@@ -55,7 +55,7 @@ spec:
     storage:
       memory: 512Mi
       mountPath: "/opt/h2-data"
-      name: {{ org.cloud_provider }}storageclass
+      name: {{ sc_name }}
     vault:
       address: {{ vault.url }}
       role: vault-role

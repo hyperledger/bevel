@@ -41,10 +41,13 @@
 # Create Storageclass that will be used for this deployment
 - name: Create Storage Class
   include_role:
-    name: create/storageclass
+    name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
   vars:
-    storageclass_name: "cordaentsc"
+    org_name: "{{ org.name | lower }}"
+    cloudProvider: "{{ org.cloud_provider | lower }}"
+    sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
     kubernetes: "{{ org.services.float.k8s }}"
+    charts_dir: "platforms/shared/charts"
     gitops: "{{ org.services.float.gitops }}"
 
 # create namespace, service account and clusterrolebinding

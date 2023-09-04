@@ -31,7 +31,7 @@ spec:
     storage:
       memory: 512Mi
       mountPath: "/opt/h2-data"
-      name: {{ item.cloud_provider }}storageclass
+      name: {{ sc_name }}
     service:
       type: NodePort
       p2p:

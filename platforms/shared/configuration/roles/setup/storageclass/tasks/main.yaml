@@ -1,0 +1,68 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value files for storage class
+#############################################################################################
+#############################################################################################
+
+- set_fact:
+    cloud_provider: "{{ org.cloud_provider }}"
+    
+# Check storageclass exists already
+- name: Check if storageclass exists
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"  
+  vars:
+    component_type: "StorageClass"
+    component_name: "{{ sc_name }}"
+    kubernetes: "{{ org.k8s }}"
+    type: "no_retry"
+
+- name: Set the storageclass check result to a local variable
+  set_fact:
+    storageclass_state: "{{ result }}"
+
+#############################################################################################
+# create the build directory for storageclass
+- name: Create build directory
+  file:
+    path: "{{ playbook_dir }}/../../../platforms/shared/configuration/build"
+    state: directory
+
+#############################################################################################
+# Creation of the value file for storage class
+- name: Create value file for storage class
+  template:
+    src: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/create/shared_helm_component/templates/storage_class.tpl"
+    dest: "{{ playbook_dir }}/../../../platforms/shared/configuration/build/{{ sc_name }}-storageclass.yaml"  
+  when: storageclass_state.resources|length == 0
+
+#############################################################################################
+# Create storageclass using helm chart
+- name: Create storageclass using helm chart
+  kubernetes.core.helm:
+    name: "{{ sc_name }}" 
+    chart_ref: "{{ playbook_dir }}/../../../platforms/shared/charts/storage_class"
+    release_namespace: default
+    values_files:
+      - "{{ playbook_dir }}/../../../platforms/shared/configuration/build/{{ sc_name }}-storageclass.yaml"
+    force: true
+  when: storageclass_state.resources|length == 0
+  
+#############################################################################################
+# Wait for storageclass creation
+- name: Wait for {{ component_name }} storageclass creation 
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  tags:
+    - notest
+  vars:
+    component_type: "StorageClass"
+    component_name: "{{ sc_name }}"
+    kubernetes: "{{ org.k8s }}"
+    type: "retry"
+  when: storageclass_state.resources|length == 0

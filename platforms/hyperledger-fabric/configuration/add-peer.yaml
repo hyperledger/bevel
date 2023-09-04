@@ -55,18 +55,19 @@
 
   # Create Storageclass for new organization
   - include_role:
-      name: "create/storageclass"
+      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"  
     vars:
-      org_name: "{{ item.name | lower }}"
-      cloudProvider: "{{ item.cloud_provider | lower }}"
+      org_name: "{{ org.name | lower }}"
+      cloudProvider: "{{ org.cloud_provider | lower }}"
       sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
-      component_type: "{{ item.type | lower}}"
-      region: "{{ item.k8s.region | default('eu-west-1') }}"
-      kubernetes: "{{ item.k8s }}"
+      component_type: "{{ org.type | lower}}"
+      region: "{{ org.k8s.region | default('eu-west-1') }}"
+      kubernetes: "{{ org.k8s }}"
       platform_suffix: "net"
       charts_dir: "platforms/shared/charts"
-      release_dir: "./build"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
     
   # Create Organization crypto materials for new organization
   - include_role:
@@ -112,6 +113,7 @@
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
     when: item.type == 'peer'
+
   # This role fetches block 0 and joins peers of new organizaion to the channel
   - include_role:
       name: "create/channels_join"
