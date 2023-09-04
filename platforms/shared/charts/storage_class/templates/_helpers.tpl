@@ -1,6 +1,6 @@
 {{- define "provisioner" -}}
 {{- if eq .Values.cloud_provider "aws" }}
-provisioner: ebs.csi.aws.com
+provisioner: kubernetes.io/aws-ebs
 {{- else if eq .Values.cloud_provider "gcp" }}
 provisioner: gce.csi.google.com
 {{- else if eq .Values.cloud_provider "minikube" }}

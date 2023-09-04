@@ -60,19 +60,20 @@
     # Create Storageclass for new organization
     - name: "Create storageclass for new org"
       include_role:
-        name: "create/storageclass"
+        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"  
       vars:
-        org_name: "{{ item.name | lower }}"
-        cloudProvider: "{{ item.cloud_provider | lower }}"
+        org_name: "{{ org.name | lower }}"
+        cloudProvider: "{{ org.cloud_provider | lower }}"
         sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
-        component_type: "{{ item.type | lower }}"
-        region: "{{ item.k8s.region | default('eu-west-1') }}"
-        kubernetes: "{{ item.k8s }}"
+        component_type: "{{ org.type | lower }}"
+        region: "{{ org.k8s.region | default('eu-west-1') }}"
+        kubernetes: "{{ org.k8s }}"
         platform_suffix: "net"
         charts_dir: "platforms/shared/charts"
-        release_dir: "./build"
       loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'
+      loop_control:
+        loop_var: org
+      when: org.org_status == 'new'
         
     # Create CA Server value files and check-in for new organization
     - name: "Create CA Server for new org"

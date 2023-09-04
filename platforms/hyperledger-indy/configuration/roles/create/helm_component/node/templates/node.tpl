@@ -107,7 +107,7 @@ spec:
     storage:
       data:
         storagesize: 3Gi
-        storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
+        storageClassName: {{ sc_name }}
       keys:
         storagesize: 3Gi
-        storageClassName: {{ organizationItem.name }}-{{ organizationItem.cloud_provider }}-storageclass
+        storageClassName: {{ sc_name }}
