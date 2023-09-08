@@ -69,29 +69,29 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                           | Default Value                                     |
 | ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
-| namespace             | Namespace for organization's peer deployment                          | org1-example-com                                  |
+| namespace             | Namespace for organization's peer deployment                          | org1-net                                          |
 | images.fabrictools    | Valid image name and version for fabric tools                         | hyperledger/fabric-tools:2.2.2                    |
-| images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest  |
+| images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
 
 ### Storage
 
 | Name        | Description           | Default Value  |
 | ------------| ----------------------| ---------------|
 | class       | Storage class name    | standard       |
-| size        | Storage size          | 512Mi          |
+| size        | Storage size          | 256Mi          |
 
 ### Vault 
 
 | Name                  | Description                                                       | Default Value                  |
 | ----------------------| ------------------------------------------------------------------| -------------------------------|
-| role                  | Vault role for the organization                                   | org1-vault-role                |
+| role                  | Vault role for the organization                                   | vault-role                     |
 | address               | Vault server address                                              | ""                             |
 | authpath              | Kubernetes auth backend configured in Vault for the organization  | fra-demo-hlkube-cluster-org1   |
 | adminsecretprefix     | Vault secret prefix for admin                                     | secret/adminsecretprefix/      |
 | orderersecretprefix   | Vault secret prefix for orderer                                   | secret/orderersecretprefix/    |
 | serviceaccountname    | Service account name for Vault                                    | vault-auth                     |
 | imagesecretname       | Image secret name for Vault                                       | ""                             |
-| tls                   | TLS status for Vault communication                                | vaultca                        |
+| tls                   | TLS status for Vault communication                                | ""                             |
 
 ### Peer Configuration
 

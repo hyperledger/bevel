@@ -1,5 +1,5 @@
 {
-    "policy": "path \"{{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/*\"{ 
+    "policy": "path \"{{ name }}/data/*\" {
         capabilities = [\"read\", \"list\", \"create\", \"update\"]
     }"
 }

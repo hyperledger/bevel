@@ -68,10 +68,10 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 ### Metadata
 
 | Name                  | Description                                       | Default Value                                     |
-| ----------------------| --------------------------------------------------| --------------------------------                  |
-| namespace             | Namespace for organization's peer                 | peer0-net                                           |
+| ----------------------| --------------------------------------------------| --------------------------------------------------|
+| namespace             | Namespace for organization's peer                 | peer0-net                                         |
 | images.fabrictools    | Image name and version for fabric tools           | hyperledger/fabric-tools:2.2.2                    |
-| images.alpineutils    | Image name and version to read certificates       | ghcr.io/hyperledger/bevel-alpine:latest  |
+| images.alpineutils    | Image name and version to read certificates       | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Custom labels (if applicable)                     | ""                                                |
 
 ### Peer
@@ -96,7 +96,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | secretpath            | Vault secret path                              | secret/secretpath/               |
 | serviceaccountname    | Service account name for Vault                 | vault-auth                       |
 | imagesecretname       | Image secret name for Vault                    | ""                               |
-| tls                   | TLS configuration for Vault communication      | vaultca                          |
+| tls                   | TLS configuration for Vault communication      | ""                               |
 
 ### Orderer
 

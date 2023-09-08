@@ -90,7 +90,8 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | repository    | Image name for the server container                                     | hyperledger/fabric-ca-tools                         |
 | tag           | Image tag for the server container                                      | 1.3.0                                               |
 | pullPolicy    | Image pull policy                                                       | IfNotPresent                                        |
-| alpineutils   | Valid image name and version to read certificates from the vault server | ghcr.io/hyperledger/bevel-alpine:latest    |
+| alpineutils   | Valid image name and version to read certificates from the vault server | ghcr.io/hyperledger/bevel-alpine:latest             |
+
 
 ### Annotations
 

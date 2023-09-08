@@ -76,7 +76,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ---------------------- | ----------------------------------------------------------------------| -------------------------------------------------|
 | namespace              | Namespace for orderer                                                 | example-com                                      |
 | images.orderer         | Valid image name and version for fabric orderer                       | hyperledger/fabric-orderer:2.2.2                 |
-| images.alpineutils     | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest |
+| images.alpineutils     | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest          |
 | images.healthcheck     | Valid image name and version for health check of Kafka                | busybox                                          |
 | labels                 | Custom labels                                                         | ""                                               |
 
@@ -106,7 +106,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 ### Service
 
 | Name                          | Description                               | Default Value   |
-|-------------------------------| ------------------------------------------| ----------------|
+| ------------------------------| ------------------------------------------| ----------------|
 | servicetype                   | Service type for orderer                  | ClusterIP       |
 | ports.grpc.nodeport           | Cluster IP port for grpc service          | ""              |
 | ports.grpc.clusteripport      | Cluster IP port for grpc service          | 7050            |
@@ -116,7 +116,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 ### Annotations
 
 | Name           | Description                             | Default Value |
-| ---------------| ----------------------------------------| --------------|
+| ---------------| --------------------------------------- | --------------|
 | service        | Extra annotations for service           | ""            |
 | deployment     | Extra annotations for deployment        | ""            |
 
@@ -130,7 +130,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | secretprefix                | Vault secretprefix                                                  | secret/secretprefix/              |
 | imagesecretname             | Image secret name for vault                                         | ""                                |
 | serviceaccountname          | Service account name for vault                                      | vault-auth                        |
-| tls                         | Enable/disable TLS for vault communication                          | vaultca                           |
+| tls                         | Enable/disable TLS for vault communication                          | ""                                |
 
 ### Kafka
 

@@ -72,7 +72,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | namespace                 | Provide the namespace for organization's peer         | default                                           |
 | network.version           | Version of the network                                | 2.2.2                                             |
 | images.external_chaincode | Valid image name and version for chaincode server     | ghcr.io/hyperledger/bevel-samples-example:1.0     |
-| images.alpineutils        | Valid image name and version for Alpine utilities     | ghcr.io/hyperledger/bevel-alpine:latest  |
+| images.alpineutils        | Valid image name and version for Alpine utilities     | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                    | Custom labels                                         | ""                                                |
 
 
@@ -98,7 +98,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | chaincodesecretprefix | Provide the value for vault secretprefix                                      | secret/chaincodesecretprefix/ |
 | serviceaccountname    | Provide the serviceaccountname for vault                                      | vault-auth                    |
 | imagesecretname       | Provide the imagesecretname for vault                                         | ""                            |
-| tls                   | Kubernetes secret for vault ca.cert                                           | vaultca                       |
+| tls                   | Kubernetes secret for vault ca.cert                                           | ""                            |
 
 
 ### Service
@@ -107,7 +107,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | --------------------------|-------------------------------------------------------------------|-----------------|
 | servicetype               | Provide the servicetype for a peer                                | ClusterIP       |
 | loadBalancerType          | Load balancer type                                                | ""              |
-| ports.grpc.nodeport       | Nodeport for grpc service in the range of 30000-32767 (optional)  | 30001           |
+| ports.grpc.nodeport       | Nodeport for grpc service in the range of 30000-32767 (optional)  | ""              |
 | ports.grpc.clusteripport  | Cluster IP port for grpc service to be exposed                    | 7052            |
 
 

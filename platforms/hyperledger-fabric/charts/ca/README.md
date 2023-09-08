@@ -82,8 +82,9 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| -----------------------------------------------------------------| --------------------------------------------------|
 | namespace             | Namespace for CA server                                          | default                                           |
 | images.ca             | image name and version for fabric ca                             | hyperledger/fabric-ca:1.4.8                       |
-| images.alpineutils    | image name and version to read certificates from vault server    | ghcr.io/hyperledger/bevel-alpine:latest  |
-| labels                | Provide the custom labels                                        | ca                                                |
+| images.alpineutils    | image name and version to read certificates from vault server    | ghcr.io/hyperledger/bevel-alpine:latest           |
+| labels                | Provide the custom labels                                        | ""                                                |
+
 
 ### Server
 
@@ -113,7 +114,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | secretadminpass       | Secret path for admin password configured in Vault for CA server    | secret/secretadminpass/           |
 | serviceaccountname    | Service account name for Vault                                      | vault-auth                        |
 | imagesecretname       | Image secret name for Vault                                         | ""                                |
-| tls                   | Enable or disable TLS for Vault communication                       | true                              |
+| tls                   | Enable or disable TLS for Vault communication                       | ""                                |
 | tlssecret             | Kubernetes secret for Vault CA certificate                          | vaultca                           |
 
 ### Service

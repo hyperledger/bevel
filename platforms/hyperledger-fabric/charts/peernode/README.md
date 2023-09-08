@@ -79,8 +79,8 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
 | namespace             | Provide the namespace for organization's peer                         | org1-example-com                                  |
 | images.couchdb        | valid image name and version for fabric couchdb                       | couchdb:3.1                                       |
-| images.peer           | valid image name and version for fabric peer                          | hyperledger/fabric-peer::2.2.2                    |
-| images.alpineutils    | valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest  |
+| images.peer           | valid image name and version for fabric peer                          | hyperledger/fabric-peer:2.2.2                     |
+| images.alpineutils    | valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Provide custom labels                                                 | ""                                                |
 
 ### Annotations
@@ -131,7 +131,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | serviceaccountname    | Service account name for vault                                        | vault-auth                                        |
 | imagesecretname       | Image secret name for vault                                           | ""                                                |
 | secretcouchdbpass     | Vault path for secret CouchDB password                                | secret/credentials/org1-example-com/couchdb/org1  |
-| tls                   | Enable or disable TLS for vault communication                         | vaultca                                           |
+| tls                   | Enable or disable TLS for vault communication                         | ""                                                |
 
 ### Service
 

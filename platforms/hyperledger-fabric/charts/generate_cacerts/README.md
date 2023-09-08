@@ -65,14 +65,14 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 ### Metadata
 
-| Name                 | Description                                                                | Default Value                     |
-| ---------------------| -------------------------------------------------------------------------- | ----------------------------------|
-| namespace            | Namespace for the organization's peer                                      | org1-net                          |
-| name                 | Organization's name                                                        | org1                              |
-| component_name       | Organization's component name                                              | org1-net                          |
-| images.fabrictools   | Valid image name and version for fabric tools                              | hyperledger/fabrictools:1.4.0     |
-| images.alpineutils   | Valid image name and version to read certificates from the vault server    | ghcr.io/hyperledger/bevel-alpine:latest  |
-| labels               | Custom labels for the organization                                         | anchorpeer                        |
+| Name                 | Description                                                                | Default Value                                     |
+| ---------------------| -------------------------------------------------------------------------- | --------------------------------------------------|
+| namespace            | Namespace for the organization's peer                                      | org1-net                                          |
+| name                 | Organization's name                                                        | org1                                              |
+| component_name       | Organization's component name                                              | org1-net                                          |
+| images.fabrictools   | Valid image name and version for fabric tools                              | hyperledger/fabrictools:1.4.0                     |
+| images.alpineutils   | Valid image name and version to read certificates from the vault server    | ghcr.io/hyperledger/bevel-alpine:latest           |
+| labels               | Custom labels for the organization                                         | ""                                                |
 
 ### Vault
 

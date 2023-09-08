@@ -73,8 +73,8 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| ----------------------------------------------------------------------------------| -------------------------------------------------|
 | namespace             | Provide the namespace for organization's peer                                     | org1-example-com                                 |
 | images.fabrictools    | Provide the valid image name and version                                          | hyperledger/fabric-tools:2.2.2                   |
-| images.alpineutils    | Provide the valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest |
-| labels                | Provide the custom labels                                                         | create_channel                                   |
+| images.alpineutils    | Provide the valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest          |
+| labels                | Provide the custom labels                                                         | ""                                               |
 
 ### Peer
 
@@ -89,7 +89,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 ### Vault
 
 | Name                 | Description                                                                 | Default Value                |
-| ---------------------| ----------------------------------------------------------------------------| -----------------------------|
+| ---------------------| --------------------------------------------------------------------------  | -----------------------------|
 | role                 | Provide the vaultrole for an organization                                   | vault-role                   |
 | address              | Provide the vault server address                                            | ""                           |
 | authpath             | Provide the kubernetes auth backed configured in vault for an organization  | fra-demo-hlkube-cluster-org1 |
@@ -97,7 +97,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | orderersecretprefix  | Provide the value for vault secretprefix                                    | secret/orderersecretprefix/  |
 | serviceaccountname   | Provide the serviceaccount name for vault                                   | vault-auth                   |
 | imagesecretname      | Provide the imagesecretname for vault                                       | ""                           |
-| tls                  | Enable or disable TLS for vault communication                               | vaultca                      |
+| tls                  | Enable or disable TLS for vault communication                               | ""                           |
 
 ### Orderer
 
