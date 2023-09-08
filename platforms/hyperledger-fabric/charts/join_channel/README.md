@@ -71,13 +71,13 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | -----------------------| ---------------------------------------------------------------------------------| --------------------------------------------------|
 | namespace              | Namespace for organization's peer                                                | org1-example-com                                  |
 | images.fabrictools     | Valid image name and version for Fabric tools                                    | hyperledger/fabric-tools:2.2.2                    |
-| images.alpineutils     | Valid image name and version to read certificates from the Vault server          | ghcr.io/hyperledger/bevel-alpine:latest  |
+| images.alpineutils     | Valid image name and version to read certificates from the Vault server          | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                 | Custom labels for the organization                                               | ""                                                |
 
 ### Peer
 
 | Name        | Description                                      | Default Value               |
-|-------------| -------------------------------------------------| ----------------------------|
+| ------------| -------------------------------------------------| ----------------------------|
 | name        | Name of the peer as per deployment YAML          | peer0                       |
 | address     | Address of the peer and its grpc cluster IP port | peer0.org1-example-com:7051 |
 | localmspid  | Local MSPID for the organization                 | Org1MSP                     |
@@ -95,7 +95,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | orderersecretprefix   | Vault secretprefix for orderer                                    | secret/orderersecretprefix/  |
 | serviceaccountname    | Service account name for Vault                                    | vault-auth                   |
 | imagesecretname       | Imagesecret name for Vault                                        | ""                           |
-| tls                   | Kubernetes secret for Vault ca.cert                               | vaultca                      |
+| tls                   | Kubernetes secret for Vault ca.cert                               | ""                           |
 
 ### channel
 

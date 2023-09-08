@@ -72,12 +72,12 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/sh
 ### Metadata
 
 
-| Name            | Description                                                                  | Default Value |
-| ----------------| ---------------------------------------------------------------------------- | ------------- |
-| name            | Provide job's name                                   | ""       |
-| namespace       | Provide the namespace                                | default       |
-| images.alpineutils        | Provide the alpine utils image  | ghcr.io/hyperledger/alpine-utils:1.0             |
-| labels       | Provide labels other than name, release name , release service, chart version , chart name , app.                                | ""       |
+| Name                  | Description                                                           | Default Value                                     |
+| ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
+| name                  | Organization's name                                                   | org1                                              |
+| namespace             | Organization's namespace                                              | org1-net                                          |
+| images.alpineutils    | valid image name and version to read certificates from vault server   | index.docker.io/hyperledgerlabs/alpine-utils:1.0  |
+| labels                | Custom labels                                                         | ""                                                |
 
 
 ### Vault
@@ -86,38 +86,38 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/sh
 | Name                      | Description                                                               | Default Value |
 | ------------------------- | --------------------------------------------------------------------------| ------------- |
 | role                      | Role used for authentication with Vault                                   | vault-role    |
-| address                   | Address/URL of the Vault server.                                          | ""  |
-| authpath                  | Authentication path for Vault                                             | ""  |
-| policy                    | Provide the vault policy name                                             | ""  |
-| policydata                | Provide the vault policy file contents in json format                     | ""  |
-| secret_path               | Provide the value for vault secretprefix                                  | secretv2  |
-| imagesecretname           | Provide the docker secret name in the namespace                                | regcred           |
-| tls                       | Enable or disable TLS for vault communication if value present or not                                | ""           |
+| address                   | Address/URL of the Vault server.                                          | ""            |
+| authpath                  | Authentication path for Vault                                             | ""            |
+| policy                    | Provide the vault policy name                                             | ""            |
+| policydata                | Provide the vault policy file contents in json format                     | ""            |
+| secret_path               | Provide the value for vault secretprefix                                  | secretv2      |
+| imagesecretname           | Provide the docker secret name in the namespace                           | ""            |
+| tls                       | Enable or disable TLS for vault communication if value present or not     | ""            |
 
 
 ### K8s
 
 
-| Name                     | Description                          | Default Value |
-| ------------------------ | ------------------------------------ | ------------- |
-| kubernetes_url           | Provide the kubernetes host url      | ""            |
+| Name             | Description                          | Default Value |
+| -----------------| ------------------------------------ | ------------- |
+| kubernetes_url   | Provide the kubernetes host url      | ""            |
 
 
 ### Rbac
 
 
-| Name                     | Description                          | Default Value |
-| ------------------------ | ------------------------------------ | ------------- |
-| create                   | Specifies whether RBAC resources should be created   | true            |
+| Name       | Description                                          | Default Value |
+| -----------| -----------------------------------------------------| ------------- |
+| create     | Specifies whether RBAC resources should be created   | true          |
 
 
 ### ServiceAccount
 
 
-| Name                     | Description                          | Default Value |
-| ------------------------ | ------------------------------------ | ------------- |
-| create                   | Specifies whether a ServiceAccount should be created   | true            |
-| name                     | The name of the ServiceAccount to use. If not set and create is true, a name is generated using the fullname template   | vault-auth            |
+| Name         | Description                                            | Default Value |
+| -------------| -------------------------------------------------------| ------------- |
+| create       | Specifies whether a ServiceAccount should be created   | true          |
+| name         | The name of the ServiceAccount to use.                 | vault-auth    |
 
 
 <a name = "deployment"></a>

@@ -67,9 +67,9 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                       | Default Value                                     |
 | ----------------------| --------------------------------------------------| --------------------------------------------------|
-| namespace             | Namespace for organization's peer                 | default                                           |
+| namespace             | Namespace for organization's peer                 | org1-example-com                                  |
 | images.fabrictools    | Image for Hyperledger Fabric tools                | hyperledger/fabric-tools:2.2.2                    |
-| images.alpineutils    | Image to read certificates from Vault server      | ghcr.io/hyperledger/bevel-alpine:latest  |
+| images.alpineutils    | Image to read certificates from Vault server      | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Custom labels                                     | ""                                                |
 
 ### Peer
@@ -93,7 +93,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | orderersecretprefix   | Vault secret prefix for orderer                   | secret/orderersecretprefix/   |
 | serviceaccountname    | Service account name for Vault                    | vault-auth                    |
 | imagesecretname       | Image secret name for Vault (Optional)            | ""                            |
-| tls                   | Enable or disable TLS for Vault communication     | vaultca                       |
+| tls                   | Enable or disable TLS for Vault communication     | ""                            |
 
 ### Orderer
 

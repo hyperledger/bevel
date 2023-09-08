@@ -76,14 +76,14 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| --------------------------------------------------------------------- | ------------------------------------------------------|
 | namespace             | Provide the namespace for organization's peer                         | org1-example-com                                      |
 | images.couchdb        | Valid image name and version for fabric couchdb                       | couchdb:3.1.1                                         |
-| images.console        | Valid image name and version for fabric peer                          | hyperledgerlabs/fabric-console:latest |
+| images.console        | Valid image name and version for fabric operations console            | ghcr.io/hyperledger-labs/fabric-console:latest        |
 | images.configtxlator  | Valid image name and version to read certificates from vault server   | hyperledger/fabric-tools:2.2.2                        |
 | labels                | Custom labels (other than predefined ones)                            | ""                                                    |
 
 
 ### Storage
 
-| Name          | Description                     | Default Value       |
+| Name          | Description                     | Default Value       
 | --------------| --------------------------------| ------------------- |
 | couchdb       | Storage class name for couchdb  | gp2                 |
 | storagesize   | Storage size for couchdb        | 512Mi               |
@@ -98,9 +98,9 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | servicetype                   | Service type for the peer                       | ClusterIP           |
 | default_consortium            | Default consortium value                        | SampleConsortium    |
 | loadBalancerType              | Load balancer type for the service              | ""                  |
-| ports.console.nodeport        | NodePort for grpc service (optional)            | 30001               |
+| ports.console.nodeport        | NodePort for grpc service (optional)            | ""                  |
 | ports.console.clusteripport   | Cluster IP port for grpc service                | 3000                |
-| ports.couchdb.nodeport        | NodePort for couchdb service (optional)         | 30003               |
+| ports.couchdb.nodeport        | NodePort for couchdb service (optional)         | ""                  |
 | ports.couchdb.clusteripport   | Cluster IP port for couchdb service             | 5984                |
 
 

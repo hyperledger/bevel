@@ -76,7 +76,7 @@ spec:
       servicetype: ClusterIP
       ports:
         tcp:
-          port: {{ component_services.ca.grpc.port }}
+          clusteripport: {{ component_services.ca.grpc.port }}
 {% if component_services.ca.grpc.nodePort is defined %}
           nodeport: {{ component_services.ca.grpc.nodePort }}
 {% endif %}

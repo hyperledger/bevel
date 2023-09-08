@@ -71,8 +71,9 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| ----------------------------------------------------------------------|---------------------------------------------------|
 | namespace             | Provide the namespace for organization's peer                         | org1-example-com                                  |
 | images.fabrictools    | Valid image name and version for fabric tools                         | hyperledger/fabric-tools:2.2.2                    |
-| images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest  |
+| images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Custom labels (other than specified)                                  | ""                                                |
+
 
 ### Deployment
 
@@ -101,7 +102,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | orderersecretprefix | Vault secret prefix for orderer                                     | secret/orderersecretprefix/   |
 | serviceaccountname  | Service account name for vault                                      | vault-auth                    |
 | imagesecretname     | Image secret name for vault                                         | ""                            |
-| tls                 | Vault ca.cert Kubernetes secret                                     | vaultca                       |
+| tls                 | Vault ca.cert Kubernetes secret                                     | ""                            |
 
 ### Channel
 
