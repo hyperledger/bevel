@@ -42,7 +42,7 @@ The sections in the sample configuration file are
 
 ---
 
-`env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Value for proxy field under this section can only be Ambassador as haproxy has not been implemented for substrate.
+`env` section contains the environment type and additional (other than 443) Ambassador port configuration. Value for proxy field under this section can only be Ambassador as haproxy has not been implemented for substrate.
 
 The snapshot of the `env` section with example value is below
 ```yaml 

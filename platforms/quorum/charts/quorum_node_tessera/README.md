@@ -142,20 +142,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 | url           | Provide the tessera node's own url. This should be local. Use http if tls is OFF                                  | ""                                |
 | othernodes    | Provide the list of tessera nodes to connect in `url: <value>` format. This should be reachable from this node    | ""                                |
 | tls           | Provide if tessera will use tls                                                                                   | STRICT                            |
-| trust         | Provide the server/client  trust configuration for constellation nodes                                            | TOFU                              |
-
-### genesis
-
-| Name    | Description                                    | Default Value |
-| --------| ---------------------------------------------- | ------------- |
-| genesis | Provide the genesis.json file in base64 format | ""            |
-
-
-### staticnodes
-
-| Name            | Description                           | Default Value |
-| ----------------| --------------------------------------| ------------- |
-| staticnodes     | Provide the static nodes as an array  | ""            |
+| trust         | Provide the server/client  trust configuration for transaction manager nodes                                            | TOFU                              |
 
 ### proxy
 

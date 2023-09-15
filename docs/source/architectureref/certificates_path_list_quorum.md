@@ -20,7 +20,7 @@ Certificate Paths on Vault for Quorum Network
 
 
 
-### For Tessera/Constellation
+### For Tessera
 
 | Path                                                                           | Key Name               | Description         |
 |--------------------------------------------------------------------------------|-------------------------------|--------------|

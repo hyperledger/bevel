@@ -21,35 +21,22 @@ spec:
       namespace: {{ component_ns }}
       labels:
     images:
-      node: quorumengineering/quorum:{{ network.version }}
-      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
+      alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
       tessera: quorumengineering/tessera:hashicorp-{{ network.config.tm_version }}
       busybox: busybox
       mysql: mysql/mysql-server:5.7
       pullPolicy: IfNotPresent
     node:
       name: {{ peer.name }}
-{% if add_new_org %}
-{% if network.config.consensus == 'raft' %}
-      peer_id: {{ peer_id | int }}
-{% endif %}
-{% endif %}
-      status: {{ node_status }}
-      consensus: {{ consensus }}
-      subject: {{ peer.subject }}
       mountPath: /etc/quorum/qdata
       imagePullSecret: regcred
-      keystore: keystore_1
-{% if item.cloud_provider == 'minikube' %}
+{% if org.cloud_provider == 'minikube' %}
       servicetype: NodePort
 {% else %}
       servicetype: ClusterIP
 {% endif %}
-      lock: {{ peer.lock | lower }}
       ports:
-        rpc: {{ peer.rpc.port }}
         tm: {{ peer.transaction_manager.port }}
-        quorum: {{ peer.p2p.port }}
         db: {{ peer.db.port }}
       dbname: demodb
       mysqluser: demouser
@@ -78,15 +65,17 @@ spec:
 {% endfor %}
       tls: "{{ network.config.tm_tls | upper }}"
       trust: "{{ network.config.tm_trust | upper }}"
-    genesis: {{ genesis }}
-    staticnodes: {{ staticnodes }}
+{% if network.env.proxy == 'ambassador' %}
     proxy:
       provider: "ambassador"
       external_url: {{ name }}.{{ external_url }}
-      portTM: {{ peer.transaction_manager.ambassador }}
-      rpcport: {{ peer.rpc.ambassador }}
-      quorumport: {{ peer.p2p.ambassador }}
       clientport: {{ peer.transaction_manager.clientport }}
+{% else %}
+    proxy:
+      provider: "none"
+      external_url: {{ name }}.{{ component_ns }}
+      clientport: {{ peer.transaction_manager.clientport }}
+{% endif %}
     storage:
       storageclassname: {{ sc_name }}
       storagesize: 1Gi

@@ -28,7 +28,7 @@
             {"if": {"properties": { "type": { "const": "besu" } } },
              "then": {
               "properties":{
-                "version":{ "type": "string","enum":["1.5.5","21.1.0","21.1.1","21.10.6","22.10.2"]},
+                "version":{ "type": "string","enum":["21.1.0","21.1.1","21.10.6","22.10.2"]},
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "config": {"$ref":"#/definitions/besu_config"},
                 "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/besu_organization"}},
@@ -77,7 +77,7 @@
             {"if": {"properties": { "type": { "const": "quorum" } } },
              "then": {
               "properties":{
-                "version":{ "type": "string","enum":["21.4.2","2.5.0"]},
+                "version":{ "type": "string","enum":["21.4.2","23.4.0"]},
                 "env": { "$ref":"#/definitions/shared_env_ambassador"},
                 "config": {"$ref":"#/definitions/quorum_config"},
                 "organizations": { "type":"array","minItems": 1,"items":{"$ref":"#/definitions/quorum_organization"}}
@@ -704,8 +704,8 @@
           "properties": {
             "consensus": { "type": "string","enum": ["ibft","qbft","clique","ethash"],"description":"Currently supports ibft and qbft."},
             "subject":  { "type": "string","description":"This is the subject of the root CA which will be created for the Hyperledger Besu network. The root CA is for development purposes only, production networks should already have the root certificates."},
-            "transaction_manager": { "type": "string","enum": ["tessera","orion","none"],"description":"Supports orion or tessera. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager. From version 21.x.x orion features have merged into tessera"},
-            "tm_version": { "type": "string","enum": ["1.6.0","21.1.0","21.1.1","21.7.3"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
+            "transaction_manager": { "type": "string","enum": ["tessera","none"],"description":"Supports none or tessera. Please update the remaining items according to the transaction_manager chosen as not all values are valid for the transaction_manager."},
+            "tm_version": { "type": "string","enum": ["21.1.0","21.1.1","21.7.3"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions for tessera."},
             "tm_tls": { "type": "boolean","description":"Options are True and False. This enables TLS for the transaction manager and Besu node. False is not recommended for production."},
             "tm_trust": { "type": "string","enum": ["ca-or-tofu","ca","tofu"],"description":"This is the trust relationships for the transaction managers."},
             "genesis":  { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+$","description":"This is the path where genesis.json will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file."},
@@ -780,7 +780,7 @@
             "rpc":  { "$ref":"#/definitions/shared_port_ambassador"},
             "ws": { "$ref":"#/definitions/shared_port"},
             "db": { "$ref":"#/definitions/shared_port","description":"Port for MySQL database which is only applicable for tessera"},
-            "tm_nodeport":  { "$ref":"#/definitions/shared_port_ambassador","description":"Port used by Transaction manager orion or tessera."},
+            "tm_nodeport":  { "$ref":"#/definitions/shared_port_ambassador","description":"Port used by Transaction manager tessera."},
             "tm_clientport":  { "$ref":"#/definitions/shared_port"}
             },
           "required": [ "name","subject","geth_passphrase","p2p","rpc","ws"],
@@ -870,8 +870,8 @@
           "properties": {
             "consensus": { "type": "string","enum": ["ibft","raft"],"description":"Currently supports raft or ibft. Please update the remaining items according to the consensus chosen as not all values are valid for both the consensus."},
             "subject":  { "type": "string","description":"This is the subject of the root CA which will be created for the Quorum network. The root CA is for development purposes only, production networks should already have the root certificates."},
-            "transaction_manager": { "type": "string","enum": ["tessera","constellation","none"],"description":"Options are tessera and constellation. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager."},
-            "tm_version":{},
+            "transaction_manager": { "type": "string","enum": ["tessera","none"],"description":"Options are tessera and none. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager."},
+            "tm_version": { "type": "string","enum": ["21.1.0","21.1.1","21.7.3","23.4.0"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions for tessera."},
             "tm_tls": { "type": "string","enum":["strict","off"],"description":"Options are strict and off. This enables TLS for the transaction managers, and is not related to the actual Quorum network. off is not recommended for production."},
             "tm_trust": { "type": "string","enum": ["ca-or-tofu","ca","tofu"],"description":"This is the trust relationships for the transaction managers."},
             "tm_nodes":{},
@@ -879,18 +879,6 @@
             "genesis":  { "type": "string","pattern":"^(\/[^\/ ]*)+[^\/ ]+$","description":"This is the path where genesis.json will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file."},
             "bootnode": { "$ref":"#/definitions/quorum_config_bootnode"}
             },
-            "if": {"properties": { "transaction_manager": { "const": "tessera" } } },"then":{
-              "properties": {
-                "tm_version": { "type": "string","enum": ["21.7.3"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
-                "tm_nodes": { "type":"array","minItems": 1,
-                    "items":{"type":"string","pattern":"^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" }}
-              }},"else":{
-              "properties": {
-                "tm_version": { "type": "string","enum": ["0.3.2"],"description":"This is the version of transaction manager docker image that will be deployed. Supported versions: 1.6.0 for orion and 21.1.1 for tessera and orion."},
-                "tm_nodes": { "type":"array","minItems": 1,
-                    "items":{"type":"string","pattern":"^https:\/\/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$" }}
-
-            }},
           "required": [ "consensus","subject","transaction_manager","tm_version","tm_tls","tm_trust","tm_nodes","genesis"],
           "additionalProperties": false
         },

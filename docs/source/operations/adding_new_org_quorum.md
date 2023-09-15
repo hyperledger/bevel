@@ -40,7 +40,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: quorum
-  version: 21.4.2  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
+  version: 23.4.0  #this is the version of Quorum
 
   #Environment section for Kubernetes setup
   env:
@@ -71,26 +71,19 @@ network:
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Options are "tessera" and "constellation"
-    # This is the version of "tessera" or "constellation" docker image that will be deployed
-    # Supported versions #
-    # constellation: 0.3.2 (For all versions of quorum)
-    tm_version: "21.7.3"               
+    transaction_manager: "tessera"    # Options are "tessera"
+    # This is the version of "tessera"
+    tm_version: "23.4.0"               
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
     #  For "tessera", all participating nodes should be provided
-    #  For "constellation", only one is bootnode should be provided
-    #
-    # For constellation, use following. This will be the bootnode for all nodes
-    #  - "http://carrier.test.quorum.blockchaincloudpoc.com:15012/"  #NOTE the end / is necessary and should not be missed
-    # The above domain name is formed by the http://(peer.name).(org.external_url_suffix):(ambassador constellation port)/
-    # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix):(ambassador default port)
+    # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix)
     tm_nodes: 
-      - "https://carrier.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://manufacturer.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://store.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://warehouse.test.quorum.blockchaincloudpoc.com:8443"
+      - "https://carrier.test.quorum.blockchaincloudpoc.com"
+      - "https://manufacturer.test.quorum.blockchaincloudpoc.com"
+      - "https://store.test.quorum.blockchaincloudpoc.com"
+      - "https://warehouse.test.quorum.blockchaincloudpoc.com"
     ##### Following keys are used only to add new Node(s) to existing network.
     staticnodes:                # Existing network's static nodes file path needs to be given
     genesis:                    # Existing network's genesis.json file path needs to be given 
@@ -99,9 +92,9 @@ network:
       #name of the node 
       name: carrier
       #ambassador url of the node
-      url: carrier.test.quorum.blockchaincloudpoc.com
+      url: carrierrpc.test.quorum.blockchaincloudpoc.com
       #rpc port of the node
-      rpcport: 15011
+      rpcport: 80
       #id of the node.
       nodeid: 1
   
@@ -153,8 +146,8 @@ network:
             port: 8546
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15012 when transaction_manager = "constellation"
+            port: 443          
+            ambassador: 443
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15013

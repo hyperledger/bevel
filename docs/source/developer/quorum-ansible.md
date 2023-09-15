@@ -11,8 +11,8 @@ Ansible playbooks contains a series of roles and tasks which run in sequential o
 ```
 /quorum
 |-- charts
-|   |-- node_constellation
-|   |-- node_tessera
+|   |-- node_quorum_member
+|   |-- quorum_node_tessera
 |-- images
 |-- configuration
 |   |-- roles/
@@ -67,17 +67,6 @@ This role calls for ambassador certificate creation for each node.
 * Check Ambassador cred exists
 * Create the Ambassador credentials
 Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/quorum/configuration/roles/create/certificates/ambassador) for detailed information.
-
-## **create/crypto/constellation**
-
-This role creates crypto for constellation.
-* Create Crypto material for each node for constellation
-* Check tm key is present the vault
-* Create build directory
-* Generate Crypto for constellation
-* Copy the crypto into vault
-
-Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/quorum/configuration/roles/create/crypto/constellation) for detailed information.
 
 ## **create/crypto/ibft**
 
@@ -198,20 +187,6 @@ This role is used to setup bootnode.
 
 Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/quorum/configuration/roles/setup/bootnode) for detailed information.
 
-## **setup/constellation-node**
-
-This role is used to setup constellation-node.
-* Register temporary directory
-* check constellation
-* Finding the release for os
-* Release version
-* Download the constellation-node binary
-* Unarchive the file.
-* Create the bin directory
-* This task puts the constellation-node binary into the bin directory
-
-Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/quorum/configuration/roles/setup/constellation-node) for detailed information.
-
 ## **setup/get_crypto**
 
 This role saves the crypto from Vault into ansible_provisioner.
@@ -328,9 +303,7 @@ Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/quorum/
 * create/genesis_nodekey
 * create/crypto/ibft
 * create/crypto/tessera
-* create/crypto/constellation
 * create/tessera
-* create/constellation
 
 
 ## **reset-network.yaml**

@@ -31,7 +31,7 @@ This task deletes the helmrelease for each peer
 **ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
 #### 4. Remove Node Helm releases
-This task deletes node helm releases for Tessera and Constellation Transaction Manager
+This task deletes node helm releases for Tessera Transaction Manager
 ##### Input Variables
     *namespace: Namespace of the component
     *KUBECONFIG: The config file of cluster

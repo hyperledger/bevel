@@ -29,8 +29,8 @@ image:
   # Eg. initContainerName: ghcr.io/hyperledger/bevel-alpine:latest
   initContainerName: ghcr.io/hyperledger/bevel-alpine:latest
   # Provide the image for the certs container.
-  # Eg. certsContainerName: ghcr.io/hyperledger/bevel-doorman:latest
-  certsContainerName: ghcr.io/hyperledger/bevel-doorman:latest
+  # Eg. certsContainerName: ghcr.io/hyperledger/bevel-build:jdk8-latest
+  certsContainerName: ghcr.io/hyperledger/bevel-build:jdk8-latest
   # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
   # Eg. imagePullSecret: regcred
   imagePullSecret: regcred
@@ -57,12 +57,13 @@ vault:
   # Provide the service account name autheticated to vault.
   # NOTE: Make sure that the service account is already created and autheticated to use the vault.
   # Eg. serviceaccountname: vault-auth
-  serviceAccountName: vault-auth
+  serviceaccountname: vault-auth
   # Provide the vault path where the certificates are stored
   # Eg. certsecretprefix: secret/cenm-org-name
-  certSecretPrefix:
+  certsecretprefix: secretsv2/node_1
   # Number of retries to check contents from vault
   retries: 30
+  type: hashicorp
 
 #############################################################
 #                  SUBJECT Details                          #
@@ -72,10 +73,10 @@ vault:
 subjects:
   # Mention the subject for rootca
   # Eg. rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-  root_subject:
+  root_subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
   # Mention the subject for cert
   #Eg. cert_subject: "CN=DLT Root CA/OU=DLT/O=DLT/L=London/C=GB"
-  cert_subject:
+  cert_subject: "CN=DLT Root CA/OU=DLT/O=DLT/L=London/C=GB"
 #############################################################
 #                  Opensslvars Details                      #
 #############################################################
@@ -94,22 +95,5 @@ opensslVars:
   #provides the name for domain domain_name tessera endpoint.
   #Eg. domain_name_tessera: nodename-tessera.nodename-quo
   domain_name_tessera:
-
-#############################################################
-#                       Settings                            #
-#############################################################
-# sleep time in seconds when error while registration
-# Ex. sleepTimeAfterError: 120
-sleepTimeAfterError: 120
-# custom sleep time in seconds
-sleepTime: 20
-healthcheck:
-  #Provide the wait interval in seconds in fetching certificates from vault
-  #Eg. readinesscheckinterval: 5
-  readinesscheckinterval: 5
-  #Provide the threshold number of retries in fetching certificates from vault
-  #Eg. readinessthreshold: 2
-  readinessthreshold: 2
-volume:
-  # Eg. baseDir: /opt/quorum
-  baseDir: /home/bevel
+  #Provide tm client port
+  clientport: 8888

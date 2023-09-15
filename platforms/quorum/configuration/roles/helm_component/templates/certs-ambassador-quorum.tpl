@@ -18,13 +18,10 @@ spec:
   values:
     name: "{{ org.name }}"
     metadata:
-      name: {{ component_name }}
       namespace: {{ component_ns }}
-      external_url: {{ component_name }}.{{ external_url }}
     image:
-      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
-      node: quorumengineering/quorum:{{ network.version }}
-      certsContainerName: {{ network.docker.url }}/bevel-build:jdk8-latest
+      initContainerName: ghcr.io/hyperledger/bevel-alpine:latest
+      certsContainerName: ghcr.io/hyperledger/bevel-build:jdk8-latest
       imagePullSecret: regcred
       pullPolicy: IfNotPresent
     vault:
@@ -43,10 +40,4 @@ spec:
       domain_name_api: "{{ name }}api.{{ external_url }}"
       domain_name_web: "{{ name }}web.{{ external_url }}"
       domain_name_tessera: "{{ name }}-tessera.{{ component_ns }}"
-    acceptLicense: YES
-    healthCheckNodePort: 0
-    sleepTimeAfterError: 60
-    sleepTime: 10
-    healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 1
+      clientport: {{ node.transaction_manager.clientport | default("8888") }}
