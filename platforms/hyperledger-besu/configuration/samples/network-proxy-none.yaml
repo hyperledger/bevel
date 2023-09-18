@@ -40,6 +40,16 @@ network:
       deployment:
           owner: bevel
           component: besu
+
+  # Prometheus setup section
+  prometheus:
+    enabled: true                   # Set to "true" to enable Prometheus monitoring, or "false" to disable it.
+    ambassador_mapping: enabled     # Choose "enabled" to make Prometheus publically accessible through Ambassador, or "disabled" to restrict access to local use via port-forwarding.
+    prometheus_prefix: bevelprom    # The prefix added to the organization's external_url_suffix to create the hostname.
+    port: 80                        # The port will be used by Ambassador for Prometheus. Supported values include 80, 443, or any unused port from the network.env.ambassadorPorts range.
+    # To access Prometheus publicly:
+    # - Use <prometheus_prefix>.<organization's external_url_suffix> if using port 80 or 443.
+    # - Use <random-string>.<organization's external_url_suffix>:<port> if selecting a port from network.env.ambassadorPorts range.   
   
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry. 
@@ -87,7 +97,6 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
-
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -132,6 +141,9 @@ network:
             ambassador: 80       # Will only support port 80
           ws:
             port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
         - validator:
           name: validator2
           bootnode: true          # true if the validator node is used also a bootnode for the network
@@ -142,7 +154,10 @@ network:
             port: 8545
             ambassador: 80       # Will only support port 80
           ws:
-            port: 8546          
+            port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node.  
         - validator:
           name: validator3
           bootnode: false          # true if the validator node is used also a bootnode for the network
@@ -153,7 +168,10 @@ network:
             port: 8545
             ambassador: 80       # Will only support port 80
           ws:
-            port: 8546          
+            port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node.       
         - validator:
           name: validator4
           bootnode: false          # true if the validator node is used also a bootnode for the network
@@ -165,6 +183,9 @@ network:
             ambassador: 80       # Will only support port 80
           ws:
             port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
 
     - organization:
       name: carrier
@@ -175,7 +196,6 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
-
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -228,7 +248,10 @@ network:
             port: 443    
             ambassador: 443
           tm_clientport:
-            port: 8888           
+            port: 8888
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node.       
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -240,7 +263,6 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
-
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -294,6 +316,9 @@ network:
             ambassador: 443
           tm_clientport:
             port: 8888
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
 
     - organization:
       name: store
@@ -304,7 +329,6 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
-
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -357,6 +381,9 @@ network:
             ambassador: 443
           tm_clientport:
             port: 8888
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
 
     - organization:
       name: warehouse
@@ -367,7 +394,6 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
-      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -420,3 +446,6 @@ network:
             ambassador: 443
           tm_clientport:
             port: 8888
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 

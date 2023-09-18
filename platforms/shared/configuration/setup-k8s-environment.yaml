@@ -109,6 +109,17 @@
     when: 
     - network.type == 'fabric'
     - network.env.type == 'operator'
+
+  # Deploy prometheus server
+  - name: Deploy prometheus server
+    include_role:
+      name: setup/prometheus
+    vars:
+      prometheus_port: "{{ network.prometheus.port }}"
+    when: 
+    - network.prometheus is defined and network.prometheus.enabled == true
+    - network.type == "besu"
+
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS

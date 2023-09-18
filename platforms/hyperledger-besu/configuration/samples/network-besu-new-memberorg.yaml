@@ -30,6 +30,16 @@ network:
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+
+  # Prometheus setup section
+  prometheus:
+    enabled: true                   # Set to "true" to enable Prometheus monitoring, or "false" to disable it.
+    ambassador_mapping: enabled     # Choose "enabled" to make Prometheus publically accessible through Ambassador, or "disabled" to restrict access to local use via port-forwarding.
+    prometheus_prefix: bevelprom    # The prefix added to the organization's external_url_suffix to create the hostname.
+    port: 80                        # The port will be used by Ambassador for Prometheus. Supported values include 80, 443, or any unused port from the network.env.ambassadorPorts range.
+    # To access Prometheus publicly:
+    # - Use <prometheus_prefix>.<organization's external_url_suffix> if using port 80 or 443.
+    # - Use <random-string>.<organization's external_url_suffix>:<port> if selecting a port from network.env.ambassadorPorts range. 
   
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry. 
@@ -90,7 +100,6 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
-      
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -143,4 +152,7 @@ network:
             port: 15022             # Port exposed on ambassador service must be same
             ambassador: 15022    
           tm_clientport:
-            port: 8888           
+            port: 8888  
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node.          
