@@ -3,7 +3,6 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -11,38 +10,6 @@ metadata:
   annotations:
     app: consortiumchain
     version: '1'
-    {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.node.name }}-tcp
-      port: {{ .Values.proxy.quorumport }}
-      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.quorum }}
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.node.name }}-rpc
-      port: {{ .Values.proxy.rpcport }}
-      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Values.node.name }}_mapping_tlscontext
-      hosts:
-      - {{ .Values.proxy.external_url }}
-      secret: {{ .Values.node.name }}-ambassador-certs.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-      {{- if eq $.Values.node.consensus "raft" }}
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.node.name }}-raft
-      port: {{ .Values.proxy.portRaft }}
-      service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.raft }}
-      {{- end }}
-    {{- end }}
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: {{ .Values.node.name }}
@@ -65,7 +32,7 @@ spec:
     protocol: TCP
     port: {{ .Values.node.ports.rpc }}
     targetPort: {{ .Values.node.ports.rpc }}
-{{- if eq $.Values.node.consensus "raft" }}
+{{- if eq .Values.node.consensus "raft" }}
   - name: raft
     protocol: TCP
     port: {{ .Values.node.ports.raft }}
@@ -75,3 +42,52 @@ spec:
     protocol: TCP
     port: {{ .Values.node.ports.quorum }}
     targetPort: {{ .Values.node.ports.quorum }}
+
+{{- if eq .Values.proxy.provider "ambassador" }}
+## Listeners for rlpx (p2p) ports
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: {{ .Values.node.name }}-rlpx
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.proxy.quorumport }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+## Mapping for rpc
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.node.name }}-json-rpc
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hostname: '{{ .Values.node.name }}rpc.{{ .Values.proxy.external_url }}'
+  prefix: /
+  service: http://{{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
+## TCPMapping for rlpx
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ .Values.node.name }}-rlpx
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.proxy.quorumport }}
+  service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.quorum }}
+{{- if eq .Values.node.consensus "raft" }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ .Values.node.name }}-raft
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.proxy.portRaft }}
+  service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.raft }}
+{{- end }}
+{{- end }}

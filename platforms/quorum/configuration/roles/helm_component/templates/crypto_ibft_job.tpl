@@ -23,10 +23,9 @@ spec:
       name: {{ component_name }}
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
+      initContainerName: ghcr.io/hyperledger/bevel-alpine:latest
       node: quorumengineering/quorum:{{ network.version }}
       pullPolicy: IfNotPresent
-    acceptLicense: YES
     vault:
       address: {{ vault.url }}
       role: vault-role
@@ -35,9 +34,4 @@ spec:
       certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}-quo
       retries: 30
       type: {{ vault.type | default("hashicorp") }}
-    healthCheckNodePort: 0
-    sleepTimeAfterError: 60
     sleepTime: 10
-    healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 1

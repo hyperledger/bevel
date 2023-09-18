@@ -23,23 +23,6 @@ The following diagram shows how Quorum peer nodes with Tessera TM will be deploy
 
 1. The storage uses a Kubernetes Persistent Volume.
 
-### Nodes with Constellation
-
-The following diagram shows how Quorum peer nodes with Constellation TM will be deployed on your Kubernetes instance.
-
-![Figure: Quorum Kubernetes Deployment - Constellation Peers](../_static/quorum-constellation-node.png)
-
-**Notes:**
-
-1. Pods are shown in blue in the diagram.
-
-1. Each peer pod will have two init-containers: `certificates-init` to read crypto from Vault and `quorum-genesis-init-container` to generate genesis block.
-
-1. Each peer pod will then have two containers: `constellation` and `quorum` containers running. Since they are in the same pod, Kubernetes always schedules them on the same VM and they can communicate to each other through localhost. This guarantees minimal latency between them.
-
-1. The storage uses a Kubernetes Persistent Volume.
-
-
 ## Components
 
 ![Figure: Quorum Components](../../images/hyperledger-bevel-quorum.png)
@@ -50,8 +33,6 @@ Hyperledger Bevel uses the officially published Quorum Docker images from [hub.d
 *  [quorum](https://hub.docker.com/r/quorumengineering/quorum) - Quorum Peer Node
 
 *  [tessera](https://hub.docker.com/r/quorumengineering/tessera) - Tessera Transaction Manager
-
-*  [constellation](https://hub.docker.com/r/quorumengineering/constellation) - Constellation Transaction Manager
 
 Additionnally, following common images are also used:
 

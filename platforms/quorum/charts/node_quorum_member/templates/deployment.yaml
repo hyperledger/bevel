@@ -179,13 +179,13 @@ spec:
             NODE_STATUS={{ .Values.node.status }}
           fi;
           if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'additional' ]; then
-            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,debug,web3,eth,txpool,personal,miner,net,quorumExtension,raft --raftjoinexisting {{ .Values.node.peer_id }}";
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --raftblocktime 300 --http.api admin,eth,debug,miner,net,txpool,personal,web3,quorumExtension,raft --raftjoinexisting {{ .Values.node.peer_id }}";
           fi;
           if [ $CONSENSUS == 'raft' ] && [ $NODE_STATUS == 'default' ]; then
-            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --rpcapi admin,debug,web3,eth,txpool,personal,raft,miner,net,quorumExtension";
+            args="--raftdnsenable --raft --raftport {{ .Values.node.ports.raft }} --raftblocktime 300 --http.api admin,eth,debug,miner,net,txpool,personal,web3,quorumExtension,raft";
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
-            args=" --istanbul.blockperiod 3 --syncmode full --rpcapi admin,debug,web3,eth,txpool,personal,istanbul,miner,net,quorumExtension"
+            args=" --istanbul.blockperiod 3 --syncmode full --http.api admin,eth,debug,miner,net,txpool,personal,web3,istanbul,quorumExtension"
           fi;
 
           LOCK_STATUS={{ .Values.node.lock }}
@@ -212,10 +212,11 @@ spec:
            --nat=none \
            --verbosity 9 \
            --emitcheckpoints \
-           --rpc \
-           --rpcaddr 0.0.0.0 \
-           --rpcport {{ .Values.node.ports.rpc }} \
-           --rpcvhosts=* \
+           --http \
+           --http.addr 0.0.0.0 \
+           --http.port {{ .Values.node.ports.rpc }} \
+           --http.corsdomain "*" \
+           --http.vhosts "*" \
            --allow-insecure-unlock \
            --port {{ .Values.node.ports.quorum }} \
            $ptm_url \

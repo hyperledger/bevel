@@ -61,32 +61,23 @@
     loop_control:
       loop_var: org
 
-  #Create Vault scrit as configmap for Vault CURD operations
-  - name: setup vault script
-    include_role:
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
-    vars:
-      component_ns: "{{ org.name | lower }}-quo"
-      kubernetes: "{{ org.k8s }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
   - name: "Setup vault"
     include_role:
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
     vars:
       policy_type: "quorum"
-      name: "{{ item.name | lower }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      component_name: "{{ item.name | lower }}-vaultk8s-job"
-      component_auth: "quorum{{ item.name | lower }}"
+      name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-quo"
+      component_name: "{{ org.name | lower }}-vaultk8s-job"
+      component_auth: "quorum{{ org.name | lower }}"
       component_type: "organization"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
 
   # Generate Ambassador certificate for nodes
   - name: "Create ambassador certificates for Nodes"
@@ -106,7 +97,7 @@
     loop_control:
       loop_var: org
 
- # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
+  # This role generates the crypto material for quorum network based on RAFT consensus and store it in vault
   - name: "Generate crypto material for RAFT consensus"
     include_role:
       name: create/crypto/raft
@@ -143,17 +134,18 @@
     include_role:
       name: create/crypto/ibft
     vars:
-      component_name: "{{ item.name | lower }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      vault: "{{ item.vault }}"
-      org_name: "{{ item.name }}"
-      kubernetes: "{{ item.k8s }}"
-      peers: "{{ item.services.peers }}"
-      values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}"
-      gitops: "{{ item.gitops }}"
-      org: "{{ item }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
+      component_name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-quo"
+      vault: "{{ org.vault }}"
+      org_name: "{{ org.name }}"
+      kubernetes: "{{ org.k8s }}"
+      peers: "{{ org.services.peers }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
     when: network.config.consensus == 'ibft'
 
   # This role generates the crypto materials for tessera tm
@@ -176,103 +168,72 @@
     when:
       - network.config.transaction_manager == 'tessera'
 
-  # This role generates the crypto material for quorum network based on constellation transaction manager and store it in vault
-  - name: "Generate crypto material for Constellation"
-    include_role:
-      name: create/crypto/constellation
-    vars:
-      component_name: "{{ item.name | lower}}"
-      component_ns: "{{ item.name | lower }}-quo"
-      vault: "{{ item.vault }}"
-      peers: "{{ item.services.peers }}"
-      version: "{{ network.config.tm_version }}"
-    loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'constellation'
-
-  # This role deploy nodes with Tessera transaction manager
-  - name: "Deploy nodes with Tessera Transaction Manager"
+  # This role deploys Tessera transaction manager node
+  - name: "Deploy Tessera Transaction Manager"
     include_role:
       name: create/tessera
     vars:
       consensus: "{{ network.config.consensus }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      name: "{{ item.name | lower }}"
-      peers: "{{ item.services.peers }}"
-      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
-      external_url: "{{ item.external_url_suffix }}"
-      vault: "{{ item.vault }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      component_ns: "{{ org.name | lower }}-quo"
+      name: "{{ org.name | lower }}"
+      peers: "{{ org.services.peers }}"
+      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
+      external_url: "{{ org.external_url_suffix }}"
+      vault: "{{ org.vault }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
     when: network.config.transaction_manager == 'tessera'
 
-  # This role deploy member nodes
+  # This role deploys member nodes
   - name: "Deploy member nodes"
     include_role:
       name: create/member_node
     vars:
       build_path: "./build"
-      kubernetes: "{{ item.k8s }}"
+      kubernetes: "{{ org.k8s }}"
       consensus: "{{ network.config.consensus }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      name: "{{ item.name | lower }}"
-      peers: "{{ item.services.peers }}"
-      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
-      external_url: "{{ item.external_url_suffix }}"
-      vault: "{{ item.vault }}"
-      git_url: "{{ item.gitops.git_url }}"
-      git_branch: "{{ item.gitops.branch }}"
-      org: "{{ item }}"
+      component_ns: "{{ org.name | lower }}-quo"
+      name: "{{ org.name | lower }}"
+      peers: "{{ org.services.peers }}"
+      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
+      external_url: "{{ org.external_url_suffix }}"
+      vault: "{{ org.vault }}"
+      git_url: "{{ org.gitops.git_url }}"
+      git_branch: "{{ org.gitops.branch }}"
       docker_url: "{{ network.docker.url }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
       geth_data: "{{ network.config.bootnode | default('null') }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
 
-  # This role deploy validator nodes
+  # This role deploys validator nodes
   - name: "Deploy validator nodes"
     include_role:
       name: create/validator_node
     vars:
       build_path: "./build"
-      kubernetes: "{{ item.k8s }}"
+      kubernetes: "{{ org.k8s }}"
       consensus: "{{ network.config.consensus }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      name: "{{ item.name | lower }}"
-      peers: "{{ item.services.peers }}"
-      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
-      external_url: "{{ item.external_url_suffix }}"
-      vault: "{{ item.vault }}"
-      git_url: "{{ item.gitops.git_url }}"
-      git_branch: "{{ item.gitops.branch }}"
-      org: "{{ item }}"
+      component_ns: "{{ org.name | lower }}-quo"
+      name: "{{ org.name | lower }}"
+      peers: "{{ org.services.peers }}"
+      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
+      external_url: "{{ org.external_url_suffix }}"
+      vault: "{{ org.vault }}"
+      git_url: "{{ org.gitops.git_url }}"
+      git_branch: "{{ org.gitops.branch }}"
       docker_url: "{{ network.docker.url }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
       geth_data: "{{ network.config.bootnode | default('null') }}"
     loop: "{{ network['organizations'] }}"
-
-  # This role deployes nodes with constellation transaction mananger
-  - name: "Deploy nodes with Constellation Transaction Manager"
-    include_role:
-      name: create/constellation
-    vars:
-      build_path: "./build"
-      consensus: "{{ network.config.consensus }}"
-      component_ns: "{{ item.name | lower }}-quo"
-      name: "{{ item.name | lower }}"
-      peers: "{{ item.services.peers }}"
-      sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
-      external_url: "{{ item.external_url_suffix }}"
-      vault: "{{ item.vault }}"
-      git_url: "{{ item.gitops.git_url }}"
-      git_branch: "{{ item.gitops.branch }}"
-      docker_url: "{{ network.docker.url }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      geth_data: "{{ network.config.bootnode | default('null') }}"
-    loop: "{{ network['organizations'] }}"
-    when: network.config.transaction_manager == 'constellation'
+    loop_control:
+      loop_var: org
 
   vars: #These variables can be overriden from the command line
     install_os: "linux"                 #Default to linux OS

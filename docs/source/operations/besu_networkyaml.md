@@ -45,7 +45,7 @@ The sections in the sample configuration file are
      enabled: false
 ```
 
-`env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
+`env` section contains the environment type and additional (other than 443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
 
 The snapshot of the `env` section with example value is below
 ```yaml 
@@ -298,7 +298,7 @@ The peer in an organization with type as `member` can be used to deploy the smar
             ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
           tm_clientport:
             port: 8080       
-          geth_url: "http://manufacturerl.test.besu.blockchaincloudpoc.com:15011"  # geth url of the node
+          geth_url: "http://manufacturerrpc.test.besu.blockchaincloudpoc.com"  # geth url of the node
           # smartcontract to be deployed only from one node (should not be repeated in other nodes)
           smart_contract:
             name: "General"           # Name of the smart contract or Name of the main Smart contract Class

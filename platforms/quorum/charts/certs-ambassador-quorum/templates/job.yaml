@@ -83,8 +83,6 @@ spec:
         - name: certs-generation
           image: {{ .Values.image.certsContainerName }}
           env:
-            - name: BASE_DIR
-              value: "{{ .Values.volume.baseDir }}"
             - name: DOMAIN_NAME
               value: "{{ .Values.opensslVars.domain_name }}"
             - name: DOMAIN_NAME_API
@@ -93,6 +91,8 @@ spec:
               value: "{{ .Values.opensslVars.domain_name_web }}"
             - name: DOMAIN_NAME_TESSERA
               value: "{{ .Values.opensslVars.domain_name_tessera }}"
+            - name: TM_CLIENT_PORT
+              value: "{{ .Values.opensslVars.clientport }}"
             - name: NODE_NAME
               value: "{{ $.Values.name }}"
             - name: CERTS_SECRET_PREFIX
@@ -136,37 +136,21 @@ spec:
             extendedKeyUsage=serverAuth,clientAuth
             subjectKeyIdentifier = hash
             authorityKeyIdentifier = keyid:always
-
-            [v3_nonca]
-            basicConstraints = critical, CA:FALSE
-            keyUsage = critical,digitalSignature, keyCertSign, cRLSign
-            extendedKeyUsage=serverAuth,clientAuth
-            subjectKeyIdentifier = hash
-            authorityKeyIdentifier = keyid:always
             EOF
-            keytool -genkey -alias rootca -dname "${ROOT_SUBJECT}" -keystore rootca.jks -storepass quorum -keypass quorum
-            openssl ecparam -name prime256v1 -genkey -noout -out rootca.key
-            openssl req -x509 -config openssl.conf -new -nodes -key rootca.key -days 1024 -out rootca.pem -extensions v3_ca -subj "/${ROOT_SUBJECT}"
-            openssl pkcs12 -export -name cert -inkey rootca.key -in rootca.pem -out rootcacert.pkcs12 -cacerts -passin pass:'quorum' -passout pass:'quorum'
-            openssl pkcs12 -export -name key -inkey rootca.key -in rootca.pem -out rootcakey.pkcs12 -passin pass:'quorum' -passout pass:'quorum'
-            keytool -importkeystore -srckeystore rootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass quorum -destkeystore rootca.jks -deststorepass quorum
-            keytool -importkeystore -srckeystore rootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass quorum -destkeystore rootca.jks -deststorepass quorum
+
+            openssl genrsa -out tessera_ca.key 2048
+            openssl req -x509 -config openssl.conf -new -nodes -key tessera_ca.key -sha256 -days 1024 -out tessera_ca.pem -extensions v3_ca -subj "/${CERT_SUBJECT}"
+            
             cd ${MOUNT_PATH}/DATA/ambassadortls
             cat <<EOF >openssl${NODE_NAME}.conf
             [dn]
-            CN=cmani.rc.dev2.aws.blockchaincloudpoc-develop.com
             [req]
             distinguished_name = dn
-            [EXT]
-            keyUsage=digitalSignature
-            extendedKeyUsage=serverAuth
+            req_extensions = v3_req
+            [ v3_req ]
+            basicConstraints = CA:FALSE
+            keyUsage = nonRepudiation, digitalSignature, keyEncipherment
             subjectAltName = @alt_names
-            [v3_nonca]
-            basicConstraints = critical, CA:FALSE
-            keyUsage = critical,digitalSignature, keyCertSign, cRLSign
-            extendedKeyUsage=serverAuth,clientAuth
-            subjectKeyIdentifier = hash
-            authorityKeyIdentifier = keyid:always
 
             [alt_names]
             DNS.1 = ${DOMAIN_NAME}
@@ -176,11 +160,17 @@ spec:
             EOF
             cat openssl${NODE_NAME}.conf
             cd ${MOUNT_PATH}/DATA/ambassadortls
-            openssl ecparam -name prime256v1 -genkey -noout -out ${NODE_NAME}.key
-            openssl req -new -nodes -key ${NODE_NAME}.key -days 1000 -out ${NODE_NAME}.csr -extensions EXT -subj "/CN=${DOMAIN_NAME}" -config openssl${NODE_NAME}.conf
-            openssl x509 -extfile openssl${NODE_NAME}.conf -req -days 1000 -in ${NODE_NAME}.csr -CA ${MOUNT_PATH}/DATA/rootca/rootca.pem -CAkey ${MOUNT_PATH}/DATA/rootca/rootca.key -out ${NODE_NAME}.pem -set_serial 01 -extensions v3_nonca
-            cat ${NODE_NAME}.pem > ${NODE_NAME}-certchain.pem
-            cat ${MOUNT_PATH}/DATA/rootca/rootca.pem >> ${NODE_NAME}-certchain.pem
+            
+            openssl genrsa -out tessera_cer.key 2048
+            openssl req -new -key tessera_cer.key -out tessera_cer.csr -subj /CN=carrier.quo.demo.aws.blockchaincloudpoc.com -config opensslcarrier.conf
+            openssl req -new -key tessera_cer.key -out tessera_cer.csr -subj "/CN=${DOMAIN_NAME}" -config openssl${NODE_NAME}.conf
+            openssl x509 -req -in tessera_cer.csr -CA ${MOUNT_PATH}/DATA/rootca/tessera_ca.pem -CAkey ${MOUNT_PATH}/DATA/rootca/tessera_ca.key -set_serial 01 -out tessera_cer.pem -days 1000 -sha256 -extensions v3_req -extfile openssl${NODE_NAME}.conf
+            cat tessera_cer.pem > ${NODE_NAME}-certchain.pem
+            cat ${MOUNT_PATH}/DATA/rootca/tessera_ca.pem >> ${NODE_NAME}-certchain.pem
+            # Generate keystore file
+            cat tessera_cer.key tessera_cer.pem > ${NODE_NAME}_certificates.pem
+            openssl pkcs12 -export -in ${NODE_NAME}_certificates.pem -out ${NODE_NAME}-keystore.pkcs12 -password pass:quorum -name myAlias -noiter -nomaciter
+          
             #creating a dummy file to perform check if last line is executed or not.
             touch ${MOUNT_PATH}/DATA/done.txt
           volumeMounts:
@@ -194,8 +184,6 @@ spec:
                value: {{ $.Values.vault.address }}
              - name: VAULT_APP_ROLE
                value: {{ $.Values.vault.role}}
-             - name: BASE_DIR
-               value: {{ $.Values.volume.baseDir }}
              - name: NODE_NAME
                value: "{{ $.Values.name }}"
              - name: KUBERNETES_AUTH_PATH
@@ -231,21 +219,17 @@ spec:
                 cd ${MOUNT_PATH}/DATA
                 echo "found certificates, performing vault put"
                 # Use -w0 to get single line base64 -w0
-                ROOT_CA=$(cat ./rootca/rootca.jks | base64 -w0)
-                ROOTCAPEM=$(cat ./rootca/rootca.pem | base64 -w0)
-                ROOTCAKEY=$(cat ./rootca/rootca.key | base64 -w0)
+                ROOTCAPEM=$(cat ./rootca/tessera_ca.pem | base64 -w0)
+                ROOTCAKEY=$(cat ./rootca/tessera_ca.key | base64 -w0)
                 AMBASSADOR_CERTS=$(cat ./ambassadortls/${NODE_NAME}-certchain.pem | base64 -w0)
-                AMBASSADOR_KEYS=$(cat ./ambassadortls/${NODE_NAME}.key | base64 -w0)
-                ROOTCACERTPKCS_12=$(cat ./rootca/rootcacert.pkcs12 | base64 -w0)
-                ROOTCAKEYSPKCS_12=$(cat ./rootca/rootcakey.pkcs12 | base64 -w0)
+                AMBASSADOR_KEYS=$(cat ./ambassadortls/tessera_cer.key | base64 -w0)
+                KEYSTORE_FILE=$(cat ./ambassadortls/${NODE_NAME}-keystore.pkcs12 | base64 -w0)
                 echo "{\"data\": {
-                 \"rootca\":\"${ROOT_CA}\",
                  \"rootcakey\": \"${ROOTCAKEY}\",
                  \"rootcapem\": \"${ROOTCAPEM}\",
                  \"ambassadorcrt\": \"${AMBASSADOR_CERTS}\",
                  \"ambassadorkey\": \"${AMBASSADOR_KEYS}\",
-                 \"rootcacert.pkcs12\": \"${ROOTCACERTPKCS_12}\",
-                 \"rootcakey.pkcs12\": \"${ROOTCAKEYSPKCS_12}\"
+                 \"keystore\": \"${KEYSTORE_FILE}\"
                  }}" > payload.json
 
                 # Calling a function to write secrets to the Vault.
@@ -255,14 +239,13 @@ spec:
                 # Calling a function to retrieve secrets from Vault.
                 vaultBevelFunc "readJson" "${CERTS_SECRET_PREFIX}/crypto/${NODE_NAME}/certs"
 
-                R_CA=$(echo ${VAULT_SECRET} | jq -r '.["rootca"]' 2>&1)
                 R_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootcakey"]' 2>&1)
                 R_PEM=$(echo ${VAULT_SECRET} | jq -r '.["rootcapem"]' 2>&1)
                 A_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]' 2>&1)
                 A_KEY=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]' 2>&1)
-                R_CERT_PKCS=$(echo ${VAULT_SECRET} | jq -r '.["rootcacert.pkcs12"]' 2>&1)
-                R_KEY_PKCS=$(echo ${VAULT_SECRET} | jq -r '.["rootcakey.pkcs12"]' 2>&1)
-                for field in "$R_CA" "$R_KEY" "$R_PEM" "$A_CERT" "$A_KEY" "$R_CERT_PKCS" "$R_KEY_PKCS"
+                K_KEY=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]' 2>&1)
+
+                for field in "$R_KEY" "$R_PEM" "$A_CERT" "$A_KEY" "$K_KEY"
                 do
                   if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
                   then

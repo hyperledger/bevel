@@ -177,5 +177,5 @@ While modifying the configuration file (`network.yaml`), the following two secti
 Then execute the ansible-playbook [external-chaincode-ops.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/external-chaincode-ops.yaml) to update the peers, and then install, approve, commit and invoke external chaincodes.
 
 ```
-ansible-playbook platforms/shared/configuration/external-chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
+ansible-playbook platforms/hyperledger-fabric/configuration/external-chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
 ```

@@ -31,7 +31,7 @@ spec:
       initContainers:
       - name: crypto-init
         image: {{ $.Values.image.initContainerName }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
         env:
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
@@ -81,7 +81,7 @@ spec:
       containers:
       - name: generate-cryptomaterials
         image: {{ $.Values.image.node }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
         volumeMounts:
           - name: certcheck
             mountPath: /certcheck
@@ -169,7 +169,7 @@ spec:
           if [ "$nodekey" == "null" ] || [ "$cat base64_keystore" == "null" ] || [ "$nodekey" == "parse error"* ] || [ "$cat base64_keystore" == "parse error"* ]
           then
             echo "certificates write or read fail"
-            sleep {{ $.Values.healthcheck.readinessthreshold  }}
+            sleep {{ $.Values.sleepTime  }}
             if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
             then
               echo "Retry attempted $COUNTER times, certificates have not been saved"

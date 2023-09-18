@@ -11,26 +11,6 @@ metadata:
   annotations:
     app: consortiumchain
     version: '1'
-    {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      name: {{ .Values.node.name }}-tm
-      host: {{ .Values.proxy.external_url }}
-      prefix: /
-      service: {{ .Values.node.name }}-tessera.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.tm }}
-      tls: {{ .Values.node.name }}_mapping_tlscontext
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Values.node.name }}_mapping_tlscontext
-      hosts:
-      - {{ .Values.proxy.external_url }}
-      secret: {{ .Values.node.name }}-ambassador-certs.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-    {{- end }}
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: {{ .Values.node.name }}-tessera
@@ -65,3 +45,45 @@ spec:
     protocol: TCP
     port: {{ .Values.node.ports.db }}
     targetPort: {{ .Values.node.ports.db }}
+{{- if eq $.Values.proxy.provider "ambassador" }}
+## Host for tm connection
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Values.node.name }}-host
+spec:
+  hostname: {{ .Values.proxy.external_url }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: {{ .Values.node.name }}-ambassador-certs
+  tls:
+    min_tls_version: v1.2
+## Mapping for tm port
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.node.name }}-tm
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hostname: {{ .Values.proxy.external_url }}
+  prefix: /
+  service: https://{{ .Values.node.name }}-tessera.{{ .Values.metadata.namespace }}
+  tls: {{ .Values.node.name }}-tlscontext
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Values.node.name }}-tlscontext
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hosts:
+  - {{ .Values.proxy.external_url }}
+  secret: {{ .Values.node.name }}-ambassador-certs
+  min_tls_version: v1.2
+{{- end }}

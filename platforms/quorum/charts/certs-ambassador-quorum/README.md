@@ -98,16 +98,17 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 | address                   | Address/URL of the Vault server.                                          | ""            |
 | role                      | Role used for authentication with Vault                                   | vault-role    |
 | authpath                  | Authentication path for Vault                                             | quorumnode_1  |
-| serviceAccountName        | Provide the already created service account name autheticated to vault    | vault-auth    |
-| certSecretPrefix          | Provide the vault path where the certificates are stored                  | ""            |
+| serviceaccountname        | Provide the already created service account name autheticated to vault    | vault-auth    |
+| certsecretprefix          | Provide the vault path where the certificates are stored                  | ""            |
 | retries                   | Number of retries to check contents from vault                            | 30            |
+| type                  | The type of Vault used | hashicorp |
 
 ### Subjects
 
 | Name                      | Description                        | Default Value |
 | ------------------------- | ---------------------------------- | ------------- |
-| root_subject              | Mention the subject for rootca     | ""            |
-| cert_subject              | Mention the subject for cert       | ""            |
+| root_subject              | Mention the subject for rootca     | "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"            |
+| cert_subject              | Mention the subject for cert       | "CN=DLT Root CA/OU=DLT/O=DLT/L=London/C=GB"            |
 
 ### OpenSSL Vars
 
@@ -117,26 +118,6 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 | domain_name_api           | Provides the name for domain_name api endpoint            | ""            |
 | domain_name_web           | provides the name for domain_name web endpoint            | ""            |
 | domain_name_tessera       | provides the name for domain domain_name tessera endpoint | ""            |
-
-### Sleep
-
-| Name                      | Description                                              | Default Value |
-| ------------------------- | ---------------------------------------------------------| ------------- |
-| sleepTimeAfterError       | Sleep time in seconds when error while registration      | 120           |
-| sleepTime                 | custom sleep time in seconds                             | 20            |
-
-### Healthcheck
-
-| Name                        | Description                                                                   | Default Value |
-| ----------------------------| ------------------------------------------------------------------------------| ------------- |
-| readinesscheckinterval      | Provide the wait interval in seconds in fetching certificates from vault      | 5             |
-| readinessthreshold          | Provide the threshold number of retries in fetching certificates from vault   | 2             |
-
-### Volume
-
-| Name             | Description            | Default Value |
-| -----------------| -----------------------| ------------- |
-| baseDir          | Base directory         | /home/bevel   |
 
 <a name = "deployment"></a>
 ## Deployment

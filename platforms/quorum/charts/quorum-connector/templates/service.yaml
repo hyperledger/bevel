@@ -10,27 +10,6 @@ kind: Service
 metadata:
   namespace: {{ .Values.metadata.namespace }}
   name: {{ .Release.Name }}-svc
-  annotations:
-    {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      name: {{ .Release.Name }}-svc-mapping
-      prefix: /
-      service: {{ .Release.Name }}-svc.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
-      host: {{ .Values.plugins.quorumNode }}.{{ .Values.proxy.external_url }}
-      tls: false
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Release.Name }}_mapping_tlscontext
-      hosts:
-      - {{ .Values.plugins.quorumNode }}.{{ .Values.proxy.external_url }}
-      secret: {{ .Values.plugins.quorumNode }}-ambassador-certs.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-    {{- end }}
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}-svc
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
@@ -46,3 +25,16 @@ spec:
     targetPort: http
   selector:
     name: {{ .Release.Name }}-cactus-connector
+{{- if eq $.Values.proxy.provider "ambassador" }}
+## Mapping for connector port
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Release.Name }}-svc-mapping
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hostname: '{{ .Values.plugins.quorumNode }}.{{ .Values.proxy.external_url }}'
+  prefix: /
+  service: http://{{ .Release.Name }}-svc.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
+{{- end }}

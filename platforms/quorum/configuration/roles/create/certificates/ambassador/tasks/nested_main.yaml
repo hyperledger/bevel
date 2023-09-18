@@ -8,20 +8,6 @@
 # and places them in vault. Certificates are created using openssl
 
 ---
-# Ensures the rootca dir directory
-- name: "Ensure rootca dir exists"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
-  vars:
-    path: "{{ rootca }}"
-
-# Ensures the ambassador tls directory
-- name: "Ensure ambassadortls dir exists"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
-  vars:
-    path: "{{ ambassadortls }}"
-
 # This task creates the value files for each node of organization
 - name: Create value file for ambassador job
   include_role:
@@ -30,8 +16,6 @@
     org_name: "{{ org.name }}"
     component_name: "{{ name }}-generate-ambassador-certs-job"
     type: "certs-ambassador-quorum"
-    genesis: "{{ lookup('file', '{{ network.config.genesis }}') | b64encode }}"
-    staticnodes: "{{ lookup('file', '{{ network.config.staticnodes }}') | from_yaml | to_nice_json }}"
     external_url: "{{ org.external_url_suffix }}"
 
 # Git Push : Pushes the above generated files to git directory

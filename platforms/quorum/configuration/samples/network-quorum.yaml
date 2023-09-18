@@ -12,12 +12,13 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: quorum
-  version: 21.4.2  #this is the version of Quorum docker image that will be deployed. older version 2.1.1 is not compatible with supplychain contracts
+  version: 23.4.0  #this is the version of Quorum 
 
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Quorum
+    proxy_namespace: "ambassador"
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
@@ -44,20 +45,13 @@ network:
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Options are "tessera", "constellation" and "none"
-    # This is the version of "tessera" or "constellation" docker image that will be deployed
-    # Supported versions #
-    # constellation: 0.3.2 (For all versions of quorum)
-    tm_version: "21.7.3"
+    transaction_manager: "tessera"    # Options are "tessera" and "none"
+    # This is the version of "tessera"
+    tm_version: "23.4.0"
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
     #  For "tessera", all participating nodes should be provided
-    #  For "constellation", only one is bootnode should be provided
-    #
-    # For constellation, use following. This will be the bootnode for all nodes
-    #  - "http://carrier.test.quorum.blockchaincloudpoc.com:15012/"  #NOTE the end / is necessary and should not be missed
-    # The above domain name is formed by the http://(peer.name).(org.external_url_suffix):(ambassador constellation port)/
     # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix):(ambassador default port)
     tm_nodes:
       - "https://carrier.test.quorum.blockchaincloudpoc.com"
@@ -118,10 +112,9 @@ network:
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 443    # use ambassador: 15012 when transaction_manager = "constellation"
+            port: 443
+            ambassador: 443
             clientport: 8888
           raft:                     # Only used if consensus = 'raft'
             port: 50401
@@ -139,7 +132,6 @@ network:
             ambassador: 15014       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
-            ambassador: 15015       #Port exposed on ambassador service (use one port per org if using single cluster)
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
 
@@ -191,10 +183,9 @@ network:
             ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
-            ambassador: 15021       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 443    # use ambassador: 15022 when transaction_manager = "constellation"
+            port: 443
+            ambassador: 443
             clientport: 8888
           raft:                     # Only used if consensus = 'raft'
             port: 50401
@@ -212,7 +203,6 @@ network:
             ambassador: 15024       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
-            ambassador: 15025       #Port exposed on ambassador service (use one port per org if using single cluster)
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
 
@@ -262,10 +252,9 @@ network:
             ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
-            ambassador: 15031       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 443    # use ambassador: 15032 when transaction_manager = "constellation"
+            port: 443
+            ambassador: 443
             clientport: 8888
           raft:                     # Only used if consensus = 'raft'
             port: 50401
@@ -283,7 +272,6 @@ network:
             ambassador: 15034       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
-            ambassador: 15035       #Port exposed on ambassador service (use one port per org if using single cluster)
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
 
@@ -333,10 +321,9 @@ network:
             ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
-            ambassador: 15041       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 443    # use ambassador: 15042 when transaction_manager = "constellation"
+            port: 443
+            ambassador: 443
             clientport: 8888
           raft:                     # Only used if consensus = 'raft'
             port: 50401
@@ -354,6 +341,5 @@ network:
             ambassador: 15044       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
-            ambassador: 15045       #Port exposed on ambassador service (use one port per org if using single cluster)
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306

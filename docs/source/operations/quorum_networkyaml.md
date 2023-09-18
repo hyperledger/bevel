@@ -41,11 +41,11 @@ The sections in the sample configuration file are
 `version` defines the version of platform being used. The current Quorum version support is only for **21.4.2**
 
 ---
-**NOTE**: Use Quorum Version 21.4.2 if you are deploying Supplychain smartcontracts from examples.
+**NOTE**: Use Quorum Version 23.4.0 if you are deploying Supplychain smartcontracts from examples.
 
 ---
 
-`env` section contains the environment type and additional (other than 8443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' or 'haproxy'
+`env` section contains the environment type and additional (other than 443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' or 'haproxy'
 
 The snapshot of the `env` section with example value is below
 ```yaml 
@@ -105,26 +105,18 @@ The snapshot of the `config` section with example values is below
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Options are "tessera" and "constellation"
-    # This is the version of "tessera" or "constellation" docker image that will be deployed
-    # Supported versions #
-    # constellation: 0.3.2 (For all versions of quorum)
-    tm_version: "21.7.3"               # This is the version of "tessera" and "constellation" docker image that will be deployed
+    transaction_manager: "tessera"    # Options are "tessera" or "none"
+    tm_version: "23.4.0"               # This is the version of "tessera"
     tm_tls: "strict"                  # Options are "strict" and "off"
     tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
     #  For "tessera", all participating nodes should be provided
-    #  For "constellation", only one is bootnode should be provided
-    #
-    # For constellation, use following. This will be the bootnode for all nodes
-    #  - "http://carrier.test.quorum.blockchaincloudpoc.com:15012/"  #NOTE the end / is necessary and should not be missed
-    # The above domain name is formed by the http://(peer.name).(org.external_url_suffix):(ambassador constellation port)/
-    # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix):(ambassador default port)
+    # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix)
     tm_nodes: 
-      - "https://carrier.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://manufacturer.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://store.test.quorum.blockchaincloudpoc.com:8443"
-      - "https://warehouse.test.quorum.blockchaincloudpoc.com:8443"
+      - "https://carrier.test.quorum.blockchaincloudpoc.com"
+      - "https://manufacturer.test.quorum.blockchaincloudpoc.com"
+      - "https://store.test.quorum.blockchaincloudpoc.com"
+      - "https://warehouse.test.quorum.blockchaincloudpoc.com"
     staticnodes: "/home/user/bevel/build/quorum_staticnodes" # Location where staticnodes will be saved
     genesis: "/home/user/bevel/build/quorum_genesis"   # Location where genesis file will be saved
     # NOTE for the above paths, the directories should exist
@@ -133,9 +125,9 @@ The snapshot of the `config` section with example values is below
       #name of the bootnode that matches one from existing node
       name: carrier
       #ambassador url of the bootnode
-      url: carrier.test.quorum.blockchaincloudpoc.com
+      url: carrierrpc.test.quorum.blockchaincloudpoc.com
       #rpc port of the bootnode
-      rpcport: 15011
+      rpcport: 80
       #id of the bootnode
       nodeid: 1
 ```
@@ -145,11 +137,11 @@ The fields under `config` are
 |-------------|----------------------------------------------------------|
 | consensus   | Currently supports `raft` or `ibft`. Please update the remaining items according to the consensus chosen as not all values are valid for both the consensus.                                 |
 | subject     | This is the subject of the root CA which will be created for the Quorum network. The root CA is for development purposes only, production networks should already have the root certificates.   |
-| transaction_manager    | Options are `tessera` and `constellation`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager. |
-| tm_version         | This is the version of `tessera` and `constellation` docker image that will be deployed. Supported versions: `21.7.3` for `tessera` and `0.3.2` for `constellation`. |
+| transaction_manager    | Options are `tessera` and `none`. Please update the remaining items according to the transaction_manager chosen as not all values are valid for both the transaction_manager. |
+| tm_version         | This is the version of `tessera` that will be deployed. Supported versions: `23.4.0` for `tessera`. |
 | tm_tls | Options are `strict` and `off`. This enables TLS for the transaction managers, and is not related to the actual Quorum network. `off` is not recommended for production. |
-| tm_trust | Options are: `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for tessera]( https://github.com/jpmorganchase/tessera/wiki/TLS) and [for consellation](https://github.com/Accenture-BAF/constellation/blob/main/sample.conf).|
-| tm_nodes | The Transaction Manager nodes public addresses should be provided. For `tessera`, all participating nodes should be provided, for `constellation`, only one bootnode should be provided. NOTE The difference in the addresses for Tessera and Constellation. |
+| tm_trust | Options are: `ca-or-tofu`, `ca`, `tofu`. This is the trust relationships for the transaction managers. More details [for tessera]( https://github.com/jpmorganchase/tessera/wiki/TLS).|
+| tm_nodes | The Transaction Manager nodes public addresses should be provided. For `tessera`, all participating nodes should be provided. |
 | staticnodes | This is the path where staticnodes will be stored for a new network; for adding new node, the existing network's staticnodes should be available in yaml format in this file.|
 | genesis | This is the path where genesis.json will be stored for a new network; for adding new node, the existing network's genesis.json should be available in json format in this file.|
 | bootnode | This is only applicable when adding a new node to existing network and contains the boot node rpc details |
@@ -255,8 +247,8 @@ Each organization with type as peer will have a peers service. The snapshot of p
             port: 8546
             ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
           transaction_manager:
-            port: 8443          # use port: 9001 when transaction_manager = "constellation"
-            ambassador: 8443    # use ambassador: 15012 when transaction_manager = "constellation"
+            port: 443          
+            ambassador: 443  
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15013
@@ -275,8 +267,8 @@ The fields under `peer` service are
 | p2p.ambassador | The P2P Port when exposed on ambassador service|
 | rpc.port   | RPC port for Quorum|
 | rpc.ambassador | The RPC Port when exposed on ambassador service|
-| transaction_manager.port   | Port used by Transaction manager `tessera` or `constellation`. Use 8443 for Tessera and 9001 for Constellation |
-| transaction_manager.ambassador | The tm port when exposed on ambassador service. Must use 8443 for Tessera, and a corresponding port like 15023 for Constellation. |
+| transaction_manager.port   | Port used by Transaction manager `tessera` |
+| transaction_manager.ambassador | The tm port when exposed on ambassador service. |
 | raft.port   | RAFT port for Quorum when `consensus: raft` |
 | raft.ambassador | The RAFT Port when exposed on ambassador service|
 | db.port   | MySQL DB internal port, only valid if `transaction_manager: tessera`|
