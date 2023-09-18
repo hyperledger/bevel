@@ -1,0 +1,85 @@
+# ##############################################################################################
+# #  Copyright Accenture. All Rights Reserved.
+# #
+# #  SPDX-License-Identifier: Apache-2.0
+# ##############################################################################################
+
+# Set global variables
+- name: Set variables
+  set_fact:
+    kubeconfig_path: "{{ network.organizations[0].k8s.config_file }}"
+    external_URL_suffix: "{{ network.organizations[0].external_url_suffix }}"
+
+# Initialize an empty list to store Prometheus target URLs.
+- name: extracting data 
+  set_fact:
+    targets: []
+
+# Fetching Prometheus target URLs for active organizations' peers or validators.
+- name: Fetching the prometheus URLs
+  include_tasks: nested_loop.yaml
+  vars:
+    nodes: "{{ org.services.peers is defined | ternary(org.services.peers, org.services.validators) }}"
+    component_name: "{{ org.name | lower }}-bes"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  
+# Create a destination directory for Prometheus configuration if targets exist.
+- name: Create destination directory
+  file:
+    path: "{{ playbook_dir }}/../../../platforms/shared/configuration/build"
+    state: directory
+  when: targets | length > 0
+    
+# Update Helm values with Prometheus configuration if targets exist.
+- name: Updating helm values config 
+  template:
+    src={{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/prometheus/templates/prometheus_release.tpl
+    dest={{ playbook_dir }}/../../../platforms/shared/configuration/build/prometheus.yaml
+  when: targets | length > 0
+
+# Add prometheus-community Helm chart repo if targets exist.
+- name: Add prometheus-community Helm chart repo
+  kubernetes.core.helm_repository:
+    name: prometheus-community
+    repo_url: "https://prometheus-community.github.io/helm-charts"
+  when: targets | length > 0
+
+# Install Prometheus via Helm chart if targets exist. Supports various Prometheus versions.
+- name: Deploy the Prometheus chart
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: "prometheus"
+    chart_ref: prometheus-community/prometheus
+    chart_version: 23.0 
+    release_namespace: default
+    create_namespace: true
+    values_files:
+      - "{{ playbook_dir }}/../../../platforms/shared/configuration/build/prometheus.yaml"
+  when: targets | length > 0
+
+# Create Ambassador routing rules for prometheus server
+- name: Create Ambassador routing rules for prometheus server
+  template:
+    src={{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/prometheus/templates/prometheus-routing.tpl
+    dest={{ playbook_dir }}/../../../platforms/shared/configuration/build/prometheus-routing.yaml
+  when: 
+  - ( network.prometheus.ambassador_mapping == 'enabled' ) and ( targets | length > 0 )
+  - ( prometheus_port|int in [80, 443] ) or ( network.env.ambassadorPorts.portRange.from|int <= prometheus_port|int <= network.env.ambassadorPorts.portRange.to|int )
+
+# Check if file is not empty
+- name: Check if file is not empty
+  stat:
+    path: "{{ playbook_dir }}/../../../platforms/shared/configuration/build/prometheus-routing.yaml"
+  register: file_metadata
+
+# Apply Ambassador routing rules for prometheus serve
+- name: Apply Ambassador routing rules for prometheus server
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    namespace: default
+    src: "{{ playbook_dir }}/../../../platforms/shared/configuration/build/prometheus-routing.yaml"
+  when: 
+  - file_metadata.stat.size > 0
