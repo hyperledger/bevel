@@ -104,8 +104,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name             | Description                                      | Default Value     |
 |------------------|--------------------------------------------------|-------------------|
 | name             | Name of the chaincode to be installed            | cc                |
-| version          | Chaincode version to be installed                | "1.0"             |
-| sequence         | chaincode sequence to be committed               | ""                |
+| version          | Chaincode version to be installed                | "1"               |
 | tls_disabled     | tls is disabled or not                           | true              |
 | address          | Chaincode server address                         | ""                |
 
