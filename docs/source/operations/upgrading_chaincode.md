@@ -43,6 +43,7 @@ network:
           chaincodes:
             - name: "chaincode_name" #This has to be replaced with the name of the chaincode
               version: "chaincode_version" # This has to be greater than the current version, should be an integer.
+              sequence: "2" # sequence of the chaincode, update this only for chaincode upgrade depending on the last sequence
               maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
               lang: "java" # The chaincode language, optional field with default vaule of 'go'.
               repository:
@@ -71,7 +72,7 @@ The playbook [chaincode-ops.yaml](https://github.com/hyperledger/bevel/tree/main
 This can be done by using the following command
 
 ```
-    ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml" -e "add_new_org='false'"
+    ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
 ```
 
 ---
