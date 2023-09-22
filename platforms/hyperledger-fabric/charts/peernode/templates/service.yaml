@@ -10,11 +10,6 @@ metadata:
   name: {{ $.Values.peer.name }}
   namespace: {{ $.Values.metadata.namespace }}
   {{- if or $.Values.proxy (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
-  ##### TODO: Enable ambassador for Fabric
-  # This can be fixed only when https://jira.hyperledger.org/browse/FAB-8131 issue is fixed
-  # After the issue is fixed, changes similar to the commented code has to be done by using correct secrets.
-  # Otherwise as ambassador is not able to passthrough TLS connection, grpc over ambassador is not going to work
-  # hence we have used a HAProxy ingress whoich does ssl-passthrough.  
   annotations:
     {{- if $.Values.annotations }}
     {{- range $key, $value := $.Values.annotations.service }}
@@ -23,40 +18,6 @@ metadata:
     {{- end }}
     {{- end }}
     {{- end }} 
-    {{- if eq $.Values.proxy.provider "ambassador" }} 
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
-      hosts:
-      - {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
-      secret: {{ $.Values.peer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs
-      alpn_protocols: h2
-      min_tls_version: v1.2
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
-      grpc: True
-      name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping
-      headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}:{{ $.Values.proxy.port }}
-      prefix: /
-      rewrite: /
-      service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      tls: tls_context_{{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_upstream
-      grpc: True
-      name: {{ $.Values.peer.name }}_{{ $.Values.metadata.namespace }}_mapping_rest
-      headers:
-        :authority: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
-      prefix: /
-      rewrite: /
-      service: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
-  {{- end }} # end if Values.proxy  
   {{- if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
     cloud.google.com/load-balancer-type: "Internal"
   {{- end }}

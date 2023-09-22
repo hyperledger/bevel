@@ -20,59 +20,6 @@
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
 
-# Delete the Ambassador Creds for CA
-- name: Delete Ambassador creds
-  k8s:
-    kind: Secret
-    namespace: default
-    name: ca-{{ component_name }}-ambassador-certs
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    state: absent
-  ignore_errors: yes
-
-- name: Delete Ambassador creds
-  k8s:
-    kind: Secret
-    namespace: default
-    name: orderer-{{ component_name }}-ambassador-certs
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    state: absent
-  ignore_errors: yes
-
-- name: Delete Ambassador creds
-  k8s:
-    kind: Secret
-    namespace: "{{ component_name }}"
-    name: orderer-{{ component_name }}-ambassador-certs
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    state: absent
-  when: network.env.proxy == 'haproxy'
-  ignore_errors: yes
-  
-- name: Delete Ambassador creds
-  k8s:
-    kind: Secret
-    namespace: default
-    name: peer0-{{ component_name }}-ambassador-certs
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    state: absent
-  ignore_errors: yes
-
-- name: Delete Ambassador creds
-  k8s:
-    kind: Secret
-    namespace: "{{ component_name }}"
-    name: peer0-{{ component_name }}-ambassador-certs
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    state: absent
-  when: network.env.proxy == 'haproxy'
-  ignore_errors: yes
-
 ############################################################################################
 # This task deletes vault auth
 - name: Delete vault-auth path
@@ -101,7 +48,6 @@
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_name }}/users/admin/tls
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_name }}/users/admin/msp
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_name }}/ambassador/{{orderer.name}}
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/credentials/{{ component_name }}/ca/{{ org_name }}
   loop: "{{ services.orderers }}"
   loop_control:
@@ -138,7 +84,6 @@
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/ambassador
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/msp/config
     {% for peer in peers %}
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/tls

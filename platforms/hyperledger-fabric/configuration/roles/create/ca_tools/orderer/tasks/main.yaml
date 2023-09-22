@@ -106,34 +106,6 @@
   loop_control:
     loop_var: orderer
 
-# This task wait for ambassador key exists in vault.
-- name: Wait for ambassador key exists in vault.
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
-  vars:
-    vault_field: "key"
-    vault_path: "{{ vault.secret_path | default('secretv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador/{{ orderer.name }}"
-    check: "crypto_materials"
-  loop: "{{ item.services.orderers }}"
-  loop_control:
-    loop_var: orderer
-  when: network.env.proxy == 'ambassador'
-
-#####################################################################################################################
-# This task creates the Ambassador TLS credentials for orderers
-- name: "Create the Ambassador credentials for orderers"
-  include_role:
-    name: create/k8s_secrets
-  vars: 
-    namespace: "{{ item.name | lower }}-net"
-    vault: "{{ item.vault }}"
-    kubernetes: "{{ item.k8s }}"
-    check: "ambassador_orderer"
-  loop: "{{ item.services.orderers }}"
-  loop_control:
-    loop_var: orderer
-  when: network.env.proxy == 'ambassador'
-
 ############################################################################################
 # This task copies the msp admincerts from vault
 - name: Fetch the msp admincerts from vault

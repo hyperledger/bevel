@@ -45,14 +45,6 @@ This task pushes the above generated value files to git repo.
     gitops: *item.gitops* from network.yaml
     msg: "Message for git commit"
 
-#### 5. Create the Ambassador credentials
-This task creates the Ambassador TLS credentials
-##### Input Variables
-    *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
-    *vault: "Vault Details"
-    *kubernetes: "{{ item.k8s }}"
-**include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secret`.
-
 #### 6. Create CA server values for Orderer
 This task creates the CA value file for Orderer
 ##### Input Variables
@@ -63,7 +55,6 @@ This task creates the CA value file for Orderer
     *charts_dir: "The path of chart files"
     
 **include_role** : It includes the name of intermediatory role which is required for creating the CA value file for orderer.
-**when**: Condition is specified here, runs only when *network.env.proxy* is ambassador.
 
 #### 7. Create CA server values for Organisations
 This task creates the CA value file for organisations

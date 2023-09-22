@@ -19,17 +19,6 @@ This task deletes docker credentials.
     context: The context of the cluster
 **ignore_errors**: This flag ignores the any errors and proceeds furthur.
 
-#### 2. Delete Ambassador creds
-This task deletes ambassador credentials.
-##### Input Variables
-    kind: Helmrelease, The kind of component
-    namespace: Namespace of the component
-    name: "regcred"
-    state: absent ( This deletes any found result)
-    kubeconfig: The config file of cluster
-    context: The context of the cluster
-**ignore_errors**: This flag ignores the any errors and proceeds furthur.
-
 #### 3. Delete vault-auth path
 This task deletes vault auth.
 ##### Input Variables
