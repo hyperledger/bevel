@@ -15,7 +15,7 @@
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
-    # Setup flux
+  # Setup flux
   - include_role:
       name:  setup/flux
     vars:
@@ -33,6 +33,7 @@
       flux_version: "0.35.0"
     with_items: "{{ network.organizations }}"
     when: network.env.type != 'operator'
+
   # Prepare ports for Indy
   - name: Prepare nodes and clients ports for ambassador
     vars:
@@ -43,6 +44,7 @@
     loop_control:
       loop_var: organizationItem
     when: organizationItem.services.stewards is defined and network['type'] == 'indy'
+
   # Setup ambassador legacy
   - include_role:
       name: setup/ambassador
@@ -54,7 +56,8 @@
     with_items: "{{ network.organizations }}"
     when: 
     - network.env.proxy == 'ambassador' 
-    - network['type'] != 'besu' and network['type'] != 'quorum'
+    - network['type'] not in ['besu', 'quorum', 'substrate']
+
   # Setup ambassador edge stack (enabled for besu and quorum)
   - include_role:
       name: setup/edge-stack
@@ -66,7 +69,8 @@
     with_items: "{{ network.organizations }}"
     when: 
     - network.env.proxy == 'ambassador' 
-    - network['type'] == 'besu' or network['type'] == 'quorum'
+    - network['type'] in ['besu', 'quorum', 'substrate']
+
   # Installs cert-manager
   - include_role:
       name: setup/certmanager
@@ -79,6 +83,7 @@
     when: 
       - network.env.proxy == 'ambassador'
       - network.type == 'besu'
+
   # Setup haproxy-ingress for Fabric
   - include_role:
       name: setup/haproxy-ingress
@@ -88,6 +93,7 @@
       aws: "{{ item.aws }}"
     with_items: "{{ network.organizations }}"
     when: network.env.proxy == 'haproxy'
+
   # Setup istio for Fabric Operator
   - include_role:
       name: setup/istio
@@ -97,6 +103,7 @@
       aws: "{{ item.aws }}"
     with_items: "{{ network.organizations }}"
     when: network.env.proxy == 'istio'
+
   # Setup Fabric Operator
   - name: Setup bevel-operator-fabric for each organization
     include_role:

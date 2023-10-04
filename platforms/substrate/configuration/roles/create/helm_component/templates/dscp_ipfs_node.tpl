@@ -18,6 +18,7 @@ spec:
       chart: {{ charts_dir }}/dscp-ipfs-node
   values:
     fullnameOverride: {{ peer.name }}-ipfs
+    namespace: {{ component_ns }}
     config:
       healthCheckPort: 80
       healthCheckPollPeriod: 30000

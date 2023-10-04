@@ -5,23 +5,6 @@ kind: Service
 metadata:
   name: {{ include "dscp-ipfs.fullname" . }}-swarm
   annotations:
-  {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ $fullname }}-swarm
-      port: {{ $.Values.proxy.port }}
-      service: {{ $fullname }}-swarm:{{ $.Values.config.ipfsSwarmPort }}
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ $fullname }}_mapping_tlscontext
-      hosts:
-      - {{ $.Values.proxy.external_url }}
-      secret: {{ $.Values.proxy.certSecret }}
-      min_tls_version: v1.2
-  {{- end }}
   {{- with .Values.service.swarm.annotations }}
   {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -54,4 +37,30 @@ spec:
     - protocol: 'TCP'
       port: {{ .Values.service.api.port }}
       targetPort: {{ .Values.config.ipfsApiPort }}
+{{- end }}
+
+{{- if eq $.Values.proxy.provider "ambassador" }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: "{{ $fullname }}-listener"
+  namespace: {{ $.Values.namespace }}
+spec:
+  port: {{ $.Values.proxy.port }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: "{{ $fullname }}-tcpmapping"
+  namespace: {{ $.Values.namespace }}
+spec:
+  port: {{ $.Values.proxy.port }}
+  service: "{{ $fullname }}-swarm.{{ $.Values.namespace }}:{{ $.Values.config.ipfsSwarmPort }}"
 {{- end }}

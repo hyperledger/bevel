@@ -28,6 +28,7 @@ spec:
 {% endif %}
     nameOverride: {{ peer.name }}
     fullnameOverride: {{ peer.name }}
+    namespace: {{ component_ns }}
 
     serviceAccount:
       create: false
@@ -51,7 +52,7 @@ spec:
       customChainspecPath: "/data/chainspec.json"
       collator:
         isParachain: false
-                
+
       enableStartupProbe: false
       enableReadinessProbe: false
       flags:
@@ -75,11 +76,11 @@ spec:
           scheme: "sr25519"
           seed: "aura_seed"
       persistGeneratedNodeKey: false
-      
+
       resources: {}
       serviceMonitor:
         enabled: false
-        
+
       perNodeServices:
         createApiService: true
         createP2pService: true

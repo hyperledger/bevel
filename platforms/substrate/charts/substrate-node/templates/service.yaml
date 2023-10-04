@@ -59,23 +59,6 @@ kind: Service
 metadata:
   name: {{ $fullname }}-{{ $i }}-rc-p2p
   annotations:
-  {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ $fullname }}-p2p
-      port: {{ $.Values.proxy.p2p }}
-      service: {{ $fullname }}-{{ $i }}-rc-p2p:{{ $.Values.node.ports.p2p }}
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ $fullname }}_mapping_tlscontext
-      hosts:
-      - {{ $.Values.proxy.external_url }}
-      secret: {{ $.Values.proxy.certSecret }}      
-      min_tls_version: v1.2
-  {{- end }}
 {{- with $.Values.node.perNodeServices.relayServiceAnnotations }}
 {{ toYaml . | indent 4 }}
 {{- end }}
@@ -116,3 +99,31 @@ spec:
 {{- end }}
 ---
 {{ end }}
+
+{{range $i := until ($.Values.node.replicas | int) }}
+{{- if eq $.Values.proxy.provider "ambassador" }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: "{{ $fullname }}-listener"
+  namespace: {{ $.Values.namespace }}
+spec:
+  port: {{ $.Values.proxy.p2p }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: "{{ $fullname }}-tcpmapping"
+  namespace: {{ $.Values.namespace }}
+spec:
+  port: {{ $.Values.proxy.p2p }}
+  service: "{{ $fullname }}-{{ $i }}-rc-p2p.{{ $.Values.namespace }}:{{ $.Values.node.ports.p2p }}"
+{{- end }}
+{{- end }}
