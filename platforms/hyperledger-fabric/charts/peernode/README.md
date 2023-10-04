@@ -32,7 +32,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 - Kubernetes cluster up and running.
 - A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
 - The Vault is unsealed and initialized.
-- Either HAproxy or Ambassador is required as ingress controller.
+- HAproxy is required as ingress controller.
 - Helm installed.
 
 
@@ -61,7 +61,7 @@ peernode/
 - `helpers.tpl`: Contains custom label definitions used in other templates.
 - `configmap.yaml`: Provides a way to configure the Hyperledger Fabric peer and enable it to join the network, interact with other nodes. The environment variables that are defined in the peer-config ConfigMap are used to configure the peer's runtime behavior. The configuration for the MSP is defined in the msp-config ConfigMap. The core.yaml file is used to configure the chaincode builder
 - `deployment.yaml`: The certificates-init container fetches TLS certificates and other secrets from Vault. The couchdb container runs a CouchDB database that is used to store the ledger state. The {{ $.Values.peer.name }} container runs a Hyperledger Fabric peer that manages the ledger and provides access to the blockchain network. The grpc-web container runs a gRPC-Web proxy that allows gRPC services to be accessed via a web browser.
-- `service.yaml`: Ensures internal and external access with exposed ports for gRPC (7051), events (7053), CouchDB (5984), gRPC-Web (7443), and operations (9443), and optionally uses Ambassador or HAProxy for external exposure and secure communication.
+- `service.yaml`: Ensures internal and external access with exposed ports for gRPC (7051), events (7053), CouchDB (5984), gRPC-Web (7443), and operations (9443), and optionally uses HAProxy for external exposure and secure communication.
 - `servicemonitor.yaml`: Define a ServiceMonitor resource that allows Prometheus to collect metrics from the peer node's "operations" port. The configuration is conditionally applied based on the availability of the Prometheus Operator's API version and whether metrics are enabled for the peer service.
 - `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
 - `README.md`: Provides information and instructions about the Helm chart.
@@ -97,7 +97,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ------------------------------------------| ----------------------------------------------------------------------| ----------------------------------------------|
 | name                                      | Name of the peer as per deployment yaml                               | peer0                                         |
 | gossippeeraddress                         | URL of gossipping peer and port for grpc                              | peer1.org1-example-com.svc.cluster.local:7051 |
-| gossipexternalendpoint                    | URL of gossip external endpoint and port for ambassador https service | peer1-ext.org1-example-com:443                |
+| gossipexternalendpoint                    | URL of gossip external endpoint and port for haproxy https service | peer1-ext.org1-example-com:443                |
 | localmspid                                | Local MSP ID for the organization                                     | Org1MSP                                       |
 | loglevel                                  | Log level for organization's peer                                     | info                                          |
 | tlsstatus                                 | Set to true or false for organization's peer                          | true                                          |
@@ -152,9 +152,9 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                               | Default Value       |
 | ----------------------| ----------------------------------------------------------| ------------------- |
-| provider              | Proxy/ingress provider (ambassador, haproxy, or none)     | none                |
+| provider              | Proxy/ingress provider ( haproxy or none)     | none                |
 | external_url_suffix   | External URL of the organization                          | ""                  |
-| port                  | External port on ambassador                               | 443                 |
+| port                  | External port on proxy service                               | 443                 |
 
 ### Config
 

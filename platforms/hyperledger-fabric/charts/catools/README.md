@@ -75,7 +75,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | name                  | Name for CA server deployment                     | ca-tools            |
 | component_type        | Organization's type (orderer or peer)             | orderer             |
 | org_name              | Organization's name in lowercase                  | org1                |
-| proxy                 | Proxy/ingress provider (ambassador or haproxy)    | haproxy             |
+| proxy                 | Proxy/ingress provider (haproxy or none)          | haproxy             |
 
 ### Replica
 
@@ -118,7 +118,6 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | secrettls             | Path configured in vault for admin TLS                            | secret/secrettls/                 |
 | secretorderer         | Path configured in vault for orderers                             | secret/secretorderer/             |
 | secretpeerorderertls  | Path configured in vault for peer orderer TLS                     | secret/secretpeerorderertls/      |
-| secretambassador      | Path configured in vault for ambassador credentials               | secret/secretambassador/          |
 | secretcert            | Path configured in vault for CA server certificate                | secret/secretcert/                |
 | secretkey             | Path configured in vault for CA server private key                | secret/secretkey/                 |
 | secretconfigfile      | Path configured in vault for MSP config.yaml file                 | secret/secretconfigfile/          |

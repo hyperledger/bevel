@@ -150,8 +150,6 @@ spec:
             value: {{ $.Values.vault.secretorderer }}
           - name: VAULT_SECRET_PEER
             value: {{ $.Values.vault.secretpeer }}
-          - name: VAULT_SECRET_AMBASSADOR
-            value: {{ $.Values.vault.secretambassador }}
           - name: VAULT_SECRET_CONFIG_FILE
             value: {{ $.Values.vault.secretconfigfile }}
           - name: VAULT_SECRET_PEER_ORDERER_TLS
@@ -278,28 +276,6 @@ spec:
                   echo "Certficates absent in vault. Ignore error warning."
                   touch ${MOUNT_PATH}/absent_tls_${SERVICE_NAME}.txt
                 fi
-
-                if [ "$PROXY" = "ambassador" ] ; then
-                  # Check if orderer/peer ambassador secrets already created
-                  if [ "$COMPONENT_TYPE" = "peer" ]; then
-                    SERVICE_NAME="${SERVICE%%,*}"
-                    vaultBevelFunc "readJson" "${VAULT_SECRET_AMBASSADOR}"
-                  fi;
-
-                  if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                    SERVICE_NAME="${SERVICE}"
-                    vaultBevelFunc "readJson" "${VAULT_SECRET_AMBASSADOR}/${SERVICE_NAME}"
-                  fi;
-
-                  if [ "$SECRETS_AVAILABLE" == "yes" ]
-                  then
-                    echo "Certificates present in vault."
-                    touch ${MOUNT_PATH}/present_ambassador_${SERVICE_NAME}.txt
-                  else
-                    echo "Certficates absent in vault. Ignore error warning."
-                    touch ${MOUNT_PATH}/absent_ambassador_${SERVICE_NAME}.txt
-                  fi
-                fi;
               done
 
               if [ $COMPONENT_TYPE == 'peer' ];
@@ -482,92 +458,7 @@ spec:
                   fi;
                 done
               fi;
-
-              if [ "$PROXY" = "ambassador" ] ; then
-
-                OUTPUT_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
-                cd ${OUTPUT_PATH}
-
-                if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                  # Create openssl.conf file
-                  echo "[req]
-                  req_extensions = v3_req
-                  distinguished_name = dn
-
-                  [dn]
-
-                  [v3_req]
-                  basicConstraints = critical, CA:TRUE
-                  keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
-                  subjectKeyIdentifier = hash
-                    " > openssl.conf
-                fi;
-
-                if [ "$COMPONENT_TYPE" = "peer" ]; then
-                  # Create openssl.conf file
-                  echo "[req]
-                  req_extensions = v3_req
-                  distinguished_name = dn
-
-                  [dn]
-
-                  [v3_req]
-                  basicConstraints = critical, CA:TRUE
-                  keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
-                  subjectKeyIdentifier = hash
-                  subjectAltName = @alt_names
-
-                  [alt_names]
-                  DNS.1 = ${COMPONENT_NAME}.${EXTERNAL_URL_SUFFIX}
-                  DNS.2 = ${COMPONENT_NAME}api.${EXTERNAL_URL_SUFFIX}
-                  DNS.3 = ${COMPONENT_NAME}web.${EXTERNAL_URL_SUFFIX}
-                      " > openssl.conf
-                fi;
-
-                if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                  SERVICES_NAMES=$ORDERERS_NAMES;
-                fi;
-
-                if [ "$COMPONENT_TYPE" = "peer" ]; then
-                  SERVICES_NAMES=$PEERS_NAMES;
-                fi;
-
-                # This commands generates ambassador certificates
-                list=$(echo "$SERVICES_NAMES" | tr "-" "\n")         
-                for SERVICE in $list
-                do
-                  GENERATE=false
-                  if [ "$COMPONENT_TYPE" = "peer" ]; then
-                    STATUS="${SERVICE##*,}"
-                    if [ "$STATUS" = "new" ] || [ "$STATUS" = "" ]; then
-                        SERVICE_NAME="${SERVICE%%,*}"
-                        GENERATE=true
-                    fi;
-                  fi;
-
-                  if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                    SERVICE_NAME="${SERVICE}"
-                    GENERATE=true
-                  fi;
-
-                  if [ -e  ${MOUNT_PATH}/absent_ambassador_${SERVICE_NAME}.txt ] && [ "$GENERATE" = 'true' ] ; then
-
-                    openssl ecparam -name prime256v1 -genkey -noout -out ${SERVICE_NAME}-${COMPONENT_NAME}.key
-
-                    if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                      openssl req -config "openssl.conf" -new -nodes -key ${SERVICE_NAME}-${COMPONENT_NAME}.key -days 1000 -out ${SERVICE_NAME}-${COMPONENT_NAME}.csr -extensions v3_req -subj "/${CERT_SUBJECT}/CN=${SERVICE_NAME}.${EXTERNAL_URL_SUFFIX}"
-                    fi;
-
-                    if [ "$COMPONENT_TYPE" = "peer" ]; then
-                      openssl req -config "openssl.conf" -new -nodes -key ${SERVICE_NAME}-${COMPONENT_NAME}.key -days 1000 -out ${SERVICE_NAME}-${COMPONENT_NAME}.csr -extensions v3_req -subj "/${CERT_SUBJECT}/CN=${SERVICE_NAME}.${COMPONENT_NAME}.${EXTERNAL_URL_SUFFIX}"
-                    fi;
-
-                    openssl x509 -extfile "openssl.conf" -req -days 1000 -in ${SERVICE_NAME}-${COMPONENT_NAME}.csr -CA ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem -CAkey ${OUTPUT_PATH}/ca/${COMPONENT_NAME}-CA.key -out ${SERVICE_NAME}-${COMPONENT_NAME}.pem -set_serial 01 -extensions v3_req
-                    cat ${SERVICE_NAME}-${COMPONENT_NAME}.pem > ${SERVICE_NAME}-${COMPONENT_NAME}-certchain.pem
-                    cat ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem >> ${SERVICE_NAME}-${COMPONENT_NAME}-certchain.pem
-                  fi;
-                done
-              fi;
+              
               # this command creates the indicator of the completion of scripts
               touch ${MOUNT_PATH}/flag_finish.txt
               tail -f /dev/null
@@ -611,8 +502,6 @@ spec:
             value: {{ $.Values.vault.secretpeer }}
           - name: VAULT_SECRET_PEER_ORDERER_TLS
             value: {{ $.Values.vault.secretpeerorderertls }}
-          - name: VAULT_SECRET_AMBASSADOR
-            value: {{ $.Values.vault.secretambassador }}
           - name: VAULT_SECRET_CONFIG_FILE
             value: {{ $.Values.vault.secretconfigfile }}
           - name: VAULT_SECRET_COUCHDB

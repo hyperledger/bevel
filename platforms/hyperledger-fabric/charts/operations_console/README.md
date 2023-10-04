@@ -32,7 +32,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 - Kubernetes cluster up and running.
 - A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
 - The Vault is unsealed and initialized.
-- Either HAproxy or Ambassador is required as ingress controller.
+- HAproxy is required as ingress controller.
 - Helm installed.
 
 
@@ -119,7 +119,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                      | Description                                       | Default Value                         |
 | --------------------------| --------------------------------------------------| --------------------------------------|
-| proxy.provider            | Proxy/ingress provider (ambassador or haproxy)    | haproxy                               |
+| proxy.provider            | Proxy/ingress provider (none or haproxy)          | haproxy                               |
 | proxy.external_url_suffix | External URL suffix of the organization           | org1.blockchaincloudpoc.com           |
 
 

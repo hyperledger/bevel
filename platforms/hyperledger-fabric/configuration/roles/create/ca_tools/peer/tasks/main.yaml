@@ -172,36 +172,6 @@
     loop_var: user
   when: item.users is defined
 
-# This task wait for ambassador key exists in vault.
-- name: Wait for ambassador key exists in vault.
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
-  vars:
-    vault_field: "key"
-    vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador"
-    check: "crypto_materials"
-  loop: "{{ item.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: network.env.proxy == 'ambassador'
-
-#####################################################################################################################
-# This task creates the Ambassador TLS credentials for peers
-- name: "Create the Ambassador credentials for peers"
-  include_role:
-    name: create/k8s_secrets
-  vars: 
-    namespace: "{{ item.name | lower }}-net"
-    vault: "{{ item.vault }}"
-    kubernetes: "{{ item.k8s }}"
-    check: "ambassador_peer"
-  loop: "{{ item.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: 
-    - peer.peerstatus is not defined or peer.peerstatus == 'new'
-    - network.env.proxy == 'ambassador'
-
 - name: "Copy msp cacerts to given path"
   include_tasks: nested_endorsers.yaml
   vars:

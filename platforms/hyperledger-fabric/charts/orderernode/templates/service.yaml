@@ -16,42 +16,7 @@ metadata:
     {{ $k }}: {{ $v | quote }}
     {{- end }}
     {{- end }}
-    {{- end }} 
-    {{- if eq $.Values.proxy.provider "ambassador" }}  
-    getambassador.io/config: | 
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: tls_context_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
-      hosts:
-      - {{ $.Values.orderer.name }}.{{ $.Values.proxy.external_url_suffix }}
-      secret: {{ $.Values.orderer.name }}-{{ $.Values.metadata.namespace }}-ambassador-certs.default
-      secret_namespacing: true
-      alpn_protocols: h2
-      min_tls_version: v1.2
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      tls: tls_context_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
-      grpc: True
-      name: orderer_mapping_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
-      headers:
-        :authority: {{ $.Values.orderer.ordererAddress }}
-      prefix: /
-      rewrite: /
-      service: https://{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:7050
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      tls: tls_context_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}
-      grpc: True
-      name: orderer_mapping_{{ $.Values.orderer.name }}_{{ $.Values.metadata.namespace }}_rest
-      headers:
-        :authority: {{ $.Values.orderer.name }}.{{ $.Values.proxy.external_url_suffix }}
-      prefix: /
-      rewrite: /
-      service: https://{{ $.Values.orderer.name }}.{{ $.Values.metadata.namespace }}:7050
-  {{- end }}
+    {{- end }}
   labels:
     run: {{ $.Values.orderer.name }}
     app.kubernetes.io/name: {{ $.Values.orderer.name }}

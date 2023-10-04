@@ -753,7 +753,6 @@ data:
       COUNTER=1
       if [ -e /certcheck/present_tls_${ORDERER_NAME}.txt ]; then ORDERER_TLS_CERT_WRITTEN=true; else ORDERER_TLS_CERT_WRITTEN=false; fi
       if [ -e /certcheck/present_msp_${ORDERER_NAME}.txt ]; then ORDERER_MSP_CERT_WRITTEN=true; else ORDERER_MSP_CERT_WRITTEN=false; fi
-      if [ -e /certcheck/present_ambassador_${ORDERER_NAME}.txt ]; then ORDERER_AMBASSADOR_WRITTEN=true; else ORDERER_AMBASSADOR_WRITTEN=false; fi
       mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls
       mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp
       mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts
@@ -894,70 +893,10 @@ data:
             rm payload.json
         fi;
 
-        if [ "$PROXY" = "ambassador" ]; then
-
-          AMBASSADOR_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
-          mkdir -p ${FORMAT_CERTIFICATE_PATH}/ambassador
-
-          if [ -e  ${MOUNT_PATH}/absent_ambassador_${ORDERER_NAME}.txt ] && [ "$ORDERER_AMBASSADOR_WRITTEN" = "false" ]; then
-
-            formatCertificate "${AMBASSADOR_PATH}/${ORDERER_NAME}-${COMPONENT_NAME}-certchain.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-            formatCertificate "${AMBASSADOR_PATH}/${ORDERER_NAME}-${COMPONENT_NAME}.key" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-            CERTIFICATE=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${ORDERER_NAME}-${COMPONENT_NAME}-certchain.pem.txt)
-            KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${ORDERER_NAME}-${COMPONENT_NAME}.key.txt)
-
-            echo "
-                {
-                  \"data\": 
-                    {
-                      \"certificate\": \"${CERTIFICATE}\",
-                      \"key\": \"${KEY}\"
-                    }  
-                }" > payload.json
-
-            # This command copy the ambassador certificates to the Vault
-            curl \
-              -H "X-Vault-Token: ${VAULT_TOKEN}" \
-              -H "Content-Type: application/json" \
-              -X POST \
-              -d @payload.json \
-              ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${ORDERER_NAME}
-
-            # Check ambassador certificates
-            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}"  ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}/${ORDERER_NAME} | jq -r 'if .errors then . else . end')
-            AMBASSADOR_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["certificate"]' 2>&1)
-            AMBASSADOR_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' 2>&1)
-
-            ambassador_certificate_fields=("$AMBASSADOR_CERT" "$AMBASSADOR_KEY")
-
-            for field in "${ambassador_certificate_fields[@]}"
-            do
-              if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
-              then
-                ORDERER_AMBASSADOR_WRITTEN=false
-                break
-              else
-                ORDERER_AMBASSADOR_WRITTEN=true
-              fi
-            done
-            rm payload.json
-          fi;
-        fi;
-
         if [ "$ORDERER_TLS_CERT_WRITTEN" = "true" ] && [ "$ORDERER_MSP_CERT_WRITTEN" = "true" ]
         then
-          if [ "$PROXY" = "ambassador" ] && [ "$ORDERER_AMBASSADOR_WRITTEN" = "true" ]
-          then
-              echo "${ORDERER_NAME} certificates are successfully stored in vault"
-              break
-          elif [ "$PROXY" = "ambassador" ] && [ "$ORDERER_AMBASSADOR_WRITTEN" = "false" ]
-          then
-              echo "Ambassador certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
-              COUNTER=`expr "$COUNTER" + 1`
-          else
-              echo "${ORDERER_NAME} certificates are successfully stored in vault"
-              break
-          fi
+          echo "${ORDERER_NAME} certificates are successfully stored in vault"
+          break
         else
           echo "${ORDERER_NAME} certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
           sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
@@ -1201,7 +1140,6 @@ data:
 
       if [ -e /certcheck/present_tls_${PEER_NAME}.txt ]; then PEER_TLS_CERT_WRITTEN=true; else PEER_TLS_CERT_WRITTEN=false; fi
       if [ -e /certcheck/present_msp_${PEER_NAME}.txt ]; then PEER_MSP_CERT_WRITTEN=true; else PEER_MSP_CERT_WRITTEN=false; fi
-      if [ -e /certcheck/present_ambassador_${PEER_NAME}.txt ]; then PEER_AMBASSADOR_WRITTEN=true; else PEER_AMBASSADOR_WRITTEN=false; fi
 
       mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls
       mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp
@@ -1344,75 +1282,10 @@ data:
           rm payload.json
         fi;
 
-        if [ "$PROXY" = "ambassador" ]; then
-
-          AMBASSADOR_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
-          mkdir -p ${FORMAT_CERTIFICATE_PATH}/ambassador
-          
-          if [ -e  ${MOUNT_PATH}/absent_ambassador_${PEER_NAME}.txt ] && [ "$PEER_AMBASSADOR_WRITTEN" = "false" ] &&  [ "$SAVE" == 'true' ]; then
-
-            formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}-certchain.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-            formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}.key" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-            formatCertificate "${AMBASSADOR_PATH}/${PEER_NAME}-${COMPONENT_NAME}.pem" "${FORMAT_CERTIFICATE_PATH}/ambassador"
-
-            CERTIFICATE=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}-certchain.pem.txt)
-            KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}.key.txt)
-            CLIENTCERT=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassador/${PEER_NAME}-${COMPONENT_NAME}.pem.txt)
-        
-            echo "
-                {
-                  \"data\": 
-                    {
-                      \"clientcert\": \"${CLIENTCERT}\",
-                      \"certificate\": \"${CERTIFICATE}\",
-                      \"key\": \"${KEY}\"
-                    }  
-                }" > payload.json
-
-            # This command copy the ambassador certificates generated above, to the Vault
-              curl \
-                -H "X-Vault-Token: ${VAULT_TOKEN}" \
-                -H "Content-Type: application/json" \
-                -X POST \
-                -d @payload.json \
-                ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR}
-
-            # Check ambassador certificates
-            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}"  ${VAULT_ADDR}/v1/${VAULT_SECRET_AMBASSADOR} | jq -r 'if .errors then . else . end')
-            AMBASSADOR_CLIENTCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["clientcert"]' 2>&1)
-            AMBASSADOR_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["certificate"]' 2>&1)
-            AMBASSADOR_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["key"]' 2>&1)
-
-            ambassador_certificate_fields=("$AMBASSADOR_CLIENTCERT" "$AMBASSADOR_CERT" "$AMBASSADOR_KEY")
-
-            for field in "${ambassador_certificate_fields[@]}"
-            do
-              if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
-              then
-                PEER_AMBASSADOR_WRITTEN=false
-                break
-              else
-                PEER_AMBASSADOR_WRITTEN=true
-              fi
-            done
-            rm payload.json
-          fi;
-        fi;
-
         if [ "$PEER_TLS_CERT_WRITTEN" = "true" ] && [ "$PEER_MSP_CERT_WRITTEN" = "true" ]
         then
-          if [ "$PROXY" = "ambassador" ] && [ "$PEER_AMBASSADOR_WRITTEN" = "true" ]
-          then
-              echo "${PEER_NAME} certificates are successfully stored in vault"
-              break
-          elif [ "$PROXY" = "ambassador" ] && [ "$PEER_AMBASSADOR_WRITTEN" = "false" ]
-          then
-              echo "Ambassador certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
-              COUNTER=`expr "$COUNTER" + 1`
-          else
-              echo "${PEER_NAME} certificates are successfully stored in vault"
-              break
-          fi
+          echo "${PEER_NAME} certificates are successfully stored in vault"
+          break
         else
           echo "${PEER_NAME} certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
           sleep {{ $.Values.healthcheck.sleepTimeAfterError }}

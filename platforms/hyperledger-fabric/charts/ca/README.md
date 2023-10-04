@@ -32,7 +32,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 - Kubernetes cluster up and running.
 - A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
 - The Vault is unsealed and initialized.
-- Either HAproxy or Ambassador is required as ingress controller.
+- HAproxy is required as ingress controller.
 - Helm installed.
 
 
@@ -61,7 +61,7 @@ ca/
 - `helpers.tpl`: Contains custom label definitions used in other templates.
 - `configmap.yaml`: Store the configuration for the Fabric CA server. The configuration file is stored in the fabric-ca-server-config.yaml file, and it is mounted into the Fabric CA server container. The ConfigMap is optional, and it is only used if the server.configpath value is set. Otherwise, the default configuration for the Fabric CA server will be used.
 - `deployment.yaml`: Deploys CA server Pod, allowing it to handle certificate-related operations within the Hyperledger Fabric blockchain network. To ensure the security and proper configuration of the CA server, the included init-container retrieves essential secrets from a Vault server.
-- `service.yaml`: Expose a Fabric CA server to the outside world either using Ambassador or HaProxy as a reverse proxy engine.
+- `service.yaml`: Expose a Fabric CA server to the outside world either using HaProxy as a reverse proxy engine.
 - `volume.yaml`: Defines a persistent volume that can be used to store the Fabric CA server's database.
 - `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
 - `README.md`: Provides information and instructions about the Helm chart.
@@ -136,7 +136,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                              | Default Value                  |
 | ----------------------| -------------------------------------------------------------------------|--------------------------------|
-| provider              | Proxy/ingress provider. Possible values: "ambassador" or "haproxy"       | haproxy                        |
+| provider              | Proxy/ingress provider. Possible values: "haproxy" or "none"             | haproxy                        |
 | type                  | Type of the deployment. Possible values: "orderer", "peer", or "test"    | test                           |
 | external_url_suffix   | External URL suffix for the organization                                 | org1.blockchaincloudpoc.com    |
 

@@ -32,7 +32,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 - Kubernetes cluster up and running.
 - A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
 - The Vault is unsealed and initialized.
-- Either HAproxy or Ambassador is required as ingress controller.
+- HAproxy is required as ingress controller.
 - Helm installed.
 
 
@@ -58,7 +58,7 @@ fabric_connector/
 - `helpers.tpl`: Contains custom label definitions used in other templates.
 - `configmap.yaml`: Contains the configuration for the Hyperledger Cactus plugins. The plugins are used to interact with Hyperledger Fabric networks.
 - `deployment.yaml`: The certificates-init retrieves TLS certificates from Vault and stores them in the filesystem. The cactus-connector runs the Hyperledger Cacti connector, which allows applications to interact with Fabric networks.
-- `service.yaml`: Responsible for routing incoming traffic to Pods labeled "{{ .Release.Name }}-cactus-connector." The Service is equipped to handle two different proxy providers, Ambassador and HAProxy. For Ambassador, additional annotations enable traffic mapping, while TLSContext handles secure communication. Meanwhile, for HAProxy, an Ingress resource is set up to manage traffic with SSL passthrough, ensuring end-to-end TLS encryption.
+- `service.yaml`: Responsible for routing incoming traffic to Pods labeled "{{ .Release.Name }}-cactus-connector". For HAProxy, an Ingress resource is set up to manage traffic with SSL passthrough, ensuring end-to-end TLS encryption.
 - `.helmignore.yaml`: 
 - `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
 - `README.md`: Provides information and instructions about the Helm chart.
