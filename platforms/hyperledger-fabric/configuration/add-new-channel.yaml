@@ -25,17 +25,24 @@
         path: "./build"
         state: absent
 
-    #Setup Vault-Kubernetes accesses and Regcred for docker registry
+    # Setup Vault-Kubernetes accesses and Regcred for docker registry
     - name: Setup Vault Kubernetes for each organization
       include_role: 
-        name: "{{playbook_dir}}/../../shared/configuration/roles/setup/vault_kubernetes"
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
       vars:
-        component_name: "{{ item.name | lower }}-net"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        component_type: "{{ item.type | lower }}"
-        auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
-      loop: "{{ network['organizations'] }}"        
+        name: "{{ org.name | lower }}"
+        component_name: "{{ org.name | lower }}-vaultk8s-job"
+        component_type: "{{ org.type | lower }}"
+        component_ns: "{{ org.name | lower }}-net"
+        component_auth: "{{ network.env.type }}{{ org.name | lower }}-net-auth"
+        policy_type: "fabric"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        gitops: "{{ org.gitops }}"
+        reset_path: "platforms/hyperledger-fabric/configuration"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org       
         
     # Create generate_crypto script for each organization
     - include_role:

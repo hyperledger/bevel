@@ -114,9 +114,7 @@
     policydata: "{{ lookup('file', '{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl') }}"
     create_serviceAccount: "{{ check_serviceAccount }}"
     create_clusterRoleBinding: "{{ check_clusterRoleBinding }}"
-    values_dir: "{{ playbook_dir }}/../../../{{gitops.release_dir}}/{{ name }}"
-  when:
-  - check_serviceAccount or check_clusterRoleBinding
+    values_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ org_name | default(name) }}"
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -124,7 +122,6 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ org.gitops }}"
     msg: "[ci skip] Pushing vault_kubernetes files"
    
 # Check if vault_kubernetes is completed
