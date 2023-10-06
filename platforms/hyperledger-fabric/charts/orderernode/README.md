@@ -32,7 +32,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 - Kubernetes cluster up and running.
 - A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
 - The Vault is unsealed and initialized.
-- Either HAproxy or Ambassador is required as ingress controller.
+- HAproxy is required as ingress controller.
 - Helm installed.
 
 
@@ -58,7 +58,7 @@ orderernode/
 - `helpers.tpl`: Contains custom label definitions used in other templates.
 - `configmap.yaml`: Defines two ConfigMaps, one for the orderer configuration and one for the genesis block.
 - `deployment.yaml`: The kafka-healthcheck checks the health of the Kafka brokers before the main container is started. The certificates-init fetches the TLS and MSP certificates from Vault and stores them in a local directory. The {{ $.Values.orderer.name }} runs the Hyperledger Fabric orderer. The grpc-web exposes the orderer's gRPC API over HTTP/WebSockets. These containers are responsible for ensuring that the orderer is up and running, that it has the necessary certificates, and that it can be accessed by clients.
-- `service.yaml`: Ensures internal and external access with exposed ports for gRPC (7050), gRPC-Web (7443), and operations (9443), and optionally uses Ambassador or HAProxy for external exposure and secure communication.
+- `service.yaml`: Ensures internal and external access with exposed ports for gRPC (7050), gRPC-Web (7443), and operations (9443), and optionally uses HAProxy for external exposure and secure communication.
 - `servicemonitor.yaml`: Define a ServiceMonitor resource that allows Prometheus to collect metrics from the orderer node's "operations" port. The configuration is conditionally applied based on the availability of the Prometheus Operator's API version and whether metrics are enabled for the orderer service.
 - `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
 - `README.md`: Provides information and instructions about the Helm chart.

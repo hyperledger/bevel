@@ -11,26 +11,6 @@ metadata:
   namespace: {{ .Values.metadata.namespace }}
   name: {{ .Release.Name }}-svc
   annotations:
-    {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      name: {{ .Release.Name }}-svc-mapping
-      prefix: /
-      service: {{ .Release.Name }}-svc.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
-      host: {{ .Release.Name }}-svc.{{ .Values.proxy.external_url }}
-      tls: false
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Release.Name }}_mapping_tlscontext
-      hosts:
-      - {{ .Release.Name }}-svc.{{ .Values.proxy.external_url }}
-      secret: {{ .Values.peer.name }}-cc-ambassador-certs.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-    {{- end }}
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}-svc
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}

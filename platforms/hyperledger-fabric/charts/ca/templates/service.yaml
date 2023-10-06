@@ -17,38 +17,6 @@ metadata:
     {{- end }}
     {{- end }}
     {{- end }}
-    {{- if eq $.Values.proxy.provider "ambassador" }}
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind:  Mapping
-      {{ if eq $.Values.proxy.type "orderer" }}
-      name:  ca_orderer_{{ $.Values.metadata.namespace }}_mapping
-      {{ else }}
-      name:  ca_{{ $.Values.metadata.namespace }}_mapping
-      {{ end }}
-      prefix: /
-      host: ca.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
-      service: ca.{{ $.Values.metadata.namespace }}:7054
-      {{ if eq $.Values.proxy.type "orderer" }}
-      tls: ca_orderer_{{ $.Values.metadata.namespace }}_tls
-      {{ else }}
-      tls: ca_{{ $.Values.metadata.namespace }}_tls
-      {{ end }}
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      {{ if eq $.Values.proxy.type "orderer" }}
-      name: ca_orderer_{{ $.Values.metadata.namespace }}_tls
-      {{ else }}
-      name: ca_{{ $.Values.metadata.namespace }}_tls
-      {{ end }}
-      hosts:
-      - ca.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
-      secret: ca-{{ $.Values.metadata.namespace }}-ambassador-certs.default
-      secret_namespacing: true
-      min_tls_version: v1.2
-    {{ end }}
   labels:
     run: {{ $.Values.server.name }}
     app.kubernetes.io/name: {{ $.Values.server.name }}

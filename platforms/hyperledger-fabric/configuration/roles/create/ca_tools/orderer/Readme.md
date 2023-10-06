@@ -83,15 +83,6 @@ This task Check if crypto materials exists in vault.
     *component_type: "Type of org"
 **include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `crypto_materials`.
 
-#### 7. Create the Ambassador credentials
-This task creates the Ambassador TLS credentials
-##### Input Variables
-    *namespace: "Namespace of org , Format: {{ item.name |lower }}-net"
-    *vault: "Vault Details"
-    *kubernetes: "{{ item.k8s }}"
-**include_role**: It includes the name of intermediatory role which is required for creating the secrets, here `k8s_secrets`.
-**when**: Condition is specified here, runs only when *network.env.proxy* is ambassador
-
 #### 8. Copy the msp admincerts from vault
 This task copies the msp admincerts from vault when proxy is none
 ##### Input Variables
