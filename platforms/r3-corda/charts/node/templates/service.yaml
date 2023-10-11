@@ -8,27 +8,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.service.name }}
-  {{ if $.Values.ambassador }}
-  annotations:
-    getambassador.io/config: | 
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Values.ambassador.component_name }}_context
-      hosts:
-      - {{ .Values.ambassador.component_name }}.{{ .Values.ambassador.external_url_suffix }}
-      secret: {{ .Values.ambassador.component_name }}-ambassador-certs.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.ambassador.component_name }}_p2p_mapping
-      port: {{ .Values.ambassador.p2p_ambassador }}
-      host: {{ .Values.ambassador.component_name }}.{{ .Values.ambassador.external_url_suffix }}
-      service: {{ .Values.ambassador.component_name }}.{{ .Values.metadata.namespace }}:{{ .Values.nodeConf.p2p.port }}
-  {{ end }}
   namespace: {{ .Values.metadata.namespace }}
+  annotations:
   labels:
     run: {{ .Values.service.name }}
     app.kubernetes.io/name: {{ .Values.service.name }}
@@ -64,4 +45,47 @@ spec:
       targetPort: {{ .Values.service.rpcadmin.targetPort }}
       {{- if .Values.service.rpcadmin.nodePort }}
       nodePort: {{ .Values.service.rpcadmin.nodePort}}
-      {{- end }}          
+      {{- end }}
+
+{{ if $.Values.ambassador }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Values.ambassador.component_name }}-host
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hostname: {{ .Values.ambassador.component_name }}.{{ .Values.ambassador.external_url_suffix }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Route
+  tlsSecret:
+    name: {{ .Values.ambassador.component_name }}-ambassador-certs
+    namespace: {{ .Values.metadata.namespace }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Values.ambassador.component_name }}-context
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hosts:
+  - {{ .Values.ambassador.component_name }}.{{ .Values.ambassador.external_url_suffix }}
+  secret: {{ .Values.ambassador.component_name }}-ambassador-certs.{{ .Values.metadata.namespace }}
+  secret_namespacing: true
+  min_tls_version: v1.2
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.ambassador.component_name }}-p2p-mapping
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  host: {{ .Values.ambassador.component_name }}.{{ .Values.ambassador.external_url_suffix }}
+  prefix: /
+  service: https://{{ .Values.ambassador.component_name }}.{{ .Values.metadata.namespace }}:{{ .Values.nodeConf.p2p.port }}
+  tls: {{ .Values.ambassador.component_name }}-context
+{{ end }}
+
