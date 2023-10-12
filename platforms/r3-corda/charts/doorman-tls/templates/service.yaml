@@ -9,27 +9,7 @@ kind: Service
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ $.Values.metadata.namespace }}
-  {{ if $.Values.ambassador }}
   annotations:
-    getambassador.io/config: | 
-      ---
-      apiVersion: ambassador/v2
-      kind: Mapping
-      name: {{ .Values.nodeName }}_mapping
-      prefix: /
-      service: https://{{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
-      host: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
-      tls: {{ .Values.nodeName }}_mapping_tlscontext
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Values.nodeName }}_mapping_tlscontext
-      hosts:
-      - {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
-      secret: {{ .Values.nodeName }}-ambassador-certs.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-  {{ end }}
   labels:
     run: {{ .Values.nodeName }}
     app.kubernetes.io/name: {{ .Values.nodeName }}
@@ -47,4 +27,44 @@ spec:
       {{- if .Values.service.nodePort }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
+{{ if $.Values.ambassador }}
 ---
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Values.nodeName }}-host
+spec:
+  hostname: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Route
+  tlsSecret:
+    name: {{ .Values.nodeName }}-ambassador-certs
+    namespace: {{ .Values.metadata.namespace }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.nodeName }}-mapping
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  host: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
+  prefix: /
+  service: https://{{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
+  tls: {{ .Values.nodeName }}-tlscontext
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Values.nodeName }}-tlscontext
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hosts:
+  - {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
+  secret: {{ .Values.nodeName }}-ambassador-certs.{{ .Values.metadata.namespace }}
+  secret_namespacing: true
+  min_tls_version: v1.2
+{{- end }}
+
