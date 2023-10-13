@@ -1,13 +1,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: {{ component_name }}
+  name: channel-{{ org.name | lower }}-{{ component_name }}
   namespace: {{ component_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
   interval: 1m
-  releaseName: {{ component_name }}
+  releaseName: osn-channel-{{ org.name | lower }}-{{ component_name }}
   chart:
     spec:
       interval: 1m
@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/anchorpeer
+      chart: {{ charts_dir }}/osn_create_channel   
   values:
     metadata:
       namespace: {{ component_ns }}
@@ -25,17 +25,6 @@ spec:
         fabrictools: {{ fabrictools_image }}
         alpineutils: {{ alpine_image }}
 
-    peer:
-      name: {{ peer_name }}
-{% if network.env.proxy == 'none' %}
-      address: {{ peer.name }}.{{ component_ns }}:7051
-{% else %}
-      address: {{ peer.peerAddress }}
-{% endif %}
-      localmspid: {{ org.name | lower}}MSP
-      loglevel: debug
-      tlsstatus: true
-
     vault:
       role: vault-role
       address: {{ vault.url }}
@@ -44,20 +33,19 @@ spec:
 {% else %}
       authpath: {{ network.env.type }}{{ component_ns }}-auth
 {% endif %}
-      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}/users/admin
-      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ component_ns }}/orderer
+      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_ns }}/orderers 
       serviceaccountname: vault-auth
       type: {{ vault.type | default("hashicorp") }}
-{% if network.docker.username is defined and network.docker.password is defined %}      
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
 {% else %}
       imagesecretname: ""
-{% endif %}      
-
+{% endif %}
+    
     channel:
-      name: {{channel_name}}      
-    orderer:
-      address: {{ participant.ordererAddress }}
-    anchorstx: |-
-{{ anchorstx | indent(width=6, first=True) }}
+      name: {{ component_name }}
+    orderers:
+      orderer_info: {% for orderer in orderers_list %}{% for key, value in orderer.items() %}{% if key == 'name' %}{{ value }}{% endif %}{% endfor %}*{% endfor %}
 
+    genesis: |-
+{{ genesis | indent(width=6, first=True) }}

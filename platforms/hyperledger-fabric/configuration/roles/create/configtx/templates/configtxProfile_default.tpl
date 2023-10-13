@@ -26,21 +26,26 @@ Profiles:
 {% for orderer in channel.orderers %}
         - *{{ orderer }}Org
 {% endfor %}
+{% if '2.5' not in network.version %}
     Consortiums:
       {{channel.consortium}}:
         Organizations:
 {% for org in network.organizations %}
 {% if org.type != 'orderer' %}
           - *{{org.name}}Org
-{% endif %}          
-{% endfor %}
+{% endif %}         
+{% endfor %}   
   {{channel.channel_name}}:
     <<: *ChannelDefaults
     Consortium: {{channel.consortium}}
+{% endif %}  
     Application:
       <<: *ApplicationDefaults
       Organizations:
 {% for org in channel.participants %}
         - *{{org.name}}Org
 {% endfor %}
+{% if '2.5' in network.version %}
+      Capabilities: *ApplicationCapabilities
+{% endif %}
 {% endfor %}

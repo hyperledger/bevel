@@ -15,7 +15,7 @@
       Endorsement:
         Type: Signature
         Rule: "OR('{{ component_name }}MSP.member')"
-{% if component_type == 'peer' %}      
+{% if component_type == 'peer' and '2.5' not in network.version %}      
     AnchorPeers:
       # AnchorPeers defines the location of peers which can be used
       # for cross org gossip communication.  Note, this value is only
