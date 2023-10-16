@@ -19,6 +19,8 @@ spec:
   values:
     metadata:
       namespace: {{ namespace }}
+      network:
+        version: {{ network.version }}
       images:
         orderer: {{ orderer_image }}
         alpineutils: {{ alpine_image }}
@@ -50,7 +52,7 @@ spec:
       tlsstatus: true
       keepaliveserverinterval: 10s
       ordererAddress: {{ orderer.ordererAddress }}
-      
+
     consensus:
       name: {{ orderer.consensus }}
 

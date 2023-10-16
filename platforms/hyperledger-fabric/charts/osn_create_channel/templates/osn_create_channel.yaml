@@ -1,0 +1,188 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: osn-createchannel-{{ $.Values.channel.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  {{- if $.Values.deployment.annotations }}
+    annotations:
+{{ toYaml $.Values.deployment.annotations | nindent 8 }}
+    {{- end }}
+  labels:
+    app: osn-createchannel-{{ $.Values.channel.name }}
+    app.kubernetes.io/name: osn-createchannel-{{ $.Values.channel.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}    
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: osn-createchannel-{{ $.Values.channel.name }}
+        app.kubernetes.io/name: osn-createchannel-{{ $.Values.channel.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+    spec:
+      restartPolicy: "OnFailure"
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end  }}
+      - name: genesis
+        configMap:
+          name: genesis-block
+          items:
+            - key: genesis.block.base64
+              path: genesis.block.base64
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_ORDERER_SECRET_PREFIX
+          value: "{{ $.Values.vault.orderersecretprefix }}"
+        - name: ORDERERS_NAMES
+          value: "{{ $.Values.orderers.orderer_info }}"
+        - name: COMPONENT_NAME
+          value: {{ $.Values.metadata.namespace }}
+        - name: MOUNT_PATH
+          value: /secret
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          source /scripts/bevel-vault.sh
+
+          vaultBevelFunc "init"
+
+          list=$(echo "$ORDERERS_NAMES" | tr "*" "\n")
+          for ORDERER in $list
+          do
+            ORDERER_NAME="${ORDERER%%,*}"
+            # Check if orderer msp already created
+            vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/${ORDERER_NAME}.${COMPONENT_NAME}/msp"
+
+            ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+            CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+            KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+            SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+            TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+            OUTPUT_PATH="${MOUNT_PATH}/${ORDERER_NAME}/msp"
+            mkdir -p ${OUTPUT_PATH}/admincerts
+            mkdir -p ${OUTPUT_PATH}/cacerts
+            mkdir -p ${OUTPUT_PATH}/keystore
+            mkdir -p ${OUTPUT_PATH}/signcerts
+            mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+            echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+            echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+            echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+            echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+            echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+
+            # Check if orderers tls already created
+            vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/${ORDERER_NAME}.${COMPONENT_NAME}/tls" 
+
+            CACERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+            CLIENTSEVER=$(echo ${VAULT_SECRET} | jq -r '.["server.crt"]')
+            CLIENTKEY=$(echo ${VAULT_SECRET} | jq -r '.["server.key"]')
+
+            OUTPUT_PATH="${MOUNT_PATH}/${ORDERER_NAME}/tls"
+            mkdir -p ${OUTPUT_PATH}
+
+            echo "${CACERT}" >> ${OUTPUT_PATH}/ca.crt
+            echo "${CLIENTSEVER}" >> ${OUTPUT_PATH}/server.crt
+            echo "${CLIENTKEY}" >> ${OUTPUT_PATH}/server.key
+          done
+
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+      containers:
+      - name: createchannel
+        image: {{ $.Values.metadata.images.fabrictools }}  
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        env:
+        - name: ORDERERS_INFO
+          value: "{{ $.Values.orderers.orderer_info }}"
+        - name: NAMESPACE
+          value: "{{ $.Values.metadata.namespace }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          echo "Fetch genesis file..."
+          cat ./genesis/genesis.block.base64 | base64 -d > orderer.genesis.block
+
+          list=$(echo "$ORDERERS_INFO" | tr "*" "\n")
+          for ORDERER_NAME in $list
+          do
+            ADMIN_TLS_PRIVATE_KEY="${ADMIN_TLS_CERTS}/${ORDERER_NAME}/tls/server.key"
+            ADMIN_TLS_SIGN_CERT="${ADMIN_TLS_CERTS}/${ORDERER_NAME}/tls/server.crt"
+            OSN_TLS_CA_ROOT_CERT="${ADMIN_TLS_CERTS}/${ORDERER_NAME}/tls/ca.crt"
+            ORDERER_URL="${ORDERER_NAME}.${NAMESPACE}:7055"
+
+            CHANNEL_LIST_QUERY_RESPONSE=$(osnadmin channel list --channelID ${CHANNEL_NAME} -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}")
+            if echo "$CHANNEL_LIST_QUERY_RESPONSE" | grep '404'; then
+              echo "Creating channel....."
+              osnadmin channel join --channelID "${CHANNEL_NAME}" --config-block orderer.genesis.block -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
+              osnadmin channel list -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
+            elif echo "$CHANNEL_LIST_QUERY_RESPONSE" | grep '200\|201'; then
+              echo "Channel ${CHANNEL_NAME}, is already created for url: ${ORDERER_URL}"
+            else
+              echo $CHANNEL_LIST_QUERY_RESPONSE
+            fi
+          done
+        workingDir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
+        envFrom:
+        - configMapRef:
+            name: {{ $.Values.channel.name }}-config
+        volumeMounts:
+        - name: certificates
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
+          readOnly: true
+        - name: genesis
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/orderer/genesis
+          readOnly: true

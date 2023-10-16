@@ -200,6 +200,7 @@
       vars:
         build_path: "./build"
         genesis: "{{ item.genesis }}"
+        channel_name: "{{ item.channel_name }}"
       loop: "{{ network['channels'] }}"
     
     # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
@@ -251,6 +252,18 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
+      when: add_new_org == 'false' and ('2.2.' in network.version or '1.4.' in network.version)
+
+    # This role creates the value file for creating channel from creator organization
+    # to the vault.
+    - name: Create all create-channel jobs
+      include_role:
+        name: "create/osnchannels"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: add_new_org == 'false' and '2.5.' in network.version
 
     # This role creates the value file for joining channel from each participating peer
     # to the vault.
