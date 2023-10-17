@@ -4,7 +4,7 @@ apiVersion: getambassador.io/v3alpha1
 kind: Host
 metadata:
   name: ambassador-self-signed
-  namespace: ambassador
+  namespace: {{ proxy_namespace }}
 spec:
   hostname: '*'
   acmeProvider:
