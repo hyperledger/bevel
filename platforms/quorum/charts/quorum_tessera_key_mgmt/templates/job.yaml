@@ -34,6 +34,9 @@ spec:
         - name: scripts-volume
           configMap:
             name: bevel-vault-script
+        - name: package-manager
+          configMap:
+            name: package-manager
       containers:
         - name:  "tessera-crypto"
           image: "{{ $.Values.image.repository }}"
@@ -55,12 +58,18 @@ spec:
             value: "{{ $.Values.vault.tmprefix }}"
           - name: VAULT_TYPE
             value: "{{ $.Values.vault.type }}"
-          command: ["bash", "-c"]
+          command: ["/bin/sh", "-c"]
           args:
             - |-
               #!/usr/bin/env bash
-              apt-get update && apt-get install -y jq curl
-              source /scripts/bevel-vault.sh
+
+              . /scripts/bevel-vault.sh
+              . /scripts/package-manager.sh
+
+              # Define the packages to install
+              packages_to_install="jq curl"
+              install_packages "$packages_to_install"
+
               # Calling a function to retrieve the vault token.
               vaultBevelFunc "init"
               # Generate tessera keys
@@ -70,3 +79,6 @@ spec:
           - name: scripts-volume
             mountPath: /scripts/bevel-vault.sh
             subPath: bevel-vault.sh
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh

@@ -1,0 +1,27 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+{{- if or (eq .Values.network_type "besu") (eq .Values.network_type "quorum") (eq .Values.network_type "fabric") }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bevel-vault-script
+  namespace: {{ $.Values.namespace }}
+data:
+{{ (.Files.Glob "scripts/bevel-vault.sh").AsConfig | indent 2 }}
+{{- end }}
+
+{{- if or (eq .Values.network_type "quorum") (eq .Values.network_type "fabric") (eq .Values.network_type "substrate") }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: package-manager
+  namespace: {{ $.Values.namespace }}
+data:
+{{ (.Files.Glob "scripts/package-manager.sh").AsConfig | indent 2 }}
+{{- end }}

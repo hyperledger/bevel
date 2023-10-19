@@ -23,6 +23,10 @@ spec:
     spec:
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       {{- include "dscp-ipfs.imagePullSecrets" . | indent 6 }}
+      volumes:
+        - name: package-manager
+          configMap:
+            name: package-manager
       initContainers:
         - name: {{ include "dscp-ipfs.initIpfsConfig.name" . }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -96,6 +100,9 @@ spec:
           volumeMounts:
             - mountPath: {{ .Values.config.ipfsDataPath }}
               name: ipfs-data
+            - name: package-manager
+              mountPath: /scripts/package-manager.sh
+              subPath: package-manager.sh
           command: ["sh", "-c"]
           args:
             - |-
@@ -124,7 +131,11 @@ spec:
               }
               echo "done validating vault response"
 
-              apk update && apk add jq 
+              . /scripts/package-manager.sh
+              # Define the packages to install
+              packages_to_install="jq"
+              install_packages "$packages_to_install"
+
               cd $MOUNT_PATH
 
               peer_id=$(cat config | jq -r .Identity.PeerID)
