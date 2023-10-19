@@ -133,6 +133,9 @@ spec:
       - name: scripts-volume
         configMap:
           name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
       initContainers:
         - name: init-check-certificates
           image: {{ $.Values.image.alpineutils }}
@@ -176,7 +179,7 @@ spec:
           args:
             - |-
               #!/usr/bin/env sh
-              source /scripts/bevel-vault.sh
+              . /scripts/bevel-vault.sh
 
               # Calling a function to retrieve the vault token.
               vaultBevelFunc "init"
@@ -529,8 +532,12 @@ spec:
           command: ["sh", "-c"]
           args:
             - |-
-              apk update && apk add jq curl bash;
-              
+              . /scripts/package-manager.sh
+
+              # Define the packages to install
+              packages_to_install="jq curl bash"
+              install_packages "$packages_to_install"
+
               while ! [ -f ${MOUNT_PATH}/flag_finish.txt ]
               do
                 echo 'Waiting for completion of scripts'
@@ -595,3 +602,6 @@ spec:
             subPath: {{ $orderers.name }}.crt
           {{- end }}
           {{- end }}
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh

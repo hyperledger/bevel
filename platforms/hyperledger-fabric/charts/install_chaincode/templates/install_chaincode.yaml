@@ -48,6 +48,9 @@ spec:
       - name: scripts-volume
         configMap:
           name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -137,9 +140,15 @@ spec:
         args:
         - |-
           #!/bin/bash sh
+
+          . /scripts/package-manager.sh
+          # Define the packages to install
+          packages_to_install="curl openssh"
+          install_packages "$packages_to_install"
+
           ## Git repository clone for chaincode
           mkdir -p /root/.ssh/          
-          apk add curl openssh
+
           ssh-keyscan {{ $.Values.chaincode.repository.hostname }} > /root/.ssh/known_hosts
           git_password=$(cat /opt/gopath/src/github.com/hyperledger/fabric/crypto/user_cred)
           cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode > git.log 2>&1
@@ -175,10 +184,16 @@ spec:
             mkdir -p $GOPATH/src/github.com/chaincode
             cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
 
-            # Get dependencies
-            apk add openjdk8
+            # Get dependencies: Define the packages to install
+            packages_to_install="openjdk8"
+            install_packages "$packages_to_install"
+
             java -version
-            apk add gradle
+
+            # Define the packages to install
+            packages_to_install="gradle"
+            install_packages "$packages_to_install"
+
             gradle -v
             cd $GOPATH/src/github.com/chaincode && dep ensure
 
@@ -307,3 +322,6 @@ spec:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
+        - name: package-manager
+          mountPath: /scripts/package-manager.sh
+          subPath: package-manager.sh
