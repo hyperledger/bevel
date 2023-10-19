@@ -37,6 +37,9 @@ spec:
         volumeMounts:
           - name: certcheck
             mountPath: certcheck
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh
         env:    
         - name: VAULT_ADDR
           value: {{ $.Values.vault.address }}
@@ -54,7 +57,11 @@ spec:
           #!/usr/bin/env bash
 
           {{- if ne $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template" }}
-          apt-get update && apt-get install -y jq bc curl unzip;
+          . /scripts/package-manager.sh
+          # Define the packages to install
+          packages_to_install="jq bc curl unzip"
+          install_packages "$packages_to_install"
+
           if [[ $? > 0 ]]
           then
             # download jq
@@ -182,3 +189,6 @@ spec:
         - name: certcheck
           emptyDir:
             medium: Memory
+        - name: package-manager
+          configMap:
+            name: package-manager

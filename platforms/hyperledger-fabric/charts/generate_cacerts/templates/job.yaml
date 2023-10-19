@@ -39,6 +39,9 @@ spec:
       - name: scripts-volume
         configMap:
           name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
       initContainers:
         - name: init-check-certificates
           image: {{ $.Values.metadata.images.alpineutils }}
@@ -62,7 +65,7 @@ spec:
           args:
             - |-
               #!/usr/bin/env sh
-              source /scripts/bevel-vault.sh
+              . /scripts/bevel-vault.sh
 
               # Calling a function to retrieve the vault token.
               vaultBevelFunc "init"
@@ -126,8 +129,12 @@ spec:
           command: ["sh", "-c"]
           args:
             - |-
-              apk update && apk add jq curl openssl;
-              source /scripts/bevel-vault.sh
+              . /scripts/bevel-vault.sh
+              . /scripts/package-manager.sh
+
+              # Define the packages to install
+              packages_to_install="jq curl openssl"
+              install_packages "$packages_to_install"
 
               if [ -e /certcheck/absent_cacert.txt ]
               then
@@ -202,3 +209,6 @@ spec:
           - name: scripts-volume
             mountPath: /scripts/bevel-vault.sh
             subPath: bevel-vault.sh
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh

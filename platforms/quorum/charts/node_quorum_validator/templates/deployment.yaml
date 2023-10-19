@@ -61,6 +61,9 @@ spec:
         - name: scripts-volume
           configMap:
             name: bevel-vault-script
+        - name: package-manager
+          configMap:
+            name: package-manager
       initContainers:
       - name: certificates-init
         image: {{ .Values.images.alpineutils }}
@@ -82,7 +85,7 @@ spec:
         args:
         - |-
           #!/bin/bash
-          source /scripts/bevel-vault.sh
+          . /scripts/bevel-vault.sh
 
           # Calling a function to retrieve the vault token.
           vaultBevelFunc "init"
@@ -144,7 +147,12 @@ spec:
         - "-cx"
         - |-
           #!/usr/bin/env sh
-          apk add curl;
+          . /scripts/package-manager.sh
+
+          # Define the packages to install
+          packages_to_install="curl"
+          install_packages "$packages_to_install"
+
           echo -n {{ .Values.staticnodes | toRawJson | quote }} > $QUORUM_DATA_DIR/static-nodes.json
           mkdir -p $QUORUM_DATA_DIR/geth
           mkdir -p $QUORUM_DATA_DIR/keystore          
@@ -168,31 +176,30 @@ spec:
           fi;
           if [ $CONSENSUS == 'ibft' ]; then
             args=" --istanbul.blockperiod 3 --syncmode full --mine --miner.threads 1 --rpcapi admin,debug,web3,eth,txpool,personal,istanbul,miner,net,quorumExtension"
-                                                                                              
-            
           fi;
+
           LOCK_STATUS={{ .Values.node.lock }}
           if [ $LOCK_STATUS = false ]
           then
             args=" ${args} --unlock 0 "
           fi
           /usr/local/bin/geth \
-           --datadir $QUORUM_DATA_DIR \
-           $args \
-           --identity {{ .Values.node.subject | quote }} \
-           --vmdebug \
-           --gcmode=archive \
-           --nodiscover \
-           --nat=none \
-           --verbosity 9 \
-           --emitcheckpoints \
-           --rpc \
-           --rpcaddr 0.0.0.0 \
-           --rpcport {{ .Values.node.ports.rpc }} \
-           --rpcvhosts=* \
-           --allow-insecure-unlock \
-           --port {{ .Values.node.ports.quorum }} \
-           --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
+            --datadir $QUORUM_DATA_DIR \
+            $args \
+            --identity {{ .Values.node.subject | quote }} \
+            --vmdebug \
+            --gcmode=archive \
+            --nodiscover \
+            --nat=none \
+            --verbosity 9 \
+            --emitcheckpoints \
+            --rpc \
+            --rpcaddr 0.0.0.0 \
+            --rpcport {{ .Values.node.ports.rpc }} \
+            --rpcvhosts=* \
+            --allow-insecure-unlock \
+            --port {{ .Values.node.ports.quorum }} \
+            --password $QUORUM_DATA_DIR/password.txt 2>&1 | tee -a $QUORUM_HOME/logs/quorum.log;
         ports:
           - containerPort: {{ .Values.node.ports.rpc }}
           - containerPort: {{ .Values.node.ports.quorum }}
@@ -215,6 +222,9 @@ spec:
           mountPath: {{ .Values.node.mountPath }}/crypto/
         - name: {{ .Values.node.name }}-pv
           mountPath: {{ .Values.node.mountPath }}
+        - name: package-manager
+          mountPath: /scripts/package-manager.sh
+          subPath: package-manager.sh
       restartPolicy: Always
   volumeClaimTemplates:
     - metadata:

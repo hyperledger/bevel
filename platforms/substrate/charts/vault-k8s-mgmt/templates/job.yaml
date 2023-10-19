@@ -51,6 +51,9 @@ spec:
           items:
             - key: policies-config.json
               path: policies-config.json
+      - name: package-manager
+        configMap:
+          name: package-manager
       containers:
         - name: "vault-kubernetes"
           image: {{ $.Values.metadata.images.alpineutils }}
@@ -82,7 +85,10 @@ spec:
           command: ["sh", "-c"]
           args:
             - |-
-              apk update && apk add jq curl;
+              . /scripts/package-manager.sh
+              # Define the packages to install
+              packages_to_install="jq curl"
+              install_packages "$packages_to_install"
 
               validateVaultResponse () {
                 if [ ${1} != 200 -a ${1} != 204 ]; then
@@ -194,3 +200,6 @@ spec:
             - name: policies-config
               mountPath: /policies/policies-config.json
               subPath: policies-config.json
+            - name: package-manager
+              mountPath: /scripts/package-manager.sh
+              subPath: package-manager.sh

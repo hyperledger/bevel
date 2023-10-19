@@ -18,7 +18,6 @@
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
-  
     # delete build directory
     - name: Remove build directory
       file:
@@ -36,17 +35,18 @@
         release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
 
-    #Create Vault scrit as configmap for Vault CURD operations
-    - name: Setup vault script
+    # Setup script for Vault and OS Package Manager
+    - name: "Setup script for Vault and OS Package Manager"
       include_role:
-        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
       vars:
-        component_ns: "{{ org.name | lower }}-net"
+        namespace: "{{ org.name | lower }}-net"
+        network_type: "{{ network.type | lower }}"
         kubernetes: "{{ org.k8s }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
-    
+
     #Setup Vault-Kubernetes accesses and Regcred for docker registry
     - name: Setup Vault Kubernetes for each organization
       include_role: 
@@ -102,7 +102,7 @@
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
-        
+
     # Create CA Server helm-value files and check-in
     - name: Create CA server for each organization
       include_role:
@@ -121,7 +121,7 @@
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.services.ca is defined
-        
+
     # Create generate_crypto script for each organization
     - name: Create generate_crypto.sh for each organization
       include_role:
@@ -136,7 +136,7 @@
     - pause:
         prompt: "Sleeping... so that the client certificates are valid"
         minutes: 6
-    
+
     # Create CA Tools helm-value files and check-in
     - name: Create CA tools for each organization
       include_role:
