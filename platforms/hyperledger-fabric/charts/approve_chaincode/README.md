@@ -71,7 +71,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                                       | Default Value                                    |
 | ----------------------| ----------------------------------------------------------------------------------| -------------------------------------------------|
-| namespace             | Provide the namespace for organization's peer                                     | org1-example-com                                 |
+| namespace             | Provide the namespace for organization's peer                                     | org1-net                                 |
 | images.fabrictools    | Provide the valid image name and version                                          | hyperledger/fabric-tools:2.2.2                   |
 | images.alpineutils    | Provide the valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest          |
 | labels                | Provide the custom labels                                                         | ""                                               |
@@ -81,7 +81,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name          | Description                                                                                             | Default Value                |
 | --------------| --------------------------------------------------------------------------------------------------------| -----------------------------|
 | name          | Provide the name of the peer as per deployment yaml                                                     | peer0                        |
-| address       | Provide the address of the peer which will update the channel about the anchor peer of the organization | peer0.org1-example-com:7051  |
+| address       | Provide the address of the peer which will update the channel about the anchor peer of the organization | peer0.org1-net:7051  |
 | localmspid    | Provide the localmspid for organization                                                                 | Org1MSP                      |
 | loglevel      | Provide the loglevel for organization's peer                                                            | debug                        |
 | tlsstatus     | Provide the value for tlsstatus to be true or false for organization's peer                             | true                         |
@@ -92,10 +92,11 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ---------------------| --------------------------------------------------------------------------  | -----------------------------|
 | role                 | Provide the vaultrole for an organization                                   | vault-role                   |
 | address              | Provide the vault server address                                            | ""                           |
-| authpath             | Provide the kubernetes auth backed configured in vault for an organization  | fra-demo-hlkube-cluster-org1 |
-| adminsecretprefix    | Provide the value for vault secretprefix                                    | secret/adminsecretprefix/    |
-| orderersecretprefix  | Provide the value for vault secretprefix                                    | secret/orderersecretprefix/  |
+| authpath             | Provide the kubernetes auth backed configured in vault for an organization  | devorg1-net-auth |
+| adminsecretprefix    | Provide the value for vault secretprefix                                    | secretsv2/data/crypto/peerOrganizations/org1-net/users/admin    |
+| orderersecretprefix  | Provide the value for vault secretprefix                                    | secretsv2/data/crypto/peerOrganizations/org1-nets/orderer  |
 | serviceaccountname   | Provide the serviceaccount name for vault                                   | vault-auth                   |
+| type                 | Provide the type of vault                                                   | hashicorp    |
 | imagesecretname      | Provide the imagesecretname for vault                                       | ""                           |
 | tls                  | Enable or disable TLS for vault communication                               | ""                           |
 
@@ -103,13 +104,13 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name         | Description                        | Default Value                 |
 | -------------| -----------------------------------| ------------------------------|
-| address      | Provide the address for orderer    | orderer-ext.example-com:443   |
+| address      | Provide the address for orderer    | orderer1.org1proxy.blockchaincloudpoc.com:443  |
 
 ### Chaincode
 
 | Name                          | Description                                               | Default Value                             |
 | ------------------------------| ----------------------------------------------------------| ------------------------------------------|
-| builder                       | Chaincode builder image for Fabric                        | hyperledger/fabric-ccenv:1.4.8            |
+| builder                       | Chaincode builder image for Fabric                        | hyperledger/fabric-ccenv:2.2.2            |
 | name                          | Name of the chaincode to be committed                     | example                                   |
 | version                       | Version of the chaincode to be committed                  | 1                                         |
 | sequence                      | Chaincode sequence (applies to Fabric 2.2.x)              | 1                                         |
