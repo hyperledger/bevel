@@ -161,7 +161,7 @@ spec:
             value: {{ $.Values.metadata.component_type }}
           - name: COMPONENT_NAME
             value: {{ $.Values.metadata.namespace }}
-          - name: NAME
+          - name: ORG_NAME_EXT
             value: {{ $.Values.metadata.org_name }}
           - name: PROXY
             value: {{ .Values.metadata.proxy }}
@@ -187,7 +187,7 @@ spec:
               mkdir -p ${MOUNT_PATH}
               OUTPUT_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
               mkdir -p ${OUTPUT_PATH}/ca
-              mkdir -p /root/ca-tools/${NAME}
+              mkdir -p /root/ca-tools/${ORG_NAME_EXT}
 
               SECRET_CERT={{ $.Values.vault.secretcert }}
               vault_secret_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $1}')
@@ -353,7 +353,7 @@ spec:
             value: {{ $.Values.metadata.component_type }}
           - name: COMPONENT_NAME
             value: {{ $.Values.metadata.namespace }}
-          - name: NAME
+          - name: ORG_NAME_EXT
             value: {{ $.Values.metadata.org_name }}
           - name: REFRESH_CERTS
             value: "{{ $.Values.checks.refresh_cert_value }}"
@@ -391,12 +391,12 @@ spec:
                   SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
                   if [ -n "$SK_NAME" ]; then
                       rm ${ORG_CYPTO_FOLDER}/msp/keystore/*_sk
-                      rm /root/ca-tools/${NAME}/admin/msp/keystore/*_sk
-                      rm /root/ca-tools/${NAME}/admin/tls/keystore/*_sk
+                      rm /root/ca-tools/${ORG_NAME_EXT}/admin/msp/keystore/*_sk
+                      rm /root/ca-tools/${ORG_NAME_EXT}/admin/tls/keystore/*_sk
                   fi;
 
                   # Generate crypto material for organization orderers (admin)
-                  cd /root/ca-tools/${NAME} 
+                  cd /root/ca-tools/${ORG_NAME_EXT} 
                   ./generate-crypto-orderer.sh          
                 fi;
 
@@ -410,10 +410,10 @@ spec:
                       SK_NAME=$(find ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
                       if [ -n "$SK_NAME" ]; then
                           rm  ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/*_sk
-                          rm /root/ca-tools/${NAME}/cas/orderers/msp/keystore/*_sk
-                          rm /root/ca-tools/${NAME}/cas/orderers/tls/keystore/*_sk
+                          rm /root/ca-tools/${ORG_NAME_EXT}/cas/orderers/msp/keystore/*_sk
+                          rm /root/ca-tools/${ORG_NAME_EXT}/cas/orderers/tls/keystore/*_sk
                       fi;
-                      cd /root/ca-tools/${NAME} 
+                      cd /root/ca-tools/${ORG_NAME_EXT} 
                       ./orderer-script.sh ${ORDERER_NAME}                                     
                   fi;
                 done
@@ -433,12 +433,12 @@ spec:
                     SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
                     if [ -n "$SK_NAME" ]; then
                         rm ${ORG_CYPTO_FOLDER}/msp/keystore/*_sk
-                        rm /root/ca-tools/${NAME}/admin/msp/keystore/*_sk
-                        rm /root/ca-tools/${NAME}/admin/tls/keystore/*_sk
+                        rm /root/ca-tools/${ORG_NAME_EXT}/admin/msp/keystore/*_sk
+                        rm /root/ca-tools/${ORG_NAME_EXT}/admin/tls/keystore/*_sk
                     fi;
 
                     # Generate crypto material for organization peers
-                    cd /root/ca-tools/${NAME} 
+                    cd /root/ca-tools/${ORG_NAME_EXT} 
                     if [ "$ADD_PEER" = "false" ]; then
                       ./generate-crypto-peer.sh    
                       break
@@ -455,7 +455,7 @@ spec:
                 do
                   if ([ "$USERS" ] && [ -e  ${MOUNT_PATH}/absent_msp_${USER}.txt ]) || [ "$REFRESH_CERTS" = "true" ]
                   then
-                    cd /root/ca-tools/${NAME}
+                    cd /root/ca-tools/${ORG_NAME_EXT}
                     ./generate-user-crypto.sh peer ${USERS}
                     break
                   fi;
@@ -513,8 +513,6 @@ spec:
             value: {{ $.Values.metadata.component_type }}
           - name: COMPONENT_NAME
             value: {{ $.Values.metadata.namespace }}
-          - name: NAME
-            value: {{ $.Values.metadata.org_name }}
           - name: REFRESH_CERTS
             value: "{{ $.Values.checks.refresh_cert_value }}"
           - name: PROXY
@@ -533,7 +531,6 @@ spec:
           args:
             - |-
               . /scripts/package-manager.sh
-
               # Define the packages to install
               packages_to_install="jq curl bash"
               install_packages "$packages_to_install"
@@ -567,7 +564,6 @@ spec:
               if [ -e /certcheck/certs_not_found.txt ]; then
                 exit 1
               fi
-
               tail -f /dev/null
           volumeMounts:
           - name: ca-tools-pv

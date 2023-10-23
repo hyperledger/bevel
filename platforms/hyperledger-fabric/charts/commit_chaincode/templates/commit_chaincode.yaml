@@ -53,6 +53,9 @@ spec:
       - name: scripts-volume
         configMap:
           name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
       initContainers:
       - name: certificates-init
         image: {{ $.Values.metadata.images.alpineutils }}
@@ -187,6 +190,18 @@ spec:
         args:
         - |-
           #!/bin/bash sh
+
+          . /scripts/package-manager.sh
+          
+          version2_5=`echo $NETWORK_VERSION | grep -c 2.5`
+          if [ $version2_5 = 1 ]
+          then
+            GOPATH="/root/go"
+            mkdir -p $GOPATH 
+            # Define the packages to install
+            packages_to_install="openssh-client git"
+            install_packages "$packages_to_install"
+          fi 
           ## Checking committed chaincode
           COMMITTED=$(peer lifecycle chaincode querycommitted --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} -O json | \
             jq --arg SEQUENCE "$CHAINCODE_SEQUENCE" --arg VERSION "$CHAINCODE_VERSION" \
@@ -239,7 +254,7 @@ spec:
             COMMITREADINESS_CMD=${COMMITREADINESS_CMD}${collection_config}
           fi
           echo "Commit Readiness command post collection config " ${COMMITREADINESS_CMD}
-          echo "Commit command post collection config " ${COMMIT_CMD}
+          echo "Commit command post collection config " ${COMMIT_CMD} 
           if [ -z ${ENDORSEMENT_POLICIES} ]
           then
             ## check commit readiness
@@ -304,10 +319,15 @@ spec:
           value: "{{ $.Values.chaincode.pdc.collectionsconfig }}" 
         - name: PDC_ENABLED
           value: "{{ $.Values.chaincode.pdc.enabled }}"
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
+        - name: package-manager
+          mountPath: /scripts/package-manager.sh
+          subPath: package-manager.sh
         {{ if .Values.chaincode.pdc.enabled }}
         - name: pdcconfig
           mountPath: /opt/pdc
