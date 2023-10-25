@@ -11,7 +11,7 @@ command_exists() {
 
 # Function to determine the Linux distribution
 get_linux_distro() {
-    if [ "$(uname -s)" == "Linux" ]; then
+    if [ "$(uname -s)" = "Linux" ]; then
         if command_exists lsb_release; then
             DISTRO=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
         elif [ -f "/etc/os-release" ]; then
