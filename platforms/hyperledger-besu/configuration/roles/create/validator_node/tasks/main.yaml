@@ -14,14 +14,14 @@
   set_fact:
     new_validator_nodes: [] 
 
-# This task creates the build directory
+# Creates the build directory
 - name: Create build directory if it does not exist
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ playbook_dir }}/build"
 
-# This role generates key pair and nodeaddress for all orgs of the network
+# Generates key pair and nodeaddress for all orgs of the network
 - name: "Generate crypto for the network nodes"
   include_role:
     name: create/crypto/node
@@ -39,7 +39,7 @@
       loop_var: org
   when: org.type == 'validator'
 
-# This task fetch (org,node) pairs for the newest validators in the network
+# Fetch (org, node) pairs for the newest validators in the network
 - name: Fetching data of validator nodes in the network from network.yaml
   include_tasks: node_data.yaml
   loop: "{{ network['organizations'] }}"
@@ -47,7 +47,7 @@
     loop_var: org
   when: org.type == 'validator'
 
-# This tasks checks the crypto material in the vault
+# Checks the crypto material in the vault
 - name: Get crypto from vault
   include_tasks: check_vault.yaml
   vars:
@@ -82,23 +82,23 @@
     - item[1].type == "validator"
     - (network.crypto_only is defined and network.crypto_only == false) or (network.crypto_only is undefined)
     
-# This task converts the validator info to json format
+# Converts the validator info to json format
 - name: Convert validatorInfo to json format
   shell: |
     cat {{ build_path }}/validatorinfo | paste -sd "," -| awk '{print "["$0"]"}'> {{ build_path }}/toEncode.json
 
-# This task displays the JSON file content
+# Displays the JSON file content
 - name: Display the JSON file content
   shell: |
     cat {{ build_path }}/toEncode.json
   register: result
     
-# This task saves the JSON data to a variable for future use
+# Saves the JSON data to a variable for future use
 - name: Save the data to a Variable as a Fact
   set_fact:
     validator_address: "{{ result.stdout }}"
 
-# This task contains the voting from the existing validators for the new validator to be added
+# Contains the voting from the existing validators for the new validator to be added
 - name: Voting for the addition of newest validator
   include_tasks: validator_vote.yaml
   vars:

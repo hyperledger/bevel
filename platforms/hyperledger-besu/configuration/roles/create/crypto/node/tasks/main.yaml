@@ -9,7 +9,7 @@
   set_fact:
     node_list: []
 
-# This task delete the previously created release file
+# Delete the previously created release file
 - name: Delete release file {{ organisation }}-node-key-mgmt
   file:
     path: "{{ values_dir }}/{{ organisation }}/{{ organisation }}-node-key-mgmt.yaml"
@@ -24,7 +24,7 @@
     gitops: "{{ org.gitops }}"
     msg: "[ci skip] Delete previous node key mgmt files"
 
-# This task delete the previously created HelmRelease
+# Delete the previously created HelmRelease
 - name: Delete the previous {{ organisation }}-node-key-mgmt HelmRelease
   k8s:
     api_version: "helm.toolkit.fluxcd.io/v2beta1"
@@ -35,7 +35,7 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
 
-# This task fetch all node (peers and validators) present in all organizations of the network
+# Fetch all node (peers and validators) present in all organizations of the network
 - name: Fetching all nodes of the organisation
   set_fact:
     node_list={{ node_list | default([]) + [ {'name':peer.name} ] }}
@@ -43,7 +43,7 @@
   loop_control:
     loop_var: peer
 
-# This task creates node key mgmt value file for each organization
+# Creates node key mgmt value file for each organization
 - name: Create node key mgmt value file for each organization
   include_role:
     name: create/helm_component

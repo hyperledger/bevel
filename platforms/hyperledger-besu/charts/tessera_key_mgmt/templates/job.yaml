@@ -53,39 +53,44 @@ spec:
             name: bevel-vault-script
             defaultMode: 0777
       initContainers:
-       - name: "fetch-vault-token"
-         image: "{{ $.Values.image.alpineutils }}"
-         env:
-          - name: VAULT_ADDR
-            value: {{ $.Values.vault.address }}
-          - name: VAULT_SECRET_ENGINE
-            value: {{ $.Values.vault.secretengine }}
-          - name: VAULT_KEY_PREFIX
-            value: "{{ $.Values.vault.keyprefix }}" 
-          - name: PEER_NAME
-            value: {{ $.Values.peer.name }}            
-          - name: KUBERNETES_AUTH_PATH
-            value: {{ $.Values.vault.authpath }}
-          - name: VAULT_APP_ROLE
-            value: {{ $.Values.vault.role }}
-          - name: VAULT_SECRET_PREFIX
-            value: "{{ $.Values.vault.tmprefix }}"
-          - name: VAULT_TYPE
-            value: "{{ $.Values.vault.type }}"
-         command: ["sh", "-c"]
-         args:
-            - |-
-              . /scripts/bevel-vault.sh
-              echo "Getting the vault Token..."
-              vaultBevelFunc 'init'
+        - name: "fetch-vault-token"
+          image: "{{ $.Values.image.alpineutils }}"
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_SECRET_ENGINE
+              value: {{ $.Values.vault.secretengine }}
+            - name: VAULT_KEY_PREFIX
+              value: "{{ $.Values.vault.keyprefix }}" 
+            - name: PEER_NAME
+              value: {{ $.Values.peer.name }}            
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: VAULT_APP_ROLE
+              value: {{ $.Values.vault.role }}
+            - name: VAULT_SECRET_PREFIX
+              value: "{{ $.Values.vault.tmprefix }}"
+            - name: VAULT_TYPE
+              value: "{{ $.Values.vault.type }}"
+          command: ["sh", "-c"]
+          args:
+              - |-
 
-              echo $VAULT_TOKEN > /secret/VAULT_CLIENT_TOKEN
-         volumeMounts:
-         - name: vault-token
-           mountPath: /secret
-         - name: scripts-volume
-           mountPath: /scripts/bevel-vault.sh
-           subPath: bevel-vault.sh
+                # Source the bevel-vault.sh script, contains functions to perform the Vault-CURD operations
+                . /scripts/bevel-vault.sh
+
+                # Get the Vault token
+                echo "Getting the vault Token..."
+                vaultBevelFunc 'init'
+
+                # Store the value of the 'VAULT_TOKEN' variable in a secret location, which can be accessed later.
+                echo $VAULT_TOKEN > /secret/VAULT_CLIENT_TOKEN
+          volumeMounts:
+            - name: vault-token
+              mountPath: /secret
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
       containers:
         - name:  "tessera-crypto"
           image: "{{ $.Values.image.repository }}"
@@ -108,11 +113,12 @@ spec:
           command: ["sh", "-c"]
           args:
             - |-
+
               # Get the vault client token
               export HASHICORP_TOKEN=$(cat /secret/VAULT_CLIENT_TOKEN)
 
               # Generate tessera keys
               /tessera/bin/tessera -keygen -keygenvaulttype HASHICORP -keygenvaulturl ${VAULT_ADDR} -keygenvaultsecretengine ${VAULT_SECRET_ENGINE} -filename ${VAULT_KEY_PREFIX}/${PEER_NAME}/tm
           volumeMounts:
-           - name: vault-token
-             mountPath: /secret
+            - name: vault-token
+              mountPath: /secret

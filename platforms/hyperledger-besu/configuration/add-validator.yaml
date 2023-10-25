@@ -1,149 +1,164 @@
-##############################################################################################
+##################################################################################################################################
 #  Copyright Accenture. All Rights Reserved.
 #
 #  SPDX-License-Identifier: Apache-2.0
-##############################################################################################
+##################################################################################################################################
 
 # This playbook adds a new validator org / validator to a DLT network on existing Kubernetes clusters
 # The Kubernetes clusters should already be created and the infomation to connect to the
-#  clusters be updated in the network.yaml file that is used as an input to this playbook
-###########################################################################################
+# clusters be updated in the network.yaml file that is used as an input to this playbook
+
+##################################################################################################################################
+
 # To Run this playbook from this directory, use the following command (network.yaml also in this directory)
-#  ansible-playbook add-validator.yaml -e "@./network.yaml" #  "add_new_org='true'" (for adding a new validator organization)
-#  ansible-playbook add-validator.yaml -e "@./network.yaml" #  (for adding just a validator node)
-############################################################################################
-# Please ensure that the ../../shared/configuration playbooks have been run and a DLT network exists.
+# ansible-playbook add-validator.yaml -e "@./network.yaml" #  "add_new_org='true'" (for adding a new validator organization)
+# ansible-playbook add-validator.yaml -e "@./network.yaml" #  (for adding just a validator node)
+
+##################################################################################################################################
+
+# Note: Please ensure that the ../../shared/configuration playbooks have been run and a DLT network exists.
+
+##################################################################################################################################
+
 ---
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
-  tasks:      
-  # delete build directory 
-  - name: Remove build directory
-    file:
-      path: "./build"
-      state: absent
+  tasks:
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
 
-  # Create namespaces and service accounts
-  - name: "Create namespace and service account"
-    include_role: 
-      name: create/namespace
-    vars:
-      component_ns: "{{ org.name | lower }}-bes"
-      organisation: "{{ org.name | lower }}"
-      kubernetes: "{{ org.k8s }}"
-      gitops: "{{ org.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: add_new_org == 'true'
-
-  # Create Storageclass
-  - name: Create Storage Class
-    include_role:
-      name: create/storageclass
-    vars:
-      org_name: "{{ org.name | lower }}"
-      cloudProvider: "{{ org.cloud_provider | lower }}"
-      sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
-      kubernetes: "{{ org.k8s }}"
-      region: "{{ org.k8s.region | default('eu-west-1') }}"
-      git_dir: "{{ org.gitops.release_dir }}"
-      charts_dir: "platforms/shared/charts"
-      platform_suffix: "bes"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: add_new_org == 'true'
-  
-  # Create Vault scrit as configmap for Vault CRUD operations
-  - name: setup vault script
-    include_role:
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
-    vars:
-      component_ns: "{{ org.name | lower }}-bes"
-      kubernetes: "{{ org.k8s }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: add_new_org == 'true'
-
-  # Setup Vault-Kubernetes accesses and Regcred for docker registry
-  - name: "Setup vault"   
-    include_role: 
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-    vars:
-      policy_type: "besu"
-      name: "{{ org.name | lower }}"
-      component_ns: "{{ org.name | lower }}-bes"
-      component_name: "{{ org.name | lower }}-vaultk8s-job"
-      component_auth: "besu{{ org.name | lower }}"
-      component_type: "{{ org.type | lower }}"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: add_new_org == 'true'
-    
-  # Installs cert-manager
-  - include_role:
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/certmanager"
-    vars:
-      kubeconfig_path: "{{ item.k8s.config_file }}"
-      kubecontext: "{{ item.k8s.context }}"
-      aws: "{{ item.aws }}"
-      organization: "{{ item }}"
-    with_items: "{{ network.organizations }}"
-    when: 
-      - network.env.proxy == 'ambassador'
-      - network.type == 'besu'
-      
-  # Generate Ambassador certificate for nodes. These certificates are used for tm tls as well
-  - name: "Create ambassador certificates for Nodes" 
-    include_role: 
-      name: create/certificates/ambassador
-    vars:
-      root_subject: "{{ network.config.subject }}"
-      cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
-      services: "{{ org.services }}"
-      organisation: "{{ org.name | lower }}"
-      component_ns: "{{ org.name | lower }}-bes"
-      component_name: "{{ org.name | lower }}"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-      charts_dir: "{{ org.gitops.chart_source }}"
-      values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
-    loop: "{{ network['organizations']}}"
-    loop_control:
-      loop_var: org
-
-  # This role generates the admin PPK for permissioning
-  - name: Generate admin key for permissioning
-    include_role:
-      name: create/crypto/key_generation
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-      component_ns: "{{ org.name | lower }}-bes"
-      vault: "{{ org.vault }}"
-      user: "admin"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
+    # Create namespaces and service accounts
+    - name: "Create namespace and service account"
+      include_role:
+        name: create/namespace
+      vars:
+        component_ns: "{{ org.name | lower }}-bes"
+        organisation: "{{ org.name | lower }}"
+        kubernetes: "{{ org.k8s }}"
+        gitops: "{{ org.gitops }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
         loop_var: org
-    when: network.permissioning.enabled is defined and network.permissioning.enabled == true
+      when: add_new_org == 'true'
 
-  # This role generates the enode for the new validators and its acceptance for the network
-  - name: "Generates new validator materials and voting for its acceptance"
-    include_role:
-      name: create/validator_node  
-    vars:
-      build_path: "./build"
-    when: network.config.consensus == 'ibft' or network.config.consensus == 'qbft'
+    # Create Storageclass
+    - name: Create Storage Class
+      include_role:
+        name: create/storageclass
+      vars:
+        org_name: "{{ org.name | lower }}"
+        cloudProvider: "{{ org.cloud_provider | lower }}"
+        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+        kubernetes: "{{ org.k8s }}"
+        region: "{{ org.k8s.region | default('eu-west-1') }}"
+        git_dir: "{{ org.gitops.release_dir }}"
+        charts_dir: "platforms/shared/charts"
+        platform_suffix: "bes"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: add_new_org == 'true'
 
-  vars: #These variables can be overriden from the command line
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"           #Default to /bin install directory for binaries
-    add_new_org: 'false'                #Default for this playbook is false
+    # Create Vault scrit as configmap for Vault CRUD operations
+    - name: setup vault script
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
+      vars:
+        component_ns: "{{ org.name | lower }}-bes"
+        kubernetes: "{{ org.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: add_new_org == 'true'
+
+    # Setup Vault-Kubernetes accesses and Regcred for docker registry
+    - name: "Setup vault"
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
+      vars:
+        policy_type: "besu"
+        name: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-bes"
+        component_name: "{{ org.name | lower }}-vaultk8s-job"
+        component_auth: "besu{{ org.name | lower }}"
+        component_type: "{{ org.type | lower }}"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        gitops: "{{ org.gitops }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: add_new_org == 'true'
+
+    # Installs cert-manager
+    - include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/certmanager"
+      vars:
+        kubeconfig_path: "{{ item.k8s.config_file }}"
+        kubecontext: "{{ item.k8s.context }}"
+        aws: "{{ item.aws }}"
+        organization: "{{ item }}"
+      with_items: "{{ network.organizations }}"
+      when:
+        - network.env.proxy == 'ambassador'
+        - network.type == 'besu'
+
+    # Generate Ambassador certificate for nodes. These certificates are used for tm tls as well
+    - name: "Create ambassador certificates for Nodes"
+      include_role:
+        name: create/certificates/ambassador
+      vars:
+        root_subject: "{{ network.config.subject }}"
+        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+        services: "{{ org.services }}"
+        organisation: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-bes"
+        component_name: "{{ org.name | lower }}"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        gitops: "{{ org.gitops }}"
+        charts_dir: "{{ org.gitops.chart_source }}"
+        values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+      loop: "{{ network['organizations']}}"
+      loop_control:
+        loop_var: org
+
+    # This role generates the admin PPK for permissioning
+    - name: Generate admin key for permissioning
+      include_role:
+        name: create/crypto/key_generation
+      vars:
+        build_path: "{{ playbook_dir }}/build"
+        component_ns: "{{ org.name | lower }}-bes"
+        vault: "{{ org.vault }}"
+        user: "admin"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+          loop_var: org
+      when: network.permissioning.enabled is defined and network.permissioning.enabled == true
+
+    # This role generates the enode for the new validators and its acceptance for the network
+    - name: "Generates new validator materials and voting for its acceptance"
+      include_role:
+        name: create/validator_node  
+      vars:
+        build_path: "./build"
+        component_ns: "{{ orgItem.name | lower }}-bes"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: orgItem
+      when:
+        - network.config.consensus == 'ibft' or network.config.consensus == 'qbft'
+        - add_new_org == 'true'
+
+  # These variables can be overriden from the command line
+  vars:
+    install_os: "linux"         # Default to linux OS
+    install_arch:  "amd64"      # Default to amd64 architecture
+    bin_install_dir:  "~/bin"   # Default to /bin install directory for binaries
+    add_new_org: 'false'        # 'add_new_org' flag, defaults to false when not defined.

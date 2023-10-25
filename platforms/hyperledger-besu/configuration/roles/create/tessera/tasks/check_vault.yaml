@@ -5,7 +5,7 @@
 ##############################################################################################
 
 
-# This task checks if the crypto material is already stored in the vault or not
+# Checks if the crypto material is already stored in the vault or not
 - name: Check the crypto material in Vault
   shell: |
     vault kv get -field=db_user {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/credentials
@@ -15,7 +15,7 @@
   register: vault_cred_result
   ignore_errors: yes
 
-# This tasks copy the crypto material to the vault
+# Copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   shell: |
     vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/credentials db_user="demouser" db_password="password" gethpassword="{{ item.geth_passphrase }}"
