@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task checks if the genesis file is already stored in the vault or not
+# Check if the genesis file is already stored in the vault or not
 - name: Check if genesis already present in the vault
   shell: |
     vault kv get -field=genesisfile {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis
@@ -20,7 +20,7 @@
     vault_check={{ vault_check|default(0) | int + 1 }}
   when: vault_genesis_result.failed
 
-#This task only runs when there is no local genesis file
+# Execute only if there is no local genesis file
 - name: Copy genesis from vault to correct path
   copy:
     content: "{{ vault_genesis_result.stdout | b64decode }}"
