@@ -10,24 +10,6 @@ kind: Service
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  annotations:
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.nodeName }}_{{ .Values.peerName }}_p2p_mapping
-      port: {{ .Values.ambassador.p2pPort }}
-      host: {{ .Values.nodeName }}.{{ .Values.peerName }}.{{ .Values.ambassador.external_url_suffix }}
-      service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.node.p2pPort }}
-      tls: false
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.nodeName }}_{{ .Values.peerName }}_tunnel_mapping
-      port: {{ .Values.ambassador.tunnelPort }}
-      host: {{ .Values.nodeName }}.{{ .Values.peerName }}.{{ .Values.ambassador.external_url_suffix }}
-      service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.bridge.tunnelPort }}
-      tls: false
   labels:
     run: {{ .Values.nodeName }}
     app.kubernetes.io/name: {{ .Values.nodeName }}
@@ -50,3 +32,23 @@ spec:
     protocol: TCP
     port: {{ .Values.node.p2pPort }}
     targetPort: {{ .Values.node.p2pPort }}
+{{- if $.Values.ambassador }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ .Values.nodeName }}-{{ .Values.peerName }}-p2p
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port:  {{ .Values.ambassador.p2pPort }}
+  service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.node.p2pPort }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ .Values.nodeName }}-{{ .Values.peerName }}-tunnel
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port:  {{ .Values.ambassador.tunnelPort }}
+  service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.node.p2pPort }}
+{{- end }}
