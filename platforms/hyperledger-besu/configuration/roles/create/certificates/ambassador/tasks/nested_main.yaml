@@ -4,25 +4,25 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This role generates certificates for rootca and ambassador
-# and places them in vault. Certificates are created using openssl
+# This role generates certificates for rootCA (Certificate Authority) and Ambassador.
+# and then, places them in a vault. The Certificates are created using OpenSSL.
 
 ---
-# Ensures the ambassador tls directory
+# Ensure the existence of the Ambassador TLS directory
 - name: "Ensure ambassadortls dir exists"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ ambassadortls }}"
 
-# Creates TLS certificate  
-- name: Create TLS certificate  
+# Generate a TLS certificate for the specified node using Helm and letsencrypt issuer.
+- name: "Create TLS certificate"
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} helm upgrade --install "letsencrypt-cert-{{node_name}}" --set nodename="{{ node_name }}" --set namespace="{{ component_ns }}" --set externalurlsuffix="{{ org.external_url_suffix }}" {{ playbook_dir }}/../../../platforms/shared/charts/letsencrypt-cert
   when: 
     - (org.issuer is defined) and (org.issuer|lower == "letsencrypt")
 
-# Create ambassador certs helmrelease file
+# Create an Ambassador Certs HelmRelease file for certificate management
 - name: "Create ambassador certs helmrelease file"
   include_role:
     name: create/helm_component
@@ -36,7 +36,7 @@
   when:
     - (org.issuer is undefined) or (org.issuer|lower == "default")
         
-# push the created deployment files to repository
+# push the created deployment files to a Git repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -44,8 +44,8 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     msg: "[ci skip] Pushing ambassador job files for {{ component_ns }}"
 
-# Check if ambassador certs job is completed
-- name: Check if ambassador certs job is completed
+# Check if the Ambassador certs job is completed
+- name: "Check if ambassador certs job is completed"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
@@ -55,7 +55,7 @@
   when:
     - (org.issuer is undefined) or (org.issuer|lower == "default")
 
-# This task creates the Ambassador TLS credentials
+# Creates the Ambassador TLS credentials
 - name: "Create the Ambassador credentials"
   include_role:
     name: create/k8s_secrets

@@ -4,6 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+# Ensure validator directory exist
 - name: Ensure validator directory exist
   file:
     path: "{{ build_path }}/crypto/{{ org.name }}/{{ item.name }}/data"
@@ -11,7 +12,7 @@
   with_items: "{{ org.services.peers is defined | ternary(org.services.peers, org.services.validators) }}"
   when: item.status == 'new' and vault_result.failed is not defined
 
-# This tasks checks and keeps retrying for the crypto materials to be ready
+# Check and keep retrying for the crypto materials to be ready
 - name: Check for node key pair in vault
   shell: |
     vault kv get -field=key_pub {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/data > "{{ build_path }}/crypto/{{ org.name }}/{{ item.name  }}/data/key.pub"

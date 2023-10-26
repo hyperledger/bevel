@@ -4,9 +4,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # This role saves the crypto from Vault into ansible_provisioner
-#############################################################################################
+##############################################################################################
 
 # Ensure admincerts directory is present in build
 - name: Ensure directory exists
@@ -14,31 +14,37 @@
     path: "{{ cert_path }}"
     state: directory
 
-# Save the cert file
+# Save the certificate file for the 'ambassador' type
 - name: Save cert
   local_action: copy content="{{ vault_output['data'].data.ambassadorcrt | b64decode }}" dest="{{ cert_path }}/ambassador.crt"
   when: type == "ambassador"
-# Save the key file
+
+# Save the key file for the 'ambassador' type
 - name: Save key
   local_action: copy content="{{ vault_output['data'].data.ambassadorkey | b64decode }}" dest="{{ cert_path }}/ambassador.key"
   when: type == "ambassador"
 
+# Save the root CA file for the 'rootca' type
 - name: Save rootca file
   local_action: copy content="{{ vault_output['data'].data.rootca_pem | b64decode }}" dest="{{ cert_path }}/rootca.pem"
   when: type == "rootca"
 
+# Save the root key file for the 'rootca' type
 - name: Save root key
   local_action: copy content="{{ vault_output['data'].data.rootca_key | b64decode }}" dest="{{ cert_path }}/rootca.key"
   when: type == "rootca"
 
+# Save the node key file for the 'node' type
 - name: Save nodekey file
   local_action: copy content="'{{ vault_output.data.data.key }}'" dest="{{ cert_path }}/key"
   when: type == "node"
 
+# Save the node public key file for the 'node' type
 - name: Save nodepublic key
   local_action: copy content="'{{ vault_output.data.data.key_pub }}'" dest="{{ cert_path }}/key.pub"
   when: type == "node"
 
+# Save the node address file for the 'node' type
 - name: Save nodeAddress file
   local_action: copy content="'{{ vault_output.data.data.nodeAddress }}'" dest="{{ cert_path }}/nodeAddress"
   when: type == "node"
