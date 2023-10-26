@@ -8,8 +8,7 @@
 # This role deletes the Vault configurations
 #############################################################################################
 
-#############################################################################################
-# This task deletes the Docker credentials
+# Delete the Docker credentials
 - name: Delete docker creds
   k8s:
     kind: Secret
@@ -21,6 +20,7 @@
   ignore_errors: yes
   changed_when: false
 
+# Delete service creds
 - name: "Delete service creds"
   include_tasks: nested_main.yaml
   loop: "{{ services | dict2items }}"
@@ -44,8 +44,7 @@
   ignore_errors: yes
   changed_when: false
 
-############################################################################################
-# This task deletes vault auth
+# Delete vault-auth path
 - name: Delete vault-auth path
   shell: |
     vault delete sys/auth/corda{{ node.name }}
@@ -57,8 +56,7 @@
     loop_var: node
   when: component_type == 'node'
 
-############################################################################################
-# This task deletes crypto materials from vault
+# Delete crypto materials from vault
 - name: Delete Crypto for nodes
   shell: |
     vault secrets disable {{ node.name }}
@@ -70,10 +68,10 @@
     loop_var: node
   when: component_type == 'node'
 
-# This task deletes the policies
-- name: Delete policy
+# Delete vault policies
+- name: Delete vault policy
   shell: |
-     vault policy delete vault-crypto-{{ component_name }}-{{ node.name }}-ro
+      vault policy delete vault-crypto-{{ component_name }}-{{ node.name }}-ro
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
