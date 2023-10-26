@@ -69,7 +69,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                       | Default Value                                     |
 | ----------------------| --------------------------------------------------| --------------------------------------------------|
-| namespace             | Namespace for organization's peer                 | peer0-net                                         |
+| namespace             | Namespace for organization's peer                 | org1-net                                        |
 | images.fabrictools    | Image name and version for fabric tools           | hyperledger/fabric-tools:2.2.2                    |
 | images.alpineutils    | Image name and version to read certificates       | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Custom labels (if applicable)                     | ""                                                |
@@ -79,7 +79,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name             | Description                           | Default Value                  |
 | -----------------| --------------------------------------| -------------------------------|
 | name             | Name of the peer                      | peer0                          |
-| address          | Address of the peer                   | peer0.peer0-net:7051           |
+| address          | Address of the peer                   | peer0.org1-net:7051           |
 | localmspid       | Local MSP ID for organization         | Org1MSP                        |
 | loglevel         | Log level for organization's peer     | info                           |
 | tlsstatus        | TLS status for organization's peer    | true                           |
@@ -90,11 +90,12 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| -----------------------------------------------| -------------------------------- |
 | role                  | Vault role for the organization                | vault-role                       |
 | address               | Vault server address                           | ""                               |
-| authpath              | Kubernetes auth backend configured in Vault    | fra-demo-hlkube-cluster-org1     |
-| adminsecretprefix     | Vault secret prefix for admin credentials      | secret/adminsecretprefix/        |
-| orderersecretprefix   | Vault secret prefix for orderer credentials    | secret/orderersecretprefix/      |
-| secretpath            | Vault secret path                              | secret/secretpath/               |
+| authpath              | Kubernetes auth backend configured in Vault    | devorg1-net-auth         |
+| adminsecretprefix     | Vault secret prefix for admin credentials      | secretsv2/data/crypto/peerOrganizations/org1-net/users/admin        |
+| orderersecretprefix   | Vault secret prefix for orderer credentials    | secretsv2/data/crypto/peerOrganizations/org1-net/orderer      |
+| secretpath            | Vault secret path                              | secretsv2                        |
 | serviceaccountname    | Service account name for Vault                 | vault-auth                       |
+| type                  | Provide the type of vault                      | hashicorp                        |
 | imagesecretname       | Image secret name for Vault                    | ""                               |
 | tls                   | TLS configuration for Vault communication      | ""                               |
 
@@ -102,7 +103,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name          | Description                          | Default Value   |
 | --------------| -------------------------------------| ----------------|
-| address       | Address for orderer including port   | ""              |
+| address       | Address for orderer including port   | orderer1.org1proxy.blockchaincloudpoc.com:443             |
 
 ### Chaincode
 

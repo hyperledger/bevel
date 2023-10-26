@@ -67,7 +67,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                   | Description                                                              | Default Value                                     |
 |------------------------|--------------------------------------------------------------------------| --------------------------------------------------|
-| namespace              | Namespace for organization's peer                                        | org1-example-com                                  |
+| namespace              | Namespace for organization's peer                                        | org1-net                                  |
 | images.fabrictools     | Valid image name and version for Fabric tools                            | hyperledger/fabric-tools:2.2.2                    |
 | images.alpineutils     | Valid image name and version to read certificates from the Vault server  | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                 | Custom labels for the organization                                       | ""                                                |
@@ -77,7 +77,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name        | Description                                      | Default Value               |
 | ------------| -------------------------------------------------| ----------------------------|
 | name        | Name of the peer as per deployment YAML          | peer0                       |
-| address     | Address of the peer and its grpc cluster IP port | peer0.org1-example-com:7051 |
+| address     | Address of the peer and its grpc cluster IP port | peer0.org1-net:7051 |
 | localmspid  | Local MSPID for the organization                 | Org1MSP                     |
 | loglevel    | Log level for the organization's peer            | info                        |
 | tlsstatus   | TLS status for the organization's peer           | true                        |
@@ -90,9 +90,10 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | role                  | Vault role for the organization                                   | vault-role                   |
 | address               | Vault server address                                              | ""                           |
 | authpath              | Kubernetes auth backend configured in Vault for the organization  | fra-demo-hlkube-cluster-org1 |
-| adminsecretprefix     | Vault secretprefix for admin                                      | secret/adminsecretprefix/    |
-| orderersecretprefix   | Vault secretprefix for orderer                                    | secret/orderersecretprefix/  |
+| adminsecretprefix     | Vault secretprefix for admin                                      | secretsv2/data/crypto/peerOrganizations/org1-net/users/admin    |
+| orderersecretprefix   | Vault secretprefix for orderer                                    | secretsv2/data/crypto/peerOrganizations/org1-net/orderer  |
 | serviceaccountname    | Service account name for Vault                                    | vault-auth                   |
+| type                  | Provide the type of vault                                         | hashicorp    |
 | imagesecretname       | Imagesecret name for Vault                                        | ""                           |
 | tls                   | Kubernetes secret for Vault ca.cert                               | ""                           |
 
@@ -100,14 +101,14 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name      | Description               | Default Value                |
 | ----------| --------------------------| -----------------------------|
-| address   | Address for the orderer   | orderer-ext.example-com:443  |
+| address   | Address for the orderer   | orderer1.org1proxy.blockchaincloudpoc.com:443  |
 
 ### Chaincode
 
 | Name                      | Description                                      | Default Value                      |
 | --------------------------| -------------------------------------------------| -----------------------------------|
 | builder                   | Valid chaincode builder image for Fabric         | hyperledger/fabric-ccenv:1.4.8     |
-| name                      | Name of the chaincode to be installed            | cc                                 |
+| name                      | Name of the chaincode to be installed            | example                                 |
 | version                   | Chaincode version to be instantiated             | "1.0"                              |
 | instantiationarguments    | Instantiation arguments                          | ""                                 |
 | endorsementpolicies       | Endorsement policies for the chaincode           | true                               |

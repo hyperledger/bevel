@@ -6,8 +6,11 @@
 
 metadata:
   #Provide the namespace for orderer
-  #Eg. namespace: example-com
-  namespace: example-com
+  #Eg. namespace: org1-net
+  namespace: org1-net
+  # HLF Network Version
+  network:
+    version: 2.2.2
   images:
     #Provide the valid image name and version for fabric orderer
     #Eg.  orderer: hyperledger/fabric-orderer:1.4.0
@@ -41,6 +44,9 @@ orderer:
   #Provide the interval in which the orderer to signal the connection has kept alive  
   #Eg. keepaliveserverinterval: 10s
   keepaliveserverinterval: 10s
+  #Provide the address for orderer
+  #Eg. address: orderer1.org1proxy.blockchaincloudpoc.com:443
+  ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
 
 consensus:
   #Provide name of the consensus. Currently support raft and kafka
@@ -50,7 +56,7 @@ consensus:
 storage:
   #Provide the storageclassname for orderer
   #Eg. storageclassname: aws-storage
-  storageclassname: aws-storage
+  storageclassname: aws-storageclass
   #Provide the storagesize for storage class
   #Eg. storagesize: 512Mi
   storagesize: 512Mi
@@ -84,11 +90,14 @@ vault:
   #Eg. vaultrole: orderer-vault-role
   role: vault-role
   #Provide the kubernetes auth backed configured in vault for orderer deployment
-  #Eg. authpath: fra-demo-hlkube-cluster-orderer
-  authpath: fra-demo-hlkube-cluster-orderer
+  #Eg. authpath: devorg1-net-auth
+  authpath: devorg1-net-auth
+  #Provide the type of vault
+  #Eg. type: hashicorp
+  type: hashicorp
   #Provide the value for vault secretprefix
-  #Eg. secretprefix: secret/...
-  secretprefix: secret/secretprefix/
+  #Eg. secretprefix: secretsv2/data/crypto/ordererOrganizations/.../orderers/....
+  secretprefix: secretsv2/data/crypto/ordererOrganizations/org1-net/orderers/orderer.org1-net
   #Provide the imagesecretname for vault
   #Eg. imagesecretname: regcred
   imagesecretname: ""
@@ -110,10 +119,10 @@ kafka:
   readinessthreshold: 4
   #Provide the kafka broker list
   #Eg.  brokers:
-  #       - kafka-0.broker.example-com.svc.cluster.local:9092
-  #       - kafka-1.broker.example-com.svc.cluster.local:9092
-  #       - kafka-2.broker.example-com.svc.cluster.local:9092
-  #       - kafka-3.broker.example-com.svc.cluster.local:9092
+  #       - kafka-0.broker.org1-net.svc.cluster.local:9092
+  #       - kafka-1.broker.org1-net.svc.cluster.local:9092
+  #       - kafka-2.broker.org1-net.svc.cluster.local:9092
+  #       - kafka-3.broker.org1-net.svc.cluster.local:9092
   brokers:
 
 proxy:
@@ -122,7 +131,7 @@ proxy:
   provider: "haproxy"
   #This field contains the external URL of the organization
   #Eg. external_url_suffix: org1.blockchaincloudpoc.com
-  external_url_suffix: org1.blockchaincloudpoc.com
+  external_url_suffix: org1proxy.blockchaincloudpoc.com:443
 
 config:
   # Set limits and requests of pod  
