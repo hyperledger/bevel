@@ -9,26 +9,6 @@ kind: Service
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
-  {{ if $.Values.nodeConf.ambassador }}
-  annotations:
-    getambassador.io/config: |
-      ---
-      apiVersion: ambassador/v2
-      kind: TLSContext
-      name: {{ .Values.nodeName }}_context
-      hosts:
-      - {{ .Values.nodeName }}.{{ .Values.nodeConf.ambassador.external_url_suffix }}
-      secret: {{ .Values.nodeName }}-ambassador-certs.{{ .Values.metadata.namespace }}
-      secret_namespacing: true
-      min_tls_version: v1.2
-      ---
-      apiVersion: ambassador/v2
-      kind: TCPMapping
-      name: {{ .Values.nodeName }}_p2p_mapping
-      port: {{ .Values.nodeConf.ambassador.p2pPort }}
-      host: {{ .Values.nodeName }}.{{ .Values.nodeConf.ambassador.external_url_suffix }}
-      service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.p2pPort }}
-  {{ end }}  
   labels:
     run: {{ .Values.nodeName }}
     app.kubernetes.io/name: {{ .Values.nodeName }}
@@ -58,3 +38,44 @@ spec:
       targetPort: {{ .Values.service.sshdPort }}
       protocol: TCP
       name: ssh
+{{- if $.Values.nodeConf.ambassador }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Values.nodeName }}-host
+spec:
+  hostname: {{ .Values.nodeName }}.{{ .Values.nodeConf.ambassador.external_url_suffix }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: {{ .Values.nodeName }}-ambassador-certs
+    namespace: {{ .Values.metadata.namespace }}
+  tls:
+    min_tls_version: v1.2
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ .Values.nodeName }}-p2p
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  host: {{ .Values.nodeName }}.{{ .Values.nodeConf.ambassador.external_url_suffix }}
+  port:  {{ .Values.nodeConf.ambassador.p2pPort }}
+  service: {{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.p2pPort }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Values.nodeName }}-tlscontext
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hosts:
+  - {{ .Values.nodeName }}.{{ .Values.nodeConf.ambassador.external_url_suffix }}
+  secret: {{ .Values.nodeName }}-ambassador-certs.{{ .Values.metadata.namespace }}
+  secret_namespacing: true
+  min_tls_version: v1.2
+{{- end }}
