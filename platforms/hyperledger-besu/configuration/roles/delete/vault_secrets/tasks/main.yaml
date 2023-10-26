@@ -9,7 +9,8 @@
 #############################################################################################
 
 #############################################################################################
-# This task deletes the Docker credentials
+
+# Delete Docker credentials
 - name: Delete docker creds
   k8s:
     kind: Secret
@@ -20,6 +21,7 @@
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
 
+# Delete Ambassador creds
 - name: Delete Ambassador creds
   k8s:
     kind: Secret
@@ -33,7 +35,7 @@
     loop_var: peer
   ignore_errors: yes
 
-# This task deletes vault auth
+# Delete vault auth path
 - name: Delete vault-auth path
   shell: |
     vault delete sys/auth/besu{{ org_name }}
@@ -41,7 +43,7 @@
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
 
-# This task deletes crypto material
+# Deletes crypto materials
 - name: Delete Crypto material 
   shell: |
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/data
@@ -58,7 +60,7 @@
     loop_var: peer
   ignore_errors: yes
 
-# This task deletes vault policies
+# Delete vault policies
 - name: Delete Access policies 
   shell: |
     vault policy delete vault-crypto-{{ org_namespace }}-{{ item.name }}-ro

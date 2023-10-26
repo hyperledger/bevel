@@ -4,9 +4,10 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This role calls for ambassador certificate creation for each node.
+# This role creates Ambassador certificates for each node.
+
 ---
-# Checks if ClusterIssuer is installed 
+# Check if the ClusterIssuer is installed
 - name: check ClusterIssuer  status
   kubernetes.core.k8s_info:
     kubeconfig: "{{ kubernetes.config_file }}"
@@ -14,7 +15,7 @@
     name: letsencrypt-prod
   register: clusterissuer
 
-# Checks if Mapping for acme is installed 
+# Check if the Mapping for ACME (Automated Certificate Management Environment) is installed
 - name: check Mapping for acme  
   kubernetes.core.k8s_info:
     kubeconfig: "{{ kubernetes.config_file }}"
@@ -22,7 +23,7 @@
     name: "acme-challenge-mapping-{{ component_ns }}"
   register: acmemapping
 
-# Checks if challenge service for mapping is created
+# Check if the challenge service for the ACME mapping is created
 - name: check challenge service for acme  
   kubernetes.core.k8s_info:
     kubeconfig: "{{ kubernetes.config_file }}"
@@ -31,7 +32,7 @@
     namespace: "{{ component_ns }}"
   register: acmechallengeservice
 
-# Delete challenge for acme
+# Delete the ACME challenge service if it exists
 - name: delete acme challenge service 
   kubernetes.core.k8s:
     kubeconfig: "{{ kubernetes.config_file }}"
@@ -43,7 +44,7 @@
   when: 
     - acmechallengeservice.resources[0] is defined
 
-# Delete mapping for acme
+# Delete the Mapping for ACME if it exists
 - name: delete mapping for acme
   kubernetes.core.k8s:
     kubeconfig: "{{ kubernetes.config_file }}"
@@ -55,7 +56,7 @@
   when: 
     - acmemapping.resources[0] is defined
 
-# Delete clusterissuer
+# Delete the ClusterIssuer if it exists
 - name: delete  clusterissuer
   kubernetes.core.k8s:
     kubeconfig: "{{ kubernetes.config_file }}"
@@ -67,14 +68,14 @@
   when: 
     - clusterissuer.resources[0] is defined
 
-# Installs clusterissuer helm chart
+# Install the ClusterIssuer Helm chart if the organization's issuer is "letsencrypt"
 - name: Install ClusterIssuer  
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} helm upgrade --install letsencrypt-clusterissuer --set namespace="{{ component_ns }}" --set email="{{ gitops.email }}" {{ playbook_dir }}/../../../platforms/shared/charts/letsencrypt-issuer
   when: 
     - (org.issuer is defined) and (org.issuer|lower == "letsencrypt")
 
-# Checks if ClusterIssuer is up and ready
+# Check if the ClusterIssuer is up and ready, and wait for it to be ready
 - name: check for an existing ClusterIssuer and wait for it to be ready
   kubernetes.core.k8s_info:
     kubeconfig: "{{ kubernetes.config_file }}"
@@ -86,7 +87,8 @@
   until: cissuer.resources[0].status.conditions[0].status|lower == "true"
   when: 
     - (org.issuer is defined) and (org.issuer|lower == "letsencrypt")
-    
+
+# Create Ambassador certificates for each node using a nested task
 - name: Create Ambassador certificates
   include_tasks: nested_main.yaml
   vars:

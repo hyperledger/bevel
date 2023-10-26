@@ -80,17 +80,18 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | --------------------------| ------------------------------------------------ | -----------------------------------|
 | role                      | Vault role for the organization                  | vault-role                         |
 | address                   | Vault server address                             | ""                                 |
-| authpath                  | Kubernetes auth backend configured in vault      | fra-demo-hlkube-cluster-org1       |
-| secretcryptoprefix        | Vault secret prefix for crypto                   | secrets/secretcryptoprefix/        |
-| secretcredentialsprefix   | Vault secret prefix for credentials              | secrets/secretcredentialsprefix/   |
+| authpath                  | Kubernetes auth backend configured in vault      | devorg1-net-auth      |
+| secretcryptoprefix        | Vault secret prefix for crypto                   | secrets/secretsv2/data/crypto/ordererOrganizations/org1-net/ca      |
+| secretcredentialsprefix   | Vault secret prefix for credentials              | secrets/secretsv2/data/credentials/org1-net/ca/smari  |
 | serviceaccountname        | Service account name for vault                   | vault-auth                         |
+| type                      | Provide the type of vault                        | hashicorp    |
 | imagesecretname           | Image secret name for vault                      | ""                                 |
 
 ### CA
 
 | Name     | Description                                      | Default Value                                           |
 | ---------| ------------------------------------------------ | --------------------------------------------------------|
-| subject  | Subject of the services CA organization's        | /C=GB/ST=London/L=London/O=Orderer/CN=ca.org1-org1-net  |
+| subject  | Subject of the services CA organization's        | /C=GB/ST=London/L=London/O=Orderer/CN=ca.org1-net  |
 
 
 <a name = "deployment"></a>

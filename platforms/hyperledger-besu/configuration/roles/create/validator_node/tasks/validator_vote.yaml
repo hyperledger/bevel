@@ -46,7 +46,7 @@
     path: "{{ network.config.genesis }}"
   register: stat_result
 
-# This task gets the genesis file when there is no local genesis
+# Gets the genesis file when there is no local genesis
 - name: get genesis from vault
   shell: |
     vault kv get -field=genesis {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis
@@ -59,7 +59,7 @@
     - stat_result.stat.exists == False
     - (network.crypto_only is undefined or network.crypto_only == false)
 
-#This task only runs when there is no local genesis file
+# Execute only if there is no local genesis file
 - name: Copy genesis from vault to correct path
   shell: |
     echo {{ vault_genesis.stdout }} > {{ network.config.genesis }}

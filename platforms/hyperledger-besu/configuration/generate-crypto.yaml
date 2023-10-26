@@ -4,134 +4,138 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+---
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
-  # delete build directory
-  - name: Remove build directory
-    file:
-      path: "./build"
-      state: absent
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
 
-  # Create namespaces and service accounts
-  - name: "Create namespace and service account"
-    include_role:
-      name: create/namespace
-    vars:
-      component_ns: "{{ org.name | lower }}-bes"
-      organisation: "{{ org.name | lower }}"
-      kubernetes: "{{ org.k8s }}"
-      gitops: "{{ org.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-
-  # Create Storageclass
-  - name: Create Storage Class
-    include_role:
-      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
-    vars:
-      org_name: "{{ org.name | lower }}"
-      cloudProvider: "{{ org.cloud_provider | lower }}"
-      sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
-      git_dir: "{{ org.gitops.release_dir }}"
-      charts_dir: "platforms/shared/charts"
-      org: "{{ org }}"
-      kubernetes: "{{ org.k8s }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-
-  # Setup Vault-Kubernetes accesses and Regcred for docker registry
-  - name: "Setup vault"
-    include_role:
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-    vars:
-      policy_type: "besu"
-      name: "{{ org.name | lower }}"
-      component_ns: "{{ org.name | lower }}-bes"
-      component_name: "{{ org.name | lower }}-vaultk8s-job"
-      component_auth: "besu{{ org.name | lower }}"
-      component_type: "organization"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-
-  # Generate Ambassador certificate for nodes. These certificates are used for tm tls as well
-  - name: "Create ambassador certificates for Nodes"
-    include_role:
-      name: create/certificates/ambassador
-    vars:
-      root_subject: "{{ network.config.subject }}"
-      cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
-      services: "{{ org.services }}"
-      organisation: "{{ org.name | lower }}"
-      component_ns: "{{ org.name | lower }}-bes"
-      component_name: "{{ org.name | lower }}"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      charts_dir: "{{ org.gitops.chart_source }}"
-      gitops: "{{ org.gitops }}"
-      values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
-    loop: "{{ network['organizations']}}"
-    loop_control:
-      loop_var: org
-
-  # This role generates key pair and nodeaddress for all orgs of the network
-  - name: "Generate crypto for the network nodes"
-    include_role:
-      name: create/crypto/node
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-      organisation: "{{ org.name | lower }}"
-      organisation_ns: "{{ org.name | lower }}-bes"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      charts_dir: "{{ org.gitops.chart_source }}"
-      gitops: "{{ org.gitops }}"
-      values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
-    loop: "{{ network['organizations']}}"
-    loop_control:
-      loop_var: org
-
-  # This role generates the crypto materials for tessera tm
-  - name: "Generate crypto for the Tessera transaction manager"
-    include_role:
-      name: create/crypto/tessera
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-      component_ns: "{{ org.name }}-bes"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-      charts_dir: "{{ org.gitops.chart_source }}"
-      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when:
-      - org.type == 'member'
-      - network.config.transaction_manager == 'tessera'
-
-  - name: Generate admin key for permissioning
-    include_role:
-      name: create/crypto/key_generation
-    vars:
-      build_path: "{{ playbook_dir }}/build"
-      component_ns: "{{ org.name | lower }}-bes"
-      vault: "{{ org.vault }}"
-      user: "admin"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
+    # Create namespaces and service accounts
+    - name: "Create namespace and service account"
+      include_role:
+        name: create/namespace
+      vars:
+        component_ns: "{{ org.name | lower }}-bes"
+        organisation: "{{ org.name | lower }}"
+        kubernetes: "{{ org.k8s }}"
+        gitops: "{{ org.gitops }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
         loop_var: org
-    when: network.permissioning.enabled is defined and network.permissioning.enabled == true
 
-  vars: #These variables can be overriden from the command line
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
-    add_new_org: false
+    # Create Storageclass
+    - name: Create Storage Class
+      include_role:
+        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
+      vars:
+        org_name: "{{ org.name | lower }}"
+        cloudProvider: "{{ org.cloud_provider | lower }}"
+        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+        git_dir: "{{ org.gitops.release_dir }}"
+        charts_dir: "platforms/shared/charts"
+        org: "{{ org }}"
+        kubernetes: "{{ org.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+
+    # Setup Vault-Kubernetes accesses and Regcred for docker registry
+    - name: "Setup vault"
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
+      vars:
+        policy_type: "besu"
+        name: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-bes"
+        component_name: "{{ org.name | lower }}-vaultk8s-job"
+        component_auth: "besu{{ org.name | lower }}"
+        component_type: "organization"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        gitops: "{{ org.gitops }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+
+    # Generate Ambassador certificate for nodes. These certificates are used for tm tls as well
+    - name: "Create ambassador certificates for Nodes"
+      include_role:
+        name: create/certificates/ambassador
+      vars:
+        root_subject: "{{ network.config.subject }}"
+        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
+        services: "{{ org.services }}"
+        organisation: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-bes"
+        component_name: "{{ org.name | lower }}"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        charts_dir: "{{ org.gitops.chart_source }}"
+        gitops: "{{ org.gitops }}"
+        values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+      loop: "{{ network['organizations']}}"
+      loop_control:
+        loop_var: org
+
+    # Generates key pair and nodeaddress for all orgs of the network
+    - name: "Generate crypto for the network nodes"
+      include_role:
+        name: create/crypto/node
+      vars:
+        build_path: "{{ playbook_dir }}/build"
+        organisation: "{{ org.name | lower }}"
+        organisation_ns: "{{ org.name | lower }}-bes"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        charts_dir: "{{ org.gitops.chart_source }}"
+        gitops: "{{ org.gitops }}"
+        values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+      loop: "{{ network['organizations']}}"
+      loop_control:
+        loop_var: org
+
+    # Generates the crypto materials for tessera tm
+    - name: "Generate crypto for the Tessera transaction manager"
+      include_role:
+        name: create/crypto/tessera
+      vars:
+        build_path: "{{ playbook_dir }}/build"
+        component_ns: "{{ org.name }}-bes"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        gitops: "{{ org.gitops }}"
+        charts_dir: "{{ org.gitops.chart_source }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when:
+        - org.type == 'member'
+        - network.config.transaction_manager == 'tessera'
+
+    # Generate admin key for permissioning
+    - name: Generate admin key for permissioning
+      include_role:
+        name: create/crypto/key_generation
+      vars:
+        build_path: "{{ playbook_dir }}/build"
+        component_ns: "{{ org.name | lower }}-bes"
+        vault: "{{ org.vault }}"
+        user: "admin"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+          loop_var: org
+      when: network.permissioning.enabled is defined and network.permissioning.enabled == true
+
+  #These variables can be overriden from the command line
+  vars:
+    install_os: "linux"         # Default to linux OS
+    install_arch:  "amd64"      # Default to amd64 architecture
+    bin_install_dir:  "~/bin"   # Default to /bin install directory for binaries
+    add_new_org: false          # 'add_new_org' flag, defaults to false when not defined.

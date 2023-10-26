@@ -21,7 +21,7 @@
 <a name = "create-channel-hyperledger-fabric-deployment-helm-chart"></a>
 ## Create Channel Hyperledger Fabric Deployment Helm Chart
 ---
-A [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/commit_chaincode) to create a channel.
+A [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/create_channel) to create a channel.
 
 
 <a name = "prerequisites"></a>
@@ -69,7 +69,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                           | Default Value                                     |
 | ----------------------| ----------------------------------------------------------------------|---------------------------------------------------|
-| namespace             | Provide the namespace for organization's peer                         | org1-example-com                                  |
+| namespace             | Provide the namespace for organization's peer                         | org1-net                                  |
 | images.fabrictools    | Valid image name and version for fabric tools                         | hyperledger/fabric-tools:2.2.2                    |
 | images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Custom labels (other than specified)                                  | ""                                                |
@@ -86,7 +86,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name          | Description                                   | Default Value                 |
 | --------------| ----------------------------------------------| ------------------------------|
 | name          | Name of the peer as per deployment yaml       | peer0                         |
-| address       | Address of the peer and grpc cluster IP port  | peer0.org1-example-com:7051   |
+| address       | Address of the peer and grpc cluster IP port  | peer0.org1-net:7051   |
 | localmspid    | Local MSP ID for organization                 | Org1MSP                       |
 | loglevel      | Log level for organization's peer             | debug                         |
 | tlsstatus     | True or False for organization's peer         | true                          |
@@ -97,10 +97,11 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ------------------- | --------------------------------------------------------------------| ------------------------------|
 | role                | Vault role for the organization                                     | vault-role                    |
 | address             | Vault server address                                                | ""                            |
-| authpath            | Kubernetes auth backend configured in vault for the organization    | fra-demo-hlkube-cluster-org1  |
-| adminsecretprefix   | Vault secret prefix for admin                                       | secret/adminsecretprefix/     |
-| orderersecretprefix | Vault secret prefix for orderer                                     | secret/orderersecretprefix/   |
+| authpath            | Kubernetes auth backend configured in vault for the organization    | devorg1-net-auth  |
+| adminsecretprefix   | Vault secret prefix for admin                                       | secretsv2/data/crypto/peerOrganizations/org1-net/users/admin     |
+| orderersecretprefix | Vault secret prefix for orderer                                     | secretsv2/data/crypto/peerOrganizations/org1-net/orderer   |
 | serviceaccountname  | Service account name for vault                                      | vault-auth                    |
+| type                | Provide the type of vault                                           | hashicorp    |
 | imagesecretname     | Image secret name for vault                                         | ""                            |
 | tls                 | Vault ca.cert Kubernetes secret                                     | ""                            |
 
@@ -114,7 +115,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name    | Description                 | Default Value             |
 | ------- | ----------------------------| --------------------------|
-| address | Address for the orderer     | orderer.fratest-com:7050  |
+| address | Address for the orderer     | orderer1.org1proxy.blockchaincloudpoc.com:443  |
 
 ### Other
 

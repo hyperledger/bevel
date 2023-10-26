@@ -29,7 +29,7 @@
     loop_var: org
   when: org.type == 'member'
 
-# This task adds the enode of new organizations to each of the existing nodes using rpc call
+# Add the enode of new organizations to each of the existing nodes using rpc call
 - name: Adding the enode of new peer to all existing peer.
   include_tasks: add_new_peer.yaml
   loop: "{{ network.config.besu_nodes }}"
@@ -39,13 +39,13 @@
     - add_new_org is defined and add_new_org|bool == True
     - network.config.besu_nodes is defined
 
-# Check for local genesis file
+# Checks for local genesis file
 - name: Check that the gensis file exists
   stat:
     path: "{{ network.config.genesis }}"
   register: stat_result
 
-# This task gets the genesis file when there isno local genesis
+# Gets the genesis file when there isno local genesis
 - name: get genesis from vault
   shell: |
     vault kv get -field=genesis {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis
@@ -56,13 +56,13 @@
   ignore_errors: yes
   when: stat_result.stat.exists == False
 
-#This task only runs when there is no local genesis file
+# Execute only if there is no local genesis file
 - name: Copy genesis from vault to correct path
   shell: |
     echo {{ vault_genesis.stdout }} > {{ network.config.genesis }}
   when: stat_result.stat.exists == False
 
-# This task creates the Besu node value files for each node of organization
+# Creates the Besu node value files for each node of organization
 - name: Create value file for Besu node
   include_role:
     name: create/helm_component
@@ -75,7 +75,7 @@
   loop_control:
     loop_var: peer
   
-# Git Push : Pushes the above generated files to git directory 
+# Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

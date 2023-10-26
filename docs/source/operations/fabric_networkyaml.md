@@ -44,7 +44,7 @@ The sections in the sample configuration file are:
 
 `type` defines the platform choice like corda/fabric, here in the example its Fabric
 
-`version` defines the version of platform being used. The current Fabric version support is 1.4.8 & 2.2.2
+`version` defines the version of platform being used. The current Fabric version support is 1.4.8, 2.2.2 & 2.5.4
 
 `frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
 
@@ -155,6 +155,8 @@ The snapshot of channels section with its fields and sample values is below
   - channel:
     consortium: SupplyChainConsortium
     channel_name: AllChannel
+    osn_creator_org: 
+      name: supplychain
     chaincodes:
       - "chaincode_name"
     orderers: 
@@ -239,6 +241,7 @@ The fields under the `channel` are
 |---------------------------------|------------------------------------------------------------|
 | consortium                      | Name of the consortium, the channel belongs to             |
 | channel_name                    | Name of the channel                                        |
+| osn_creator_org.name            | Name of the organization whose orderers will create the channel                                 |
 | chaincodes                      | Contains list of chaincodes for the channel                |
 | genesis.name                    | Name of the genesis block                                  |
 | orderers                        | List of names of the organizations providing ordering service           |

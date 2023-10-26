@@ -67,7 +67,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                       | Default Value                                     |
 | ----------------------| --------------------------------------------------| --------------------------------------------------|
-| namespace             | Namespace for organization's peer                 | org1-example-com                                  |
+| namespace             | Namespace for organization's peer                 | org1-net                                  |
 | images.fabrictools    | Image for Hyperledger Fabric tools                | hyperledger/fabric-tools:2.2.2                    |
 | images.alpineutils    | Image to read certificates from Vault server      | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Custom labels                                     | ""                                                |
@@ -88,10 +88,11 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| --------------------------------------------------| ------------------------------|
 | role                  | Vault role for the organization                   | vault-role                    |
 | address               | Vault server address                              | ""                            |
-| authpath              | Kubernetes auth backend configured in Vault       | fra-demo-hlkube-cluster-org1  |
-| adminsecretprefix     | Vault secret prefix for admin                     | secret/adminsecretprefix/     |
-| orderersecretprefix   | Vault secret prefix for orderer                   | secret/orderersecretprefix/   |
+| authpath              | Kubernetes auth backend configured in Vault       | devorg1-net-auth              |
+| adminsecretprefix     | Vault secret prefix for admin                     | secretsv2/data/crypto/peerOrganizations/org1-net/users/admin     |
+| orderersecretprefix   | Vault secret prefix for orderer                   | secretsv2/data/crypto/peerOrganizations/org1-net/orderer  |
 | serviceaccountname    | Service account name for Vault                    | vault-auth                    |
+| type                  | Provide the type of vault                         | hashicorp    |
 | imagesecretname       | Image secret name for Vault (Optional)            | ""                            |
 | tls                   | Enable or disable TLS for Vault communication     | ""                            |
 
@@ -99,15 +100,15 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name           | Description               | Default Value                |
 | ---------------| --------------------------| -----------------------------|
-| address        | Address for the orderer   | orderer-ext.example-com:443  |
+| address        | Address for the orderer   | orderer1.org1proxy.blockchaincloudpoc.com:443  |
 
 ### Chaincode
 
 | Name                  | Description                                       | Default Value                     |
 | ----------------------| --------------------------------------------------| ----------------------------------|
 | builder               | Chaincode builder image for Fabric                | hyperledger/fabric-ccenv:2.2.2    |
-| name                  | Name of the chaincode to be upgraded              | cc                                |
-| version               | Chaincode version to be upgraded                  | "1.0"                             |
+| name                  | Name of the chaincode to be upgraded              | example                                |
+| version               | Chaincode version to be upgraded                  | 1                             |
 | upgradearguments      | Upgrade arguments for the chaincode               | ""                                |
 | endorsementpolicies   | Endorsement policies for the chaincode (Optional) | ""                                |
 

@@ -142,18 +142,28 @@ spec:
           #!/bin/bash sh
 
           . /scripts/package-manager.sh
-          # Define the packages to install
-          packages_to_install="curl openssh"
-          install_packages "$packages_to_install"
 
           ## Git repository clone for chaincode
-          mkdir -p /root/.ssh/          
+          version2_5=`echo $NETWORK_VERSION | grep -c 2.5`
+          if [ $version2_5 = 1 ]
+          then
+            GOPATH="/root/go"
+            mkdir -p $GOPATH 
+            # Define the packages to install
+            packages_to_install="openssh-client git"
+            install_packages "$packages_to_install"
+          else 
+            # Define the packages to install
+            packages_to_install="curl openssh"
+            install_packages "$packages_to_install"
+          fi 
 
+          mkdir -p /root/.ssh/     
           ssh-keyscan {{ $.Values.chaincode.repository.hostname }} > /root/.ssh/known_hosts
           git_password=$(cat /opt/gopath/src/github.com/hyperledger/fabric/crypto/user_cred)
           cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode > git.log 2>&1
           ## Check if the repository was cloned correctly
-          if [[ ! $? -eq 0 ]];
+          if [ $? -ne 0 ];
           then
             cat git.log
             exit 1
@@ -168,6 +178,11 @@ spec:
 
             # Get dependencies
             mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/hyperledger/bevel/main/platforms/hyperledger-fabric/scripts/install.sh | sh
+            if [ $version2_5 = 1 ]
+            then
+              export PATH=$PATH:$GOPATH/bin
+              go env -w GO111MODULE=auto
+            fi
             cd $GOPATH/src/github.com/chaincode && dep ensure
 
             #chaincode path
@@ -266,10 +281,6 @@ spec:
             ## Installing Chaincode
             peer lifecycle chaincode install ${CHAINCODE_NAME}.tar.gz
             echo "Chaincode installed for Fabric v.2.X"
-            #query installed
-            echo "peer query installed"
-            peer lifecycle chaincode queryinstalled
-            
             ## Check if chaincode got installed 
             INSTALLED=$(peer lifecycle chaincode queryinstalled -O json | jq '.installed_chaincodes?' | \
               jq --arg CCLABEL "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" '.[]? | select(.label==$CCLABEL)')
@@ -279,6 +290,10 @@ spec:
               exit 1
             fi
           fi
+
+          #query installed
+          echo "peer query installed"
+          peer lifecycle chaincode queryinstalled
         env:
         - name: PEER_NAME
           value: {{ $.Values.peer.name }}
