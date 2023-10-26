@@ -74,7 +74,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                           | Default Value                                         |
 | ----------------------| --------------------------------------------------------------------- | ------------------------------------------------------|
-| namespace             | Provide the namespace for organization's peer                         | org1-example-com                                      |
+| namespace             | Provide the namespace for organization's peer                         | org1-net                                      |
 | images.couchdb        | Valid image name and version for fabric couchdb                       | couchdb:3.1.1                                         |
 | images.console        | Valid image name and version for fabric operations console            | ghcr.io/hyperledger-labs/fabric-console:latest        |
 | images.configtxlator  | Valid image name and version to read certificates from vault server   | hyperledger/fabric-tools:2.2.2                        |
@@ -120,7 +120,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                      | Description                                       | Default Value                         |
 | --------------------------| --------------------------------------------------| --------------------------------------|
 | proxy.provider            | Proxy/ingress provider (none or haproxy)          | haproxy                               |
-| proxy.external_url_suffix | External URL suffix of the organization           | org1.blockchaincloudpoc.com           |
+| proxy.external_url_suffix | External URL suffix of the organization           | orderer1.org1proxy.blockchaincloudpoc.com:443           |
 
 
 <a name = "deployment"></a>

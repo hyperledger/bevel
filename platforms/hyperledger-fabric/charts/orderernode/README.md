@@ -74,7 +74,8 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                   | Description                                                           | Default Value                                    |
 | ---------------------- | ----------------------------------------------------------------------| -------------------------------------------------|
-| namespace              | Namespace for orderer                                                 | example-com                                      |
+| namespace              | Namespace for orderer                                                 | org1-net                                      |
+| network.version        | HyperLedger Fabric network version                                    | 2.2.2                                             |
 | images.orderer         | Valid image name and version for fabric orderer                       | hyperledger/fabric-orderer:2.2.2                 |
 | images.alpineutils     | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest          |
 | images.healthcheck     | Valid image name and version for health check of Kafka                | busybox                                          |
@@ -89,6 +90,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | localmspid                  | Local MSP ID for orderer deployment                                     | OrdererMSP      |
 | tlsstatus                   | Enable/disable TLS for orderer deployment                               | true            |
 | keepaliveserverinterval     | Interval in which the orderer signals the connection has kept alive     | 10s             |
+| address      | Provide the address for orderer    | orderer1.org1proxy.blockchaincloudpoc.com:443  |
 
 ### Consensus
 
@@ -100,7 +102,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                        | Default Value   |
 | ----------------------| -----------------------------------| ----------------|
-| storageclassname      | Storage class name for orderer     | aws-storage     |
+| storageclassname      | Storage class name for orderer     | aws-storageclassname     |
 | storagesize           | Storage size for storage class     | 512Mi           |
 
 ### Service
@@ -126,8 +128,9 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | --------------------------- | --------------------------------------------------------------------| --------------------------------- |
 | address                     | Vault server address                                                | ""                                |
 | role                        | Vault role for orderer deployment                                   | vault-role                        |
-| authpath                    | Kubernetes auth backend configured in vault for orderer deployment  | fra-demo-hlkube-cluster-orderer   |
-| secretprefix                | Vault secretprefix                                                  | secret/secretprefix/              |
+| authpath                    | Kubernetes auth backend configured in vault for orderer deployment  | devorg1-net-auth   |
+| type                        | Provide the type of vault                                           | hashicorp    |
+| secretprefix                | Vault secretprefix                                                  | secretsv2/data/crypto/ordererOrganizations/org1-net/orderers/orderer.org1-net              |
 | imagesecretname             | Image secret name for vault                                         | ""                                |
 | serviceaccountname          | Service account name for vault                                      | vault-auth                        |
 | tls                         | Enable/disable TLS for vault communication                          | ""                                |
@@ -145,7 +148,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                        | Description                             | Default Value                  |
 | --------------------------- | --------------------------------------- | ------------------------------ |
 | provider                    | Proxy/ingress provider                  | none                           |
-| external_url_suffix         | External URL suffix of the organization | org1.blockchaincloudpoc.com    |
+| external_url_suffix         | External URL suffix of the organization | org1proxy.blockchaincloudpoc.com:443    |
 
 ### Config
 

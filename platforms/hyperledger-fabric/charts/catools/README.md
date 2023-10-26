@@ -71,7 +71,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                       | Default Value       |
 | ----------------------| --------------------------------------------------| ------------------- |
-| namespace             | Namespace for CA deployment                       | example-com         |
+| namespace             | Namespace for CA deployment                       | org1-net         |
 | name                  | Name for CA server deployment                     | ca-tools            |
 | component_type        | Organization's type (orderer or peer)             | orderer             |
 | org_name              | Organization's name in lowercase                  | org1                |
@@ -104,25 +104,25 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                 | Default Value       |
 | ----------------------| --------------------------- | ------------------- |
-| storageclassname      | Storage class name          | aws-storage         |
+| storageclassname      | Storage class name          | aws-storageclass         |
 | storagesize           | Storage size for CA         | 512Mi               |
 
 ### Vault
 
 | Name                  | Description                                                       | Default Value                     |
 | ----------------------| ------------------------------------------------------------------|-----------------------------------|
-| role                  | Vault role for an organization                                    | org1-vault-role                   |
+| role                  | Vault role for an organization                                    | vault-role                   |
 | address               | Vault server address                                              | ""                                |
-| authpath              | Kubernetes auth backend configured in vault for an organization   | fra-demo-hlkube-cluster-org1      |
-| secretmsp             | Path configured in vault for admin MSP                            | secret/secretmsp/                 |
-| secrettls             | Path configured in vault for admin TLS                            | secret/secrettls/                 |
-| secretorderer         | Path configured in vault for orderers                             | secret/secretorderer/             |
-| secretpeerorderertls  | Path configured in vault for peer orderer TLS                     | secret/secretpeerorderertls/      |
-| secretcert            | Path configured in vault for CA server certificate                | secret/secretcert/                |
-| secretkey             | Path configured in vault for CA server private key                | secret/secretkey/                 |
-| secretconfigfile      | Path configured in vault for MSP config.yaml file                 | secret/secretconfigfile/          |
-| secretcouchdb         | Path configured in vault for CouchDB credentials                  | secret/secretcouchdb/             |
+| authpath              | Kubernetes auth backend configured in vault for an organization   | devorg1-net-auth      |
+| secretusers             | Path configured in vault for users certificates                 | secretsv2/data/crypto/ordererOrganizations/org1-net/users                |
+| secretorderer         | Path configured in vault for orderers                             | secretsv2/data/crypto/ordererOrganizations/org1-net/orderers             |
+| secretpeerorderertls  | Path configured in vault for peer orderer TLS                     | secretsv2/data/crypto/peerOrganizations/org1-net/orderer/tls      |
+| secretcert            | Path configured in vault for CA server certificate                | secretsv2/data/crypto/ordererOrganizations/org1-net/ca?ca.org1-net-cert.pem                |
+| secretkey             | Path configured in vault for CA server private key                | secretsv2/data/crypto/ordererOrganizations/org1-net/ca?org1-net-CA.key                 |
+| secretconfigfile      | Path configured in vault for MSP config.yaml file                 | secretsv2/data/crypto/ordererOrganizations/org1-net/msp/config          |
+| secretcouchdb         | Path configured in vault for CouchDB credentials                  | secretsv2/data/credentials/org1-net/couchdb/org1             |
 | serviceaccountname    | Service account name for Vault                                    | vault-auth                        |
+| type        | Provide the type of vault    | hashicorp    |
 | imagesecretname       | Image secret name for Vault                                       | ""                                |
 
 ### HealthCheck
@@ -136,7 +136,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                       | Default Value   |
 | ----------------------| ----------------------------------| ----------------|
-| external_url_suffix   | External URL of the organization  | ""              |
+| external_url_suffix   | External URL of the organization  | org1proxy.blockchaincloudpoc.com              |
 | component_subject     | Organization's subject            | ""              |
 | cert_subject          | Organization's subject            | ""              |
 | component_country     | Organization's country            | UK              |
@@ -169,7 +169,8 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                 | Default Value       |
 | ----------------------| --------------------------- | ------------------- |
-| refresh_cert_value    | Refresh user certificates   | ""                  |
+| refresh_cert_value    | Refresh user certificates   | false                  |
+| add_peer_value        | Add a peer to an existing network    | false                  |
 
 
 <a name = "deployment"></a>
