@@ -69,7 +69,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                           | Default Value                                     |
 | ----------------------| ----------------------------------------------------------------------|---------------------------------------------------|
-| namespace             | Provide the namespace for organization's peer                         | org1-example-com                                  |
+| namespace             | Provide the namespace for organization's peer                         | org1-net                                  |
 | network.version             | Provide Fabric version                    | 2.5.4                                 |
 | images.fabrictools    | Valid image name and version for fabric tools                         | hyperledger/fabric-tools:2.2.2                    |
 | images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
@@ -88,9 +88,10 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ------------------- | --------------------------------------------------------------------| ------------------------------|
 | role                | Vault role for the organization                                     | vault-role                    |
 | address             | Vault server address                                                | ""                            |
-| authpath            | Kubernetes auth backend configured in vault for the organization    | devorg1-example-com-auth |
+| authpath            | Kubernetes auth backend configured in vault for the organization    | devorg1-net-auth |
 | orderersecretprefix | Vault secret prefix for orderer                                     | secret/secretsv2/crypto/ordererOrganizations/org1-net/orderers   |
 | serviceaccountname  | Service account name for vault                                      | vault-auth                    |
+| type                | Provide the type of vault                                           | hashicorp    |
 | imagesecretname     | Image secret name for vault                                         | ""                            |
 | tls                 | Vault ca.cert Kubernetes secret                                     | ""                            |
 
@@ -166,7 +167,7 @@ Replace `<release-name>` with the name of the release. This command will remove 
 <a name = "contributing"></a>
 ## Contributing
 ---
-If you encounter any bugs, have suggestions, or would like to contribute to the [Osn Create Channel Hyperledger Fabric Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/osn_create_channel), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
+If you encounter any bugs, have suggestions, or would like to contribute to the [Osn Create Channel Hyperledger Fabric Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/osn_create_channel), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
 
 
 <a name = "license"></a>

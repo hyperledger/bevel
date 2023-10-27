@@ -77,7 +77,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                           | Default Value                                     |
 | ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
-| namespace             | Provide the namespace for organization's peer                         | org1-example-com                                  |
+| namespace             | Provide the namespace for organization's peer                         | org1-net                                  |
 | images.couchdb        | valid image name and version for fabric couchdb                       | couchdb:3.1                                       |
 | images.peer           | valid image name and version for fabric peer                          | hyperledger/fabric-peer:2.2.2                     |
 | images.alpineutils    | valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
@@ -96,12 +96,12 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                                      | Description                                                           | Default Value                                 |
 | ------------------------------------------| ----------------------------------------------------------------------| ----------------------------------------------|
 | name                                      | Name of the peer as per deployment yaml                               | peer0                                         |
-| gossippeeraddress                         | URL of gossipping peer and port for grpc                              | peer1.org1-example-com.svc.cluster.local:7051 |
-| gossipexternalendpoint                    | URL of gossip external endpoint and port for haproxy https service | peer1-ext.org1-example-com:443                |
+| gossippeeraddress                         | URL of gossipping peer and port for grpc                              | peer1.org1-net.svc.cluster.local:7051 |
+| gossipexternalendpoint                    | URL of gossip external endpoint and port for haproxy https service | peer0.org1-net.org1proxy.blockchaincloudpoc.com:443               |
 | localmspid                                | Local MSP ID for the organization                                     | Org1MSP                                       |
 | loglevel                                  | Log level for organization's peer                                     | info                                          |
 | tlsstatus                                 | Set to true or false for organization's peer                          | true                                          |
-| builder                                   | Valid chaincode builder image for Fabric                              | hyperledger/fabric-ccenv:1.4.8                |
+| builder                                   | Valid chaincode builder image for Fabric                              | hyperledger/fabric-ccenv:2.2.2                |
 | couchdb.username                          | CouchDB username (mandatory if provided)                              | org1-user                                     |
 | configpath                                | Provide the configuration path                                        | ""                                            |
 | core                                      | Provide core configuration                                            | ""                                            |
@@ -115,9 +115,9 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                      | Description                      | Default Value       |
 | --------------------------| -------------------------------- | ------------------- |
-| peer.storageclassname     | Storage class name for peer      | aws-storage         |
+| peer.storageclassname     | Storage class name for peer      | aws-storageclass         |
 | peer.storagesize          | Storage size for peer            | 512Mi               |
-| couchdb.storageclassname  | Storage class name for CouchDB   | aws-storage         |
+| couchdb.storageclassname  | Storage class name for CouchDB   | aws-storageclass         |
 | couchdb.storagesize       | Storage size for CouchDB         | 512Mi               |
 
 ### Vault
@@ -126,11 +126,12 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
 | role                  | Vault role for the organization                                       | vault-role                                        |
 | address               | Vault server address                                                  | ""                                                |
-| authpath              | Kubernetes auth backend configured in vault for the organization      | fra-demo-hlkube-cluster-org1                      |
-| secretprefix          | Vault secret prefix                                                   | secret/secretprefix/                              |
+| authpath              | Kubernetes auth backend configured in vault for the organization      | devorg1-net-auth                      |
+| secretprefix          | Vault secret prefix                                                   | ssecretsv2/data/crypto/peerOrganizations/org1-net/peers/peer0.org1-net                              |
 | serviceaccountname    | Service account name for vault                                        | vault-auth                                        |
+| type                  | Provide the type of vault                                             | hashicorp    |
 | imagesecretname       | Image secret name for vault                                           | ""                                                |
-| secretcouchdbpass     | Vault path for secret CouchDB password                                | secret/credentials/org1-example-com/couchdb/org1  |
+| secretcouchdbpass     | Vault path for secret CouchDB password                                | secretsv2/data/credentials/org1-net/couchdb/org1?user  |
 | tls                   | Enable or disable TLS for vault communication                         | ""                                                |
 
 ### Service
@@ -153,7 +154,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                  | Description                                               | Default Value       |
 | ----------------------| ----------------------------------------------------------| ------------------- |
 | provider              | Proxy/ingress provider ( haproxy or none)     | none                |
-| external_url_suffix   | External URL of the organization                          | ""                  |
+| external_url_suffix   | External URL of the organization                          | org1proxy.blockchaincloudpoc.com                  |
 | port                  | External port on proxy service                               | 443                 |
 
 ### Config

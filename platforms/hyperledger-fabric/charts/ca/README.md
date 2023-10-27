@@ -80,7 +80,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                      | Default Value                                     |
 | ----------------------| -----------------------------------------------------------------| --------------------------------------------------|
-| namespace             | Namespace for CA server                                          | default                                           |
+| namespace             | Namespace for CA server                                          | org1-net                                          |
 | images.ca             | image name and version for fabric ca                             | hyperledger/fabric-ca:1.4.8                       |
 | images.alpineutils    | image name and version to read certificates from vault server    | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Provide the custom labels                                        | ""                                                |
@@ -99,7 +99,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                           | Default Value |
 | ----------------------| --------------------------------------| ------------- |
-| storageclassname      | Storage class name for CA server      | aws-storage   |
+| storageclassname      | Storage class name for CA server      | aws-storageclass   |
 | storagesize           | Size of storage for CA server         | 512Mi         |
 
 ### Vault
@@ -109,10 +109,11 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | address               | Vault server address                                                | ""                                |
 | role                  | Vault role for deployment                                           | vault-role                        |
 | authpath              | Kubernetes auth backend configured in Vault for CA server           | fra-demo-hlkube-cluster-cluster   |
-| secretcert            | Path of secret certificate configured in Vault for CA server        | secret/secretcert/                |
-| secretkey             | Path of secret key configured in Vault for CA server                | secret/secretkey/                 |
-| secretadminpass       | Secret path for admin password configured in Vault for CA server    | secret/secretadminpass/           |
+| secretcert            | Path of secret certificate configured in Vault for CA server        | secretsv2/data/crypto/peerOrganizations/org1-net/ca?ca.org1-net-cert.pem                |
+| secretkey             | Path of secret key configured in Vault for CA server                | secretsv2/data/crypto/peerOrganizations/org1-net/ca?org1-net-CA.key               |
+| secretadminpass       | Secret path for admin password configured in Vault for CA server    | secretsv2/data/credentials/org1-net/ca/org1?user          |
 | serviceaccountname    | Service account name for Vault                                      | vault-auth                        |
+| type        | Provide the type of vault    | hashicorp    |
 | imagesecretname       | Image secret name for Vault                                         | ""                                |
 | tls                   | Enable or disable TLS for Vault communication                       | ""                                |
 | tlssecret             | Kubernetes secret for Vault CA certificate                          | vaultca                           |
@@ -138,7 +139,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| -------------------------------------------------------------------------|--------------------------------|
 | provider              | Proxy/ingress provider. Possible values: "haproxy" or "none"             | haproxy                        |
 | type                  | Type of the deployment. Possible values: "orderer", "peer", or "test"    | test                           |
-| external_url_suffix   | External URL suffix for the organization                                 | org1.blockchaincloudpoc.com    |
+| external_url_suffix   | External URL suffix for the organization                                 | org1proxy.blockchaincloudpoc.com    |
 
 
 <a name = "deployment"></a>

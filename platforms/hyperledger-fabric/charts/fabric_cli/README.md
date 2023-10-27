@@ -69,7 +69,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                                                           | Default Value                                     |
 | ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
-| namespace             | Namespace for organization's peer deployment                          | org1-net                                          |
+| namespace             | Namespace for organization's peer deployment                          | org1-net                                         |
 | images.fabrictools    | Valid image name and version for fabric tools                         | hyperledger/fabric-tools:2.2.2                    |
 | images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
 
@@ -77,7 +77,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name        | Description           | Default Value  |
 | ------------| ----------------------| ---------------|
-| class       | Storage class name    | standard       |
+| class       | Storage class name    | aws-storageclass      |
 | size        | Storage size          | 256Mi          |
 
 ### Vault 
@@ -86,27 +86,28 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| ------------------------------------------------------------------| -------------------------------|
 | role                  | Vault role for the organization                                   | vault-role                     |
 | address               | Vault server address                                              | ""                             |
-| authpath              | Kubernetes auth backend configured in Vault for the organization  | fra-demo-hlkube-cluster-org1   |
-| adminsecretprefix     | Vault secret prefix for admin                                     | secret/adminsecretprefix/      |
-| orderersecretprefix   | Vault secret prefix for orderer                                   | secret/orderersecretprefix/    |
+| authpath              | Kubernetes auth backend configured in Vault for the organization  | devorg1-net-auth   |
+| adminsecretprefix     | Vault secret prefix for admin                                     | secretsv2/data/crypto/peerOrganizations/org1-net/users/admin      |
+| orderersecretprefix   | Vault secret prefix for orderer                                   | secretsv2/data/crypto/peerOrganizations/org1-net/orderer    |
 | serviceaccountname    | Service account name for Vault                                    | vault-auth                     |
+| type                  | Provide the type of vault                                         | hashicorp    |
 | imagesecretname       | Image secret name for Vault                                       | ""                             |
 | tls                   | TLS status for Vault communication                                | ""                             |
 
 ### Peer Configuration
 
-| Name          | Description                                 | Default Value               |
-| --------------| --------------------------------------------| ----------------------------|
-| name          | Name of the peer as per deployment YAML     | peer0                       |
-| localmspid    | Local MSP ID for the organization's peer    | Org1MSP                     |
-| tlsstatus     | TLS status for the organization's peer      | true                        |
-| address       | Address for the peer                        | peer0.org1-example-com:7051 |
+| Name          | Description                                 | Default Value                |
+| --------------| --------------------------------------------| -----------------------------|
+| name          | Name of the peer as per deployment YAML     | peer0                        |
+| localmspid    | Local MSP ID for the organization's peer    | Org1MSP                      |
+| tlsstatus     | TLS status for the organization's peer      | true                         |
+| address       | Address for the peer                        | peer0.org1-net:7051 |
 
 ### Orderer Configuration
 
 | Name        | Description              | Default Value                |
 | ------------| -------------------------| -----------------------------|
-| address     | Address for the orderer  | orderer-ext.example-com:443  |
+| address     | Address for the orderer  | orderer1.org1proxy.blockchaincloudpoc.com:443  |
 
 
 <a name = "deployment"></a>

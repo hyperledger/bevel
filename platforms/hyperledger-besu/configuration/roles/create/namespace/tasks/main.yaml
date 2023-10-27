@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This role creates the deployment files for namespaces
+# Creates the deployment files for namespaces
 # Check Namespace exists already
 - name: "Checking if the namespace {{ component_ns }} already exists"
   include_role:
@@ -14,6 +14,7 @@
     component_name: "{{ component_ns }}"
     type: "no_retry"
 
+# Set Global variable
 - name: "Set Variable"
   set_fact:
     get_namespace: "{{ result }}"
@@ -29,6 +30,7 @@
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
   when: get_namespace.resources|length == 0
 
+# Push the created deployment files to the Git repository
 - name: "Push the created deployment files to repository"
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

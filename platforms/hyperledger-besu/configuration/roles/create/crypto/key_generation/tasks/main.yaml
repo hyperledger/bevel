@@ -4,15 +4,19 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+---
+
+# Ensure the directory exists for storing keys
 - name: Ensure directory exists
   file:
     path: "{{ build_path }}/crypto/{{ user }}//{{ org.name }}"
     state: directory
     recurse: yes
 
-# check if  key present in vault
-- name: Check the {{ user }} key of {{ org.name }} in Vault
+# Check if the key is present in Vault
+- name: Check if the {{ user }} key of {{ org.name }} is present in Vault
   shell: |
+    # Retrieve the public and private keys from Vault
     vault kv get -field=key_pub {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ user }} > "{{ build_path }}/crypto/{{ user }}/{{ org.name }}/key_pub"
     vault kv get -field=key {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ user }} > "{{ build_path }}/crypto/{{ user }}/{{ org.name }}/key"
   environment:
@@ -21,21 +25,24 @@
   register: vault_result
   ignore_errors: yes
 
+# Set a flag to generate keys if they are not found in Vault
 - set_fact:
     generate_key: True
   when: vault_result.failed is defined and vault_result.failed == True
 
-# generate ppk
-- name: Generate {{ user }} key for {{ org.name }}
+# Generate a public key
+- name: Generate {{ user }}'s public key for {{ org.name }}
   shell: |
+    # Generate a public key and move it to the specified location
     {{ bin_install_dir }}/besu/besu-{{ network.version }}/besu public-key export-address --to={{ build_path }}/crypto/{{ user }}/{{ org.name }}/key_pub
     mv {{ bin_install_dir }}/besu/key {{ build_path }}/crypto/{{ user }}/{{ org.name }}/key
   register: output
   when: generate_key is defined and generate_key == True
 
-# Store the keys in vault at {{org}}/crypto/{{user}}.
-- name: Copy the {{ user }} key to Vault
+# Store the public and private keys in Vault
+- name: Store the {{ user }}'s public and private keys in Vault
   shell: |
+    # Store the public and private keys in Vault
     vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ user }} key="$(cat {{ build_path }}/crypto/{{ user }}/{{ org.name }}/key)" key_pub="$(cat {{ build_path }}/crypto/{{ user }}/{{ org.name }}/key_pub)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"

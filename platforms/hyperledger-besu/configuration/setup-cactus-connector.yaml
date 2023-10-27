@@ -4,12 +4,14 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
----
-#######################################
+##############################################################################################
 # Playbook to setup the environment for running Hyperledger Bevel configurations
-#  - checks and installs kubectl, helm and vault clients
-#  - If cloud platform is AWS, checks and installs aws-cli and aws-authenticator
-#######################################
+# - checks and installs kubectl, helm and vault clients
+# - If cloud platform is AWS, checks and installs aws-cli and aws-authenticator
+##############################################################################################
+
+---
+# This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
 - hosts: ansible_provisioners
   gather_facts: yes
   no_log: "{{ no_ansible_log | default(false) }}"
@@ -24,8 +26,9 @@
       charts_dir: "platforms/hyperledger-besu/charts"
       values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
     with_items: "{{ network.organizations }}"
-  vars: #These variables can be overriden from the command line
-    privilege_escalate: false           #Default to NOT escalate to root privledges
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"           #Default to ~/bin install directory for binaries
+  # These variables can be overriden from the command line
+  vars:
+    privilege_escalate: false   # Default to NOT escalate to root privledges
+    install_os: "linux"         # Default to linux OS
+    install_arch:  "amd64"      # Default to amd64 architecture
+    bin_install_dir:  "~/bin"   # Default to ~/bin install directory for binaries

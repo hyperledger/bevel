@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task creates the rlp encoded string and adds it to extraData field in newGenesis.json
+# Creates the rlp encoded string and adds it to extraData field in newGenesis.json
 - name: Create the new genesis file with information for validator nodes
   vars:
     argument: "{{ '--type=QBFT_EXTRA_DATA' if network.config.consensus=='qbft' else '' }}"
@@ -14,9 +14,9 @@
     awk 'NR == 1' {{ build_path }}/extraData > {{ build_path }}/extraData_format
     jq '.extraData = $newVal' --arg newVal $(cat {{ build_path }}/extraData_format) << cat {{ build_path }}/crypto/genesis.json > {{ build_path }}/crypto/newGenesis.json
   when:
-    - network.config.consensus in ["ibft","qbft","ethash"]
+    - network.config.consensus in ["ibft", "qbft", "ethash"]
 
-# This task creates the rlp encoded string and add it to extraData field in newGenesis.json
+# Creates the rlp encoded string and add it to extraData field in newGenesis.json
 - name: Create the new genesis file with information for validator nodes    
   vars:
     - PREFIX: '0x0000000000000000000000000000000000000000000000000000000000000000'
@@ -25,4 +25,4 @@
       cat {{ build_path }}/validatorinfo | awk -v prefix={{ PREFIX }} -v suffix={{ SUFFIX }} 'BEGIN {printf prefix}; {gsub(/"/,"",$1); gsub(/^0x/,"",$1); printf "%s",$1}; END {printf suffix}' > {{ build_path }}/extraData
       jq '.extraData = $newVal' --arg newVal $(cat {{ build_path }}/extraData) << cat {{ build_path }}/crypto/genesis.json > {{ build_path }}/crypto/newGenesis.json
   when: 
-   - network.config.consensus == "clique"
+    - network.config.consensus == "clique"

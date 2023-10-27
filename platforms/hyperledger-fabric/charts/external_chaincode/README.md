@@ -69,7 +69,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                      | Description                                           | Default Value                                     |
 | --------------------------| ------------------------------------------------------| --------------------------------------------------|
-| namespace                 | Provide the namespace for organization's peer         | default                                           |
+| namespace                 | Provide the namespace for organization's peer         | org1-net                                          |
 | network.version           | Version of the network                                | 2.2.2                                             |
 | images.external_chaincode | Valid image name and version for chaincode server     | ghcr.io/hyperledger/bevel-samples-example:1.0     |
 | images.alpineutils        | Valid image name and version for Alpine utilities     | ghcr.io/hyperledger/bevel-alpine:latest           |
@@ -94,9 +94,10 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| ------------------------------------------------------------------------------|-------------------------------|
 | role                  | Provide the vaultrole for an organization                                     | vault-role                    |
 | address               | Provide the vault server address                                              | ""                            |
-| authpath              | Provide the kubernetes auth backend configured in vault for an organization   | ""                            |
-| chaincodesecretprefix | Provide the value for vault secretprefix                                      | secret/chaincodesecretprefix/ |
+| authpath              | Provide the kubernetes auth backend configured in vault for an organization   | devorg1-net-auth                            |
+| chaincodesecretprefix | Provide the value for vault secretprefix                                      | secretsv2/data/crypto/peerOrganizations/org1-net/chaincodes/example/certificate/v1 |
 | serviceaccountname    | Provide the serviceaccountname for vault                                      | vault-auth                    |
+| type                  | Provide the type of vault                                                     | hashicorp    |
 | imagesecretname       | Provide the imagesecretname for vault                                         | ""                            |
 | tls                   | Kubernetes secret for vault ca.cert                                           | ""                            |
 

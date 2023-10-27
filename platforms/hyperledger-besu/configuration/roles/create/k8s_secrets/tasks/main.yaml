@@ -8,7 +8,7 @@
 # This role creates secrets 
 #############################################################################################
 
-# This task checks if Ambassador credentials exist already
+# Checks if Ambassador credentials exist already
 - name: Check Ambassador cred exists
   k8s_info:
     kind: Secret
@@ -19,7 +19,7 @@
   register: get_ambassador_secret
   when: check == "ambassador_creds"
 
-# Checks if certificates are already created and stored in vault.
+# Check if ambassador and tls certs already created & available in the vault
 - name: Check if ambassador and tls certs already created
   shell: |
     vault kv get -field=rootca_pem {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ node_name }}/tls
@@ -27,10 +27,12 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: certs
-  when: check == "ambassador_creds"
+  when: 
+  - check == "ambassador_creds"
+  - get_ambassador_secret.resources|length == 0 # Newly added condition
   ignore_errors: yes
 
-# Gets the existing ambassador tls certs
+# Get ambassador and tls certs from Vault
 - name: Get ambassador and tls certs from Vault
   shell: |
     vault kv get -format=yaml {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ node_name }}/tls
@@ -38,8 +40,11 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: certs_yaml
-  when: certs.failed == False and check == "ambassador_creds"
+  when: 
+  - certs.failed == False and check == "ambassador_creds"
+  - get_ambassador_secret.resources|length == 0 # Newly added condition
 
+# Get ambassador tls certs
 - name: Get ambassador tls certs
   include_role: 
     name: "setup/get_crypto"
@@ -47,9 +52,11 @@
     vault_output: "{{ certs_yaml.stdout | from_yaml }}"
     type: "ambassador"
     cert_path: "{{ ambassadortls }}"
-  when: certs.failed == False and check == "ambassador_creds"
+  when: 
+  - certs.failed == False and check == "ambassador_creds"
+  - get_ambassador_secret.resources|length == 0 # Newly added condition
 
-# This task creates the Ambassador TLS credentials
+# creates the Ambassador TLS credentials
 - name: Create the Ambassador credentials 
   k8s:
     definition:

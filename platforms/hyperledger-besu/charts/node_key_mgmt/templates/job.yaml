@@ -74,31 +74,44 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
+
+          # Source the bevel-vault.sh script to perform the Vault-CURD operations
           . /scripts/bevel-vault.sh
+
+          # Get the Vault token
           echo "Getting the vault Token..."
           vaultBevelFunc 'init'
 
+          # Define the path for node crypto data
           CRYPTO_PATH=/crypto
-            
+
+          # Iterate through each peer and validator nodes in the organization
           {{- range .Values.organisation.nodes }}
-          mkdir ${CRYPTO_PATH}/{{ .name }}
-          VAULT_PATH_NODE_CRYPTO=data/{{ $.Values.metadata.namespace }}/crypto/{{ .name }}/data
-          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO}"
-          # Check for node crypto ..
-          vaultBevelFunc 'readJson' ${vault_secret_key}
-          NODE_KEY=$(echo ${VAULT_SECRET} | jq -r '.["key"]')
-          
-          for field in "$NODE_KEY"
-          do
-            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
-            then
-            echo "data absent in ${VAULT_PATH_NODE_CRYPTO}"
-            touch ${CRYPTO_PATH}/{{ .name }}/node_crypto_absent
-            else
-            echo "data present in ${VAULT_PATH_NODE_CRYPTO}"
-            fi
-          done
+            mkdir ${CRYPTO_PATH}/{{ .name }}
+
+            # Obtain node's crypto data from the Vault for the specific node
+            VAULT_PATH_NODE_CRYPTO=data/{{ $.Values.metadata.namespace }}/crypto/{{ .name }}/data
+            vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO}"
+            vaultBevelFunc 'readJson' ${vault_secret_key}
+
+            # Extract the key field from the Vault response
+            NODE_KEY=$(echo ${VAULT_SECRET} | jq -r '.["key"]')
+            
+            # Check if the NODE_KEY field is null, contains a parse error, or is empty
+            for field in "$NODE_KEY"
+            do
+              if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+              then
+                echo "Node crypto data is absent at vault path: ${VAULT_PATH_NODE_CRYPTO}"
+
+                # Create a marker file to indicate the absence of node crypto data
+                touch ${CRYPTO_PATH}/{{ .name }}/node_crypto_absent
+              else
+                echo "Node crypto data is present at vault path: ${VAULT_PATH_NODE_CRYPTO}"
+              fi
+            done
           {{- end }}
+
           echo "Done checking for crypto in vault"
         volumeMounts:
           - name: node-crypto
@@ -117,22 +130,33 @@ spec:
           args:
             - |-
               echo "Generating keypair and nodeAddress.."
+
+              # Define the path for crypto data
               CRYPTO_PATH=/crypto
+
+              # Iterate through each peer and validator node in the organization
               {{- range .Values.organisation.nodes }}
+                  # Check if a marker file indicates the absence of node crypto data for {{ .name }}
                   if [ -f ${CRYPTO_PATH}/{{ .name }}/node_crypto_absent ]
                   then
+                    # Create a directory to store the generated keypair and nodeAddress for {{ .name }}
                     mkdir ${CRYPTO_PATH}/{{ .name }}/data
-                    echo "Generating keypair and nodeAddress for {{ .name }}.."
+
+                    echo "Generating keypair and nodeAddress for {{ .name }}..."
+
+                    # Use Besu to export the nodeAddress and key.pub to the specified directory
                     besu --data-path ${CRYPTO_PATH}/{{ .name }}/data public-key export-address --to ${CRYPTO_PATH}/{{ .name }}/data/nodeAddress
                     besu --data-path ${CRYPTO_PATH}/{{ .name }}/data public-key export --to ${CRYPTO_PATH}/{{ .name }}/data/key.pub
                   else
-                    echo "keypair and nodeAddress for {{ .name }} already present in vault.."
+                    echo "keypair and nodeAddress for {{ .name }} are already present in the vault."
                   fi
               {{- end }}
+
+              # Create a marker file to indicate the completion of keypair and nodeAddress generation
               touch ${CRYPTO_PATH}/generate_node_keys_complete
           volumeMounts:
-           - name: node-crypto
-             mountPath: /crypto
+          - name: node-crypto
+            mountPath: /crypto
         - name:  "store-node-keys"
           image: "{{ $.Values.image.alpineutils }}"
           imagePullPolicy: IfNotPresent
@@ -153,77 +177,104 @@ spec:
           args:
             - |-
               #!/usr/bin/env sh
+
+              # Source the bevel-vault.sh script to perform the Vault-CURD operations
               . /scripts/bevel-vault.sh
+
               echo "Work on mount path.."
               cd ${MOUNT_PATH}
               
+              # Get the Vault token
+              echo "Getting Vault Token..."
               vaultBevelFunc 'init'
+
+              # Wait for the generation of node keys to complete
               while ! [ -f ${MOUNT_PATH}/generate_node_keys_complete ]
               do
-                echo 'Waiting for node keys..'
+                echo 'Waiting for the generation of node keys...'
                 sleep 2s
               done
+
               CRYPTO_PATH=${MOUNT_PATH}
+
+              # Iterate through each peer and validator node in the organization
               {{- range .Values.organisation.nodes }}
-              COUNTER=1
-              while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
-              do
-                if [ -f ${CRYPTO_PATH}/{{ .name }}/node_crypto_absent ]
-                then
-                  NODE_ADDRESS=$(cat ${CRYPTO_PATH}/{{ .name }}/data/nodeAddress)
-                  NODE_KEY=$(cat ${CRYPTO_PATH}/{{ .name }}/data/key)
-                  NODE_KEY_PUB=$(cat ${CRYPTO_PATH}/{{ .name }}/data/key.pub)
-                  # create the payload for node crypto
-                  echo "
-                  {
-                    \"data\":
-                      {
-                        \"nodeAddress\": \"${NODE_ADDRESS}\",
-                        \"key\": \"${NODE_KEY}\",
-                        \"key_pub\": \"${NODE_KEY_PUB}\"
-                      }
-                  }" > payload.json
-                  # create the vault path for node cryto
-                  VAULT_PATH_NODE_CRYPTO=data/{{ $.Values.metadata.namespace }}/crypto/{{ .name }}/data
-                  
-                  vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO}"
-                  # This command copy the tls certificates to the Vault
-                  vaultBevelFunc 'write' "${vault_secret_key}" 'payload.json'
-                    
-                  # Check for node crypto ..
-                  vaultBevelFunc 'readJson' ${vault_secret_key}
-                  NODE_KEY=$(echo ${VAULT_SECRET} | jq -r '.["key"]')
-                  
-                  for field in "$NODE_KEY"
-                  do
-                    if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+                # Initialize a counter variable
+                COUNTER=1
+
+                # Perform retries for health checks
+                while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+                do
+                  # Check the presence of specified file
+                  if [ -f ${CRYPTO_PATH}/{{ .name }}/node_crypto_absent ]
+                  then
+                    # Read the nodeAddress, key, and key.pub from the generated data
+                    NODE_ADDRESS=$(cat ${CRYPTO_PATH}/{{ .name }}/data/nodeAddress)
+                    NODE_KEY=$(cat ${CRYPTO_PATH}/{{ .name }}/data/key)
+                    NODE_KEY_PUB=$(cat ${CRYPTO_PATH}/{{ .name }}/data/key.pub)
+
+                    # create a JSON file for the data related to node crypto
+                    echo "
+                    {
+                      \"data\":
+                        {
+                          \"nodeAddress\": \"${NODE_ADDRESS}\",
+                          \"key\": \"${NODE_KEY}\",
+                          \"key_pub\": \"${NODE_KEY_PUB}\"
+                        }
+                    }" > payload.json
+
+                    # create the vault path for node crypto
+                    VAULT_PATH_NODE_CRYPTO=data/{{ $.Values.metadata.namespace }}/crypto/{{ .name }}/data
+                    vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_PATH_NODE_CRYPTO}"
+
+                    # Copy the node crypto data to the Vault
+                    vaultBevelFunc 'write' "${vault_secret_key}" 'payload.json'
+                      
+                    # Check for the presence of node crypto in the Vault
+                    vaultBevelFunc 'readJson' ${vault_secret_key}
+
+                    # Extract the key field from the Vault Response
+                    NODE_KEY=$(echo ${VAULT_SECRET} | jq -r '.["key"]')
+
+                    # Check if the NODE_KEY field is null, contains a parse error, or is empty
+                    for field in "$NODE_KEY"
+                    do
+                      if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+                      then
+                        NODE_CRYPTO_WRITTEN=false
+                        break
+                      else
+                        NODE_CRYPTO_WRITTEN=true
+                      fi
+                    done
+
+                    # Delete the same JSON file that we created to perform the write operation in the vault
+                    rm payload.json
+
+                    # Check if the node crypto data is successfully stored in the Vault
+                    if [ "$NODE_CRYPTO_WRITTEN" = "true" ]
                     then
-                      NODE_CRYPTO_WRITTEN=false
+                      echo "Success: store crypto for {{ .name }}"
                       break
                     else
-                      NODE_CRYPTO_WRITTEN=true
+                      echo "Crypto materials are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }} - $COUNTER "
+                      sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+                      COUNTER=`expr "$COUNTER" + 1`
                     fi
-                  done
-                  rm payload.json
-                  if [ "$NODE_CRYPTO_WRITTEN" = "true" ]
-                  then
-                    echo "Success: store crypto for {{ .name }}"
-                    break
                   else
-                    echo "Crypto materials are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }} - $COUNTER "
-                    sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
-                    COUNTER=`expr "$COUNTER" + 1`
+                    echo "Skipped: store cryto for {{ .name }}"
+                    break
                   fi
-                else
-                  echo "Skipped: store cryto for {{ .name }}"
-                  break
+                done
+
+                # Check if the maximum number of retries has been reached
+                if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+                then
+                  # Error message and exit with a non-zero status
+                  echo "Retry attempted `expr $COUNTER - 1` times, Crypto materials have not been saved."
+                  exit 1
                 fi
-              done
-              if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
-              then
-                echo "Retry attempted `expr $COUNTER - 1` times, Crypto materials have not been saved."
-                exit 1
-              fi
               {{- end }}
           volumeMounts:
             - name: node-crypto
