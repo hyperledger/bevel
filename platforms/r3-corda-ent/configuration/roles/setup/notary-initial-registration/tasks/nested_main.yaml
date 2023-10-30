@@ -8,6 +8,7 @@
 # This role creates the deployment files for node and pushes them to repository
 ##############################################################################################
 
+# Waiting for idman pod to come up
 - name: "Waiting for idman pod to come up"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -40,7 +41,7 @@
     web_port: "{{ notary.dbweb.port }}"
     web_targetport: "{{ notary.dbweb.targetPort }}"
 
-# create deployment files for job for notaries
+# Create deployment files for job for notaries
 - name: 'Create notary initial-registration job file'
   include_role:
     name: helm_component
@@ -60,6 +61,7 @@
     networkmap_domain: "{{ networkmap_url.split(':')[1] | regex_replace('/', '') }}"
     corda_service_version: notary-{{ network.version }}
 
+# Git Push: Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

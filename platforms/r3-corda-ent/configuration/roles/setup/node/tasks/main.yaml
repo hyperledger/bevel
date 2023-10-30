@@ -8,6 +8,7 @@
 # This role sets up all Corda node services
 ##############################################################################################
 
+# Wait for namespace creation
 - name: "Wait for namespace creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -16,6 +17,7 @@
     component_name: "{{ component_ns }}"
     type: "retry"
 
+# Wait for vault-auth creation
 - name: "Wait for vault-auth creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -26,6 +28,7 @@
   tags:
     - notest    
 
+# Wait for vault-reviewer creation
 - name: "Wait for vault-reviewer creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -34,8 +37,9 @@
     component_name: "vault-reviewer"
     type: "retry"
   tags:
-    - notest    
+    - notest
 
+# Wait for ClusterRoleBinding creation
 - name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -46,14 +50,12 @@
   tags:
     - notest
 
-# ----------------------------------------------------------------------  
 # Setup cluster enviorment for float
 - name: Setup cluster enviorment for float
   include_role:
     name: setup/float-environment
   when: org.firewall.enabled
 
-# ----------------------------------------------------------------------  
 # Create vault access policies
 - name: "Setup vault access for nodes"
   include_role: 
@@ -74,7 +76,6 @@
     vault: "{{ org.services.float.vault }}"
   when: org.firewall.enabled
 
-# ----------------------------------------------------------------------  
 # Create float vault access policies for the float cluster
 - name: "Setup vault access for float"
   include_role: 
