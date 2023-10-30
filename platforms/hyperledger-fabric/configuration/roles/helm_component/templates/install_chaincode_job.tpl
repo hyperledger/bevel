@@ -22,8 +22,9 @@ spec:
       network:
         version: {{ network.version }}
       images:
-        fabrictools: {{ fabrictools_image }}
-        alpineutils: {{ alpine_image }}
+        fabrictools: {{ docker_url }}/{{ fabric_tools_image[network.version] }}
+        alpineutils: {{ docker_url }}/{{ alpine_image }}
+
     peer:
       name: {{ peer_name }}
       address: {{ peer_address }}

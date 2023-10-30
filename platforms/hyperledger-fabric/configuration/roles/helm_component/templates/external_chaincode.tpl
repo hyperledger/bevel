@@ -23,7 +23,7 @@ spec:
         version: {{ network.version }}
       images:
         external_chaincode: {{ chaincode_image }}
-        alpineutils: {{ alpine_image }}
+        alpineutils: {{ docker_url }}/{{ alpine_image }}
 
     chaincode:
       name: {{ chaincode.name }}

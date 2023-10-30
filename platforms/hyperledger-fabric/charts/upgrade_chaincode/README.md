@@ -68,7 +68,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                  | Description                                       | Default Value                                     |
 | ----------------------| --------------------------------------------------| --------------------------------------------------|
 | namespace             | Namespace for organization's peer                 | org1-net                                  |
-| images.fabrictools    | Image for Hyperledger Fabric tools                | hyperledger/fabric-tools:2.2.2                    |
+| images.fabrictools    | Image for Hyperledger Fabric tools                | ghcr.io/hyperledger/bevel-fabric-tools:2.2.2                 |
 | images.alpineutils    | Image to read certificates from Vault server      | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Custom labels                                     | ""                                                |
 

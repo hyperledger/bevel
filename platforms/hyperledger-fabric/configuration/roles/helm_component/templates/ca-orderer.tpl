@@ -42,8 +42,8 @@ spec:
     metadata:
       namespace: {{ component_name | e }}
       images:
-        alpineutils: {{ alpine_image }}
-        ca: {{ ca_image }}
+        alpineutils: {{ docker_url }}/{{ alpine_image }}
+        ca: {{ docker_url }}/{{ ca_image[network.version] }}
     server:
       name: {{ component_services.ca.name }}
       tlsstatus: true
@@ -67,7 +67,7 @@ spec:
       secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name | e }}/ca/{{ component }}?user
       serviceaccountname: vault-auth
       type: {{ vault.type | default("hashicorp") }}
-{% if network.docker.username is defined and network.docker.password is defined %}
+{% if network.docker.username is defined and network.docker.password is defined  %}
       imagesecretname: regcred
 {% else %}
       imagesecretname: ""

@@ -78,8 +78,8 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                  | Description                                                           | Default Value                                     |
 | ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
 | namespace             | Provide the namespace for organization's peer                         | org1-net                                  |
-| images.couchdb        | valid image name and version for fabric couchdb                       | couchdb:3.1                                       |
-| images.peer           | valid image name and version for fabric peer                          | hyperledger/fabric-peer:2.2.2                     |
+| images.couchdb        | valid image name and version for fabric couchdb                       | ghcr.io/hyperledger/bevel-fabric-couchdb:2.2.2                                       |
+| images.peer           | valid image name and version for fabric peer                          | ghcr.io/hyperledger/bevel-fabric-peer:2.2.2                     |
 | images.alpineutils    | valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Provide custom labels                                                 | ""                                                |
 

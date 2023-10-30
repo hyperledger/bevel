@@ -81,7 +81,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                  | Description                                                      | Default Value                                     |
 | ----------------------| -----------------------------------------------------------------| --------------------------------------------------|
 | namespace             | Namespace for CA server                                          | org1-net                                          |
-| images.ca             | image name and version for fabric ca                             | hyperledger/fabric-ca:1.4.8                       |
+| images.ca             | image name and version for fabric ca                             | ghcr.io/hyperledger/bevel-fabric-ca:1.4.8                       |
 | images.alpineutils    | image name and version to read certificates from vault server    | ghcr.io/hyperledger/bevel-alpine:latest           |
 | labels                | Provide the custom labels                                        | ""                                                |
 

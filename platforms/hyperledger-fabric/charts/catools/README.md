@@ -87,8 +87,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name          | Description                                                             | Default Value                                       |
 | --------------| ------------------------------------------------------------------------| ----------------------------------------------------|
-| repository    | Image name for the server container                                     | hyperledger/fabric-ca-tools                         |
-| tag           | Image tag for the server container                                      | 1.3.0                                               |
+| repository    | Image name for the server container                                     | ghcr.io/hyperledger/bevel-fabric-ca-tools:1.2.1                         |
 | pullPolicy    | Image pull policy                                                       | IfNotPresent                                        |
 | alpineutils   | Valid image name and version to read certificates from the vault server | ghcr.io/hyperledger/bevel-alpine:latest             |
 

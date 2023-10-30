@@ -76,7 +76,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ---------------------- | ----------------------------------------------------------------------| -------------------------------------------------|
 | namespace              | Namespace for orderer                                                 | org1-net                                      |
 | network.version        | HyperLedger Fabric network version                                    | 2.2.2                                             |
-| images.orderer         | Valid image name and version for fabric orderer                       | hyperledger/fabric-orderer:2.2.2                 |
+| images.orderer         | Valid image name and version for fabric orderer                       | ghcr.io/hyperledger/bevel-fabric-orderer:2.2.2                 |
 | images.alpineutils     | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest          |
 | images.healthcheck     | Valid image name and version for health check of Kafka                | busybox                                          |
 | labels                 | Custom labels                                                         | ""                                               |
