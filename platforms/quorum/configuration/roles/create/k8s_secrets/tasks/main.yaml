@@ -7,7 +7,7 @@
 #############################################################################################
 # This role creates secrets
 #############################################################################################
-# This task checks if Ambassador credentials exist already
+# Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
   k8s_info:
     kind: Secret
@@ -18,7 +18,7 @@
   register: get_ambassador_secret
   when: check == "ambassador_creds"
 
-# Gets the existing ambassador tls certs
+# Get the existing ambassador tls certs
 - name: Get ambassador and tls certs from Vault
   shell: |
     vault kv get -format=yaml {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ name }}/certs
@@ -28,6 +28,7 @@
   register: certs_yaml
   when: check == "ambassador_creds"
 
+# Get ambassador tls certs
 - name: Get ambassador tls certs
   include_role:
     name: "setup/get_crypto"
@@ -37,7 +38,7 @@
     cert_path: "{{ ambassadortls }}"
   when: check == "ambassador_creds"
 
-  # This task creates the Ambassador TLS credentials for ambassador
+# Create the Ambassador TLS credentials for ambassador
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ name }}-ambassador-certs --cert={{ ambassadortls }}/ambassador.crt --key={{ ambassadortls }}/ambassador.key -n {{ component_ns }}

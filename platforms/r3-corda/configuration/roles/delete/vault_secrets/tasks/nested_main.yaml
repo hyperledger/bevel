@@ -8,8 +8,7 @@
 # This role deletes the Vault configurations for each service
 #############################################################################################
 
-#############################################################################################
-# Delete the Ambassador Creds
+# Delete Ambassador Creds
 - name: Delete Ambassador creds
   k8s:
     kind: Secret
@@ -21,8 +20,7 @@
   ignore_errors: yes
   changed_when: false
 
-############################################################################################
-# This task deletes vault auth
+# Delete vault-auth path
 - name: Delete vault-auth path
   shell: |
     vault delete sys/auth/corda{{ service.value['name'] }}
@@ -30,8 +28,7 @@
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
 
-############################################################################################
-# This task deletes crypto materials from vault
+# Delete crypto materials from vault
 - name: Delete Crypto for services
   shell: |
     vault secrets disable {{ service.value['name'] }}
@@ -40,15 +37,15 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   register: test
 
-# This task deletes the policies
-- name: Delete policy
+# Delete vault policies
+- name: Delete vault policy
   shell: |
     vault policy delete vault-crypto-{{ component_name }}-{{ service.value['name'] }}-ro
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
 
-# Delete the Ambassador Creds for CA
+# Delete Ambassador Creds for CA
 - name: Delete Ambassador creds
   k8s:
     kind: Secret
