@@ -4,10 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#########################
+##############################################################################################
 # Playbook to create deployment files for namespaces, service account and clusterrolebinding
 # Playbook arguments: complete network.yaml
-#########################
+##############################################################################################
+
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
@@ -18,8 +19,8 @@
       path: "./build"
       state: absent
 
-# create namespace, service account and clusterrolebinding
-  - name: "Create namespace, service accounts and clusterrolebinding"
+  # create namespace
+  - name: "Create namespace"
     include_role: 
       name: create/namespace 
     loop: "{{ network['organizations'] }}"
@@ -27,9 +28,8 @@
       loop_var: org
     when: network['type'] == 'corda'
 
-  # ----------------------------------------------------------------------
   # Create Storageclass
-  - name: Create Storage Class
+  - name: Create StorageClass
     include_role:
       name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
     vars:
@@ -47,39 +47,36 @@
       loop_var: org
     when: network['type'] == 'corda'
 
-  # ----------------------------------------------------------------------  
   # Deploy Doorman node
   - name: Deploy Doorman service node
     include_role:
       name: setup/doorman
     vars:
-     services: "{{ item.services }}"
-     organisation: "{{ item.name | lower }}"
-     sc_name: "{{ organisation }}-{{ item.cloud_provider | lower }}-storageclass"
-     component_ns: "{{ item.name | lower }}-ns"
-     kubernetes: "{{ item.k8s }}"
-     vault: "{{ item.vault }}"
-     gitops: "{{ item.gitops }}"     
+      services: "{{ item.services }}"
+      organisation: "{{ item.name | lower }}"
+      sc_name: "{{ organisation }}-{{ item.cloud_provider | lower }}-storageclass"
+      component_ns: "{{ item.name | lower }}-ns"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+      gitops: "{{ item.gitops }}"     
     loop: "{{ network['organizations'] }}"
     when: network['type'] == 'corda' and item.type.find('doorman') != -1
 
-  # ----------------------------------------------------------------------  
   # Deploy NMS node
   - name: Deploy Networkmap service node
     include_role:
       name: setup/nms      
     vars:
-     services: "{{ item.services }}"
-     organisation: "{{ item.name | lower }}"
-     sc_name: "{{ organisation }}-{{ item.cloud_provider | lower }}-storageclass"
-     component_ns: "{{ item.name | lower }}-ns"
-     kubernetes: "{{ item.k8s }}"
-     vault: "{{ item.vault }}"
-     gitops: "{{ item.gitops }}"
+      services: "{{ item.services }}"
+      organisation: "{{ item.name | lower }}"
+      sc_name: "{{ organisation }}-{{ item.cloud_provider | lower }}-storageclass"
+      component_ns: "{{ item.name | lower }}-ns"
+      kubernetes: "{{ item.k8s }}"
+      vault: "{{ item.vault }}"
+      gitops: "{{ item.gitops }}"
     loop: "{{ network['organizations'] }}"
     when: network['type'] == 'corda' and item.type.find('nms') != -1
   
-  # ----------------------------------------------------------------------  
   # Wait for network services to respond  
   - name: Check that network services uri are reachable
     uri:
@@ -93,7 +90,6 @@
     ignore_errors: yes
     when: network.env.proxy != 'none'
 
-  # ----------------------------------------------------------------------  
   # Deploy notaries
   - name: 'Deploy notary'
     include_role:
@@ -111,7 +107,6 @@
     loop: "{{ network['organizations'] }}"
     when: network['type'] == 'corda' and item.type.find('notary') != -1
 
-  # ----------------------------------------------------------------------  
   # Deploy all other nodes
   - name: 'Deploy nodes'
     include_role:

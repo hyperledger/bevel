@@ -8,12 +8,13 @@
 # and places them in vault. Certificates are created using openssl
 # This also creates the Kubernetes secrets
 ---
-# check if ambassadortls dir is there
+# Check if ambassadortls dir is there
 - name: "check if dir exists or not"
   stat:
     path: "{{ ambassadortls }}"
   register: ambassadortlsdir_check
 
+# Ensure ambassador tls dir exists
 - name: Ensure ambassador tls dir exists
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -32,7 +33,6 @@
   ignore_errors: yes
 
 # Gets the existing ambassador tls certs
-
 - name: Get ambassador and tls certs from Vault
   shell: |
     vault kv get -format=yaml {{ component_name }}/tlscerts
@@ -42,6 +42,7 @@
   register: ambassador_tls_certs_yaml
   when: not ambassador_tls_certs.failed
 
+# Get ambassador tls certs
 - name: Get ambassador tls certs
   include_role: 
     name: "setup/get_crypto"
@@ -109,7 +110,7 @@
     context: "{{ kubernetes.context }}"
   register: get_ambassador_secret
 
-# This task creates the Ambassador TLS credentials for ambassador
+# Create the Ambassador TLS credentials for ambassador
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ component_name }}-ambassador-certs --cert={{ ambassadortls }}/ambassador.crt --key={{ ambassadortls }}/ambassador.key -n {{ component_ns }}

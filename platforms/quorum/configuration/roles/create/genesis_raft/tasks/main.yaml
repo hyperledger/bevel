@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task fetch node address of each node of all organizations
+# Cetch node address of each node of all organizations
 - name: Fetch the node address
   include_tasks: validator_node_data.yaml
   vars:
@@ -13,7 +13,7 @@
   loop_control:
     loop_var: org2
 
-# This task checks if the genesis file is already stored in the vault or not
+# Check if the genesis file is already stored in the vault or not
 - name: Check if genesis already present in the vault
   shell: |
     vault kv get -field=genesisfile {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis
@@ -24,7 +24,7 @@
   ignore_errors: yes
   changed_when: false
 
-#This task only runs when there is no local genesis file
+# Execute only if there is no local genesis file
 - name: Copy genesis from vault to correct path
   copy:
     content: "{{ vault_genesis_result.stdout | b64decode }}"
@@ -34,7 +34,7 @@
   - not add_new_org
   changed_when: false
 
-# This task creates the genesis file from the template
+# Create the genesis file from the template
 - name: Create genesis.yaml
   template:
     src: "genesis.tpl"
@@ -43,7 +43,7 @@
   - vault_genesis_result.failed
   - not add_new_org
 
-# This task reads the genesis file and put it in the variable
+# Read the genesis file and put it in the variable
 - name: Read the genesis.yaml file
   set_fact:
     genesis_yaml="{{ lookup('file', '{{ build_path }}/genesis.yaml') | from_yaml }}"
@@ -51,7 +51,7 @@
   - vault_genesis_result.failed
   - not add_new_org
 
-# This task converts the above read variable into json format and writes it in the genesis.json file
+# Convert the above read variable into json format and writes it in the genesis.json file
 - name: Create genesis.json file
   copy:
     content: "{{ genesis_yaml | to_nice_json }}"
@@ -60,7 +60,7 @@
   - vault_genesis_result.failed
   - not add_new_org
 
-# This tasks copy the genesis to the vault
+# Copy the genesis to the vault
 - name: Copy genesis to Vault
   shell: |
     vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis genesisfile="{{ genesis_yaml | to_nice_json | b64encode }}" 
@@ -71,7 +71,7 @@
   - vault_genesis_result.failed
   - not add_new_org
 
-# This tasks copy the genesis to the vault
+# Copy the genesis to the vault
 - name: Copy existing genesis to Vault
   shell: |
     vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis genesisfile="{{ genesis }}" 

@@ -8,13 +8,13 @@
 # and places them in vault. Certificates are created using openssl
 ---
 
-# check if rootca dir is there
+# Check if rootca dir is there
 - name: "check if file exists or not"
   stat:
     path: "{{ rootca }}"
   register: rootcadir_check
 
-# create the root directory where CA root certificates and key will be placed
+# Create the root directory where CA root certificates and key will be placed
 - name: Ensure rootca dir exists
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -22,13 +22,13 @@
     path: "{{ rootca }}"
   when: not rootcadir_check.stat.exists
 
-# check if doormanca dir is there
+# Check if doormanca dir is there
 - name: "check if file exists or not"
   stat:
     path: "{{ doormanca }}"
   register: doormancadir_check
 
-# create the doormanca  directory where doorman root certificates and key will be placed
+# Create the doormanca  directory where doorman root certificates and key will be placed
 - name: Ensure doormanca dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -36,12 +36,13 @@
     path: "{{ doormanca }}"
   when: not doormancadir_check.stat.exists
 
-# check if mongorootca dir is there
+# Check if mongorootca dir is there
 - name: "check if file exists or not"
   stat:
     path: "{{ mongorootca }}"
   register: mongorootcadir_check
 
+# Ensure mongorootca dir exists
 - name: Ensure mongorootca dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -49,12 +50,13 @@
     path: "{{ mongorootca }}"
   when: services.doorman.tls == 'on' and (not mongorootcadir_check.stat.exists)
 
-# check if mongodbtca dir is there
+# Check if mongodbtca dir is there
 - name: "check if file exists or not"
   stat:
     path: "{{ mongodbca }}"
   register: mongodbcadir_check
 
+# Ensure mongodbca dir exists
 - name: Ensure mongodbca dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -62,7 +64,7 @@
     path: "{{ mongodbca }}"
   when: services.doorman.tls == 'on' and (not mongodbcadir_check.stat.exists)
 
-# Checks if certificates for doorman are already created and stored in vault or not
+# Check if certificates for doorman are already created and stored in vault or not
 - name: Check if root certs already created
   shell: |
     vault kv get -field=cacerts {{ component_name }}/certs
@@ -72,8 +74,7 @@
   register: root_certs
   ignore_errors: yes
 
-# Gets the existing root certificates if any.
-
+# Get the existing root certificates if any.
 - name: Get root certs from Vault
   shell: |
     vault kv get -format=yaml {{ component_name }}/certs
@@ -83,6 +84,7 @@
   register: root_certs_yaml
   when: not root_certs.failed
 
+# Get root certs
 - name: Get root certs
   include_role: 
     name: "setup/get_crypto"
@@ -94,13 +96,13 @@
   tags:
     - notest
 
-# Stores the exisiting key.jks file
+# Store the exisiting key.jks file
 - name: check root certs
   stat:
     path: "{{ rootca }}/keys.jks"
   register: rootca_stat_result
 
-# generation of CA Root certificates
+# Generation of CA Root certificates
 - name: Generate CAroot certificate
   shell: |
     cd {{ rootca }}
@@ -113,6 +115,7 @@
     eval "yes | keytool -importkeystore -srckeystore cordarootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: root_certs.failed == True and rootca_stat_result.stat.exists == False
 
+# Check if doorman certs already created
 - name: Check if doorman certs already created
   shell: |
     vault kv get -field=doorman.jks {{ component_name }}/certs > {{ doormanca }}/tempkeys.jks
@@ -122,6 +125,7 @@
   register: doorman_certs
   ignore_errors: yes
 
+# Decode base64
 - name: Decode base64
   shell: |    
     cat {{ doormanca }}/tempkeys.jks | base64 -d > {{ doormanca }}/keys.jks
@@ -129,7 +133,7 @@
   tags:
   - notest
 
-# creating doorman certificates
+# Generate DoormanCA from generated root CA certificate
 - name: Generate DoormanCA from generated root CA certificate
   shell: |
     cd {{ doormanca }}
@@ -144,7 +148,7 @@
     eval "yes | keytool -importkeystore -srckeystore cordadoormancakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: doorman_certs.failed == True and rootca_stat_result.stat.exists == False
 
-# checking root certificates for mongodb
+# Checking root certificates for mongodb
 - name: Check if mongoroot certs already created
   shell: |
     vault kv get -field=mongoCA.crt  {{ component_name }}/certs > {{ mongorootca }}/tempmongoCA.crt
@@ -155,6 +159,7 @@
   ignore_errors: yes
   when: services.doorman.tls == 'on' 
 
+# Decode base64
 - name: Decode base64
   shell: |    
     cat {{ mongorootca }}/tempmongoCA.crt | base64 -d > {{ mongorootca }}/mongoCA.crt
@@ -181,6 +186,7 @@
   ignore_errors: yes
   when: services.doorman.tls == 'on'
 
+# Decode base64
 - name: Decode base64
   shell: |    
     cat {{ mongodbca }}/tempmongodb-{{component_name}}.pem | base64 -d > {{ mongodbca }}/mongodb-{{component_name}}.pem
@@ -197,7 +203,7 @@
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
   when: services.doorman.tls == 'on' and mongodb_certs.failed == True and rootca_stat_result.stat.exists == False
 
-
+# Putting certs to vault for root
 - name: Putting certs to vault for root
   shell: |
     vault kv put {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
@@ -206,6 +212,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: root_certs.failed == True
 
+# Putting certs and credential to vault for doorman
 - name: Putting certs and credential to vault for doorman
   shell: |
     vault kv put {{ component_name }}/credentials/userpassword  sa="{{ userpassword_sa }}"
@@ -216,6 +223,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: doorman_certs.failed == True
 
+# Create Ambassador certificates
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"
