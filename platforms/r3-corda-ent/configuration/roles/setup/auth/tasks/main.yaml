@@ -4,9 +4,8 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This role creates value files for the auth chart and pushes it into the git repisitory
-
-# This task checks if certs and crypto are there in the vault or not
+# Create value files for the auth chart and pushes it into the git repisitory
+# Check if certs and crypto are there in the vault or not
 - name: Check if auth certificates are present in the vault
   shell: |
     vault kv get -field=corda-ssl-auth-keys.jks {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/root/certs
@@ -16,7 +15,7 @@
   register: auth_certs
   ignore_errors: yes
 
-# This task waits for the PKI job to complete
+# Wait for the PKI job to complete
 - name: "Wait for PKI job to complete"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -27,7 +26,7 @@
     kubernetes: "{{ org.k8s }}"
   when: auth_certs.failed
 
-# This task creates the helm release files for the Auth service
+# Create the helm release files for the Auth service
 - name: "Create Auth helm release files"
   include_role:
     name: helm_component
@@ -43,7 +42,7 @@
     values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
     helm_lint: "true"
 
-# Push the created deployment files to git repository
+# Git Push: Push the created deployment files to git repository
 - name: "Push deployment files to git"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

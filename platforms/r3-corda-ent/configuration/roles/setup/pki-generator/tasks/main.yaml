@@ -20,11 +20,12 @@
     component_type: "OneTimeJob"
     component_name: "{{ org.name | lower }}-generate-pki"
 
+# Set a Variable
 - name: "Set Variable generate_pki"
   set_fact:
     generate_pki: "{{ result }}"
 
-# This task will loop over the network.yaml to fetch the cenm details
+# Loop over the network.yaml to fetch the cenm details
 - name: Create value file for pki generator
   include_role:
     name: helm_component
@@ -38,7 +39,7 @@
     chart: generate-pki
   when: generate_pki.resources|length == 0
 
-# Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
