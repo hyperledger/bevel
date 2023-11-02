@@ -28,14 +28,14 @@
   loop_control:
     loop_var: org1
 
-# This task creates the staticnodes file from the template
+# Create the staticnodes file from the template
 - name: Create staticnodes file
   template:
     src: "staticnodes.tpl"
     dest: "{{ network.config.staticnodes }}"
   when: not add_new_org
 
-# This task adds a new node to the existing network
+# Add a new node to the existing network
 - name: Adds a new validator node to the existing network
   uri:
     url: "http://{{ geth_data.url }}:{{ geth_data.rpcport }}"
@@ -57,7 +57,7 @@
   tags:
     - notest
 
-# This task fetches the new peer_id 
+# Fetch the new peer_id 
 - name: Get validator peer_id
   set_fact:
     peer_id: "{{ peer_id.results[0].json.result }}"
@@ -65,7 +65,7 @@
   tags:
     - notest
 
-# This task creates the Quorum value files for each node of organization
+# Create the Quorum value files for each node of organization
 - name: Create value file for Quorum Nodes
   include_role:
     name: helm_component
@@ -76,7 +76,7 @@
     staticnodes: "{{ lookup('file', '{{ network.config.staticnodes }}') | from_yaml | to_nice_json }}"
   when: peer.type == 'validator'    
 
-# Git Push: Pushes the above generated files to git directory 
+# Git Push: Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

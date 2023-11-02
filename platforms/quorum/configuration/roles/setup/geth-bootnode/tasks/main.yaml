@@ -4,25 +4,25 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task create a temporary directory
+# Create a temporary directory
 - name: create temporary directory
   tempfile:
     state: directory
   register: tmp_directory
 
-# This task checks if the geth binary is already in place or not
+# Check if the geth binary is already in place or not
 - name: Check geth
   stat:
     path: "{{ bin_install_dir }}/geth"
   register: geth_stat_result
 
-# This task checks if the bootnode binary is already in place or not
+# Check if the bootnode binary is already in place or not
 - name: Check bootnode
   stat:
     path: "{{ bin_install_dir }}/bootnode"
   register: bootnode_stat_result
 
-# This task downloads the geth and bootnode tar
+# Download the geth and bootnode tar
 - name: Download geth and bootnode tar 
   get_url:
     url: "{{ geth_tar.location }}"
@@ -30,14 +30,14 @@
     mode: 0440
   when: geth_stat_result.stat.exists == False or bootnode_stat_result.stat.exists == False
 
-# This task creates the bin directory, if it doesn't exist
+# Create the bin directory, if it doesn't exist
 - name: Create bin directory
   file:
     path: "{{ bin_install_dir }}"
     state: directory
   when: geth_stat_result.stat.exists == False or bootnode_stat_result.stat.exists == False
 
-# This task extracts the tar file containing the geth and bootnode binary
+# Extract the tar file containing the geth and bootnode binary
 - name: Extracts the tar file containing the geth and bootnode binary
   unarchive:
     src: "{{ tmp_directory.path }}/geth-alltools-linux-amd64-1.10.0-56dec25a.tar.gz"
@@ -45,7 +45,7 @@
     copy: no  
   when: geth_stat_result.stat.exists == False or bootnode_stat_result.stat.exists == False
 
-# This task will copy the binary to destination directory
+# Copy the binary to destination directory
 - name: Copy geth binary to destination directory
   copy:
     src: "{{ tmp_directory.path }}/geth-alltools-linux-amd64-1.10.0-56dec25a/geth"
@@ -54,7 +54,7 @@
     remote_src: yes
   when: geth_stat_result.stat.exists == False
 
-# This task will copy the binary to destination directory
+# Copy the binary to destination directory
 - name: Copy bootnode binary to destination directory
   copy:
     src: "{{ tmp_directory.path }}/geth-alltools-linux-amd64-1.10.0-56dec25a/bootnode"

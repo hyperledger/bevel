@@ -4,13 +4,14 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This tasks checks the crypto material in the vault
+# Check crypto material in the vault
 - name: Check for the crypto material in the vault
   include_tasks: check_vault.yaml
   vars:    
     vault: "{{ org.vault }}"
     peers: "{{ org.services.peers }}"
 
+# Wait for namespace creation
 - name: "Wait for namespace creation"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -24,8 +25,7 @@
   tags: 
     - notest
 
-# ---------------------------------------------------------------------
-# generate tessera crypto helmrelease file
+# Generate tessera crypto helmrelease file
 - name: "Create tessera crypto file"
   include_role:
     name: helm_component
@@ -38,8 +38,7 @@
   - generate_crypto_tessera is defined 
   - generate_crypto_tessera
 
-# ---------------------------------------------------------------------
-# push the created deployment files to repository
+# Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
