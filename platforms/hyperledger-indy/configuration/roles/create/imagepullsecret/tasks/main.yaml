@@ -5,8 +5,7 @@
 ##############################################################################################
 
 
-# This role creates the docker pull registry secret within each namespace
-##########################################################################################
+# Create the docker pull registry secret within each namespace
 - name: "Check for ImagePullSecret for {{ organization }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
@@ -14,10 +13,12 @@
     component_name: "{{ component_ns }}"
     check: "docker_credentials"
 
-- name: "register the result of docker cred check"
+# Register the result of docker cred check
+- name: "Register the result of docker cred check"
   set_fact:
     secret_present: "{{ get_regcred }}"
-    
+
+# Create the docker pull registry secret
 - name: Create the docker pull registry secret for {{ component_ns }}
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret -n {{ component_ns }} docker-registry regcred --docker-server={{ network.docker.url }} --docker-username={{ network.docker.username }} --docker-password={{ network.docker.password }} --docker-email="test@abc.mail"
