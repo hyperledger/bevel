@@ -8,6 +8,7 @@
 # This role creates the deployment files for stewards and pushes them to repository
 ###################################################################################################
 
+# Wait for namespace creation for identities
   - name: "Wait for namespace creation for identities"
     include_role:
       name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -16,13 +17,11 @@
       component_name: "{{ component_ns }}"
       type: "retry"
 
-# ---------------------------------------------------------------------
-# create image pull secrets
+# Create image pull secrets
   - name: "Create image pull secret for identities"
     include_role:
       name: create/imagepullsecret
 
-# ---------------------------------------------------------------------
 # Create Deployment files for new Identities
   - name: "Create Deployment files"
     include_tasks: nested_main.yaml
@@ -35,7 +34,6 @@
       org_vault_url: "{{ organizationItem.vault.url }}"
     when: organizationItem is defined and organizationItem.services.stewards is defined
 
-# ---------------------------------------------------------------------
 # Wait until identities are creating
   - name: "Wait until identities are creating"
     include_role:
