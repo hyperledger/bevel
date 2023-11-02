@@ -4,11 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # Creates the channel configuration block with modified application channel policies
-#############################################################################################
+##############################################################################################
 
-# Checking for fabric cli
+# Check for fabric cli
 - name: "Check if fabric cli is already present"
   k8s_info:
     kind: Pod
@@ -42,7 +42,7 @@
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
   when: existing_cli.resources|length == 0
 
-# waiting for fabric cli to come up
+# Waiting for fabric cli to come up
 - name: "Waiting for fabric cli to come up"
   k8s_info:
     kind: Pod
@@ -56,7 +56,7 @@
   retries: "{{ network.env.retry_count }}"
   delay: 40
 
-# This task fetch , modify, update and copy the configuration block
+# Fetch, modify, update and copy the configuration block
 - name: "Fetch, modify, sign and copy the configuration block from the blockchain"
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')

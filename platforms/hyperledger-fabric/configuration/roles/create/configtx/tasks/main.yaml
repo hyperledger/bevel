@@ -4,22 +4,23 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # This role creates configtx.yaml file which is consumed by configtxgen tool
-#############################################################################################
+##############################################################################################
 
-############################################################################################
-# These tasks create the configtx.yaml file as the requirements mentioned in network.yaml 
+##############################################################################################
+# Create the configtx.yaml file as the requirements mentioned in network.yaml 
 # file. The configtx.yaml file is consumed by the configtxgen binary to generate the 
 # genesis block and channels.
+##############################################################################################
 
-############################################################################################
-# This task creates the build directory if it does not exist
+# Create the build directory if it does not exist
 - name: Create build directory if it does not exist
   file:
     path: "./build"
     state: directory
 
+# Remove old configtx file
 - name: "Remove old configtx file"
   file:
     path: "{{ config_file }}"
@@ -31,18 +32,21 @@
     path: "{{ config_file }}"
     state: touch
 
+# Copy custom files if present
 - name: "Copy custom files if present"
   copy:
     src: "{{ network.configtx.folder_path }}"
     dest: ./roles/create/configtx/templates
   when: network.configtx is defined and network.configtx.custom == true
 
+# Checking if custom init patch to configtx.yaml exists
 - name: "Checking if custom init patch to configtx.yaml exists"
   stat:
     path: "{{ network.configtx.folder_path }}configtxinit_custom.tpl"
   register: cfinit
   when: network.configtx is defined and network.configtx.custom == true
 
+# Add init patch to configtx.yaml
 - name: "Adding init patch to configtx.yaml"
   blockinfile:
     dest: "{{ config_file }}"
@@ -54,12 +58,14 @@
     org: "{{ network | json_query(org_query) | first }}"
     filename: configtxinit_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfinit.stat.exists else 'default' }}.tpl
 
+# Check if custom init patch to configtx.yaml exists
 - name: "Checking if custom init patch to configtx.yaml exists"
   stat:
     path: "{{ network.configtx.folder_path }}configtxOrg_custom.tpl"
   register: cforg
   when: network.configtx is defined and network.configtx.custom == true
 
+# Add organization patch to configtx.yaml
 - name: "Adding organization patch to configtx.yaml"
   blockinfile:
     dest: "{{ config_file }}"
@@ -74,12 +80,14 @@
     filename: configtxOrg_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cforg.stat.exists else 'default' }}.tpl
   loop: "{{ network['organizations'] }}"
 
+# Check if custom init patch to configtx.yaml exists
 - name: "Checking if custom init patch to configtx.yaml exists"
   stat:
     path: "{{ network.configtx.folder_path }}configtxOrderer_custom.tpl"
   register: cford
   when: network.configtx is defined and network.configtx.custom == true
 
+# Add orderer patch to configtx.yaml
 - name: "Adding orderer patch to configtx.yaml"
   blockinfile:
     dest: "{{ config_file }}"
@@ -91,12 +99,14 @@
     provider: "{{ network.env.proxy }}"
     filename: configtxOrderer_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cford.stat.exists else 'default' }}.tpl
 
+# Check if custom init patch to configtx.yaml exists
 - name: "Checking if custom init patch to configtx.yaml exists"
   stat:
     path: "{{ network.configtx.folder_path }}configtxProfile_custom.tpl"
   register: cfprofile
   when: network.configtx is defined and network.configtx.custom == true
 
+# Add profile patch to configtx.yaml
 - name: "Adding profile patch to configtx.yaml"
   blockinfile:
     dest: "{{ config_file }}"
@@ -109,6 +119,7 @@
     filename: configtxProfile_{{ 'custom' if network.configtx is defined and network.configtx.custom == true and cfprofile.stat.exists else 'default' }}.tpl
   when: network.channels is defined
 
+# Display configtx file contents
 - name: Display configtx file contents
   debug: 
     msg: "The configtx file is: {{ lookup('file', './build/configtx.yaml') }}"

@@ -4,12 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
+##############################################################################################
 # Create script to update capabilities in application channel, modify channel config, sign
 # channel config by other peers and update the modified channel configuration
-############################################################################################
+##############################################################################################
 
-# This task creates the capabilities upgrade script for channel group
+# Create the capabilities upgrade script for channel group
 - name: Create script file to update application channel's application group
   template:
     src: "application_group_capability.tpl"
@@ -19,7 +19,7 @@
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
 
-# This task create config update for application channel
+# Create config update for application channel
 - name: Update application group capabilities of application channel
   include_tasks: application-group/application_group_capability.yaml
   vars:
@@ -38,6 +38,7 @@
   set_fact:
     is_config_same: false
 
+# Check if required channel config already exists
 - name: Check if required channel config already exists
   set_fact:
     is_config_same: true
@@ -46,7 +47,7 @@
     modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
   when: original_config == modified_config
 
-# # This task calls sign_block.yaml to sign config update by peers
+# Call sign_block.yaml to sign config update by peers
 - name: Call sign_block.yaml to sign from all other peers
   include_tasks: channel-group/sign_block.yaml
   vars:
@@ -59,7 +60,7 @@
     loop_var: participant
   when: participant.type != "creator" and is_config_same == false
 
-# This task updates the block to the channel
+# Update the block to the channel
 - name: Call update_block.yaml to update the config update
   include_tasks: channel-group/update_block.yaml
   vars:

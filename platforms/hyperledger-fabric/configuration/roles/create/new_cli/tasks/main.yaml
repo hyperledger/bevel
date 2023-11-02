@@ -11,9 +11,8 @@
 ############################################################################################
 #
 ############################################################################################
-# This task creates the value file for the cli pod as per requirements mentioned in
-# network.yaml
-#this task checks if pods are present or not
+
+# Check if pods are present or not
 - name: 'checking for job {{ component_name }} in {{ namespace }}'
   k8s_info:
     kind: "Pod"
@@ -32,7 +31,7 @@
     loop_var: peer
   register: existing_cli
 
-# this task creates the value file
+# Create the value file
 - name: "Create Value file for CLI Pod"
   include_role:
     name: helm_component
@@ -61,7 +60,8 @@
   - peer.cli is defined
   - peer.cli == "enabled"
   - existing_cli.resources|length == 0
-#Git Push : Pushes the above generated files to git directory
+
+# Git Push : Push the above generated files to git directory
 - name: Git Push
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

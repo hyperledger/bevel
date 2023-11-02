@@ -4,9 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
----
-############################################################################################
+##############################################################################################
 # This role creates the commit_chaincode value file
+##############################################################################################
+
+---
 # Check or Wait if approve-chaincode is already run
 - name: "Waiting for chaincode to be approve on {{ peer.name }}"
   include_role:
@@ -27,14 +29,17 @@
     kubernetes: "{{ org.k8s }}"
     component_name: "commitcc-{{ chaincode.name }}-{{ chaincode.version }}-{{ chaincode.sequence | default('1') }}"
 
+# Set Variable commit_chaincode
 - name: "Set Variable commit_chaincode"
   set_fact:
     commit_chaincode: "{{ result }}"
 
+# Set endorsers data
 - name: "Set endorsers data"
   set_fact:
     endorsers_orgs: []
 
+# Get endorsers data
 - name: Get endorsers data
   set_fact:
     endorsers_orgs={{ endorsers_orgs + [ {'name':endorser.name, 'peercoreaddress':endorser.peers | map(attribute='corepeerAddress') | first } ] }}
@@ -42,8 +47,7 @@
   loop_control:
     loop_var: endorser
 
-#####################################################################################################################
-# This task create endorser certs secret
+# Create endorser certs secret
 - name: "Create endorser certs secret"
   include_role:
     name: create/k8s_secrets
@@ -59,7 +63,7 @@
   loop_control:
     loop_var: endorser
 
-# Nested task for chaincode commit
+# Create value file for chaincode commit
 - name: "Create value file for chaincode commit"
   include_role:
     name: helm_component
@@ -82,7 +86,7 @@
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
   when: chaincode is defined and commit_chaincode.resources|length == 0
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

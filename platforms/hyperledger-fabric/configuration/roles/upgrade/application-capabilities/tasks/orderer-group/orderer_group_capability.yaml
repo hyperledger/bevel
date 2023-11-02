@@ -4,10 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # Creates the channel configuration block for orderer group with modified channel capabilities
-#############################################################################################
+##############################################################################################
 
+# Check if fabric cli is already present
 - name: "Check if fabric cli is already present"
   k8s_info:
     kind: Pod
@@ -60,8 +61,8 @@
   retries: "{{ network.env.retry_count }}"
   delay: 40
   
-# This task fetch , modify, update and copy the configuration block
-- name: fetch, modify, sign and copy the configuration block from the blockchain
+# Fetch, modify, update and copy the configuration block
+- name: Fetch, modify, sign and copy the configuration block from the blockchain
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block.pb -o {{ ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
@@ -78,6 +79,7 @@
     kubernetes: "{{ org.k8s }}"
     ordererAddress: "{{ orderer.uri }}"
 
+# Set creator_orderer
 - name: Set creator_orderer
   set_fact:
     creator_orderer: "{{ org.name }}"

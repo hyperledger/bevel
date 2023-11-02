@@ -2,7 +2,6 @@
 # This role generates crypto material for external chaincode server.
 #############################################################################################
 
-############################################################################################
 # Copy generate-crypto-chaincode-server.sh script from scrips directory
 - name: Copy generate-crypto-chaincode-server.sh to destination directory
   copy:
@@ -20,7 +19,7 @@
 
 
 ############################################################################################
-# This task checks if the ca certificate exists in the CA Tools pod
+# Check if the ca certificate exists in the CA Tools pod
 # /crypto-config/peerOrganizations/{{component_name}}/ca/ca.{{component_name}}-cert.pem
 - name: Check if the ca certificate exists in the CA Tools Pod
   shell: |
@@ -29,6 +28,7 @@
   register: ca_file_exists
   ignore_errors: yes
 
+# Download ca certificate from Vault and copy to CA Tools Pod
 - name: Download ca certificate from Vault and copy to CA Tools Pod
   shell: |
     mkdir -p {{ temp_peer_cert_folder }}
@@ -42,7 +42,7 @@
   when: ca_file_exists.failed == true
 
 ############################################################################################
-# This task copies generate-crypto-chaincode-server.sh file using the CA Tools Pod 
+# Copy generate-crypto-chaincode-server.sh file using the CA Tools Pod 
 - name: Copy generate-crypto-chaincode-server.sh file using the CA Tools 
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
@@ -52,7 +52,7 @@
     - peer.name == first_peer_name
 
 ############################################################################################
-# This task executes generate-crypto-chaincode-server.sh file using the CA Tools to generate user certificate
+# Execute generate-crypto-chaincode-server.sh file using the CA Tools to generate user certificate
 - name: Execute generate-crypto-chaincode-server.sh file using the CA Tools 
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
@@ -62,7 +62,7 @@
     - peer.name == first_peer_name
 
 ############################################################################################
-# This task valdiates the user certificate
+# Valdiate the user certificate
 - name: ensure chaincode certificate files exist
   stat:
     path: "./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/{{ file }}"
@@ -74,6 +74,7 @@
   loop_control:
     loop_var: file
 
+# Check file exists status
 - name: check file exists status
   set_fact:
     cert_missing: true
@@ -83,6 +84,7 @@
   when:
     - chaincode_cert_file.stat.exists == false
 
+# Missing chaincode certificates
 - name: missing chaincode certificates
   fail:
     msg: "Missing certificates in directory for chaincode installation"
