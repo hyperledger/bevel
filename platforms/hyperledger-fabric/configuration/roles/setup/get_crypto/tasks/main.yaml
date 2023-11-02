@@ -4,9 +4,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # This role saves the crypto from Vault into ansible_provisioner
-#############################################################################################
+##############################################################################################
 
 # Ensure admincerts directory is present in build
 - name: Ensure admincerts directory exists
@@ -28,6 +28,8 @@
 - name: Save cacerts
   local_action: copy content="{{ vault_output['data'].data.cacerts }}" dest="{{msp_path}}/cacerts/ca-{{component_name}}-7054.pem"
   when: network.env.proxy == 'none'
+
+# Save cacerts for other proxy
 - name: Save cacerts for other proxy
   local_action: copy content="{{ vault_output['data'].data.cacerts }}" dest="{{msp_path}}/cacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}.pem"
   when: network.env.proxy != 'none'
@@ -42,6 +44,8 @@
 - name: Save tlscacerts
   local_action: copy content="{{ vault_output['data'].data.tlscacerts }}" dest="{{msp_path}}/tlscacerts/ca-{{component_name}}-7054.pem"
   when: network.env.proxy == 'none'
+
+# Save the tlscacerts file
 - name: Save tlscacerts
   local_action: copy content="{{ vault_output['data'].data.tlscacerts }}" dest="{{msp_path}}/tlscacerts/ca-{{ component_name }}-{{ item.external_url_suffix }}.pem"
   when: network.env.proxy != 'none'

@@ -4,12 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # This role deletes the Vault configurations
-#############################################################################################
+##############################################################################################
 
-#############################################################################################
-# This task deletes the Docker credentials
+# Delete the Docker credentials
 - name: Delete docker creds
   k8s:
     kind: Secret
@@ -20,8 +19,7 @@
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
 
-############################################################################################
-# This task deletes vault auth
+# Delete vault auth
 - name: Delete vault-auth path
   shell: |
     vault kv delete sys/auth/{{ network.env.type }}{{ component_name }}-auth
@@ -29,8 +27,7 @@
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
 
-############################################################################################
-# This task deletes vault auth
+# Delete vault auth
 - name: Delete vault-auth path
   shell: |
     vault kv delete sys/auth/{{ item.k8s.cluster_id }}{{ component_name }}-auth
@@ -39,8 +36,7 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   when: item.k8s.cluster_id is defined
 
-############################################################################################
-# This task deletes crypto materials from vault
+# Delete crypto materials from vault
 - name: Delete Crypto for orderers
   shell: |
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_name }}/ca
@@ -57,8 +53,7 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   when: component_type == 'orderer'
 
-############################################################################################
-# This task deletes crypto materials from extternalchaincode
+# Delete crypto materials from extternalchaincode
 - name: Delete Crypto for peers
   shell: |
     {% for chaincode in chaincodes %}
@@ -76,8 +71,7 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   when: component_type == 'peer'
 
-############################################################################################
-# This task deletes crypto materials from vault
+# Delete crypto materials from vault
 - name: Delete Crypto for peers
   shell: |
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/ca
@@ -103,6 +97,7 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   when: component_type == 'peer'
 
+# Remove all endorsers
 - name: Remove all endorsers
   args:
     executable: /bin/bash
@@ -116,8 +111,7 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   ignore_errors: yes
 
-############################################################################################
-# This task deletes crypto materials from vault
+# Delete crypto materials from vault
 - name: Delete Crypto for users
   shell: |
     {% for user in users %}
@@ -136,6 +130,7 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   when: component_type == 'peer' and item.users is defined
 
+# Delete policy
 - name: Delete policy
   shell: |
     vault policy delete vault-crypto-{{ component_type }}-{{ component_name }}-ro

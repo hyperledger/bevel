@@ -4,10 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
---- 
-############################################################################################
+##############################################################################################
 # This task is the nested task for main.yaml which helps to create the channels_join files
+##############################################################################################
 
+---
 # Check or wait for the Orderer pod
 - name: "Check orderer pod is up"
   include_tasks: orderercheck.yaml
@@ -29,6 +30,7 @@
   loop_control:
     loop_var: org
 
+# Set creator org vars
 - name: Set creator org vars
   set_fact:
     creator_msp: "{{ peer.name | lower }}MSP"
@@ -36,7 +38,7 @@
     creator_admin: "{{ peer.name | lower }}-admin"
     creator_namespace: "{{ peer.name | lower }}-net"
 
-# This task creates channel
+# Create channel
 - name: "Create channel via operator"
   include_role:
     name: k8_component

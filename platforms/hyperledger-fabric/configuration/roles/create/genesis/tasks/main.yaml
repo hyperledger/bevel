@@ -4,13 +4,13 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
+# Remove old genesis block
 - name: Remove old genesis block
   file:
     path: "{{ build_path }}/channel-artifacts/genesis.block"
     state: absent
 
-# This task creates the genesis block by consuming the configtx.yaml file
+# Create the genesis block by consuming the configtx.yaml file
 - name: "Create genesis block"
   shell: |
     cd {{ build_path }}
@@ -24,6 +24,7 @@
     cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
   when: add_new_org == 'false'
 
+# Write genesis block to Vault
 - name: "Write genesis block to Vault"  
   shell: |
     vault kv put {{ org.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ org.name }}-net {{ network.env.type }}GenesisBlock=@{{build_path}}/channel-artifacts/genesis.block.base64

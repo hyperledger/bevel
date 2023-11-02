@@ -1,6 +1,10 @@
-###########################################################################################
-# This task fetch the configuration block from the blockchain with the new orderer information
-# from orderer cli
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Fetch the configuration block from the blockchain with the new orderer information from orderer cli
 - name: Fetch {{ channel_name }} configuration block from the blockchain
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
@@ -20,6 +24,8 @@
   delay: 5
   register: result
   until: result is search("Received block")
+
+# Fetch configuration block from the blockchain for proxy none
 - name: Fetch {{ channel_name }} configuration block from the blockchain for proxy none
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
@@ -40,9 +46,7 @@
   register: result
   until: result is search("Received block")
 
-###########################################################################################
-# This task modify, update and copy the configuration block from the blockchain with the new orderer information
-# from orderer cli
+# Modify, update and copy the configuration block from the blockchain with the new orderer information from orderer cli
 - name: Modify, update and copy {{ channel_name }} configuration block from the blockchain
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
@@ -58,6 +62,8 @@
   when: 
     - check == "update_block"
     - network.env.proxy != 'none'
+
+# Modify, update and copy configuration block from the blockchain for proxy none
 - name: Modify, update and copy {{ channel_name }} configuration block from the blockchain for proxy none
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
@@ -74,9 +80,7 @@
     - check == "update_block"
     - network.env.proxy == 'none'
 
-############################################################################################
-# fetch the latest block from the blockchain
-# from orderer cli
+# Fetch the latest block from the blockchain from orderer cli
 - name: Fetch the latest block from the blockchain
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')
@@ -90,6 +94,8 @@
   when: 
     - check == "latest_block"
     - network.env.proxy != 'none'
+
+# Fetch the latest block from the blockchain for proxy none
 - name: Fetch the latest block from the blockchain for proxy none
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')

@@ -4,9 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # This role creates the orderer nodes using bevel-operator-fabric
-#############################################################################################
+##############################################################################################
+
+# Wait for ca server to be reachable
 - name: "Wait for ca server to be reachable"
   uri:
     url: "https://{{ item.ca_data.url }}/cainfo"
@@ -17,6 +19,7 @@
   delay: 20
   ignore_errors: yes
 
+# Create orderer node
 - name: "Create orderer node"
   shell: |
     KUBECONFIG={{ kubeconfig_path }} kubectl hlf ordnode create --image=hyperledger/fabric-orderer --version={{ network.version }} \
@@ -31,10 +34,12 @@
   loop_control:
     loop_var: orderer
 
+# Wait for orderers to start
 - name: Wait for orderers to start
   shell: |
     KUBECONFIG={{ kubeconfig_path }} kubectl wait --timeout=180s --for=condition=Running fabricorderernodes.hlf.kungfusoftware.es --all --namespace={{ namespace }}
 
+# Save orderer tls certs
 - name: "Save orderer tls certs"
   shell: |
     KUBECONFIG={{ kubeconfig_path }} kubectl get fabricorderernodes {{ orderer.name }} --namespace={{ namespace }} -o=jsonpath='{.status.tlsCert}' > {{ orderer.certificate }}

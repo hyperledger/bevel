@@ -8,17 +8,14 @@
 # This role generates value files for various k8 components
 #############################################################################################
 
-
-############################################################################################
-# This task ensures that the directory exists for each entity, if not, it creates them
-- name: Ensures {{ component_type_name }} dir exists
+# Ensure that the directory exists for each entity, if not, it creates them
+- name: Ensure {{ component_type_name }} dir exists
   file:
     path: "{{ release_dir }}/{{ component_type_name }}"
     state: directory
 
-############################################################################################
-# This task creates the value file for the k8 components
-- name: "create {{ component_type }} file for {{ component_type_name }}"
+# Create the value file for the k8 components
+- name: "Create {{ component_type }} file for {{ component_type_name }}"
   template:
     src: "{{ k8_templates[type] | default('default.tpl') }}"
     dest: "{{ values_file }}"
@@ -26,6 +23,7 @@
     values_file: "{{ release_dir }}/{{ component_type_name }}/{{ component_type }}.yaml"
     type: "{{ component_type }}"
 
+# Create the component in kubernetes cluster directly when using operator
 - name: Create the component in kubernetes cluster directly when using operator
   kubernetes.core.k8s:
     state: present

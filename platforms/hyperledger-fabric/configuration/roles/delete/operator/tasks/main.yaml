@@ -8,7 +8,7 @@
 # This role deletes the bevel-fabric-operator resources created by ansible
 #############################################################################################
 
-#############################################################################################
+# Call delete_channel for each peer
 - name: Call delete_channel for each peer
   include_tasks: delete_channel.yaml
   vars:
@@ -17,6 +17,7 @@
   loop_control:
     loop_var: channel
 
+# Delete user identities
 - name: Delete user identities
   k8s:
     kind: FabricIdentity
@@ -28,6 +29,7 @@
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
 
+# Delete orderer
 - name: Delete orderer
   k8s:
     kind: FabricOrdererNode
@@ -43,6 +45,7 @@
   ignore_errors: yes
   when: item.type == 'orderer'
 
+# Delete peers
 - name: Delete peers
   k8s:
     kind: FabricPeer
@@ -58,6 +61,7 @@
   ignore_errors: yes
   when: item.type == 'peer'
 
+# Delete ca server
 - name: Delete ca server
   k8s:
     kind: FabricCA
@@ -69,6 +73,7 @@
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
 
+# Delete namespace
 - name: Delete namespace
   k8s:
     kind: namespace

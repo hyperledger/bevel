@@ -8,8 +8,7 @@
 # Creates peer value file, adds it to git repo and wait for peer to come up
 #############################################################################################
 
-# This task creates the value file for the peer as per requirements mentioned in
-# network.yaml
+# Create the value file for the peer as per requirements mentioned in network.yaml
 - name: Upgrade Value files for Organization peer
   include_role:
     name: helm_component
@@ -25,7 +24,7 @@
     peer_ns: "{{ namespace }}"
     provider: "{{ network.env.proxy }}"
 
-#Git Status : check if there is any files modified in the directory
+# Git Status : check if there is any files modified in the directory
 - name: Git Status
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_status"
@@ -37,7 +36,7 @@
   tags:
     - notest
 
-#Git Push : Pushes the above generated files to git directory
+# Git Push : Push the above generated files to git directory
 - name: Git Push
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -49,7 +48,7 @@
   tags:
     - notest
 
-# wait until the pod is not in running state as there is a time lag between when pod is recreated
+# Wait until the pod is not in running state as there is a time lag between when pod is recreated
 - name: 'Wait for {{ peer.name }} in {{ item.name | lower }}-net to terminate'
   k8s_info:
     kind: "Pod"
