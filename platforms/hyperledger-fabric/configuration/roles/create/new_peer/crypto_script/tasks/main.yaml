@@ -4,12 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # This role creates the generate_crypto.sh script for orderers and organizations.
-#############################################################################################
+##############################################################################################
 
-############################################################################################
-# This task creates the build directory if it does not exist
+# Create the build directory if it does not exist
 - name: Create build directory if it does not exist
   file:
     path: "./build"
@@ -20,7 +19,7 @@
   set_fact:
     new_peer_list: []
 
-# This task loops over the peers and finds the number of new peers
+# Loop over the peers and finds the number of new peers
 - name: Count new peers
   set_fact:
     new_peer_list={{ new_peer_list|default([]) + [ {'peer_name':peer.name } ] }}
@@ -29,8 +28,7 @@
     loop_var: peer
   when: component_type == 'peer' and peer.peerstatus == 'new'
 
-############################################################################################
-# This task creates the generate_crypto.sh file for organizations
+# Create the generate_crypto.sh file for organizations
 - name: Create generate_crypto script file for organisations
   template:
     src: "organisation_script.tpl"
