@@ -8,6 +8,7 @@
 # This role creates the deployment files for node and pushes them to repository
 ##############################################################################################
 
+# Wait for namespace creation for notary
 - name: "Wait for namespace creation for notary"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -34,6 +35,7 @@
     vault: "{{ item.vault }}"
     gitops: "{{ item.gitops }}"
 
+# Generate crypto for notary
 - name: Generate crypto for notary
   include_role:
     name: create/certificates/notary
@@ -45,8 +47,7 @@
     cordapps_details: "{{ cordapps }}"
     cert_subject: "{{ item.subject | regex_replace(',', '/') }}"  #Use org level subject for certificate generation
 
-# ----------------------------------------------------------------------  
-# create deployment files for h2 for notaries
+# Create deployment files for h2 for notaries
 - name: 'Create notary db deployment file'
   include_role:
     name: create/node_component
@@ -59,6 +60,7 @@
     corda_version: "corda-{{ network.version }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
+# Check if nodekeystore already created
 - name: Check if nodekeystore already created
   shell: |
     vault kv get -field=nodekeystore.jks {{ node.name }}/certs/nodekeystore
@@ -68,8 +70,7 @@
   register: nodekeystore_result
   ignore_errors: yes
 
-# ----------------------------------------------------------------------  
-# create deployment files for job for notaries
+# Create deployment files for job for notaries
 - name: 'Create notary initial-registration job file'
   include_role:
     name: create/node_component
@@ -86,6 +87,7 @@
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
   when: nodekeystore_result.failed == True
 
+# Git Push: Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -93,8 +95,7 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     msg: "[ci skip] Pushing db and job deployment files for {{ node.name }}"
 
-#----------------------------------------------------------------------  
-# create deployment file for notary node
+# Create deployment file for notary node
 - name: 'Create notary node deployment file'
   include_role: 
     name: create/node_component
@@ -111,8 +112,7 @@
     cordapps_details: "{{ cordapps }}" 
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
-# ----------------------------------------------------------------------  
-# Push the deployment files for notary node
+# Git Push: Push the deployment files for notary node
 - name: 'Push notary deployment files'
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

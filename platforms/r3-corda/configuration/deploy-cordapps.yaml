@@ -11,8 +11,8 @@
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
-  tasks:    
-  # ----------------------------------------------------------------------
+  tasks:
+  # Check source_dir directory exists
   - name: Check source_dir directory exists
     stat:
       path: "{{ source_dir }}"
@@ -42,9 +42,10 @@
       component_ns: "{{ item.name | lower }}-ns"
     loop: "{{ network['organizations'] }}"
     when: item.type.find('node') != -1
-  
-  vars: # These variables can be overriden from the command line
-    privilege_escalate: false           #Default to NOT escalate to root privledges
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"           #Default to ~/bin install directory for binaries
+
+  # These variables can be overriden from the command line
+  vars:
+    privilege_escalate: false     # Default to NOT escalate to root privledges
+    install_os: "linux"           # Default to linux OS
+    install_arch:  "amd64"        # Default to amd64 architecture
+    bin_install_dir:  "~/bin"     # Default to ~/bin install directory for binaries
