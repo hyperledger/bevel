@@ -16,7 +16,7 @@
     namespace: "{{ component_ns }}"
   tags: notest
 
-# This task fetches the bootnode's peer id from vault
+# Fetch the bootnode's peer id from vault
 - name: Fetch bootnode peer id from vault
   shell: |
     vault kv get -field=peer_id {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/ipfs
@@ -30,6 +30,7 @@
     node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':internal_url, 'p2p_port':peer.ipfs.swarmPort} ] }}
   vars:
     internal_url: "{{ peer.name }}-ipfs-swarm.{{ component_ns }}.svc.cluster.local"
+
 ### TODO Following lines are commented as IPFS does not work with Ambassador proxy
 #  when: 
 #  - network.env.proxy == 'none'

@@ -4,20 +4,22 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This tasks creates an empty list named 
+# Create an empty list named aura_key_list
 - name: Set aura_key_list to []
   set_fact:
     aura_key_list: []
 
+# Create an empty list named grandpa_key_list
 - name: Set grandpa_key_list to []
   set_fact:
     grandpa_key_list: []
 
+# Create an empty list named member_list
 - name: Set member_list to []
   set_fact:
     member_list: []
 
-# This task checks if the genesis already exists
+# Check if the genesis already exists
 - name: Check if genesis file exists
   shell: |
     vault kv get -field=genesis {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}-subs/genesis
@@ -27,6 +29,7 @@
   register: vault_genesis_result
   ignore_errors: yes
 
+# Get keys for each peer
 - name: Get keys for each peer
   include_tasks: nested_main.yaml
   vars:
@@ -36,6 +39,7 @@
   loop: "{{ network['organizations'] }}"
   when: vault_genesis_result.failed
 
+# Generate genesis helm release
 - name: Generate genesis helm release
   include_tasks: create_genesis_job.yaml
   vars:
@@ -50,7 +54,7 @@
     kubernetes: "{{ org.k8s }}"
   when: vault_genesis_result.failed
 
-# This tasks copies the genesis to each orgs vault
+# Copy the genesis to each orgs vault
 - name: Put genesis into org vault
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
