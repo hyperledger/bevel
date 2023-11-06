@@ -4,10 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
----
-############################################################################################
+##############################################################################################
 # This role creates the invoke_chaincode value file
+##############################################################################################
 
+---
 # Check or Wait if commit-chaincode is already run for v.2.x
 - name: "Waiting for chaincode to be commited on {{ peer.name }}"
   include_role:
@@ -57,13 +58,16 @@
   register: invoke_chaincode
   when: chaincode is defined
 
+# Set Variable invoke_chaincode
 - name: "Set Variable invoke_chaincode"
   set_fact:
     invoke_chaincode: "{{ result }}"
 
+# Set a variable
 - set_fact:
-   endorsers_var: []
+    endorsers_var: []
 
+# Get endorsers data
 - name: Get endorsers data
   set_fact:
     endorsers_var={{ endorsers_var + [ {'name':endorser.name, 'peercoreaddress':endorser.peers | map(attribute='corepeerAddress') | first } ] }}
@@ -71,7 +75,7 @@
   loop_control:
     loop_var: endorser
 
-# This task create endorser certs secret
+# Create endorser certs secret
 - name: "Create endorser certs secret"
   include_role:
     name: create/k8s_secrets
@@ -87,7 +91,7 @@
   loop_control:
     loop_var: endorser
 
-# Nested task for chanincode invocation
+# Create value file for chaincode invocation
 - name: "Create value file for chaincode invocation"
   include_role:
     name: helm_component
@@ -110,7 +114,7 @@
     - chaincode is defined
     - invoke_chaincode.resources|length == 0 or add_new_org == 'true'
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

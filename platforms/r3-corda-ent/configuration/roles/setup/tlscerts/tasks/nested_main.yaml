@@ -16,7 +16,7 @@
   register: vault_tlscert
   ignore_errors: yes
 
-# This task copies the tls certificate to each peer vault
+# Copy the tls certificate to each peer vault
 - name: Copy the tls certificate to each peer vault
   shell: |
     vault kv put {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name }}/{{ peer.name }}/certs/{{ service.name }} {{ service.name }}.crt="$(cat {{ service.certificate }} | base64 )"
@@ -34,7 +34,7 @@
   when: service.type == 'networkmap'
   failed_when: not file_status.stat.exists
 
-# This task copies the networkroottruststore to each org vault
+# Copy the networkroottruststore to each org vault
 - name: Copy the networkroottruststore to the Vault for each organisation
   shell: |
     vault kv put {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name }}/{{ peer.name }}/root/certs network-root-truststore.jks="$(cat {{ service.truststore }})"

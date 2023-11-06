@@ -19,6 +19,8 @@ spec:
     metadata:
       name: {{ component_name }}
       namespace: {{ component_ns }}
+    proxy:
+      provider: {{ network.env.proxy }}
     network:
       name: {{ network.name }}
     organization:
@@ -80,21 +82,7 @@ spec:
         # Directory to store node info.
         NODE_INFO_DIR = '/var/lib/indy/data'
     ambassador:
-{% if organizationItem.cloud_provider != 'minikube' and network.env.proxy == 'ambassador' %}
-      annotations: |-
-        ---
-        apiVersion: ambassador/v2
-        kind: TCPMapping
-        name: {{ component_name|e }}-node-mapping
-        port: {{ stewardItem.node.ambassador }}
-        service: {{ component_name|e }}.{{ component_ns }}:{{ stewardItem.node.targetPort }}
-        ---
-        apiVersion: ambassador/v2
-        kind: TCPMapping
-        name: {{ component_name|e }}-client-mapping
-        port: {{ stewardItem.client.ambassador }}
-        service: {{ component_name|e }}.{{ component_ns }}:{{ stewardItem.client.targetPort }}
-{% else %}
+{% if organizationItem.cloud_provider == 'minikube' and network.env.proxy != 'ambassador' %}
       disabled: true
 {% endif %}
     vault:
@@ -111,3 +99,4 @@ spec:
       keys:
         storagesize: 3Gi
         storageClassName: {{ sc_name }}
+

@@ -35,4 +35,5 @@ peer:
   address: {{ peer.peerAddress }}
 {% endif %}
 orderer:
-  address: {{ orderer.uri }}
+  address: {{ participant.ordererAddress }}
+

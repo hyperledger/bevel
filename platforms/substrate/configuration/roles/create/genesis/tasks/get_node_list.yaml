@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task fetches the node id
+# Fetch the node id
 - name: Get node id
   environment:
     VAULT_ADDR: "{{ vault.url }}"
@@ -13,6 +13,7 @@
     vault kv get -field=node_id {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
   register: node_id
 
+# Convert node_id to base58
 - name: Convert node_id to base58
   shell: |
     printf "{{ node_id.stdout }}" | base58 -d | xxd -p | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]'    

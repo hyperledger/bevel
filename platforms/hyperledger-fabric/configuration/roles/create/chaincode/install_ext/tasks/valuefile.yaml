@@ -1,10 +1,11 @@
-###########################################################################################
+# Check if buildpack_path exists
 - name: Check if buildpack_path exists
   stat:
     path: "{{ chaincode.buildpack_path }}"
   register: buildpack_path_file
   failed_when:
     - buildpack_path_file.stat.exists == false
+
 # Copy buildpack for external chaincode
 - name: Copy buildpack for external chaincode
   shell: |
@@ -15,8 +16,7 @@
   when: 
     - chaincode.buildpack_path is defined
 
-###########################################################################################
-# Task for chanincode installation
+# Create value file for chaincode installation
 - name: "Create value file for chaincode installation"
   include_role:
     name: helm_component
@@ -28,8 +28,7 @@
     component_name: "instextcc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version | replace('.','-')}}"
     component_chaincode: "{{ chaincode }}"
 
-###########################################################################################
-# Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

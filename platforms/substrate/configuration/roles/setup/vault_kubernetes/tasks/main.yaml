@@ -18,8 +18,7 @@
     component_name: "{{ component_ns }}"
     type: "retry"
 
-###############################################################################################
-# This task creates the docker pull credentials for image registry
+# Create the docker pull credentials for image registry
 - name: "Create docker credentials secret"
   include_role:
     name: create/k8s_secrets
@@ -28,8 +27,8 @@
     check: "docker_credentials"
   when: network.docker.password is defined
 
-# This task checks if the vault policy already exists
-- name: "Checking if the vault policies already exists"
+# Check if the vault policy already exists
+- name: "Check if the vault policies already exists"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
@@ -37,11 +36,11 @@
     component_name: "{{ item.name | lower }}"
   ignore_errors: yes
 
+# Set a variable to capture the result of the vault policy check
 - set_fact:
     this_policy_result: "{{ vault_policy_result }}"
 
-#############################################################################################
-# This task creates secrets for the root token
+# Create secrets for the root token
 - name: "Create vault token secret"
   include_role:
     name: create/k8s_secrets
@@ -57,8 +56,7 @@
   vars:
     path: "./build"
 
-#####################################################################################################################
-# This task creates the access policy for various Substrate entity
+# Create the access policy for various Substrate entity
 - name: Create policy for Access Control
   vars:  
     name: "{{ item.name | lower }}"
@@ -67,17 +65,15 @@
     dest: "./build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl"
   when: this_policy_result.failed
   changed_when: false
-  
-#############################################################################################
-# This tasks gets the kubernetes server url
+
+# Get the kubernetes server url
 - name: Get the kubernetes server url
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
   register: kubernetes_server_url
   when: this_policy_result.failed
 
-#####################################################################################################################
-# This tasks generate vault_kubernetes helmrelease file
+# Generate vault_kubernetes helmrelease file
 - name: "Create value file for vault_kubernetes"
   include_role:
     name: create/helm_component
@@ -95,7 +91,7 @@
     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
   when: this_policy_result.failed
   
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -104,7 +100,7 @@
     gitops: "{{ item.gitops }}"
     msg: "[ci skip] Pushing vault_kubernetes files"
   when: this_policy_result.failed
-   
+
 # Check if vault_kubernetes is completed
 - name: Check if vault_kubernetes job is completed
   include_role:
@@ -115,8 +111,7 @@
     kubernetes: "{{ item.k8s }}"
   when: this_policy_result.failed
 
-#############################################################################################
-# This task deletes the root token
+# Delete the root token
 - name: "Delete vault token secret"
   include_role:
     name: delete/k8s_secrets

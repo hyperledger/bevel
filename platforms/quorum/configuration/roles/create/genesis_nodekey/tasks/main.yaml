@@ -9,7 +9,7 @@
   set_fact:
     validator_node_list: []
 
-#This task checks if genesis file is present in the vault or not, if present, skip all the below tasks
+# Check if genesis file is present in the vault or not, if present, skip all the below tasks
 - name: Check if genesis file is present in vault
   include_tasks: vault_genesis_check.yaml
   vars:
@@ -19,7 +19,7 @@
   loop_control:
     loop_var: org
 
-# This task fetch (org,node) pairs for each validating node present in all organizations of the network
+# Fetch (org,node) pairs for each validating node present in all organizations of the network
 - name: Fetching data of validator nodes in the network from network.yaml
   include_tasks: validator_node_data.yaml
   loop: "{{ network['organizations'] }}"
@@ -27,7 +27,7 @@
     loop_var: org
   when: vault_check|default(0)|int != 0
 
-# This task creates the build directory if it does not exist
+# Create the build directory if it does not exist
 - name: " Create build directory if it does not exist"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -35,7 +35,7 @@
     path: build
   when: vault_check|default(0)|int != 0
 
-# This task generates the istanbul files
+# Generate the istanbul files
 - name: Generate istanbul files
   shell: |
     cd build
@@ -57,7 +57,7 @@
     jq '.config += {"petersburgBlock": 0,"istanbulBlock": 0,"maxCodeSizeConfig": [{"block": 0,"size": 128}]}' genesis.json > "$tmp" && mv "$tmp" genesis.json
   when: vault_check|default(0)|int != 0
 
-# This task copies the generated json file to the path provided in network.config
+# Copy the generated json file to the path provided in network.config
 - name: Copy genesis.json file
   copy:
     src: ./build/genesis.json
@@ -66,7 +66,7 @@
     force: yes
   when: vault_check|default(0)|int != 0 and ( not add_new_org )
 
-# This tasks copy the crypto material to the vault
+# Copy the crypto material to the vault
 - name: Copy the crypto material to Vault
   include_tasks: add_to_vault.yaml
   vars:
@@ -80,7 +80,7 @@
     loop_var: org
   when: vault_check|default(0)|int != 0 and ( not add_new_org )
 
-# This task rename the above created directories to the org_name/node_name
+# Rename the above created directories to the org_name/node_name
 - name: Rename the directories created above with the elements of validator_node_list
   copy: src=build/{{item.0}}/ dest=build/{{item.1.org}}/{{item.1.node}}
   with_indexed_items: "{{ validator_node_list }}"
@@ -94,7 +94,7 @@
   with_indexed_items: "{{ validator_node_list }}"
   when: vault_check|default(0)|int != 0
 
-# This tasks copy the crypto material to the vault
+# Copy the crypto material to the vault
 - name: Copy the nodekey to Vault
   include_tasks: add_to_vault.yaml
   vars:

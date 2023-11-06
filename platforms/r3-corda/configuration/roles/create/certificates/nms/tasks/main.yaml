@@ -7,19 +7,21 @@
 # This role generates certificates for networkmap 
 # and places them in vault. Certificates are created using openssl
 ---
-# create the root directory where CA root certificates and key will be placed
+# Create the root directory where CA root certificates and key will be placed
 - name: Ensure rootca dir exists
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ rootca }}"
 
+# Ensure nmsca dir exists
 - name: Ensure nmsca dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ nmsca }}"
 
+# Ensure mongorootca dir exists
 - name: Ensure mongorootca dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -27,6 +29,7 @@
     path: "{{ mongorootca }}"
   when: services.nms.tls == 'on'
 
+# Ensure mongodbca dir exists
 - name: Ensure mongodbca dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -34,6 +37,7 @@
     path: "{{ mongodbca }}"
   when: services.nms.tls == 'on'
 
+# Check if root certs already created
 - name: Check if root certs already created
   shell: |
     vault kv get -field=cacerts {{ component_name }}/certs
@@ -43,6 +47,7 @@
   register: nms_root_certs
   ignore_errors: yes
 
+# Get all root certs data from Vault
 - name: Get all root certs data from Vault
   shell: |
     vault kv get -format=yaml {{ component_name }}/certs
@@ -52,6 +57,7 @@
   register: nms_root_certs_yaml
   ignore_errors: yes
 
+# Get root certs
 - name: Get root certs
   include_role: 
     name: "setup/get_crypto"
@@ -63,12 +69,13 @@
   tags:
     - notest
 
-- name: check root certs
+# Check root certs
+- name: Check root certs
   stat:
     path: "{{ rootca }}/keys.jks"
   register: rootca_stat_result
 
-# generation of CA Root certificates
+# Generation of CA Root certificates
 - name: Generate CAroot certificate
   shell: |
     cd {{ rootca }}
@@ -81,6 +88,7 @@
     eval "yes | keytool -importkeystore -srckeystore cordarootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: nms_root_certs.failed == True and rootca_stat_result.stat.exists == False
 
+# Check if networkmap certs already created
 - name: Check if networkmap certs already created
   shell: |
     vault kv get -field=networkmap.jks  {{ component_name }}/certs > {{ nmsca }}/tempkeys.jks
@@ -90,6 +98,7 @@
   register: networkmap_certs
   ignore_errors: yes
 
+# Decode base64
 - name: Decode base64
   shell: |    
     cat {{ nmsca }}/tempkeys.jks | base64 -d > {{ nmsca }}/keys.jks
@@ -97,7 +106,7 @@
   tags:
     - notest
 
-# creating nms certificates
+# Creating nms certificates
 - name: Generate NMS certificate
   shell: |
     cd {{ nmsca }}
@@ -112,7 +121,7 @@
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: networkmap_certs.failed == True
 
-# checking root certificates for mongodb
+# Checking root certificates for mongodb
 - name: Check if mongoroot certs already created
   shell: |
     vault kv get -field=mongoCA.crt  {{ component_name }}/certs > {{ mongorootca }}/tempmongoCA.crt
@@ -123,6 +132,7 @@
   ignore_errors: yes
   when: services.nms.tls == 'on'
 
+# Decode base64
 - name: Decode base64
   shell: |    
     cat {{ mongorootca }}/tempmongoCA.crt | base64 -d > {{ mongorootca }}/mongoCA.crt
@@ -130,6 +140,7 @@
   tags:
     - notest
 
+# Check mongoroot certs
 - name: check mongoroot certs
   stat:
     path: "{{ mongorootca }}/mongoCA.crt"
@@ -144,7 +155,7 @@
     openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '{{ mongoroot_cert_subj }}'
   when: services.nms.tls == 'on' and mongoCA_stat_result.stat.exists == False and mongoCA_certs.failed == True
 
-# checking if mongodb certificate already created
+# Checking if mongodb certificate already created
 - name: Check if mongodb certs already created
   shell: |
     vault kv get -field=mongodb-{{component_name}}.pem  {{ component_name }}/certs > {{ mongodbca }}/tempmongodb-{{component_name}}.pem
@@ -155,6 +166,7 @@
   ignore_errors: yes
   when: services.nms.tls == 'on'
 
+# Decode base64
 - name: Decode base64
   shell: |    
     cat {{ mongodbca }}/tempmongodb-{{component_name}}.pem | base64 -d > {{ mongodbca }}/mongodb-{{component_name}}.pem
@@ -171,6 +183,7 @@
     cat mongodb-{{ component_name }}.key mongodb-{{ component_name}}.crt > mongodb-{{ component_name }}.pem
   when: services.nms.tls == 'on' and mongodb_certs.failed == True
 
+# Putting certs to vault for root
 - name: Putting certs to vault for root
   shell: |
     vault kv put {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
@@ -179,6 +192,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: nms_root_certs.failed == True
 
+# Putting certs and credential to vault for networkmap
 - name: Putting certs and credential to vault for networkmap
   shell: |
     vault kv put {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
@@ -189,6 +203,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: networkmap_certs.failed == True
 
+# Create Ambassador certificates
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"

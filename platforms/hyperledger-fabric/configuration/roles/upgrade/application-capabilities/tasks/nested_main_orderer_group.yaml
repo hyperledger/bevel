@@ -9,7 +9,7 @@
 # config, sign channel config by other orderers and update the modified channel configuration
 ############################################################################################
 
-# This task creates the capabilities upgrade script for orderer
+# Create the capabilities upgrade script for orderer
 - name: "Create script file to upgrade application channel orderer group"
   template:
     src: "orderer_group_capability.tpl"
@@ -19,7 +19,7 @@
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
 
-# This task create the config update for application capability
+# Create the config update for application capability
 - name: Update orderer group capabilities of application channel
   include_tasks: orderer-group/orderer_group_capability.yaml
   vars:
@@ -35,6 +35,7 @@
   set_fact:
     is_config_same: false
 
+# Check if required channel config already exists
 - name: Check if required channel config already exists
   set_fact:
     is_config_same: true
@@ -43,7 +44,7 @@
     modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
   when: original_config == modified_config
 
-# This task calls sign_orderer.yaml for the signing of the block by all orderers
+# Call sign_orderer.yaml for the signing of the block by all orderers
 - name: Call sign_orderer.yaml to sign from new update block
   include_tasks: orderer-group/sign_block_orderer.yaml
   vars:
@@ -56,7 +57,7 @@
     loop_var: org
   when: org.type == 'orderer' and org.name != creator_orderer and is_config_same  == false
 
-# This task updates the block by the existing orderer
+# Update the block by the existing orderer
 - name: Call update_orderer.yaml to add the new orderer to the existing network
   include_tasks: orderer-group/update_block_orderer.yaml
   vars:

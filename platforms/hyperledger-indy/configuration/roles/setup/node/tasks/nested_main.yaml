@@ -4,10 +4,8 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This deploys all nodes sequencially per organization
 ---
-#----------------------------------------------------------------------
-# create deployment file for node steward
+# Create deployment files for all of the steward's nodes sequentially
 - name: "Create steward deployment file"
   include_role:
     name: create/helm_component/node
@@ -17,8 +15,7 @@
     indy_version: "indy-{{ network.version }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
-# ---------------------------------------------------------------------
-# push the created deployment files to repository
+# Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -26,8 +23,7 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     msg: "[ci skip] Pushing deployment files for {{ organization }}-{{ stewardItem.name }}-node"
 
-# ---------------------------------------------------------------------
-# wait until steward pods are running
+# Wait until steward pods are running
 - name: "Wait until steward pods are running"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"

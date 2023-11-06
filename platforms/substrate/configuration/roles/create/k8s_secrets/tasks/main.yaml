@@ -8,8 +8,7 @@
 # This role creates the secrets and docker credentials 
 #############################################################################################
 
-############################################################################################
-# Check if root token secret exist of every organization in their namespace
+# Check if root token secret exists for every organization in their namespace
 - name: Check if root token exists in the namespace
   k8s_info:
     kind: Secret
@@ -20,8 +19,7 @@
   register: root_token_secret
   when: check == "token_secret"
 
-# ############################################################################################
-# # This task put root token of every organization in their namespace
+# Put root token of every organization in their namespace if it doesn't exist
 - name: Put root token of every organization
   k8s:
     definition:
@@ -38,7 +36,6 @@
     context: "{{ kubernetes.context }}"
   when: check == "token_secret" and root_token_secret.resources|length == 0 
 
-#####################################################################################################################
 # Check if Docker credentials exist already
 - name: "Checking if the docker credentials already exists"
   include_role:
@@ -48,20 +45,22 @@
   register: get_regcred
   when: check == "docker_credentials"
 
+# Set facts for Docker credentials if they don't already exist
 - set_fact:
     auth: "{{network.docker.username}}:{{network.docker.password}}"
   when: check == "docker_credentials" and  get_regcred.resources|length == 0
 
+# Encode the Docker authentication information (username and password) in base64
 - set_fact:
     auth_64: "{{auth | b64encode}}" 
   when: check == "docker_credentials" and  get_regcred.resources|length == 0
 
+# Create a JSON string with Docker authentication data for the image registry
 - set_fact:
     dockerconfigjson: "{\"auths\":{\"{{network.docker.url}}\":{\"username\":\"{{network.docker.username}}\",\"password\":\"{{network.docker.password}}\",\"email\":\"test@abc.mail\",\"auth\":\"{{auth_64}}\"}}}"
   when: check == "docker_credentials" and  get_regcred.resources|length == 0
 
-#####################################################################################################################
-# This task creates the docker pull credentials for image registry
+# Create docker pull credentials for the image registry
 - name: Create the docker pull credentials
   k8s:
     definition:

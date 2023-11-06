@@ -4,8 +4,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
+##############################################################################################
 # This task initiates the nested sign and update
+##############################################################################################
 
 # checking for fabric cli
 - name: "Check if fabric cli is already present"
@@ -24,7 +25,7 @@
     KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
   when: existing_cli.resources|length == 0
 
-# waiting for fabric cli
+# Wait for fabric cli
 - name: "Wait for fabric cli pod to be up"
   k8s_info:
     kind: Pod
@@ -44,13 +45,13 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# remove old anchor file
+# Remove old anchor file
 - name: Remove old anchor file
   file:
     path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-anchorfile.json"
     state: absent
 
-# creating new anchor file
+# create new anchor file
 - name: Creating new anchor file
   file:
     path: "{{ build_path }}/channel-artifacts/{{ channel_name | lower}}-anchorfile.json"
@@ -74,8 +75,7 @@
     loop_var: peerx
   when: peerx.type == 'anchor'  
 
-############################################################################################
-# This task updates the blockchain after signature from the first peer of the creator
+# update the blockchain after signature from the first peer of the creator
 - name: updating the channel with the new configuration block
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ org.name | lower }}-net | grep "cli" | head -n 1 | awk '{print $1}')
@@ -91,8 +91,7 @@
     kubernetes: "{{ org.k8s }}"
   register: update_channel
 
-############################################################################################
-# Delete the cli   
+# Delete the cli
 - name: "delete cli {{ peer.name }}-{{ participant.name }}-cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm uninstall {{ peer.name }}-{{ participant.name }}-cli

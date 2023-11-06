@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task checks if the keys already exist
+# Check if the keys already exist
 - name: Check if keys exist
   shell: |
     vault kv get -field=node_id {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
@@ -14,7 +14,7 @@
   register: vault_keys_result
   ignore_errors: yes
 
-# generate substrate keys helmrelease file
+# Generate substrate keys helmrelease file
 - name: "Create substrate key management file"
   include_role:
     name: create/helm_component
@@ -25,8 +25,7 @@
     component_name: "{{ peer.name }}-keys-job"
   when: vault_keys_result.failed
 
-# ---------------------------------------------------------------------
-# push the created deployment files to repository
+# Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

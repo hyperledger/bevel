@@ -4,26 +4,29 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
+##############################################################################################
 # This task ensures that the directory exists, and creates it, if it does not exist
-############################################################################################
-# This task creates the build directory if it does not exist
+##############################################################################################
+
+# Create the build directory if it does not exist
 - name: Create build directory if it does not exist
   file:
     path: "./build"
     state: directory
 
-- name: check configtxgen
+# Check configtxgen
+- name: Check configtxgen
   stat:
     path: "{{ build_path }}/configtxgen"
   register: config_stat_result
 
-- name: register temporary directory
+# Register temporary directory
+- name: Register temporary directory
   tempfile:
     state: directory
   register: tmp_directory
 
-  #Fetch msp files from Vault 
+# Fetch msp files from Vault 
 - name: Check if msp admincerts already created
   vars:
     query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
@@ -42,8 +45,7 @@
     loop_var: organization    
   when: fetch_certs == 'true'
 
- #Fetch msp files from Vault 
-
+# Fetch msp files from Vault 
 - name: Check if msp cacerts already created
   vars:
     query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
@@ -61,8 +63,8 @@
   loop_control:
     loop_var: organization    
   when: fetch_certs == 'true'
-  
-  #Fetch msp files from Vault 
+
+# Fetch msp files from Vault 
 - name: Check if msp tlscacerts already created
   vars:
     query: "organizations[?name=='{{organization.name}}'].services.ca.grpc.port"
@@ -82,7 +84,7 @@
   when: fetch_certs == 'true'     
 
 ############################################################################################
-# This task fetches the configtx gen tar file from the mentioned URL
+# Fetch the configtx gen tar file from the mentioned URL
 - name: "Getting the configtxgen binary tar"
   get_url:
     url: https://github.com/hyperledger/fabric/releases/download/v{{network.version}}/hyperledger-fabric-{{install_os}}-{{install_arch}}-{{network.version}}.tar.gz
@@ -91,7 +93,7 @@
 
 
 ############################################################################################
-# This task unzips the above downloaded tar file
+# Unzip the above downloaded tar file
 - name: "Unziping the downloaded file"
   unarchive:
     src: "{{ tmp_directory.path }}/hyperledger-fabric-{{install_os}}-{{install_arch}}-{{network.version}}.tar.gz"
@@ -99,7 +101,7 @@
   when: config_stat_result.stat.exists == False
 
 ############################################################################################
-# This task extracts the configtxgen binary and place it at appropriate path
+# Extract the configtxgen binary and place it at appropriate path
 - name: "Moving the configtxgen from the extracted folder and place in it path"
   copy:
     src: "{{ tmp_directory.path }}/bin/configtxgen"
@@ -108,20 +110,21 @@
   when: config_stat_result.stat.exists == False
 
 ############################################################################################
-# This task creates the channel-artifacts folder
+# Create the channel-artifacts folder
 - name: "Creating channel-artifacts folder"
   file:
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-- name: remove old channel block
+# Remove old channel block
+- name: Remove old channel block
   file:
     path: "{{ build_path }}/channel-artifacts/{{channel_name}}.tx"
     state: absent
   when: add_new_org == 'false'
 
 ############################################################################################
-# This task creates the channel by consuming the configtx.yaml file
+# Create channel by consuming the configtx.yaml file
 - name: "Creating channels"
   shell: |
     cd {{ build_path }}
@@ -130,7 +133,7 @@
   when: add_new_org == 'false'
 
 ############################################################################################
-# This task creates the anchortx files
+# Create the anchortx files
 - name: "Creating Anchor artifacts"
   shell: |
     cd {{ build_path }}
@@ -141,7 +144,7 @@
     loop_var: participant
   when: add_new_org == 'false'
 
-# This task creates the channel by consuming the configtx.yaml file
+# Create the channel by consuming the configtx.yaml file
 - name: "Creating JSON configuration for new organization"
   shell: |
     cd {{ build_path }}
