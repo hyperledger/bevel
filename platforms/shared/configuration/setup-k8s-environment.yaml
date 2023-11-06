@@ -45,19 +45,6 @@
       loop_var: organizationItem
     when: organizationItem.services.stewards is defined and network['type'] == 'indy'
 
-  # Setup ambassador legacy
-  - include_role:
-      name: setup/ambassador
-    vars:
-      kubeconfig_path: "{{ item.k8s.config_file }}"
-      kubecontext: "{{ item.k8s.context }}"
-      aws: "{{ item.aws }}"
-      organization: "{{ item }}"
-    with_items: "{{ network.organizations }}"
-    when: 
-    - network.env.proxy == 'ambassador' 
-    - network['type'] == 'indy'
-
   # Setup ambassador edge stack (enabled for besu and quorum)
   - include_role:
       name: setup/edge-stack
@@ -69,7 +56,6 @@
     with_items: "{{ network.organizations }}"
     when: 
     - network.env.proxy == 'ambassador' 
-    - network['type'] != 'indy'
 
   # Installs cert-manager
   - include_role:

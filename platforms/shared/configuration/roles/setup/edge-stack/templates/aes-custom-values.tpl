@@ -14,6 +14,12 @@ namespaceOverride: ''
 # Emissary Chart Values.
 emissary-ingress:
   service:
+{% if network.type == 'indy' %}
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+      service.beta.kubernetes.io/aws-load-balancer-eip-allocations: "{{ elastic_ip }}"
+{% endif %}
     type: LoadBalancer
 
     # Note that target http ports need to match your ambassador configurations service_port
@@ -30,7 +36,7 @@ emissary-ingress:
       port: {{ port | int }}
       targetPort: {{ port | int }}
 {% endfor %}
-{% if (port_range_from and port_range_to) is defined %}
+{% if (port_range_from is defined) and (port_range_to is defined)  %}
 {% for port in range(port_range_from | int, port_range_to | int + 1) %}
     - name: tcp-{{ port }}
       port: {{ port }}
@@ -62,3 +68,4 @@ licenseKey:
   secretName:
   # Annotations to attach to the license-key-secret.
   annotations: {}
+
