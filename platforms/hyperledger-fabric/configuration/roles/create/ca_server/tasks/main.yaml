@@ -9,8 +9,7 @@
 # Also, creates the value file for Certificate Authority (CA)
 #############################################################################################
 
-############################################################################################
-# This task creates the folder to store crypto material
+# Create the folder to store crypto material
 - name: "creating the directory ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -25,8 +24,7 @@
     vault_path: "{{ vault.secret_path | default('secretsv2') }}/crypto/{{ component_type }}Organizations/{{ component_name }}/ca"
     check: "certs_created"
 
-#####################################################################################################################
-# This tasks generates cacerts helmrelease file.
+# Generate cacerts helmrelease file.
 - name: "Create value file for cacerts job"
   include_role:
     name: helm_component
@@ -45,7 +43,7 @@
     values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}/{{ component }}"
   when: certs_created.failed == True
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -76,8 +74,7 @@
     cp {{ ca.configpath }} ../../../{{ gitops.chart_source }}/ca/conf/fabric-ca-server-config-{{ component }}.yaml
   when: ca.configpath is defined
 
-# ############################################################################################
-# This task creates the CA value file for Orderer
+# Create the CA value file for Orderer
 - name: "Create CA server values for Orderer"
   include_role:
     name: helm_component
@@ -93,8 +90,7 @@
     external_url_suffix: "{{ item.external_url_suffix }}"
   when: component_type == 'orderer'
 
-############################################################################################
-# This task creates the CA value file for Organizations
+# Create the CA value file for Organizations
 - name: "Create CA server values organizations"
   include_role:
     name: helm_component
@@ -110,7 +106,7 @@
     external_url_suffix: "{{ item.external_url_suffix }}"
   when: component_type == 'peer'
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

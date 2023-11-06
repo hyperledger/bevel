@@ -7,6 +7,8 @@
 ###################################################################################################
 # This role creates the deployment files for indy crypto generate job and pushes them to repository
 ###################################################################################################
+
+# Wait for namespace creation for stewards
 - name: "Wait for namespace creation for stewards"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -15,14 +17,12 @@
     component_name: "{{ component_ns }}"
     type: "retry"
 
-# ---------------------------------------------------------------------
-# create image pull secrets
+# Create image pull secrets
 - name: "Create image pull secret for stewards"
   include_role:
     name: create/imagepullsecret
 
-# ---------------------------------------------------------------------
-# generate indy crypto
+# Generate indy crypto
 - name: "Create crypto of stewards, trustee and endorser"
   include_role:
     name: create/helm_component/crypto
@@ -32,8 +32,7 @@
     chartName: "indy-key-mgmt"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
 
-# ---------------------------------------------------------------------
-# push the created deployment files to repository
+# Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -41,8 +40,7 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     msg: "[ci skip] Pushing deployment files for {{ organization }}"
 
-# ---------------------------------------------------------------------
-# check Vault for correct inserted indy crypto
+# Check Vault for correct inserted indy crypto
 - name: "Check Vault for Indy crypto"
   include_role:
     name: check/crypto

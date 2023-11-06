@@ -4,8 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
-# This task calls nested_create_cli to generate the cli value files for the orderer organization
+# Call nested_create_cli to generate the cli value files for the orderer organization
 - name: Call nested_main for the each orderer
   include_tasks: nested_main.yaml
   loop: "{{ orderers }}"
@@ -13,8 +12,7 @@
     loop_var: orderer_main
   when: refresh_cert is defined and refresh_cert == 'true'
 
-############################################################################################
-# This task calls get_update_block to get the latest from syschannel channel block.
+# Call get_update_block to get the latest from syschannel channel block.
 - name: Call get_update_block to get latest syschannel block
   include_tasks: get_update_block.yaml
   vars:
@@ -22,8 +20,7 @@
     orderer: "{{ org.services.orderers | first }}"
     check: "latest_block"
 
-############################################################################################
-# This task calls get_update_block to get the latest from appchannel channel block.
+# Call get_update_block to get the latest from appchannel channel block.
 - name: Call get_update_block to get latest appchannel block
   include_tasks: get_update_block.yaml
   vars:
@@ -40,21 +37,20 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
-# This task creates the genesis block by consuming the latest config block
+# Create the genesis block by consuming the latest config block
 - name: "Create genesis block"
   shell: |
     cat {{ build_path }}/{{ sys_channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/genesis.block.base64
 
-# add new genesis block to the vault
-- name: "Write genesis block to Vault"  
+# Add new genesis block to the vault
+- name: "Write genesis block to Vault"
   shell: |
     vault kv put {{ org.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_ns }}  {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
 
-############################################################################################
-# Delete the orderer cli   
+# Delete the orderer cli
 - name: "Delete all temp {{ orderer.name }}-{{ org.name }}-cli"
   shell: |
     KUBECONFIG={{ org.k8s.config_file }} helm uninstall {{ orderer.name }}-{{ org.name }}-cli

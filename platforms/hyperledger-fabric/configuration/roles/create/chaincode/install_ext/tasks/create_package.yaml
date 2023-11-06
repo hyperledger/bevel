@@ -1,16 +1,16 @@
-# This task is to create a temporary directory for packaging
+# Create a temporary directory for packaging
 - name: Creates temporary package folder
   file:
     state: directory
     path: "{{ package_dir }}"
 
-# This task copies the certificates used for the packaging to temp folder
+# Copy the certificates used for the packaging to temp folder
 - name: Copies the certificate to temp folder
   shell: |
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ org_ns }} | grep "ca-tools" | awk '{print $1}');
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org_ns }}/${CA_TOOL_CLI}:crypto-config/peerOrganizations/{{ org_ns }}/users/{{ first_peer.name }}-{{ chaincode.name }}@{{ org_ns }}/tls {{ package_dir }};
 
-# This task packs the external chaincode details
+# Pack the external chaincode details
 - name: Generation chaincode connection details with mTLS
   shell: |
     cd {{ package_dir }}
@@ -22,7 +22,7 @@
     echo '{"path":"","type":"external","label":"'{{ package_name }}'"}' > metadata.json;
   when: chaincode.tls
 
-# This task packs the external chaincode details without tls
+# Pack the external chaincode details without tls
 - name: Generation chaincode connection details without TLS
   shell: |
     CHAINCODE_ADDR=cc-{{ chaincode_name }}.{{ org_ns }}.svc.cluster.local:7052
@@ -31,7 +31,7 @@
     echo '{"path":"","type":"external","label":"'{{ package_name }}'"}' > metadata.json
   when: not chaincode.tls
 
-# This tasks packs the chaincode details file
+# Pack the chaincode details file
 - name: Packs the chaicode package file
   shell: | 
     # Packages chaincode details
@@ -39,21 +39,21 @@
     tar cfz code.tar.gz connection.json;
     tar cfz {{ package_name }}.tgz code.tar.gz metadata.json;
 
-# This task checks the 
+# Check the status of the package file
 - name: Checks the status of the package file
   stat:
     path: "{{ package_dir }}/{{ package_name }}.tgz"
   register: packagefile
 
-# This task stops the playbook if the package details file exists
+# Stop the playbook if the package details file exists
 - name: Fails if the package file doesn't exist
   fail:
     msg: Package doesn't exist, please check the process
   when: 
     - packagefile is defined and packagefile.stat is defined and packagefile.stat.exists == false
 
-# This task saves the package details to vault in base64 format
-- name: Saves the package file to vault in base64 format
+# Save the package details to vault in base64 format
+- name: Save the package file to vault in base64 format
   shell: |
     PACKAGE_VAULT_ADDR={{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ org_ns }}/chaincodes/{{ chaincode_name }}/package/v{{ chaincode.version }}
     vault kv put ${PACKAGE_VAULT_ADDR} package-base64="$(cat {{ package_dir }}/{{ package_name }}.tgz | base64)"
@@ -61,8 +61,8 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
 
-# This task delete the packaging temp directory
-- name: Deletes the temp package directory
+# Delete the packaging temp directory
+- name: Delete the temp package directory
   file:
     path: "{{ package_dir }}"
     state: absent

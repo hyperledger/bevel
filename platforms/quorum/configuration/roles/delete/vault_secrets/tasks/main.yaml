@@ -9,7 +9,8 @@
 #############################################################################################
 
 #############################################################################################
-# This task deletes the Docker credentials
+
+# Delete the Docker credentials
 - name: Delete docker creds
   k8s:
     kind: Secret
@@ -20,6 +21,7 @@
     context: "{{ kubernetes.context }}"
   ignore_errors: yes
 
+# Delete Ambassador creds
 - name: Delete Ambassador creds
   k8s:
     kind: Secret
@@ -33,7 +35,7 @@
     loop_var: peer
   ignore_errors: yes
 
-# This task deletes vault auth
+# Delete vault-auth path
 - name: Delete vault-auth path
   shell: |
     vault kv delete sys/auth/quorum{{ org_name }}
@@ -41,8 +43,8 @@
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
 
-# This task deletes crypto material
-- name: Delete Crypto material 
+# Delete crypto materials
+- name: Delete Crypto materials
   shell: |
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tm
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/quorum
@@ -56,7 +58,7 @@
     loop_var: peer
   ignore_errors: yes
 
-  # This task deletes application crypto material
+  # Delete application crypto material
 - name: Delete Application Crypto material 
   shell: |
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/smartContracts/General
@@ -68,8 +70,8 @@
     loop_var: peer
   ignore_errors: yes
 
-# This task deletes vault policies
-- name: Delete Access policies 
+# Delete vault access policies
+- name: Delete vault access policies
   shell: |
     vault policy delete vault-crypto-{{ org_namespace }}-{{ peer.name }}-ro
   loop: "{{ services.peers }}"

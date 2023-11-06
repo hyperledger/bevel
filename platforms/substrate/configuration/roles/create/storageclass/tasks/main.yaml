@@ -7,6 +7,7 @@
 #############################################################################################
 # This role creates value files for storage class
 #############################################################################################
+
 # Check storageclass exists already
 - name: "Checking if the storage class {{ storageclass_name }} already exists"
   include_role:
@@ -16,11 +17,12 @@
     component_name: "{{ storageclass_name }}"
     type: "no_retry"
 
-#set variable storageclass_state
+# set variable storageclass_state
 - name: "Set Variable"
   set_fact:
     storageclass_state: "{{ result }}"
 
+# Create storageclass if not prsent already
 - name: Create storageclass
   include_role:
     name: create/k8_component
@@ -43,7 +45,7 @@
     msg: "[ci skip] Pushing deployment file for storageclass"
   when: storageclass_state.resources|length == 0
 
-#Wait for the creation of storage class
+# Wait for the creation of storage class
 - name: "Waiting for the creation of {{ storageclass_name }} storage class for {{ component_name }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"

@@ -6,6 +6,7 @@
 
 # This role creates enviorment for float cluster
 
+# Setup flux for float cluster
 - name: Setup flux for float cluster
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/flux"
@@ -27,6 +28,7 @@
       bin_directory: "{{ bin_install_dir }}"
       checksum: ""
 
+# Setup ambassador for float cluster
 - name: Setup ambassador for float cluster
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/ambassador"
@@ -39,7 +41,7 @@
       item: "{{ org.services.float }}"
   
 # Create Storageclass that will be used for this deployment
-- name: Create Storage Class
+- name: Create Storageclass
   include_role:
     name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
   vars:
@@ -50,7 +52,7 @@
     charts_dir: "platforms/shared/charts"
     gitops: "{{ org.services.float.gitops }}"
 
-# create namespace, service account and clusterrolebinding
+# Create namespace, service account and clusterrolebinding
 - name: "Create namespace, service accounts and clusterrolebinding"
   include_role: 
     name: create/namespace_serviceaccount
@@ -59,6 +61,7 @@
     organisation: "{{ org.name | lower }}"
     kubernetes: "{{ org.services.float.k8s }}"
     gitops: "{{ org.services.float.gitops }}"
+
 # And wait for the enviorment creation
 - name: "Wait for namespace creation for {{ organisation }}"
   include_role:
@@ -69,6 +72,7 @@
     kubernetes: "{{ org.services.float.k8s }}"
     type: "retry"
 
+# Wait for vault-auth creation
 - name: "Wait for vault-auth creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -80,6 +84,7 @@
   tags:
     - notest    
 
+# Wait for vault-reviewer creation
 - name: "Wait for vault-reviewer creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -91,6 +96,7 @@
   tags:
     - notest    
 
+# Wait for ClusterRoleBinding creation
 - name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"

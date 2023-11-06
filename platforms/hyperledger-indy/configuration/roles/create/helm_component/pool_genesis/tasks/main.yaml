@@ -7,10 +7,10 @@
 ##############################################################################################
 # This role creates the pool genesis file for organization
 ##############################################################################################
+
 ---
-##############################################################################################
-# This tasks ensures the directory of ConfigMap existence, if not exits it creates a new one
-- name: Ensures {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
+# Ensure the directory of ConfigMap existence, if not exits it creates a new one
+- name: Ensure {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
   vars:
     organization: "{{ organizationItem.name }}"
     component_name: "{{ organization }}-ptg"
@@ -23,8 +23,7 @@
   loop_control:
     loop_var: organizationItem
 
-################################################################################################
-# This tasks gets data from vault
+# Get data from vault
 - name: Generate pool genesis for organization
   args:
     executable: /bin/bash
@@ -77,19 +76,20 @@
   local_action: copy content="{{ pool_genesis.stdout }}" dest="{{ network.genesis.pool }}"  
   when: network.genesis.state == 'absent'
 
+# Set pool_genesis_values when state is absent
 - name: Set pool_genesis_values when state is absent
   set_fact:
     pool_genesis_values: "{{ pool_genesis.stdout }}"
   when: network.genesis.state == 'absent'
 
+# Set pool_genesis_values when state is present
 - name: Set pool_genesis_values when state is present
   set_fact:
     pool_genesis_values: "{{ lookup('file', '{{ network.genesis.pool }}') }}"
   when: network.genesis.state == 'present'
 
-# ################################################################################################
-# This task creates values file for pool genesis config map.
-- name: "create value file for {{ component_name }} {{ component_type }}"
+# Create values file for pool genesis config map.
+- name: "Create value file for {{ component_name }} {{ component_type }}"
   template:
     src: "{{ dlt_templates[component_type] }}"
     dest: "{{ values_file }}"

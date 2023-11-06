@@ -8,18 +8,16 @@
 # This role creates the job value file for stewards
 ##############################################################################################
 
-##############################################################################################
-# This tasks ensures the directory existance, if not exits it creates a new one
 ---
-- name: Ensures {{ release_dir }}/{{ organization }}/{{ component_name }} dir exists
+# Ensure the directory existance, if not exits it creates a new one
+- name: Ensure {{ release_dir }}/{{ organization }}/{{ component_name }} dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ release_dir  }}/{{ organization }}/{{ component_name }}"
 
-##############################################################################################
-# This task creates deployment file for stewards.
-- name: "create value file for {{ component_name }} {{ component_type }}"
+# Create deployment file for stewards.
+- name: "Create value file for {{ component_name }} {{ component_type }}"
   template:
     src: "{{ dlt_templates[component_type] }}"
     dest: "{{ values_file }}"
@@ -28,7 +26,7 @@
     chart: "indy-node"
 
 ################################################################################################
-# This task tests the value file for syntax errors/ missing values
+# Test the value file for syntax errors/ missing values
 # This is done by calling the helm_lint role and passing the value file parameter
 # When a new k8_component is added, changes should be made in helm_lint role as well
 # - name: Helm lint

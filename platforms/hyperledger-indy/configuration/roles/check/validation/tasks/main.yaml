@@ -4,20 +4,22 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+##############################################################################################
 # This role checks for validation of network.yaml
 # Conditions to be checked
 # At least 4 genesis stewards
 # Max 1 trustee per org
 # Max 1 endorser per org
 # At least one trustee per network.yaml
+##############################################################################################
 
-#----------------------------------------------------------------------
-
+# Set variables
 - name: Set counters
   set_fact:
     total_stewards=0
     total_trustees=0
 
+# Check Validation
 - name: "Check Validation"
   include_tasks: check_count.yaml
   vars:
@@ -28,10 +30,12 @@
   loop_control:
     loop_var: organizationItem
 
+# Print error and end playbook if genesis steward count limit fails
 - name: Print error and end playbook if genesis steward count limit fails
   debug: msg="The total genesis steward count is {{ total_stewards }}. There should be at least 4 genesis stewards (in case of a fully Hyperledger Bevel-managed cluster)."
   failed_when: not add_new_org and total_stewards|int < 4
 
+# Print error and end playbook if total trustee count limit fails
 - name: Print error and end playbook if total trustee count limit fails
   debug: msg="The total trustee count is {{ total_trustees }}. There should be at least 1 trustee per network (in case of a fully Hyperledger Bevel-managed cluster)."
   failed_when: not add_new_org and total_trustees|int < 1

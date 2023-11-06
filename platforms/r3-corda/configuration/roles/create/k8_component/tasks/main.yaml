@@ -13,31 +13,30 @@
 ################################################################################################
 
 ---
-# This sets a fact values_dir_path
+# Set a fact values_dir_path
 - set_fact:
     release_dir_path: "{{ release_dir }}/{{ component_name }}"
   when: component_type == "namespace"
- 
-# This sets a fact values_dir_path
+
+# Set a fact values_dir_path
 - set_fact:
     release_dir_path: "{{ release_dir }}/{{ org_name }}/{{ component_name }}"
   when: component_type != "namespace"
 
-# Task to check if values file are already created or not
+# Check if values file are already created or not
 - stat: 
     path: "{{ release_dir_path }}/{{ component_type }}.yaml"
   register: value_file_exist
 
-# Task to create and/or check if the target directory exists
+# Create and/or check if the target directory exists
 - name: "Ensures {{ release_dir_path }} dir exists"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ release_dir_path }}"
   when: not value_file_exist.stat.exists
-  
 
-# Task to create deployment file from a template
+# Create deployment file from a template
 - name: "create {{ component_type }} file for {{ component_name }}"
   template:
     src: "{{ dlt_templates[component_type] }}"
@@ -47,7 +46,7 @@
   when: not value_file_exist.stat.exists
 
 ################################################################################################
-# This task tests the value file for syntax errors/ missing values
+# Test the value file for syntax errors/missing values
 # This is done by calling the helm_lint role and passing the value file parameter
 # When a new k8_component is added, changes should be made in helm_lint role as well
 - name: "Helm lint"

@@ -4,7 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task fetches the bootnode's peer id from vault
+# Fetch the bootnode's peer id from vault
 - name: Fetch bootnode peer id from vault
   shell: |
     vault kv get -field=node_id {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/{{ peer.name }}/substrate
@@ -13,6 +13,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: node_id
 
+# Collect Bootnode data if there is no ingress controller
 - name: Collect Bootnode data
   set_fact:
     node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':internal_url, 'p2p_port':peer.p2p.port} ] }}
@@ -21,6 +22,7 @@
   when: 
   - network.env.proxy == 'none'
 
+# Collect Bootnode data if Ambassador is there as ingress controller
 - name: Collect Bootnode data
   set_fact:
     node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':external_url, 'p2p_port':peer.p2p.ambassador} ] }}

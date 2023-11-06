@@ -4,33 +4,39 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+# Reset counters
 - name: Reset counters
   set_fact:
     trustee_count=0
     steward_count=0
     endorser_count=0
 
+# Counting Genesis Stewards
 - name: "Counting Genesis Stewards"
   set_fact:
     steward_count={{ steward_count|default(0)|int + 1 }}
     total_stewards={{ total_stewards|default(0)|int + 1 }}
   loop: "{{ stewards }}"
 
+# Counting trustees per Org
 - name: "Counting trustees per Org"
   set_fact:
     trustee_count={{ trustee_count|default(0)|int + 1 }}
     total_trustees={{ total_trustees|default(0)|int + 1 }}
   loop: "{{ trustees }}"
 
+# Print error and end playbook if trustee count limit fails
 - name: Print error and end playbook if trustee count limit fails
   debug: msg="The trustee count is {{ trustee_count }}. There should be max 1 trustee per organization."
   failed_when: trustee_count|int > 1
 
+# Counting Endorsers
 - name: "Counting Endorsers"
   set_fact:
     endorser_count={{ endorser_count|default(0)|int + 1 }}
   loop: "{{ endorsers }}"
 
+# Print error abd end playbook  if endorser count limit fails
 - name: Print error abd end playbook  if endorser count limit fails
   debug: msg="The endorser count is {{ endorser_count }}. There should be max 1 endorser per organization."
   failed_when: endorser_count|int > 1

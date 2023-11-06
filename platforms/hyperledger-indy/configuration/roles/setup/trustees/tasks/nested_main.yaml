@@ -65,13 +65,12 @@
     echo "type: ${admin_type}" >> admin.yaml
   register: admin_file
 
-#----------------------------------------------------------------------------------------------
+# Inserting file into Variable
 - name: "Inserting file into Variable"
   include_vars:
     file: admin.yaml
     name: admin_var
 
-#----------------------------------------------------------------------------------------------
 # Create Deployment files for new Identities
 - name: "Calling Helm Release Development Role..."
   include_role:
@@ -96,11 +95,12 @@
     loop_var: newIdentityItem
   when: newIdentity is defined
 
-- name: "Delete file"
+# Delete the file
+- name: "Delete the file"
   shell: |
     rm admin.yaml
-# ---------------------------------------------------------------------
-# push the created deployment files to repository
+
+# Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

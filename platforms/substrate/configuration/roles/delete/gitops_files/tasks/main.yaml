@@ -8,25 +8,26 @@
 # This role deletes all the gitops release files
 #############################################################################################
 
-############################################################################################
-# This task deletes all the files from the release directory
-- name: Delete release files
+# Delete files in the organization-specific directory within the release directory
+- name: Delete organization-specific files
   file:
     path: "{{ release_dir }}/"
     state: absent
 
-- name: Delete release files
+# Delete files in the organization namespace-specific directory within the release directory
+- name: Delete organization namespace-specific files
   file:
     path: "{{ release_dir_ns }}/"
     state: absent
 
-- name: Delete release files
+# Delete files in the Flux-specific directory within the release directory
+- name: Delete Flux-specific files
   file:
     path: "{{ flux_manifest_dir }}/"
     state: absent
 
-#Git Push : Pushes the above generated files to git directory 
-- name: Git Push
+# Git Push : Push changes to the Git repository after deleting the files
+- name: Push changes to Git repository after file deletion
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:

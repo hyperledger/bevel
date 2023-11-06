@@ -8,15 +8,13 @@
 # This role deploy corDapps to Kubernetes pods
 ############################################################################################## deploy corDapps to Kubernetes pods
 
-##############################################################################################
-# This task ensures directory existance, if not creates a new one
+# Ensure directory exist, if not creates a new one
 - name: "Ensure {{ source_dir }} dir exists"
   file:
     path: "{{ source_dir }}"
     state: directory
 
-##############################################################################################
-# This task copy jar files from source to scripts directory
+# Copy jar files from source to scripts directory
 - name: Copy cordapp jar files
   copy:
     remote_src: true
@@ -27,20 +25,16 @@
   loop_control:
     loop_var: jarfile
 
-##############################################################################################
-# This task run the shell script to upload cordapp jar files 
-# for each notary
-- name: Run uploadCordapps.sh for notary
+# Execute shell script to upload cordapp jar files for each notary
+- name: Execute uploadCordapps.sh for notary
   shell: |
     cd "{{ playbook_dir }}/../scripts"
     chmod +x *.sh
     ./uploadCordapps.sh {{ notary.name }} {{ component_ns }} {{ item.k8s.config_file }} .
   when: component_type == 'notary'
-  
-##############################################################################################
-# This task run the shell script to upload cordapp jar files 
-# for each nodes and notary from components.yaml
-- name: Run uploadCordapps.sh for each node
+
+# Execute shell script to upload cordapp jar files for each nodes and notary from components.yaml
+- name: Execute uploadCordapps.sh for each node
   shell: |
     cd "{{ playbook_dir }}/../scripts"
     chmod +x *.sh
@@ -50,9 +44,8 @@
     loop_var: node
   when: component_type == 'node'
 
-##############################################################################################
-# This task removes jar files from scripts directory after uploading is complete
-- name: remove cordapp jar files from script
+# Remove jar files from scripts directory after uploading is complete
+- name: Remove cordapp jar files from script
   file:
     path: "{{ jarfile }}"
     state: absent
@@ -60,5 +53,3 @@
     - "{{ playbook_dir }}/../scripts/*.jar"
   loop_control:
     loop_var: jarfile
-
-    

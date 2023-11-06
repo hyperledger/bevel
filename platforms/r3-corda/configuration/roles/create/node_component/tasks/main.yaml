@@ -9,17 +9,19 @@
 ##############################################################################################
 
 ##############################################################################################
-# This tasks ensures the directory existance, if not exits it creates a new one
+
 ---
+# Ensure the directory existance, if not exits it creates a new one
 - set_fact:
     release_dir_path: "{{ release_dir }}/{{ component_name }}"
   when: node_type == "node"
- 
-# This sets a fact values_dir_path
+
+# Set a fact values_dir_path
 - set_fact:
     release_dir_path: "{{ release_dir }}/{{ org_name }}/{{ component_name }}"
   when: node_type != "node"
 
+# Ensures dir exists
 - name: Ensures {{ release_dir_path }} dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -27,7 +29,7 @@
     path: "{{ release_dir_path }}"
 
 ##############################################################################################
-# This task creates deployment file for notaries. It is executed only if is_notary is true
+# Create deployment file for notaries. It is executed only if is_notary is true
 - name: "create value file for {{ component_name }} {{ component_type }}"
   template:
     src: "{{ dlt_templates[component_type] }}"
@@ -39,7 +41,7 @@
   when: node_type == "notary"
 
 ##############################################################################################
-# This task creates deployment file for nodes. It is executed only if is_notary is false
+# Create deployment file for nodes. It is executed only if is_notary is false
 - name: "create value file for {{ component_name }} {{ component_type }}"
   template:
     src: "{{ dlt_templates[component_type] }}"
@@ -51,7 +53,7 @@
   when: node_type == "node"
 
 ################################################################################################
-# This task tests the value file for syntax errors/ missing values
+# Test the value file for syntax errors/ missing values
 # This is done by calling the helm_lint role and passing the value file parameter
 # When a new k8_component is added, changes should be made in helm_lint role as well
 - name: Helm lint

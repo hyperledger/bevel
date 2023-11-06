@@ -4,10 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
----
-############################################################################################
+##############################################################################################
 #  This role creates the approve_chaincode value file, for one peer per org
+##############################################################################################
 
+---
 # Check or Wait if install-chaincode is already run
 - name: "Waiting for chaincode to be installed on {{ peer.name }}"
   include_role:
@@ -30,16 +31,19 @@
     kubernetes: "{{ org.k8s }}"
     component_name: "approvecc-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}-{{ chaincode.sequence | default('1') }}"
 
+# Set Variable approve_chaincode
 - name: "Set Variable approve_chaincode"
   set_fact:
     approve_chaincode: "{{ result }}"
   when: skip_install_checking is not defined or skip_install_checking == false or skip_install_checking == 'false'
 
+# Set Variable approve_chaincode
 - name: "Set Variable approve_chaincode"
   set_fact:
     approve_chaincode: { 'resources': [] }
   when: skip_install_checking is defined and (skip_install_checking == 'true' or skip_install_checking == true)
 
+# validate pdc config
 - name: "validate pdc config"
   fail:
     msg: "chaincode.pdc.collections_config is invalid"
@@ -48,7 +52,8 @@
     - chaincode.pdc.enabled
     - (chaincode.pdc.collections_config is not defined) or (chaincode.pdc.collections_config | length == 0)
 
-- name: "check if pdc collection config file exists"
+# Check if pdc collection config file exists
+- name: "Check if pdc collection config file exists"
   stat:
     path: "{{ chaincode.pdc.collections_config }}"
   register: check_file
@@ -58,7 +63,7 @@
     - chaincode.pdc.enabled
     - chaincode.pdc.collections_config is defined
 
-# Nested task for chanincode approve
+# Create value file for chaincode approve
 - name: "Create value file for chaincode approve"
   include_role:
     name: helm_component
@@ -82,7 +87,7 @@
   when:
     - chaincode is defined and approve_chaincode.resources|length == 0
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"

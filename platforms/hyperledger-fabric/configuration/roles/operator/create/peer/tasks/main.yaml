@@ -4,9 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # This role creates the peer nodes using bevel-operator-fabric
-#############################################################################################
+##############################################################################################
+
+# Wait for ca server to be reachable
 - name: "Wait for ca server to be reachable"
   uri:
     url: "https://{{ item.ca_data.url }}/cainfo"
@@ -17,6 +19,7 @@
   delay: 20
   ignore_errors: yes
 
+# Create peer node
 - name: "Create peer node"
   shell: |
     KUBECONFIG={{ kubeconfig_path }} kubectl hlf peer create --statedb=couchdb --image=hyperledger/fabric-peer --version={{ network.version }} \

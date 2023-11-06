@@ -9,14 +9,16 @@
 ########################################################################################
 
 ########################################################################################
-# This task ensures directory existance, if not creates a new one
+
 ---
+# Ensure directory existance, if not creates a new one
 - name: "Ensure build dir exists"
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ notary_certs }}"
-    
+
+# Check if truststore already created
 - name: Check if truststore already created
   shell: |
     vault kv get -field=network-map-truststore {{ component_name }}/certs/networkmaptruststore
@@ -26,9 +28,8 @@
   register: truststore_result
   ignore_errors: yes
 
-########################################################################################
-# This task downloads the certificates from NMS
-- name: "Downloads certs from nms"
+# Download the certificates from NMS
+- name: "Download certs from nms"
   get_url:
     url: "{{ nms_url }}/network-map/truststore"
     dest: "{{ notary_certs }}/network-map-truststore.jks"
@@ -51,15 +52,14 @@
   tags:
     - notest
 
-# This task downloads the certificates from NMS
-- name: "Downloads certs from nms pod"
+# Download the certificates from NMS
+- name: "Download certs from nms pod"
   shell: |
     export NMS_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ item.services.nms.name | lower }} | grep {{ item.services.nms.name | lower }}  | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${NMS_POD}:../../opt/networkmap/network-map-truststore.jks -c logs {{ notary_certs }}/network-map-truststore.jks
   when: truststore_result.failed == True and network.env.proxy == 'none'
 
-########################################################################################
-# This task loads the certificates to vault
+# Write networkmaptruststore to vault
 - name: "Write networkmaptruststore to vault"
   shell: |
     vault kv put {{ component_name }}/certs/networkmaptruststore network-map-truststore="$(cat {{ notary_certs }}/network-map-truststore.jks | base64)"
@@ -68,6 +68,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: truststore_result.failed == True
 
+# Check if certificates already created
 - name: Check if certificates already created
   shell: |
     vault kv get -field=nodekeystore.jks {{ component_name }}/certs/customnodekeystore
@@ -77,6 +78,7 @@
   register: certs_result
   ignore_errors: yes
 
+# Generate node certs
 - name: Generate node certs
   shell: |
     cd {{ notary_certs }}
@@ -87,6 +89,7 @@
     keytool -importkeystore -srckeystore testkeystore.p12 -srcstoretype pkcs12 -srcstorepass cordacadevpass -destkeystore nodekeystore.jks -deststorepass cordacadevpass -deststoretype JKS
   when: certs_result.failed == True
 
+# Write certificates to vault
 - name: "Write certificates to vault"
   shell: |
     vault kv put {{ component_name }}/certs/customnodekeystore nodekeystore.jks="$(cat {{ notary_certs }}/nodekeystore.jks | base64)"
@@ -96,6 +99,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: certs_result.failed == True
 
+# Check if doorman certs already created
 - name: Check if doorman certs already created
   shell: |
     vault kv get -field=doorman.crt {{ component_name }}/certs/doorman
@@ -105,6 +109,7 @@
   register: doorman_result
   ignore_errors: yes
 
+# Write certificates to vault
 - name: "Write certificates to vault"
   shell: |
     vault kv put {{ component_name }}/certs/doorman doorman.crt="$(cat {{ doorman_cert_file }} | base64)"
@@ -113,6 +118,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: doorman_result.failed == True
 
+# Check if networkmap certs already created
 - name: Check if networkmap certs already created
   shell: |
     vault kv get -field=networkmap.crt {{ component_name }}/certs/networkmap 
@@ -122,6 +128,7 @@
   register: networkmap_result
   ignore_errors: yes
 
+# Write certificates to vault
 - name: "Write certificates to vault"
   shell: |
     vault kv put {{ component_name }}/certs/networkmap networkmap.crt="$(cat {{ nms_cert_file }} | base64)"
@@ -130,6 +137,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: networkmap_result.failed == True
 
+# Write credentials to vault
 - name: "Write credentials to vault"
   shell: |
     vault kv put {{ component_name }}/credentials/database sa="newh2pass" notaryUser1="xyz1234" notaryUser2="xyz1236"
@@ -140,6 +148,7 @@
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
 
+# Write cordapps credentials to vault
 - name: "Write cordapps credentials to vault"
   shell: |
     vault kv put {{ component_name }}/credentials/cordapps repo_username="{{ cordapps_details.username }}" repo_password="{{ cordapps_details.password }}"
@@ -148,6 +157,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: cordapps_details != ""
 
+# Create Ambassador certificates
 - name: Create Ambassador certificates
   include_role: 
     name: "create/certificates/ambassador"

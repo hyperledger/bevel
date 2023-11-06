@@ -8,9 +8,7 @@
 # This role creates value file for zkKafka and orderer
 #############################################################################################
 
-############################################################################################
-# This task fetch the genesis block from vault
-# to the build directory
+# Fetch the genesis block from vault to the build directory
 - name: Fetch the genesis block from vault
   shell: |
     vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name | lower }}-net > genesis.block.base64
@@ -21,8 +19,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: refresh_cert is defined and refresh_cert == 'true'
 
-############################################################################################
-# This task reset peers pods
+# Reset peers pods
 - name: "Reset peers pods"
   include_role:
     name: create/refresh_certs/reset_pod
@@ -39,9 +36,7 @@
     loop_var: orderer 
   when: refresh_cert is defined and refresh_cert == 'true'
 
-############################################################################################
-# This task creates the value file for kafka for orderes as per requirements mentioned in
-# network.yaml
+# Create the value file for kafka for orderes as per requirements mentioned in network.yaml
 - name: "create kafka clusters"
   include_role:
     name: helm_component
@@ -56,9 +51,7 @@
     consensus: "{{component_services.consensus}}"
   when: component_services.consensus.name == 'kafka' and component_services.consensus is defined
 
-############################################################################################
-# This task creates the value file for the Orderers as per requirements mentioned in 
-# network.yaml
+# Create the value file for the Orderers as per requirements mentioned in network.yaml
 - name: "create orderers"
   include_role:
     name: helm_component
@@ -79,7 +72,7 @@
     - component_services.orderers is defined and component_services.consensus is defined
     - orderer.status is not defined or orderer.status == 'new'
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push: Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
