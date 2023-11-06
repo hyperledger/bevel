@@ -22,23 +22,45 @@
     port_range_to: "{{ network.env.ambassadorPorts.portRange.to }}"
   when: network.env.ambassadorPorts.portRange is defined
 
-# Apply the ambassador edge stack crds
-- name: Apply aes-crds manifest.
-  kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_path }}"
-    state: present
-    src: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/edge-stack/templates/aes-crds.yaml"
+# As this shell code is specific to AWS, cloud provider check has been added
+- name: Get Elastic IP
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ aws.access_key }}"
+    AWS_SECRET_ACCESS_KEY: "{{ aws.secret_key }}"
+  shell: |
+    ips="{{ item.publicIps | join(' ') }}"
+    data=$(aws ec2 describe-addresses --public-ips $ips --region {{ aws.region }} --output json | jq -r '.Addresses[].AllocationId' | tr '\n' ',')
+    echo "${data%,}"  # Remove trailing comma
+  register: allocation_ips
+  when:
+    - network.type == 'indy'
+    - item.cloud_provider in ['aws', 'aws-baremetal']
+
+# Set allocation_ips_stdout
+- name: Set Helm value for ambassador_eip
+  set_fact:
+    allocation_ips_stdout: "{{ allocation_ips.stdout }}"
+  when:
+    - allocation_ips is defined
 
 # Create custom values for ambassador edge stack (aes) helm chart
 - name: Create custom values for aes helm chart
   vars:
     ports: "{{ network.env.ambassadorPorts.ports | default([]) }}"
+    elastic_ip: "{{ allocation_ips_stdout | default('') }}"
     lbSourceRangeDefault:
       - 0.0.0.0/0
     loadBalancerSourceRanges: "{{ network.env.loadBalancerSourceRanges | default(lbSourceRangeDefault) }}"
   template:
     src={{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/edge-stack/templates/aes-custom-values.tpl
     dest={{ playbook_dir }}/../../../platforms/shared/configuration/build/aes-custom-values.yaml
+
+# Apply the ambassador edge stack crds
+- name: Apply aes-crds manifest.
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    src: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/edge-stack/templates/aes-crds.yaml"
 
 # Adding the datawire chart repo
 - name: Add datawire chart repo
@@ -99,3 +121,4 @@
     component_type: "Pod"
     label_selectors:
       - app.kubernetes.io/name=edge-stack
+
