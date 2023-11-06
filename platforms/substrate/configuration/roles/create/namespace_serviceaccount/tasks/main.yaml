@@ -4,7 +4,10 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This role creates the deployment files for namespaces, vault-auth, vault-reviewer and clusterrolebinding for each node
+##############################################################################################
+# Create the deployment files for namespaces, vault-auth, vault-reviewer and clusterrolebinding for each node
+##############################################################################################
+
 # Check Namespace exists already
 - name: "Checking if the namespace {{ component_ns }} already exists"
   include_role:
@@ -14,11 +17,12 @@
     component_name: "{{ component_ns }}"
     type: "no_retry"
 
+# Set a variable to store the result of the Namespace existence check
 - name: "Set Variable"
   set_fact:
     get_namespace: "{{ result }}"
 
-# Create namespace
+# Create namespace if not present already
 - name: Create namespace for {{ organisation }}
   include_role:
     name: create/k8_component
@@ -29,7 +33,7 @@
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
   when: get_namespace.resources|length == 0
 
-# create vault auth service account for organisation
+# Create vault auth service account for organisation
 - name: Create vault auth service account for {{ organisation }}
   include_role:
     name: create/k8_component
@@ -59,6 +63,7 @@
     helm_lint: "false"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
+# Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
