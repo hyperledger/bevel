@@ -10,7 +10,7 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Example Folder Structure ###
 ```
-/node_quorum_member
+/quorum-member-node
 |-- templates
 |   |-- _helpers.tpl
 |   |-- configmap.yaml

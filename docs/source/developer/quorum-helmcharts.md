@@ -10,7 +10,7 @@ The structure below represents the Chart structure for Quorum components in Hype
 ```
 /quorum
 |-- charts
-|   |-- node_quorum_member
+|   |-- quorum-member-node
 |   |-- node_tessera
 ```
 ---------

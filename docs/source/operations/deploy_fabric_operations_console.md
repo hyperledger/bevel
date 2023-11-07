@@ -15,7 +15,7 @@
 The [Fabric Operations Console](https://github.com/hyperledger-labs/fabric-operations-console) can be deployed along with the Fabric Network. 
 You can then manually add peers, orderers, CA to the console by importing appropriate JSON files.
 
-The Helm Chart for Fabric Operations Console is available [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/operations_console).
+The Helm Chart for Fabric Operations Console is available [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-operations-console).
 
 If you want to create the JSON files automatically by using our ansible playbook, the CA server endpoint should be accessible publicly and that endpoint details added in `organization.ca_data.url`.
 
