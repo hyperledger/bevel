@@ -20,8 +20,8 @@ spec:
     metadata:
       namespace: {{ component_name | e }}
       images:
-        alpineutils: {{ alpine_image }}
-        ca: {{ ca_image }}
+        alpineutils: {{ docker_url }}/{{ alpine_image }}
+        ca: {{ docker_url }}/{{ ca_image[network.version] }}
 {% if network.env.annotations is defined %}
     deployment:
       annotations:

@@ -77,7 +77,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | namespace             | Provide the namespace for organization's peer                         | org1-net                                      |
 | images.couchdb        | Valid image name and version for fabric couchdb                       | couchdb:3.1.1                                         |
 | images.console        | Valid image name and version for fabric operations console            | ghcr.io/hyperledger-labs/fabric-console:latest        |
-| images.configtxlator  | Valid image name and version to read certificates from vault server   | hyperledger/fabric-tools:2.2.2                        |
+| images.configtxlator  | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-fabric-tools:2.2.2                        |
 | labels                | Custom labels (other than predefined ones)                            | ""                                                    |
 
 

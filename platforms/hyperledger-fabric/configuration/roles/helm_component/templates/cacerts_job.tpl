@@ -22,8 +22,7 @@ spec:
       component_name: {{ component }}-net
       namespace: {{ component_ns }}    
       images:
-        alpineutils: {{ alpine_image }}
-
+       alpineutils: {{ docker_url }}/{{ alpine_image }}
     vault:
       role: vault-role
       address: {{ vault.url }}

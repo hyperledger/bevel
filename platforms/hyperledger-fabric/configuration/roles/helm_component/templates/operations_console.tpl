@@ -20,9 +20,9 @@ spec:
     metadata:
       namespace: {{ component_ns }}
       images:
-        couchdb: couchdb:3.1.1
-        console: ghcr.io/hyperledger-labs/fabric-console:latest
-        configtxlator: hyperledger/fabric-tools:{{ network.version }}
+        couchdb: {{ docker_url }}/{{ couchdb_image[network.version] }}
+        console: {{ docker_url }}/{{ fabric_console_image }}
+        configtxlator: {{ docker_url }}/{{ fabric_tools_image[network.version] }}
     storage:
       couchdb:
         storageclassname: {{ sc_name }}
