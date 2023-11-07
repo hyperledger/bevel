@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/node_validator
+    chart: {{ charts_dir }}/besu-validator-node
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

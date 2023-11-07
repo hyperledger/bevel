@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/approve_chaincode
+      chart: {{ charts_dir }}/fabric-chaincode-approve
   values:
     metadata:
       namespace: {{ namespace }}

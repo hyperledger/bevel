@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/catools
+      chart: {{ charts_dir }}/fabric-catools
   values:
     metadata:
       namespace: {{ component_name }}

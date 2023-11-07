@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/orderernode
+      chart: {{ charts_dir }}/fabric-orderernode
   values:
     metadata:
       namespace: {{ namespace }}

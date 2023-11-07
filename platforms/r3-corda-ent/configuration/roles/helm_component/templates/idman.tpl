@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/idman
+    chart: {{ charts_dir }}/cenm-idman
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

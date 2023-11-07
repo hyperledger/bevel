@@ -115,7 +115,7 @@ For final checking of the validity of the fabric network.
 
 - To install the CLI
   ```
-  helm install -f cli.yaml /bevel/platforms/hyperledger-fabric/charts/fabric_cli/ -n <CLI_NAME>
+  helm install -f cli.yaml /bevel/platforms/hyperledger-fabric/charts/fabric-cli/ -n <CLI_NAME>
   ```
 
 - Get the CLI pod

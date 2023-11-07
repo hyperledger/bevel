@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/bridge
+    chart: {{ charts_dir }}/corda-ent-bridge
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

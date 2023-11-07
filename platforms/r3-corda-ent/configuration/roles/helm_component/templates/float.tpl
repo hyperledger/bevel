@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/float
+    chart: {{ charts_dir }}/corda-ent-float
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
