@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/create_channel   
+      chart: {{ charts_dir }}/fabric-channel-create   
   values:
     metadata:
       namespace: {{ component_ns }}

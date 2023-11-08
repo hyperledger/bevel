@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/node_tessera
+    chart: {{ charts_dir }}/besu-tessera-node
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

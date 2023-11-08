@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/crypto_ibft
+    chart: {{ charts_dir }}/quorum-ibft-crypto-gen
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

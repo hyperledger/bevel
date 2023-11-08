@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/besu-connector
+    chart: {{ charts_dir }}/besu-cacti-connector
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

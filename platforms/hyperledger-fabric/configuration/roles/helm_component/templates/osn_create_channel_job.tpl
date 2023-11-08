@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/osn_create_channel   
+      chart: {{ charts_dir }}/fabric-osnadmin-channel-create   
   values:
     metadata:
       namespace: {{ component_ns }}

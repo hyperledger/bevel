@@ -10,7 +10,7 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Example Folder Structure ###
 ```
-/node_besu
+/besu-member-node
 |-- templates
 |   |-- _helpers.tpl
 |   |-- configmap.yaml

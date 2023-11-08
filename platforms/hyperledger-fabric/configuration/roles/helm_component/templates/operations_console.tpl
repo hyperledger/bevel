@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/operations_console
+      chart: {{ charts_dir }}/fabric-operations-console
   values:
     metadata:
       namespace: {{ component_ns }}

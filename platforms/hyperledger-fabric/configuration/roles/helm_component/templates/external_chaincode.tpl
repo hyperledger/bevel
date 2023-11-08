@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/external_chaincode  
+      chart: {{ charts_dir }}/fabric-external-chaincode  
   values:
     metadata:
       namespace: {{ chaincode_ns }}

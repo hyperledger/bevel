@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/gateway
+    chart: {{ charts_dir }}/cenm-gateway
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

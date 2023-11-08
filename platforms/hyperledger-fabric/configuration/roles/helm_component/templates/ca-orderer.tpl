@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/ca    
+      chart: {{ charts_dir }}/fabric-ca-server   
   values:
 {% if network.env.annotations is defined %}
     deployment:

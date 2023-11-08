@@ -11,16 +11,16 @@ Ansible playbooks contains a series of roles and tasks which run in sequential o
 ```
 /hyperledger-fabric
 |-- charts
-|   |-- ca
-|   |-- catools
+|   |-- fabric-ca-server
+|   |-- fabric-catools
 |   |-- zkkafka
-|   |-- orderernode
-|   |-- peernode
-|   |-- create_channel
-|   |-- join_channel
-|   |-- install_chaincode
-|   |-- instantiate_chaincode
-|   |-- upgrade_chaincode
+|   |-- fabric-orderernode
+|   |-- fabric-peernode
+|   |-- fabric-channel-create
+|   |-- fabric-channel-join
+|   |-- fabric-chaincode-install
+|   |-- fabric-chaincode-instantiate
+|   |-- fabric-chaincode-upgrade
 |-- images
 |-- configuration
 |   |-- roles/
@@ -141,7 +141,7 @@ Follow [README](https://github.com/hyperledger/bevel/tree/develop/platforms/hype
 * Call valuefile when participant is creator
 * Check orderer pod is up
 * Check peer pod is up
-* Create Create_Channel value file
+* Create value file for channel creation
 * Git Push
 
 Follow [Readme](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/channels) for detailed information.

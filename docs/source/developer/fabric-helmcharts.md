@@ -10,16 +10,16 @@ The structure below represents the Chart structure for Hyperledger fabric compon
 ```
 /hyperledger-fabric
 |-- charts
-|   |-- ca
-|   |-- catools
-|   |-- create_channel
-|   |-- fabric_cli
-|   |-- install_chaincode
-|   |-- instantiate_chaincode
-|   |-- join_channel
-|   |-- orderernode
-|   |-- peernode
-|   |-- upgrade_chaincode
+|   |-- fabric-ca-server
+|   |-- fabric-catools
+|   |-- fabric-channel-create
+|   |-- fabric-cli
+|   |-- fabric-chaincode-install
+|   |-- fabric-chaincode-instantiate
+|   |-- fabric-channel-join
+|   |-- fabric-orderernode
+|   |-- fabric-peernode
+|   |-- fabric-chaincode-upgrade
 |   |-- verify_chaincode
 |   |-- zkkafka
 ```
@@ -87,7 +87,7 @@ This folder consists CA tools helm charts which are used by the ansible playbook
 
 ### Folder Structure
 ```
-/catools
+/fabric-catools
 |-- templates
 |   |-- volumes.yaml
 |   |-- deployment.yaml
@@ -123,11 +123,11 @@ This folder consists CA tools helm charts which are used by the ansible playbook
 ## Create channel
 
 ### About
-This folder consists of create_channel helm charts which are used by the ansible playbooks for the deployment of the create_channel component. The folder contains a templates folder, a chart file and a value file. 
+This folder consists of fabric-channel-create helm charts which are used by the ansible playbooks for the deployment of the fabric-channel-create component. The folder contains a templates folder, a chart file and a value file. 
 
 ### Folder Structure
 ```
-/create_channel
+/fabric-channel-create
 |-- templates
 |   |--_helpers.tpl
 |   |-- create_channel.yaml
@@ -150,7 +150,7 @@ This folder consists of create_channel helm charts which are used by the ansible
 
       The configmap.yaml file through template engine generate configmaps. In Kubernetes, a ConfigMap is a container for storing configuration data. Things like pods can access the data in a ConfigMap. 
 	  The configmap.yaml file creates two configmaps namely genesis-block-peer and peer-config.
-	  For Create_channel component, it creates two configmaps, one for the channel creation having various data fields such as channel, peer and orderer details, and another for the generation of channel artifacts containing the channel transaction (channeltx) block and other labels.
+	  For fabric-channel-create component, it creates two configmaps, one for the channel creation having various data fields such as channel, peer and orderer details, and another for the generation of channel artifacts containing the channel transaction (channeltx) block and other labels.
 	   
   - create_channel.yaml   
 
@@ -168,11 +168,11 @@ This folder consists of create_channel helm charts which are used by the ansible
 ## Install Chaincode
 
 ### About
-This folder consists of install_chaincode helm charts which are used by the ansible playbooks for the deployment of the install_chaincode component. The folder contains a templates folder, a chart file and a value file. 
+This folder consists of fabric-chaincode-install helm charts which are used by the ansible playbooks for the deployment of the fabric-chaincode-install component. The folder contains a templates folder, a chart file and a value file. 
 
 ### Folder Structure
 ```
-/install_chaincode
+/fabric-chaincode-install
 |-- templates
 |   |--_helpers.tpl
 |   |-- install_chaincode.yaml
@@ -206,11 +206,11 @@ This folder consists of install_chaincode helm charts which are used by the ansi
 ## Instantiate Chaincode
 
 ### About
-This folder consists instantiate_chaincode helm charts, which are used by the ansible playbooks for the deployment of the instantiate_chaincode component. The folder contains a templates folder, a chart file and a value file. 
+This folder consists fabric-chaincode-instantiate helm charts, which are used by the ansible playbooks for the deployment of the fabric-chaincode-instantiate component. The folder contains a templates folder, a chart file and a value file. 
 
 ### Folder Structure
 ```
-/instantiate_chaincode
+/fabric-chaincode-instantiate
 |-- templates
 |   |--_helpers.tpl
 |   |-- instantiate_chaincode.yaml
@@ -221,8 +221,8 @@ This folder consists instantiate_chaincode helm charts, which are used by the an
 ### Charts description
 
 #### templates
-- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for instantiate_chaincode implementation.
-- This folder contains following template files for instantiate_chaincode implementation
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for fabric-chaincode-instantiate implementation.
+- This folder contains following template files for fabric-chaincode-instantiate implementation
   - _helpers.tpl   
 
       This file doesn't output a Kubernetes manifest file as it begins with underscore (_). And it's a place to put template helpers that we can re-use throughout the chart.
@@ -244,11 +244,11 @@ This folder consists instantiate_chaincode helm charts, which are used by the an
 ## Join channel
 
 ### About
-This folder consists join_channel helm charts which are used by the ansible playbooks for the deployment of the join_channel component. The folder contains a templates folder, a chart file and a value file. 
+This folder consists fabric-channel-join helm charts which are used by the ansible playbooks for the deployment of the fabric-channel-join component. The folder contains a templates folder, a chart file and a value file. 
 
 ### Folder Structure
 ```
-/join_channel
+/fabric-channel-join
 |-- templates
 |   |--_helpers.tpl
 |   |-- join_channel.yaml
@@ -271,9 +271,9 @@ This folder consists join_channel helm charts which are used by the ansible play
   
       The configmap.yaml file through template engine generate configmaps. In Kubernetes, a ConfigMap is a container for storing configuration data. Things like pods, can access the data in a ConfigMap. 
 	  The configmap.yaml file creates two configmaps namely genesis-block-peer and peer-config.
-	  For join_channel component, it creates two configmaps, one for the channel creation having various data fields such as channel, peer and orderer details, and another for the generation of channel artifacts containing the channel transaction (channeltx) block and other labels.
+	  For fabric-channel-join component, it creates two configmaps, one for the channel creation having various data fields such as channel, peer and orderer details, and another for the generation of channel artifacts containing the channel transaction (channeltx) block and other labels.
 	   
-  - join_channel.yaml   
+  - fabric-channel-join.yaml   
 
       This file creates channel join job where in the joinchannel container the commands are fired based on the tls status whether it is enabled or not wherein first the channel config is fetched and then the peers join the created channel.
 	  The init container is used to setup vault configurations. And certificates are obatined from the volume mount paths.
@@ -293,7 +293,7 @@ This folder consists Orderer helm charts which are used by the ansible playbooks
 
 ### Folder Structure
 ```
-/Orderernode
+/fabric-orderernode
 |-- templates
 |   |--_helpers.tpl
 |   |-- volumes.yaml
@@ -350,7 +350,7 @@ This folder consists Peer helm charts which are used by the ansible playbooks fo
 
 ### Folder Structure
 ```
-/peernode
+/fabric-peernode
 |-- templates
 |   |--_helpers.tpl
 |   |-- volumes.yaml
@@ -401,11 +401,11 @@ This folder consists Peer helm charts which are used by the ansible playbooks fo
 ## Upgrade Chaincode
 
 ### About
-This folder consists of upgrade_chaincode helm charts, which are used by the ansible playbooks for the deployment of the upgrade_chaincode component. The folder contains a templates folder, a chart file and a value file. 
+This folder consists of fabric-chaincode-upgrade helm charts, which are used by the ansible playbooks for the deployment of the fabric-chaincode-upgrade component. The folder contains a templates folder, a chart file and a value file. 
 
 ### Folder Structure
 ```
-/upgrade_chaincode
+/fabric-chaincode-upgrade
 |-- templates
 |   |--_helpers.tpl
 |   |-- upgrade_chaincode.yaml
@@ -416,8 +416,8 @@ This folder consists of upgrade_chaincode helm charts, which are used by the ans
 ### Charts description
 
 #### templates
-- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for upgrade_chaincode implementation.
-- This folder contains following template files for upgrade_chaincode implementation
+- This folder contains template structures which when combined with values, will generate valid Kubernetes manifest files for fabric-chaincode-upgrade implementation.
+- This folder contains following template files for fabric-chaincode-upgrade implementation
   - _helpers.tpl   
 
       This file doesn't output a Kubernetes manifest file as it begins with underscore (_). And it's a place to put template helpers that we can re-use throughout the chart.

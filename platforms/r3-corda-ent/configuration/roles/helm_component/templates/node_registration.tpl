@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/node-initial-registration
+    chart: {{ charts_dir }}/corda-ent-node-initial-registration
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

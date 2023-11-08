@@ -11,8 +11,8 @@ Ansible playbooks contains a series of roles and tasks which run in sequential o
 ```
 /quorum
 |-- charts
-|   |-- node_quorum_member
-|   |-- quorum_node_tessera
+|   |-- quorum-member-node
+|   |-- quorum-tessera-node
 |-- images
 |-- configuration
 |   |-- roles/
