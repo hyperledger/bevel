@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/cemm-pki-gen
+    chart: {{ charts_dir }}/cenm-pki-gen
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
