@@ -1,0 +1,361 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Deployment
+# Creates the replicated container and manages lifecycle
+# TLS certs mounted
+# Persistent Volume mounted
+# Service points to this deployment (uses labels!)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  {{- if .Values.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 8 }}
+    {{- end }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.nodeName }}
+      app.kubernetes.io/name: {{ .Values.nodeName }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.nodeName }}
+        app.kubernetes.io/name: {{ .Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      hostname: {{ .Values.nodeName }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: {{ .Values.nodeName }}
+        image: {{ .Values.image.containerName }} 
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+
+          # add permissions to dir
+          chmod 777 -R {{ .Values.image.mountPath.basePath }}/;
+          #setting up the required variable required for jar
+          {{- range $.Values.image.env }}
+          export {{ .name }}="{{ .value }}"
+          {{- end }}
+          export DOORMAN_TLS_CERT_PATH="{{ .Values.image.mountPath.basePath }}-tls/certs/doorman.crt"
+          export DOORMAN_TLS_KEY_PATH="{{ .Values.image.mountPath.basePath }}-tls/certs/doorman.key"
+          export DB_PASSWORD=`cat /opt/creds/db_root_password`
+          cat /opt/creds/db_root_password
+          export DOORMAN_MONGO_CONNECTION_STRING="mongodb://${DB_USERNAME}:${DB_PASSWORD}@${DB_URL}:${DB_PORT}/${DATABASE}?ssl=true&sslInvalidHostNameAllowed=true&streamType=netty"
+          export DOORMAN_AUTH_PASSWORD=`cat /opt/creds/user_cred`
+
+          # import self signed tls certificate of mongodb, since java only trusts certificate signed by well known CA  
+          yes | keytool -importcert -file {{ .Values.image.mountPath.basePath }}-tls/certs/mongoCA.crt -storepass changeit -alias mongoca -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts
+          # command to run jar
+          java -jar {{ .Values.image.mountPath.basePath }}/doorman.jar 2>&1
+        ports:
+          - containerPort: {{ .Values.service.targetPort }}
+        volumeMounts:
+          - name: {{ .Values.nodeName }}-servicedata
+            mountPath: "{{ .Values.image.mountPath.basePath }}/db/"
+            readOnly: false
+          - name: certs
+            mountPath: "{{ .Values.image.mountPath.basePath }}/db/certs"
+            readOnly: false
+          - name: tls-certs
+            mountPath: "{{ .Values.image.mountPath.basePath }}-tls/certs"            
+          - name: creds
+            mountPath: "/opt/creds"
+            readOnly: false
+      initContainers:
+      - name: init-certificates
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: {{ .Values.image.mountPath.basePath }}/db/certs/
+          - name: VAULT_NODE_NAME
+            value: {{ .Values.nodeName }}
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+        command: ["sh", "-c"]
+        args:
+        - |-
+             #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+
+             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+             echo "Getting secrets from Vault Server"
+             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+             OUTPUT_PATH=${MOUNT_PATH}
+
+             LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.certsecretprefix }} | jq -r 'if .errors then . else . end')
+
+             validateVaultResponse "{{ .Values.vault.certsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+
+             ROOTCA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["rootcakey"]')
+             mkdir -p ${OUTPUT_PATH}/root;
+             echo "${ROOTCA_KEY}" | base64 -d > ${OUTPUT_PATH}/root/keys.jks
+
+             DOORMAN_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["doorman.jks"]')
+             mkdir -p ${OUTPUT_PATH}/doorman;
+             echo "${DOORMAN_KEY}" | base64 -d > ${OUTPUT_PATH}/doorman/keys.jks
+
+             chmod 777 -R {{ .Values.image.mountPath.basePath }}/db
+        volumeMounts:
+        - name: certs
+          mountPath: "{{ .Values.image.mountPath.basePath }}/db/certs/"
+          readOnly: false
+      - name: init-certificates-tls
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: {{ .Values.image.mountPath.basePath }}-tls/certs/
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          validateVaultResponse () {
+            if echo ${2} | grep "errors"; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+            fi
+            if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+            then
+              http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              --header "X-Vault-Token: ${VAULT_TOKEN}" \
+              ${VAULT_ADDR}/v1/${1})
+              curl_response=$?
+              if test "$http_code" != "200" ; then
+                  echo "Http response code from Vault - $http_code"
+                  if test "$curl_response" != "0"; then
+                    echo "Error: curl command failed with error code - $curl_response"
+                    exit 1
+                  fi
+              fi
+            fi
+          }
+          
+          # setting up env to get secrets from vault    
+          echo "Getting secrets from Vault Server"          
+          KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)         
+          VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+          validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+          OUTPUT_PATH=${MOUNT_PATH}
+              
+          if [ "{{ .Values.image.tlsCertificate }}" == true ]
+          then 
+              # get doorman tls cert and key from vault          
+              LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.tlscertsecretprefix }} | jq -r 'if .errors then . else . end')
+              validateVaultResponse "{{ .Values.vault.tlscertsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+              DOORMAN_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]')
+              DOORMAN_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlskey"]')
+              echo "${DOORMAN_CRT}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/doorman.crt 
+              echo "${DOORMAN_KEY}" | base64 -d > {{ .Values.image.mountPath.basePath }}-tls/certs/doorman.key                          
+          fi
+
+          # get mongo tls cert from vault
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/{{ .Values.vault.dbcertsecretprefix }} | jq -r 'if .errors then . else . end')
+          validateVaultResponse "{{ .Values.vault.dbcertsecretprefix }}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+          CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["mongoCA.crt"]')
+          echo "${CA_CERT}" | base64 -d > ${OUTPUT_PATH}/mongoCA.crt
+          
+          # add permissions to dir
+          chmod 777 -R {{ .Values.image.mountPath.basePath }}-tls/certs/
+        volumeMounts:
+        - name: tls-certs
+          mountPath: "{{ .Values.image.mountPath.basePath }}-tls/certs/"
+          readOnly: false
+      - name: init-creds
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: /opt/creds
+          - name: VAULT_NODE_NAME
+            value: {{ .Values.nodeName }}
+          - name: DB_CRED_SECRET_PREFIX
+            value: {{ .Values.vault.dbcredsecretprefix }}
+          - name: USER_SECRET_PREFIX
+            value: {{ .Values.vault.secretdoormanpass }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+             #!/usr/bin/env sh
+              validateVaultResponse () {
+                if echo ${2} | grep "errors"; then
+                  echo "ERROR: unable to retrieve ${1}: ${2}"
+                  exit 1
+                fi
+                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+                then
+                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
+                  ${VAULT_ADDR}/v1/${1})
+                  curl_response=$?
+                  if test "$http_code" != "200" ; then
+                      echo "Http response code from Vault - $http_code"
+                      if test "$curl_response" != "0"; then
+                        echo "Error: curl command failed with error code - $curl_response"
+                        exit 1
+                      fi
+                  fi
+                fi
+              }
+
+             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+             echo "Getting secrets from Vault Server"
+             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+             echo "logged into vault"
+             OUTPUT_PATH=${MOUNT_PATH}
+             LOOKUP_PWD_RESPONSE_DB_PASS=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${DB_CRED_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+             
+             validateVaultResponse "${DB_CRED_SECRET_PREFIX}" "${LOOKUP_PWD_RESPONSE_DB_PASS}" "LOOKUPSECRETRESPONSE"
+
+             MONGODB_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE_DB_PASS} | jq -r '.data.data["mongodbPassword"]')
+             echo "${MONGODB_PASSWORD}" >> ${MOUNT_PATH}/db_root_password
+             cat ${MOUNT_PATH}/db_root_password
+             LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${USER_SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+             validateVaultResponse "${USER_SECRET_PREFIX}" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
+             
+             USER_PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ .Values.image.authusername }}"]')
+             echo "${USER_PASSWORD}" >> ${MOUNT_PATH}/user_cred
+             
+        volumeMounts:
+        - name: creds
+          mountPath: "/opt/creds"
+          readOnly: false
+      - name: changepermissions
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: {{ .Values.image.mountPath.basePath }}/db/certs
+          - name: VAULT_NODE_NAME
+            value: {{ .Values.nodeName }}
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          chmod 777 -R {{ .Values.image.mountPath.basePath }}/;
+        volumeMounts:
+          - name: {{ .Values.nodeName }}-servicedata
+            mountPath: "{{ .Values.image.mountPath.basePath }}/db"
+            readOnly: false
+      - name: db-healthcheck
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          COUNTER=1
+          FLAG=true                   
+          while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+          do
+            DB_NODE={{ .Values.healthcheck.dburl }}
+            STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
+            if [ "$STATUS" == 0 ]
+            then
+              FLAG=false
+            else
+              FLAG=true                
+              echo "DB up and running"
+            fi   
+            if [ "$FLAG" == false ]
+            then                
+              echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+              COUNTER=`expr "$COUNTER" + 1`
+              sleep {{ $.Values.healthcheck.readinesscheckinterval }}
+            else
+              echo "SUCCESS!"
+              echo "DB up and running!"
+              exit 0
+              break
+            fi   
+          done
+          if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ] 
+          then
+            echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
+            exit 1
+            break
+          fi
+      imagePullSecrets:
+        - name: {{ .Values.image.imagePullSecret }}   
+      volumes:
+        - name: {{ .Values.nodeName }}-servicedata
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-pvc
+        - name: certs
+          emptyDir:
+            medium: Memory
+        - name: creds
+          emptyDir:
+            medium: Memory
+        - name: tls-certs
+          emptyDir:
+            medium: Memory
+            

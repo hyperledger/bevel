@@ -1,0 +1,40 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# This role creates the job value file for stewards
+##############################################################################################
+
+##############################################################################################
+# This tasks ensures the directory existance, if not exits it creates a new one
+---
+- name: Ensures {{ release_dir }}/{{ organization }}/{{ component_name }} dir exists
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "{{ release_dir  }}/{{ organization }}/{{ component_name }}"
+
+##############################################################################################
+# This task creates deployment file for stewards.
+- name: "create value file for {{ component_name }} {{ component_type }}"
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    values_file: "{{ release_dir }}/{{ organization }}/{{ component_name }}/{{ component_type }}.yaml"
+    chart: "indy-node"
+
+################################################################################################
+# This task tests the value file for syntax errors/ missing values
+# This is done by calling the helm_lint role and passing the value file parameter
+# When a new k8_component is added, changes should be made in helm_lint role as well
+# - name: Helm lint
+#   include_role:
+#     name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
+#   vars:
+#     helmtemplate_type: "{{ component_type }}"
+#     chart_path: "{{ gitops.chart_source }}"
+#     value_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"

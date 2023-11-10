@@ -1,0 +1,235 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#########################
+# Playbook to create deployment files for namespaces, service account and clusterrolebinding
+# Playbook arguments: complete network.yaml
+#########################
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+  # clean build directory
+  - name: Remove build directory
+    file:
+      path: "./build"
+      state: absent
+
+  # Validate input network.yaml
+  - name: "Validating network.yaml"
+    include_role:
+      name: check/validation
+
+  # Create namespaces for organizations
+  - name: 'Create namespace'
+    include_role:
+      name: create/namespace
+    vars:
+      component_name: "{{ organizationItem.name | lower }}-ns"
+      component_type_name: "{{ organizationItem.type | lower }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      release_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
+
+  # Create service accounts
+  - name: 'Create service accounts'
+    include_role:
+      name: create/serviceaccount/main
+    vars:
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      organization: "{{ organizationItem.name | lower }}"
+      component_type_name: "{{ organization }}"
+      services: "{{ organizationItem.services }}"
+      gitops: "{{ organizationItem.gitops }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
+
+  # Create StorageClass
+  - name: Create Storage Class
+    include_role:
+      name: create/storageclass
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      provider: "{{ organizationItem.cloud_provider }}"
+      storageclass_name: "{{ provider }}-storageclass"
+      component_name: "{{ organization }}-{{ storageclass_name }}"
+      gitops: "{{ organizationItem.gitops }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      aws: "{{ organizationItem.aws }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
+
+  # Admin K8S auth
+  - name: Admin K8S auth
+    include_role:
+      name: setup/vault_kubernetes
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}-bevel-ac-vault-auth"
+      component_type: "GetServiceAccount"
+      vault: "{{ organizationItem.vault }}"
+      auth_path: "kubernetes-{{ organization }}-admin-auth"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
+
+  # Generate auth job
+  - name: 'Generate auth job'
+    include_role:
+      name: setup/auth_job
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}"
+      services: "{{ organizationItem.services }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      gitops: "{{ organizationItem.gitops }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
+
+  # Get Vault AC Token via Service Account
+  - name: Get Vault AC Token via Service Account
+    include_role:
+      name: check/k8_component
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}-bevel-ac-vault-auth"
+      component_type: "GetServiceAccount"
+      vault: "{{ organizationItem.vault }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+
+  # Generate indy crypto and insert into Vault
+  - name: 'Generate indy crypto and insert into Vault'
+    include_role:
+      name: setup/crypto
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}"
+      services: "{{ organizationItem.services }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      gitops: "{{ organizationItem.gitops }}"
+      vault_ac_token: "{{ ac_vault_tokens[organization] }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
+
+  # Create and deploy domain genesis
+  - name: 'Create domain genesis'
+    include_role:
+      name: setup/domain_genesis
+
+  # Create and deploy pool genesis
+  - name: 'Create pool genesis'
+    include_role:
+      name: setup/pool_genesis
+
+  # Add new Trustees via existing Trustee
+  - name: "Add New Trustees via existing Trustee"
+    include_role:
+      name: setup/trustees
+    vars:
+      new_org_query: "organizations[?org_status=='new']"
+      neworg: "{{ network | json_query(new_org_query) | first }}"
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      gitops: "{{ organizationItem.gitops }}"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when:
+    - (add_new_org|bool and add_new_org_network_trustee_present|bool)
+    - (organizationItem.org_status is not defined or organizationItem.org_status == 'existing')
+
+  # Add new Stewards via existing Trustee
+  - name: "Add New Stewards via existing Trustee"
+    include_role:
+      name: setup/stewards
+    vars:
+      new_org_query: "organizations[?org_status=='new']"
+      neworg: "{{ network | json_query(new_org_query) | first }}"
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      component_name: "{{ organization }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      gitops: "{{ organizationItem.gitops }}"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when:
+    - (add_new_org|bool and add_new_org_network_trustee_present|bool)
+    - (organizationItem.org_status is not defined or organizationItem.org_status == 'existing')
+
+  # Deploy all other nodes
+  - name: 'Deploy nodes'
+    include_role:
+      name: setup/node
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      services: "{{ organizationItem.services }}"
+      kubernetes: "{{ organizationItem.k8s }}"
+      vault: "{{ organizationItem.vault }}"
+      gitops: "{{ organizationItem.gitops }}"
+      genesis: "{{ network.genesis }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when:
+    - (organizationItem.type == 'peer')
+    - (organizationItem.org_status is not defined or organizationItem.org_status == 'new')
+    - (not add_new_org|bool or (add_new_org|bool and add_new_org_new_nyms_on_ledger_present|bool))
+
+  # Create and deploy Endorser Identities
+  - name: 'Create Endorser Identities'
+    include_role:
+      name: setup/endorsers
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      component_ns: "{{ organizationItem.name | lower }}-ns"
+      kubernetes: "{{ organizationItem.k8s }}"
+      gitops: "{{ organizationItem.gitops }}"
+      vault: "{{ organizationItem.vault }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem
+    when:
+    - (organizationItem.type == 'peer')
+    - (organizationItem.org_status is not defined or organizationItem.org_status == 'new')
+    - (not add_new_org|bool or (add_new_org|bool and add_new_org_new_nyms_on_ledger_present|bool))
+
+  vars: #These variables can be overriden from the command line
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: false
+    add_new_org_network_trustee_present: true
+    add_new_org_new_nyms_on_ledger_present: true

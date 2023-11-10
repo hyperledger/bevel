@@ -1,0 +1,121 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role setups communication between the vault and kubernetes cluster and install
+# neccessary configurations.
+#############################################################################################
+
+# Check if namespace created
+- name: Check namespace is created
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_name: "{{ component_ns }}"
+    component_type: Namespace
+    type: "retry"
+
+############################################################################################
+# This task creates the build temp direcotry
+- name: Ensures build dir exists
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "./build"
+
+# This task checks if the vault path already exists
+- name: Check if Kubernetes-auth already created for Organization
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    check: "vault_auth"
+
+# This task sets the result of the k8s auth path check to a local variable
+- name: "Set the result of vault auth check to a local variable"
+  set_fact:
+    auth_list: "{{ auth_lists }}"
+
+# Set vault_auth_status variable to false initially
+- set_fact:
+    vault_auth_status: false
+    component_auth_temp: "\"{{ auth_path }}/\""
+
+# Set vault_auth_status variable to true if found
+- set_fact:
+    vault_auth_status: true
+  loop: "{{ auth_lists.stdout_lines }}"
+  loop_control:
+    loop_var: itemx
+  when: itemx == component_auth_temp
+   
+############################################################################################
+# This task enables the path for the organizations and orderers on vault
+# This task runs only when {{auth_path}} is not already created
+- name: Enable and configure Kubernetes-auth for Organization
+  shell: |
+    vault auth enable --path="{{ auth_path }}" kubernetes
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: not vault_auth_status  # Only when auth_path is NOT in the output of auth_list
+  ignore_errors: yes
+
+############################################################################################
+# This task get the certificate for the cluster mentioned in k8 secret
+# This task runs only when {{auth_path}} is not already created
+- name: Get Kubernetes cert files for organizations
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets $(KUBECONFIG={{ kubernetes.config_file }} kubectl -n {{ component_ns }} get secrets | grep "default" | awk '{print $1}') -o jsonpath="{.data['ca\.crt']}" | base64 -d > "./build/{{ organization }}.ca.cert"
+#  when: auth_list.stdout.find(auth_path) == -1
+
+#####################################################################################################################
+# This task writes the Service Account token to the vault for Organizations
+# This task runs only when {{auth_path}} is not already created
+- name: Write reviewer token for Organizations
+  shell: |
+    export REVIEWER_TOKEN=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret $(KUBECONFIG={{ kubernetes.config_file }} kubectl get serviceaccount {{ organization }}-admin-vault-auth -n {{ component_ns }} -o jsonpath={.secrets[0].name}) -n {{ component_ns }} -o  jsonpath={.data.token} | base64 -d)
+    vault write auth/{{ auth_path }}/config token_reviewer_jwt="$REVIEWER_TOKEN" kubernetes_host="$(KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " ")" kubernetes_ca_cert=@"./build/{{ organization }}.ca.cert" disable_iss_validation="true"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+#  when: auth_list.stdout.find(auth_path) == -1
+
+# This task checks if the vault-rw polict already exists
+- name: Check if policy exists
+  shell: |
+    vault policy read {{ organization }}-admin-rw
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  register: vault_policy_result
+  ignore_errors: yes
+
+#####################################################################################################################
+# This task creates the access policy for organizations
+- name: Create policy for Access Control
+  template:
+    src: "admin-rw.tpl"
+    dest: "./build/{{ organization }}-admin-rw.hcl"
+  when: vault_policy_result.failed == True  # Run if policy check failed
+
+
+############################################################################################
+# This task writes the policies to the vault
+- name: Write Policy to Vault
+  shell: |
+    vault write sys/policy/{{ organization }}-admin-rw policy="@./build/{{ organization }}-admin-rw.hcl"
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: vault_policy_result.failed == True  # Run if policy check failed
+
+# This task creates the vault auth
+- name: Create Vault auth role
+  shell: |
+    vault write auth/{{ auth_path }}/role/rw bound_service_account_names={{ organization }}-admin-vault-auth bound_service_account_namespaces={{ component_ns }} policies="{{ organization }}-admin-rw" ttl=120s
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"

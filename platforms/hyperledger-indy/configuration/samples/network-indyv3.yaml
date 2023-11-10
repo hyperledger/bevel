@@ -1,0 +1,280 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
+# This is a sample configuration file for hyperledger indy which can reused for a sample indy network of 9 nodes.
+# It has 3 organizations:
+# 1. organization "authority" with 1 trustee
+# 2. organization "provider" with 1 trustee, 2 stewards and 1 endorser
+# 3. organization "partner" with 1 trustee, 2 stewards and 1 endorser
+
+network:
+  # Network level configuration specifies the attributes required for each organization
+  # to join an existing network.
+  type: indy
+  version: 1.11.0                         # Supported versions 1.11.0 and 1.12.1
+
+  #Environment section for Kubernetes setup
+  env:
+    type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
+    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
+    # Must be different from all other ports specified in the rest of this network yaml
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      ports: 15010,15023,15024,15025,15033,15034,15035,15043,15044,15045 # Each Client Agent uses 3 ports  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened 
+    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
+    retry_count: 20                 # Retry count for the checks
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+
+  # Docker registry details where images are stored. This will be used to create k8s secrets
+  # Please ensure all required images are built and stored in this registry.
+  # Do not check-in docker_password.
+  docker:
+    url: "index.docker.io/hyperledgerlabs"
+    username: "docker_username"
+    password: "docker_password"
+
+  # It's used as the Indy network name (has impact e.g. on paths where the Indy nodes look for crypto files on their local filesystem)
+  name: bevel 
+
+  # Information about pool transaction genesis and domain transactions genesis
+  genesis:
+    state: absent     # must be absent when network is created from scratch
+    pool: /path/to/pool_transactions_genesis            # path where pool_transactions_genesis will be stored locally
+    domain: /path/to/domain_transactions_genesis        # path where domain_transactions_genesis will be stored locally 
+
+  # Allows specification of one or many organizations that will be connecting to a network.
+  organizations:
+    # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: authority
+      type: peer
+      external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
+      cloud_provider: aws-baremetal             # Values can be 'aws-baremetal', 'aws' or 'minikube'
+
+      aws:
+        access_key: "aws_access_key"            # AWS Access key
+        secret_key: "aws_secret_key"            # AWS Secret key
+        encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
+        zone: "availability_zone"               # AWS availability zone
+        region: "region"                        # AWS region
+
+      publicIps: ["1.1.1.1", "2.2.2.2"]        # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+
+      # Kubernetes cluster deployment variables. The config file path has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        config_file: "/path/to/cluster_config"
+        context: "kubernetes-admin@kubernetes"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"                   # Gitops https or ssh url for flux value files 
+        branch: "develop"                     # Git branch where release is being made
+        release_dir: "platforms/hyperledger-indy/releases/dev"           # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-indy/charts"               # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"             # Gitops git repository URL for git push 
+        username: "git_username"                    # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"                    # Git Server user password
+        email: "git@email.com"                          # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      # Services maps to the pods that will be deployed on the k8s cluster
+      # This sample has trustee
+      services:
+        trustees:
+        - trustee:
+          name: authority-trustee
+          genesis: true
+          server:
+            port: 8000
+            ambassador: 15010
+
+    # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: provider
+      type: peer
+      cloud_provider: aws
+      external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
+
+      aws:
+        access_key: "aws_access_key"            # AWS Access key
+        secret_key: "aws_secret_key"            # AWS Secret key
+        encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
+        zone: "availability_zone"               # AWS availability zone
+        region: "region"                        # AWS region
+
+      publicIps: ["3.221.78.194"]               # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+
+      # Kubernetes cluster deployment variables. The config file path has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        config_file: "/path/to/cluster_config"
+        context: "kubernetes-admin@kubernetes"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"                   # Gitops https or ssh url for flux value files 
+        branch: "develop"                     # Git branch where release is being made
+        release_dir: "platforms/hyperledger-indy/releases/dev"           # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-indy/charts"               # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"             # Gitops git repository URL for git push 
+        username: "git_username"                    # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"                    # Git Server user password
+        email: "git@email.com"                          # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      # Services maps to the pods that will be deployed on the k8s cluster
+      # This sample has trustee, 2 stewards and endoorser
+      services:
+        trustees:
+        - trustee:
+          name: provider-trustee
+          genesis: true
+        stewards:
+        - steward:
+          name: provider-steward-1
+          type: VALIDATOR
+          genesis: true
+          publicIp: 3.221.78.194    # IP address of current organization in current availability zone
+          node:
+            port: 9711
+            targetPort: 9711
+            ambassador: 9711        # Port for ambassador service
+          client:
+            port: 9712
+            targetPort: 9712
+            ambassador: 9712        # Port for ambassador service
+        - steward:
+          name: provider-steward-2
+          type: VALIDATOR
+          genesis: true
+          publicIp: 3.221.78.194    # IP address of current organization in current availability zone
+          node:
+            port: 9721
+            targetPort: 9721
+            ambassador: 9721        # Port for ambassador service
+          client:
+            port: 9722
+            targetPort: 9722
+            ambassador: 9722        # Port for ambassador service
+        endorsers:
+        - endorser:
+          name: provider-endorser
+          full_name: Some Decentralized Identity Mobile Services Provider
+          avatar: http://provider.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample http://provider-endorser.indy.blockchaincloudpoc.com:15023/
+          # For minikube: http://<minikubeip>>:15023
+          server:
+            httpPort: 15023
+            apiPort: 15024
+            webhookPort: 15025
+
+    # Specification for the 3rd organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: partner
+      type: peer
+      cloud_provider: aws
+      external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
+      
+      aws:
+        access_key: "aws_access_key"            # AWS Access key
+        secret_key: "aws_secret_key"            # AWS Secret key
+        encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
+        zone: "availability_zone"               # AWS availability zone
+        region: "region"                        # AWS region
+      
+      publicIps: ["3.221.78.194"]             # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+
+      # Kubernetes cluster deployment variables. The config file path has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        config_file: "/path/to/cluster_config"
+        context: "kubernetes-admin@kubernetes"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"                 # Gitops https or ssh url for flux value files 
+        branch: "develop"                   # Git branch where release is being made
+        release_dir: "platforms/hyperledger-indy/releases/dev"         # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-indy/charts"             # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"           # Gitops git repository URL for git push 
+        username: "git_username"                  # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"                  # Git Server user password
+        email: "git@email.com"                        # Email to use in git config
+        private_key: "path_to_private_key"        # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      # Services maps to the pods that will be deployed on the k8s cluster
+      # This sample has trustee, 2 stewards and endoorser
+      services:
+        trustees:
+        - trustee:
+          name: partner-trustee
+          genesis: true
+        stewards:
+        - steward:
+          name: partner-steward-1
+          type: VALIDATOR
+          genesis: true
+          publicIp: 3.221.78.194        # IP address of current organization in current availability zone
+          node:
+            port: 9731
+            targetPort: 9731
+            ambassador: 9731            # Port for ambassador service
+          client:
+            port: 9732
+            targetPort: 9732
+            ambassador: 9732            # Port for ambassador service
+        - steward:
+          name: partner-steward-2
+          type: VALIDATOR
+          genesis: true
+          publicIp: 3.221.78.194        # IP address of current organization in current availability zone
+          node:
+            port: 9741
+            targetPort: 9741
+            ambassador: 9741            # Port for ambassador service
+          client:
+            port: 9742
+            targetPort: 9742
+            ambassador: 9742            # Port for ambassador service
+        endorsers:
+        - endorser:
+          name: partner-endorser
+          full_name: Some Decentralized Identity Mobile Services Partner
+          avatar: http://partner.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample http://partner-endorser.indy.blockchaincloudpoc.com:15033/
+          # For minikube: http://<minikubeip>>:15033
+          server:
+            httpPort: 15033
+            apiPort: 15034
+            webhookPort: 15035

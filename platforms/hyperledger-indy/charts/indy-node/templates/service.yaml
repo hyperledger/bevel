@@ -1,0 +1,33 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
+  {{ if $.Values.ambassador.annotations }}
+  annotations:
+    getambassador.io/config: | 
+    {{ $.Values.ambassador.annotations  | nindent 6 }}
+  {{ end }}
+spec:
+  type: {{ $.Values.service.type }}
+  ports:
+  - name: indy-node-node
+    port: {{ $.Values.service.ports.nodePort }}
+    targetPort: {{ $.Values.service.ports.nodeTargetPort }}
+    {{ if eq $.Values.service.type "NodePort" }}
+    nodePort: {{ $.Values.service.ports.nodeTargetPort }}
+    {{ end }}
+  - name: indy-node-client
+    port: {{ $.Values.service.ports.clientPort }}
+    targetPort: {{ $.Values.service.ports.clientTargetPort }}
+    {{ if eq $.Values.service.type "NodePort" }}
+    nodePort: {{ $.Values.service.ports.clientTargetPort }}
+    {{ end }}
+  selector:
+    app: "{{ $.Values.metadata.name }}"

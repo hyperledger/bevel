@@ -1,0 +1,234 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
+# This is a sample configuration file to add a new validator organization to existing network
+# This DOES NOT support proxy=none
+# All text values are case-sensitive
+network:
+  # Network level configuration specifies the attributes required for each organization
+  # to join an existing network.
+  type: besu
+  version: 21.10.6  #this is the version of Besu docker image that will be deployed.
+
+  #Environment section for Kubernetes setup
+  env:
+    type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
+    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Besu
+    #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
+    #  This sample uses a single cluster, so we have to open 3 ports for each Node. These ports are again specified for each organization below
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports
+        from: 15020
+        to: 15023
+    # ports: 15020,15021      # For specific ports
+    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
+    retry_count: 20                 # Retry count for the checks on Kubernetes cluster
+    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+
+  # Docker registry details where images are stored. This will be used to create k8s secrets
+  # Please ensure all required images are built and stored in this registry.
+  # Do not check-in docker_password.
+  docker:
+    url: "ghcr.io/hyperledger"
+    username: "docker_username"
+    password: "docker_password"
+
+  # Following are the configurations for the common Besu network
+  config:
+    consensus: "ibft"                 # Options are "ibft", "qbft", "ethash" and "clique".
+    ## Certificate subject for the root CA of the network.
+    #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
+    #  Production systems should generate proper certificates and configure truststores accordingly.
+    subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+    transaction_manager: "orion"    # Transaction manager is "orion"
+    # This is the version of "orion" docker image that will be deployed
+    tm_version: "21.7.3"
+    # TLS can be True or False for the orion tm
+    tm_tls: True
+    # Tls trust value
+    tm_trust: "ca-or-tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
+    ## File location for saving the genesis file should be provided.
+    genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be fetched
+    # Add public key of accounts without 0x which will have 90000 ETH at genesis. Accounts created on external system like Metamask
+    accounts:
+      - "75a3505cd50Cfc418e59458d0E23c8bd9f6B52a0"
+      - "e668554c28e81535B8679ff9de128203Fdedc212"
+    ## Transaction Manager nodes public addresses should be provided.
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15013"
+    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador orion node port)
+    tm_nodes:
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com:15022"
+    # Besu rpc public address list for existing validator and member nodes
+    #  - "http://node.test.besu.blockchaincloudpoc-develop.com:15011"
+    # The above domain name is formed by the (http)://(peer.name).(org.external_url_suffix):(ambassador node rpc port)
+    besu_nodes:
+      - "http://validator1.test.besu.blockchaincloudpoc-develop.com:15011"
+      - "http://validator2.test.besu.blockchaincloudpoc-develop.com:15013"
+      - "http://validator3.test.besu.blockchaincloudpoc-develop.com:15015"
+      - "http://validator4.test.besu.blockchaincloudpoc-develop.com:15017"
+
+
+  # Allows specification of one or many organizations that will be connecting to a network.
+  organizations:
+    # Specification for the 1st organization. Each organization should map to a VPC and a separate k8s cluster for production deployments
+    - organization:
+      name: supplychain
+      type: validator
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      external_url_suffix: test.besu.blockchaincloudpoc.com
+      #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
+      #This is Optional, if no value or default is provided, self signed certificates will be created
+      issuer: default
+
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+        region: "aws_region"                # AWS Region where cluster and EIPs are created
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        context: "cluster_context"
+        config_file: "cluster_config"
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        secret_path: "secretsv2"
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files
+        branch: "develop"           # Git branch where release is being made
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment.
+        chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push
+        username: "git_username"          # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+      # As this is the validator org, it is hosting a few validators as services
+      services:
+        validators:
+        - validator:
+          name: validator1
+          status: existing        # needed to know which  validator node exists
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Besu
+          p2p:
+            port: 30303
+            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546
+        - validator:
+          name: validator2
+          status: existing        # needed to know which  validator node exists
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15012       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546
+        - validator:
+          name: validator3
+          status: existing        # needed to know which  validator node exists
+          bootnode: false          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15014       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15015       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546
+        - validator:
+          name: validator4
+          status: existing        # needed to know which  validator node exists
+          bootnode: false          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15016       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15017       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546
+    - organization:
+      name: supplychain2
+      type: validator
+      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
+      external_url_suffix: test.besu.blockchaincloudpoc.com
+      #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
+      #This is Optional, if no value or default is provided, self signed certificates will be created
+      issuer: default
+      
+      cloud_provider: aws   # Options: aws, azure, gcp
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+        region: "aws_region"                # AWS Region where cluster and EIPs are created
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        context: "cluster_context"
+        config_file: "cluster_config"
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        secret_path: "secretsv2"
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"         # Gitops https or ssh url for flux value files
+        branch: "develop"           # Git branch where release is being made
+        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment.
+        chart_source: "platforms/hyperledger-besu/charts"     # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"   # Gitops git repository URL for git push
+        username: "git_username"          # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"          # Git Server user password/token (Optional for ssh; Required for https)
+        email: "git@email.com"                # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+      # As this is the validator org, it is hosting a few validators as services
+      services:
+        validators:
+        - validator:
+          name: validator5
+          status: new        # needed to know which  validator node exists
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          cactus_connector: enabled  # set to enabled to create a cactus connector for Besu
+          p2p:
+            port: 30303
+            ambassador: 15026       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15027       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546
+        - validator:
+          name: validator6
+          status: new        # needed to know which  validator node exists
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 30303
+            ambassador: 15028       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 15029       #Port exposed on ambassador service (use one port per org if using single cluster)
+          ws:
+            port: 8546

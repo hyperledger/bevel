@@ -1,0 +1,120 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}"
+  namespace: "{{ $.Values.metadata.namespace }}"
+  labels:
+    app: "{{ $.Values.metadata.name }}"
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 7
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: "{{ $.Values.vault.serviceAccountName }}"
+      imagePullSecrets:
+        - name: "{{ $.Values.image.cli.pullSecret }}"
+      volumes:
+        - name: {{ $.Values.organization.name }}-ptg
+          configMap:
+            name: {{ $.Values.organization.name }}-ptg
+        - name: shared-data
+          emptyDir:
+            medium: Memory
+      containers:
+      - name: init-container
+        image: "{{ $.Values.image.cli.repository }}"
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          validateVaultResponse () {
+          if echo ${2} | grep "errors"; then
+           echo "ERROR: unable to retrieve ${1}: ${2}"
+           exit 1
+           fi
+          }
+
+          KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
+          echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+          # Login to Vault to get an approle token
+          curl --request POST --data '{"jwt": "'"${KUBE_TOKEN}"'", "role": "{{ $.Values.vault.role }}"}' ${VAULT_ADDR}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
+          VAULT_TOKEN=$(cat token);
+          validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+          QUERY_RES=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/$ADMIN_PATH/$ADMIN_NAME/identity/private | jq -r 'if .errors then . else . end')
+          validateVaultResponse 'Admin Seed' "${QUERY_RES}"
+          admin_seed=$(echo ${QUERY_RES} | jq -r ".data.data[\"seed\"]");
+          mkdir -p /data/seed;
+          echo "${admin_seed}" > /data/seed/adminseed.txt;
+        env:
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ $.Values.vault.authpath }}"
+          - name: VAULT_ADDR
+            value: "{{ $.Values.vault.address }}"
+          - name: ADMIN_PATH
+            value: "{{ $.Values.organization.adminIdentity.path }}"
+          - name: ADMIN_NAME
+            value: "{{ $.Values.organization.adminIdentity.name }}"
+          - name: IDENTITY_NAME
+            value:  "{{ $.Values.organization.newIdentity.name }}"
+          - name: IDENTITY_PATH
+            value: "{{ $.Values.organization.newIdentity.path }}"
+        volumeMounts:
+          - name: shared-data
+            mountPath: /data
+      - name: "{{ $.Values.image.cli.name }}"
+        image: "{{ $.Values.image.cli.repository }}"
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          apt-get install curl -y
+
+          ADMIN_SEED=$( cat /data/seed/adminseed.txt)
+          echo "Running ledger Transaction Script...";
+
+          ./home/indy-ledger.sh $ADMIN_DID $ADMIN_SEED $IDENTITY_DID $IDENTITY_ROLE $IDENTITY_VERKEY $POOL_GENESIS_PATH;
+        env:
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ $.Values.vault.authpath }}"
+          - name: VAULT_ADDR
+            value: "{{ $.Values.vault.address }}"
+          - name: ADMIN_DID
+            value: "{{ $.Values.organization.adminIdentity.did }}"
+          - name: IDENTITY_DID
+            value:  "{{ $.Values.organization.newIdentity.did }}"
+          - name: IDENTITY_ROLE
+            value: "{{ $.Values.organization.newIdentity.role }}"
+          - name: IDENTITY_VERKEY
+            value: "{{ $.Values.organization.newIdentity.verkey }}"
+          - name: POOL_GENESIS_PATH
+            value: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
+        volumeMounts:
+          - name: {{ $.Values.organization.name }}-ptg
+            mountPath: /var/lib/indy/genesis/{{ $.Values.network.name }}/pool_transactions_genesis
+            subPath: pool_transactions_genesis
+          - name: shared-data
+            mountPath: /data

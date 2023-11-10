@@ -1,0 +1,99 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tessera-config-{{ .Values.node.name }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: tessera-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  tessera-config.json.tmpl: |-
+    {
+      "useWhiteList": "false",
+      "jdbc": {
+        "username": {{ .Values.tessera.dbusername | quote }},
+        "password": "",
+        "url": {{ .Values.tessera.dburl | quote }}
+      },
+      "serverConfigs": [
+        {
+          "app": "ThirdParty",
+          "enabled": true,
+          "serverAddress": "http://{{ .Values.node.name }}-tessera:9080",
+          "communicationType": "REST"
+        },
+        {
+          "app": "Q2T",
+          "enabled": true,
+          "serverAddress": {{ .Values.tessera.clienturl | quote }},          
+          "sslConfig": {
+            "tls": "OFF",
+            "generateKeyStoreIfNotExisted": true,
+            "serverKeyStore": "{{ .Values.node.mountPath }}/tm/server-keystore",
+            "serverKeyStorePassword": "quorum",
+            "serverTrustStore": "{{ .Values.node.mountPath }}/tm/server-truststore",
+            "serverTrustStorePassword": "quorum",
+            "serverTrustMode": {{ .Values.tessera.trust | quote }},
+            "knownClientsFile": "{{ .Values.node.mountPath }}/tm/knownClients",
+            "clientKeyStore": "{{ .Values.node.mountPath }}/tm/client-keystore",
+            "clientKeyStorePassword": "quorum",
+            "clientTrustStore": "{{ .Values.node.mountPath }}/tm/client-truststore",
+            "clientTrustStorePassword": "quorum",
+            "clientTrustMode": {{ .Values.tessera.trust | quote }},
+            "knownServersFile": "{{ .Values.node.mountPath }}/tm/knownServers"
+          },
+          "communicationType": "REST"
+        },
+        {
+          "app": "P2P",
+          "enabled": true,
+          "serverAddress": {{ .Values.tessera.url | quote }},
+          "sslConfig": {
+            "tls": {{ .Values.tessera.tls | quote }},
+            "generateKeyStoreIfNotExisted": true,
+            "serverKeyStore": "{{ .Values.node.mountPath }}/tm/server-keystore",
+            "serverKeyStorePassword": "quorum",
+            "serverTrustStore": "{{ .Values.node.mountPath }}/tm/server-truststore",
+            "serverTrustStorePassword": "quorum",
+            "serverTrustMode": {{ .Values.tessera.trust | quote }},
+            "knownClientsFile": "{{ .Values.node.mountPath }}/tm/knownClients",
+            "clientKeyStore": "{{ .Values.node.mountPath }}/tm/client-keystore",
+            "clientKeyStorePassword": "quorum",
+            "clientTrustStore": "{{ .Values.node.mountPath }}/tm/client-truststore",
+            "clientTrustStorePassword": "quorum",
+            "clientTrustMode": {{ .Values.tessera.trust | quote }},
+            "knownServersFile": "{{ .Values.node.mountPath }}/tm/knownServers"
+          },
+          "communicationType": "REST"
+        }
+      ],
+      "peer": {{ .Values.tessera.othernodes | toPrettyJson | indent 6 }},
+      "keys": {
+          "keyVaultConfigs": [
+              {
+                  "keyVaultType": "HASHICORP",
+                  "properties": {
+                      "url": "{{ $.Values.vault.address }}"
+                  }
+              }
+          ],
+          "keyData": [
+              {
+                  "hashicorpVaultSecretEngineName": "{{ $.Values.vault.secretengine }}",
+                  "hashicorpVaultSecretName": "{{ $.Values.vault.tmsecretpath }}",
+                  "hashicorpVaultPrivateKeyId": "privateKey",
+                  "hashicorpVaultPublicKeyId": "publicKey"
+              }
+          ]
+      },
+      "alwaysSendTo": []
+    }

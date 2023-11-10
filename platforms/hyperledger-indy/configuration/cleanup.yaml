@@ -1,0 +1,30 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##################################################
+# Playbook to cleanup platform specific resources
+##################################################
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+  # ----------------------------------------------------------------------
+
+  # Cleanup all organizations' vault indy crypto
+  - name: Cleanup Vault indy crypto
+    include_role:
+      name: clean/vault
+    vars:
+      organization: "{{ organizationItem.name | lower }}"
+      organization_ns: "{{ organization }}-ns"
+      services: "{{ organizationItem.services }}"
+      acount: "{{ organization }}-admin-vault-auth"
+      vault: "{{ organizationItem.vault }}"
+      role: "rw"
+      auth_path: "kubernetes-{{ organization }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: organizationItem

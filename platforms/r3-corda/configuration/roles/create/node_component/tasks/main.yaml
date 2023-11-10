@@ -1,0 +1,63 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# This role creates the job value file for notaries and nodes
+##############################################################################################
+
+##############################################################################################
+# This tasks ensures the directory existance, if not exits it creates a new one
+---
+- set_fact:
+    release_dir_path: "{{ release_dir }}/{{ component_name }}"
+  when: node_type == "node"
+ 
+# This sets a fact values_dir_path
+- set_fact:
+    release_dir_path: "{{ release_dir }}/{{ org_name }}/{{ component_name }}"
+  when: node_type != "node"
+
+- name: Ensures {{ release_dir_path }} dir exists
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "{{ release_dir_path }}"
+
+##############################################################################################
+# This task creates deployment file for notaries. It is executed only if is_notary is true
+- name: "create value file for {{ component_name }} {{ component_type }}"
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    values_file: "{{ release_dir_path }}/{{ component_type }}.yaml"
+    chart: "notary"
+    docker_image: "{{ corda_image[corda_version] }}"
+  when: node_type == "notary"
+
+##############################################################################################
+# This task creates deployment file for nodes. It is executed only if is_notary is false
+- name: "create value file for {{ component_name }} {{ component_type }}"
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_file }}"
+  vars:
+    values_file: "{{ release_dir_path }}/{{ component_type }}.yaml"
+    chart: "node"
+    docker_image: "{{ corda_image[corda_version] }}"
+  when: node_type == "node"
+
+################################################################################################
+# This task tests the value file for syntax errors/ missing values
+# This is done by calling the helm_lint role and passing the value file parameter
+# When a new k8_component is added, changes should be made in helm_lint role as well
+- name: Helm lint
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
+  vars:
+    helmtemplate_type: "{{ node_type }}{{ component_type }}"
+    chart_path: "{{ gitops.chart_source }}"
+    value_file: "{{ release_dir_path }}/{{ component_type }}.yaml"
