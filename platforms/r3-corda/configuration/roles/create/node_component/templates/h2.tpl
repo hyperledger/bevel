@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
     spec:
-      chart: {{ gitops.chart_source }}/h2
+      chart: {{ gitops.chart_source }}/corda-h2
       sourceRef:
         kind: GitRepository
         name: flux-{{ network.env.type }}

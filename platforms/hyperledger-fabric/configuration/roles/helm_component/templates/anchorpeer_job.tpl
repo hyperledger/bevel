@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/anchorpeer
+      chart: {{ charts_dir }}/fabric-anchorpeer
   values:
     metadata:
       namespace: {{ component_ns }}

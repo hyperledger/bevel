@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/generate_ambassador_certs
+    chart: {{ charts_dir }}/besu-tlscert-cert-gen
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

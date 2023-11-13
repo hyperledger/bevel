@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/node_key_mgmt
+    chart: {{ charts_dir }}/besu-node-key-mgmt
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}

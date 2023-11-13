@@ -37,7 +37,7 @@ This folder consists of Doorman helm charts which are used by the ansible playbo
 
 ### Folder Structure
 ```
-/doorman
+/corda-doorman
 |-- templates
 |   |-- pvc.yaml
 |   |-- deployment.yaml
@@ -82,7 +82,7 @@ This folder consists of Doorman helm charts which are used by the ansible playbo
 
 ### Folder Structure
 ```
-/doorman-tls
+/corda-doorman-tls
 |-- templates
 |   |-- pvc.yaml
 |   |-- deployment.yaml

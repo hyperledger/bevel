@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/fabric_cli    
+      chart: {{ charts_dir }}/fabric-cli    
   values:
     metadata:
       namespace: {{ component_ns }}

@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/quorum_node_tessera
+    chart: {{ charts_dir }}/quorum-tessera-node
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
