@@ -104,15 +104,12 @@ export PATH="/home/s_linux/work/Plooto/google-cloud-sdk/bin:$PATH"
 
 export KUBECONFIG=/home/s_linux/work/Plooto/bevel/build/config
 
-helm list
-helm delete (name)
+git config --global user.email "stamzom@gmail.com"
+git config --global user.name "StamZo"
 
 cd bevel
 ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.yaml -vvv
 
-
-git config --global user.email "stamzom@gmail.com"
-git config --global user.name "StamZo"
 
 cd s_linux/work/Plooto/bevel
 ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.yaml -vvv
@@ -123,9 +120,33 @@ docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel
 
 ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "reset=true"
 
-#helm upgrade vault hashicorp/vault -f vault-override.yaml -n vault
+helm list
+helm delete (name)
 
-# helm uninstall -n vault vault
-#kubectl delete pvc -l app.kubernetes.io/name=vault -n vault
-#kubectl get svc -n default
+helm upgrade vault hashicorp/vault -f vault-override.yaml -n vault
 
+
+ helm uninstall -n vault vault
+kubectl delete pvc -l app.kubernetes.io/name=vault -n vault
+kubectl get svc -n default
+
+helm list --all-namespaces
+# To delete all of them
+#!/bin/bash
+
+# Get a list of all helm releases in all namespaces
+releases=$(helm list --all-namespaces -q)
+
+# Loop through each release and delete it
+for release in $releases
+do
+    # Extracting the release name and namespace
+    release_name=$(echo $release | awk '{print $1}')
+    namespace=$(echo $release | awk '{print $2}')
+
+    # Deleting the release
+    echo "Deleting release $release_name in namespace $namespace"
+    helm delete $release_name -n $namespace
+done
+
+echo "All releases have been deleted."
