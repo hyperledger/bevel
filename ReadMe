@@ -29,15 +29,11 @@ export KUBECONFIG=$(pwd)/build/config
 
 export KUBECONFIG=/home/s_linux/work/Plooto/bevel/build/config
 
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
 
 
 
-kubectl exec -ti vault-0 -n default -- vault status
-
-
-kubectl exec vault-0 -n default -- vault operator unseal g6upwa1b6RGrIyVqWthhZom61qNXXQeiUAp1fUFXl3w=
+#beter from the vault ui kubectl exec -n vault vault-0 -- vault operator unseal g6upwa1b6RGrIyVqWthhZom61qNXXQeiUAp1fUFXl3w=
 
 
 docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest bash
@@ -94,46 +90,49 @@ docker run -it \
   -v $(pwd):/home/s_linux/work/Plooto/bevel/ \
   --network="host" ghcr.io/hyperledger/bevel-build:latest bash
 
+ kubectl hlf --help
+
+
+        docker run -it \
+        -v /usr/local/bin/kubectl:/usr/bin/kubectl \
+        -v /home/s_linux/work/Plooto/google-cloud-sdk:/google-cloud-sdk \
+        -v /home/s_linux/.config/gcloud:/root/.config/gcloud \
+        -v /home/s_linux/.kube:/root/.kube \
+        -v /home/s_linux/gke-gcloud-auth-plugin:/usr/local/bin/gke-gcloud-auth-plugin \
+        -v $(pwd):/home/s_linux/work/Plooto/bevel/ \
+        -v /home/s_linux/.krew/bin:/root/.krew/bin/ \
+        --network="host" ghcr.io/hyperledger/bevel-build:latest bash
 
 
 
-docker run -it \
-  -v /usr/local/bin/kubectl:/usr/bin/kubectl \
-  -v /home/s_linux/work/Plooto/google-cloud-sdk:/google-cloud-sdk \
-  -v /home/s_linux/.config/gcloud:/root/.config/gcloud \
-  -v /home/s_linux/.kube:/root/.kube \
-  -v /home/s_linux/gke-gcloud-auth-plugin:/usr/local/bin/gke-gcloud-auth-plugin \
-  -v $(pwd):/home/s_linux/work/Plooto/bevel/ \
-  -v /home/s_linux/.krew/bin:/root/.krew/bin/ \
-  --network="host" ghcr.io/hyperledger/bevel-build:latest bash
+       
 
 
+        export PATH="/google-cloud-sdk/bin:$PATH"
 
-kubectl hlf --help
+        export PATH="/home/s_linux/work/Plooto/google-cloud-sdk/bin:$PATH"
 
+        export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"  
+        
+        git config --global user.email "stamzom@gmail.com"
+        
+        git config --global user.name "StamZo"
+        
+        export KUBECONFIG=/home/s_linux/work/Plooto/bevel/build/config
 
-export PATH="/google-cloud-sdk/bin:$PATH"
-
-export PATH="/home/s_linux/work/Plooto/google-cloud-sdk/bin:$PATH"
-
-
-export KUBECONFIG=/home/s_linux/work/Plooto/bevel/build/config
-
-git config --global user.email "stamzom@gmail.com"
-git config --global user.name "StamZo"
 
 cd bevel
 ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.yaml -vvv
 
 
-cd s_linux/work/Plooto/bevel
-ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.yaml -vvv
+        cd s_linux/work/Plooto/bevel
+        ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.yaml -vvv
 
 
 docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
 
 
-ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "reset=true"
+        ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "reset=true"
 
 helm list
 helm delete (name)
