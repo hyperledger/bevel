@@ -110,10 +110,8 @@ docker run -it \
 
 #
 export PATH="/google-cloud-sdk/bin:$PATH"
-
 export PATH="/home/s_linux/work/Plooto/google-cloud-sdk/bin:$PATH"
-
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"  
+export PATH="/home/s_linux/.krew/bin:$PATH"
 
 git config --global user.email "stamzom@gmail.com"
 
@@ -128,12 +126,14 @@ ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.y
 
         cd s_linux/work/Plooto/bevel
         ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.yaml -vvv
+        ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network-operator-fabric.yaml -vvv
 
 
 docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest
 
-
+        cd s_linux/work/Plooto/bevel
         ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "reset=true"
+        ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network-operator-fabric.yaml" -e "reset=true"
 
 helm list
 helm delete (name)
