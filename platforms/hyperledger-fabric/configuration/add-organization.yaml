@@ -169,22 +169,6 @@
         profile_name: "{{ item.channel_name }}"
       loop: "{{ network['channels'] }}"
 
-    # This role adds the new org to the existing consortium and updates the block  
-    
-    - include_role:
-        name: "create/new_organization/syschannel_block"
-      vars:
-        build_path: "./build"
-        orderers: "{{ org.services.orderers }}"
-        docker_url: "{{ network.docker.url }}"
-        channel_name: "syschannel"
-        update_type: "tls"
-        component_ns: "{{ org.name | lower}}-net"
-      loop: "{{ network.organizations }}"
-      loop_control:
-        loop_var: org
-      when: org.type == 'orderer' 
-
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
     - include_role:
@@ -219,7 +203,6 @@
         name: "setup/config_block/sign_and_update"
       vars:
         build_path: "./build"
-        channel_sys: "syschannel"
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"      
