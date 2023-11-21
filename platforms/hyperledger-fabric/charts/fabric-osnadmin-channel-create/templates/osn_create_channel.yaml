@@ -45,12 +45,14 @@ spec:
           - key: ca.crt.pem
             path: ca-certificates.crt
       {{ end  }}
+      {{- if not $.Values.add_orderer }}
       - name: genesis
         configMap:
           name: genesis-block
           items:
             - key: genesis.block.base64
               path: genesis.block.base64
+      {{ end  }}
       - name: certificates
         emptyDir:
           medium: Memory
@@ -68,6 +70,8 @@ spec:
           value: {{ $.Values.vault.authpath }}
         - name: VAULT_APP_ROLE
           value: {{ $.Values.vault.role }}
+        - name: VAULT_ADMIN_SECRET_PREFIX
+          value: "{{ $.Values.vault.adminsecretprefix }}"
         - name: VAULT_ORDERER_SECRET_PREFIX
           value: "{{ $.Values.vault.orderersecretprefix }}"
         - name: ORDERERS_NAMES
@@ -127,6 +131,29 @@ spec:
             echo "${CLIENTKEY}" >> ${OUTPUT_PATH}/server.key
           done
 
+          ###############################################################################
+          echo "Getting MSP certificates from Vault using key $vault_secret_key"
+          vaultBevelFunc "readJson" "${VAULT_ADMIN_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+          OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+
         volumeMounts:
         {{ if .Values.vault.tls  }}
         - name: vaultca
@@ -149,12 +176,19 @@ spec:
           value: "{{ $.Values.orderers.orderer_info }}"
         - name: NAMESPACE
           value: "{{ $.Values.metadata.namespace }}"
+        - name: ADD_ORDERER
+          value: "{{ $.Values.add_orderer }}"
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
           echo "Fetch genesis file..."
-          cat ./genesis/genesis.block.base64 | base64 -d > orderer.genesis.block
+          if [ $ADD_ORDERER = false ]
+          then
+            cat ./genesis/genesis.block.base64 | base64 -d > orderer.genesis.block
+          else 
+            peer channel fetch config ${CHANNEL_NAME}_config_block.pb -o ${CORE_PEER_ADDRESS} -c ${CHANNEL_NAME} --tls --cafile ${ORDERER_CA}
+          fi 
 
           list=$(echo "$ORDERERS_INFO" | tr "*" "\n")
           for ORDERER_NAME in $list
@@ -167,10 +201,16 @@ spec:
             CHANNEL_LIST_QUERY_RESPONSE=$(osnadmin channel list --channelID ${CHANNEL_NAME} -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}")
             if echo "$CHANNEL_LIST_QUERY_RESPONSE" | grep '404'; then
               echo "Creating channel....."
-              osnadmin channel join --channelID "${CHANNEL_NAME}" --config-block orderer.genesis.block -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
+              if [ $ADD_ORDERER = false ]
+              then
+                osnadmin channel join --channelID "${CHANNEL_NAME}" --config-block orderer.genesis.block -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
+              else
+                osnadmin channel join --channelID "${CHANNEL_NAME}" --config-block ${CHANNEL_NAME}_config_block.pb -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
+              fi 
               osnadmin channel list -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
             elif echo "$CHANNEL_LIST_QUERY_RESPONSE" | grep '200\|201'; then
               echo "Channel ${CHANNEL_NAME}, is already created for url: ${ORDERER_URL}"
+              osnadmin channel list --channelID ${CHANNEL_NAME} -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
             else
               echo $CHANNEL_LIST_QUERY_RESPONSE
             fi
@@ -183,6 +223,8 @@ spec:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
+        {{- if not $.Values.add_orderer }}
         - name: genesis
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/orderer/genesis
           readOnly: true
+        {{ end }}

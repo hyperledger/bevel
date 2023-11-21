@@ -61,12 +61,14 @@ spec:
           - key: ca.crt.pem
             path: ca-certificates.crt  # curl expects certs to be in /etc/ssl/certs/ca-certificates.crt
       {{ end  }}
+      {{- if ne $.Values.metadata.network.version "2.5.4" }}
       - name: {{ $.Values.orderer.name }}-genesis-volume
         configMap:
           name: genesis-block-{{ $.Values.orderer.name }}
           items:
             - key: genesis.block.base64
               path: genesis.block.base64
+      {{ end  }}
       - name: scripts-volume
         configMap:
           name: bevel-vault-script
@@ -207,9 +209,11 @@ spec:
         volumeMounts:
         - name: datadir
           mountPath: /var/hyperledger/production/orderer
+        {{- if ne $.Values.metadata.network.version "2.5.4" }}
         - name: {{ $.Values.orderer.name }}-genesis-volume
           mountPath: /var/hyperledger/orderer/genesis
           readOnly: true
+        {{- end }}
         - name: certificates
           mountPath: /var/hyperledger/orderer/crypto
           readOnly: true

@@ -57,7 +57,7 @@
     loop: "{{ network.organizations }}"
     loop_control:
       loop_var: org
-    when: org.type == 'orderer'
+    when: org.type == 'orderer' and '2.5.' not in network.version
 
   # This role creates value file new orderer
   - name: "create new orderer"
@@ -92,7 +92,18 @@
     loop: "{{ network.organizations }}"
     loop_control:
       loop_var: org
-    when: org.type == 'orderer'
+    when: org.type == 'orderer' and '2.5.' not in network.version
+
+  # This role creates the value file for creating channel from creator organization
+  # to the vault.
+  - name: Create all create-channel jobs
+    include_role:
+      name: "create/osnchannels"
+    vars:
+      build_path: "./build"
+      docker_url: "{{ network.docker.url }}"
+    loop: "{{ network['channels'] }}"
+    when: add_new_org == 'false' and '2.5.' in network.version
 
   # Generate script to modify the fetched configuration block from application channel
   - name: "Modify the application channel with tls and address information of new orderer"

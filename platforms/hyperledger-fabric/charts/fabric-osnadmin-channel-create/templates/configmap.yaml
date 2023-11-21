@@ -23,8 +23,16 @@ data:
   CHANNEL_NAME: {{ $.Values.channel.name }}
   ADMIN_TLS_CERTS: /opt/gopath/src/github.com/hyperledger/fabric/crypto
   GENESIS_FILE: /opt/gopath/src/github.com/hyperledger/fabric/orderer/genesis
+{{- if $.Values.add_orderer }}
+  CORE_PEER_LOCALMSPID: {{ $.Values.orderer.localmspid }}
+  CORE_PEER_TLS_ROOTCERT_FILE: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt
+  CORE_PEER_MSPCONFIGPATH: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
+  CORE_PEER_ADDRESS: {{ $.Values.orderer.address }}
+  ORDERER_CA: /opt/gopath/src/github.com/hyperledger/fabric/crypto/{{ $.Values.orderer.name }}/tls/ca.crt
+{{ end }}
 
 ---
+{{- if not $.Values.add_orderer }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -38,3 +46,4 @@ metadata:
     {{- include "labels.custom" . | nindent 2 }}
 data:
   genesis.block.base64: {{  $.Values.genesis | quote }}
+{{ end }}

@@ -34,25 +34,39 @@
       kubernetes: "{{ item.k8s }}"
       release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
     loop: "{{ network['organizations'] }}"
+
+  # Setup script for Vault and OS Package Manager
+  - name: "Setup script for Vault and OS Package Manager"
+    include_role:
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
+    vars:
+      namespace: "{{ org.name | lower }}-net"
+      network_type: "{{ network.type | lower }}"
+      kubernetes: "{{ org.k8s }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.org_status == 'new'
   
   # Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
   - include_role: 
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-      vars:
-        name: "{{ org.name | lower }}"
-        component_name: "{{ org.name | lower }}-vaultk8s-job"
-        component_type: "{{ org.type | lower }}"
-        component_ns: "{{ org.name | lower }}-net"
-        component_auth: "{{ network.env.type }}{{ org.name | lower }}-net-auth"
-        kubernetes: "{{ org.k8s }}"
-        vault: "{{ org.vault }}"
-        policy_type: "fabric"
-        gitops: "{{ org.gitops }}"
-        reset_path: "platforms/hyperledger-fabric/configuration"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-
+    vars:
+      name: "{{ org.name | lower }}"
+      component_name: "{{ org.name | lower }}-vaultk8s-job"
+      component_type: "{{ org.type | lower }}"
+      component_ns: "{{ org.name | lower }}-net"
+      component_auth: "{{ network.env.type }}{{ org.name | lower }}-net-auth"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      policy_type: "fabric"
+      gitops: "{{ org.gitops }}"
+      reset_path: "platforms/hyperledger-fabric/configuration"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: org.org_status == 'new'
+  
   # Create Storageclass for new organization
   - include_role:
       name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"  
@@ -78,6 +92,7 @@
       component_type: "{{ item.type | lower}}"
       component_services: "{{ item.services }}"
       orderer_org: "{{ item.orderer_org | lower }}"
+      sc_name: "{{ component }}-{{ item.cloud_provider | lower }}-storageclass"
       kubernetes: "{{ item.k8s }}"
       vault: "{{ item.vault }}"
       ca: "{{ item.services.ca }}"
