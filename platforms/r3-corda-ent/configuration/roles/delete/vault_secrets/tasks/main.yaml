@@ -113,6 +113,8 @@
     vault kv delete {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/credentials/truststore
     vault kv delete {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/credentials/ssl
     vault kv delete {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/credentials/cordapps
+    vault kv delete {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/credentials/user
+    vault kv delete {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/gateway/tlscerts
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
@@ -219,7 +221,7 @@
 # Delete the policies
 - name: Delete vault access control policy for organizations
   shell: |
-    vault policy delete vault-crypto-{{ component_name }}-{{ org.name | lower }}-ro
+    vault policy delete vault-crypto-{{ org.type | lower }}-{{ org.name | lower }}-vaultk8s-job-ro
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"

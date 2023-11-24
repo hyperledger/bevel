@@ -13,13 +13,14 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: corda-enterprise
-  version: 4.7        # Hyperledger Bevel deployment supports node and notary enterprise 4.7 version (use older tag for other version supports)
+  version: "4.7"        # Hyperledger Bevel deployment supports node and notary enterprise 4.7 version (use older tag for other version supports)
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
 
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
+    proxy_namespace: "ambassador"   # Namespace required for Ambassador Edge-Stack deployment
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
       portRange:              # For a range of ports 
         from: 15005 
@@ -122,7 +123,7 @@ network:
           tlscrlsigner: password
         truststore:
           truststore: trustpass
-          rootca: password
+          rootca: rootpassword
           ssl: password
         ssl:
           networkmap: password
@@ -181,7 +182,7 @@ network:
           serviceName: "O=Notary Service,OU=Notary1,L=London,C=GB"
           type: notary
           validating: true
-          emailAddress: "dev@bevel.com"      
+          emailAddress: "dev@bevel.com"
           p2p:
             port: 10002
             targetPort: 10002

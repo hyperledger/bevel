@@ -303,7 +303,10 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
+          # Create directory
           mkdir -p ${BASE_DIR}/etc
+
+          # Create notary.conf configuration file
           echo 'networkServices {
               doormanURL="{{ .Values.networkServices.doormanURL }}"
               networkMapURL="{{ .Values.networkServices.networkMapURL }}"
@@ -350,52 +353,61 @@ spec:
               port={{ .Values.service.sshdPort }}
           }' > ${BASE_DIR}/etc/notary.conf
 
+          # Replace placeholders in notary.conf with actual passwords
           export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/tspass)
           sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
           export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
           sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/etc/notary.conf
 
 
-          # to clean network-parameters on every restart
+          # Clean or remove network-parameters on every restart
           rm -rf ${BASE_DIR}/network-parameters
 
           {{- if eq .Values.nodeConf.notary.type "cenm" }}
-          # add ssl-truststore to truststore
+          # Add ssl-truststore to truststore
           export SSLTRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/sslpass)
           keytool -importkeystore -srckeystore ${BASE_DIR}/certificates/corda-ssl-trust-store.jks -srcstorepass $SSLTRUSTSTORE_PASSWORD -destkeystore ${BASE_DIR}/certificates/truststore.jks -deststorepass $TRUSTSTORE_PASSWORD -srcalias cordasslrootca -destalias cordasslrootca
           {{- else }}
-          # add idman and networkmap certificates to truststore          
+          # Add idman and networkmap certificates to truststore          
           yes | keytool -importcert -file ${BASE_DIR}/certificates/networkmap.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.networkMapDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
           yes | keytool -importcert -file ${BASE_DIR}/certificates/idman.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.idmanDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks          
           {{- end }}
-          
+
+          # Start a new shell session
           /bin/sh
+
+          # Retrieve keystore password again
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/kspass)
+
+          # Check if the 'corda.jar' file exists
           if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
           then
-              echo
-              echo "CENM: starting Notary node ..."
-              echo
-              # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
+              echo "\nCENM: starting Notary node ...\n"
+
+              # Run migration scripts for database schema upgradation and then start the Corda-ent 'notary' node
+              java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks -Djavax.net.ssl.trustStorePassword=$TRUSTSTORE_PASSWORD -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar run-migration-scripts --core-schemas --app-schemas -f ${BASE_DIR}/etc/notary.conf --base-directory=${BASE_DIR} -v --logging-level=DEBUG
+              # start the Corda-ent 'notary' node, setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
               java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks -Djavax.net.ssl.trustStorePassword=$TRUSTSTORE_PASSWORD -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/etc/notary.conf --base-directory=${BASE_DIR} -v --logging-level=DEBUG
+              # Capture the exit code of the previous command
               EXIT_CODE=${?}
           else
-              echo "Missing notary jar file in {{ .Values.nodeConf.jarPath }} folder:"
+              echo "Error: 'corda.jar' file is not found in the {{ .Values.nodeConf.jarPath }} folder."
+              # Additionally, manually check the availability of 'corda.jar' file at the same path
               ls -al {{ .Values.nodeConf.jarPath }}
+              # Set to '1' to indicate an error
               EXIT_CODE=1
           fi
 
+          # Handle node failure
           if [ "${EXIT_CODE}" -ne "0" ]
           then
               HOW_LONG={{ .Values.sleepTimeAfterError }}
-              echo
-              echo "Notary failed - exit code: ${EXIT_CODE} (error)"
-              echo
-              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
-              echo
+              echo "\nNotary failed - exit code: ${EXIT_CODE} (error).\n"
+              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate.\n"
               sleep ${HOW_LONG}
           fi
-          echo
+
+          echo "DONE"
         volumeMounts:
         - name: notary-certificates
           mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
@@ -417,9 +429,11 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
+          # Change directory to the specified base directory for Corda-ent notary logs
           cd {{ $.Values.nodeConf.volume.baseDir }}/
+          # Continuously display the content of all log files in the 'logs' directory
           tail -f logs/*.log 2>/dev/null
-          # in case sth went wrong just wait indefinitely ...
+          # If the logs are not available, enter an indefinite wait state
           tail -f /dev/null
         volumeMounts:
         - name: notary-volume
