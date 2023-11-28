@@ -295,7 +295,10 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
-          mkdir -p ${BASE_DIR}/etc
+          # Create directory
+          # mkdir -p ${BASE_DIR}/etc
+
+          # Create node.conf configuration file
           echo 'myLegalName: "{{ .Values.nodeConf.legalName }}"
           emailAddress: "{{ .Values.nodeConf.emailAddress }}"
           p2pAddress: "{{ .Values.service.p2pAddress }}:{{ .Values.service.p2pPort }}"
@@ -358,49 +361,54 @@ spec:
           {{- end}}
           }' > ${BASE_DIR}/node.conf
 
+          # Replace placeholders in node.conf with actual passwords
           export TRUSTSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/truststorepass)
           sed -i -e "s*TRUSTSTORE_PASSWORD*${TRUSTSTORE_PASSWORD}*g" ${BASE_DIR}/node.conf
           export KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
           sed -i -e "s*KEYSTORE_PASSWORD*${KEYSTORE_PASSWORD}*g" ${BASE_DIR}/node.conf
 
-          # to clean network-parameters on every restart
+          # Clean or remove network-parameters on every restart
           rm -rf ${BASE_DIR}/network-parameters
+
+          # Import certificates into truststore.jks
           yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/networkmap.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.networkMapDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
           yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/idman.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.networkServices.idmanDomain }} -keystore ${BASE_DIR}/certificates/truststore.jks
           yes | keytool -importcert -file ${BASE_DIR}/certificates/tlscerts/node.crt -storepass $TRUSTSTORE_PASSWORD -alias {{ .Values.nodeName }} -keystore ${BASE_DIR}/certificates/truststore.jks
 
+          # Start a new shell session
           /bin/sh
           
+          # Retrieve keystore password again
           KEYSTORE_PASSWORD=$(cat ${BASE_DIR}/certificates/credentials/keystorepass)
+
+          # Check if the 'corda.jar' file exists
           if [ -f {{ .Values.nodeConf.jarPath }}/corda.jar ]
           then
-              echo
-              echo "Starting Node node ..."
-              echo
-              # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
-              java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks \
-                   -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks \
-                   -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} \
-                   -jar {{ .Values.nodeConf.jarPath }}/corda.jar \
-                   -f ${BASE_DIR}/node.conf --base-directory ${BASE_DIR} \
-                   --log-to-console
+              echo -e "\nStarting Node node ...\n"
+
+              # Run migration scripts for database schema upgradation and then start the Corda-ent 'node' node
+              java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar run-migration-scripts --core-schemas --app-schemas -f ${BASE_DIR}/node.conf --base-directory ${BASE_DIR} --log-to-console
+              # start the Corda-ent 'node' node, setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
+              java -Djavax.net.ssl.trustStore=${BASE_DIR}/certificates/truststore.jks -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=${KEYSTORE_PASSWORD} -jar {{ .Values.nodeConf.jarPath }}/corda.jar -f ${BASE_DIR}/node.conf --base-directory ${BASE_DIR} --log-to-console
+              # Capture the exit code of the previous command
               EXIT_CODE=${?}
           else
-              echo "Missing node jar file in {{ .Values.nodeConf.jarPath }} folder:"
+              echo "Error: 'corda.jar' file is not found in the {{ .Values.nodeConf.jarPath }} folder."
+              # Additionally, manually check the availability of 'corda.jar' file at the same path
               ls -al {{ .Values.nodeConf.jarPath }}
+              # Set to '1' to indicate an error
               EXIT_CODE=1
           fi
 
+          # Handle node failure
           if [ "${EXIT_CODE}" -ne "0" ]
           then
               HOW_LONG={{ .Values.sleepTimeAfterError }}
-              echo
-              echo "Node failed - exit code: ${EXIT_CODE} (error)"
-              echo
-              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
-              echo
+              echo "\nNode failed - exit code: ${EXIT_CODE} (error)\n"
+              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate.\n"
               sleep ${HOW_LONG}
           fi
+
           echo "DONE"
         volumeMounts:
         - name: node-volume
@@ -421,9 +429,11 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |-
+          # Change directory to the specified base directory for Corda-ent node logs
           cd {{ .Values.nodeConf.volume.baseDir }}/
+          # Continuously display the content of all log files in the 'logs' directory
           tail -f logs/*.log 2>/dev/null
-          # in case sth went wrong just wait indefinitely ...
+          # If the logs are not available, enter an indefinite wait state
           tail -f /dev/null
         volumeMounts:
         - name: node-volume
