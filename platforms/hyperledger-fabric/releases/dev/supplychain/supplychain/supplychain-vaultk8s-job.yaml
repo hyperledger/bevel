@@ -1,0 +1,43 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: supplychain-vaultk8s-job
+  namespace: supplychain-net
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: supplychain-vaultk8s-job
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/shared/charts/vault-k8s-mgmt
+    sourceRef:
+      kind: GitRepository
+      name: flux-dev
+      namespace: flux-dev
+  values:
+    metadata:
+      name: supplychain-vaultk8s-job
+      namespace: supplychain-net
+      images:
+        alpineutils: ghcr.io/hyperledger/alpine-utils:1.0
+        pullPolicy: IfNotPresent
+
+    vault:
+      role: vault-role
+      address: http://34.41.133.60:8200
+      authpath: devsupplychain-net-auth
+      policy: vault-crypto-supplychain-net-supplychain-ro
+      policydata: "{\n  \"policy\": \"\\npath \\\"secretsv2/data/crypto/ordererOrganizations/supplychain-net/*\\\" {\n    \\ncapabilities = [\\\"list\\\", \\\"read\\\", \\\"create\\\", \\\"update\\\"]\\n\n  }\n  \\npath \\\"secretsv2/*\\\" {\n    \\ncapabilities = [\\\"list\\\"]\\n\n  }\n  \\npath \\\"secretsv2/data/crypto/peerOrganizations/*\\\" {\n    \\ncapabilities = [\\\"deny\\\"]\\n\n  }\n  \\npath \\\"secretsv2/data/credentials/supplychain-net/*\\\" {\n    \\ncapabilities = [\\\"list\\\", \\\"read\\\", \\\"create\\\", \\\"update\\\"]\\n\n  }\"\n}"
+      secret_path: secretsv2
+      imagesecretname: regcred
+
+    k8s:
+      kubernetes_url: https://35.184.193.205
+    
+    rbac:
+      create: True
+
+    serviceAccount:
+      create: True
+      name: vault-auth
