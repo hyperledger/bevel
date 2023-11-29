@@ -1,3 +1,17 @@
+
+sudo chmod 777 /root/bin
+sudo chmod 777 /home/stam/bevel
+
+kubectl config view
+#get the connect command from gcp cluster
+cd ~/.kube
+code config #(delete the previous if needed and then run the command from , after copy the config to the build folder)
+
+sudo chmod 777 $(pwd)
+echo 'export PATH=$PATH:/home/s_linux/.local/bin' >> ~/.bashrc
+source ~/.bashrc
+ kubectl delete namespace vault
+
 #get the connect command from gcp cluster
 cd ~/.kube
 code config #(delete the previous if needed and then run the command, after copy the config to the build folder)
@@ -6,10 +20,16 @@ code config #(delete the previous if needed and then run the command, after copy
 echo 'export PATH=$PATH:/home/s_linux/.local/bin' >> ~/.bashrc
 source ~/.bashrc
  
+
  kubectl create namespace vault
 
 
- helm install vault hashicorp/vault --namespace vault --version 0.13.0 -f build/vault-override.yaml
+ #helm install vault hashicorp/vault --namespace vault --version 0.13.0 -f build/vault-override.yaml
+
+
+ helm install vault hashicorp/vault --namespace vault --version 0.19.0 -f build/vault-override.yaml
+
+
 
  helm upgrade vault hashicorp/vault -f build/vault-override.yaml -n vault
 
@@ -23,7 +43,12 @@ kubectl exec -n vault vault-0 -- vault status
 )
 export KUBECONFIG=/home/s_linux/.kube/bevel-ws.yaml
 
+
+export KUBECONFIG=/home/bevel/build/config #!!
+export PATH=$PATH:/usr/bin #!!
+
 export KUBECONFIG=/home/bevel/build/config
+
 
 export KUBECONFIG=$(pwd)/build/config
 
@@ -33,10 +58,37 @@ export KUBECONFIG=/home/s_linux/work/Plooto/bevel/build/config
 
 
 
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+#beter from the vault ui kubectl exec -n vault vault-0 -- vault operator unseal g6upwa1b6RGrIyVqWthhZom61qNXXQeiUAp1fUFXl3w=
+
+
+sudo docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest bash
+
+    apt-get install gnupg
+    wget https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    apt-key add apt-key.gpg
+    apt-get update
+    apt-get install apt-transport-https ca-certificates gnupg
+    
+
+    apt-get update
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+    apt-get update
+    apt-get install google-cloud-sdk -y
+    gcloud --version
+    apt-get install google-cloud-sdk-gke-gcloud-auth-plugin
+    #which ,  apt-get install kubectl
+    #which ,apt-get install ansible
+    gcloud auth login --no-launch-browser
+    gcloud config set project plooto-402607
+
+
 #beter from the vault ui kubectl exec -n vault vault-0 -- vault operator unseal g6upwa1b6RGrIyVqWthhZom61qNXXQeiUAp1fUFXl3w=
 
 
 docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest bash
+
 
 docker run -it -v $(pwd):/home/s_linux/work/Plooto/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest bash
 
@@ -117,6 +169,22 @@ git config --global user.email "stamzom@gmail.com"
 
 git config --global user.name "StamZo"
 
+
+export KUBECONFIG=$(pwd)/build/config
+
+gcloud container clusters get-credentials bevel-cluster --zone europe-central2-a --project plooto-402607
+
+#
+docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel-build:latest bash
+
+
+cd bevel
+ansible-playbook  platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -v
+
+
+        cd s_linux/work/Plooto/bevel
+        ansible-playbook  platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -v
+
 export KUBECONFIG=/home/s_linux/work/Plooto/bevel/build/config
 #
 
@@ -126,6 +194,7 @@ ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.y
 
         cd s_linux/work/Plooto/bevel
         ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network.yaml -vvv
+
         ansible-playbook  platforms/shared/configuration/site.yaml -e @./build/network-operator-fabric.yaml -vvv
 
 
@@ -135,12 +204,19 @@ docker run -it -v $(pwd):/home/bevel/ --network="host" ghcr.io/hyperledger/bevel
         ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.yaml" -e "reset=true"
         ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network-operator-fabric.yaml" -e "reset=true"
 
+
+gcloud compute disks list#(chose the correct disk for the pv of each)
+kubectl apply -f pv-for-manufacturer.yaml
+
+
 helm list
 helm delete (name)
 
 helm uninstall -n vault vault
 
 kubectl delete pvc -l app.kubernetes.io/name=vault -n vault
+kubectl get pvc --all-namespaces
+
 kubectl get svc -n default
 
 helm list --all-namespaces
