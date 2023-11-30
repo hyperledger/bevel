@@ -17,6 +17,19 @@
     orderer_kubeconfig: "{{ org.k8s.config_file }}"
     orderer_context: "{{ org.k8s.context }}"
 
+# Reset ca-tools pod
+- name: "Reset ca-tools pod"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "osn-createchannel-{{item.channel_name|lower}}"
+    file_path: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}/{{ org.name | lower }}/{{item.channel_name|lower}}.yaml"
+    gitops_value: "{{ org.gitops }}"
+    component_ns: "{{ org.name | lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    hr_name: "channel-{{ org.name | lower }}-{{item.channel_name|lower}}"
+  when: add_orderer is defined and add_orderer == 'true'
+
 # Create the value file for creator Organization
 - name: "Create Create_Channel value file osnadmin"
   include_role:
@@ -35,6 +48,30 @@
     orderers_list: "{{ org.services.orderers }}"
     genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    add_orderer_value: "{{ add_orderer | default('false') }}"
+  when: add_orderer is not defined or add_orderer == false
+
+# Create the value file for creator Organization
+- name: "Create Create_Channel value file osnadmin"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ org.name | lower }}"
+    type: "osn_create_channel_job"
+    component_name: "{{item.channel_name|lower}}"
+    component_ns: "{{ org.name | lower}}-net"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    k8s: "{{ org.k8s }}"
+    orderers_list: "{{ org.services.orderers }}"
+    first_orderer: "{{ org.services.orderers | first }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    add_orderer_value: "{{ add_orderer | default('false') }}"
+    external_url_suffix: "{{ org.external_url_suffix }}"
+  when: add_orderer is defined and add_orderer == 'true'
 
 # Git Push: Push the above generated files to git directory 
 - name: Git Push

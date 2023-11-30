@@ -66,7 +66,25 @@
     loop_var: orderer
   when: 
     - component_services.orderers is defined and component_services.consensus is defined
-    - orderer.status is not defined or orderer.status == 'new'
+    - (orderer.status is not defined or orderer.status == 'new') and '2.5.' not in network.version
+
+# Create the value file for the Orderers as per requirements mentioned in network.yaml
+- name: "create orderers"
+  include_role:
+    name: helm_component
+  vars:
+    name: "orderer"
+    org_name: "{{ item.name | lower }}"
+    sc_name: "{{ org_name }}-{{ item.cloud_provider | lower}}-storageclass"
+    component_name: "{{ orderer.name }}-{{ org_name }}"
+    type: "orderers"
+    consensus: "{{component_services.consensus}}"
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: 
+    - component_services.orderers is defined and component_services.consensus is defined
+    - (orderer.status is not defined or orderer.status == 'new') and '2.5.' in network.version
 
 # Git Push: Push the above generated files to git directory 
 - name: Git Push

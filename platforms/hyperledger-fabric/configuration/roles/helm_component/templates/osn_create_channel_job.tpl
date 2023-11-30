@@ -33,6 +33,7 @@ spec:
 {% else %}
       authpath: {{ network.env.type }}{{ component_ns }}-auth
 {% endif %}
+      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_ns }}/users/admin
       orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_ns }}/orderers 
       serviceaccountname: vault-auth
       type: {{ vault.type | default("hashicorp") }}
@@ -47,5 +48,14 @@ spec:
     orderers:
       orderer_info: {% for orderer in orderers_list %}{% for key, value in orderer.items() %}{% if key == 'name' %}{{ value }}{% endif %}{% endfor %}*{% endfor %}
 
+    add_orderer: {{ add_orderer_value }}
+
+{% if add_orderer is not defined or add_orderer is sameas false  %}
     genesis: |-
 {{ genesis | indent(width=6, first=True) }}
+{% else %}
+    orderer:
+      name: {{ first_orderer.name }}
+      localmspid: {{ org.name | lower}}MSP
+      address: {{ first_orderer.ordererAddress }}
+{% endif %}
