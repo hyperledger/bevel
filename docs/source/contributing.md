@@ -12,7 +12,7 @@ there's always plenty to do!
 
 First things first, please review the [Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct) before participating and please follow it in all your interactions with the project.
 
-You can contibute to Bevel, as a user or/and as a developer.
+You can contribute to Bevel, as a user or/and as a developer.
 
 ##### As a user:
 
@@ -23,7 +23,7 @@ You can contibute to Bevel, as a user or/and as a developer.
 
 Consider picking up a [“help-wanted”](https://github.com/hyperledger/bevel/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) or ["good-first-issue"](https://github.com/hyperledger/bevel/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) task  
 
-If you can commit to full-time/part-time development, then please contact us on our [Rocketchat channel](https://chat.hyperledger.org/channel/bevel ) to work through logistics!
+If you can commit to full-time/part-time development, then please contact us on our [Rocket chat channel](https://chat.hyperledger.org/channel/bevel ) to work through logistics!
 
 Please visit the
 [Developer Guide](developerguide.md) in the docs to learn how to make contributions to this exciting project.
@@ -41,11 +41,11 @@ For source code integrity , Hyperledger Bevel GitHub pull requests are accepted 
 5. Push your changes to your feature branch
 6. Initiate a pull request from your fork to the base repository ( develop branch , unless it is a critical bug, in that case initiate to the main branch)
 7. Await DCO & linting quality checks ( CI to come soon ), as well as any feedback from reviewers.
-8. Work on the feedbacks to revise the PR if there are any comments
+8. Work on the feedback to revise the PR if there are any comments
 9. If not, the PR gets approved , delete feature branch post the merge
 
 ---
-**NOTE:** If you are a regular contributor , please make sure to take the latest pull from the develop branch everytime before making any pull request , main branch in case of a critical defect / bug .
+**NOTE:** If you are a regular contributor , please make sure to take the latest pull from the develop branch every time before making any pull request , main branch in case of a critical defect / bug .
 
 ---
 

@@ -5,7 +5,7 @@
 
 # Install Common Pre-requisites
 
-Following are the common pre-requiste software/client/platforms etc. needed before you can start deploying/operating blockchain networks using Hyperledger Bevel.
+Following are the common prerequisite software/client/platforms etc. needed before you can start deploying/operating blockchain networks using Hyperledger Bevel.
 
 ## Git Repository
 GitOps is a [key concept](keyconcepts) for Hyperledger Bevel, so a Git repository is needed for Bevel (this can be a [GitHub](https://github.com/) repository as well).
@@ -41,7 +41,7 @@ In this current release, [Hashicorp Vault](https://www.vaultproject.io/) is mand
 Follow [official instructions](https://developer.hashicorp.com/vault/docs/install) to deploy Vault in your environment. 
 
 ---
-**NOTE:** Recommended approach is to create one Vault deployment on one VM and configure the backend as a cloud storage.
+**NOTE:** The recommended approach is to create one Vault deployment on one VM and configure the backend as cloud storage.
 
 Vault version should be **1.13.1**
 
@@ -58,7 +58,7 @@ Although for production implementations, each organization (and thereby each clu
 
 ## Docker
 
-Hyperledger Bevel provides pre-built docker images which are available on [GitHub Repo](https://github.com/orgs/hyperledger/packages?repo_name=bevel). If specific changes are needed in the Docker images, then you can build them locally using the Dockerfiles provided. A user needs to install [Docker CLI](https://docs.docker.com/install/) to make sure the environment has the capability of building these Dockerfiles to generate various docker images. Platform specific docker image details are mentioned [here](./operations/configure_prerequisites.md).
+Hyperledger Bevel provides pre-built docker images which are available on [GitHub Repo](https://github.com/orgs/hyperledger/packages?repo_name=bevel). If specific changes are needed in the Docker images, then you can build them locally using the Docker files provided. A user needs to install [Docker CLI](https://docs.docker.com/install/) to make sure the environment has the capability of building these Docker files to generate various docker images. Platform specific docker image details are mentioned [here](./operations/configure_prerequisites.md).
 
 ---
 **NOTE:** Hyperledger Bevel uses minimum Docker version **18.03.0**

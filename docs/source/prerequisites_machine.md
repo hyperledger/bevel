@@ -19,7 +19,7 @@ Please note that this machine (also called **Ansible Controller**) should have c
 
 ---
 
-Also, Ansible's k8s module requires the **openshift python package (>= 0.12.0)** and some collections and jq.
+Also, Ansible k8s module requires the **openshift python package (>= 0.12.0)** and some collections and jq.
 
 ```bash
 pip3 install openshift==0.13.1
@@ -43,4 +43,4 @@ Read more about Ansible inventory [here](https://docs.ansible.com/ansible/latest
 
 Hyperledger Bevel provides the feature of automated validation of the configuration file (network.yaml), this is done using ajv (JSON schema validator) cli. The deployment scripts install ajv using npm module which requires npm as prerequisite.
 
-You can install the latest NPM version from offical [site](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).
+You can install the latest NPM version from official [site](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).
