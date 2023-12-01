@@ -11,6 +11,7 @@
   - [Modifying configuration file](#modifying-configuration-file)
   - [Run playbook for Fabric version 1.4.x](#run-playbook-for-fabric-version-14x)
   - [Run playbook for Fabric version 2.2.x](#run-playbook-for-fabric-version-22x)
+  - [Run playbook for Fabric version 2.2.x with external chaincode](#run-playbook-for-fabric-version-22x-with-external-chaincode)
 
 <a name = "pre_req"></a>
 ## Pre-requisites
@@ -56,6 +57,40 @@ network:
               endorsements: "" #Endorsements (if any) provided along with the chaincode
 ```
 
+When the chaincode is an external service, `network.organizations.services.peers.chaincodes[*].upgrade_chaincode` variable must also be added to change the version. If only the sequence is modified, it isn't necessary to add this field.
+
+The sequence must be incremented in each execution regardless of whether the version has been modified or not.
+
+For reference, following snippet shows that section of `network.yaml`
+
+```
+---
+network:
+  ..
+  ..
+  organizations:
+    - organization:
+      name: manufacturer
+      ..
+      .. 
+      services:
+        peers:
+        - peer:
+          name: peer0          
+          ..
+          chaincodes:
+            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
+              version: "2" #This has to be replaced with the version of the chaincode
+              sequence: "2"
+              external_chaincode: true
+              upgrade_chaincode: true 
+              tls: true
+              buildpack_path: /home/fabric-samples/asset-transfer-basic/chaincode-external/sampleBuilder  # The path where buildpacks are locally stored
+              image: ghcr.io/hyperledger/bevel-samples-example:1.0
+              arguments: '\"InitLedger\",\"\"' # Init Arguments to be passed which will mark chaincode as init-required
+              crypto_mount_path: /crypto  # OPTIONAL | tls: true | Path where crypto shall be mounted for the chaincode server
+```
+
 <a name = "run_network"></a>
 ## Run playbook for Fabric version 1.4.x
 
@@ -73,6 +108,14 @@ This can be done by using the following command
 
 ```
     ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
+```
+## Run playbook for Fabric version 2.2.x with external chaincode
+
+The playbook [external-chaincode-ops.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/external-chaincode-ops.yaml) is used to upgrade chaincode to a new version in the existing fabric network with version 2.2.x.
+This can be done by using the following command
+
+```
+    ansible-playbook platforms/hyperledger-fabric/configuration/external-chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
 ```
 
 ---
