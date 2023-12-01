@@ -1,17 +1,32 @@
-##############################################################################################
+############################################################################################
 #  Copyright Accenture. All Rights Reserved.
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+# This task reset chaincode server pod
+- name: "Reset cc-{{ chaincode.name }} pod"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "cc-{{ chaincode.name }}"
+    name: "{{ org.name | lower }}"
+    file_path: "{{ values_dir }}/{{ name }}/cc-{{ chaincode.name }}.yaml"
+    gitops_value: "{{ org.gitops }}"
+    component_ns: "{{ org.name }}-net"
+    kubernetes: "{{ org.k8s }}"
+    hr_name: "cc-{{ chaincode.name }}"
+  when: chaincode.upgrade_chaincode is defined and chaincode.upgrade_chaincode == true
+
 # Check if external-chaincode-server is already running
 - name: Check external-chaincode-server exists
   k8s_info:
     kind: Pod
-    namespace: "{{ org_ns }}"
-    name: "cc-{{ chaincode.name }}"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
+    namespace: "{{ org.name }}-net"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+    label_selectors:
+      - app = cc-{{ chaincode.name }}
     field_selectors:
       - status.phase=Running
   register: ext_chaincode_server
