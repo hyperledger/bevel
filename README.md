@@ -35,7 +35,7 @@ It includes:
 - Helm charts for various operational features like adding new nodes, and deploying smart contracts.
 - Helm charts to deploy Hyperledger Cacti connectors for Fabric, Quorum and Besu networks. 
 - Ansible playbooks and modular role definitions to automate the deployment of Helm charts.
-- Ansible playbooks and roles to automated deployment of Hyperledger fabric using  bevel-operator-fabric(Kubernetes operator for managing Hyperledger Fabric networks).
+- Ansible playbooks and roles to automate deployment of Hyperledger fabric using  bevel-operator-fabric(Kubernetes operator for managing Hyperledger Fabric networks).
 - Integrated CD using GitOps so that once the network is set up, all changes can be done via git PRs/merges.
 - Configuration for Ambassador Edge Stack, HAProxy (for Hyperledger Fabric) and Isto Ingress (for Substrate) to act as Ingress Controller. 
 
