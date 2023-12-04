@@ -21,7 +21,7 @@
 <a name = "storageclass-helm-chart"></a>
 ## StorageClass Helm Chart
 ---
-This [Helm chart](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/storageclass) deploys a StorageClass that can be used to provision persistent volumes for nodes. The StorageClass supports encryption and can be configured to be used in specific topologies.
+This [Helm chart](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/bevel-storageclass) deploys a StorageClass that can be used to provision persistent volumes for nodes. The StorageClass supports encryption and can be configured to be used in specific topologies.
 
 
 <a name = "prerequisites"></a>
@@ -60,7 +60,7 @@ storageclass/
 <a name = "configuration"></a>
 ## Configuration
 ---
-The [values.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/storageclass/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+The [values.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/bevel-storageclass/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
 
 ## Parameters
 ---
@@ -117,7 +117,7 @@ a name = "deployment"></a>
 
 To deploy the storageclass Helm chart, follow these steps:
 
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/storageclass/values.yaml) file to set the desired configuration values.
+1. Modify the [values.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/bevel-storageclass/values.yaml) file to set the desired configuration values.
 2. Run the following Helm command to install the chart:
     ```
     $ helm repo add bevel https://hyperledger.github.io/bevel/
@@ -137,7 +137,7 @@ This will list the StorageClass that was deployed. The output of the command wil
 <a name = "updating-the-deployment"></a>
 ## Updating the Deployment
 ---
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/storageclass/values.yaml) file with the desired changes and run the following Helm command:
+If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/bevel-storageclass/values.yaml) file with the desired changes and run the following Helm command:
 ```
 $ helm upgrade <release-name> ./storageclass
 ```
@@ -153,7 +153,7 @@ Replace `<release-name>` with the name of the release. This command will remove 
 <a name = "contributing"></a>
 ## Contributing
 ---
-If you encounter any bugs, have suggestions, or would like to contribute to the [StorageClass Helm Chart](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/storageclass), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
+If you encounter any bugs, have suggestions, or would like to contribute to the [StorageClass Helm Chart](https://github.com/hyperledger/bevel/tree/main/platforms/shared/charts/bevel-storageclass), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
 <a name = "license"></a>
 ## License
 This chart is licensed under the Apache v2.0 license.

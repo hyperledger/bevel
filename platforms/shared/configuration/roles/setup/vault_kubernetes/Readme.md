@@ -5,7 +5,7 @@
 
 ## Role setup/vault_kubernetes
 
-Shared/Common role to create the Kubernetes Job for vault-kubernetes associations using helmchart vault-k8s-mgmt
+Shared/Common role to create the Kubernetes Job for vault-kubernetes associations using helmchart bevel-vault-mgmt
 
 ### Inputs
 
