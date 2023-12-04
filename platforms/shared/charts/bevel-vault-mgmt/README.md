@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "vault-k8s-mgmt-deployment"></a>
+<a name = "bevel-vault-mgmt-deployment"></a>
 # Validator Node Deployment
 
 - [Vault k8s Management Deployment Helm Chart](#vault-k8s-management-deploymenthelm-chart)
@@ -19,10 +19,10 @@
 - [License](#license)
 
 
-<a name = "vault-k8s-mgmt-deployment-helm-chart"></a>
+<a name = "bevel-vault-mgmt-deployment-helm-chart"></a>
 ## Vault k8s Management DeploymentHelm Chart
 ---
-This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/shared/charts/vault-k8s-mgmt) This file makes the configurations required to store the crypto materials in the vault.
+This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/shared/charts/bevel-vault-mgmt) This file makes the configurations required to store the crypto materials in the vault.
 
 <a name = "prerequisites"></a>
 ## Prerequisitess
@@ -40,7 +40,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 The structure of the Helm chart is as follows:
 
 ```
-vault-k8s-mgmt/
+bevel-vault-mgmt/
   |- templates/
         |- _helpers.yaml
         |- configmap.yaml
@@ -63,7 +63,7 @@ vault-k8s-mgmt/
 <a name = "configuration"></a>
 ## Configuration
 ---
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/shared/charts/vault-k8s-mgmt/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/shared/charts/bevel-vault-mgmt/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
 
 ## Parameters
 ---
@@ -124,13 +124,13 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/sh
 ## Deployment
 ---
 
-To deploy the vault-k8s-mgmt Helm chart, follow these steps:
+To deploy the bevel-vault-mgmt Helm chart, follow these steps:
 
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/shared/charts/vault-k8s-mgmt/values.yaml) file to set the desired configuration values.
+1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/shared/charts/bevel-vault-mgmt/values.yaml) file to set the desired configuration values.
 2. Run the following Helm command to install the chart:
     ```
     $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./vault-k8s-mgmt
+    $ helm install <release-name> ./bevel-vault-mgmt
     ```
 Replace `<release-name>` with the desired name for the release.
 
@@ -151,11 +151,11 @@ replicas and their current status.
 ## Updating the Deployment
 ---
 
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/shared/charts/vault-k8s-mgmt/values.yaml) file with the desired changes and run the following Helm command:
+If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/shared/charts/bevel-vault-mgmt/values.yaml) file with the desired changes and run the following Helm command:
 ```
-$ helm upgrade <release-name> ./vault-k8s-mgmt
+$ helm upgrade <release-name> ./bevel-vault-mgmt
 ```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the vault-k8s-mgmt node is up to date.
+Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the bevel-vault-mgmt node is up to date.
 
 <a name = "deletion"></a>
 ## Deletion
@@ -170,7 +170,7 @@ Replace `<release-name>` with the name of the release. This command will remove 
 <a name = "contributing"></a>
 ## Contributing
 ---
-If you encounter any bugs, have suggestions, or would like to contribute to the [Ambassador Certs GoQuorum Deployment Helm Chart](ttps://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/charts/vault-k8s-mgmt), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
+If you encounter any bugs, have suggestions, or would like to contribute to the [Ambassador Certs GoQuorum Deployment Helm Chart](ttps://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/charts/bevel-vault-mgmt), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
 
 <a name = "license"></a>
 ## License

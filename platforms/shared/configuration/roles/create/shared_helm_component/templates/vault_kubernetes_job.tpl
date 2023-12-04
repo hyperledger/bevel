@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/vault-k8s-mgmt
+    chart: {{ charts_dir }}/bevel-vault-mgmt
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
