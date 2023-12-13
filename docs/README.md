@@ -1,38 +1,60 @@
-# Docs
+# Bevel Documentation
 ## About
-This directory contains the files required to create open-source documentation.
-Tools used: [Sphinx] (http://www.sphinx-doc.org/).
-## Configuration files
-* **index.rst** - This is the main document. This is one of the main things that Sphinx adds to restructured text: a way to connect multiple files to a single hierarchy of documents, including the 'table of contents tree'(or toctree).
-* **conf.py**: The configuration directory must contain a file named conf.py. This file (containing Python code) is called the “build configuration file” and contains (almost) all the configuration needed to customize Sphinx input and output behavior.
-* **.md files**: Create all the markdown files that are referenced in the document tree with the appropriate content.
+This directory contains the files required to create Hyperledger Bevel open-source documentation.
+The template used is from the Hyperledger Labs project [documentation-template](https://github.com/hyperledger-labs/documentation-template).
 
-```
-./
-├── docs
-│   ├── source
-|   |   |── index.rst
-│   │   ├── conf.py
-│   │   ├── *.md
-│   ├── Makefile
-|   ├── pip-requirements.txt
-│   └── README.md
-├── CONTRIBUTING.md
+[Material for MkDocs]: https://squidfunk.github.io/mkdocs-material/
+[Mike]: https://github.com/jimporter/mike
+
+## Pre-requisites
+
+To test the documents and update the published site, the following tools are needed:
+
+- A Bash shell
+- git
+- Python 3
+- The [Material for MkDocs] theme.
+- The [Mike] MkDocs plugin for publishing versions to gh-pages.
+  - Not used locally, but referenced in the `mkdocs.yml` file and needed for
+    deploying the site to gh-pages.
+
+### git
+`git` can be installed locally, as described in the [Install Git Guide from GitHub](https://github.com/git-guides/install-git).
+
+### Python 3
+`Python 3` can be installed locally, as described in the [Python Getting Started guide](https://www.python.org/about/gettingstarted/).
+
+### MkDocs
+
+The MkDocs-related items can be installed locally, as described in the [Material for MkDocs] installation instructions. The short, case-specific version of those instructions follow:
+
+```bash
+pip3 install -r pip-requirements.txt
 ```
 
-### Building the docs
-1. Install the latest Sphinx.
-```
-pip install -U Sphinx
-```
-2. Install the prerequisites.
-```
-pip install -r pip-requirements.txt
-```
-3. Build the documents.
-```
-make HTML
-or
-make.bat HTML
-```
-4. Access the documents from the **build/html** folder.
+### Verify Setup
+
+To verify your setup, check that you can run `mkdocs` by running the command `mkdocs --help` to see the help text.
+
+## Useful MkDocs Commands
+
+The commands you will usually use with `mkdocs` are:
+
+* `mkdocs serve` - Start the live-reloading docs server.
+* `mkdocs build` - Build the documentation site.
+* `mkdocs -h` - Print help message and exit.
+
+## Adding Content
+
+The basic process for adding content to the site is:
+
+- Create a new markdown file under the `source` folder
+- Add the new file to the table of contents (`nav` section in the `mkdocs.yml` file)
+
+## Folder layout
+
+    mkdocs.yml    # The configuration file.
+    source/
+        _static   # Contains all png/jpeg files and images
+        index.md  # The documentation homepage.
+        ...       # Other markdown pages, images and other files.

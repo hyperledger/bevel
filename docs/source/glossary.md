@@ -122,9 +122,6 @@ YAML ("YAML Ain't Markup Language") is a human-readable data-serialization langu
 For more details, refer: [YAML](https://en.wikipedia.org/wiki/YAML)
 
 
-
----------------------------------------------------------------------------------------------------------------------------------
-
 ## Hyperledger-Fabric
 
 This section lists specific terms used in Hyperledger Fabric
@@ -163,8 +160,6 @@ For more details, refer:  [zkkafka](https://hyperledger-fabric.readthedocs.io/en
 RAFT is distributed crash Fault tolerance consensus algorithm which makes sure that in the event of failure, the system should be able to take a decision and process clients request. In technical term Raft is a consensus algorithm for managing a replicated log. Replicated log is a part of Replicated state machine.
 For more details, refer: [raft](https://hyperledger-fabric.readthedocs.io/en/release-2.0/orderer/ordering_service.html#raft-concepts)
 
----------------------------------------------------------------------------------------------------------------------------------
-
 ## R3 Corda
 
 This section lists specific terms used in R3 Corda.
@@ -187,9 +182,6 @@ The Network Map Service accepts digitally signed documents describing network ro
 ### Notary
 The Corda design separates correctness consensus from uniqueness consensus, and the latter is provided by one or more Notary Services. The Notary will digitally sign a transaction presented to it, provided no transaction referring to any of the same inputs has been previously signed by the Notary, and the transaction timestamp is within bounds.  
 Business network operators and network participants may choose to enter into legal agreements which rely on the presence of such digital signatures when determining whether a transaction to which they are party, or upon the details of which they otherwise rely, is to be treated as ‘confirmed’ in accordance with the terms of the underlying agreement. For more details, refer [Corda Notaries](https://docs.corda.net/key-concepts-notaries.html).
-
----------------------------------------------------------------------------------------------------------------------------------
-
 
 ## Hyperledger-Indy
 
@@ -281,9 +273,6 @@ A software module, and optionally an associated hardware module, for securely st
 
 ### Zero Knowledge Proof
 A Proof that uses special cryptography and a Master Secret to permit selective disclosure of information in a set of Claims. A Zero Knowledge Proof proves that some or all of the data in a set of Claims is true without revealing any additional information, including the identity of the Prover. Mutually exclusive with Transparent Proof.
-
----------------------------------------------------------------------------------------------------------------------------------
-
 
 ## Quorum
 
