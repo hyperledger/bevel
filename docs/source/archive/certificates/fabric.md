@@ -12,7 +12,7 @@ Certificate Paths on Vault for Fabric Network
 
 | Path                                                                       | Key (for Vault)                  | Type        |
 |-----------------------------------------------------------------------------------------------------------|-------------------------------------|-------------|
-| /secretsv2/crypto/ordererOrganizations/                                                                      | genesisBlock         | Genesis     |
+| /secretsv2/crypto/ordererOrganizations/`channel_name`                                                                      | genesisBlock         | Genesis     |
 
 ### For each orderer organization
 

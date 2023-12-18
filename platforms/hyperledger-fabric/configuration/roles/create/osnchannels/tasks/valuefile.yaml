@@ -17,17 +17,17 @@
     orderer_kubeconfig: "{{ org.k8s.config_file }}"
     orderer_context: "{{ org.k8s.context }}"
 
-# Reset ca-tools pod
-- name: "Reset ca-tools pod"
+# Reset osn-createchannel pod
+- name: "Reset osn-createchannel pod"
   include_role:
     name: create/refresh_certs/reset_pod
   vars:
-    pod_name: "osn-createchannel-{{item.channel_name|lower}}"
-    file_path: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}/{{ org.name | lower }}/{{item.channel_name|lower}}.yaml"
+    pod_name: "osn-createchannel-{{ channel_name }}"
+    file_path: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}/{{ org.name | lower }}/{{ channel_name }}.yaml"
     gitops_value: "{{ org.gitops }}"
     component_ns: "{{ org.name | lower }}-net"
     kubernetes: "{{ org.k8s }}"
-    hr_name: "channel-{{ org.name | lower }}-{{item.channel_name|lower}}"
+    hr_name: "channel-{{ org.name | lower }}-{{ channel_name }}"
   when: add_orderer is defined and add_orderer == 'true'
 
 # Create the value file for creator Organization
@@ -37,7 +37,7 @@
   vars:
     name: "{{ org.name | lower }}"
     type: "osn_create_channel_job"
-    component_name: "{{item.channel_name|lower}}"
+    component_name: "{{ channel_name }}"
     component_ns: "{{ org.name | lower}}-net"
     git_protocol: "{{ org.gitops.git_protocol }}"
     git_url: "{{ org.gitops.git_url }}"
@@ -46,7 +46,7 @@
     vault: "{{ org.vault }}"
     k8s: "{{ org.k8s }}"
     orderers_list: "{{ org.services.orderers }}"
-    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"
+    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block.base64') }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
     add_orderer_value: "{{ add_orderer | default('false') }}"
   when: add_orderer is not defined or add_orderer == false
@@ -58,7 +58,7 @@
   vars:
     name: "{{ org.name | lower }}"
     type: "osn_create_channel_job"
-    component_name: "{{item.channel_name|lower}}"
+    component_name: "{{ channel_name }}"
     component_ns: "{{ org.name | lower}}-net"
     git_protocol: "{{ org.gitops.git_protocol }}"
     git_url: "{{ org.gitops.git_url }}"
@@ -87,7 +87,6 @@
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
-    channel_name: "{{ item.channel_name | lower }}"
     component_type: "Job"
     namespace: "{{ org.name | lower}}-net"
     component_name: "osn-createchannel-{{ channel_name }}"
