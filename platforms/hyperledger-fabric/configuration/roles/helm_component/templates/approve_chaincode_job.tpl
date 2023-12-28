@@ -57,6 +57,7 @@ spec:
       lang: {{ component_chaincode.lang | default('golang') }}
       commitarguments: {{ component_chaincode.arguments | default('') | quote }}
       endorsementpolicies:  {{ component_chaincode.endorsements | default('') | quote }}
+      initrequired: {{ component_chaincode.init_required }}
 {% if component_chaincode.repository is defined %}
       repository:
         hostname: "{{ component_chaincode.repository.url.split('/')[0] | lower }}"
