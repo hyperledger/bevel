@@ -20,7 +20,10 @@
     git_branch: "{{ item.gitops.branch }}"
     git_path: "{{ item.gitops.release_dir }}"
     git_host: "{{ item.gitops.git_repo.split('/')[0] | lower }}" # extract the hostname from the git_repo
-    ssh: "{{ item.gitops.ssh | default(false) }}"
+    git_protocol: "{{ item.gitops.git_protocol | default('https') }}"
+    git_url: "{{ item.gitops.git_url }}"
+    git_key: "{{ item.gitops.private_key | default() }}"
+    flux_version: "0.35.0"
     helm_operator_version: "1.2.0"
     aws_authenticator:
       os: "{{ install_os }}"
@@ -31,15 +34,14 @@
 # Setup ambassador for float cluster
 - name: Setup ambassador for float cluster
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/ambassador"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/edge-stack"
   vars:
     item: "{{ org.services.float }}"
     kubeconfig_path: "{{ item.k8s.config_file }}"
     kubecontext: "{{ item.k8s.context }}"
     aws: "{{ item.aws }}"
-    ambassador:
-      item: "{{ org.services.float }}"
-  
+  when: network.env.proxy == 'ambassador'
+
 # Create Storageclass that will be used for this deployment
 - name: Create Storageclass
   include_role:
