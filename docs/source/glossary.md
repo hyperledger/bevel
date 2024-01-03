@@ -78,10 +78,10 @@ For more details, refer: [Kubernetes](https://kubernetes.io/)
 A node is a worker machine in Kubernetes, previously known as a minion. A node may be a VM or physical machine, depending on the cluster. Each node contains the services necessary to run pods and is managed by the main components. The services on a node include the container runtime, kubelet and kube-proxy. 
 For more details, refer: [Kubernetes Node](https://kubernetes.io/docs/concepts/architecture/nodes/)
 ### Kubernetes Storage Class
-A StorageClass in Kubernetes provides a way for administrators to describe the “classes” of storage they offer. Different classes might map to quality-of-service levels, or to backup policies, or to arbitrary policies determined by the cluster administrators.
+A storageclass in Kubernetes provides a way for administrators to describe the “classes” of storage they offer. Different classes might map to quality-of-service levels, or to backup policies, or to arbitrary policies determined by the cluster administrators.
 For more details, refer: [Storage class](https://kubernetes.io/docs/concepts/storage/storage-classes/)
 ### Kubernetes PersistentVolume (PV)
-A PersistentVolume (PV) is a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes. It is a resource in the cluster just like a node is a cluster resource. PVs are volume plugins like Volumes, but have a lifecycle independent of any individual pod that uses the PV.
+A PersistentVolume (PV) is a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes. It is a resource in the cluster just like a node is a cluster resource. PV's are volume plugins like Volumes, but have a lifecycle independent of any individual pod that uses the PV.
 For more details, refer: [PVC](https://kubernetes.io/docs/concepts/storage/persistent-volumes/)
 ### Kubernetes Persistent Volume Claim (PVC)
 A PVC, binds a persistent volume to a pod that requested it. When a pod wants access to a persistent disk, it will request access to the claim which will specify the size , access mode and/or storage classes that it will need from a Persistent Volume.
@@ -122,9 +122,6 @@ YAML ("YAML Ain't Markup Language") is a human-readable data-serialization langu
 For more details, refer: [YAML](https://en.wikipedia.org/wiki/YAML)
 
 
-
----------------------------------------------------------------------------------------------------------------------------------
-
 ## Hyperledger-Fabric
 
 This section lists specific terms used in Hyperledger Fabric
@@ -154,7 +151,7 @@ For more details, refer: [MSP](https://hyperledger-fabric.readthedocs.io/en/rele
 Orderer peer is considered as the central communication channel for the Hyperledger Fabric network. Orderer peer/node is responsible for consistent Ledger state across the network. Orderer peer creates the block and delivers that to all the peers
 For more details, refer: [Orderer](https://hyperledger-fabric.readthedocs.io/en/release-1.4/orderer/ordering_service.html)
 ### Peer
-Hyperledger Fabric is a permissioned blockchain network that gets set by the organizations that intend to set up a consortium. The organizations that take part in building the Hyperledger Fabric network are called the “members”. Each member organization in the blockchain network is responsible to set up their peers for participating in the network. All of these peers need are configured with appropriate cryptographic materials like Certificate Authority and other information.
+Hyperledger Fabric is a permissioned blockchain network that gets set up by the organizations that intend to set up a consortium. The organizations that take part in building the Hyperledger Fabric network are called the "members." Each member organization in the blockchain network is responsible for setting up their peers to participate in the network. All of these peers need to be configured with appropriate cryptographic materials, like certificates of authority and other information.
 For more details, refer: [Peer](https://hyperledger-fabric.readthedocs.io/en/release-1.4/peers/peers.html)
 ### Zkkafka
 Kafka is primarily a distributed, horizontally-scalable, fault-tolerant, commit log. A commit log is basically a data structure that only appends. No modification or deletion is possible, which leads to no read/write locks, and the worst case complexity O(1). There can be multiple Kafka nodes in the blockchain network, with their corresponding Zookeeper ensemble.
@@ -162,8 +159,6 @@ For more details, refer:  [zkkafka](https://hyperledger-fabric.readthedocs.io/en
 ### RAFT
 RAFT is distributed crash Fault tolerance consensus algorithm which makes sure that in the event of failure, the system should be able to take a decision and process clients request. In technical term Raft is a consensus algorithm for managing a replicated log. Replicated log is a part of Replicated state machine.
 For more details, refer: [raft](https://hyperledger-fabric.readthedocs.io/en/release-2.0/orderer/ordering_service.html#raft-concepts)
-
----------------------------------------------------------------------------------------------------------------------------------
 
 ## R3 Corda
 
@@ -178,18 +173,15 @@ For more details, refer: [CorDapp](https://docs.corda.net/cordapp-overview.html)
 A Corda node is a JVM run-time environment with a unique identity on the network that hosts Corda services and CorDapps.For more details, refer [Corda Node](https://docs.corda.net/key-concepts-node.html).
 
 ### Corda Web Server
-A simple web server is provided that embeds the Jetty servlet container. The Corda web server is not meant to be used for real, production-quality web apps. Instead it shows one example way of using Corda RPC in web apps to provide a REST API on top of the Corda native RPC mechanism.
+A simple web server is provided that embeds the Jetty servlet container. The Corda web server is not meant to be used for real, production-quality web apps. Instead, it shows one example of using Corda RPC in web apps to provide a REST API on top of the Corda native RPC mechanism.
 ### Doorman
-The Doorman CA is a Certificate Authority R3 Corda. It is used for day-to-day key signing to reduce the risk of the root network CA’s private key being compromised. This is equivalent to an intermediate certificate in the web PKI. For more details, refer [Doorman](https://docs.corda.net/releases/M16-RC04/permissioning.html).
+The Doorman CA is a Certificate Authority R3 Corda. It is used for day-to-day key signing to reduce the risk of the root network CA private key being compromised. This is equivalent to an intermediate certificate in the web PKI. For more details, refer [Doorman](https://docs.corda.net/releases/M16-RC04/permissioning.html).
 ### NetworkMap
 The Network Map Service accepts digitally signed documents describing network routing and identifying information from nodes, based on the participation certificates signed by the Identity Service, and makes this information available to all Corda Network nodes. For more details, refer [Networkmap](https://docs.corda.net/network-map.html).
 
 ### Notary
 The Corda design separates correctness consensus from uniqueness consensus, and the latter is provided by one or more Notary Services. The Notary will digitally sign a transaction presented to it, provided no transaction referring to any of the same inputs has been previously signed by the Notary, and the transaction timestamp is within bounds.  
 Business network operators and network participants may choose to enter into legal agreements which rely on the presence of such digital signatures when determining whether a transaction to which they are party, or upon the details of which they otherwise rely, is to be treated as ‘confirmed’ in accordance with the terms of the underlying agreement. For more details, refer [Corda Notaries](https://docs.corda.net/key-concepts-notaries.html).
-
----------------------------------------------------------------------------------------------------------------------------------
-
 
 ## Hyperledger-Indy
 
@@ -217,7 +209,7 @@ An Identity Owner that has legal accountability (in a scenario where there is a 
 A decentralized identifier as defined by the DID Data Model and Generic Syntax specification. DIDs enable interoperable decentralized self-sovereign identity management. An Identity Record is associated with exactly one DID. A DID is associated with exactly one DDO.
 
 ### Domain Genesis
-Domain genesis is a genesis file used to initialise the network and may populate network with some domain data.
+Domain genesis is a genesis file used to initialize the network and may populate network with some domain data.
 
 ### Endorser
 Endorser has the required rights to write on a ledger. Endorser submits a transaction on behalf of the original author.
@@ -229,13 +221,13 @@ The first Identity Record written to the Ledger that describes a new Ledger Enti
 A set of Identity Records, Claims, and Proofs that describes a Ledger Entity. To protect privacy: a) an Identity Owner may have more than one Ledger Identity, and b) only the Identity Owner and the Relying Party(s) with whom an Identity is shared knows the specific set of Identity Records, Claims, and Proofs that comprise that particular Identity.
 
 ### Identity Owner
-A Ledger Entity who can be held legally accountable. An Identity Owner must be either an Individual or an Organization. Identity owners can also be distinguised as Independent Identity Owner and Dependent Identity Owner based on the writer of the Genesis record, for an Independent Identity Owner the Genesis Record must be written by a Trust Anchor and in case of a Dependent Identity Owner the the Genesis Record must be written by a Guardian.
+A Ledger Entity who can be held legally accountable. An Identity Owner must be either an Individual or an Organization. Identity owners can also be distinguished as Independent Identity Owner and Dependent Identity Owner based on the writer of the Genesis record, for an Independent Identity Owner the Genesis Record must be written by a Trust Anchor and in case of a Dependent Identity Owner the the Genesis Record must be written by a Guardian.
 
 ### Identity Record
 A transaction on the Ledger that describes a Ledger Entity. Every Identity Record is associated with exactly one DID. The registration of a DID is itself an Identity Record. Identity Records may include Public Keys, Service Endpoints, Claim Definitions, Public Claims, and Proofs. Identity Records are Public Data.
 
 ### Identity Role
-Each identity has a specific role in Indy described by one of four roles in Indy. These roles are Trustee, Steward, Endorser and Netork Monitor.
+Each identity has a specific role in Indy described by one of four roles in Indy. These roles are Trustee, Steward, Endorser and Network Monitor.
 
 ### Issuer Key
 The special type of cryptographic key necessary for an Issuer to issue a Claim that supports Zero Knowledge Proofs.
@@ -250,7 +242,7 @@ NYM record is created for a specific user, Trust Anchor, Sovrin Stewards or trus
 A Pseudonym used in the context of only one digital relationship (Connection). See also Pseudonym and Verinym.
 
 ### Pool Genesis
-Pool genesis is a genesis file used to initialise the network and may populate network with some pool data.
+Pool genesis is a genesis file used to initialize the network and may populate network with some pool data.
 
 ### Private Claim
 A Claim that is sent by the Issuer to the Holder’s Agent to hold (and present to Relying Parties) as Private Data but which can be verified using Public Claims and Public Data. A Private Claim will typically use a Zero Knowledge Proof, however it may also use a Transparent Proof.
@@ -282,9 +274,6 @@ A software module, and optionally an associated hardware module, for securely st
 ### Zero Knowledge Proof
 A Proof that uses special cryptography and a Master Secret to permit selective disclosure of information in a set of Claims. A Zero Knowledge Proof proves that some or all of the data in a set of Claims is true without revealing any additional information, including the identity of the Prover. Mutually exclusive with Transparent Proof.
 
----------------------------------------------------------------------------------------------------------------------------------
-
-
 ## Quorum
 
 This section lists specific terms used in Quorum.
@@ -296,7 +285,7 @@ Haskell implementation of a general-purpose system for submitting information in
 Enode is a url which identifies a node, it is generated using the node keys.
 
 ### Istanbul Tool
-Istanbul tool is istanbul binary compiled from the code repository. The tool is used to generate the configuration files required for setting up the Quorum network with IBFT consensus.
+Istanbul tool is Istanbul binary compiled from the code repository. The tool is used to generate the configuration files required for setting up the Quorum network with IBFT consensus.
 
 ### Node Keys
 Node keys consist of node private and node public keys. Those keys are required by the binaries provided by Quorum to boot the node and the network.
@@ -308,19 +297,19 @@ Private Transactions are those Transactions whose payload is only visible to the
 Public Transactions are those Transactions whose payload is visible to all participants of the same Quorum network. These are created as standard Ethereum Transactions in the usual way.
 
 ### Quorum Node
-Quorum Node is designed to be a lightweight fork of geth in order that it can continue to take advantage of the R&D that is taking place within the ever growing Ethereum community. Quorum Node is running geth, a Go-Etherium client with rpc endpoints. It supports raft and IBFT pluggable consensus and private and permissioned transactions.  
+Quorum Node is designed to be a lightweight fork of geth in order that it can continue to take advantage of the R&D that is taking place within the ever growing Ethereum community. Quorum Node is running geth, a Go-Ethereum client with rpc endpoints. It supports raft and IBFT pluggable consensus and private and permissioned transactions.  
 
 ### State
 Quorum supports dual state, Public State(accessible by all nodes within the network) and Private State(only accessible by nodes with the correct permissions). The difference is made through the use of transactions with encrypted (private) and non-encrypted payloads (public). Nodes can determine if a transaction is private by looking at the v value of the signature. Public transactions have a v value of 27 or 28, private transactions have a value of 37 or 38.
 
 ### Static nodes
-Static nodes are nodes we keep reference to even if the node is not alive. So that when the nodes comes alive, then we can connect to it. Hostnames are permitted here, and are resolved once at startup. If a static peer goes offline and its IP address changes, then it is expected that that peer would re-establish the connection in a fully static network, or have discovery enabled.
+Static nodes are nodes we keep referring to even if the node is not alive. so that when the nodes come alive, we can connect to them. Hostnames are permitted here and are resolved once at startup. If a static peer goes offline and its IP address changes, then it is expected that that peer will re-establish the connection in a fully static network or have discovery enabled.
 
 ### Tessera
-Java implementation of a general-purpose system for submitting information in a secure way. it is  comparable to a network of MTA (Message Transfer Agents) where messages are encrypted with PGP. Contains Node ( Private transaction manager ) and The Enclave. 
+Java implementation of a general-purpose system for submitting information in a secure way. It is comparable to a network of MTA (Message Transfer Agents) where messages are encrypted with PGP. Contains Node (private transaction manager) and The Enclave.
 
 ### The Enclave
-Distributed Ledger protocols typically leverage cryptographic techniques for transaction authenticity, participant authentication, and historical data preservation (i.e. through a chain of cryptographically hashed data.) In order to achieve a separation of concerns, as well as to provide performance improvements through parallelization of certain crypto-operations, much of the cryptographic work including symmetric key generation and data encryption/decryption is delegated to the Enclave.
+Distributed ledger protocols typically leverage cryptographic techniques for transaction authenticity, participant authentication, and historical data preservation (i.e., through a chain of cryptographically hashed data). In order to achieve a separation of concerns as well as provide performance improvements through the parallelization of certain cryptographic operations, much of the cryptographic work, including symmetric key generation and data encryption and decryption, is delegated to the Enclave.
 
 ### Transaction Manager
-Quorum’s Transaction Manager is responsible for Transaction privacy. It stores and allows access to encrypted transaction data, exchanges encrypted payloads with other participant's Transaction Managers but does not have access to any sensitive private keys. It utilizes the Enclave for cryptographic functionality (although the Enclave can optionally be hosted by the Transaction Manager itself.)
+Quorum’s Transaction Manager is responsible for transaction privacy. It stores and allows access to encrypted transaction data, exchanges encrypted payloads with other participants' transaction managers, but does not have access to any sensitive private keys. It utilizes the Enclave for cryptographic functionality (although the Enclave can optionally be hosted by the Transaction Manager itself).

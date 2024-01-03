@@ -8,12 +8,20 @@
 # This role creates value file for zkKafka and orderer
 #############################################################################################
 
+
+
+# Set Variable channel_name
+- name: "Set Variable channel_name"
+  set_fact:
+    channel_name: "{{ network['channels'] | map(attribute='channel_name') | first | lower }}"
+  when: item.type == 'orderer' and ('2.2.' in network.version or '1.4.' in network.version)
+
 # Fetch the genesis block from vault to the build directory
 - name: Fetch the genesis block from vault
   shell: |
-    vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name | lower }}-net > genesis.block.base64
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name | lower }}-net > {{ channel_name}}.genesis.block.base64
     mkdir -p ./build/channel-artifacts
-    mv genesis.block.base64 ./build/channel-artifacts/
+    mv {{ channel_name}}.genesis.block.base64 ./build/channel-artifacts/
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -60,13 +68,31 @@
     component_name: "{{ orderer.name }}-{{ org_name }}"
     type: "orderers"
     consensus: "{{component_services.consensus}}"
-    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"
+    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{ channel_name}}.genesis.block.base64') }}"
   loop: "{{ component_services.orderers }}"
   loop_control:
     loop_var: orderer
   when: 
     - component_services.orderers is defined and component_services.consensus is defined
-    - orderer.status is not defined or orderer.status == 'new'
+    - (orderer.status is not defined or orderer.status == 'new') and '2.5.' not in network.version
+
+# Create the value file for the Orderers as per requirements mentioned in network.yaml
+- name: "create orderers"
+  include_role:
+    name: helm_component
+  vars:
+    name: "orderer"
+    org_name: "{{ item.name | lower }}"
+    sc_name: "{{ org_name }}-{{ item.cloud_provider | lower}}-storageclass"
+    component_name: "{{ orderer.name }}-{{ org_name }}"
+    type: "orderers"
+    consensus: "{{component_services.consensus}}"
+  loop: "{{ component_services.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: 
+    - component_services.orderers is defined and component_services.consensus is defined
+    - (orderer.status is not defined or orderer.status == 'new') and '2.5.' in network.version
 
 # Git Push: Push the above generated files to git directory 
 - name: Git Push

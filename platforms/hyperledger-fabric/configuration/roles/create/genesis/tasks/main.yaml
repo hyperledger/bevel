@@ -4,10 +4,17 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
+############################################################################################
+# Create the channel-artifacts folder
+- name: "Creating channel-artifacts folder"
+  file:
+    path: "{{ build_path }}/channel-artifacts"
+    state: directory
+
 # Remove old genesis block
 - name: Remove old genesis block
   file:
-    path: "{{ build_path }}/channel-artifacts/genesis.block"
+    path: "{{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block"
     state: absent
 
 # Create the genesis block by consuming the configtx.yaml file
@@ -15,19 +22,19 @@
   shell: |
     cd {{ build_path }}
     {% if '2.5' in network.version %}
-    ./configtxgen -profile {{ genesis.name }} -channelID {{ channel_name }} -outputBlock ./channel-artifacts/genesis.block
+    ./configtxgen -profile {{ genesis.name }} -channelID {{ channel_name }} -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
     {% elif '2.2' in network.version %}
-    ./configtxgen -profile {{ genesis.name }} -channelID syschannel  -outputBlock ./channel-artifacts/genesis.block
+    ./configtxgen -profile {{ genesis.name }} -channelID syschannel  -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
     {% else %}
-    ./configtxgen -profile {{ genesis.name }} -channelID syschannel -outputBlock ./channel-artifacts/genesis.block
+    ./configtxgen -profile {{ genesis.name }} -channelID syschannel -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
     {% endif %}
-    cat ./channel-artifacts/genesis.block | base64 > ./channel-artifacts/genesis.block.base64
+    cat ./channel-artifacts/{{ channel_name }}.genesis.block | base64 > ./channel-artifacts/{{ channel_name }}.genesis.block.base64
   when: add_new_org == 'false'
 
 # Write genesis block to Vault
 - name: "Write genesis block to Vault"  
   shell: |
-    vault kv put {{ org.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ org.name }}-net {{ network.env.type }}GenesisBlock=@{{build_path}}/channel-artifacts/genesis.block.base64
+    vault kv put {{ org.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ org.name }}-net/{{ channel_name }} {{ network.env.type }}GenesisBlock=@{{build_path}}/channel-artifacts/{{ channel_name }}.genesis.block.base64
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"

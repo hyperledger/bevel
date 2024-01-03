@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/vault-k8s-mgmt
+    chart: {{ charts_dir }}/bevel-vault-mgmt
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -34,10 +34,13 @@ spec:
 
     k8s:
       kubernetes_url: {{ kubernetes_url }}
-    
+
+{% if create_clusterRoleBinding  == 'true' %} 
     rbac:
       create: {{ create_clusterRoleBinding }}
-
+{% endif %}
+{% if create_serviceAccount  == 'true' %} 
     serviceAccount:
       create: {{ create_serviceAccount }}
       name: vault-auth
+{% endif %}

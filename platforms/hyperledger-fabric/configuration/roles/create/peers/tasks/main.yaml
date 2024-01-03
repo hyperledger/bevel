@@ -9,6 +9,13 @@
 # to the vault.
 ##############################################################################################
 
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+
+# This task reset peers pods
 # Reset peers pods
 - name: "Reset peers pods"
   include_role:
@@ -24,7 +31,7 @@
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer 
-  when: refresh_cert is defined and refresh_cert == 'true'
+  when: (refresh_cert is defined and refresh_cert == 'true') or peer.configpath is defined
 
 # Create the value file for peers of organisations 
 - name: This role creates the value file for peers of organisations 
@@ -44,7 +51,7 @@
   tags:
     - notest
 
-# Wait for the Orderer HelmRelease
+# Wait for the peer HelmRelease
 - name: 'Wait for {{ peer.name }} HelmRelease in {{ namespace }}'
   k8s_info:
     api_version: "helm.toolkit.fluxcd.io/v2beta1"
@@ -62,7 +69,7 @@
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer
-  when: refresh_cert is defined and refresh_cert == 'true'
+  when: (refresh_cert is defined and refresh_cert == 'true') or peer.configpath is defined
 
 # Wait for peer pods to be in the state of running
 - name: "Waiting for peer pod {{ peer.name }} in {{ item.name | lower }}-net"

@@ -12,11 +12,18 @@
   register: client_cert_result
   ignore_errors: yes
 
-# This task clean up variable for the next org
-# - name: Clean up variable
-#   set_fact:
-#     cert_generated: !!null
-#   when: client_cert_result.failed == True
+# Fetch msp files from Vault 
+- name: Fetch certs files from Vault 
+  shell: |
+    vault kv get -field=client.key {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/chaincodes/{{ chaincode.name }} > client.key
+    vault kv get -field=client.crt {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/chaincodes/{{ chaincode.name }} > client.crt
+    vault kv get -field=ca.crt {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{ peer.name }}.{{ component_name }}/chaincodes/{{ chaincode.name }} > ca.crt 
+    mkdir -p ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{peer.name}}-{{chaincode.name}}@{{ component_name }}/tls
+    mv  client.crt client.key ca.crt  ./build/crypto-config/peerOrganizations/{{ component_name }}/users/{{peer.name}}-{{chaincode.name}}@{{ component_name }}/tls
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: client_cert_result.failed == false
 
 # Copy generate-crypto-peer-chaincode.sh script from scrips directory
 - name: Copy generate-crypto-peer-chaincode.sh to destination directory

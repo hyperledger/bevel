@@ -101,9 +101,10 @@ spec:
     proxy:
       provider: {{ network.env.proxy }}
       external_url_suffix: {{ item.external_url_suffix }}
-
+{% if '2.5' not in network.version %}
     genesis: |-
 {{ genesis | indent(width=6, first=True) }}
+{% endif %}
 
     config:
       pod:

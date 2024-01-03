@@ -26,6 +26,18 @@
     state: directory
   register: tmp_directory
 
+# Fetch orderers files from Vault
+- name: "Check if orderers certs already created"
+  include_tasks: fetch_orderers_certs.yaml
+  vars:
+    orderers: "{{ organization.services.orderers }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: organization    
+  when:
+    - fetch_certs == 'true' and '2.5.' in network.version
+    - organization.name == item.osn_creator_org.name
+
 # Fetch msp files from Vault 
 - name: Check if msp admincerts already created
   vars:
@@ -81,7 +93,7 @@
   loop: "{{ item['participants'] }}"
   loop_control:
     loop_var: organization    
-  when: fetch_certs == 'true'     
+  when: fetch_certs == 'true'
 
 ############################################################################################
 # Fetch the configtx gen tar file from the mentioned URL
