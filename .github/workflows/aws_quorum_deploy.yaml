@@ -1,0 +1,137 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# Workflow: Deploy Hyperledger Bevel's QUORUM DLT Platform to an EKS Cluster.
+
+# Prerequisites:
+# 1. An accessible EKS Cluster
+# 2. A Vault instance accessible from GitHub Runner
+# 3. A completed network.yaml file stored in GitHub Secrets
+
+# Workflow Overview:
+# 1. This GitHub Actions workflow automates the seamless deployment of "BEVEL's QUORUM" platform to an EKS cluster.
+# 2. Utilizing secure environment variables, the workflow manages sensitive information related to AWS, Docker, Cluster, Vault, and Git.
+# 3. The workflow dynamically customizes a network configuration file by substituting placeholders with values derived from environment variables.
+# 4. It uses tool Ansible to deploy the platform.
+##############################################################################################
+
+# Name of the workflow
+name: Deploy Quorum to an EKS Cluster
+
+# Triggers for the workflow
+on:
+  # Manually trigger the workflow through the GitHub Actions UI
+  workflow_dispatch:
+    paths-ignore:
+      - 'docs/**'
+      - '**/charts/**'
+      - '**/releases/**'
+
+# Jobs to be executed
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    environment: Bevel-AWS-Deployment
+    env:
+      AWS_ACCESS_KEY_ID: "${{ secrets.AWS_ACCESS_KEY_ID }}"             # AWS Access Key ID
+      AWS_SECRET_ACCESS_KEY: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"     # AWS Secret Access Key
+      AWS_REGION_NAME: "${{ secrets.AWS_REGION_NAME }}"                           # EKS cluster zone
+      CLUSTER_CONTEXT: "${{ secrets.CLUSTER_CONTEXT }}"                 # Context name for the EKS cluster
+      KUBECONFIG: "${{ secrets.ENCODED_KUBECONFIG }}"                   # Provide Kubernetes configuration file in encoded base64 format
+      DOCKER_URL: "${{ secrets.DOCKER_URL }}"                           # URL of the Docker registry
+      DOCKER_USERNAME: "${{ secrets.DOCKER_USERNAME }}"                 # Docker registry username
+      DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"                 # Docker registry password
+      EXTERNAL_URL_SUFFIX: "${{ secrets.EXTERNAL_URL_SUFFIX }}"         # Suffix for external URLs
+      GIT_USER_NAME: "${{ secrets.GIT_USER_NAME }}"                     # Git username for Git operations
+      GIT_EMAIL_ADDR: "${{ secrets.GIT_EMAIL_ADDR }}"                   # Git email address for Git operations
+      GIT_TOKEN: "${{ secrets.GIT_TOKEN }}"                             # Git token with required permissions for authentication 
+      GIT_BRANCH: "${{ vars.GIT_BRANCH }}"                      # Git branch to be used in the deployment
+      GIT_PRIVATE_SSH_KEY: "${{ secrets.GIT_PRIVATE_SSH_KEY }}"         # Private SSH key for Git authentication in encoded base64 format
+      VAULT_ADDR: "${{ secrets.VAULT_ADDR }}"                           # Vault Server DNS name
+      VAULT_TOKEN: "${{ secrets.VAULT_TOKEN }}"                         # Token for authentication with Vault
+
+    # Steps to be executed within the job
+    steps:
+      # Checkout the repository code
+      - name: Checkout Repository
+        uses: actions/checkout@v2.4.0
+
+      # Configure AWS credentials
+      - name: AWS Setup
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: "${{ env.AWS_ACCESS_KEY_ID }}"
+          aws-secret-access-key: "${{ env.AWS_SECRET_ACCESS_KEY }}"
+          aws-region: "${{ env.AWS_REGION_NAME }}"
+
+      # Set up BEVEL's QUORUM network configuration file
+      - name: BEVEL's QUORUM Network Configuration file Setup
+        run: |
+          # Prepare network configuration file for deployment
+          mkdir -p build/
+          
+          cp "platforms/quorum/configuration/samples/workflow/network-proxy-quorum.yaml" "build/network-quorum.yaml"
+          NETWORK_CONF_FILE="build/running-network-quorum.yaml"
+          
+          # Decode and store private SSH key
+          echo "${{ env.GIT_PRIVATE_SSH_KEY }}" | base64 --decode > /home/runner/private_ssh_key
+          
+          # Define placeholder values for the network configuration file
+          declare -A placeholders=(
+            ["NETWORK_VERSION"]="23.4.0"
+            ["FLUX_SUFFIX"]="quorum"
+            ["PORT_RANGE_FROM"]=15010
+            ["PORT_RANGE_TO"]=15043
+            ["DOCKER_URL"]="${{ env.DOCKER_URL }}"
+            ["DOCKER_USERNAME"]="${{ env.DOCKER_USERNAME }}"
+            ["DOCKER_PASSWORD"]="${{ env.DOCKER_PASSWORD }}"
+            ["USER_DIRECTORY"]="$(pwd)"
+            ["EXTERNAL_URL_SUFFIX"]="${{ env.EXTERNAL_URL_SUFFIX }}"
+            ["AWS_ACCESS_KEY"]="${{ env.AWS_ACCESS_KEY_ID }}"
+            ["AWS_SECRET_KEY"]="${{ env.AWS_SECRET_ACCESS_KEY }}"
+            ["CLUSTER_CONTEXT"]="${{ env.CLUSTER_CONTEXT }}"
+            ["CLUSTER_CONFIG"]="/home/runner/.kube/build_config/kubeconfig"
+            ["VAULT_ADDR"]="${{ env.VAULT_ADDR }}"
+            ["VAULT_ROOT_TOKEN"]="${{ env.VAULT_TOKEN }}"
+            ["GIT_USERNAME"]="${{ env.GIT_USER_NAME }}"
+            ["GIT_TOKEN"]="${{ env.GIT_TOKEN }}"
+            ["GIT_EMAIL_ADDR"]="${{ env.GIT_EMAIL_ADDR }}"
+            ["GIT_BRANCH"]="${{ env.GIT_BRANCH }}"
+            ["PRIVATE_KEY_PATH"]="/home/runner/private_ssh_key"
+          )
+          
+          # Replace placeholders in the network configuration file
+          for placeholder in "${!placeholders[@]}"; do
+            sed -i "s#${placeholder}#${placeholders[$placeholder]}#g" "$NETWORK_CONF_FILE"
+          done
+
+      # Deploy BEVEL's QUORUM Platform
+      - name: Deploy BEVEL's QUORUM Platform
+        run: |
+          # Setup Kubernetes configuration
+          mkdir -p /home/runner/.kube/build_config
+          echo "${{ env.KUBECONFIG }}" | base64 --decode > /home/runner/.kube/build_config/kubeconfig
+          export KUBECONFIG="/home/runner/.kube/build_config/kubeconfig"
+          
+          # Configure Git user settings
+          git config --global user.email "${{ env.GIT_EMAIL_ADDR }}"
+          git config --global user.name "${{ env.GIT_USER_NAME }}"
+          
+          # Install required tools and Ansible collections
+          mkdir -p ~/bin
+          export PATH=$PATH:~/bin
+          pip3 install openshift=='0.13.1'
+          pip install ansible jmespath jinja2-time
+          ansible-galaxy collection install -r platforms/shared/configuration/requirements.yaml
+          
+          # Deploy the BEVEL's QUORUM DLT platform
+          ansible-playbook platforms/shared/configuration/site.yaml \
+            -i platforms/shared/inventory/ansible_provisioners \
+            -e @build/running-network-quoram.yaml \
+            -e 'ansible_python_interpreter=/usr/bin/python3'
