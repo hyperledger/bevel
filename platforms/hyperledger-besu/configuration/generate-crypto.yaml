@@ -10,6 +10,9 @@
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
+    - name: Fail the playbook until new helm charts/roles are available
+      ansible.builtin.fail:
+        msg: This playbook is deprecated until new helm charts are created.
     # delete build directory
     - name: Remove build directory
       file:
@@ -54,7 +57,7 @@
         name: "{{ org.name | lower }}"
         component_ns: "{{ org.name | lower }}-bes"
         component_name: "{{ org.name | lower }}-vaultk8s-job"
-        component_auth: "besu{{ org.name | lower }}"
+        component_auth: "{{ network.env.type }}{{ org.name | lower }}"
         component_type: "organization"
         kubernetes: "{{ org.k8s }}"
         vault: "{{ org.vault }}"

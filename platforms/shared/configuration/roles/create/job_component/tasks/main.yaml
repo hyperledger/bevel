@@ -1,0 +1,51 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role runs a job with helm install
+#############################################################################################
+
+# Ensure that the directory exists, and creates it, if it does not exist
+- name: "Ensures {{ values_dir }} dir exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "{{ values_dir }}"
+
+# Create the value file for the helm install
+# This is done by consuming a template file which is passes as a variable by the role
+- name: "create value file for {{ component_name }}"
+  template:
+    src: "{{ job_templates[type] | default('job_component.tpl') }}"
+    dest: "{{ values_dir }}/{{ component_name }}.yaml"
+
+# Dependency update and test the value file for syntax errors/ missing values
+- name: Helm dependency update and lint
+  shell: |
+    helm dependency update "{{playbook_dir}}/../../../{{charts_dir}}/{{charts[type]}}"
+    helm lint -f "{{ values_dir }}/{{ component_name }}.yaml" "{{playbook_dir}}/../../../{{charts_dir}}/{{charts[type]}}"
+
+- name: Check if helm release already exists in {{ component_ns }}
+  kubernetes.core.helm_info:
+    release_name: "{{ component_name }}"
+    release_namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: helm_check
+
+# Run helm install 
+- name: Helm install {{ component_name }}
+  kubernetes.core.helm:
+    release_name: "{{ component_name }}"
+    release_namespace: "{{ component_ns }}"
+    chart_ref: "{{playbook_dir}}/../../../{{charts_dir}}/{{charts[type]}}"
+    values_files:
+      - "{{ values_dir }}/{{ component_name }}.yaml"
+    force: true
+    wait: true
+    update_repo_cache: true
+    kubeconfig: "{{ kubernetes.config_file }}"
+  when:
+    - helm_check.status is not defined

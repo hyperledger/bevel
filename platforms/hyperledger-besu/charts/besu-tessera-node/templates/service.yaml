@@ -7,16 +7,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: {{ .Values.metadata.namespace }}
-  annotations:
-    version: '1'
-  creationTimestamp: null
+  name: {{ include "besu-tessera-node.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.tessera.name }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/name: {{ include "besu-tessera-node.fullname" . }}
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: {{ include "besu-tessera-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "labels.custom" . | nindent 2 }}
+    app.kubernetes.io/release: {{ .Release.Name }}
     {{- if $.Values.labels }}
     {{- range $key, $value := $.Values.labels.service }}
     {{- range $k, $v := $value }}
@@ -24,72 +23,68 @@ metadata:
     {{- end }}
     {{- end }}
     {{- end }}
-  name: {{ .Values.tessera.name }}
 spec:
+  type: ClusterIP
   selector:
-    app.kubernetes.io/name: {{ .Values.tessera.name }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "labels.custom" . | nindent 2 }}
-    service.rpc: {{ .Values.tessera.name }}
-  type: {{ .Values.tessera.servicetype }}
+    app.kubernetes.io/part-of: {{ include "besu-tessera-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
   ports:
   - name: tm-manager
     protocol: TCP
-    port: {{ .Values.tessera.ports.tm }}
-    targetPort: {{ .Values.tessera.ports.tm }}
+    port: {{ .Values.tessera.port }}
+    targetPort: {{ .Values.tessera.port }}
   - name: clientport
     protocol: TCP
-    port: {{ .Values.tessera.ports.client }}
-    targetPort: {{ .Values.tessera.ports.client }}
+    port: {{ .Values.tessera.q2tport }}
+    targetPort: {{ .Values.tessera.q2tport }}
   - name: tm-tessera-third-part
     protocol: TCP
     port: 9080
     targetPort: 9080
   - name: mysql-db
     protocol: TCP
-    port: {{ .Values.tessera.ports.db }}
-    targetPort: {{ .Values.tessera.ports.db }}
-{{- if eq $.Values.proxy.provider "ambassador" }}
+    port: {{ .Values.tessera.dbport }}
+    targetPort: {{ .Values.tessera.dbport }}
+{{- if eq $.Values.global.proxy.provider "ambassador" }}
 ## Host for tm connection
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Host
 metadata:
-  name: {{ .Values.tessera.name }}-host
+  name: {{ .Release.Name }}-host
 spec:
-  hostname: {{ .Values.proxy.external_url }}
+  hostname: {{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}
   acmeProvider:
     authority: none
   requestPolicy:
     insecure:
       action: Reject
   tlsSecret:
-    name: {{ .Values.tessera.ambassadorSecret }}
-    namespace: {{ .Values.metadata.namespace }}
+    name: tls-tls-certs
+    namespace: {{ .Release.Namespace }}
 ## Mapping for tm port
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
-  name: {{ .Values.tessera.name }}-mapping
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ .Release.Name }}-mapping
+  namespace: {{ .Release.Namespace }}
 spec:
-  host: {{ .Values.proxy.external_url }}
+  host: {{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}
   prefix: /
-  service: {{ .Values.tessera.name }}.{{ .Values.metadata.namespace }}:{{ .Values.tessera.ports.tm }}
-  tls: {{ .Values.tessera.name }}-tlscontext
+  service: {{ include "besu-tessera-node.fullname" . }}.{{ .Release.Namespace }}:{{ .Values.tessera.port }}
+  tls: {{ .Release.Name }}-tlscontext
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: TLSContext
 metadata:
-  name: {{ .Values.tessera.name }}-tlscontext
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ .Release.Name }}-tlscontext
+  namespace: {{ .Release.Namespace }}
 spec:
   hosts:
-  - {{ .Values.proxy.external_url }}
-  secret: {{ .Values.tessera.ambassadorSecret }}.{{ .Values.metadata.namespace }}
+  - {{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}
+  secret: tls-tls-certs.{{ .Release.Namespace }}
   secret_namespacing: true
   min_tls_version: v1.2
 {{- end }}

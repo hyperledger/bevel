@@ -1,0 +1,115 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "besu-node.fullname" . }}-pre-delete-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+  labels:
+    app.kubernetes.io/name: pre-delete-hook
+    app.kubernetes.io/component: cleanup
+    app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-delete-hook
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      restartPolicy: "OnFailure"
+      containers:
+        - name: {{ template "besu-node.fullname" . }}-cleanup
+          image: "{{ .Values.image.hooks.repository }}:{{ .Values.image.hooks.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+              echo "{{ template "besu-node.fullname" . }} Pre Delete hook ..."
+
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+              # placeholder for cloudNative deleteSecret function
+{{- else }}
+
+              function deleteSecret {
+                key=$1
+                kubectl delete secret ${key} --namespace {{ .Release.Namespace }}
+              }
+
+{{- end }}
+
+              function delete_node_from_enodes_configmap {
+                kubectl -n {{ .Release.Namespace }}  get configmap besu-peers -o json
+                # if there is no configmap, do nothing
+                if [ $? -ne 0 ]; then
+                  echo "No peers found, nothing to do..."
+                # delete the one
+                else
+                  echo "besu-peers found, deleting {{ template "besu-node.fullname" . }}..."
+                  echo $(kubectl -n {{ .Release.Namespace }} get configmap besu-peers -o jsonpath='{.data.static-nodes\.json}' ) > /tmp/static-nodes.json.raw
+                  cat /tmp/static-nodes.json.raw | jq --arg NEEDLE "{{ .Release.Name }}" 'map(select(test($NEEDLE) | not))' > /tmp/static-nodes.json
+                  kubectl -n {{ .Release.Namespace }} create configmap besu-peers --from-file=static-nodes.json=/tmp/static-nodes.json -o yaml --dry-run=client | kubectl replace -f -
+
+                  echo "Deleting node address configmap... "
+                  kubectl delete configmap {{ template "besu-node.fullname" . }}-address --namespace {{ .Release.Namespace }}
+                fi
+              }
+
+
+              function delete_node_from_besu_bootnodes_configmap {
+                kubectl -n {{ .Release.Namespace }}  get configmap besu-bootnodes -o json
+                # if there is no configmap, do nothing
+                if [ $? -ne 0 ]; then
+                  echo "No bootnodes found, nothing to do..."
+                # delete the one
+                else
+                  echo "besu-bootnodes found, deleting {{ template "besu-node.fullname" . }}..."
+                  echo $(kubectl -n {{ .Release.Namespace }} get configmap besu-bootnodes -o jsonpath='{.data.bootnodes-json}' ) > /tmp/besu-bootnodes-json.raw
+                  cat /tmp/besu-bootnodes-json.raw | jq --arg NEEDLE "{{ .Release.Name }}" 'map(select(test($NEEDLE) | not))' > /tmp/besu-bootnodes-json
+                  cat /tmp/besu-bootnodes-json | jq -r -c '. | join(",")' | tr -d '\n' > /tmp/besu-bootnodes-string
+                  kubectl -n {{ .Release.Namespace }} create configmap besu-bootnodes --from-file=bootnodes-json=/tmp/besu-bootnodes-json --from-file=bootnodes-string=/tmp/besu-bootnodes-string -o yaml --dry-run=client | kubectl replace -f -
+                fi
+              }
+
+              delete_node_from_enodes_configmap
+              delete_node_from_besu_bootnodes_configmap
+
+{{- if .Values.node.removeKeysOnDelete }}
+
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+
+              deleteSecret {{ template "besu-node.fullname" . }}-nodekey
+              deleteSecret {{ template "besu-node.fullname" . }}-nodekeypub
+              deleteSecret {{ template "besu-node.fullname" . }}-enode
+              deleteSecret {{ template "besu-node.fullname" . }}-accountPrivateKey
+              deleteSecret {{ template "besu-node.fullname" . }}-accountPassword
+              deleteSecret {{ template "besu-node.fullname" . }}-accountKeystore
+              deleteSecret {{ template "besu-node.fullname" . }}-accountAddress
+              deleteSecret {{ template "besu-node.fullname" . }}-address
+
+{{- else }}
+              deleteSecret {{ template "besu-node.fullname" . }}-keys
+{{- end }}
+
+{{- end }}
+              echo "Completed"
