@@ -1,0 +1,51 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "besu-genesis.name" . }}-cleanup
+  labels:
+    app.kubernetes.io/name: besu-genesis-job-cleanup
+    app.kubernetes.io/component: genesis-job-cleanup
+    app.kubernetes.io/part-of: {{ include "besu-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: besu-genesis-job-cleanup
+        app.kubernetes.io/component: genesis-job-cleanup
+        app.kubernetes.io/part-of: {{ include "besu-genesis.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}      
+      restartPolicy: "Never"
+      containers:
+        - name: delete-genesis
+          image: "{{ .Values.image.genesisUtils.repository }}:{{ .Values.image.genesisUtils.tag }}"
+          securityContext:
+            runAsUser: 0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+{{- if .Values.settings.removeGenesisOnDelete }}
+
+              echo "Deleting genesis configmap in k8s ..."
+              kubectl delete configmap --namespace {{ .Release.Namespace }} besu-genesis
+
+              echo "Deleting node-enodes configmap in k8s ..."
+              kubectl delete configmap --namespace {{ .Release.Namespace }} besu-peers
+
+{{- end}} 

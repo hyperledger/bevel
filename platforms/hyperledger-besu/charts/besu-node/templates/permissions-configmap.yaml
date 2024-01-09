@@ -1,0 +1,20 @@
+{{- if .Values.node.besu.permissions.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "besu-node.fullname" . }}-permissions
+  labels:
+    app.kubernetes.io/name: besu-permissions
+    app.kubernetes.io/component: besu
+    app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:
+  permissions_config.toml: |-
+    # Permissioning TOML file
+
+    accounts-allowlist={{ .Values.node.besu.permissions.accounts.allowlist }}
+    nodes-allowlist={{ .Values.node.besu.permissions.nodes.allowlist }}
+
+{{- end -}}
