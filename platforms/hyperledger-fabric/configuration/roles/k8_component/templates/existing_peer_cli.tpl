@@ -35,5 +35,9 @@ peer:
   address: {{ peer.peerAddress }}
 {% endif %}
 orderer:
+{% if participant is defined %}
   address: {{ participant.ordererAddress }}
+{% else %}
+  address: {{ orderer.uri }}
+{% endif %}
 

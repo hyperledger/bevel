@@ -68,7 +68,7 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_config_block.pb -o ${ORDERER_URL} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block_latest.pb -o ${ORDERER_URL} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_config_block_latest.pb {{ build_path }}/{{ channel_name }}_config_block.pb
-    cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/genesis.block.base64
+    cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block.base64
   environment:
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
     ORDERER_URL: "{{ orderer.ordererAddress }}"
@@ -82,7 +82,7 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel update -f {{ channel_name }}_config_block.pb -o ${ORDERER_URL} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_ns }} ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block_latest.pb -o ${ORDERER_URL} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name }}_config_block_latest.pb {{ build_path }}/{{ channel_name }}_config_block.pb
-    cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/genesis.block.base64
+    cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block.base64
   environment:
     ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
     ORDERER_URL: "{{ orderer.name | lower }}.{{ component_ns }}:{{ orderer.grpc.port }}"
@@ -93,7 +93,7 @@
 # This task saves the new genesis block to the vault
 - name: Save the genesis block to vault 
   shell: |
-    vault kv put {{ neworg.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ neworg.name }}-net {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
+    vault kv put {{ neworg.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ neworg.name }}-net/{{ channel_name }} {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/{{ channel_name }}.genesis.block.base64)"
   environment:
     VAULT_ADDR: "{{ neworg.vault.url }}"
     VAULT_TOKEN: "{{ neworg.vault.root_token }}"

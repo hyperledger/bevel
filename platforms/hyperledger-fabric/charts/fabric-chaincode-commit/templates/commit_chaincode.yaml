@@ -80,7 +80,7 @@ spec:
         - name: MOUNT_PATH
           value: /secret
         {{- range $org := $.Values.endorsers.nameslist }}
-        - name: {{ $org.name | upper }}_ENDORSER_SECRET
+        - name: {{ $org.name | upper | replace "-" "_" }}_ENDORSER_SECRET
           valueFrom:
             secretKeyRef:
               name: {{ $org.name }}-endorser-cert
@@ -145,7 +145,7 @@ spec:
               OUTPUT_PATH="${MOUNT_PATH}/endorsers/$name/msp"
               echo $OUTPUT_PATH
               mkdir -p ${OUTPUT_PATH}/cacerts
-              var_name=$(echo "${name}_endorser_secret" | tr '[:lower:]' '[:upper:]')
+              var_name=$(echo "${name}_endorser_secret" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
               endorser_certificate=$(eval echo "\$$var_name")
               echo $endorser_certificate | base64 -d >> ${OUTPUT_PATH}/cacerts/ca.crt
 
@@ -159,6 +159,7 @@ spec:
                     \"cacerts\": \"${CACERTS_FORMAT}\"
                   }  
               }" > payload.json
+
               SECRETPREFIX=${SECRET_PATH}/data/crypto/peerOrganizations/${CREATOR_NS}/endorsers/${name}/users/admin
               vault_secret_key=${SECRETPREFIX}/msp
               
@@ -215,8 +216,14 @@ spec:
           COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
           
           COMMITREADINESS_CMD="peer lifecycle chaincode checkcommitreadiness --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_SEQUENCE} --init-required --output json"
-          COMMIT_CMD="peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_SEQUENCE} --init-required"
+          COMMIT_CMD="peer lifecycle chaincode commit -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile $ORDERER_CA --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --sequence ${CHAINCODE_SEQUENCE}"
           
+          if [ "${INIT_REQUIRED}" = "true" ]
+          then
+            init_flag=" --init-required"
+            COMMIT_CMD=${COMMIT_CMD}${init_flag}
+          fi
+
           for item in $ENDORSERS_CORE_PEER_ADDR
           do
             COMMIT_CMD=${COMMIT_CMD}" --peerAddresses "${item}
@@ -321,6 +328,8 @@ spec:
           value: "{{ $.Values.chaincode.pdc.enabled }}"
         - name: NETWORK_VERSION
           value: "{{ $.Values.metadata.network.version }}"
+        - name: INIT_REQUIRED
+          value: "{{ $.Values.chaincode.initrequired }}"
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
