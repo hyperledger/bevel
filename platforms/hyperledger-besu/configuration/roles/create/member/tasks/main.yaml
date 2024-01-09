@@ -1,0 +1,73 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Gets the genesis file from the validator org
+- name: Get genesis from config map of existing validator
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ validator.k8s.config_file }}"
+    kind: ConfigMap
+    name: "besu-genesis"
+    namespace: "{{ validator_ns }}"
+  register: genesis_data
+  vars:
+    validator: "{{ network['organizations'] | first }}"
+    validator_ns: "{{ validator.name | lower }}-bes"
+
+- name: Get static-nodes from config map of existing validator
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ validator.k8s.config_file }}"
+    kind: ConfigMap
+    name: "besu-peers"
+    namespace: "{{ validator_ns }}"
+  register: nodes_data
+  vars:
+    validator: "{{ network['organizations'] | first }}"
+    validator_ns: "{{ validator.name | lower }}-bes"
+
+- name: Get bootnodes from config map of existing validator
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ validator.k8s.config_file }}"
+    kind: ConfigMap
+    name: "besu-bootnodes"
+    namespace: "{{ validator_ns }}"
+  register: bootnodes_data
+  vars:
+    validator: "{{ network['organizations'] | first }}"
+    validator_ns: "{{ validator.name | lower }}-bes"
+
+- name: Save genesis and static-nodes for Secondary genesis
+  shell: |
+    echo {{ genesis_data.resources[0].data['genesis.json'] | to_nice_json }} > {{ files_loc }}/genesis.json
+    echo {{ nodes_data.resources[0].data['static-nodes.json'] | to_nice_json }} > {{ files_loc }}/static-nodes.json
+    echo {{ bootnodes_data.resources[0].data['bootnodes-json'] | to_nice_json }} > {{ files_loc }}/bootnodes.json
+  vars:
+    files_loc: "{{playbook_dir}}/../../../{{ charts_dir }}/besu-genesis/files"
+
+# Execute only if there is no local genesis file
+- name: Perform secondary genesis
+  include_role:
+    name: setup/genesis/secondary
+  vars:
+    values_dir: "./build/{{ component_ns }}"
+
+# Creates the Besu node value files for each node of organization
+- name: Create value file for Besu node
+  include_role:
+    name: create/helm_component
+  vars:
+    component_name: "{{ peer.name }}"
+    type: "besu_member"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  
+# Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing Member node files"

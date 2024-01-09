@@ -10,42 +10,29 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/besu-tlscert-cert-gen
+    chart: {{ charts_dir }}/besu-tlscert-gen
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
       namespace: flux-{{ network.env.type }}
   values:
-    metadata:
-      name: {{ component_name }}
-      namespace: {{ component_ns }}
     image:
       alpineutils: {{ network.docker.url }}/bevel-alpine:{{ bevel_alpine_version }}
       pullSecret: regcred
       pullPolicy: IfNotPresent
-    network:
-      tmtls: {{ tls_enabled }}
-    node:
-      name: {{ name }}
-      clientport: {{ tm_clientport }}
+    settings:
+      tmTls: {{ tls_enabled }}
+      certSubject: {{ cert_subject }}
+      externalURL: {{ name }}.{{ external_url_suffix }}
+
     vault:
       address: {{ vault.url }}
-      secretengine: {{ vault.secret_path | default('secretsv2') }}
-      authpath: besu{{ organisation }}
-      rootcasecret: data/{{ component_ns }}/crypto/ambassadorcerts/rootca
-      ambassadortlssecret: data/{{ component_ns }}/crypto/{{ node_name }}/tls
+      secretEngine: {{ vault.secret_path | default('secretsv2') }}
+      authPath: {{ network.env.type }}{{ organisation }}
+      secretPrefix: data/{{ component_ns }}/crypto/{{ node_name }}/tls
       role: vault-role
-      serviceaccountname: vault-auth
+      serviceAccountName: vault-auth
       type: {{ vault.type | default("hashicorp") }}
-    subject:
-      ambassadortls: {{ cert_subject }}
-    opensslVars:
-      domain_name_pub: {{ name }}.{{ external_url_suffix }}
-      domain_name_priv: {{ name }}.{{ component_ns }}
-      domain_name_tessera: {{ name }}-tessera.{{ component_ns }}
-    healthcheck:
-      retries: 10
-      sleepTimeAfterError: 2
 
 {% if network.env.labels is defined %}
     labels:

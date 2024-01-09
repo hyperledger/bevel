@@ -43,201 +43,73 @@
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
-
-    # Create Storageclass
-    - name: Create Storage Class
+    
+    # Create necessary secrets
+    - name: "Create k8s secrets"
       include_role:
-        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
+        name: create/secrets
       vars:
-        org_name: "{{ org.name | lower }}"
-        cloudProvider: "{{ org.cloud_provider | lower }}"
-        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
         component_ns: "{{ org.name | lower }}-bes"
         kubernetes: "{{ org.k8s }}"
-        region: "{{ org.k8s.region | default('eu-west-1') }}"
-        git_dir: "{{ org.gitops.release_dir }}"
-        charts_dir: "platforms/shared/charts"
-        platform_suffix: "bes"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-
-    # Setup script for Vault and OS Package Manager
-    - name: Setup script for Vault and OS Package Manager
-      include_role:
-        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
-      vars:
-        namespace: "{{ org.name | lower }}-bes"
-        network_type: "{{ network.type | lower }}"
-        kubernetes: "{{ org.k8s }}"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-
-    # Setup Vault-Kubernetes accesses and Regcred for docker registry
-    - name: "Setup vault"
-      include_role:
-        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-      vars:
-        policy_type: "besu"
-        name: "{{ org.name | lower }}"
-        component_ns: "{{ org.name | lower }}-bes"
-        component_name: "{{ org.name | lower }}-vaultk8s-job"
-        component_auth: "besu{{ org.name | lower }}"
-        component_type: "{{ org.type | lower }}"
-        kubernetes: "{{ org.k8s }}"
         vault: "{{ org.vault }}"
-        gitops: "{{ org.gitops }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
+      when: 
+      - org.org_status is not defined or org.org_status == 'new'
 
-    # Generate Ambassador certificate for nodes. These certificates are used for tm tls as well
-    - name: "Create ambassador certificates for Nodes"
+    # Execute primary genesis for the first organization
+    - name: "Setup primary genesis with first org as Validators"
       include_role:
-        name: create/certificates/ambassador
-      vars:
-        root_subject: "{{ network.config.subject }}"
-        cert_subject: "{{ network.config.subject | regex_replace(',', '/') }}"
-        services: "{{ org.services }}"
-        organisation: "{{ org.name | lower }}"
-        component_ns: "{{ org.name | lower }}-bes"
-        component_name: "{{ org.name | lower }}"
-        kubernetes: "{{ org.k8s }}"
-        vault: "{{ org.vault }}"
-        charts_dir: "{{ org.gitops.chart_source }}"
-        gitops: "{{ org.gitops }}"
-        values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
-      loop: "{{ network['organizations']}}"
-      loop_control:
-        loop_var: org
-
-    # This role generates key pair and nodeaddress for all orgs of the network
-    - name: "Generate crypto for the network nodes"
-      include_role:
-        name: create/crypto/node
-      vars:
-        build_path: "{{ playbook_dir }}/build"
-        organisation: "{{ org.name | lower }}"
-        organisation_ns: "{{ org.name | lower }}-bes"
-        kubernetes: "{{ org.k8s }}"
-        vault: "{{ org.vault }}"
-        charts_dir: "{{ org.gitops.chart_source }}"
-        gitops: "{{ org.gitops }}"
-        values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-
-    # This role generates the genesis.json
-    - name: "Generate genesis file"
-      include_role:
-        name: create/genesis
+        name: setup/genesis/primary
       vars:
         build_path: "./build"
+        org: "{{ network['organizations'] | first }}"
+        name: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-bes"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        charts_dir: "{{ org.gitops.chart_source }}"
+        values_dir: "./build/{{ component_ns }}"
       when: 
         - not (add_new_org | bool)
 
-    # This role deploy validator nodes. Validator nodes do not use tm crypto.
+    # # This role deploy validator nodes
     - name: "Deploy validator nodes"
       include_role:
         name: create/validator
       vars:
         build_path: "./build"
-        kubernetes: "{{ item.k8s }}"
-        consensus: "{{ network.config.consensus }}"
-        name: "{{ item.name | lower }}"
-        component_ns: "{{ item.name | lower }}-bes"
-        peers: "{{ item.services.validators}}"
-        sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
-        external_url: "{{ item.external_url_suffix }}"
-        vault: "{{ item.vault }}"
-        git_url: "{{ item.gitops.git_url }}"
-        git_branch: "{{ item.gitops.branch }}"
-        docker_url: "{{ network.docker.url }}"
-        charts_dir: "{{ item.gitops.chart_source }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      when:
-      - network.config.consensus == 'ibft' or network.config.consensus == 'qbft' or network.config.consensus == 'clique'
-      - item.type == 'validator'
-
-    # This role generates the crypto materials for tessera tm
-    - name: "Generate crypto for the Tessera transaction manager"
-      include_role:
-        name: create/crypto/tessera
-      vars:
-        build_path: "{{ playbook_dir }}/build"
-        component_ns: "{{ org.name }}-bes"
+        org: "{{ network['organizations'] | first }}"
+        name: "{{ org.name | lower }}"
+        component_ns: "{{ org.name | lower }}-bes"
         kubernetes: "{{ org.k8s }}"
         vault: "{{ org.vault }}"
         gitops: "{{ org.gitops }}"
         charts_dir: "{{ org.gitops.chart_source }}"
-        values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-      when:
-        - org.type == 'member'
-        - network.config.transaction_manager == 'tessera'
+        values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ component_ns }}"
+      when: 
+      - org.org_status is not defined or org.org_status == 'new'
 
-    # This role generates the admin ppk for permissioning
-    - name: Generate admin key for permissioning
+    # This role deploys the member nodes for all the orgs
+    - name: "Deploy Besu member nodes"
       include_role:
-        name: create/crypto/key_generation
+        name: create/member
       vars:
-        build_path: "{{ playbook_dir }}/build"
+        build_path: "./build"
+        firstorg: "{{ network['organizations'] | first }}"
+        name: "{{ org.name | lower }}"
         component_ns: "{{ org.name | lower }}-bes"
+        kubernetes: "{{ org.k8s }}"
         vault: "{{ org.vault }}"
-        user: "admin"
+        gitops: "{{ org.gitops }}"
+        charts_dir: "{{ org.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ component_ns }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
           loop_var: org
-      when: network.permissioning.enabled is defined and network.permissioning.enabled == true
-
-    # This role deploys  Tessera nodes
-    - name: "Deploy Tessera nodes"
-      include_role:
-        name: create/tessera
-      vars:
-        build_path: "{{ playbook_dir }}/build"
-        component_ns: "{{ org.name }}-bes"
-        sc_name: "{{ org.name | lower }}-{{ org.cloud_provider | lower }}-storageclass"
-        external_url: "{{ org.external_url_suffix }}"
-        kubernetes: "{{ org.k8s }}"
-        vault: "{{ org.vault }}"
-        gitops: "{{ org.gitops }}"
-        charts_dir: "{{ org.gitops.chart_source }}"
-        values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-      when:
-        - org.type == 'member'
-        - network.config.transaction_manager == 'tessera'
-
-    # This role deploy nodes with for IBFT consensus
-    - name: "Deploy Besu nodes for IBFT consensus"
-      include_role:
-        name: create/member_node
-      vars:
-        build_path: "./build"
-        kubernetes: "{{ item.k8s }}"
-        consensus: "{{ network.config.consensus }}"
-        component_ns: "{{ item.name | lower }}-bes"
-        name: "{{ item.name | lower }}"
-        peers: "{{ item.services.peers }}"
-        sc_name: "{{ name }}-{{ item.cloud_provider | lower }}-storageclass"
-        external_url: "{{ item.external_url_suffix }}"
-        vault: "{{ item.vault }}"
-        git_url: "{{ item.gitops.git_url }}"
-        git_branch: "{{ item.gitops.branch }}"
-        docker_url: "{{ network.docker.url }}"
-        charts_dir: "{{ item.gitops.chart_source }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}"
-      loop: "{{ network['organizations'] }}"
-      when:
-        - item.type == 'member'
+      when: 
+      - org.org_status is not defined or org.org_status == 'new'
 
   # These variables can be overriden from the command line
   vars:

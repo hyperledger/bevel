@@ -3,228 +3,139 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "tessera-node-deployment"></a>
-# Tessera Node Deployment
+# besu-tessera-node
 
-- [Tessera Node Deployment Helm Chart](#tessera-node-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-deployment)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The besu-tessera-node chart deploys a tessera node with separate Mysql database. If enabled, the keys are then stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
+## TL;DR
 
-<a name = "tessera-node-deployment-helm-chart"></a>
-## Tessera Node Deployment Helm Chart
----
-This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/charts/besu-tessera-node) helps to deploy Besu tessera nodes.
-
-<a name = "prerequisites"></a>
-## Prerequisites
----
-Before deploying the Helm chart, make sure to have the following prerequisites:
-
-- Kubernetes cluster up and running.
-- The Besu network is set up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm installed.
-
-<a name = "chart-structure"></a>
-## Chart Structure
----
-The structure of the Helm chart is as follows:
-
-```
-besu-tessera-node/
-  |- templates/
-        |- _helpers.yaml
-        |- configmap.yaml
-        |- deployment.yaml
-        |- service.yaml
-        |- servicemonitor.yaml
-  |- Chart.yaml
-  |- README.md
-  |- values.yaml
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install my-tessera bevel/besu-tessera-node
 ```
 
-- `templates/`: This directory contains the template files for generating Kubernetes resources.
-- `helpers.tpl`: A template file used for defining custom labels in the Helm chart.
-- `configmap.yaml`: The file defines a ConfigMap that content of the "tessera-config.json" file under the key "tessera-config.json.tmpl" in the specified namespace.
-- `deployment.yaml`: This file is a configuration file for deploying a StatefulSet in Kubernetes. It creates a StatefulSet with a specified number of replicas and defines various settings for the deployment. It includes initialization containers for fetching secrets from a Vault server, an init container for initializing the Besu blockchain network, and a main container for running the Besu node. It also specifies volume mounts for storing certificates and data. The StatefulSet ensures stable network identities for each replica.
-- `service.yaml`: This file defines a Kubernetes Service with multiple ports for different protocols and targets, and supports Ambassador proxy annotations for specific configurations when using the "ambassador" proxy provider.
-- `servicemonitor.yaml`: This file defines a Kubernetes ServiceMonitor in order to monitor the metrics of the nodes.
-- `Chart.yaml`: Provides metadata about the chart, such as its name, version, and description.
-- `README.md`: This file provides information and instructions about the Helm chart.
-- `values.yaml`: Contains the default configuration values for the chart. It includes configuration for the metadata, image, node, Vault, etc.
+## Prerequisitess
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/charts/besu-tessera-node/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+- Kubernetes 1.19+
+- Helm 3.2.0+
+
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
+
+> **Important**: Also check the dependent charts.
+
+## Installing the Chart
+
+To install the chart with the release name `my-tessera`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install my-tessera bevel/besu-tessera-node
+```
+
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
+
+> **Tip**: List all releases using `helm list`
+
+## Uninstalling the Chart
+
+To uninstall/delete the `my-tessera` deployment:
+
+```bash
+helm uninstall my-tessera
+```
+
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
 ## Parameters
----
 
-### ReplicaCount
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws` and `minikube` is tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
+| `global.vault.secretEngine` | The value for vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | The value for vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `ambassador` | `ambassador` |
+| `global.proxy.externalUrlSuffix` | The External URL suffix at which the tessera service will be available | `test.blockchaincloudpoc.com` |
+| `global.proxy.tmport` | The external port at which the tessera service will be available. This port must match `tessera.port` | `443` |
 
+### Storage
 
-| Name                     | Description                          | Default Value |
-| ------------------------ | ------------------------------------ | ------------- |
-| replicaCount             | Number of replicas                   | 1             |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`storage.enabled` | To enable new storage class for Tessera node | `true` |
+| `storage.size` | Size of the PVC needed for Tessera  | `1Gi` |
+| `storage.dbSize` | Size of the PVC needed for the MySql DB  | `1Gi`  |
+| `storage.allowedTopologies.enabled` | Check [bevel-storageclass](../../../shared/charts/bevel-storageclass/README.md) for details  | `false`  |
 
+### Image
 
-### Metadata
-
-
-| Name            | Description                                                                  | Default Value |
-| ----------------| ---------------------------------------------------------------------------- | ------------- |
-| namespace       | Provide the namespace                                | default       |
-| labels          | Provide labels other than name, release name , release service, chart version , chart name. Run
-  these lables will not be applied to VolumeClaimTemplate of StatefulSet as labels are automatically picked up by Kubernetes                                 | ""       |
-
-
-### Images 
-
-
-| Name                     | Description                                                                                | Default Value   |
-| ------------------------ | -------------------------------------------------------                                    | --------------- |
-| alpineutils        | Provide the alpine utils image  | ghcr.io/hyperledger/bevel-alpine-ext:latest             |
-| tessera        | Provide the valid image name and version for tessera  | quorumengineering/tessera:hashicorp-21.7.3             |
-| busybox               | Provide the valid image name and version for busybox  | busybox            |
-| mysql               | Provide the valid image name and version for MySQL. This is used as the DB for TM  | mysql/mysql-server:5.7            |
-| imagePullSecret               | Provide the docker secret name in the namespace  | regcred            |
-| pullPolicy               | Pull policy to be used for the Docker image                                                | IfNotPresent    |
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.alpineutils.repository`   | Alpine utils image repository  | `ghcr.io/hyperledger/bevel-alpine-ext`  |
+| `image.alpineutils.tag`   | Alpine utils image tag  | `latest`  |
+| `image.tessera.repository`   | Tessera image repository  | `quorumengineering/tessera`|
+| `image.tessera.tag`   | Tessera image tag as per version of Tessera  | `22.1.7`|
+| `image.busybox`| Repo and default tag for busybox image | `busybox` |
+| `image.mysql.repository`  | MySQL image repository. This is used as the DB for TM  | `mysql/mysql-server` |
+| `image.mysql.tag`  | MySQL image tag  | `5.7` |
+| `image.hooks.repository`  | Quorum/Besu hooks image repository  | `ghcr.io/hyperledger/bevel-k8s-hooks` |
+| `image.hooks.tag`  | Quorum/Besu hooks image tag  | `qgt-0.2.12` |
+| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
 
 
 ### Tessera
 
-
-| Name                     | Description                          | Default Value |
-| ------------------------ | ------------------------------------ | ------------- |
-| name              | Provide the name for tessera node                | node1         |
-| dbname            | Provide the mysql DB name                        | demodb         |
-| dburl             | Provide the Database URL                         | ""         |
-| dbusername        | Provide the Database username                    | demouser         |
-| dbpassword        | Provide the Database password                    | ""         |
-| url               | Provide the tessera node's own url. This should be local. Use http if tls is OFF                    | ""         |
-| clienturl         | Provide the client url for tessera node                    | ""         |
-| othernodes        | Provide the list of tessera nodes to connect in url. This should be reachable from this node                    | ""         |
-| tls               | Provide if tessera will use tls                 | STRICT         |
-| trust             | Provide the server/client  trust configuration for nodes          | CA_OR_TOFU         |
-| servicetype       | Provide the k8s service type          | ClusterIP         |
-| ports.tm          | Provide the Tessera Transaction Manager service ports           | 443         |
-| ports.db          | Provide the DataBase port                                        | 3306              |
-| ports.client      | Provide the Client port                                          | 15023              |
-| mountPath         | Provide the mountpath for Tessera pod                      | /etc/tessera/data              |
-| ambassadorSecret         | Provide the secret name to be used with TLScontext                      | ""             |
-
-
-### Vault
-
-
-| Name                      | Description                                                               | Default Value |
-| ------------------------- | --------------------------------------------------------------------------| ------------- |
-| address                   | Address/URL of the Vault server.                                          | ""            |
-| secretengine              | Provide the secret engine.                                                | secretsv2     |
-| secretPrefix              | Provide the Vault secret path from where secrets will be read                                             | ""    |
-| tmsecretpath              | Provide the Vault secret path from where transaction manager secrets will be read                                             | ""     |
-| serviceaccountname        | Provide the already created service account name autheticated to vault    | vault-auth    |
-| address                   | Address/URL of the Vault server.                                          | ""            |
-| keyname                   | Provide the key name from where besu secrets will be read                                             | data  |
-| tm_keyname                    | Provide the key name from where transaction-manager secrets will be read                  | transaction            |
-| tlsdir                    | Provide the name of the folder containing the tls crypto for besu validator                  | tls            |
-| role                      | Role used for authentication with Vault                                   | vault-role    |
-| authpath                  | Authentication path for Vault                                             | besunode1  |
-| type        | Provide the type of vault    | hashicorp    |
+| Name   | Description      | Default Value |
+| ----------------| ----------- | ------------- |
+| `tessera.removeKeysOnDelete` | Setting to delete the secrets when uninstalling the release  | `true` |
+| `tessera.dbName`   | Name of the MySQL database | `demodb`         |
+| `tessera.dbUsername` | MySQL Database username   | `demouser`    |
+| `tessera.peerNodes`   | List of other tessera peer nodes like `- url: "https://node1.test.blockchaincloudpoc.com"`  | `""` |
+| `tessera.resources.cpuLimit` | CPU Limit for tessera statefulset  | `1` |
+| `tessera.resources.cpuRequest`   | Initial CPU request for tessera statefulset | `0.25`         |
+| `tessera.resources.memLimit` | Memory Limit for tessera statefulset  | `2G`         |
+| `tessera.resources.memRequest`   | Initial Memory request for tessera statefulset | `1G`         |
+| `tessera.password`   | Password for tessera key generation | `password`         |
+| `tessera.passwordPath` | Path where the password file will be stored   | `/keys/tm.password`    |
+| `tessera.dataPath`   | Mount path for tessera PVC | `/data/tessera`         |
+| `tessera.keysPath` | Mount path for Tessera keys   | `/keys`    |
+| `tessera.port`   | Port at which Tessera service will run | `9000`         |
+| `tessera.tpport` | Third party port   | `9080`    |
+| `tessera.q2tport`   | Client port where besu nodes will connect | `9101`         |
+| `tessera.dbport` | Port where MySQL service is running   | `3306`    |
+| `tessera.metrics.enabled`   | Enable metrics and monitoring for Tessera node | `true`         |
+| `tessera.metrics.host`   | Host where metrics will be available | `"0.0.0.0"`         |
+| `tessera.metrics.port`   | Port where metrics will be available | `9545`         |
+| `tessera.metrics.serviceMonitorEnabled`   | Enable service monitor | `false`         |
+| `tessera.tlsMode`   | TLS mode for tessera. Options are `"STRICT"` or `"OFF"` | `"STRICT"`         |
+| `tessera.trust`   | Server/Client trust configuration. Only for `STRICT` tlsMode. options are: `"WHITELIST"`, `"CA_OR_TOFU"`, `"CA"`, `"TOFU"`| `"CA_OR_TOFU"`         |
 
 
-### Proxy
+### TLS
 
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`tls.enabled` | To enable TLS cert generation for Tessera node. | `true` |
+| `tls.settings.tmTls` | Set the TLS setting for certificate generation. Must be enabled for `tlsMode: STRICT`  | `True` |
+| `tls.settings.certSubject` | X.509 Subject for the Root CA  | `"CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"`  |
 
-| Name                  | Description                                                           | Default Value |
-| --------------------- | --------------------------------------------------------------------- | ------------- |
-| provider              | The proxy/ingress provider (ambassador, haproxy)                      | ambassador    |
-| external_url          | This field contains the external URL of the node                      | ""            |
-| portTM                | The TM port exposed externally via the proxy                          | 15013         |
+### Common parameters
 
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `labels.service` | Custom labels in yaml k-v format  | `[]`  |
+| `labels.pvc` | Custom labels in yaml k-v format  | `[]`  |
+| `labels.deployment` | Custom labels in yaml k-v format  | `[]`  |
 
-### Storage
-
-
-| Name                     | Description                                                                                | Default Value   |
-| ------------------------ | -------------------------------------------------------                                    | --------------- |
-| storageclassname        | Provide the kubernetes storageclass for node                    | awsstorageclass           |
-| storagesize             | Provide the memory for node                  | 1Gi           |
-| dbstorage               | Provide the memory for database              | 1Gi           |
-
-
-### Metrics
-
-
-| Name                      | Description                        | Default Value |
-| ------------------------- | ---------------------------------- | ------------- |
-| enabled             | Enable/disable metrics for the node       | false            |
-| port             | Mention the subject for ambassador tls       | 9545           |
-
-
-<a name = "deployment"></a>
-## Deployment
----
-
-To deploy the besu-tessera-node Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/charts/besu-tessera-node/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install the chart:
-    ```
-    $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./besu-tessera-node
-    ```
-Replace `<release-name>` with the desired name for the release.
-
-This will deploy the Besu tessera nodes to the Kubernetes cluster based on the provided configurations.
-
-<a name = "verification"></a>
-## Verification
----
-
-To verify the deployment, we can use the following command:
-```
-$ kubectl get statefulsets -n <namespace>
-```
-Replace `<namespace>` with the actual namespace where the deployment was created. The command will display information about the deployment, including the number of 
-replicas and their current status.
-
-<a name = "updating-the-deployment"></a>
-## Updating the Deployment
----
-
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/charts/besu-tessera-node/values.yaml) file with the desired changes and run the following Helm command:
-```
-$ helm upgrade <release-name> ./besu-tessera-node
-```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the besu-tessera-node node is up to date.
-
-<a name = "deletion"></a>
-## Deletion
----
-
-To delete the deployment and associated resources, run the following Helm command:
-```
-$ helm uninstall <release-name>
-```
-Replace `<release-name>` with the name of the release. This command will remove all the resources created by the Helm chart.
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [Ambassador Certs GoQuorum Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/charts/besu-tessera-node), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.

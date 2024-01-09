@@ -23,8 +23,8 @@ spec:
       besucontainer: hyperledger/besu:{{ network.version }}
     vault:
       address: {{ vault.url }}
-      secretengine: {{ vault.secret_path | default('secretsv2') }}
-      authpath: besu{{ name }}
+      secretEngine: {{ vault.secret_path | default('secretsv2') }}
+      authPath: {{ network.env.type }}{{ name }}
       type: {{ vault.type | default("hashicorp") }}
       role: vault-role
     organisation:
