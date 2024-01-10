@@ -4,19 +4,17 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-metadata:
-  # The name of the StorageClass.
-  name: bevel-storageclass
-
 # The name of the cloud provider. Supported values are: aws, gcp, or minikube.
 # The `aws` value specifies that the StorageClass will be used for provisioning PersistentVolumes on AWS.
 # The `gcp` value specifies that the StorageClass will be used for provisioning PersistentVolumes on GCP.
 # The `minikube` value specifies that the StorageClass will be used for provisioning PersistentVolumes on Minikube.
-cloud_provider: aws
+global:
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
 
 # This "provisioner" is an optional field.
 # Fill it only if you want to use a specific provisioner of your choice. 
-# Otherwise, leave it empty to use the default provisioner based on the value of "cloud_provider" field.
+# Otherwise, leave it empty to use the default provisioner based on the value of "cluster.provider" field.
 provisioner: 
 
 # The parameters that will be passed to the storage provisioner.
@@ -50,9 +48,10 @@ volumeBindingMode: Immediate
 # A list of allowed topologies for PersistentVolumes that are provisioned by this StorageClass.
 # The `allowedTopologies` list specifies the zones in which PersistentVolumes that are provisioned by this StorageClass can be created.
 allowedTopologies:
+  enabled: true
   # A label expression that specifies the allowed zones.
-  - matchLabelExpressions:
-      - key: failure-domain.beta.kubernetes.io/zone
-        values:
-          # The allowed zones.
-          - "eu-west-1a"
+  matchLabelExpressions:
+    - key: failure-domain.beta.kubernetes.io/zone
+      values:
+        # The allowed zones.
+        - "eu-west-1a"

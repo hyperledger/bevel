@@ -1,6 +1,6 @@
-metadata:
-  name: "{{ sc_name }}"
-cloud_provider: "{{ cloudProvider }}"
+global:
+  cluster:
+    provider: "{{ cloud_provider }}"
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 {% if cloud_provider == "aws" %}
@@ -12,8 +12,9 @@ provisioner: k8s.io/minikube-hostpath
 {% endif %}
 {% if cloud_provider == "aws" %}
 allowedTopologies:
-  - matchLabelExpressions:
-      - key: failure-domain.beta.kubernetes.io/zone
-        values:
-          - "{{ region }}a"
+  enabled: false
+  matchLabelExpressions:
+    - key: failure-domain.beta.kubernetes.io/zone
+      values:
+        - "{{ region }}a"
 {% endif %}
