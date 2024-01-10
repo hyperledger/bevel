@@ -39,20 +39,10 @@
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
   vars:
+    name: "{{ org.name | lower }}"
     component_name: "{{ org.name | lower }}-vaultk8s-job"
-    component_auth: "cordaent{{ org.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ name }}"
     component_type: "{{ org.type | lower }}"
-
-# Create float vault access policies
-- name: "Setup vault access for float"
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-  vars:
-    component_name: "{{ org.name | lower }}-vaultk8s-job"
-    component_auth: "cordaent{{ org.name | lower }}float"
-    component_type: "{{ org.type | lower }}"
-    vault: "{{ org.services.float.vault }}"
-  when: org.firewall.enabled
 
 # Create float vault access policies for the float cluster
 - name: "Setup vault access for float"
@@ -60,7 +50,7 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
   vars:
     component_name: "{{ org.name | lower }}-vaultk8s-job"
-    component_auth: "cordaentfloat{{ org.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org.name | lower }}float"
     component_type: "{{ org.type | lower }}"
     vault: "{{ org.services.float.vault }}"
     kubernetes: "{{ org.services.float.k8s }}"

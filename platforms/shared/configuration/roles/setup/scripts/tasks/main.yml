@@ -4,6 +4,15 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 ---
+- name: "check for the configmap vault-script to be created"
+  k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    namespace: "{{ namespace }}"
+    name: bevel-vault-script
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: bevel_vault_script
+
 - name: "Create ConfigMaps Using Scripts"
   kubernetes.core.helm:
     name: bevel-script
@@ -11,6 +20,4 @@
     release_namespace: "{{ namespace }}"
     create_namespace: true
     kubeconfig: "{{ kubernetes.config_file }}"
-    values:
-      network_type: "{{ network_type }}"
-      namespace: "{{ namespace }}"
+  when: bevel_vault_script.resources | length <= 0
