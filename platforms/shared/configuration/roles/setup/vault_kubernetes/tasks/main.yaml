@@ -46,15 +46,6 @@
     path: "{{ playbook_dir }}/build"
 
 #############################################################################################
-
-# This task creates the access policy for various entity
-- name: Create policy for Access Control
-  template:
-    src: "{{ policy_templates[policy_type] | default('helm_component.tpl') }}"
-    dest: "{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl"
-  changed_when: false
-  
-#############################################################################################
 # This tasks gets the kubernetes server url
 - name: Get the kubernetes server url
   shell: |
@@ -85,16 +76,8 @@
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
+    component_name: "bevel-vault-mgmt-job"
     component_type: Job
     namespace: "{{ component_ns }}"
   tags:
   - notest
-
-#############################################################################################
-# This task deletes the root token
-- name: "Delete vault token secret"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/delete/k8s_secrets"
-  vars: 
-    namespace: "{{ component_ns }}"    
-    check: "token_secret"

@@ -19,7 +19,7 @@ network:
 
   #Environment section for Kubernetes setup
   env:
-    type: dev              # tag for the environment. Important to run multiple flux on single cluster
+    type: "besu"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value can be 'ambassador' or 'none' as 'haproxy' has not been implemented for Besu
     proxy_namespace: "ambassador"
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
@@ -66,9 +66,9 @@ network:
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
     transaction_manager: "tessera"    # Transaction manager is "tessera" or "none"
-    # This is the version of transaction_manager docker image that will be deployed
+    # This is the version of "tessera" docker image that will be deployed
     tm_version: "21.7.3"
-    # TLS can be True or False for the transaction manager
+    # TLS can be True or False for the tessera tm
     tm_tls: True
     # Tls trust value
     tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
@@ -76,6 +76,11 @@ network:
     accounts:
       - "0x75a3505cd50Cfc418e59458d0E23c8bd9f6B52a0"
       - "0xe668554c28e81535B8679ff9de128203Fdedc212"
+    ## At least one Transaction Manager nodes public addresses should be provided.
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
+    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
+    tm_nodes:
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com:443"
 
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:

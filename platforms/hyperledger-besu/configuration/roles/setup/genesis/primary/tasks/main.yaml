@@ -43,12 +43,3 @@
     component_name: "genesis"
     component_type: Job
     namespace: "{{ component_ns }}"
-
-# Gets the genesis file from Vault
-- name: Get genesis from vault
-  shell: |
-    vault kv get -field=genesis_base64 {{ vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ name }}/genesis | base64 -d > {{ build_path }}/genesis.json
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_genesis

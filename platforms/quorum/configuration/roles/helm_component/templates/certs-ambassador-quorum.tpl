@@ -29,7 +29,7 @@ spec:
       role: vault-role
       authpath: quorum{{ org_name }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}-quo
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
       retries: 30
       type: {{ vault.type | default("hashicorp") }}
     subjects:

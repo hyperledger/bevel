@@ -61,7 +61,7 @@ spec:
           memRequest: "300M"
         p2p:
           port: {{ peer.p2p.port }}
-          discovery: true
+          discovery: false
         rpc:
           port: {{ peer.rpc.port }}
         ws:

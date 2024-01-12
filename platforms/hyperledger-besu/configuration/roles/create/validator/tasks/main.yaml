@@ -14,6 +14,7 @@
   loop: "{{ org.services.validators }}"
   loop_control:
     loop_var: peer
+  when: org.services.validators is defined
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -22,3 +23,22 @@
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     msg: "[ci skip] Pushing Validator files"
+  when: org.services.validators is defined
+
+# Wait for the last validator to be running
+- name: "Wait for the last validator to run"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    validator: "{{ org.services.validators | last }}"
+    label_selectors:
+      - app.kubernetes.io/release = {{ validator.name | lower }}
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+  when: org.services.validators is defined
+
+# Get the Genesis and staticnodes
+- name: Get genesis and staticnodes
+  include_role: 
+    name: get/genesis
+  when: org.services.validators is defined
