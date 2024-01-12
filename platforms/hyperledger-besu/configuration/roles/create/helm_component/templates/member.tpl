@@ -61,11 +61,9 @@ spec:
       tessera:
         removeKeysOnDelete: true
         peerNodes: 
-{% if network.config.tm_tls %}
-          - url: "https://{{ firstorg.services.peers[0].name | lower }}.{{ firstorg.external_url_suffix }}:{{ firstorg.services.peers[0].tm_nodeport.port }}"
-{% else %}
-          - url: "http://{{ firstorg.services.peers[0].name | lower }}.{{ firstorg.external_url_suffix }}:{{ firstorg.services.peers[0].tm_nodeport.port }}"
-{% endif %}
+{% for tm_node in network.config.tm_nodes %}
+          - url: {{ tm_node | quote }}
+{% endfor %}
         resources:
           cpuLimit: 0.25
           cpuRequest: 0.05
@@ -121,7 +119,7 @@ spec:
           password: {{ peer.geth_passphrase | quote }}
         p2p:
           port: {{ peer.p2p.port }}
-          discovery: true
+          discovery: false
         rpc:
           port: {{ peer.rpc.port }}
         ws:

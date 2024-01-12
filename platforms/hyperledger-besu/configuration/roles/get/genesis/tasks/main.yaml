@@ -1,0 +1,40 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Get the genesis file from current org
+- name: Get genesis from config map of current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: ConfigMap
+    name: "besu-genesis"
+    namespace: "{{ component_ns }}"
+  register: genesis_data
+
+# Get the static node file from current org
+- name: Get static-nodes from config map of current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: ConfigMap
+    name: "besu-peers"
+    namespace: "{{ component_ns }}"
+  register: nodes_data
+
+# Get the bootnode node file from current org
+- name: Get bootnodes from config map of existing validator
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: ConfigMap
+    name: "besu-bootnodes"
+    namespace: "{{ component_ns }}"
+  register: bootnodes_data
+
+- name: Save genesis locally for Secondary genesis
+  shell: |
+    echo {{ genesis_data.resources[0].data['genesis.json'] | to_nice_json }} > {{ files_loc }}/genesis.json
+    echo {{ nodes_data.resources[0].data['static-nodes.json'] | to_nice_json }} > {{ files_loc }}/static-nodes.json
+    echo {{ bootnodes_data.resources[0].data['bootnodes-json'] | to_nice_json }} > {{ files_loc }}/bootnodes.json
+  vars:
+    files_loc: "{{playbook_dir}}/../../../{{ charts_dir }}/besu-genesis/files"

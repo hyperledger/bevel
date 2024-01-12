@@ -3,14 +3,14 @@ global:
     provider: "{{ cloud_provider }}"
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
-{% if cloud_provider == "aws" %}
+{% if cloudProvider == "aws" %}
 provisioner: kubernetes.io/aws-ebs
-{% elif cloud_provider == "gcp" %}
+{% elif cloudProvider == "gcp" %}
 provisioner: pd.csi.storage.gke.io
-{% elif cloud_provider == "minikube" %}
+{% elif cloudProvider == "minikube" %}
 provisioner: k8s.io/minikube-hostpath
 {% endif %}
-{% if cloud_provider == "aws" %}
+{% if cloudProvider == "aws" %}
 allowedTopologies:
   enabled: false
   matchLabelExpressions:

@@ -4,49 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Gets the genesis file from the validator org
-- name: Get genesis from config map of existing validator
-  kubernetes.core.k8s_info:
-    kubeconfig: "{{ validator.k8s.config_file }}"
-    kind: ConfigMap
-    name: "besu-genesis"
-    namespace: "{{ validator_ns }}"
-  register: genesis_data
-  vars:
-    validator: "{{ network['organizations'] | first }}"
-    validator_ns: "{{ validator.name | lower }}-bes"
-
-- name: Get static-nodes from config map of existing validator
-  kubernetes.core.k8s_info:
-    kubeconfig: "{{ validator.k8s.config_file }}"
-    kind: ConfigMap
-    name: "besu-peers"
-    namespace: "{{ validator_ns }}"
-  register: nodes_data
-  vars:
-    validator: "{{ network['organizations'] | first }}"
-    validator_ns: "{{ validator.name | lower }}-bes"
-
-- name: Get bootnodes from config map of existing validator
-  kubernetes.core.k8s_info:
-    kubeconfig: "{{ validator.k8s.config_file }}"
-    kind: ConfigMap
-    name: "besu-bootnodes"
-    namespace: "{{ validator_ns }}"
-  register: bootnodes_data
-  vars:
-    validator: "{{ network['organizations'] | first }}"
-    validator_ns: "{{ validator.name | lower }}-bes"
-
-- name: Save genesis and static-nodes for Secondary genesis
-  shell: |
-    echo {{ genesis_data.resources[0].data['genesis.json'] | to_nice_json }} > {{ files_loc }}/genesis.json
-    echo {{ nodes_data.resources[0].data['static-nodes.json'] | to_nice_json }} > {{ files_loc }}/static-nodes.json
-    echo {{ bootnodes_data.resources[0].data['bootnodes-json'] | to_nice_json }} > {{ files_loc }}/bootnodes.json
-  vars:
-    files_loc: "{{playbook_dir}}/../../../{{ charts_dir }}/besu-genesis/files"
-
-# Execute only if there is no local genesis file
+# Execute only for members
 - name: Perform secondary genesis
   include_role:
     name: setup/genesis/secondary
@@ -63,6 +21,7 @@
   loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
+  when: org.services.peers is defined
   
 # Pushes the above generated files to git directory 
 - name: Git Push
@@ -71,3 +30,35 @@
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     msg: "[ci skip] Pushing Member node files"
+  when: org.services.peers is defined
+
+# Wait for the last Member to be running
+- name: "Wait for the last member to run"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    member: "{{ org.services.peers | last }}"
+    label_selectors:
+      - app.kubernetes.io/release = {{ member.name | lower }}
+    component_type: "Pod"
+    component_name: "{{ member.name | lower }}"
+    namespace: "{{ component_ns }}"
+  when: org.services.peers is defined
+
+# Get the Genesis and staticnodes
+- name: Get genesis and staticnodes
+  include_role: 
+    name: get/genesis
+  when: org.services.peers is defined
+
+# Add the enode of new organizations to each of the existing nodes using rpc call only when ambassador is used
+- name: Adding the enode of new peer to all existing peer.
+  include_role: 
+    name: setup/new_member
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when:
+    - org.services.peers is defined
+    - network.config.besu_nodes is defined
+    - network.env.proxy == 'ambassador'
