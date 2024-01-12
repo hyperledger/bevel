@@ -13,7 +13,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: besu
-  version: 21.10.6  #this is the version of Besu docker image that will be deployed.
+  version: 22.10.2  #this is the version of Besu docker image that will be deployed.
 
   #Environment section for Kubernetes setup
   env:
@@ -51,29 +51,23 @@ network:
 
   # Following are the configurations for the common Besu network
   config:
-    consensus: "ibft"                 # Options are "ibft", "qbft", "ethash" and "clique".
+    consensus: "qbft"                 # Options are "ibft2", "qbft", "ibft" and "clique".
     ## Certificate subject for the root CA of the network.
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Transaction manager is "tessera"
+    transaction_manager: "tessera"    # Transaction manager is "tessera" or "none"
     # This is the version of "tessera" docker image that will be deployed
     tm_version: "21.7.3"
     # TLS can be True or False for the tessera tm
     tm_tls: True
     # Tls trust value
     tm_trust: "ca-or-tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
-    ## File location for saving the genesis file should be provided.
-    genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be fetched
-    # Add public key of accounts without 0x which will have 90000 ETH at genesis. Accounts created on external system like Metamask
-    accounts:
-      - "75a3505cd50Cfc418e59458d0E23c8bd9f6B52a0"
-      - "e668554c28e81535B8679ff9de128203Fdedc212"
     ## Transaction Manager nodes public addresses should be provided.
     #  - "https://node.test.besu.blockchaincloudpoc-develop.com"
     # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix)
     tm_nodes:
-      - "https://carrier.test.besu.blockchaincloudpoc-develop.com"
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com:443"
     # Besu rpc public address list for existing validator and member nodes
     #  - "http://noderpc.test.besu.blockchaincloudpoc-develop.com:15011"
     # The above domain name is formed by the (http)://(peer.name)rpc.(org.external_url_suffix):(ambassador node rpc port)

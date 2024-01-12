@@ -35,45 +35,13 @@
     loop_var: peer
   ignore_errors: yes
 
-# Delete vault-auth path
-- name: Delete vault-auth path
-  shell: |
-    vault kv delete sys/auth/quorum{{ org_name }}
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-
 # Delete crypto materials
 - name: Delete Crypto materials
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/tm
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/quorum
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/{{ peer.name }}/certs
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/crypto/genesis
-  loop: "{{ services.peers }}"
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop_control:
-    loop_var: peer
-  ignore_errors: yes
-
-  # Delete application crypto material
-- name: Delete Application Crypto material 
-  shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/smartContracts/General
-  loop: "{{ services.peers }}"
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop_control:
-    loop_var: peer
-  ignore_errors: yes
-
-# Delete vault access policies
-- name: Delete vault access policies
-  shell: |
-    vault policy delete vault-crypto-{{ org_namespace }}-{{ peer.name }}-ro
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_name }}/crypto/{{ peer.name }}/tm
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_name }}/crypto/{{ peer.name }}/quorum
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_name }}/crypto/{{ peer.name }}/certs
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_name }}/crypto/genesis
   loop: "{{ services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
