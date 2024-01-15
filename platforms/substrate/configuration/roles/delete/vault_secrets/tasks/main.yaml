@@ -34,19 +34,11 @@
     loop_var: peer
   ignore_errors: yes
 
-# Delete vault-auth path
-- name: Delete vault-auth path
-  shell: |
-    vault kv delete sys/auth/substrate{{ org_name }}
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-
 # Delete Peer Crypto material
 - name: Delete Peer Crypto material 
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/{{ peer.name }}/substrate  
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/{{ peer.name }}/ipfs
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name }}/{{ peer.name }}/substrate  
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name }}/{{ peer.name }}/ipfs
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
@@ -58,8 +50,8 @@
 # Delete Organization's Crypto material 
 - name: Delete Org Crypto material 
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/genesis
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/tlscerts
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name }}/genesis
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name }}/tlscerts
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
@@ -68,19 +60,7 @@
   # Delete application crypto material
 - name: Delete Application Crypto material 
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_namespace }}/application
-  loop: "{{ services.peers }}"
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop_control:
-    loop_var: peer
-  ignore_errors: yes
-
-# Delete vault access policies
-- name: Delete Access policies 
-  shell: |
-    vault policy delete vault-crypto-organization-{{ item.name }}-ro
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name }}/application
   loop: "{{ services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"

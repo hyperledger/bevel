@@ -18,7 +18,7 @@
     release_namespace: "{{ organization_ns }}"
     state: absent
   with_items: "{{ helm_info.stdout_lines }}"
-  when: item != "genesis"
+  when: item != "genesis" or item.contains('vaultk8s-job')
 
 # Remove genesis release at last and ignore errors for now
 - name: Delete Genesis Helm release at last
@@ -28,6 +28,18 @@
     release_namespace: "{{ organization_ns }}"
     state: absent
   ignore_errors: yes # Ignore failure until all platforms have genesis similar to Besu
+
+- name: Get Helm releases
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} helm ls -drq -n {{ organization_ns }}
+  register: helm_info_extra
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ item }}"
+    release_namespace: "{{ organization_ns }}"
+    state: absent
+  with_items: "{{ helm_info_extra.stdout_lines }}"
 
 # Remove an existing Namespace
 - name: Remove an existing Namespace {{ organization_ns }}
