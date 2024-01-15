@@ -22,12 +22,21 @@
 # Check if the genesis already exists
 - name: Check if genesis file exists
   shell: |
-    vault kv get -field=genesis {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}-subs/genesis
+    vault kv get -field=genesis {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/genesis
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
   register: vault_genesis_result
   ignore_errors: yes
+
+# Copy the genesis to the local directory
+- name: Copy genesis from Vault to local directory
+  environment:
+    VAULT_ADDR: "{{ org.vault.url }}"
+    VAULT_TOKEN: "{{ org.vault.root_token }}"
+  shell: |
+    vault kv get -field=genesis {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/genesis > {{ network.config.genesis }}
+  when: not vault_genesis_result.failed
 
 # Get keys for each peer
 - name: Get keys for each peer
@@ -62,8 +71,7 @@
   vars:
     component_ns: "{{ item.name | lower }}-subs"
   shell: |
-    vault kv put {{ item.vault.secret_path | default('secretsv2') }}/{{ component_ns }}/genesis genesis=@{{ network.config.genesis }}
+    vault kv put {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/genesis genesis=@{{ network.config.genesis }}
   loop: "{{ network.organizations }}"
   when: 
     - item.name != org.name
-    - vault_genesis_result.failed
