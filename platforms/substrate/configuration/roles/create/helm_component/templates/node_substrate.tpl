@@ -110,7 +110,7 @@ spec:
 
     vault:
       address: {{ vault.url }}      
-      secretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}
+      secretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
       authPath: substrate{{ name }}
       appRole: vault-role
       image: ghcr.io/hyperledger/alpine-utils:1.0 
