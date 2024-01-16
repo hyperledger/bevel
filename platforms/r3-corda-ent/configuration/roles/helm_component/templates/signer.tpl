@@ -31,7 +31,7 @@ spec:
       role: vault-role
       authPath: {{ component_auth }}
       serviceAccountName: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
       retries: 10
       sleepTimeAfterError: 15
     service:
@@ -40,12 +40,12 @@ spec:
           port: 6000
     serviceLocations:
       identityManager:
-        host: {{ org.services.idman.name }}.{{ org.name | lower }}-ent
+        host: {{ org.services.idman.name }}.{{ name }}-ent
         publicIp: {{ org.services.idman.name }}.{{ org.external_url_suffix }}
         port: 5052
         publicPort: 443
       networkMap:
-        host: {{ org.services.networkmap.name }}.{{ org.name | lower }}-ent
+        host: {{ org.services.networkmap.name }}.{{ name }}-ent
         port: 5050
       revocation:
         port: 5053

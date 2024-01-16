@@ -39,15 +39,15 @@ spec:
       address: {{ org.vault.url }}
 {% if org.firewall.enabled == true %}
       floatVaultAddress: {{ org.services.float.vault.url }}
-      authpathFloat: cordaent{{ org.name | lower }}float
+      authpathFloat: {{ network.env.type }}{{ name }}float
 {% else %}
       floatVaultAddress: ""
       authpathFloat: ""
 {% endif %}
       role: vault-role
-      authpath: cordaent{{ org.name | lower }}
+      authpath: {{ network.env.type }}{{ name }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/{{ peer.name }}
+      certsecretprefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ name }}/{{ peer.name }}
       nodePath: {{ peer.name | lower }}
       retries: 30
       retryInterval: 30
@@ -58,7 +58,7 @@ spec:
         external_url_suffix: {{ org.external_url_suffix }}
         p2pPort: {{ peer.p2p.ambassador }}
 {% if org.firewall.enabled == true %}
-        p2pAddress: {{ org.services.float.name }}.{{ org.name | lower }}.{{ org.services.float.external_url_suffix }}:{{ org.services.float.ports.ambassador_p2p_port | default('10002') }}
+        p2pAddress: {{ org.services.float.name }}.{{ name }}.{{ org.services.float.external_url_suffix }}:{{ org.services.float.ports.ambassador_p2p_port | default('10002') }}
 {% else %}
         p2pAddress: {{ node_name }}.{{ org.external_url_suffix }}:{{ peer.p2p.ambassador | default('10002') }}
 {% endif %}

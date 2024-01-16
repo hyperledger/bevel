@@ -6,7 +6,7 @@
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
@@ -20,6 +20,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  serviceName: {{ .Values.nodeName }}
   replicas: {{ .Values.config.replicas }}
   selector:
     matchLabels:
@@ -365,9 +366,9 @@ spec:
         volumeMounts:
         - name: idman-etc
           mountPath: {{ .Values.config.volume.baseDir }}/etc
-        - name: idman-logs
+        - name: {{ .Values.nodeName }}-pvc-logs
           mountPath: {{ .Values.config.volume.baseDir }}/logs
-        - name: idman-h2
+        - name: {{ .Values.nodeName }}-pvc-h2
           mountPath: {{ .Values.config.volume.baseDir }}/h2
         - name: certificates
           mountPath: {{ .Values.config.volume.baseDir }}/DATA
@@ -390,7 +391,7 @@ spec:
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
-        - name: idman-logs
+        - name: {{ .Values.nodeName }}-pvc-logs
           mountPath: {{ .Values.config.volume.baseDir }}/logs
     {{- with .Values.image.imagePullSecrets }}
       imagePullSecrets:
@@ -403,12 +404,41 @@ spec:
         - name: idman-etc
           emptyDir:
             medium: Memory
-        - name: idman-h2
-          persistentVolumeClaim:
-            claimName: {{ .Values.nodeName }}-pvc-h2
-        - name: idman-logs
-          persistentVolumeClaim:
-            claimName: {{ .Values.nodeName }}-pvc-logs
         - name: certificates
           emptyDir:
             medium: Memory
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.nodeName }}-pvc-logs
+{{- if .Values.config.pvc.annotations }}
+        annotations:
+{{ toYaml .Values.config.pvc.annotations | indent 8 }}
+{{- end }}
+        labels:
+          app.kubernetes.io/name: {{ .Values.nodeName }}-pvc-logs
+          helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+          app.kubernetes.io/managed-by: {{ .Release.Service }}
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.memory }}
+    - metadata:
+        name: {{ .Values.nodeName }}-pvc-h2
+{{- if .Values.config.pvc.annotations }}
+        annotations:
+{{ toYaml .Values.config.pvc.annotations | indent 8 }}
+{{- end }}
+        labels:
+          app.kubernetes.io/name: {{ .Values.nodeName }}-pvc-h2
+          helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+          app.kubernetes.io/managed-by: {{ .Release.Service }}
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.memory }}
