@@ -49,8 +49,8 @@
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
   vars:
-    component_name: "{{ org.name | lower }}-vaultk8s-job"
-    component_auth: "{{ network.env.type }}{{ org.name | lower }}float"
+    component_name: "{{ org.name | lower }}-vaultk8s-job-float"
+    component_auth: "{{ network.env.type }}{{ name }}float"
     component_type: "{{ org.type | lower }}"
     vault: "{{ org.services.float.vault }}"
     kubernetes: "{{ org.services.float.k8s }}"
@@ -99,6 +99,9 @@
 - name: Create value files for generate-pki-node chart
   include_role:
     name: setup/pki-generator-node
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
   when: org.firewall.enabled
 
 # Create value file for node registration
@@ -145,6 +148,9 @@
 - name: Create value file for bridge
   include_role:
     name: setup/bridge
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
   when: org.firewall.enabled
 
 # Create value file for float 
@@ -154,4 +160,7 @@
   vars:
     k8s: "{{ org.services.float.k8s }}"
     gitops: "{{ org.services.float.gitops }}"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
   when: org.firewall.enabled

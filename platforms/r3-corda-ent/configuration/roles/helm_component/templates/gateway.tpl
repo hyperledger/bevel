@@ -20,7 +20,7 @@ spec:
     metadata:
       namespace: {{ component_ns }}
       labels:
-    prefix: {{ org.name }}
+    prefix: {{ name }}
     image:
       initContainerName: {{ network.docker.url }}/{{ init_container_image }}
       gatewayContainerName: {{ main_container_image }}
@@ -42,7 +42,7 @@ spec:
       role: vault-role
       authPath: {{ component_auth }}
       serviceAccountName: vault-auth
-      certSecretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
       retries: 10
       sleepTimeAfterError: 15
     config:

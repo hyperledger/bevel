@@ -28,10 +28,10 @@ spec:
       privateCertificate: true
     vault:
       address: {{ org.vault.url }}
-      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ name }}
       serviceAccountName: vault-auth
       role: vault-role
-      authPath: cordaent{{ org.name | lower }}
+      authPath: {{ network.env.type }}{{ name }}
       retries: 30
       retryInterval: 10
     service:

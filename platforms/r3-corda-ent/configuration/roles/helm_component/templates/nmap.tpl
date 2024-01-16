@@ -18,7 +18,7 @@ spec:
   values:
     nodeName: {{ org.services.networkmap.name | lower }}
     bashDebug: false
-    prefix: {{ org.name }}
+    prefix: {{ name }}
     metadata:
       namespace: {{ component_ns }}
     storage:
@@ -35,9 +35,9 @@ spec:
     vault:
       address: {{ org.vault.url }}
       role: vault-role
-      authPath: cordaent{{ org.name | lower }}
+      authPath: {{ network.env.type }}{{ name }}
       serviceAccountName: vault-auth
-      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ name }}
       retries: 10
       sleepTimeAfterError: 15
     service:

@@ -19,7 +19,7 @@ spec:
     metadata:
       namespace: {{ component_ns }}
       labels: {}
-    prefix: {{ org.name }}
+    prefix: {{ name }}
     nodeName: {{ component_name }}
     image:
       initContainerName: {{ network.docker.url }}/{{ init_container_image }}
@@ -34,7 +34,7 @@ spec:
       role: vault-role
       authPath: {{ component_auth }}
       serviceAccountName: vault-auth
-      certSecretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
 
     database:
       driverClassName: "org.h2.Driver"
@@ -61,7 +61,6 @@ spec:
           limits: 514Mi
           requests: 514Mi
 
-    storageClass: {{ sc_name }}
     sleepTimeAfterError: 300
     logsContainerEnabled: true
 
